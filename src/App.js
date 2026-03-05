@@ -72,7 +72,6 @@ const styles = {
   btn: (variant = "primary", size = "md") => ({
     padding: size === "lg" ? "14px 32px" : size === "sm" ? "8px 16px" : "10px 22px",
     borderRadius: "10px",
-    border: "none",
     cursor: "pointer",
     fontWeight: "600",
     fontSize: size === "lg" ? "16px" : size === "sm" ? "13px" : "14px",
