@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 
 const TEMPLATES = [
   // FREE
@@ -213,7 +214,7 @@ function LandingPage({ onLogin, onSignup }) {
 }
 
 // ─── AUTH ────────────────────────────────────────────────────────
-function AuthPage({ mode, onAuth, onToggle }) {
+function AuthPage({ mode, onAuth, onToggle, loading, error }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -226,6 +227,16 @@ function AuthPage({ mode, onAuth, onToggle }) {
         <p style={{ color: COLORS.muted, marginBottom: "28px", fontSize: "14px" }}>
           {mode === "login" ? "Sign in to your CVPassport account" : "Start building your Gulf CV today"}
         </p>
+
+        {error && (
+          <div style={{
+            background: "rgba(239,68,68,0.1)", border: `1px solid ${COLORS.danger}`,
+            borderRadius: "8px", padding: "12px 16px", marginBottom: "20px",
+            fontSize: "13px", color: COLORS.danger,
+          }}>
+            {error}
+          </div>
+        )}
 
         {mode === "signup" && (
           <div style={{ marginBottom: "16px" }}>
@@ -245,9 +256,11 @@ function AuthPage({ mode, onAuth, onToggle }) {
             onChange={e => set("password", e.target.value)} />
         </div>
 
-        <button style={{ ...styles.btn("primary", "lg"), width: "100%" }}
+        <button
+          style={{ ...styles.btn("primary", "lg"), width: "100%", opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }}
+          disabled={loading}
           onClick={() => onAuth({ ...form, name: form.name || form.email.split("@")[0] })}>
-          {mode === "login" ? "Sign In" : "Create Free Account"} →
+          {loading ? "Please wait..." : mode === "login" ? "Sign In →" : "Create Free Account →"}
         </button>
 
         <p style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: COLORS.muted }}>
@@ -601,13 +614,64 @@ export default function App() {
   const [page, setPage] = useState("landing");
   const [authMode, setAuthMode] = useState("signup");
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState(null);
 
-  const handleAuth = (userData) => {
-    setUser(userData);
-    setPage("dashboard");
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const name = session.user.user_metadata?.name || session.user.email.split("@")[0];
+        setUser({ name, email: session.user.email, id: session.user.id });
+        setPage("dashboard");
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const name = session.user.user_metadata?.name || session.user.email.split("@")[0];
+        setUser({ name, email: session.user.email, id: session.user.id });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = async (userData) => {
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      if (authMode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: { data: { name: userData.name } },
+        });
+        if (error) throw error;
+        if (data.user) {
+          setUser({ name: userData.name, email: data.user.email, id: data.user.id });
+          setPage("dashboard");
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: userData.email,
+          password: userData.password,
+        });
+        if (error) throw error;
+        const name = data.user.user_metadata?.name || data.user.email.split("@")[0];
+        setUser({ name, email: data.user.email, id: data.user.id });
+        setPage("dashboard");
+      }
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setPage("landing");
   };
@@ -645,7 +709,8 @@ export default function App() {
       )}
       {page === "auth" && (
         <AuthPage mode={authMode} onAuth={handleAuth}
-          onToggle={() => setAuthMode(m => m === "login" ? "signup" : "login")} />
+          onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }}
+          loading={authLoading} error={authError} />
       )}
       {page === "dashboard" && user && (
         <Dashboard user={user} onBuildCV={() => setPage("builder")} onLogout={handleLogout} />
