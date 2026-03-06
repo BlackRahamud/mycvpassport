@@ -568,7 +568,6 @@ function CVBuilder({ user, onBack }) {
             style={{
               padding: "12px 20px", 
               borderRadius: "12px", 
-              border: "none", 
               cursor: "pointer",
               fontWeight: "600", 
               fontSize: "14px", 
@@ -684,7 +683,7 @@ function CVBuilder({ user, onBack }) {
                   <label style={labelStyle}>Key Achievements (one per line)</label>
                   <textarea 
                     style={{...inputStyle, height: "100px", resize: "vertical", padding: "16px"}}
-                    placeholder="• Handled 50+ customer queries daily&#10;• Achieved 98% customer satisfaction score"
+                    placeholder={"• Handled 50+ customer queries daily\n• Achieved 98% customer satisfaction score"}
                     value={exp.points} 
                     onChange={e => {
                       const updated = [...cv.experience];
