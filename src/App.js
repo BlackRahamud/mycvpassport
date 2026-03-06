@@ -915,4 +915,596 @@ function CVBuilder({ user, onBack }) {
                   color: selectedTemplate?.accent || COLORS.accent, 
                   fontSize: "14px", 
                   fontWeight: "800", 
-                  letter
+                  letterSpacing: "1px", 
+                  textTransform: "uppercase", 
+                  marginBottom: "16px",
+                  fontFamily: "'DM Sans', sans-serif"
+                }}>EXPERIENCE</h3>
+                {cv.experience.map((exp, i) => exp.company && (
+                  <div key={i} style={{ marginBottom: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: "700", color: "#fff", fontSize: "15px" }}>{exp.role}</span>
+                      <span style={{ fontSize: "13px", color: "#aaa" }}>{exp.period}</span>
+                    </div>
+                    <div style={{ 
+                      color: selectedTemplate?.accent || COLORS.accent, 
+                      fontSize: "14px", 
+                      marginBottom: "6px",
+                      fontWeight: "500"
+                    }}>{exp.company}</div>
+                    {exp.points && <p style={{ fontSize: "13px", color: "#bbb", margin: 0, lineHeight: "1.7" }}>{exp.points}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {cv.skills && (
+              <div>
+                <h3 style={{ 
+                  color: selectedTemplate?.accent || COLORS.accent, 
+                  fontSize: "14px", 
+                  fontWeight: "800", 
+                  letterSpacing: "1px", 
+                  textTransform: "uppercase", 
+                  marginBottom: "12px",
+                  fontFamily: "'DM Sans', sans-serif"
+                }}>SKILLS</h3>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  {cv.skills.split(",").map((s, i) => (
+                    <span 
+                      key={i} 
+                      style={{ 
+                        padding: "6px 14px", 
+                        background: `${selectedTemplate?.accent || COLORS.accent}22`, 
+                        border: `1px solid ${selectedTemplate?.accent || COLORS.accent}55`, 
+                        borderRadius: "20px", 
+                        fontSize: "13px", 
+                        color: "#ddd" 
+                      }}
+                    >
+                      {s.trim()}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: "40px", display: "flex", gap: "16px", justifyContent: "center" }}>
+            <button 
+              className="premium-btn"
+              style={{
+                padding: "16px 32px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "15px",
+                background: `linear-gradient(135deg, ${COLORS.gold}, #f97316)`,
+                color: "#fff",
+                border: "none",
+                boxShadow: "0 4px 24px rgba(245, 158, 11, 0.4)",
+              }}
+              onClick={() => window.print()}
+            >
+              ⬇ Download PDF
+            </button>
+            <button 
+              className="premium-btn"
+              style={{
+                padding: "16px 32px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "15px",
+                background: "transparent",
+                color: COLORS.text,
+                border: `1px solid ${COLORS.border}`,
+              }} 
+              onClick={() => setStep(1)}
+            >
+              ✏️ Edit CV
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      {step < 6 && (
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "40px" }}>
+          {step > 1 && (
+            <button 
+              className="premium-btn"
+              style={{
+                padding: "14px 28px",
+                borderRadius: "12px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "15px",
+                background: "transparent",
+                color: COLORS.text,
+                border: `1px solid ${COLORS.border}`,
+              }} 
+              onClick={() => setStep(s => s - 1)}
+            >
+              ← Previous
+            </button>
+          )}
+          <button 
+            className="premium-btn"
+            style={{
+              padding: "14px 28px",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "15px",
+              background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+              color: "#fff",
+              border: "none",
+              boxShadow: "0 4px 24px rgba(99, 102, 241, 0.4)",
+              marginLeft: step === 1 ? "auto" : "0"
+            }} 
+            onClick={() => setStep(s => s + 1)}
+          >
+            {step === 5 ? "Preview CV →" : "Next →"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────
+function Dashboard({ user, onBuildCV, onLogout }) {
+  return (
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "60px 20px" }}>
+      {/* Header with glow */}
+      <div style={{ 
+        marginBottom: "48px",
+        position: "relative",
+        padding: "40px",
+        background: COLORS.card,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: "24px",
+        backdropFilter: "blur(20px)",
+        overflow: "hidden"
+      }}>
+        <div style={{
+          position: "absolute",
+          top: "-50%",
+          right: "-10%",
+          width: "400px",
+          height: "400px",
+          background: "radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)",
+          filter: "blur(60px)",
+          pointerEvents: "none"
+        }} />
+        
+        <h1 style={{ 
+          fontSize: "42px", 
+          fontWeight: "900", 
+          marginBottom: "8px",
+          fontFamily: "'Playfair Display', serif",
+          position: "relative",
+          zIndex: 1
+        }}>
+          Welcome back, {user.name} 👋
+        </h1>
+        <p style={{ 
+          color: COLORS.muted, 
+          fontSize: "16px",
+          position: "relative",
+          zIndex: 1
+        }}>Ready to build or update your Gulf CV?</p>
+      </div>
+
+      {/* Stats - Colored top borders */}
+      <div style={{ 
+        display: "grid", 
+        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", 
+        gap: "24px", 
+        marginBottom: "48px" 
+      }}>
+        {[
+          { label: "CVs Created", value: "1", icon: "📄", color: "#6366f1", borderColor: "#6366f1" },
+          { label: "ATS Score", value: "85%", icon: "🎯", color: "#10b981", borderColor: "#10b981" },
+          { label: "Templates", value: "23", icon: "🎨", color: "#f59e0b", borderColor: "#f59e0b" },
+          { label: "Downloads", value: "3", icon: "⬇️", color: "#ec4899", borderColor: "#ec4899" },
+        ].map((stat, i) => (
+          <div 
+            key={i} 
+            style={{ 
+              background: COLORS.card,
+              border: `1px solid ${COLORS.border}`,
+              borderTop: `4px solid ${stat.borderColor}`,
+              borderRadius: "20px",
+              padding: "32px",
+              backdropFilter: "blur(20px)",
+              transition: "transform 0.3s ease",
+              cursor: "default"
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-3px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+          >
+            <div style={{ fontSize: "36px", marginBottom: "16px" }}>{stat.icon}</div>
+            <div style={{ 
+              fontSize: "42px", 
+              fontWeight: "900", 
+              color: stat.color,
+              marginBottom: "8px",
+              fontFamily: "'Playfair Display', serif"
+            }}>{stat.value}</div>
+            <div style={{ fontSize: "15px", color: COLORS.muted }}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Content Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "24px" }}>
+        <div style={{
+          background: COLORS.card,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: "20px",
+          padding: "40px",
+          backdropFilter: "blur(20px)",
+        }}>
+          <h3 style={{ 
+            fontWeight: "800", 
+            marginBottom: "24px",
+            fontSize: "22px",
+            fontFamily: "'Playfair Display', serif"
+          }}>Quick Actions</h3>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <button 
+              className="premium-btn"
+              style={{
+                padding: "20px 28px",
+                borderRadius: "16px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "16px",
+                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                color: "#fff",
+                border: "none",
+                boxShadow: "0 4px 24px rgba(99, 102, 241, 0.4)",
+                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px"
+              }} 
+              onClick={onBuildCV}
+            >
+              <span style={{ fontSize: "24px" }}>📄</span>
+              <span>Build New CV</span>
+            </button>
+            
+            <button 
+              className="premium-btn"
+              style={{
+                padding: "20px 28px",
+                borderRadius: "16px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "16px",
+                background: `linear-gradient(135deg, ${COLORS.gold}, #f97316)`,
+                color: "#fff",
+                border: "none",
+                boxShadow: "0 4px 24px rgba(245, 158, 11, 0.4)",
+                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px"
+              }}
+            >
+              <span style={{ fontSize: "24px" }}>⭐</span>
+              <span>Upgrade to Premium — AED 29/mo</span>
+            </button>
+            
+            <button 
+              className="premium-btn"
+              style={{
+                padding: "20px 28px",
+                borderRadius: "16px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "16px",
+                background: "transparent",
+                color: COLORS.text,
+                border: `1px solid ${COLORS.border}`,
+                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px"
+              }}
+            >
+              <span style={{ fontSize: "24px" }}>🎯</span>
+              <span>Check ATS Score</span>
+            </button>
+          </div>
+        </div>
+
+        <div style={{
+          background: COLORS.card,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: "20px",
+          padding: "40px",
+          backdropFilter: "blur(20px)",
+        }}>
+          <h3 style={{ 
+            fontWeight: "800", 
+            marginBottom: "20px",
+            fontSize: "22px",
+            fontFamily: "'Playfair Display', serif"
+          }}>Your Plan</h3>
+          
+          <div style={{ 
+            display: "inline-block",
+            padding: "6px 14px",
+            borderRadius: "20px",
+            fontSize: "12px",
+            fontWeight: "700",
+            background: "rgba(16,185,129,0.15)",
+            color: COLORS.success,
+            border: `1px solid ${COLORS.success}`,
+            marginBottom: "20px",
+            letterSpacing: "0.5px"
+          }}>
+            FREE PLAN
+          </div>
+          
+          <ul style={{ 
+            color: COLORS.muted, 
+            fontSize: "15px", 
+            paddingLeft: "0", 
+            lineHeight: "2.2",
+            listStyle: "none",
+            marginBottom: "28px"
+          }}>
+            <li style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ color: COLORS.success }}>✓</span> 3 free templates
+            </li>
+            <li style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ color: COLORS.success }}>✓</span> 1 CV download/day
+            </li>
+            <li style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ color: COLORS.success }}>✓</span> Basic ATS check
+            </li>
+          </ul>
+          
+          <button 
+            className="premium-btn"
+            style={{
+              width: "100%",
+              padding: "16px 24px",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "15px",
+              background: `linear-gradient(135deg, ${COLORS.gold}, #f97316)`,
+              color: "#fff",
+              border: "none",
+              boxShadow: "0 4px 24px rgba(245, 158, 11, 0.4)",
+            }}
+          >
+            Upgrade → AED 29/mo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ────────────────────────────────────────────────────
+const extractName = (supabaseUser) =>
+  supabaseUser.user_metadata?.name ||
+  supabaseUser.user_metadata?.full_name ||
+  supabaseUser.email.split("@")[0];
+
+export default function App() {
+  const [page, setPage] = useState("landing");
+  const [authMode, setAuthMode] = useState("signup");
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
+        setPage("dashboard");
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const name = extractName(session.user);
+        setUser(prev => ({
+          name: prev?.name || name,
+          email: session.user.email,
+          id: session.user.id,
+        }));
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = async (userData) => {
+    setAuthError(null);
+    setAuthLoading(true);
+    try {
+      if (authMode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: userData.email,
+          password: userData.password,
+          options: { data: { name: userData.name } },
+        });
+        if (error) throw error;
+        if (data.user) {
+          setUser({ name: userData.name, email: data.user.email, id: data.user.id });
+          setPage("dashboard");
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: userData.email,
+          password: userData.password,
+        });
+        if (error) throw error;
+        const name = data.user.user_metadata?.name || data.user.email.split("@")[0];
+        setUser({ name, email: data.user.email, id: data.user.id });
+        setPage("dashboard");
+      }
+    } catch (err) {
+      setAuthError(err.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setPage("landing");
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#080c14",
+      color: "#f0f0ff",
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      {/* NAV - 70px height with glow */}
+      <nav style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 40px",
+        height: "70px",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
+        background: "rgba(8, 12, 20, 0.95)",
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        backdropFilter: "blur(20px)",
+        boxShadow: "0 1px 0 rgba(99, 102, 241, 0.2)"
+      }}>
+        <div 
+          style={{
+            fontSize: "24px",
+            fontWeight: "900",
+            background: "linear-gradient(135deg, #6366f1 0%, #f59e0b 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "-0.5px",
+            fontFamily: "'Playfair Display', serif",
+            cursor: "pointer"
+          }} 
+          onClick={() => setPage(user ? "dashboard" : "landing")}
+          role="button" 
+          tabIndex={0} 
+          onKeyDown={e => e.key === "Enter" && setPage(user ? "dashboard" : "landing")}
+        >
+          CV Passport
+        </div>
+        
+        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          {user ? (
+            <>
+              <span style={{ color: COLORS.muted, fontSize: "15px" }}>Hi, {user.name}</span>
+              <button 
+                className="premium-btn"
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  background: "transparent",
+                  color: COLORS.text,
+                  border: `1px solid ${COLORS.border}`,
+                }} 
+                onClick={() => setPage("builder")}
+              >
+                Build CV
+              </button>
+              <button 
+                className="premium-btn"
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  color: COLORS.text,
+                  border: `1px solid ${COLORS.border}`,
+                }} 
+                onClick={handleLogout}
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                className="premium-btn"
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  background: "transparent",
+                  color: COLORS.text,
+                  border: `1px solid ${COLORS.border}`,
+                }} 
+                onClick={() => { setAuthMode("login"); setPage("auth"); }}
+              >
+                Sign In
+              </button>
+              <button 
+                className="premium-btn"
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                  color: "#fff",
+                  border: "none",
+                  boxShadow: "0 4px 20px rgba(99, 102, 241, 0.4)",
+                }} 
+                onClick={() => { setAuthMode("signup"); setPage("auth"); }}
+              >
+                Get Started
+              </button>
+            </>
+          )}
+        </div>
+      </nav>
+
+      {/* PAGES */}
+      {page === "landing" && (
+        <LandingPage
+          onLogin={() => { setAuthMode("login"); setPage("auth"); }}
+          onSignup={() => { setAuthMode("signup"); setPage("auth"); }}
+        />
+      )}
+      {page === "auth" && (
+        <AuthPage mode={authMode} onAuth={handleAuth}
+          onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }}
+          loading={authLoading} error={authError} />
+      )}
+      {page === "dashboard" && user && (
+        <Dashboard user={user} onBuildCV={() => setPage("builder")} onLogout={handleLogout} />
+      )}
+      {page === "builder" && (
+        <CVBuilder user={user} onBack={() => setPage(user ? "dashboard" : "landing")} />
+      )}
+    </div>
+  );
+}
