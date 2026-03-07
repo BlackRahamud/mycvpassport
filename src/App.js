@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 
@@ -748,12 +749,13 @@ export default function App() {
       {page==="builder"&&(
         <CVBuilder
           user={user}
-          onBack={()=>setPage(user?"dashboard":"landing")}
+onBack={()=>setPage(user?"dashboard":"landing")}
           initialCV={editingCV?.cv_data||null}
           initialCVId={editingCV?.id||null}
           initialTemplateId={editingCV?.template_id||null}
         />
       )}
+      <Analytics />
     </div>
   );
 }
