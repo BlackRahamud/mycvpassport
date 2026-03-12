@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabaseClient";
-
+import ATSChecker from "./ATSChecker";
 // ─── TEMPLATES ───────────────────────────────────────────────────
 const TEMPLATES = [
   { id: 1, name: "Gulf Classic",   tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",         layout: "banner" },
@@ -737,7 +737,7 @@ export default function App() {
         <div style={S.logo} onClick={()=>setPage(user?"dashboard":"landing")} role="button" tabIndex={0}>CV Passport</div>
         <div style={{display:"flex",gap:"12px",alignItems:"center"}}>
           {user?(
-            <><span style={{color:C.muted,fontSize:"14px"}}>Hi, {user.name}</span><button style={S.btn("outline","sm")} onClick={handleNewCV}>Build CV</button><button style={S.btn("","sm")} onClick={handleLogout}>Sign Out</button></>
+            <><span style={{color:C.muted,fontSize:"14px"}}>Hi, {user.name}</span><button style={S.btn("outline","sm")} onClick={()=>setPage("ats")}>ATS</button></>
           ):(
             <><button style={S.btn("outline","sm")} onClick={()=>{setAuthMode("login");setPage("auth");}}>Sign In</button><button style={S.btn("primary","sm")} onClick={()=>{setAuthMode("signup");setPage("auth");}}>Get Started</button></>
           )}
@@ -746,16 +746,17 @@ export default function App() {
       {page==="landing"&&<LandingPage onLogin={()=>{setAuthMode("login");setPage("auth");}} onSignup={()=>{setAuthMode("signup");setPage("auth");}}/>}
       {page==="auth"&&<AuthPage mode={authMode} onAuth={handleAuth} onToggle={()=>{setAuthMode(m=>m==="login"?"signup":"login");setAuthError(null);}} loading={authLoading} error={authError}/>}
       {page==="dashboard"&&user&&<Dashboard user={user} onBuildCV={handleNewCV} onEditCV={handleEditCV}/>}
-      {page==="builder"&&(
-        <CVBuilder
-          user={user}
-onBack={()=>setPage(user?"dashboard":"landing")}
-          initialCV={editingCV?.cv_data||null}
-          initialCVId={editingCV?.id||null}
-          initialTemplateId={editingCV?.template_id||null}
-        />
-      )}
-      <Analytics />
-    </div>
-  );
+        {page==="builder"&&(
+          <CVBuilder
+            user={user}
+            onBack={()=>setPage(user?"dashboard":"landing")}
+            initialCV={editingCV?.cv_data||null}
+            initialCVId={editingCV?.id||null}
+            initialTemplateId={editingCV?.template_id||null}
+          />
+        )}
+        {page==="ats"&&<ATSChecker />}
+        <Analytics />
+      </div>
+    );
 }
