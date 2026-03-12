@@ -222,7 +222,7 @@ export function pdfCompactPro(doc, cv, W, M) {
   const dark   = [20,  33,  61];
   const mid    = [61,  61,  61];
   const subtle = [136, 136, 136];
-  const white  = [255, 255, 255];
+ // const white  = [255, 255, 255];
 
   const [tr, tg, tb] = teal;
   const [dr, dg, db] = dark;
