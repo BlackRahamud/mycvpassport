@@ -264,7 +264,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   const dark   = [26,  26,  46];
   const mid    = [61,  61,  92];
   const subtle = [122, 122, 154];
-  const white  = [255, 255, 255];
+ // const white  = [255, 255, 255];
 
   const [sr, sg, sb] = slate;
   const [ar, ag, ab] = accent;

@@ -23,7 +23,7 @@ export function PreviewBankingFinance({ cv, t }) {
   const subtle = "#777777";
   const rule   = "#CCCCCC";
   const bg     = "#FFFFFF";
-  const tint   = "#F7F7F7";
+ // const tint = "#F7F7F7";
 
   const HR = () => (
     <div style={{ height: "1px", background: black, margin: "0 0 8px" }} />

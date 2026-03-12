@@ -211,7 +211,7 @@ export function PreviewATSInternational({ cv, t }) {
 // ─── PDF: ATS International ───────────────────────────────────────
 export function pdfATSInternational(doc, cv, W, M) {
   const black  = [0,   0,   0  ];
-  const dark   = [17,  17,  17 ];
+ // const dark   = [17,  17,  17 ];
   const mid    = [51,  51,  51 ];
   const subtle = [102, 102, 102];
 

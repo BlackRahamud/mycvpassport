@@ -8,7 +8,9 @@ const STOP_WORDS = new Set([
   "they","he","she","as","if","then","than","so","up","out","about","into",
   "through","during","including","until","against","among","throughout","within"
 ]);
+
 window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+
 async function extractTextFromPDF(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -21,6 +23,7 @@ async function extractTextFromPDF(file) {
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const content = await page.getTextContent();
+          // eslint-disable-next-line no-loop-func
           content.items.forEach((item) => { text += item.str + " "; });
         }
         resolve(text);
