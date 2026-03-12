@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/react";
+import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
@@ -871,6 +872,7 @@ function LandingPage({ onLogin, onSignup }) {
           {" "}to the Gulf
         </h1>
         <p style={{ fontSize: "18px", color: C.muted, marginBottom: "36px", lineHeight: "1.7" }}>ATS-optimised resumes built for UAE, Saudi & GCC job markets. Free to build. Free to download.</p>
+        <HowItWorks />
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
           <button style={S.btn("primary","lg")} onClick={onSignup}>Build My Resume Free →</button>
           <button style={S.btn("outline","lg")} onClick={onLogin}>Sign In</button>
