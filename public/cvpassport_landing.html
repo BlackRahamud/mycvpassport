@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CVPassport – Build Your Gulf-Ready CV</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080c14;
+    --bg2: #0d1220;
+    --bg3: #111827;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f2f7;
+    --text2: #8b95a8;
+    --text3: #5a6374;
+    --accent: #2dd4bf;
+    --accent2: #0ea5e9;
+    --gold: #f59e0b;
+    --white: #ffffff;
+    --card: rgba(255,255,255,0.04);
+    --card-hover: rgba(255,255,255,0.07);
+    --pill-bg: rgba(45,212,191,0.1);
+    --pill-border: rgba(45,212,191,0.25);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(8,12,20,0.85);
+    border: 1px solid var(--border2);
+    border-radius: 50px;
+    padding: 6px 8px 6px 16px;
+    backdrop-filter: blur(20px);
+    width: min(700px, 94vw);
+  }
+
+  .nav-logo {
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--white);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .globe-icon {
+    width: 26px;
+    height: 26px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 50px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .nav-links a:hover { color: var(--text); background: var(--card); }
+
+  .nav-cta {
+    background: var(--white) !important;
+    color: var(--bg) !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    padding: 7px 18px !important;
+    border-radius: 50px !important;
+    margin-left: 6px;
+  }
+
+  .nav-cta:hover { background: var(--accent) !important; color: var(--bg) !important; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 10%, rgba(14,165,233,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 80% 60%, rgba(45,212,191,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 20% 70%, rgba(245,158,11,0.04) 0%, transparent 60%);
+  }
+
+  .hero-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  .pill {
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 50px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  .pill.gold {
+    background: rgba(245,158,11,0.1);
+    border-color: rgba(245,158,11,0.25);
+    color: var(--gold);
+  }
+
+  .pill.blue {
+    background: rgba(14,165,233,0.1);
+    border-color: rgba(14,165,233,0.25);
+    color: var(--accent2);
+  }
+
+  .hero-title {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    max-width: 800px;
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .hero-title .highlight {
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text2);
+    text-align: center;
+    max-width: 500px;
+    margin-bottom: 36px;
+    position: relative;
+    line-height: 1.7;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 64px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: var(--bg);
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 32px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-primary:hover { transform: translateY(-2px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    font-size: 14px;
+    padding: 14px 24px;
+    border-radius: 50px;
+    border: 1px solid var(--border2);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+  /* ── GLOBE ── */
+  .globe-wrap {
+    position: relative;
+    width: 480px;
+    max-width: 90vw;
+  }
+
+  .globe-canvas {
+    display: block;
+    margin: 0 auto;
+  }
+
+  .globe-badges {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .g-badge {
+    position: absolute;
+    background: rgba(8,12,20,0.9);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+  }
+
+  .g-badge.dubai  { top: 38%; left: 58%; color: var(--gold); border-color: rgba(245,158,11,0.3); }
+  .g-badge.india  { bottom: 35%; left: 54%; color: var(--accent); border-color: var(--pill-border); }
+  .g-badge.uae    { top: 26%; right: 4%; color: var(--accent2); border-color: rgba(14,165,233,0.3); }
+
+  /* ── SOCIAL PROOF STRIP ── */
+  .strip {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg2);
+  }
+
+  .strip-track {
+    display: flex;
+    gap: 56px;
+    align-items: center;
+    animation: scroll-left 22s linear infinite;
+    width: max-content;
+  }
+
+  .strip-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+    color: var(--text3);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  .strip-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  @keyframes scroll-left {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    padding: 96px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .section-title {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  .section-sub {
+    font-size: 17px;
+    color: var(--text2);
+    text-align: center;
+    max-width: 520px;
+    margin: 0 auto 56px;
+    line-height: 1.7;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .step {
+    background: var(--bg2);
+    padding: 36px 32px;
+    position: relative;
+  }
+
+  .step-num {
+    font-family: 'Sora', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--border2);
+    line-height: 1;
+    margin-bottom: 20px;
+    letter-spacing: -0.04em;
+  }
+
+  .step-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .step-icon.teal { background: rgba(45,212,191,0.12); }
+  .step-icon.blue { background: rgba(14,165,233,0.12); }
+  .step-icon.gold { background: rgba(245,158,11,0.12); }
+
+  .step h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .step p {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* ── TEMPLATE SHOWCASE ── */
+  .template-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .tpl-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+  }
+
+  .tpl-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+  }
+
+  .tpl-preview {
+    height: 220px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tpl-preview.navy { background: #0a1628; }
+  .tpl-preview.white-bg { background: #f8f9fa; }
+  .tpl-preview.dark { background: #111111; }
+  .tpl-preview.cream { background: #faf5eb; }
+
+  .tpl-line { height: 6px; border-radius: 3px; }
+  .tpl-line.w-full { width: 100%; }
+  .tpl-line.w-3q { width: 75%; }
+  .tpl-line.w-half { width: 50%; }
+  .tpl-line.w-2q { width: 60%; }
+  .tpl-line.thin { height: 4px; }
+
+  .tpl-info {
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tpl-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .tpl-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 50px;
+  }
+
+  .tpl-badge.free {
+    background: rgba(45,212,191,0.1);
+    color: var(--accent);
+    border: 1px solid var(--pill-border);
+  }
+
+  .tpl-badge.pro {
+    background: rgba(245,158,11,0.1);
+    color: var(--gold);
+    border: 1px solid rgba(245,158,11,0.25);
+  }
+
+  /* ── FEATURES ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .feat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    transition: all 0.25s;
+  }
+
+  .feat-card:hover {
+    background: var(--card-hover);
+    border-color: var(--border2);
+  }
+
+  .feat-card.featured {
+    background: linear-gradient(135deg, rgba(14,165,233,0.08), rgba(45,212,191,0.05));
+    border-color: rgba(45,212,191,0.2);
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .feat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .feat-icon.t  { background: rgba(45,212,191,0.12); }
+  .feat-icon.b  { background: rgba(14,165,233,0.12); }
+  .feat-icon.g  { background: rgba(245,158,11,0.12); }
+  .feat-icon.p  { background: rgba(139,92,246,0.12); }
+
+  .feat-card h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .feat-card p {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .ats-score-demo {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  .score-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) 0deg 302deg, var(--border2) 302deg 360deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .score-inner {
+    width: 60px;
+    height: 60px;
+    background: var(--bg3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Sora', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+
+  .score-bar-bg {
+    flex: 1;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin: 0 10px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  /* ── PRICING ── */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .price-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 36px;
+    position: relative;
+  }
+
+  .price-card.pro {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(45,212,191,0.06), rgba(14,165,233,0.04));
+  }
+
+  .price-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 50px;
+    white-space: nowrap;
+  }
+
+  .price-plan {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .price-amount {
+    font-family: 'Sora', sans-serif;
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .price-amount span {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text2);
+    vertical-align: super;
+  }
+
+  .price-period {
+    font-size: 13px;
+    color: var(--text3);
+    margin-bottom: 28px;
+  }
+
+  .price-divider {
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 24px;
+  }
+
+  .price-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .price-features li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  .check {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(45,212,191,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .cross {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+
+  /* ── FAQ ── */
+  .faq-list {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .faq-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .faq-item:hover { border-color: var(--border2); }
+  .faq-item.open { border-color: rgba(45,212,191,0.3); }
+
+  .faq-q {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 15px;
+    font-weight: 500;
+    gap: 16px;
+  }
+
+  .faq-arrow {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--text3);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .faq-item.open .faq-arrow { transform: rotate(180deg); color: var(--accent); }
+
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+
+  .faq-item.open .faq-a { max-height: 200px; }
+  .faq-a-inner { padding: 0 24px 20px; }
+
+  /* ── CTA SECTION ── */
+  .cta-section {
+    text-align: center;
+    padding: 96px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(45,212,191,0.08) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    max-width: 600px;
+    margin: 0 auto 16px;
+    line-height: 1.1;
+  }
+
+  .cta-section p {
+    font-size: 17px;
+    color: var(--text2);
+    max-width: 440px;
+    margin: 0 auto 36px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1100px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .footer-logo {
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-size: 13px;
+    color: var(--text3);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--text2); }
+
+  .footer-copy {
+    font-size: 13px;
+    color: var(--text3);
+  }
+
+  /* ── DIVIDER ── */
+  .full-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .steps { grid-template-columns: 1fr; }
+    .template-grid { grid-template-columns: repeat(2, 1fr); }
+    .features-grid { grid-template-columns: 1fr; }
+    .feat-card.featured { grid-column: span 1; grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    nav .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="globe-icon">✈</div>
+    CVPassport
+  </div>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#templates">Templates</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#" class="nav-cta">Build Free CV</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg"></div>
+
+  <div class="hero-pills">
+    <span class="pill blue">✦ Built for UAE & GCC jobs</span>
+    <span class="pill">ATS-optimised templates</span>
+    <span class="pill gold">🇮🇳 India · 🇦🇪 UAE · Gulf</span>
+  </div>
+
+  <h1 class="hero-title">
+    Your <span class="highlight">Gulf-ready CV</span><br>
+    built in minutes
+  </h1>
+
+  <p class="hero-sub">
+    Professional CV templates designed for Indian & South Asian expats landing jobs in Dubai, Abu Dhabi & the GCC.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#" class="btn-primary">Build My Free CV →</a>
+    <a href="#templates" class="btn-ghost">See Templates</a>
+  </div>
+
+  <!-- GLOBE SVG -->
+  <div class="globe-wrap">
+    <svg class="globe-canvas" width="480" height="340" viewBox="0 0 480 340" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="gGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="gCore" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#1e3a5f"/>
+          <stop offset="100%" stop-color="#080c14"/>
+        </radialGradient>
+        <clipPath id="globeClip">
+          <circle cx="240" cy="170" r="130"/>
+        </clipPath>
+      </defs>
+
+      <!-- glow bg -->
+      <ellipse cx="240" cy="190" rx="200" ry="120" fill="url(#gGlow)"/>
+
+      <!-- globe body -->
+      <circle cx="240" cy="170" r="130" fill="url(#gCore)" stroke="#1e3a5f" stroke-width="1.5"/>
+
+      <!-- latitude lines -->
+      <g clip-path="url(#globeClip)" stroke="#1e3a5f" stroke-width="0.8" fill="none" opacity="0.6">
+        <ellipse cx="240" cy="170" rx="130" ry="30"/>
+        <ellipse cx="240" cy="170" rx="130" ry="60"/>
+        <ellipse cx="240" cy="170" rx="130" ry="100"/>
+        <ellipse cx="240" cy="170" rx="130" ry="130"/>
+      </g>
+
+      <!-- longitude lines -->
+      <g clip-path="url(#globeClip)" stroke="#1e3a5f" stroke-width="0.8" fill="none" opacity="0.6">
+        <line x1="240" y1="40" x2="240" y2="300"/>
+        <ellipse cx="240" cy="170" rx="50" ry="130"/>
+        <ellipse cx="240" cy="170" rx="100" ry="130"/>
+      </g>
+
+      <!-- India landmass (stylised) -->
+      <g clip-path="url(#globeClip)">
+        <path d="M255 155 L268 148 L278 158 L280 175 L272 188 L260 195 L250 185 L248 170 Z" fill="#1e4a3a" stroke="#2dd4bf" stroke-width="0.5" opacity="0.7"/>
+        <!-- Middle East -->
+        <path d="M195 145 L215 138 L228 145 L225 162 L210 168 L198 160 Z" fill="#1e3a4a" stroke="#0ea5e9" stroke-width="0.5" opacity="0.7"/>
+        <!-- South Asia extra -->
+        <path d="M260 148 L270 143 L276 150 L272 158 L265 155 Z" fill="#1e4a3a" opacity="0.5"/>
+      </g>
+
+      <!-- Flight arc — India to UAE -->
+      <g>
+        <path d="M263 175 Q220 130 212 158" stroke="#2dd4bf" stroke-width="1.5" fill="none" stroke-dasharray="4 3" opacity="0.8"/>
+        <!-- plane icon on arc -->
+        <circle cx="237" cy="143" r="4" fill="#2dd4bf" opacity="0.9"/>
+        <circle cx="237" cy="143" r="7" fill="#2dd4bf" opacity="0.2"/>
+      </g>
+
+      <!-- dot India -->
+      <circle cx="263" cy="175" r="4" fill="#2dd4bf"/>
+      <circle cx="263" cy="175" r="8" fill="#2dd4bf" opacity="0.15"/>
+
+      <!-- dot UAE -->
+      <circle cx="212" cy="158" r="4" fill="#f59e0b"/>
+      <circle cx="212" cy="158" r="8" fill="#f59e0b" opacity="0.15"/>
+
+      <!-- outer orbit ring -->
+      <ellipse cx="240" cy="190" rx="190" ry="55" fill="none" stroke="#1e3a5f" stroke-width="1" stroke-dasharray="6 4" opacity="0.4"/>
+
+      <!-- orbiting plane -->
+      <g transform="rotate(-15, 240, 190)">
+        <ellipse cx="240" cy="135" rx="6" ry="3" fill="#0ea5e9" opacity="0.9"/>
+        <ellipse cx="240" cy="135" rx="12" ry="6" fill="#0ea5e9" opacity="0.15"/>
+      </g>
+
+      <!-- globe shine -->
+      <circle cx="200" cy="130" r="40" fill="white" opacity="0.02"/>
+    </svg>
+
+    <div class="globe-badges">
+      <div class="g-badge dubai">📍 Dubai, UAE</div>
+      <div class="g-badge india">🇮🇳 India</div>
+      <div class="g-badge uae">🏦 GCC Banks</div>
+    </div>
+  </div>
+</div>
+
+<!-- SOCIAL PROOF STRIP -->
+<div class="strip">
+  <div class="strip-track">
+    <div class="strip-item"><span class="strip-dot"></span>ADIB · Abu Dhabi Islamic Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>FAB · First Abu Dhabi Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>RAKBANK · UAE</div>
+    <div class="strip-item"><span class="strip-dot"></span>Mashreq Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>Dubai Islamic Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>CBD · Commercial Bank of Dubai</div>
+    <div class="strip-item"><span class="strip-dot"></span>NBQ · National Bank of Umm Al Qaiwain</div>
+    <div class="strip-item"><span class="strip-dot"></span>Ajman Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>Bank of Sharjah</div>
+    <!-- duplicate for loop -->
+    <div class="strip-item"><span class="strip-dot"></span>ADIB · Abu Dhabi Islamic Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>FAB · First Abu Dhabi Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>RAKBANK · UAE</div>
+    <div class="strip-item"><span class="strip-dot"></span>Mashreq Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>Dubai Islamic Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>CBD · Commercial Bank of Dubai</div>
+    <div class="strip-item"><span class="strip-dot"></span>NBQ · National Bank of Umm Al Qaiwain</div>
+    <div class="strip-item"><span class="strip-dot"></span>Ajman Bank</div>
+    <div class="strip-item"><span class="strip-dot"></span>Bank of Sharjah</div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <p class="section-label">How it works</p>
+  <h2 class="section-title">From blank to hired in 3 steps</h2>
+  <p class="section-sub">No design skills needed. No confusing forms. Just your details and a job-winning CV ready to send.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-icon teal">📝</div>
+      <h3>Enter your details</h3>
+      <p>Fill in your experience, education and skills. CVPassport guides you section by section — even suggests what to write.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-icon blue">🎨</div>
+      <h3>Pick a template</h3>
+      <p>Choose from 11 professional templates — including Banking & Finance and Gulf Executive, built for UAE recruiters.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-icon gold">📤</div>
+      <h3>Download & apply</h3>
+      <p>Export your CV as a polished PDF instantly. ATS-checked, recruiter-approved, and ready to send today.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- TEMPLATES -->
+<section id="templates">
+  <p class="section-label">Templates</p>
+  <h2 class="section-title">11 templates built for the Gulf</h2>
+  <p class="section-sub">Every template is ATS-friendly and designed to pass UAE & GCC screening systems.</p>
+
+  <div class="template-grid">
+    <!-- T1 Free -->
+    <div class="tpl-card">
+      <div class="tpl-preview navy">
+        <div class="tpl-line w-half" style="background:#2dd4bf; height:8px; border-radius:4px;"></div>
+        <div class="tpl-line w-3q thin" style="background:#1e3a5f;"></div>
+        <div style="height:8px;"></div>
+        <div class="tpl-line w-full thin" style="background:#1e3a5f;"></div>
+        <div class="tpl-line w-full thin" style="background:#1e3a5f;"></div>
+        <div class="tpl-line w-2q thin" style="background:#1e3a5f;"></div>
+        <div style="height:8px;"></div>
+        <div class="tpl-line w-3q thin" style="background:#1e3a5f;"></div>
+        <div class="tpl-line w-full thin" style="background:#1e3a5f;"></div>
+        <div class="tpl-line w-full thin" style="background:#1e3a5f;"></div>
+      </div>
+      <div class="tpl-info">
+        <span class="tpl-name">Classic</span>
+        <span class="tpl-badge free">Free</span>
+      </div>
+    </div>
+
+    <!-- T2 Free -->
+    <div class="tpl-card">
+      <div class="tpl-preview white-bg" style="flex-direction: row; gap: 10px;">
+        <div style="width: 35%; display:flex; flex-direction:column; gap:5px; background:#e8f4fd; padding:8px; border-radius:6px;">
+          <div class="tpl-line w-full thin" style="background:#2dd4bf;"></div>
+          <div class="tpl-line w-3q thin" style="background:#b3d9f0;"></div>
+          <div class="tpl-line w-full thin" style="background:#b3d9f0;"></div>
+          <div class="tpl-line w-2q thin" style="background:#b3d9f0;"></div>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
+          <div class="tpl-line w-3q" style="background:#333; height:7px;"></div>
+          <div class="tpl-line w-half thin" style="background:#999;"></div>
+          <div style="height:6px;"></div>
+          <div class="tpl-line w-full thin" style="background:#ccc;"></div>
+          <div class="tpl-line w-full thin" style="background:#ccc;"></div>
+          <div class="tpl-line w-2q thin" style="background:#ccc;"></div>
+        </div>
+      </div>
+      <div class="tpl-info">
+        <span class="tpl-name">Two Column</span>
+        <span class="tpl-badge free">Free</span>
+      </div>
+    </div>
+
+    <!-- T5 Gulf Executive -->
+    <div class="tpl-card">
+      <div class="tpl-preview dark">
+        <div style="height:40px; background:linear-gradient(90deg,#1e3a5f,#0a1628); border-radius:6px; margin-bottom:8px; display:flex; align-items:center; padding:0 8px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:#f59e0b;"></div>
+          <div style="flex:1; margin-left:8px;">
+            <div style="height:5px;width:70%;background:#e2e8f0;border-radius:3px;margin-bottom:4px;"></div>
+            <div style="height:4px;width:50%;background:#4a5568;border-radius:2px;"></div>
+          </div>
+        </div>
+        <div class="tpl-line w-2q thin" style="background:#f59e0b; height:3px;"></div>
+        <div style="height:6px;"></div>
+        <div class="tpl-line w-full thin" style="background:#2d3748;"></div>
+        <div class="tpl-line w-full thin" style="background:#2d3748;"></div>
+        <div class="tpl-line w-3q thin" style="background:#2d3748;"></div>
+      </div>
+      <div class="tpl-info">
+        <span class="tpl-name">Gulf Executive</span>
+        <span class="tpl-badge pro">Pro</span>
+      </div>
+    </div>
+
+    <!-- T6 Banking -->
+    <div class="tpl-card">
+      <div class="tpl-preview white-bg">
+        <div style="background:#1a365d; height:36px; border-radius:6px; margin-bottom:8px; display:flex;align-items:center;padding:0 8px;">
+          <div style="height:5px;width:60%;background:#e2e8f0;border-radius:3px;"></div>
+        </div>
+        <div class="tpl-line w-half thin" style="background:#1a365d; height:3px;"></div>
+        <div style="height:6px;"></div>
+        <div class="tpl-line w-full thin" style="background:#c3c9d4;"></div>
+        <div class="tpl-line w-full thin" style="background:#c3c9d4;"></div>
+        <div class="tpl-line w-2q thin" style="background:#c3c9d4;"></div>
+      </div>
+      <div class="tpl-info">
+        <span class="tpl-name">Banking & Finance</span>
+        <span class="tpl-badge pro">Pro</span>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center; margin-top:24px; font-size:14px; color:var(--text3);">+ 7 more templates including Hospitality, Tech & IT, ATS International, Creative Sidebar →</p>
+</section>
+
+<hr class="full-divider">
+
+<!-- FEATURES -->
+<section id="features">
+  <p class="section-label">Features</p>
+  <h2 class="section-title">Everything you need to get hired</h2>
+  <p class="section-sub">Tools built specifically for expats navigating the Gulf job market.</p>
+
+  <div class="features-grid">
+    <!-- ATS featured wide card -->
+    <div class="feat-card featured">
+      <div>
+        <div class="feat-icon t">🎯</div>
+        <h3>ATS Score Checker</h3>
+        <p>See exactly how your CV scores against UAE employer screening systems. Get a score out of 100 with actionable fixes — Impact, Brevity, Style and Sections.</p>
+        <span class="tpl-badge pro" style="display:inline-block; margin-top:12px;">Pro Feature</span>
+      </div>
+      <div class="ats-score-demo">
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+          <div class="score-circle">
+            <div class="score-inner">84</div>
+          </div>
+          <div>
+            <div style="font-size:18px; font-weight:700; font-family:'Sora',sans-serif; color:var(--accent);">Good</div>
+            <div style="font-size:12px; color:var(--text3);">ATS Score</div>
+          </div>
+        </div>
+        <div class="score-row">
+          <span style="color:var(--text2);">Impact</span>
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:90%;"></div></div>
+          <span style="color:var(--text3);font-size:12px;">90</span>
+        </div>
+        <div class="score-row">
+          <span style="color:var(--text2);">Brevity</span>
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:75%;"></div></div>
+          <span style="color:var(--text3);font-size:12px;">75</span>
+        </div>
+        <div class="score-row">
+          <span style="color:var(--text2);">Style</span>
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:88%;"></div></div>
+          <span style="color:var(--text3);font-size:12px;">88</span>
+        </div>
+        <div class="score-row">
+          <span style="color:var(--text2);">Sections</span>
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:80%;"></div></div>
+          <span style="color:var(--text3);font-size:12px;">80</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon b">🌍</div>
+      <h3>Arabic CV Export</h3>
+      <p>One-click export in Arabic format — right-to-left, UAE-localised. Essential for government and Islamic banking roles.</p>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon g">⚡</div>
+      <h3>LinkedIn Bio Generator</h3>
+      <p>Turn your CV into a punchy LinkedIn summary in seconds. Optimised for recruiter search in the GCC market.</p>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon t">📄</div>
+      <h3>Cover Letter Builder</h3>
+      <p>Matching cover letters for every template. Pre-written Gulf industry copy for Banking, Real Estate and Hospitality.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- PRICING -->
+<section id="pricing">
+  <p class="section-label">Pricing</p>
+  <h2 class="section-title">Start free. Upgrade when you're ready.</h2>
+  <p class="section-sub">No credit card. No hidden fees. Cancel any time.</p>
+
+  <div class="pricing-grid">
+    <!-- FREE -->
+    <div class="price-card">
+      <div class="price-plan">Free</div>
+      <div class="price-amount">AED 0</div>
+      <div class="price-period">forever free</div>
+      <div class="price-divider"></div>
+      <ul class="price-features">
+        <li><span class="check">✓</span> 3 free templates</li>
+        <li><span class="check">✓</span> PDF download (3 free)</li>
+        <li><span class="check">✓</span> Save 1 CV</li>
+        <li><span class="cross">×</span> ATS Score Checker</li>
+        <li><span class="cross">×</span> All 11 templates</li>
+        <li><span class="cross">×</span> Arabic CV export</li>
+        <li><span class="cross">×</span> LinkedIn Bio Generator</li>
+      </ul>
+      <a href="#" class="btn-ghost" style="display:block; text-align:center;">Get Started Free</a>
+    </div>
+
+    <!-- PRO -->
+    <div class="price-card pro">
+      <div class="price-badge">Most Popular</div>
+      <div class="price-plan">Pro</div>
+      <div class="price-amount"><span>AED</span> 29</div>
+      <div class="price-period">per month · or AED 199/year</div>
+      <div class="price-divider"></div>
+      <ul class="price-features">
+        <li><span class="check">✓</span> All 11 premium templates</li>
+        <li><span class="check">✓</span> Unlimited PDF downloads</li>
+        <li><span class="check">✓</span> Unlimited CV saves</li>
+        <li><span class="check">✓</span> ATS Score Checker</li>
+        <li><span class="check">✓</span> Arabic CV export</li>
+        <li><span class="check">✓</span> LinkedIn Bio Generator</li>
+        <li><span class="check">✓</span> Cover letter builder</li>
+      </ul>
+      <a href="#" class="btn-primary" style="display:block; text-align:center;">Get Pro →</a>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider">
+
+<!-- FAQ -->
+<section id="faq">
+  <p class="section-label">FAQ</p>
+  <h2 class="section-title">Questions answered</h2>
+  <p class="section-sub" style="margin-bottom:40px;">Everything you need to know before you start.</p>
+
+  <div class="faq-list">
+    <div class="faq-item open" onclick="toggleFaq(this)">
+      <div class="faq-q">Is CVPassport really free to start?<span class="faq-arrow">▲</span></div>
+      <div class="faq-a"><div class="faq-a-inner">Yes — you can build and download your CV completely free using any of the 3 free templates. No credit card needed. Upgrade to Pro only when you want access to premium templates and the ATS checker.</div></div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Is CVPassport good for UAE banking jobs?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a"><div class="faq-a-inner">Yes — the Banking & Finance template is designed specifically for roles at UAE banks like ADIB, FAB, Mashreq, RAKBANK and CBD. It follows the format UAE HR teams expect.</div></div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">What is ATS and why does it matter?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a"><div class="faq-a-inner">ATS (Applicant Tracking System) is the software UAE companies use to screen CVs before a human sees them. A poorly formatted CV gets rejected automatically. CVPassport's templates are built to pass these systems.</div></div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Can I use CVPassport if I'm applying from India?<span class="faq-arrow">▼</span></div>
+      <div class="faq-a"><div class="faq-a-inner">Absolutely. CVPassport is built specifically for Indian and South Asian professionals applying to Gulf jobs. We accept both INR and AED payments for Pro. The templates are formatted to Gulf employer standards.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA SECTION -->
+<div class="cta-section">
+  <div class="cta-glow"></div>
+  <h2>Ready to land your <span style="background:linear-gradient(90deg,var(--accent2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Gulf dream job?</span></h2>
+  <p>Join thousands of Indian expats who built their CV with CVPassport and got hired in the UAE & GCC.</p>
+  <a href="#" class="btn-primary">Build My Free CV →</a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <div class="globe-icon" style="width:22px;height:22px;font-size:11px;">✈</div>
+    CVPassport
+  </div>
+  <ul class="footer-links">
+    <li><a href="#">Templates</a></li>
+    <li><a href="#">Pricing</a></li>
+    <li><a href="#">Blog</a></li>
+    <li><a href="#">Support</a></li>
+  </ul>
+  <span class="footer-copy">© 2026 CVPassport · Made for Gulf job seekers</span>
+</footer>
+
+<script>
+function toggleFaq(el) {
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => {
+    i.classList.remove('open');
+    i.querySelector('.faq-arrow').textContent = '▼';
+  });
+  if (!isOpen) {
+    el.classList.add('open');
+    el.querySelector('.faq-arrow').textContent = '▲';
+  }
+}
+</script>
+
+</body>
+</html>
