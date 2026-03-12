@@ -51,7 +51,6 @@ export function PreviewHospitality({ cv, t }) {
         padding: "26px 32px 20px", textAlign: "center",
         position: "relative",
       }}>
-        {/* Decorative top line */}
         <div style={{ height: "1px", background: `${warm}66`, marginBottom: "16px" }} />
 
         <h1 style={{
@@ -66,7 +65,6 @@ export function PreviewHospitality({ cv, t }) {
           fontFamily: "Arial, sans-serif",
         }}>{cv.title || "Hospitality Professional"}</p>
 
-        {/* Contact row — centered */}
         <div style={{
           display: "flex", justifyContent: "center", gap: "16px",
           flexWrap: "wrap", fontSize: "9px", color: "#ddd",
@@ -77,7 +75,6 @@ export function PreviewHospitality({ cv, t }) {
           {cv.location && <span>📍 {cv.location}</span>}
         </div>
 
-        {/* Gulf info */}
         {(cv.nationality || cv.visaStatus || cv.dob || cv.gender || cv.maritalStatus) && (
           <div style={{
             display: "flex", justifyContent: "center", gap: "12px",
@@ -92,14 +89,12 @@ export function PreviewHospitality({ cv, t }) {
           </div>
         )}
 
-        {/* Decorative bottom line */}
         <div style={{ height: "1px", background: `${warm}66`, marginTop: "16px" }} />
       </div>
 
       {/* ── Body ── */}
       <div style={{ padding: "16px 28px 24px" }}>
 
-        {/* Summary */}
         {cv.summary && (
           <>
             <SectionTitle>Professional Profile</SectionTitle>
@@ -111,7 +106,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* Core Skills — warm tag style */}
         {skillList.length > 0 && (
           <>
             <SectionTitle>Core Skills</SectionTitle>
@@ -127,7 +121,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* Experience */}
         {cv.experience.some(e => e.company) && (
           <>
             <SectionTitle>Work Experience</SectionTitle>
@@ -161,7 +154,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* Education */}
         {cv.education.some(e => e.school) && (
           <>
             <SectionTitle>Education</SectionTitle>
@@ -181,7 +173,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* Certifications */}
         {certList.length > 0 && (
           <>
             <SectionTitle>Certifications</SectionTitle>
@@ -197,7 +188,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* Technical Skills */}
         {techList.length > 0 && (
           <>
             <SectionTitle>Technical Skills</SectionTitle>
@@ -212,7 +202,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* Languages */}
         {cv.languages && (
           <>
             <SectionTitle>Languages</SectionTitle>
@@ -220,7 +209,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* Additional Information */}
         {(cv.availability || cv.drivingLicense || cv.willingToRelocate) && (
           <>
             <SectionTitle>Additional Information</SectionTitle>
@@ -232,7 +220,6 @@ export function PreviewHospitality({ cv, t }) {
           </>
         )}
 
-        {/* References */}
         {cv.references && (
           <>
             <SectionTitle>References</SectionTitle>
@@ -251,37 +238,30 @@ export function pdfHospitality(doc, cv, W, M) {
   const dark   = [44,  24,  16];
   const mid    = [74,  55,  40];
   const subtle = [158, 128, 112];
-  const white  = [255, 255, 255];
+  // const white  = [255, 255, 255];
 
   const [br, bg, bb] = brown;
   const [wr, wg, wb] = warm;
 
-  // Header gradient (simulate with solid)
   doc.setFillColor(br, bg, bb);
   doc.rect(0, 0, W, 40, "F");
 
-  // Warm rule top
   doc.setFillColor(wr, wg, wb);
   doc.rect(0, 0, W, 1.5, "F");
-  // Warm rule bottom
   doc.setFillColor(wr, wg, wb);
   doc.rect(0, 39, W, 1.5, "F");
 
-  // Name — centered
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(20); doc.setFont("helvetica", "bold");
   doc.text(cv.name || "Your Name", W / 2, 13, { align: "center" });
 
-  // Title — centered
   doc.setTextColor(wr, wg, wb);
   doc.setFontSize(9.5); doc.setFont("helvetica", "normal");
   doc.text((cv.title || "Hospitality Professional").toUpperCase(), W / 2, 19, { align: "center" });
 
-  // Contact — centered
   doc.setFontSize(7.5); doc.setTextColor(220, 220, 220);
   doc.text([cv.email, cv.phone, cv.location].filter(Boolean).join("   |   "), W / 2, 26, { align: "center" });
 
-  // Gulf info
   const gparts = [];
   if (cv.nationality)   gparts.push(`Nationality: ${cv.nationality}`);
   if (cv.visaStatus)    gparts.push(`Visa: ${cv.visaStatus}`);
@@ -296,7 +276,6 @@ export function pdfHospitality(doc, cv, W, M) {
   let y = 48;
 
   const sectionTitle = (title) => {
-    // centered with lines either side
     doc.setDrawColor(wr, wg, wb); doc.setLineWidth(0.3);
     const titleW = doc.getTextWidth(title.toUpperCase()) + 10;
     const lineStart = (W - titleW) / 2 - 20;
@@ -328,7 +307,6 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.experience.some(e => e.company)) {
     sectionTitle("Work Experience");
     cv.experience.filter(e => e.company).forEach(e => {
-      // warm card background
       doc.setFillColor(253, 248, 243);
       doc.roundedRect(M, y - 2, W - M * 2, 18, 2, 2, "F");
       doc.setFillColor(wr, wg, wb);

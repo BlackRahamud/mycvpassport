@@ -257,7 +257,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   const dark   = [43,  43,  43];
   const charco = [61,  61,  61];
   const subtle = [136, 136, 136];
-  const white  = [255, 255, 255];
+  // const white  = [255, 255, 255];
 
   const [cr, cg, cb] = coral;
   const [dr, dg, db] = dark;
@@ -329,7 +329,6 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
     cv.skills.split(",").forEach((s, i) => {
       if (!s.trim()) return;
       doc.text(s.trim(), 5, sy); sy += 3.5;
-      doc.setFillColor(255, 255, 255, 0.1);
       doc.setFillColor(60, 60, 60);
       doc.rect(5, sy, sideW - 12, 2.5, "F");
       doc.setFillColor(cr, cg, cb);
@@ -388,7 +387,6 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.experience.some(e => e.company)) {
     mainTitle("Work Experience");
     cv.experience.filter(e => e.company).forEach(e => {
-      // coral left bar
       doc.setFillColor(cr, cg, cb);
       doc.rect(rx, y - 1, 2, 12, "F");
 
@@ -423,7 +421,6 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       doc.setTextColor(...dark);
       doc.text(e.degree || "", rx, y);
 
-      // year pill
       doc.setFillColor(cr, cg, cb);
       const yw = doc.getTextWidth(e.year || "") + 6;
       doc.roundedRect(rx + rw - yw, y - 3, yw, 5, 2, 2, "F");
