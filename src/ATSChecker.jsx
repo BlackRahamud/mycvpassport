@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { getCurrentUserProfile, parseResumeToStructuredJSON, joinWaitlist } from "./supabaseClient";
+import { useState, useEffect } from "react";
+import { getCurrentUserProfile, joinWaitlist } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
-// Using standard Lucide-style icons as requested (assuming Lucide is available or using emojis for stability)
-import { Target, AlertCircle, Eye, CheckCircle2 } from "lucide-react";
+import { Target, Eye, CheckCircle2 } from "lucide-react";
 
 // Executive palette (Abu Dhabi / deep blues & whites)
 const EXEC = {
@@ -62,7 +61,7 @@ function ReadinessGauge({ score }) {
   );
 }
 
-// --- Text Extractor Helpers (Preserved) ---
+// --- Text Extractor Helpers ---
 async function extractText(file) {
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf")) return extractFromPDF(file);
@@ -81,7 +80,8 @@ async function extractFromPDF(file) {
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        content.items.forEach(item => text += item.str + " ");
+        const pageText = content.items.map(item => item.str).join(" ");
+        text += pageText + " ";
       }
       resolve(text);
     };
@@ -171,21 +171,18 @@ export default function ATSChecker() {
     setError("");
     setLoading(true);
     setResult(null);
+    setLoadingStage(0);
 
-    // Theater Timer
-    let stage = 0;
-    const interval = setInterval(() => {
-      stage++;
-      if (stage < 3) setLoadingStage(stage);
-      else clearInterval(interval);
-    }, 1000);
+    const stages = [0, 1, 2];
+    stages.forEach((stage) => {
+      setTimeout(() => setLoadingStage(stage), stage * 1000);
+    });
 
     try {
       const resumeText = await extractText(resumeFile);
       const plainLength = resumeText.replace(/\s+/g, " ").trim().length;
 
       if (plainLength < 200) {
-        clearInterval(interval);
         setError("Scanned PDF Detected: Please upload a text-based PDF.");
         setLoading(false);
         return;
@@ -196,7 +193,6 @@ export default function ATSChecker() {
       const sec = analyzeSections(normalized);
       const fmt = analyzeFormatting(normalized);
 
-      // Delay result to match theater
       setTimeout(() => {
         setResult({
           kw, sec, fmt,
@@ -209,7 +205,6 @@ export default function ATSChecker() {
       }, 3000);
 
     } catch (err) {
-      clearInterval(interval);
       setError(err.message);
       setLoading(false);
     }
@@ -260,7 +255,6 @@ export default function ATSChecker() {
           {/* Glassmorphism Grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20, marginTop: 40 }}>
             
-            {/* Keywords */}
             <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <Target size={18} color={EXEC.teal} />
@@ -270,7 +264,6 @@ export default function ATSChecker() {
               <p style={{ fontSize: 12, color: EXEC.muted, marginTop: 8 }}>Analysis of essential industry terminology matched.</p>
             </div>
 
-            {/* Sections */}
             <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <CheckCircle2 size={18} color={EXEC.teal} />
@@ -280,7 +273,6 @@ export default function ATSChecker() {
               <p style={{ fontSize: 12, color: EXEC.muted, marginTop: 8 }}>Validation of core structural pillars and headings.</p>
             </div>
 
-            {/* Formatting */}
             <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <Eye size={18} color={EXEC.teal} />
@@ -291,14 +283,14 @@ export default function ATSChecker() {
             </div>
           </div>
 
-          {/* Visual Proof Hook (Free Users) */}
+          {/* Visual Proof Hook (Free Users Only) */}
           {!isPro && (
             <div style={{ marginTop: 40 }}>
               <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 20 }}>ATS Visibility Check</h3>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                 <div style={{ background: "#fff", padding: 10, borderRadius: 12, height: 300, overflow: "hidden" }}>
                   <div style={{ color: "#000", fontSize: 10, fontWeight: 800, marginBottom: 5 }}>Human View (Formatted)</div>
-                  <iframe src={result.pdfPreviewUrl} style={{ width: "100%", height: "100%", border: "none" }} />
+                  <iframe title="CV Human View" src={result.pdfPreviewUrl} style={{ width: "100%", height: "100%", border: "none" }} />
                 </div>
                 <div style={{ background: "#000", padding: 15, borderRadius: 12, height: 300, position: "relative", border: "1px solid #ef4444" }}>
                   <div style={{ color: "#ef4444", fontSize: 10, fontWeight: 800, marginBottom: 5 }}>ATS View (Raw Text) — ❌ Layout Interference</div>
@@ -310,7 +302,7 @@ export default function ATSChecker() {
 
           {/* Pricing Wall */}
           <div style={{ marginTop: 40, padding: 32, borderRadius: 24, background: "linear-gradient(135deg, #1e3a5f 0%, #0D1B2A 100%)", textAlign: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
-            <h2 style={{ fontSize: 24, fontWeight: 900 }}>Upgrade to Restoration Pro</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 900 }}>Upgrade to Deep Scan Pro</h2>
             <div style={{ display: "flex", justifyContent: "center", gap: 30, marginTop: 24 }}>
               <div>
                 <div style={{ fontSize: 12, color: EXEC.muted }}>Basic Scan</div>
@@ -318,7 +310,7 @@ export default function ATSChecker() {
               </div>
               <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
               <div>
-                <div style={{ fontSize: 12, color: EXEC.teal }}>Deep Restoration</div>
+                <div style={{ fontSize: 12, color: EXEC.teal }}>Deep Scan Pro</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>AED 49</div>
               </div>
             </div>
@@ -326,7 +318,7 @@ export default function ATSChecker() {
               onClick={() => setShowWaitlistModal(true)}
               style={{ marginTop: 24, padding: "12px 40px", borderRadius: 99, background: EXEC.teal, color: EXEC.navy, fontWeight: 900, border: "none", cursor: "pointer" }}
             >
-              Unlock Semantic Fix
+              Join Priority Waitlist
             </button>
           </div>
         </div>
@@ -337,7 +329,7 @@ export default function ATSChecker() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "#1a1a1a", padding: 40, borderRadius: 24, maxWidth: 400, width: "90%", textAlign: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
             <h3 style={{ fontSize: 22, fontWeight: 900 }}>Coming Soon</h3>
-            <p style={{ color: EXEC.muted, margin: "12px 0 24px" }}>We are perfecting our Semantic Restoration engine. Join the waitlist for priority access and a 50% discount.</p>
+            <p style={{ color: EXEC.muted, margin: "12px 0 24px" }}>We are perfecting our Deep Scan engine. Join the waitlist for priority access and a 50% launch discount.</p>
             
             {waitlistMessage.text ? (
               <div style={{ color: EXEC.teal, fontWeight: 700, marginBottom: 20 }}>{waitlistMessage.text}</div>
