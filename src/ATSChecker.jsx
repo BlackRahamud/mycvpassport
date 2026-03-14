@@ -217,15 +217,18 @@ export default function ATSChecker() {
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <h1 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.02em" }}>Professional Readiness Analysis</h1>
         <p style={{ color: EXEC.muted, marginTop: 8 }}>Institutional-grade ATS validation for the UAE professional market.</p>
-      </div>
-
-      {/* Input Section */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 30 }}>
-        <div style={{ background: "rgba(255,255,255,0.03)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.1)" }}>
-          <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: EXEC.muted }}>Resume Upload</label>
-          <input type="file" onChange={(e) => setResumeFile(e.target.files[0])} style={{ marginTop: 12, width: "100%" }} />
-        </div>
-        <div style={{ background: "rgba(255,255,255,0.03)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.1)" }}>
+        <div
+  onDragOver={(e) => e.preventDefault()}
+  onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) setResumeFile(file); }}
+  onClick={() => document.getElementById('resume-upload').click()}
+  style={{ background: "rgba(255,255,255,0.03)", padding: 24, borderRadius: 16, border: "1px dashed rgba(255,255,255,0.2)", cursor: "pointer", textAlign: "center" }}
+>
+  <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: EXEC.muted }}>Resume Upload</label>
+  <div style={{ marginTop: 12, color: EXEC.muted, fontSize: 13 }}>
+    {resumeFile ? `✅ ${resumeFile.name}` : "Drag & drop PDF or DOCX here, or click to browse"}
+  </div>
+  <input id="resume-upload" type="file" accept=".pdf,.docx,.txt" onChange={(e) => setResumeFile(e.target.files[0])} style={{ display: "none" }} />
+</div>        <div style={{ background: "rgba(255,255,255,0.03)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.1)" }}>
           <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: EXEC.muted }}>Job Target</label>
           <textarea 
             rows={3} 
