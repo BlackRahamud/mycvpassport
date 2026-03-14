@@ -14,6 +14,7 @@ export function normalizeResumeText(input) {
 
   // Remove non-ASCII control / hidden characters that can confuse parsers
   // Keep standard printable ASCII plus newlines and tabs
+  // eslint-disable-next-line no-control-regex
   text = text.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
 
   // Normalize all remaining whitespace (spaces, tabs, newlines) to single spaces
