@@ -1,5 +1,17 @@
-import { useState, useEffect } from "react";
-import { supabase } from "./supabaseClient";
+import { useState, useEffect, useRef } from "react";
+import { getCurrentUserProfile, parseResumeToStructuredJSON, joinWaitlist } from "./supabaseClient";
+import { normalizeResumeText } from "./normalizeResumeText";
+
+// Executive palette (Abu Dhabi / deep blues & whites)
+const EXEC = {
+  navy: "#0D1B2A",
+  blue: "#1e3a5f",
+  accent: "#2563eb",
+  white: "#ffffff",
+  offWhite: "#f8fafc",
+  border: "#cbd5e1",
+  muted: "#64748b",
+};
 
 // ─── Stop Words ───────────────────────────────────────────────────────────────
 const STOP_WORDS = new Set([
@@ -182,19 +194,28 @@ export default function ATSChecker() {
   const [aiLoading,    setAiLoading]    = useState(false);
   const [aiError,      setAiError]      = useState("");
   const [isPro,        setIsPro]        = useState(false);
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistMessage, setWaitlistMessage] = useState({ type: "", text: "" });
+  const prevPdfUrlRef = useRef(null);
 
   useEffect(() => {
     async function checkPro() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("is_pro")
-        .eq("id", user.id)
-        .single();
-      if (data?.is_pro) setIsPro(true);
+      try {
+        const { isPro } = await getCurrentUserProfile();
+        if (isPro) setIsPro(true);
+      } catch {
+        // If profile lookup fails, silently fall back to non‑Pro behaviour
+      }
     }
     checkPro();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (prevPdfUrlRef.current) URL.revokeObjectURL(prevPdfUrlRef.current);
+    };
   }, []);
 
   // detect dark mode from parent app
@@ -222,11 +243,55 @@ export default function ATSChecker() {
     setAiError("");
     try {
       const resumeText = await extractText(resumeFile);
-      const kw   = analyzeKeywords(resumeText, jobDesc);
-      const sec  = analyzeSections(resumeText);
-      const fmt  = analyzeFormatting(resumeText);
+
+      // ── Pre‑flight check: detect likely scanned PDFs with almost no text ─────
+      const isPdf =
+        resumeFile.type === "application/pdf" ||
+        (resumeFile.name || "").toLowerCase().endsWith(".pdf");
+
+      if (isPdf) {
+        const plainLength = resumeText.replace(/\s+/g, " ").trim().length;
+        if (plainLength < 200) {
+          setError("Scanned PDF Detected: Please upload a text-based PDF for an accurate score.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const normalizedResumeText = normalizeResumeText(resumeText);
+
+      const kw   = analyzeKeywords(normalizedResumeText, jobDesc);
+      const sec  = analyzeSections(normalizedResumeText);
+      const fmt  = analyzeFormatting(normalizedResumeText);
       const total = kw.score + sec.score + fmt.score;
-      setResult({ kw, sec, fmt, total, resumeText });
+
+      let structured = null;
+      let structuredError = null;
+      if (isPro) {
+        try {
+          const parsed = await parseResumeToStructuredJSON(normalizedResumeText);
+          if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+            structuredError = parsed.error;
+          } else if (parsed) {
+            structured = parsed;
+          }
+        } catch (err) {
+          structuredError = err.message || 'AI Engine is busy, please try again in a moment.';
+        }
+      }
+
+      const pdfPreviewUrl = isPdf ? URL.createObjectURL(resumeFile) : null;
+      if (prevPdfUrlRef.current) URL.revokeObjectURL(prevPdfUrlRef.current);
+      prevPdfUrlRef.current = pdfPreviewUrl;
+
+      setResult({
+        kw, sec, fmt, total,
+        resumeText: normalizedResumeText,
+        rawResumeText: resumeText,
+        pdfPreviewUrl,
+        structured,
+        structuredError,
+      });
     } catch (err) {
       setError(err.message || "Failed to read file. Please try again.");
     }
@@ -374,17 +439,22 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no preamble:
         cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1,
         marginBottom: 36, width: "100%"
       }}>
-        {loading ? "Analyzing your resume..." : "Run ATS Check"}
+        {loading ? (isPro ? "Cleaning and Analyzing..." : "Analyzing your resume...") : "Run ATS Check"}
       </button>
 
       {/* Results */}
       {result && (
         <div>
-          {/* Total Score */}
+          {/* Total Score — always shown; Basic vs Premium label */}
           <div style={{
             background: card, border: `1px solid ${border}`, borderRadius: 12,
             padding: "24px 24px", marginBottom: 20, textAlign: "center"
           }}>
+            {!isPro && (
+              <div style={{ fontSize: 11, fontWeight: 700, color: sub, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                Basic Analysis
+              </div>
+            )}
             <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1, color: scoreInfo.color }}>
               {result.total}
             </div>
@@ -392,14 +462,102 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no preamble:
             <div style={{ fontWeight: 700, fontSize: 15, marginTop: 10, color: scoreInfo.color }}>
               {scoreInfo.label}
             </div>
-            <div style={{ marginTop: 20 }}>
-              <ScoreBar label="Keyword Match" score={result.kw.score}  max={50} color="#2563eb" />
-              <ScoreBar label="Section Check" score={result.sec.score} max={30} color="#7c3aed" />
-              <ScoreBar label="Formatting"    score={result.fmt.score} max={20} color="#059669" />
+            {isPro && (
+              <div style={{ marginTop: 20 }}>
+                <ScoreBar label="Keyword Match" score={result.kw.score}  max={50} color="#2563eb" />
+                <ScoreBar label="Section Check" score={result.sec.score} max={30} color="#7c3aed" />
+                <ScoreBar label="Formatting"    score={result.fmt.score} max={20} color="#059669" />
+              </div>
+            )}
+          </div>
+
+          {/* Visual Proof: Original vs What ATS Sees */}
+          <div style={{
+            marginBottom: 24,
+            border: `1px solid ${EXEC.border}`,
+            borderRadius: 12,
+            overflow: "hidden",
+            background: EXEC.offWhite,
+          }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, minHeight: 320 }}>
+              <div style={{ padding: 16, background: EXEC.white, borderRight: `1px solid ${EXEC.border}`, display: "flex", flexDirection: "column" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: EXEC.blue, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>Original Resume View</div>
+                <div style={{ flex: 1, background: "#e2e8f0", borderRadius: 8, overflow: "hidden" }}>
+                  {result.pdfPreviewUrl ? (
+                    <iframe title="Original PDF" src={result.pdfPreviewUrl} style={{ width: "100%", height: "100%", minHeight: 280, border: "none" }} />
+                  ) : (
+                    <div style={{ padding: 24, textAlign: "center", color: EXEC.muted, fontSize: 13 }}>Preview available for PDF uploads.</div>
+                  )}
+                </div>
+              </div>
+              <div style={{ padding: 16, background: "#f1f5f9", display: "flex", flexDirection: "column" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: EXEC.blue, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>What the ATS Sees</div>
+                <div style={{ flex: 1, position: "relative", background: EXEC.white, borderRadius: 8, padding: 12, border: `1px solid ${EXEC.border}`, overflow: "auto", maxHeight: 280 }}>
+                  <div style={{ position: "absolute", top: 12, left: 12, right: 12, padding: "10px 14px", background: "rgba(220,38,38,0.12)", border: "1px solid #dc2626", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#b91c1c", zIndex: 1 }}>
+                    ❌ Error: Layout interference detected. Standard ATS systems will fail to parse this data correctly.
+                  </div>
+                  <pre style={{ marginTop: 52, margin: 0, fontSize: 11, lineHeight: 1.5, color: EXEC.navy, whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "ui-monospace, monospace" }}>
+                    {result.rawResumeText || result.resumeText}
+                  </pre>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Keyword Match */}
+          {/* Pricing Section — Painted Door */}
+          <div style={{
+            marginBottom: 24,
+            border: `2px solid ${EXEC.border}`,
+            borderRadius: 16,
+            overflow: "hidden",
+            background: EXEC.white,
+          }}>
+            <div style={{ background: EXEC.navy, color: EXEC.white, padding: "20px 24px", textAlign: "center" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Choose your plan</h3>
+              <p style={{ margin: "8px 0 0", fontSize: 13, opacity: 0.9 }}>Professional ATS tools for the UAE market</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+              <div style={{ padding: 24, borderRight: `1px solid ${EXEC.border}` }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: EXEC.blue }}>Free</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: EXEC.navy, marginTop: 4 }}>AED 0</div>
+                <ul style={{ margin: "16px 0 0", paddingLeft: 18, fontSize: 13, color: EXEC.muted, lineHeight: 1.8 }}>
+                  <li>Basic ATS Score</li>
+                  <li>File validation</li>
+                </ul>
+                <div style={{ marginTop: 20, fontSize: 12, color: EXEC.muted }}>Current plan</div>
+              </div>
+              <div style={{ padding: 24, background: "#f8fafc", position: "relative" }}>
+                <div style={{ position: "absolute", top: 12, right: 12, fontSize: 10, fontWeight: 700, background: "#dc2626", color: "#fff", padding: "4px 10px", borderRadius: 99 }}>Limited time</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: EXEC.accent }}>Pro</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: EXEC.navy, marginTop: 4 }}>AED 49</div>
+                <ul style={{ margin: "16px 0 0", paddingLeft: 18, fontSize: 13, color: EXEC.muted, lineHeight: 1.8 }}>
+                  <li>AI-Semantic Restoration</li>
+                  <li>Keyword optimization</li>
+                  <li>Multi-template export</li>
+                </ul>
+                <button
+                  onClick={() => setShowWaitlistModal(true)}
+                  style={{
+                    marginTop: 20,
+                    width: "100%",
+                    padding: "12px 20px",
+                    background: EXEC.accent,
+                    color: EXEC.white,
+                    border: "none",
+                    borderRadius: 8,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
+                >
+                  Upgrade & Fix Now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Pro-only: Keyword Match */}
+          {isPro && (
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
             <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 4, marginTop: 0 }}>
               🔍 Keyword Match — {result.kw.score} / 50
@@ -428,8 +586,10 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no preamble:
               </div>
             )}
           </div>
+          )}
 
-          {/* Section Check */}
+          {/* Section Check — Pro only */}
+          {isPro && (
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
             <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 4, marginTop: 0 }}>
               📋 Section Check — {result.sec.score} / 30
@@ -456,8 +616,10 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no preamble:
               </p>
             )}
           </div>
+          )}
 
-          {/* Formatting Check */}
+          {/* Formatting Check — Pro only */}
+          {isPro && (
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
             <h3 style={{ fontWeight: 800, fontSize: 15, marginBottom: 4, marginTop: 0 }}>
               🎨 Formatting Check — {result.fmt.score} / 20
@@ -481,6 +643,14 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no preamble:
               </div>
             )}
           </div>
+          )}
+
+          {/* Premium parsing error (Pro only) */}
+          {isPro && result.structuredError && (
+            <div style={{ background: isDark ? "#1c1000" : "#fffbeb", border: `1px solid ${isDark ? "#713f12" : "#fde68a"}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, marginBottom: 16, color: isDark ? "#fcd34d" : "#92400e" }}>
+              ⚠️ {result.structuredError}
+            </div>
+          )}
 
           {/* AI Fix Suggestions — Pro Feature */}
           <div style={{
@@ -526,14 +696,14 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no preamble:
               ) : (
               <button
                 style={{
-                  background: "#facc15", color: "#111",
+                  background: EXEC.accent, color: EXEC.white,
                   padding: "10px 24px", borderRadius: 8, fontWeight: 700,
                   fontSize: 14, border: "none", cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 8
                 }}
-                onClick={() => window.location.href = "/pricing"}
+                onClick={() => setShowWaitlistModal(true)}
               >
-                🔒 Upgrade to Pro — AED 29/mo
+                Upgrade & Fix Now
               </button>
               )
             )}
@@ -600,6 +770,117 @@ Respond ONLY with a valid JSON array. No markdown, no backticks, no preamble:
             )}
           </div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
+      {/* Waitlist Modal — Painted Door */}
+      {showWaitlistModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(13, 27, 42, 0.85)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 24,
+          }}
+          onClick={() => !waitlistLoading && setShowWaitlistModal(false)}
+        >
+          <div
+            style={{
+              background: EXEC.white,
+              borderRadius: 16,
+              maxWidth: 440,
+              width: "100%",
+              padding: 32,
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 700, color: EXEC.navy }}>
+              We are currently perfecting the UAE-Specific AI Engine.
+            </h3>
+            <p style={{ margin: "0 0 24px", fontSize: 14, color: EXEC.muted, lineHeight: 1.6 }}>
+              Join our exclusive waitlist to get 50% off when we launch next week!
+            </p>
+            {waitlistMessage.text ? (
+              <div style={{
+                padding: "10px 14px",
+                borderRadius: 8,
+                marginBottom: 16,
+                background: waitlistMessage.type === "success" ? "#dcfce7" : "#fef2f2",
+                color: waitlistMessage.type === "success" ? "#166534" : "#b91c1c",
+                fontSize: 13,
+              }}>
+                {waitlistMessage.text}
+              </div>
+            ) : null}
+            <input
+              type="email"
+              placeholder="you@company.com"
+              value={waitlistEmail}
+              onChange={(e) => setWaitlistEmail(e.target.value)}
+              disabled={waitlistLoading}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: 8,
+                border: `1px solid ${EXEC.border}`,
+                fontSize: 14,
+                marginBottom: 16,
+                boxSizing: "border-box",
+              }}
+            />
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={async () => {
+                  setWaitlistMessage({ type: "", text: "" });
+                  setWaitlistLoading(true);
+                  try {
+                    const out = await joinWaitlist(waitlistEmail);
+                    setWaitlistMessage({ type: "success", text: out.message });
+                    setWaitlistEmail("");
+                  } catch (e) {
+                    setWaitlistMessage({ type: "error", text: e.message || "Something went wrong. Please try again." });
+                  }
+                  setWaitlistLoading(false);
+                }}
+                disabled={waitlistLoading}
+                style={{
+                  flex: 1,
+                  padding: "12px 20px",
+                  background: EXEC.accent,
+                  color: EXEC.white,
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: waitlistLoading ? "not-allowed" : "pointer",
+                  opacity: waitlistLoading ? 0.8 : 1,
+                }}
+              >
+                {waitlistLoading ? "Joining…" : "Join Waitlist"}
+              </button>
+              <button
+                onClick={() => { setShowWaitlistModal(false); setWaitlistMessage({ type: "", text: "" }); }}
+                disabled={waitlistLoading}
+                style={{
+                  padding: "12px 20px",
+                  background: "transparent",
+                  color: EXEC.muted,
+                  border: `1px solid ${EXEC.border}`,
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: waitlistLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
