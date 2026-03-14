@@ -3,7 +3,6 @@ import { normalizeResumeText } from './normalizeResumeText';
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const ANTHROPIC_API_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -36,42 +35,43 @@ export async function getCurrentUserProfile() {
 }
 
 /**
- * Premium parsing engine:
- * For Pro users only, reconstructs messy resume text into structured JSON
- * using a high-end LLM (Claude 3.5 Sonnet). Anthropic is only called when
- * the user's profile has is_pro === true, protecting API credits.
- *
- * Returns: structured JSON object on success.
- * Returns: { error: "Subscription required for premium AI parsing." } when not Pro.
- * Throws: user-friendly error when API fails (e.g. out of credits).
+ * Premium parsing engine (Pro users only).
+ * Calls the serverless API at /api/parse-resume; Anthropic is invoked only server-side.
+ * Returns: structured JSON on success, or { error: "..." } when not Pro / on API failure.
  */
 export async function parseResumeToStructuredJSON(rawText) {
   const { profile } = await getCurrentUserProfile();
 
-  // Lock: do not call Anthropic unless the user is Pro (subscription required)
   const userIsPro = !!(profile && profile.is_pro);
   if (!userIsPro) {
     return { error: 'Subscription required for premium AI parsing.' };
   }
 
-  // ─── CREDIT GUARD: API call commented out during Painted Door phase ─────────
-  // No Anthropic credits are spent. Uncomment when ready to enable premium parsing.
-  // if (!ANTHROPIC_API_KEY) {
-  //   throw new Error('Anthropic API key is not configured.');
-  // }
-  // const cleaned = normalizeResumeText(rawText);
-  // const prompt = `...`;
-  // const response = await fetch('https://api.anthropic.com/v1/messages', { ... });
-  // const text = await response.text().catch(() => '');
-  // ... parse and return JSON
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) {
+    return { error: 'Please sign in to use premium parsing.' };
+  }
 
-  return {
-    status: 'Coming Soon',
-    message: 'UAE-Specific AI Engine is in development. Join the waitlist for early access.',
-    work_experience: [],
-    education: [],
-    skills: { hard_skills: [], soft_skills: [], tools: [] },
-  };
+  const cleaned = normalizeResumeText(rawText);
+
+  const base = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : '';
+  const res = await fetch(`${base}/api/parse-resume`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ text: cleaned }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const message = data.error || 'AI Engine is busy, please try again in a moment.';
+    throw new Error(message);
+  }
+
+  return data;
 }
 
 /**
