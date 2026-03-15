@@ -23,9 +23,12 @@ export default function Dashboard() {
       <div style={{ width: "240px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh" }}>
         {/* Logo */}
         <div style={{ padding: "0 24px 32px" }}>
-          <span style={{ fontSize: "20px", fontWeight: "800", color: C.text }}>CVPassport</span>
-        </div>
-
+  <img
+    src="/images/website-logo.png"
+    alt="CV Passport Logo"
+    style={{ width: "160px", height: "auto" }}
+  />
+</div>
         {/* Nav */}
         <nav style={{ flex: 1, padding: "0 12px" }}>
           {[
