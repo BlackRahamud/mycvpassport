@@ -1245,8 +1245,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 // ─── DASHBOARD ────────────────────────────────────────────────────
 function Dashboard({ user, onBuildResume, onEditResume }) {
   const [resumeList, setResumeList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [deleting, setDeleting]     = useState(null);
+  const [activeNav, setActiveNav]   = useState('dashboard');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -1269,96 +1270,122 @@ function Dashboard({ user, onBuildResume, onEditResume }) {
     }
   };
 
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'mycvs',     label: 'My CVs' },
+    { id: 'templates', label: 'Templates' },
+    { id: 'ats',       label: 'ATS Check' },
+    { id: 'cover',     label: 'Cover Letter' },
+  ];
+
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 20px" }}>
-      <div style={{ marginBottom: "36px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: "800", marginBottom: "6px" }}>Welcome back, {user.name} 👋</h1>
-        <p style={{ color: C.muted }}>Ready to build or update your Gulf resume?</p>
-      </div>
+    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text }}>
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "16px", marginBottom: "36px" }}>
-        {[
-          { label: "Resumes Saved", value: resumeList.length.toString(), icon: "📄", color: C.accent },
-          { label: "ATS Ready",     value: "✓",   icon: "🎯", color: C.success },
-          { label: "Templates",     value: "4",   icon: "🎨", color: C.gold },
-          { label: "Downloads",     value: "–",   icon: "⬇️", color: "#ec4899" },
-        ].map((s, i) => (
-          <div key={i} style={S.card}>
-            <div style={{ fontSize: "28px", marginBottom: "8px" }}>{s.icon}</div>
-            <div style={{ fontSize: "28px", fontWeight: "900", color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: "13px", color: C.muted }}>{s.label}</div>
+      {/* ── SIDEBAR ── */}
+      <div style={{ width: "220px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 10 }}>
+        <div style={{ padding: "0 20px 28px" }}>
+          <span style={{ fontSize: "18px", fontWeight: "800", color: C.text }}>CVPassport</span>
+        </div>
+        <nav style={{ flex: 1, padding: "0 10px" }}>
+          {navItems.map(item => (
+            <div key={item.id} onClick={() => setActiveNav(item.id)} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "2px", background: activeNav === item.id ? C.card : "transparent", color: activeNav === item.id ? C.text : C.muted, border: activeNav === item.id ? `1px solid ${C.border}` : "1px solid transparent", fontSize: "14px", transition: "all 0.2s ease" }}>
+              {item.label}
+            </div>
+          ))}
+        </nav>
+        <div style={{ padding: "0 10px" }}>
+          <div style={{ padding: "14px", borderRadius: "10px", background: C.card, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: "12px", color: C.muted, marginBottom: "4px" }}>{user?.email}</div>
+            <div style={{ fontSize: "11px", color: C.muted, marginBottom: "10px" }}>Free Plan</div>
+            <button style={{ width: "100%", padding: "8px", borderRadius: "6px", background: C.accent, color: C.text, border: "none", cursor: "pointer", fontWeight: "600", fontSize: "12px" }}>
+              Upgrade to Pro
+            </button>
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* My Resumes */}
-      <div style={{ ...S.card, marginBottom: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h3 style={{ fontWeight: "800", margin: 0 }}>My Resumes</h3>
-          <button style={S.btn("primary","sm")} onClick={onBuildResume}>+ Create Resume</button>
+      {/* ── MAIN CONTENT ── */}
+      <div style={{ marginLeft: "220px", marginRight: "260px", flex: 1, padding: "32px 28px" }}>
+        <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "4px" }}>Welcome back, {user?.name} 👋</h1>
+        <p style={{ color: C.muted, marginBottom: "28px", fontSize: "14px" }}>Ready to build or update your Gulf resume?</p>
+
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
+          {[
+            { label: "CVs Saved",  value: resumeList.length.toString() },
+            { label: "ATS Ready",  value: "✓" },
+            { label: "Templates",  value: "11" },
+            { label: "Downloads",  value: "—" },
+          ].map(stat => (
+            <div key={stat.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
+              <div style={{ fontSize: "26px", fontWeight: "800", color: C.text }}>{stat.value}</div>
+              <div style={{ fontSize: "12px", color: C.muted, marginTop: "4px" }}>{stat.label}</div>
+            </div>
+          ))}
         </div>
 
-        {loading && <p style={{ color: C.muted, fontSize: "14px" }}>Loading your resumes...</p>}
+        {/* My CVs */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "700" }}>My CVs</h2>
+          <button onClick={onBuildResume} style={{ padding: "8px 16px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.2s ease" }}>
+            + Create Resume
+          </button>
+        </div>
 
-        {!loading && resumeList.length === 0 && (
-          <div style={{ textAlign: "center", padding: "40px 20px" }}>
-            <div style={{ fontSize: "40px", marginBottom: "12px" }}>📄</div>
-            <p style={{ color: C.muted, marginBottom: "16px" }}>No resumes saved yet</p>
-            <button style={S.btn("primary")} onClick={onBuildResume}>Build Your First Resume →</button>
+        {loading ? (
+          <div style={{ color: C.muted, fontSize: "14px" }}>Loading your CVs...</div>
+        ) : resumeList.length === 0 ? (
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "32px", textAlign: "center" }}>
+            <div style={{ color: C.muted, fontSize: "14px", marginBottom: "16px" }}>No CVs yet. Build your first one.</div>
+            <button onClick={onBuildResume} style={{ padding: "10px 20px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+              Build CV
+            </button>
           </div>
-        )}
-
-        {!loading && resumeList.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {resumeList.map(record => {
-              const t = TEMPLATES.find(t => t.id === record.template_id) || TEMPLATES[0];
-              const updatedDate = new Date(record.updated_at).toLocaleDateString("en-AE", { day: "numeric", month: "short", year: "numeric" });
-              return (
-                <div key={record.id} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", background: C.surface, borderRadius: "10px", border: `1px solid ${C.border}` }}>
-                  <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: t.color, border: `2px solid ${t.accent}`, flexShrink: 0 }}/>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: "700", fontSize: "14px", marginBottom: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{record.title}</div>
-                    <div style={{ fontSize: "12px", color: C.muted }}>{t.name} • Updated {updatedDate}</div>
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-                    <button style={S.btn("outline","sm")} onClick={() => onEditResume(record)}>Edit Resume</button>
-                    <button style={S.btn("danger","sm")} onClick={() => handleDelete(record.id)} disabled={deleting === record.id}>
-                      {deleting === record.id ? "..." : "Delete"}
-                    </button>
-                  </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
+            {resumeList.map(r => (
+              <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
+                <div style={{ height: "100px", background: C.surface, borderRadius: "6px", marginBottom: "14px", border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: "11px", color: C.muted }}>CV Preview</span>
                 </div>
-              );
-            })}
+                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || "Untitled CV"}</div>
+                <div style={{ fontSize: "11px", color: C.muted, marginBottom: "14px" }}>Updated {new Date(r.updated_at).toLocaleDateString()}</div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={() => onEditResume(r)} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>Edit</button>
+                  <button onClick={() => handleDelete(r.id)} disabled={deleting === r.id} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.danger, border: `1px solid ${C.danger}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>
+                    {deleting === r.id ? "..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Plan & Quick Actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "20px" }}>
-        <div style={S.card}>
-          <h3 style={{ fontWeight: "800", marginBottom: "16px" }}>Quick Actions</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <button style={{ ...S.btn("primary","lg"), textAlign: "left" }} onClick={onBuildResume}>📄 Create New Resume</button>
-            <button style={{ ...S.btn("gold"), textAlign: "left" }}>⭐ Upgrade to Pro — AED 29/mo</button>
-          </div>
+      {/* ── RIGHT PANEL ── */}
+      <div style={{ width: "240px", background: C.surface, borderLeft: `1px solid ${C.border}`, padding: "28px 16px", position: "fixed", right: 0, top: 0, height: "100vh", overflowY: "auto" }}>
+        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>ATS Score</h3>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
+          <div style={{ fontSize: "28px", fontWeight: "800", color: C.success }}>—</div>
+          <div style={{ fontSize: "12px", color: C.muted }}>Run ATS check to see score</div>
         </div>
-        <div style={S.card}>
-          <h3 style={{ fontWeight: "800", marginBottom: "16px" }}>Your Plan</h3>
-          <div style={{ ...S.badge("free"), marginBottom: "12px", fontSize: "13px" }}>FREE PLAN</div>
-          <ul style={{ color: C.muted, fontSize: "13px", paddingLeft: "16px", lineHeight: "2" }}>
-            <li>3 free templates</li>
-            <li>PDF download</li>
-            <li>Resume auto-save</li>
-            <li>Gulf CV sections</li>
-          </ul>
-          <button style={{ ...S.btn("gold"), width: "100%", marginTop: "16px" }}>Upgrade → AED 29/mo</button>
+
+        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>Quick Tip</h3>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
+          <div style={{ fontSize: "12px", color: C.muted, lineHeight: "1.6" }}>Add your visa status to increase profile match rate in UAE job market.</div>
+        </div>
+
+        <div style={{ background: C.card, border: `1px solid ${C.gold}`, borderRadius: "10px", padding: "14px" }}>
+          <div style={{ fontSize: "13px", fontWeight: "700", color: C.gold, marginBottom: "4px" }}>Go Pro</div>
+          <div style={{ fontSize: "12px", color: C.muted, marginBottom: "10px" }}>Unlimited CVs, all templates, ATS matching</div>
+          <div style={{ fontSize: "18px", fontWeight: "800", marginBottom: "10px" }}>AED 29<span style={{ fontSize: "12px", color: C.muted }}>/mo</span></div>
+          <button style={{ width: "100%", padding: "9px", borderRadius: "6px", background: C.gold, color: "#000", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "12px" }}>Upgrade Now</button>
         </div>
       </div>
+
     </div>
   );
 }
-
 // ─── MAIN APP ─────────────────────────────────────────────────────
 const extractName = u => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
