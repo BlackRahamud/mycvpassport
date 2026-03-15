@@ -49,24 +49,20 @@ const EMPTY_RESUME = {
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────
 const C = {
-  bg: "#0a0a0f", surface: "#12121a", card: "#1a1a26", border: "#2a2a3a",
-  accent: "#6366f1", gold: "#f59e0b", text: "#f0f0ff", muted: "#8888aa",
-  success: "#10b981", danger: "#ef4444",
+  bg: "#050505",
+  surface: "#101010",
+  card: "#151515",
+  border: "#262626",
+  accent: "#f5f5f5",
+  gold: "#e5e5e5",
+  text: "#f5f5f5",
+  muted: "#9b9b9b",
+  success: "#d4d4d4",
+  danger: "#a3a3a3",
 };
 
 const S = {
   app: { minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
-  nav: {
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "16px 40px", borderBottom: `1px solid ${C.border}`,
-    background: "rgba(10,10,15,0.95)", position: "sticky", top: 0, zIndex: 100,
-    backdropFilter: "blur(10px)",
-  },
-  logo: {
-    fontSize: "22px", fontWeight: "800", cursor: "pointer",
-    background: `linear-gradient(135deg,${C.accent},${C.gold})`,
-    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-  },
   btn: (v = "primary", sz = "md") => ({
     padding: sz === "lg" ? "14px 32px" : sz === "sm" ? "8px 16px" : "10px 22px",
     borderRadius: "10px", cursor: "pointer", fontWeight: "600",
@@ -1247,7 +1243,8 @@ function Dashboard({ user, onBuildResume, onEditResume }) {
   const [resumeList, setResumeList] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [deleting, setDeleting]     = useState(null);
-  const [activeNav, setActiveNav]   = useState('dashboard');
+  const [activeNav, setActiveNav]   = useState("home");
+  const [showProModal, setShowProModal] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -1271,117 +1268,516 @@ function Dashboard({ user, onBuildResume, onEditResume }) {
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'mycvs',     label: 'My CVs' },
-    { id: 'templates', label: 'Templates' },
-    { id: 'ats',       label: 'ATS Check' },
-    { id: 'cover',     label: 'Cover Letter' },
+    { id: "home",      label: "Home" },
+    { id: "mycvs",     label: "My CVs" },
+    { id: "ats",       label: "ATS Checker" },
+    { id: "templates", label: "Templates" },
+    { id: "settings",  label: "Settings" },
   ];
 
+  const computeStrength = (cv) => {
+    if (!cv) return 0;
+    let score = 0;
+    if (cv.name) score += 20;
+    if (cv.summary) score += 20;
+    if (cv.skills) score += 20;
+    if (cv.experience && cv.experience.some(e => e.company || e.role)) score += 20;
+    if (cv.education && cv.education.some(e => e.school)) score += 20;
+    return score;
+  };
+
+  const openProModal = () => {
+    setShowProModal(true);
+  };
+
+  const closeProModal = () => {
+    setShowProModal(false);
+  };
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text }}>
+    <div className="dashboard-shell" style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text }}>
 
       {/* ── SIDEBAR ── */}
-      <div style={{ width: "220px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 10 }}>
-        <div style={{ padding: "0 20px 28px" }}>
-          <span style={{ fontSize: "18px", fontWeight: "800", color: C.text }}>CVPassport</span>
+      <aside className="dashboard-sidebar" style={{ width: "220px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 10 }}>
+        <div className="dashboard-sidebar-header" style={{ padding: "0 20px 28px", display: "flex", alignItems: "center", gap: 10 }}>
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 64 64"
+            aria-hidden="true"
+            focusable="false"
+            style={{ display: "block" }}
+          >
+            <circle cx="32" cy="32" r="30" fill="none" stroke="#f5f5f5" strokeWidth="1.5" />
+            <path
+              d="M18 38c6-8 10-12 14-13 4-1 9 0 14 3-4 1-7 3-9 6 3 0 6 1 9 3-4 1-8 2-12 2-4 0-8-1-12-3z"
+              fill="none"
+              stroke="#f5f5f5"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M24 42c2 3 4 5 8 6 4-1 6-3 8-6"
+              fill="none"
+              stroke="#f5f5f5"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M28 22c1.5-2 3-3 4-3s2.5 1 4 3"
+              fill="none"
+              stroke="#f5f5f5"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span style={{ fontSize: "18px", fontWeight: "800", letterSpacing: "0.06em" }}>CVPassport</span>
         </div>
-        <nav style={{ flex: 1, padding: "0 10px" }}>
+        <nav className="dashboard-sidebar-nav" style={{ flex: 1, padding: "0 10px" }}>
           {navItems.map(item => (
             <div key={item.id} onClick={() => setActiveNav(item.id)} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "2px", background: activeNav === item.id ? C.card : "transparent", color: activeNav === item.id ? C.text : C.muted, border: activeNav === item.id ? `1px solid ${C.border}` : "1px solid transparent", fontSize: "14px", transition: "all 0.2s ease" }}>
               {item.label}
             </div>
           ))}
         </nav>
-        <div style={{ padding: "0 10px" }}>
-          <div style={{ padding: "14px", borderRadius: "10px", background: C.card, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: "12px", color: C.muted, marginBottom: "4px" }}>{user?.email}</div>
-            <div style={{ fontSize: "11px", color: C.muted, marginBottom: "10px" }}>Free Plan</div>
-            <button style={{ width: "100%", padding: "8px", borderRadius: "6px", background: C.accent, color: C.text, border: "none", cursor: "pointer", fontWeight: "600", fontSize: "12px" }}>
-              Upgrade to Pro
+        <div style={{ padding: "0 10px", marginTop: "auto" }}>
+          <button
+            type="button"
+            onClick={openProModal}
+            style={{
+              width: "100%",
+              padding: "12px",
+              borderRadius: "10px",
+              background: "transparent",
+              border: `1px solid ${C.border}`,
+              color: C.text,
+              textAlign: "left",
+              marginBottom: "12px",
+              fontSize: "12px",
+            }}
+          >
+            <div style={{ fontWeight: "600", marginBottom: 4 }}>Upgrade to Pro</div>
+            <div style={{ fontSize: "11px", color: C.muted }}>AED 29/mo • Unlock all templates</div>
+          </button>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 12px",
+              borderRadius: "10px",
+              background: C.card,
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "999px",
+                  border: `1px solid ${C.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                {(user?.name || user?.email || "?")[0].toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>{user?.name || "User"}</div>
+                <div style={{ fontSize: 11, color: C.muted }}>Free Plan</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={user?.onLogout}
+              style={{
+                border: "none",
+                background: "transparent",
+                color: C.muted,
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              Sign Out
             </button>
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <div style={{ marginLeft: "220px", marginRight: "260px", flex: 1, padding: "32px 28px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "4px" }}>Welcome back, {user?.name} 👋</h1>
-        <p style={{ color: C.muted, marginBottom: "28px", fontSize: "14px" }}>Ready to build or update your Gulf resume?</p>
+      <main className="dashboard-main" style={{ marginLeft: "220px", marginRight: "260px", flex: 1, padding: "32px 28px" }}>
+        <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "4px" }}>Welcome back, {user?.name}</h1>
+        <p style={{ color: C.muted, marginBottom: "28px", fontSize: "14px" }}>Manage your CVs for UAE and Gulf roles.</p>
 
-        {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
-          {[
-            { label: "CVs Saved",  value: resumeList.length.toString() },
-            { label: "ATS Ready",  value: "✓" },
-            { label: "Templates",  value: "11" },
-            { label: "Downloads",  value: "—" },
-          ].map(stat => (
-            <div key={stat.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
-              <div style={{ fontSize: "26px", fontWeight: "800", color: C.text }}>{stat.value}</div>
-              <div style={{ fontSize: "12px", color: C.muted, marginTop: "4px" }}>{stat.label}</div>
+        {activeNav === "home" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px", marginBottom: "28px" }}>
+              {[
+                { label: "Saved CVs", value: resumeList.length.toString() },
+                { label: "Last Updated", value: resumeList[0] ? new Date(resumeList[0].updated_at).toLocaleDateString() : "—" },
+                { label: "Templates", value: "11" },
+                { label: "Plan", value: "Free" },
+              ].map((stat) => (
+                <div key={stat.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
+                  <div style={{ fontSize: "22px", fontWeight: "700" }}>{stat.value}</div>
+                  <div style={{ fontSize: "12px", color: C.muted, marginTop: "4px" }}>{stat.label}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
-        {/* My CVs */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: "700" }}>My CVs</h2>
-          <button onClick={onBuildResume} style={{ padding: "8px 16px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.2s ease" }}>
-            + Create Resume
-          </button>
-        </div>
+        {(activeNav === "home" || activeNav === "mycvs") && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: "700" }}>My CVs</h2>
+              <button
+                type="button"
+                onClick={onBuildResume}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: "999px",
+                  background: C.text,
+                  color: "#000",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  minHeight: 48,
+                }}
+              >
+                + New CV
+              </button>
+            </div>
 
-        {loading ? (
-          <div style={{ color: C.muted, fontSize: "14px" }}>Loading your CVs...</div>
-        ) : resumeList.length === 0 ? (
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "32px", textAlign: "center" }}>
-            <div style={{ color: C.muted, fontSize: "14px", marginBottom: "16px" }}>No CVs yet. Build your first one.</div>
-            <button onClick={onBuildResume} style={{ padding: "10px 20px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
-              Build CV
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
-            {resumeList.map(r => (
-              <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
-                <div style={{ height: "100px", background: C.surface, borderRadius: "6px", marginBottom: "14px", border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: "11px", color: C.muted }}>CV Preview</span>
+            {loading ? (
+              <div style={{ color: C.muted, fontSize: "14px" }}>Loading your CVs...</div>
+            ) : resumeList.length === 0 ? (
+              <div
+                style={{
+                  background: C.card,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: "10px",
+                  padding: "32px",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ color: C.muted, fontSize: "14px", marginBottom: "16px" }}>
+                  No CVs yet. Create your first Gulf-ready CV.
                 </div>
-                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || "Untitled CV"}</div>
-                <div style={{ fontSize: "11px", color: C.muted, marginBottom: "14px" }}>Updated {new Date(r.updated_at).toLocaleDateString()}</div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <button onClick={() => onEditResume(r)} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>Edit</button>
-                  <button onClick={() => handleDelete(r.id)} disabled={deleting === r.id} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.danger, border: `1px solid ${C.danger}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>
-                    {deleting === r.id ? "..." : "Delete"}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={onBuildResume}
+                  style={{
+                    padding: "12px 22px",
+                    borderRadius: "999px",
+                    background: C.text,
+                    color: "#000",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    minHeight: 48,
+                  }}
+                >
+                  Build My CV
+                </button>
               </div>
-            ))}
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
+                {resumeList.map((r) => {
+                  const cvData = r.cv_data || EMPTY_RESUME;
+                  const strength = computeStrength(cvData);
+                  const template = TEMPLATES.find((t) => t.id === r.template_id) || TEMPLATES[0];
+                  const title = r.title || cvData.name || "My CV";
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        background: C.card,
+                        border: `1px solid ${C.border}`,
+                        borderRadius: "12px",
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          borderRadius: "8px",
+                          border: `1px solid ${C.border}`,
+                          background: "#000",
+                          padding: "6px",
+                          height: 140,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            transform: "scale(0.32)",
+                            transformOrigin: "top left",
+                            width: "310%",
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <ResumePreview cv={cvData} template={template} />
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: "600",
+                            fontSize: "14px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {title}
+                        </div>
+                        <div style={{ fontSize: "11px", color: C.muted, marginTop: 4 }}>
+                          Last edited {new Date(r.updated_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={strength < 90 ? openProModal : undefined}
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: "999px",
+                            border: `1px solid ${C.border}`,
+                            background: "transparent",
+                            fontSize: "11px",
+                            cursor: strength < 90 ? "pointer" : "default",
+                          }}
+                        >
+                          Resume strength: {strength}%
+                        </button>
+                        {typeof r.ats_score === "number" && (
+                          <span
+                            style={{
+                              padding: "3px 8px",
+                              borderRadius: "999px",
+                              border: `1px solid ${C.border}`,
+                              fontSize: "11px",
+                            }}
+                          >
+                            ATS {r.ats_score}%
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => onEditResume(r)}
+                          style={{
+                            flex: 1,
+                            padding: "10px",
+                            borderRadius: "8px",
+                            border: `1px solid ${C.border}`,
+                            background: "transparent",
+                            color: C.text,
+                            fontSize: "12px",
+                            cursor: "pointer",
+                            minHeight: 48,
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(r.id)}
+                          disabled={deleting === r.id}
+                          style={{
+                            flex: 1,
+                            padding: "10px",
+                            borderRadius: "8px",
+                            border: `1px solid ${C.border}`,
+                            background: "transparent",
+                            color: C.muted,
+                            fontSize: "12px",
+                            cursor: deleting === r.id ? "wait" : "pointer",
+                            minHeight: 48,
+                          }}
+                        >
+                          {deleting === r.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={onBuildResume}
+                  style={{
+                    border: `1px dashed ${C.border}`,
+                    borderRadius: "12px",
+                    background: "transparent",
+                    color: C.muted,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "column",
+                    gap: 8,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    minHeight: 180,
+                  }}
+                >
+                  <span style={{ fontSize: 24 }}>+</span>
+                  <span>New CV</span>
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeNav === "ats" && (
+          <div style={{ marginTop: 24 }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "700", marginBottom: 12 }}>ATS Checker</h2>
+            <p style={{ fontSize: "13px", color: C.muted, marginBottom: 16 }}>
+              Analyse your CV against a target job description and identify missing keywords.
+            </p>
+            <div style={{ borderRadius: "12px", border: `1px solid ${C.border}`, overflow: "hidden" }}>
+              <ATSChecker />
+            </div>
           </div>
         )}
-      </div>
+
+        {activeNav === "templates" && (
+          <div style={{ marginTop: 24 }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "700", marginBottom: 12 }}>Templates</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+              {TEMPLATES.map((t) => (
+                <div
+                  key={t.id}
+                  style={{
+                    borderRadius: "10px",
+                    border: `1px solid ${C.border}`,
+                    padding: "12px",
+                    fontSize: "12px",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>{t.name}</div>
+                  <div style={{ fontSize: "11px", color: C.muted }}>{t.tier === "free" ? "Free" : "Pro"}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeNav === "settings" && (
+          <div style={{ marginTop: 24 }}>
+            <h2 style={{ fontSize: "16px", fontWeight: "700", marginBottom: 12 }}>Settings</h2>
+            <p style={{ fontSize: "13px", color: C.muted }}>Account and workspace settings will appear here.</p>
+          </div>
+        )}
+      </main>
 
       {/* ── RIGHT PANEL ── */}
-      <div style={{ width: "240px", background: C.surface, borderLeft: `1px solid ${C.border}`, padding: "28px 16px", position: "fixed", right: 0, top: 0, height: "100vh", overflowY: "auto" }}>
-        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>ATS Score</h3>
+      <aside className="dashboard-right" style={{ width: "240px", background: C.surface, borderLeft: `1px solid ${C.border}`, padding: "28px 16px", position: "fixed", right: 0, top: 0, height: "100vh", overflowY: "auto" }}>
+        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>Overview</h3>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "28px", fontWeight: "800", color: C.success }}>—</div>
-          <div style={{ fontSize: "12px", color: C.muted }}>Run ATS check to see score</div>
+          <div style={{ fontSize: "12px", color: C.muted }}>Plan</div>
+          <div style={{ fontSize: "18px", fontWeight: "700" }}>Free</div>
         </div>
 
         <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>Quick Tip</h3>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "12px", color: C.muted, lineHeight: "1.6" }}>Add your visa status to increase profile match rate in UAE job market.</div>
+          <div style={{ fontSize: "12px", color: C.muted, lineHeight: "1.6" }}>
+            Add Gulf-specific details like visa status and nationality to improve recruiter matches.
+          </div>
         </div>
 
-        <div style={{ background: C.card, border: `1px solid ${C.gold}`, borderRadius: "10px", padding: "14px" }}>
-          <div style={{ fontSize: "13px", fontWeight: "700", color: C.gold, marginBottom: "4px" }}>Go Pro</div>
-          <div style={{ fontSize: "12px", color: C.muted, marginBottom: "10px" }}>Unlimited CVs, all templates, ATS matching</div>
-          <div style={{ fontSize: "18px", fontWeight: "800", marginBottom: "10px" }}>AED 29<span style={{ fontSize: "12px", color: C.muted }}>/mo</span></div>
-          <button style={{ width: "100%", padding: "9px", borderRadius: "6px", background: C.gold, color: "#000", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "12px" }}>Upgrade Now</button>
+        <button
+          type="button"
+          onClick={openProModal}
+          style={{
+            width: "100%",
+            padding: "12px",
+            borderRadius: "10px",
+            background: "transparent",
+            border: `1px solid ${C.border}`,
+            color: C.text,
+            fontSize: "12px",
+            cursor: "pointer",
+          }}
+        >
+          Upgrade to Pro — AED 29/mo
+        </button>
+      </aside>
+
+      {showProModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 40,
+          }}
+        >
+          <div
+            style={{
+              background: "#050505",
+              borderRadius: "16px",
+              border: "1px solid #f5f5f5",
+              maxWidth: 420,
+              width: "90%",
+              padding: "24px 22px",
+            }}
+          >
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upgrade to Pro</h2>
+            <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
+              Boost your CV score with ATS optimisation, keyword matching and AI suggestions tailored for UAE and Gulf roles.
+            </p>
+            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>AED 29<span style={{ fontSize: 12, color: C.muted }}>/mo</span></div>
+            <button
+              type="button"
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "999px",
+                border: "1px solid #ffffff",
+                background: "#f5f5f5",
+                color: "#000",
+                fontWeight: 700,
+                cursor: "pointer",
+                marginBottom: 12,
+              }}
+            >
+              Go Pro
+            </button>
+            <button
+              type="button"
+              onClick={closeProModal}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "999px",
+                border: "none",
+                background: "transparent",
+                color: C.muted,
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Not now
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
@@ -1431,27 +1827,15 @@ export default function App() {
 
   return (
     <div style={S.app}>
-      <nav style={S.nav}>
-        <div style={S.logo} onClick={() => setPage(user ? "dashboard" : "landing")} role="button" tabIndex={0}>CVPassport</div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          {user ? (
-            <>
-              <span style={{ color: C.muted, fontSize: "14px" }}>Hi, {user.name}</span>
-              <button style={S.btn("outline","sm")} onClick={() => setPage("ats")}>ATS Checker</button>
-              <button style={S.btn("outline","sm")} onClick={handleLogout}>Sign Out</button>
-            </>
-          ) : (
-            <>
-              <button style={S.btn("outline","sm")} onClick={() => { setAuthMode("login"); setPage("auth"); }}>Sign In</button>
-              <button style={S.btn("primary","sm")} onClick={() => { setAuthMode("signup"); setPage("auth"); }}>Get Started</button>
-            </>
-          )}
-        </div>
-      </nav>
-
       {page === "landing"   && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }}/>}
       {page === "auth"      && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
-      {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume}/>}
+      {page === "dashboard" && user && (
+        <Dashboard
+          user={{ ...user, onLogout: handleLogout }}
+          onBuildResume={handleNewResume}
+          onEditResume={handleEditResume}
+        />
+      )}
       {page === "builder"   && (
         <ResumeBuilder
           user={user}
