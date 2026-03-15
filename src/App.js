@@ -929,9 +929,11 @@ function LandingPage({ onLogin, onSignup }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} role="button" tabIndex={0}>
-          <FalconLogo size={28} style={{ color: text }} />
-          <span style={{ fontSize: "18px", fontWeight: "800", letterSpacing: "0.04em" }}>CVPassport</span>
-        </div>
+        <img
+  src="/images/website-logo.png"
+  alt="CV Passport Logo"
+  style={{ height: "36px", width: "auto" }}
+/>        </div>
         <div className="landing-nav-center" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {["features", "templates", "pricing"].map((id) => (
             <a
