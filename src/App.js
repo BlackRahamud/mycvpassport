@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
-import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useCallback } from "react";
+import LandingGlobe from "./LandingGlobe";
 import { supabase } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import { PreviewGulfExecutive,    pdfGulfExecutive    } from "./Template5GulfExecutive";
@@ -856,55 +856,242 @@ async function downloadResume(cv, template) {
   doc.save(`${(cv.name || "Resume").replace(/\s+/g,"_")}_CVPassport.pdf`);
 }
 
-// ─── LANDING PAGE ─────────────────────────────────────────────────
-function LandingPage({ onLogin, onSignup }) {
+// ─── FALCON LOGO (shared) ─────────────────────────────────────────
+function FalconLogo({ size = 28, className = "" }) {
   return (
-    <div>
-      <div style={{ textAlign: "center", padding: "80px 40px 60px", maxWidth: "800px", margin: "0 auto" }}>
-        <div style={{ ...S.badge("free"), marginBottom: "20px", fontSize: "13px" }}>🇦🇪 Built for Gulf Job Seekers</div>
-        <h1 style={{ fontSize: "clamp(36px,6vw,64px)", fontWeight: "900", lineHeight: "1.1", marginBottom: "20px", letterSpacing: "-2px" }}>
-          Your Resume is your{" "}
-          <span style={{ background: `linear-gradient(135deg,${C.accent},${C.gold})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>passport</span>
-          {" "}to the Gulf
-        </h1>
-        <p style={{ fontSize: "18px", color: C.muted, marginBottom: "36px", lineHeight: "1.7" }}>ATS-optimised resumes built for UAE, Saudi & GCC job markets. Free to build. Free to download.</p>
-        <HowItWorks />
-        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-          <button style={S.btn("primary","lg")} onClick={onSignup}>Build My Resume Free →</button>
-          <button style={S.btn("outline","lg")} onClick={onLogin}>Sign In</button>
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false" className={className} style={{ display: "block" }}>
+      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M18 38c6-8 10-12 14-13 4-1 9 0 14 3-4 1-7 3-9 6 3 0 6 1 9 3-4 1-8 2-12 2-4 0-8-1-12-3z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M24 42c2 3 4 5 8 6 4-1 6-3 8-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M28 22c1.5-2 3-3 4-3s2.5 1 4 3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ─── LANDING PAGE (Phase 2) ───────────────────────────────────────
+const LANDING_TEMPLATES = TEMPLATES.slice(0, 6);
+const PRICING_UAE = [
+  { name: "Free", price: "Free", period: "" },
+  { name: "Monthly", price: "AED 29", period: "/mo" },
+  { name: "Quarterly", price: "AED 69", period: "/quarter", recommended: true },
+  { name: "Yearly", price: "AED 199", period: "/yr" },
+  { name: "Lifetime", price: "AED 299", period: " once" },
+];
+const PRICING_IN = [
+  { name: "Free", price: "Free", period: "" },
+  { name: "Monthly", price: "₹199", period: "/mo" },
+  { name: "Quarterly", price: "₹449", period: "/quarter", recommended: true },
+  { name: "Yearly", price: "₹999", period: "/yr" },
+  { name: "Lifetime", price: "₹1,499", period: " once" },
+];
+
+function LandingPage({ onLogin, onSignup }) {
+  const [theme, setTheme] = useState("dark");
+  const [activeSection, setActiveSection] = useState("features");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pricingRegion, setPricingRegion] = useState("uae");
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = () => setIsMobile(mq.matches);
+    mq.addListener(handler);
+    return () => mq.removeListener(handler);
+  }, []);
+
+  const isDark = theme === "dark";
+  const bg = isDark ? "#050505" : "#fafafa";
+  const text = isDark ? "#f5f5f5" : "#171717";
+  const muted = isDark ? "#9b9b9b" : "#737373";
+  const border = isDark ? "#262626" : "#e5e5e5";
+
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+    setMobileMenuOpen(false);
+  };
+
+  return (
+    <div style={{ background: bg, color: text, minHeight: "100vh" }}>
+      {/* Nav — tubelight, sticky, backdrop blur */}
+      <nav
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "16px 32px",
+          background: isDark ? "rgba(5,5,5,0.85)" : "rgba(250,250,250,0.85)",
+          backdropFilter: "blur(12px)",
+          borderBottom: `1px solid ${border}`,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} role="button" tabIndex={0}>
+          <FalconLogo size={28} style={{ color: text }} />
+          <span style={{ fontSize: "18px", fontWeight: "800", letterSpacing: "0.04em" }}>CVPassport</span>
         </div>
-      </div>
+        <div className="landing-nav-center" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {["features", "templates", "pricing"].map((id) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className={`landing-nav-tubelight ${activeSection === id ? "active" : ""}`}
+              onClick={(e) => { e.preventDefault(); scrollTo(id); setActiveSection(id); }}
+              style={{ padding: "8px 14px", fontSize: "14px", fontWeight: "600", color: activeSection === id ? text : muted, textDecoration: "none", textTransform: "capitalize" }}
+            >
+              {id === "templates" ? "Templates" : id === "pricing" ? "Pricing" : "Features"}
+            </a>
+          ))}
+        </div>
+        <div className="landing-nav-cta" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button type="button" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{ padding: "8px 12px", background: "transparent", border: `1px solid ${border}`, borderRadius: "8px", color: text, fontSize: "13px", cursor: "pointer" }}>
+            {isDark ? "Light" : "Dark"}
+          </button>
+          <button type="button" onClick={onLogin} style={{ padding: "8px 18px", background: "transparent", border: `1px solid ${border}`, borderRadius: "8px", color: text, fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>Login</button>
+          <button type="button" onClick={onSignup} style={{ padding: "10px 20px", background: "#fff", color: "#000", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>Get Started</button>
+        </div>
+        <button type="button" className="landing-nav-hamburger" aria-label="Menu" onClick={() => setMobileMenuOpen(o => !o)} style={{ display: "none", padding: 8, background: "transparent", border: "none", color: text, cursor: "pointer" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </nav>
+      {mobileMenuOpen && (
+        <div className="landing-mobile-menu" style={{ position: "fixed", top: 57, left: 0, right: 0, background: isDark ? "#0a0a0a" : "#fff", borderBottom: `1px solid ${border}`, padding: 16, zIndex: 99, display: "flex", flexDirection: "column", gap: 8 }}>
+          {["features", "templates", "pricing"].map((id) => (
+            <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); scrollTo(id); setActiveSection(id); setMobileMenuOpen(false); }} style={{ padding: "12px", fontSize: "14px", fontWeight: "600", color: text, textDecoration: "none" }}>{id === "templates" ? "Templates" : id === "pricing" ? "Pricing" : "Features"}</a>
+          ))}
+          <button type="button" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{ padding: "12px", textAlign: "left", background: "transparent", border: "none", color: text, fontSize: "14px", cursor: "pointer" }}>{isDark ? "Light mode" : "Dark mode"}</button>
+          <button type="button" onClick={() => { onLogin(); setMobileMenuOpen(false); }} style={{ padding: "12px", textAlign: "left", background: "transparent", border: "none", color: text, fontSize: "14px", cursor: "pointer" }}>Login</button>
+          <button type="button" onClick={() => { onSignup(); setMobileMenuOpen(false); }} style={{ padding: "12px", background: "#fff", color: "#000", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>Get Started</button>
+        </div>
+      )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "20px", padding: "0 40px 60px", maxWidth: "1000px", margin: "0 auto" }}>
-        {[
-          { icon: "🎯", title: "ATS Optimised",    desc: "Beat applicant tracking systems used by UAE banks" },
-          { icon: "📐", title: "Gulf CV Sections",  desc: "Nationality, Visa, DOB, Marital Status & more" },
-          { icon: "💾", title: "Auto-Saved",         desc: "Your resume saves automatically — never lose your work" },
-          { icon: "🔒", title: "Free Download",      desc: "Build & download free. No tricks" },
-        ].map((f, i) => (
-          <div key={i} style={{ ...S.card, textAlign: "center" }}>
-            <div style={{ fontSize: "32px", marginBottom: "12px" }}>{f.icon}</div>
-            <div style={{ fontWeight: "700", marginBottom: "8px" }}>{f.title}</div>
-            <div style={{ fontSize: "13px", color: C.muted, lineHeight: "1.6" }}>{f.desc}</div>
+      {/* Hero */}
+      <section style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "60px 40px 48px", maxWidth: 1200, margin: "0 auto", flexWrap: "wrap", gap: 40, position: "relative", minHeight: "85vh" }}>
+        <div className="landing-hero-content" style={{ flex: "1 1 400px", maxWidth: 560 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+            <span style={{ padding: "6px 12px", borderRadius: "999px", border: `1px solid ${border}`, fontSize: "12px", fontWeight: "600" }}>🇦🇪 UAE Ready</span>
+            <span style={{ padding: "6px 12px", borderRadius: "999px", border: `1px solid ${border}`, fontSize: "12px", fontWeight: "600" }}>🎯 ATS Optimised</span>
+            <span style={{ padding: "6px 12px", borderRadius: "999px", border: `1px solid ${border}`, fontSize: "12px", fontWeight: "600" }}>⚡ 5 Minute Build</span>
           </div>
-        ))}
-      </div>
+          <h1 style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: "800", lineHeight: "1.15", marginBottom: 16, letterSpacing: "-0.02em" }}>Your Gulf Career Starts Here</h1>
+          <p style={{ fontSize: "17px", color: muted, lineHeight: "1.65", marginBottom: 28 }}>Build an ATS-ready CV in minutes. Trusted by job seekers across UAE, India and GCC.</p>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <button type="button" className="landing-btn-primary" onClick={onSignup} style={{ padding: "14px 28px", background: "#fff", color: "#000", border: "none", borderRadius: "999px", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 0 16px rgba(255,255,255,0.3)" }}>
+              Build My CV →
+            </button>
+            <button type="button" className="landing-btn-secondary" onClick={onLogin} style={{ padding: "14px 28px", background: "transparent", color: text, border: `1px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "999px", fontSize: "15px", fontWeight: "600", cursor: "pointer" }}>
+              Analyse My CV
+            </button>
+          </div>
+          <div style={{ marginTop: 28, fontSize: "13px", color: muted }}>
+            10,000+ CVs Created · UAE & GCC Focused · ATS Optimised Templates
+          </div>
+        </div>
+        <div className="landing-hero-globe" style={{ flex: "0 1 420px", width: "100%", maxWidth: 420 }}>
+          <LandingGlobe isMobile={isMobile} />
+        </div>
+      </section>
 
-      <div style={{ padding: "0 40px 80px", maxWidth: "900px", margin: "0 auto" }}>
-        <h2 style={{ textAlign: "center", fontSize: "28px", fontWeight: "800", marginBottom: "32px" }}>4 Resume Layouts</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "16px" }}>
-          {TEMPLATES.map(t => (
-            <div key={t.id} style={{ background: t.color, border: `2px solid ${t.accent}`, borderRadius: "14px", padding: "20px", cursor: "pointer", transition: "transform 0.2s" }}
-              onMouseEnter={e=>e.currentTarget.style.transform="translateY(-4px)"}
-              onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}
-              onClick={onSignup}>
-              <div style={{ ...S.badge(t.tier), marginBottom: "12px" }}>{t.tier === "free" ? "FREE" : "⭐ PRO"}</div>
-              <div style={{ fontWeight: "700", fontSize: "14px", color: "#fff", marginBottom: "4px" }}>{t.name}</div>
-              <div style={{ fontSize: "12px", color: t.accent }}>{t.desc}</div>
+      {/* Features (anchor) */}
+      <section id="features" style={{ padding: "48px 40px", maxWidth: 1000, margin: "0 auto" }}>
+        <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: 24, textAlign: "center" }}>Built for Gulf & India job markets</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
+          {[
+            { title: "ATS Optimised", desc: "Beat applicant tracking systems used by UAE employers" },
+            { title: "Gulf CV Sections", desc: "Nationality, Visa, DOB, Marital Status & more" },
+            { title: "Auto-Saved", desc: "Your resume saves automatically — never lose your work" },
+            { title: "Free Download", desc: "Build & download free. No tricks" },
+          ].map((f, i) => (
+            <div key={i} style={{ padding: 20, border: `1px solid ${border}`, borderRadius: 12, background: isDark ? "#0a0a0a" : "#fff" }}>
+              <div style={{ fontWeight: "700", marginBottom: 8 }}>{f.title}</div>
+              <div style={{ fontSize: "14px", color: muted, lineHeight: "1.5" }}>{f.desc}</div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
+
+      {/* Templates */}
+      <section id="templates" style={{ padding: "48px 40px", maxWidth: 1100, margin: "0 auto" }}>
+        <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: 24, textAlign: "center" }}>Professional Templates Built for Gulf Jobs</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20 }}>
+          {LANDING_TEMPLATES.map((t) => (
+            <div
+              key={t.id}
+              onClick={onSignup}
+              style={{
+                border: `1px solid ${border}`,
+                borderRadius: 14,
+                overflow: "hidden",
+                cursor: "pointer",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                background: isDark ? "#0a0a0a" : "#fff",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = isDark ? "0 8px 24px rgba(0,0,0,0.4)" : "0 8px 24px rgba(0,0,0,0.08)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+            >
+              <div style={{ height: 160, background: "#111", position: "relative", overflow: "hidden" }}>
+                <div style={{ transform: "scale(0.22)", transformOrigin: "top left", width: "455%", position: "absolute", top: 0, left: 0 }}>
+                  <ResumePreview cv={{ ...EMPTY_RESUME, name: "Your Name", title: "Job Title" }} template={t} />
+                </div>
+              </div>
+              <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: "600", fontSize: "14px" }}>{t.name}</span>
+                <span style={{ fontSize: "11px", fontWeight: "700", padding: "3px 8px", borderRadius: 999, border: `1px solid ${border}`, color: muted }}>{t.tier === "free" ? "Free" : "Pro"}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" style={{ padding: "48px 40px 64px", maxWidth: 900, margin: "0 auto" }}>
+        <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: 12, textAlign: "center" }}>Pricing</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 28 }}>
+          <span style={{ fontSize: "14px", color: pricingRegion === "uae" ? text : muted, fontWeight: "600" }}>UAE</span>
+          <button
+            type="button"
+            onClick={() => setPricingRegion(r => r === "uae" ? "in" : "uae")}
+            style={{ width: 48, height: 26, borderRadius: 999, background: pricingRegion === "uae" ? "#fff" : border, border: `1px solid ${border}`, cursor: "pointer", position: "relative" }}
+          >
+            <span style={{ position: "absolute", left: pricingRegion === "uae" ? 4 : 26, top: 3, width: 20, height: 18, borderRadius: 999, background: pricingRegion === "uae" ? "#000" : text, transition: "left 0.2s" }} />
+          </button>
+          <span style={{ fontSize: "14px", color: pricingRegion === "in" ? text : muted, fontWeight: "600" }}>India</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14 }}>
+          {(pricingRegion === "uae" ? PRICING_UAE : PRICING_IN).map((plan) => (
+            <div key={plan.name} style={{ padding: 20, borderRadius: 12, border: `1px solid ${plan.recommended ? (isDark ? "#fff" : "#000") : border}`, background: plan.recommended ? (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)") : "transparent", textAlign: "center" }}>
+              {plan.recommended && <div style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, color: muted }}>Recommended</div>}
+              <div style={{ fontWeight: "700", fontSize: "18px" }}>{plan.price}<span style={{ fontSize: "12px", color: muted }}>{plan.period}</span></div>
+              <div style={{ fontSize: "12px", color: muted, marginTop: 4 }}>{plan.name}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 24, padding: "16px 20px", border: `1px solid ${border}`, borderRadius: 12, display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", fontSize: "13px", color: muted }}>
+          <span>Watermark Removal AED 5</span>
+          <span>·</span>
+          <span>ATS Single Scan AED 9</span>
+          <span>·</span>
+          <span>ATS 5-Pack AED 29</span>
+          <span>·</span>
+          <span>Cover Letter AED 9</span>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ padding: "32px 40px", borderTop: `1px solid ${border}`, textAlign: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
+          <FalconLogo size={22} style={{ color: text }} />
+          <span style={{ fontSize: "16px", fontWeight: "700" }}>CVPassport</span>
+        </div>
+        <p style={{ fontSize: "13px", color: muted, marginBottom: 12 }}>Built for the Gulf. Trusted across South Asia.</p>
+        <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap", fontSize: "13px" }}>
+          <a href="#privacy" style={{ color: muted, textDecoration: "none" }}>Privacy Policy</a>
+          <a href="#terms" style={{ color: muted, textDecoration: "none" }}>Terms</a>
+          <a href="#contact" style={{ color: muted, textDecoration: "none" }}>Contact</a>
+        </div>
+      </footer>
     </div>
   );
 }
