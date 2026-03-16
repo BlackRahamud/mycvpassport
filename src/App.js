@@ -15,7 +15,7 @@ import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechIT
 const TEMPLATES = [
   { id: 1,  name: "Gulf Classic",         tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",              layout: "banner"      },
   { id: 2,  name: "Dubai Modern",         tier: "free",    color: "#0f3460", accent: "#00b4d8", desc: "Two-column split",                layout: "twocol"      },
-  { id: 3,  name: "Arabia Pro",           tier: "free",    color: "#533483", accent: "#f0c040", desc: "Sidebar with skills column",      layout: "sidebar"     },
+  { id: 3,  name: "Arabia Pro",           tier: "free",    color: "#1a1a2e", accent: "#C9A84C", desc: "Sidebar with skills column",      layout: "sidebar"     },
   { id: 4,  name: "Executive Gold",       tier: "premium", color: "#1a0a00", accent: "#d4a017", desc: "Timeline experience style",       layout: "timeline"    },
   { id: 5,  name: "Gulf Executive",       tier: "premium", color: "#0D1B2A", accent: "#C9A84C", desc: "Dark navy with gold accents",     layout: "gulf-exec"   },
   { id: 6,  name: "Banking & Finance",    tier: "premium", color: "#000000", accent: "#000000", desc: "Ultra-clean ATS-first serif",     layout: "banking"     },
@@ -1033,8 +1033,8 @@ function LandingPage({ onLogin, onSignup }) {
               onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = isDark ? "0 8px 24px rgba(0,0,0,0.4)" : "0 8px 24px rgba(0,0,0,0.08)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
             >
-              <div style={{ height: 160, background: "#111", position: "relative", overflow: "hidden" }}>
-                <div style={{ transform: "scale(0.22)", transformOrigin: "top left", width: "455%", position: "absolute", top: 0, left: 0 }}>
+              <div style={{ position: "relative", width: "100%", height: 220, overflow: "hidden", borderRadius: 8, background: "#fff" }}>
+                <div style={{ position: "absolute", top: 0, left: 0, width: 794, transformOrigin: "top left", transform: "scale(0.27)" }}>
                   <ResumePreview cv={{ ...EMPTY_RESUME, name: "Your Name", title: "Job Title" }} template={t} />
                 </div>
               </div>
@@ -1464,15 +1464,24 @@ function Dashboard({ user, onBuildResume, onEditResume }) {
     { id: "settings",  label: "Settings" },
   ];
 
-  const computeStrength = (cv) => {
-    if (!cv) return 0;
-    let score = 0;
-    if (cv.name) score += 20;
-    if (cv.summary) score += 20;
-    if (cv.skills) score += 20;
-    if (cv.experience && cv.experience.some(e => e.company || e.role)) score += 20;
-    if (cv.education && cv.education.some(e => e.school)) score += 20;
-    return score;
+  const getStrength = (r) => {
+    if (!r) return 0;
+    const fields = [
+      r.name,
+      r.email,
+      r.phone,
+      r.title,
+      r.summary,
+      r.nationality,
+      r.visaStatus,
+      r.skills,
+      r.languages,
+      r.experience?.[0]?.company,
+      r.experience?.[0]?.role,
+      r.education?.[0]?.school,
+    ];
+    const filled = fields.filter(f => f && String(f).trim() !== "").length;
+    return Math.round((filled / fields.length) * 100);
   };
 
   const openProModal = () => {
@@ -1683,7 +1692,7 @@ function Dashboard({ user, onBuildResume, onEditResume }) {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
                 {resumeList.map((r) => {
                   const cvData = r.cv_data || EMPTY_RESUME;
-                  const strength = computeStrength(cvData);
+                  const strength = getStrength(cvData);
                   const template = TEMPLATES.find((t) => t.id === r.template_id) || TEMPLATES[0];
                   const title = r.title || cvData.name || "My CV";
                   return (
