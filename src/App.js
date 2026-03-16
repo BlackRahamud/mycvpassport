@@ -930,7 +930,7 @@ function LandingPage({ onLogin, onSignup }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} role="button" tabIndex={0}>
         <img
-  src="/images/website-logo.png"
+  src="/images/falcon-icon.png"
   alt="CV Passport Logo"
   style={{ height: "36px", width: "auto" }}
 />        </div>

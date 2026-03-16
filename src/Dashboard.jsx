@@ -24,7 +24,7 @@ export default function Dashboard() {
         {/* Logo */}
         <div style={{ padding: "0 24px 32px" }}>
   <img
-    src="/images/website-logo.png"
+    src="/images/falcon-icon.png"
     alt="CV Passport Logo"
     style={{ width: "160px", height: "auto" }}
   />
