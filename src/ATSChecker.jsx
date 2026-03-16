@@ -134,7 +134,7 @@ function analyzeFormatting(resumeText) {
 }
 
 // --- Main Component ---
-export default function ATSChecker() {
+export default function ATSChecker(props) {
   const [jobDesc, setJobDesc] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -212,6 +212,13 @@ export default function ATSChecker() {
 
   return (
     <div style={{ maxWidth: 850, margin: "0 auto", padding: "40px 20px", color: EXEC.white, background: EXEC.navy, minHeight: "100vh" }}>
+      
+      {/* Back Button */}
+      {props.onBack && (
+        <div onClick={props.onBack} style={{ fontSize: "13px", color: "#aaa", cursor: "pointer", marginBottom: "24px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+          ← Back to Dashboard
+        </div>
+      )}
       
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 40 }}>

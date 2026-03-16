@@ -3,6 +3,7 @@ import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
+import TiltedCard from './components/TiltedCard';
 import { PreviewGulfExecutive,    pdfGulfExecutive    } from "./Template5GulfExecutive";
 import { PreviewBankingFinance,   pdfBankingFinance   } from "./Template6BankingFinance";
 import { PreviewCompactPro,       pdfCompactPro       } from "./Template7CompactPro";
@@ -25,6 +26,31 @@ const TEMPLATES = [
   { id: 10, name: "ATS International",    tier: "premium", color: "#000000", accent: "#333333", desc: "Pure ATS — zero colour, max score",layout: "ats-intl"   },
   { id: 11, name: "Tech & IT Pro",        tier: "premium", color: "#1E2D45", accent: "#4A90D9", desc: "Dark slate sidebar for tech roles",layout: "tech-it"    },
 ];
+
+const DUMMY_RESUME = {
+  name: "Ahmed Al Mansouri",
+  title: "Senior Sales Executive",
+  email: "ahmed.mansouri@email.com",
+  phone: "+971 50 456 7890",
+  location: "Dubai, UAE",
+  summary: "Results-driven sales professional with 6 years of experience in UAE retail and banking sectors. Proven track record of exceeding targets.",
+  nationality: "UAE National",
+  visaStatus: "Citizen",
+  dob: "15 March 1990",
+  gender: "Male",
+  maritalStatus: "Married",
+  experience: [
+    { company: "Emirates NBD", role: "Relationship Officer", location: "Dubai, UAE", period: "2021 – Present", points: "Managed portfolio of 200+ HNW clients\nAchieved 140% of annual sales target\nOnboarded AED 45M in new deposits" },
+    { company: "Mashreq Bank", role: "Personal Banking Advisor", location: "Dubai, UAE", period: "2018 – 2021", points: "Cross-sold investment and insurance products\nRanked top 5% nationally for customer satisfaction\nTrained 8 new joiners on CRM systems" }
+  ],
+  education: [{ school: "University of Dubai", degree: "Bachelor of Business Administration", year: "2018" }],
+  skills: "Sales, Relationship Management, CRM, KYC/AML, Arabic, English, MS Office, Negotiation",
+  languages: "Arabic (Native), English (Fluent)",
+  certifications: "Certified Banking Professional (CBP), UAE Central Bank AML Certificate",
+  availability: "Immediately Available",
+  willingToRelocate: "Yes",
+  drivingLicense: "UAE Driving License"
+};
 
 const EMPTY_RESUME = {
   // Personal
@@ -860,8 +886,68 @@ async function downloadResume(cv, template) {
   doc.save(`${(cv.name || "Resume").replace(/\s+/g,"_")}_CVPassport.pdf`);
 }
 
+// ─── PREVIEW: TEMPLATE THUMB WRAPPER ──────────────────────────────
+const TemplateThumb = ({ children }) => (
+  <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#fff", borderRadius: "12px" }}>
+    <div style={{ position: "absolute", top: 0, left: 0, width: "794px", transformOrigin: "top left", transform: "scale(0.27)", pointerEvents: "none" }}>
+      {children}
+    </div>
+  </div>
+);
+
+// ─── INLINE PREVIEW: T1 (BANNER LAYOUT) ───────────────────────────
+const T1Preview = ({ cv, t }) => (
+  <TemplateThumb>
+    <PreviewBanner cv={cv} t={t} />
+  </TemplateThumb>
+);
+
+// ─── INLINE PREVIEW: T2 (TWO-COLUMN LAYOUT) ───────────────────────
+const T2Preview = ({ cv, t }) => (
+  <TemplateThumb>
+    <PreviewTwoCol cv={cv} t={t} />
+  </TemplateThumb>
+);
+
+// ─── INLINE PREVIEW: T3 (SIDEBAR LAYOUT) ──────────────────────────
+const T3Preview = ({ cv, t }) => (
+  <TemplateThumb>
+    <PreviewSidebar cv={cv} t={t} />
+  </TemplateThumb>
+);
+
 // ─── LANDING PAGE ─────────────────────────────────────────────────
-function LandingPage({ onLogin, onSignup }) {
+function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {
+  // Walk-In Interview CV Mode state
+  const [walkInData, setWalkInData] = useState({
+    fullName: "",
+    jobTitle: "",
+    phone: "",
+    email: "",
+    skills: "",
+    experience: "",
+  });
+
+  const handleWalkInSubmit = () => {
+    if (!walkInData.fullName || !walkInData.jobTitle || !walkInData.phone || !walkInData.email) {
+      alert("Please fill in all required fields");
+      return;
+    }
+    // Pre-fill resume state
+    const prefilledResume = {
+      ...EMPTY_RESUME,
+      name: walkInData.fullName,
+      title: walkInData.jobTitle,
+      phone: walkInData.phone,
+      email: walkInData.email,
+      skills: walkInData.skills,
+      summary: walkInData.experience,
+    };
+    // Store in session storage and navigate
+    sessionStorage.setItem("walkInResume", JSON.stringify(prefilledResume));
+    onSignup();
+  };
+
   return (
     <div>
       <div style={{ textAlign: "center", padding: "80px 40px 60px", maxWidth: "800px", margin: "0 auto" }}>
@@ -894,20 +980,190 @@ function LandingPage({ onLogin, onSignup }) {
         ))}
       </div>
 
-      <div style={{ padding: "0 40px 80px", maxWidth: "900px", margin: "0 auto" }}>
-        <h2 style={{ textAlign: "center", fontSize: "28px", fontWeight: "800", marginBottom: "32px" }}>4 Resume Layouts</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "16px" }}>
-          {TEMPLATES.map(t => (
-            <div key={t.id} style={{ background: t.color, border: `2px solid ${t.accent}`, borderRadius: "14px", padding: "20px", cursor: "pointer", transition: "transform 0.2s" }}
-              onMouseEnter={e=>e.currentTarget.style.transform="translateY(-4px)"}
-              onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}
-              onClick={onSignup}>
-              <div style={{ ...S.badge(t.tier), marginBottom: "12px" }}>{t.tier === "free" ? "FREE" : "⭐ PRO"}</div>
-              <div style={{ fontWeight: "700", fontSize: "14px", color: "#fff", marginBottom: "4px" }}>{t.name}</div>
-              <div style={{ fontSize: "12px", color: t.accent }}>{t.desc}</div>
+      {/* Walk-In Interview CV Mode Section */}
+      <div style={{ background: "#0a0a0a", padding: "80px 40px", marginBottom: "80px" }}>
+        <div style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ fontSize: "36px", fontWeight: "700", color: "#fff", marginBottom: "16px" }}>Got a Walk-In Interview Tomorrow?</h2>
+          <p style={{ fontSize: "16px", color: "#888", marginBottom: "48px" }}>Build a complete Gulf-ready CV in 60 seconds. Share instantly on WhatsApp.</p>
+          
+          <div style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: "16px", padding: "40px", marginBottom: "40px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <input
+                style={S.input}
+                placeholder="Ahmed Al Mansouri"
+                value={walkInData.fullName}
+                onChange={e => setWalkInData({...walkInData, fullName: e.target.value})}
+              />
+              <input
+                style={S.input}
+                placeholder="Sales Executive"
+                value={walkInData.jobTitle}
+                onChange={e => setWalkInData({...walkInData, jobTitle: e.target.value})}
+              />
+              <input
+                style={S.input}
+                placeholder="+971 50 123 4567"
+                value={walkInData.phone}
+                onChange={e => setWalkInData({...walkInData, phone: e.target.value})}
+              />
+              <input
+                style={S.input}
+                placeholder="ahmed@email.com"
+                value={walkInData.email}
+                onChange={e => setWalkInData({...walkInData, email: e.target.value})}
+              />
+              <input
+                style={S.input}
+                placeholder="Sales, CRM, Communication, Arabic, English"
+                value={walkInData.skills}
+                onChange={e => setWalkInData({...walkInData, skills: e.target.value})}
+              />
+              <input
+                style={S.input}
+                placeholder="3 years in UAE retail banking"
+                value={walkInData.experience}
+                onChange={e => setWalkInData({...walkInData, experience: e.target.value})}
+              />
             </div>
-          ))}
+
+            <button
+              onClick={handleWalkInSubmit}
+              style={{
+                width: "100%",
+                background: "#fff",
+                color: "#000",
+                border: "none",
+                borderRadius: "12px",
+                padding: "16px",
+                fontSize: "16px",
+                fontWeight: "700",
+                cursor: "pointer",
+                marginTop: "24px",
+              }}
+            >
+              Build My Walk-In CV →
+            </button>
+
+            <div style={{ fontSize: "12px", color: "#666", textAlign: "center", marginTop: "16px" }}>
+              ⚡ Ready in 60 seconds · 📲 Share on WhatsApp · 🆓 Free
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div style={{ padding: "0 40px 80px", maxWidth: "900px", margin: "0 auto" }}>
+        <h2 style={{ textAlign: "center", fontSize: "28px", fontWeight: "800", marginBottom: "32px" }}>Professional Templates Built for Gulf Jobs</h2>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", maxWidth: "1100px", margin: "0 auto 40px", "@media (max-width: 768px)": { gridTemplateColumns: "repeat(2, 1fr)" }, "@media (max-width: 480px)": { gridTemplateColumns: "1fr" } }}>
+          {/* T1 - Gulf Classic */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Gulf Classic</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 600 }}>Free</span>
+              </div>
+            }
+          >
+            <T1Preview cv={DUMMY_RESUME} t={TEMPLATES[0]} />
+          </TiltedCard>
+
+          {/* T2 - Dubai Modern */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Dubai Modern</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 600 }}>Free</span>
+              </div>
+            }
+          >
+            <T2Preview cv={DUMMY_RESUME} t={TEMPLATES[1]} />
+          </TiltedCard>
+
+          {/* T3 - Arabia Pro */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Arabia Pro</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 600 }}>Free</span>
+              </div>
+            }
+          >
+            <T3Preview cv={DUMMY_RESUME} t={TEMPLATES[2]} />
+          </TiltedCard>
+
+          {/* T4 - Executive Gold (Timeline) */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Executive Gold</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(201,168,76,0.25)", color: "#C9A84C", fontWeight: 600 }}>Pro</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewTimeline cv={DUMMY_RESUME} t={TEMPLATES[3]} />
+            </TemplateThumb>
+          </TiltedCard>
+
+          {/* T5 - Gulf Executive */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Gulf Executive</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(201,168,76,0.25)", color: "#C9A84C", fontWeight: 600 }}>Pro</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewGulfExecutive cv={DUMMY_RESUME} t={TEMPLATES[4]} />
+            </TemplateThumb>
+          </TiltedCard>
+
+          {/* T6 - Banking & Finance */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Banking & Finance</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(201,168,76,0.25)", color: "#C9A84C", fontWeight: 600 }}>Pro</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewBankingFinance cv={DUMMY_RESUME} t={TEMPLATES[5]} />
+            </TemplateThumb>
+          </TiltedCard>
+        </div>
+
+        <button 
+          onClick={() => { setResume({...EMPTY_RESUME, name: ""}); setSelectedTemplate(TEMPLATES[0]); setView('builder'); }}
+          style={{ marginTop: "40px", display: "block", margin: "40px auto 0", padding: "12px 32px", background: "transparent", border: "1px solid #444", color: "#fff", borderRadius: "8px", fontSize: "14px", cursor: "pointer", letterSpacing: "0.5px" }}
+        >
+          Explore All 11 Templates →
+        </button>
       </div>
     </div>
   );
@@ -1449,9 +1705,9 @@ export default function App() {
         </div>
       </nav>
 
-      {page === "landing"   && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }}/>}
+      {page === "landing"   && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setView={setPage} setResume={setEditingResume} setSelectedTemplate={() => {}}/>}
       {page === "auth"      && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
-      {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume}/>}
+      {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
       {page === "builder"   && (
         <ResumeBuilder
           user={user}
@@ -1461,7 +1717,7 @@ export default function App() {
           initialTemplateId={editingResume?.template_id || null}
         />
       )}
-      {page === "ats" && <ATSChecker />}
+      {page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
       <Analytics />
     </div>
   );

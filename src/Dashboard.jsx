@@ -13,7 +13,7 @@ const C = {
   danger: "#ef4444",
 };
 
-export default function Dashboard() {
+export default function Dashboard(props) {
   const [activeNav, setActiveNav] = useState('dashboard');
 
   return (
@@ -22,9 +22,10 @@ export default function Dashboard() {
       {/* SIDEBAR */}
       <div style={{ width: "240px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh" }}>
         {/* Logo */}
-        <div style={{ padding: "0 24px 32px" }}>
+        <div style={{ padding: "0 24px 0", cursor: "pointer" }} onClick={props.onGoHome}>
           <span style={{ fontSize: "20px", fontWeight: "800", color: C.text }}>CVPassport</span>
         </div>
+        <div onClick={props.onGoHome} style={{ fontSize: "12px", color: "#888", cursor: "pointer", padding: "4px 24px 32px" }}>← Home</div>
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: "0 12px" }}>
