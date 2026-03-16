@@ -932,7 +932,7 @@ function LandingPage({ onLogin, onSignup }) {
         <img
   src="/images/falcon-icon.png"
   alt="CV Passport Logo"
-  style={{ height: "36px", width: "auto" }}
+  style={{ height: "80px", width: "auto" }}
 />        </div>
         <div className="landing-nav-center" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {["features", "templates", "pricing"].map((id) => (

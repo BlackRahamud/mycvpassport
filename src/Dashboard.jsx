@@ -26,7 +26,7 @@ export default function Dashboard() {
   <img
     src="/images/falcon-icon.png"
     alt="CV Passport Logo"
-    style={{ width: "160px", height: "auto" }}
+    style={{ width: "180px", height: "auto" }}
   />
 </div>
         {/* Nav */}
