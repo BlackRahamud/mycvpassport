@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 
 // Lat/long to viewBox coords (100x100 circle, center 50,50, r~48)
 function project(lat, lon) {
-  const x = 50 + (lon / 360) * 96;
+  const x = 50 + ((lon - 55) / 360) * 96;
   const y = 50 - (lat / 180) * 96;
   return { x, y };
 }
@@ -10,7 +10,7 @@ function project(lat, lon) {
 const CITIES = [
   { name: "Dubai", lat: 25.2, lon: 55.3 },
   { name: "Mumbai", lat: 19.0, lon: 72.8 },
-  { name: "Riyadh", lat: 24.7, lon: 46.7 },
+  { name: "Delhi", lat: 28.6, lon: 77.2 },
   { name: "Doha", lat: 25.3, lon: 51.5 },
   { name: "Muscat", lat: 23.6, lon: 58.6 },
 ];
@@ -35,14 +35,11 @@ function getArcPath(x1, y1, x2, y2) {
 }
 
 const ARCS = [
-  [0, 1],
-  [0, 2],
-  [0, 3],
-  [0, 4],
-  [1, 2],
-  [2, 3],
-  [3, 4],
-  [1, 4],
+  [0, 1], // Dubai → Mumbai
+  [0, 2], // Dubai → Delhi
+  [0, 3], // Dubai → Doha
+  [0, 4], // Dubai → Muscat
+  [1, 2], // Mumbai → Delhi
 ];
 
 export default function LandingGlobe({ isMobile }) {
@@ -130,23 +127,28 @@ export default function LandingGlobe({ isMobile }) {
               </g>
             );
           })}
-          {CITY_COORDS.map((city, i) => (
+          {CITY_COORDS.map((city) => (
             <g key={city.name}>
-              <circle
-                cx={city.x}
-                cy={city.y}
-                r="2.5"
-                fill="none"
-                stroke="rgba(255,255,255,0.5)"
-                strokeWidth="0.5"
-              />
-              <circle cx={city.x} cy={city.y} r="1" fill="rgba(255,255,255,0.95)" />
+              {city.name === "Dubai" ? (
+                <>
+                  <circle cx={city.x} cy={city.y} r="3.5" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
+                  <circle cx={city.x} cy={city.y} r="2.5" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.5" />
+                  <circle cx={city.x} cy={city.y} r="1.2" fill="rgba(255,255,255,1)" />
+                </>
+              ) : (
+                <>
+                  <circle cx={city.x} cy={city.y} r="2.5" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.4" />
+                  <circle cx={city.x} cy={city.y} r="0.9" fill="rgba(255,255,255,0.9)" />
+                </>
+              )}
               <text
                 x={city.x + 3}
-                y={city.y}
+                y={city.y + 0.5}
                 fontSize="3.2"
                 fill="rgba(255,255,255,0.6)"
                 fontFamily="system-ui, sans-serif"
+                dominantBaseline="middle"
+                textAnchor="start"
               >
                 {city.name}
               </text>
