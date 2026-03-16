@@ -36,13 +36,23 @@
     transform: rotate(360deg);
   }
 }
+.landing-globe-rotate {
+  animation: globeSwing 8s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+@keyframes globeSwing {
+  0%   { transform: rotate(-8deg); }
+  100% { transform: rotate(8deg); }
+}
+
 .landing-globe-rotate text {
-  animation: counterRotate 20s linear infinite;
+  animation: counterSwing 8s ease-in-out infinite alternate;
   transform-origin: center;
   transform-box: fill-box;
 }
 
-@keyframes counterRotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
+@keyframes counterSwing {
+  0%   { transform: rotate(8deg); }
+  100% { transform: rotate(-8deg); }
 }
