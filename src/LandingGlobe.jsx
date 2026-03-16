@@ -30,254 +30,474 @@ const INDIA = [
   [80.792,15.952],[80.325,15.899],[80.025,15.136],[80.233,13.836],[80.286,13.006],
   [79.863,12.056],[79.858,10.357],[79.341,10.309],[78.885,9.546],[79.190,9.217],
   [78.278,8.933],[77.941,8.253],[77.540,7.966],[76.593,8.899],[76.130,10.300],
-  [75.746,11.308],[75.396,11.781],[74.865,12.742],[74.617,13.993],[74.444,14.617],
-  [73.534,15.991],[73.120,17.929],[72.821,19.208],[72.824,20.420],[72.631,21.356],
-  [71.175,20.757],[70.470,20.877],[69.164,22.089],[69.645,22.451],[69.350,22.843],
-  [68.177,23.692],[68.843,24.359],[71.043,24.357],[70.845,25.215],[70.283,25.722],
-  [70.169,26.492],[69.514,26.941],[70.616,27.989],[71.778,27.913],[72.824,28.962],
-  [73.451,29.976],[74.421,30.980],[74.406,31.693],[75.259,32.271],[74.452,32.765],
-  [74.104,33.441],[73.750,34.318],[74.240,34.749],[75.757,34.505],[76.872,34.654],
-  [77.837,35.494]
+  [75.747,11.308],[75.396,11.781],[74.865,12.742],[74.616,13.992],[74.443,14.617],
+  [73.534,15.991],[73.120,17.929],[72.820,19.208],[72.824,20.419],[72.630,21.356],
+  [71.175,20.757],[70.470,20.877],[69.164,22.089],[70.528,22.777],[71.021,22.778],
+  [70.219,23.023],[68.968,23.692],[68.177,23.857],[67.443,23.944],[67.145,24.663],
+  [66.373,25.425],[64.530,25.674],[62.905,26.225],[61.813,26.830],[61.744,27.447],
+  [62.755,27.378],[63.233,27.217],[63.317,27.640],[62.020,28.256],[61.656,28.778],
+  [60.874,29.829],[62.549,29.318],[63.551,29.469],[64.148,29.340],[64.350,29.560],
+  [65.046,29.472],[66.347,29.887],[66.381,30.738],[66.938,31.305],[67.683,31.303],
+  [67.793,31.583],[68.556,31.713],[68.926,31.620],[71.117,34.733],[71.615,34.689],
+  [71.498,34.348],[71.263,34.404],[70.883,33.989],[71.157,34.348],[71.115,34.733],
+  [74.240,37.116],[75.758,36.798],[76.871,36.177],[77.837,35.494]
 ];
 
-// UAE — real Natural Earth
-const UAE = [
-  [51.580,24.245],[51.757,24.294],[51.794,24.020],[52.577,24.177],[53.404,24.151],
-  [54.008,24.122],[54.693,24.798],[55.439,25.439],[56.071,26.055],[56.261,25.715],
-  [56.397,24.925],[55.886,24.921],[55.804,24.270],[55.981,24.131],[55.529,23.934],
-  [55.526,23.525],[55.234,23.111],[55.208,22.708],[55.007,22.497],[52.001,23.001],
-  [51.618,24.014],[51.580,24.245]
+// UAE + Saudi Arabia + Gulf region
+const UAE_SAUDI = [
+  [51.579,24.245],[51.757,24.294],[51.794,24.019],[52.577,24.177],[53.404,24.151],
+  [54.008,24.121],[54.693,24.797],[55.439,25.439],[56.070,26.055],[56.362,24.924],
+  [56.485,24.242],[55.665,22.000],[55.208,22.708],[55.025,22.033],[52.000,23.001],
+  [51.617,24.077],[51.579,24.245],
+  // Saudi Arabia simplified
+  [36.500,28.500],[37.480,28.000],[38.000,27.000],[39.000,26.000],[40.000,25.000],
+  [41.000,24.000],[42.000,23.500],[43.000,22.500],[44.000,22.000],[45.000,21.500],
+  [46.000,21.000],[47.000,20.500],[48.000,20.000],[49.000,19.500],[50.000,19.000],
+  [51.000,19.500],[52.000,20.000],[55.000,22.000],[55.208,22.708],[55.025,22.033],
+  [52.000,23.001],[51.617,24.077],[51.000,24.500],[50.000,25.500],[49.000,26.000],
+  [48.500,27.000],[47.500,28.000],[47.000,29.000],[46.500,29.500],[45.500,30.000],
+  [44.500,30.500],[43.500,31.000],[42.500,31.000],[41.500,31.000],[40.500,31.500],
+  [39.500,32.000],[38.500,32.000],[37.500,31.500],[37.000,30.500],[36.500,29.500],
+  [36.500,28.500]
 ];
 
-// Saudi Arabia
-const SAUDI = [
-  [36.759,22.0],[38.0,20.0],[40.0,18.0],[41.837,18.555],[42.779,16.348],
-  [43.224,17.380],[43.942,17.328],[45.400,17.333],[46.367,17.233],[47.000,17.0],
-  [47.467,17.117],[48.183,18.167],[49.117,18.617],[52.001,23.001],[55.007,22.497],
-  [55.208,22.708],[55.234,23.111],[55.526,23.525],[55.529,23.934],[55.981,24.131],
-  [55.804,24.270],[55.886,24.921],[56.397,24.925],[57.404,23.879],[58.137,23.747],
-  [58.729,23.566],[59.175,22.992],[58.729,21.943],[59.332,21.494],[57.826,20.243],
-  [57.665,19.736],[57.788,19.067],[56.673,18.147],[56.396,17.843],[55.487,17.432],
-  [55.234,17.043],[52.217,17.403],[49.033,18.575],[47.000,17.0],[44.963,15.55],
-  [43.671,15.203],[43.317,12.390],[41.889,11.0],[40.0,14.0],[38.0,16.0],
-  [37.0,18.0],[36.759,22.0],[37.066,22.0],[38.0,22.0],[40.0,22.0],
-  [44.0,23.0],[46.0,24.0],[47.974,29.976],[48.015,30.452],[47.000,29.0],
-  [44.717,29.179],[41.889,31.190],[40.399,31.889],[39.195,32.161],
-  [37.002,31.508],[36.424,31.351],[36.0,32.0],[36.759,22.0]
-];
-
-// Oman
+// Oman simplified
 const OMAN = [
-  [56.397,24.925],[57.404,23.879],[58.137,23.747],[58.729,23.566],[59.175,22.992],
-  [58.729,21.943],[59.332,21.494],[58.091,20.410],[57.826,20.243],[57.665,19.736],
-  [57.788,19.067],[56.673,18.147],[56.396,17.843],[55.487,17.432],[55.234,17.043],
-  [52.217,17.403],[51.580,24.245],[52.001,23.001],[55.007,22.497],[55.208,22.708],
-  [55.234,23.111],[55.526,23.525],[55.529,23.934],[55.981,24.131],[55.804,24.270],
-  [55.886,24.921],[56.397,24.925]
+  [56.362,24.924],[56.485,24.242],[57.000,23.500],[58.000,22.500],[59.000,22.000],
+  [59.500,21.500],[59.800,21.000],[59.400,20.500],[58.800,20.000],[58.000,19.500],
+  [57.000,19.000],[56.000,18.500],[55.000,18.000],[54.000,18.000],[53.000,17.500],
+  [52.000,17.500],[51.000,18.000],[52.500,20.000],[55.000,22.000],[55.208,22.708],
+  [56.070,26.055],[56.362,24.924]
 ];
 
-// Iran
+// Qatar
+const QATAR = [
+  [50.800,24.754],[51.148,24.343],[51.579,24.245],[51.617,24.077],[51.000,24.500],
+  [50.800,24.754]
+];
+
+// Kuwait
+const KUWAIT = [
+  [47.000,29.000],[47.500,28.000],[48.500,27.000],[49.000,26.000],[48.416,28.552],
+  [47.708,28.526],[47.000,29.000]
+];
+
+// Iran simplified
 const IRAN = [
-  [44.772,37.170],[46.0,39.0],[48.0,38.5],[50.0,37.5],[52.0,36.7],[54.0,37.0],
-  [56.0,38.0],[58.0,37.5],[60.0,36.5],[61.699,35.459],[61.271,35.274],
-  [60.498,34.405],[60.858,33.677],[60.683,33.129],[60.901,31.634],[61.698,31.379],
-  [61.782,30.735],[60.874,29.830],[61.369,29.303],[61.576,27.196],[60.874,26.573],
-  [58.729,23.566],[57.404,23.879],[56.397,24.925],[56.261,25.715],[56.071,26.055],
-  [55.439,25.439],[54.693,24.798],[54.008,24.122],[53.404,24.151],[52.577,24.177],
-  [51.794,24.020],[51.580,24.245],[52.001,23.001],[49.117,18.617],[48.183,18.167],
-  [47.974,29.976],[46.0,29.0],[44.717,29.179],[41.889,31.190],[40.399,31.889],
-  [40.0,34.0],[42.0,36.0],[44.772,37.170]
+  [44.500,39.000],[45.000,38.500],[46.000,38.000],[47.000,38.500],[48.000,38.000],
+  [48.584,37.669],[49.396,37.748],[50.147,37.374],[50.843,36.872],[51.602,36.631],
+  [52.191,36.700],[53.354,37.000],[54.008,37.000],[54.800,37.500],[55.512,37.964],
+  [56.180,37.935],[57.330,38.029],[58.436,37.522],[59.234,37.412],[60.377,36.527],
+  [61.123,36.491],[61.210,35.650],[60.803,34.404],[60.521,33.676],[60.866,32.983],
+  [60.536,32.981],[60.563,31.550],[61.027,31.354],[61.778,30.928],[62.725,29.857],
+  [63.000,29.500],[62.020,28.256],[63.317,27.640],[63.233,27.217],[62.755,27.378],
+  [61.656,28.778],[60.874,29.829],[58.500,29.500],[57.000,29.500],[55.500,28.500],
+  [54.500,27.500],[53.500,26.500],[52.500,26.000],[51.579,24.245],[51.000,24.500],
+  [50.000,25.500],[49.000,26.000],[48.500,27.000],[47.500,28.000],[47.000,29.000],
+  [46.500,29.500],[45.500,30.000],[44.500,30.500],[44.500,31.000],[44.500,32.500],
+  [44.000,33.000],[43.500,33.500],[43.000,34.000],[42.000,37.000],[44.500,39.000]
 ];
 
-// Pakistan
+// Pakistan simplified
 const PAKISTAN = [
-  [77.837,35.494],[76.872,34.654],[75.757,34.505],[74.240,34.749],[73.750,34.318],
-  [74.104,33.441],[74.452,32.765],[75.259,32.271],[74.406,31.693],[74.421,30.980],
-  [73.451,29.976],[72.824,28.962],[71.778,27.913],[70.616,27.989],[69.514,26.941],
-  [70.169,26.492],[70.283,25.722],[70.845,25.215],[71.043,24.357],[68.843,24.359],
-  [68.177,23.692],[67.443,23.945],[67.145,24.664],[66.373,25.425],[64.530,25.237],
-  [62.905,25.218],[61.497,25.079],[60.874,26.573],[61.576,27.196],[61.369,29.303],
-  [60.874,29.830],[61.782,30.735],[61.698,31.379],[60.901,31.634],[60.683,33.129],
-  [60.858,33.677],[60.498,34.405],[61.271,35.274],[62.0,35.0],[65.0,35.0],
-  [67.0,37.0],[69.0,37.0],[71.0,36.0],[73.0,36.0],[75.0,36.5],[77.837,35.494]
+  [61.027,31.354],[60.803,34.404],[61.210,35.650],[61.123,36.491],[60.377,36.527],
+  [59.234,37.412],[58.436,37.522],[57.330,38.029],[56.180,37.935],[55.512,37.964],
+  [54.800,37.500],[54.008,37.000],[53.354,37.000],[52.191,36.700],[51.602,36.631],
+  [50.843,36.872],[50.147,37.374],[49.396,37.748],[48.584,37.669],[48.000,38.000],
+  [47.000,38.500],[46.000,38.000],[45.000,38.500],[44.500,39.000],[44.500,40.000],
+  [46.000,41.000],[47.000,42.000],[66.501,37.362],[67.830,37.144],[68.136,37.023],
+  [68.859,37.344],[71.260,36.074],[71.498,34.348],[71.615,34.689],[71.117,34.733],
+  [68.926,31.620],[68.556,31.713],[67.793,31.583],[67.683,31.303],[66.938,31.305],
+  [66.381,30.738],[66.347,29.887],[65.046,29.472],[64.350,29.560],[64.148,29.340],
+  [63.551,29.469],[62.549,29.318],[60.874,29.829],[61.027,31.354]
 ];
 
-// East Africa
-const EAST_AFRICA = [
-  [41.900,3.976],[40.760,4.272],[39.850,3.838],[38.553,4.216],[37.997,4.029],
-  [37.177,4.246],[36.044,4.446],[34.466,5.208],[33.893,5.435],[34.005,6.608],
-  [34.621,6.956],[35.298,7.342],[36.800,7.476],[37.757,7.591],[39.202,7.993],
-  [39.620,8.265],[40.001,9.116],[40.460,10.700],[40.993,11.410],[41.580,11.790],
-  [42.116,11.735],[42.843,12.046],[43.081,11.584],[43.318,11.298],[43.670,10.864],
-  [44.118,11.060],[46.005,10.599],[50.073,11.579],[51.130,12.017],
-  [51.580,11.708],[51.300,11.0],[50.500,9.500],[49.0,8.0],[46.0,6.0],
-  [44.0,4.0],[41.900,3.976]
+// Afghanistan simplified
+const AFGHANISTAN = [
+  [61.027,31.354],[60.803,34.404],[61.210,35.650],[61.123,36.491],[62.230,35.270],
+  [63.000,35.000],[64.000,36.000],[65.000,37.000],[66.501,37.362],[68.859,37.344],
+  [68.136,37.023],[67.830,37.144],[66.501,37.362],[65.000,37.000],[64.000,36.000],
+  [63.000,35.000],[62.230,35.270],[61.123,36.491],[60.377,36.527],[59.234,37.412],
+  [58.436,37.522],[57.330,38.029],[56.180,37.935],[55.512,37.964],[54.800,37.500],
+  [62.549,29.318],[61.027,31.354]
 ];
 
-const ALL_COUNTRIES = [IRAN, SAUDI, OMAN, UAE, PAKISTAN, INDIA, EAST_AFRICA];
+function toSVGPath(coords) {
+  if (!coords || coords.length < 3) return "";
+  const pts = coords.map(([lat, lon]) => {
+    const { x, y } = project(lat, lon);
+    const svgX = (x / 100) * 380;
+    const svgY = (y / 100) * 380;
+    return `${svgX},${svgY}`;
+  });
+  return "M " + pts.join(" L ") + " Z";
+}
 
 const CITIES = [
-  { name: "Dubai",  lat: 25.2, lon: 55.3 },
-  { name: "Doha",   lat: 25.3, lon: 51.5 },
-  { name: "Muscat", lat: 23.6, lon: 58.6 },
-  { name: "Mumbai", lat: 19.0, lon: 72.8 },
-  { name: "Delhi",  lat: 28.6, lon: 77.2 },
+  { name: "Dubai", lat: 25.2, lon: 55.27, rings: 3, bright: true },
+  { name: "Mumbai", lat: 19.07, lon: 72.87, rings: 2 },
+  { name: "Delhi", lat: 28.61, lon: 77.20, rings: 2 },
+  { name: "Doha", lat: 25.29, lon: 51.53, rings: 1 },
+  { name: "Muscat", lat: 23.59, lon: 58.39, rings: 1 },
 ];
 
-const CITY_COORDS = CITIES.map((c) => ({ ...c, ...project(c.lat, c.lon) }));
-
-function getArcPath(x1, y1, x2, y2) {
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const perpX = -dy * 0.3;
-  const perpY = dx * 0.3;
-  const cx = mx + perpX;
-  const cy = my + perpY;
-  return `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
-}
-
-const ARCS = [
-  [0, 3], // Dubai → Mumbai
-  [0, 4], // Dubai → Delhi
-  [0, 1], // Dubai → Doha
-  [0, 2], // Dubai → Muscat
-  [3, 4], // Mumbai → Delhi
+const ARC_ROUTES = [
+  { from: { lat: 19.07, lon: 72.87 }, to: { lat: 25.2, lon: 55.27 } },
+  { from: { lat: 28.61, lon: 77.20 }, to: { lat: 25.2, lon: 55.27 } },
+  { from: { lat: 25.2, lon: 55.27 }, to: { lat: 25.29, lon: 51.53 } },
+  { from: { lat: 25.2, lon: 55.27 }, to: { lat: 23.59, lon: 58.39 } },
 ];
 
-function coordsToSvgPath(coordArray) {
-  const pts = coordArray.map(([lon, lat]) => {
-    const { x, y } = project(lat, lon);
-    return `${x.toFixed(2)},${y.toFixed(2)}`;
-  });
-  return `M ${pts.join(" L ")} Z`;
-}
-
-export default function LandingGlobe({ isMobile }) {
-  const svgRef = useRef(null);
-  const [mounted, setMounted] = useState(false);
+function GlobeComponent() {
+  const [angle, setAngle] = useState(0);
+  const rafRef = useRef(null);
 
   useEffect(() => {
-    setMounted(true);
+    let start = null;
+    const animate = (ts) => {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+      setAngle(Math.sin(elapsed / 4000) * 12);
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  const noAnimations = isMobile || !mounted;
+  const countries = [INDIA, UAE_SAUDI, OMAN, IRAN, PAKISTAN, QATAR, KUWAIT];
 
   return (
-    <div
-      className="landing-globe-wrap"
-      style={{
-        position: "relative",
-        width: "100%",
-        maxWidth: 420,
-        aspectRatio: "1",
-        margin: "0 auto",
-      }}
+    <svg
+      width="340"
+      height="340"
+      viewBox="0 0 380 380"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ transform: `rotate(${angle}deg)`, transition: "transform 0.05s linear" }}
     >
-      <svg
-        ref={svgRef}
-        viewBox="0 0 100 100"
-        className={noAnimations ? "landing-globe-static" : "landing-globe-rotate"}
-        style={{
-          width: "100%",
-          height: "100%",
-          overflow: "visible",
-        }}
-      >
-        <defs>
-          <radialGradient id="globeGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#1a1a1a" />
-            <stop offset="70%" stopColor="#0d0d0d" />
-            <stop offset="100%" stopColor="#050505" />
-          </radialGradient>
-          <clipPath id="globeClip">
-            <circle cx="50" cy="50" r="48" />
-          </clipPath>
-        </defs>
+      <defs>
+        <radialGradient id="globeBg" cx="38%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#1c1c1c" />
+          <stop offset="60%" stopColor="#0a0a0a" />
+          <stop offset="100%" stopColor="#030303" />
+        </radialGradient>
+        <clipPath id="globeClip">
+          <circle cx="190" cy="190" r="168" />
+        </clipPath>
+        <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(139,92,246,0.15)" />
+          <stop offset="100%" stopColor="rgba(139,92,246,0)" />
+        </radialGradient>
+      </defs>
 
-        {/* Globe base */}
-        <circle
-          cx="50"
-          cy="50"
-          r="48"
-          fill="url(#globeGrad)"
-          stroke="rgba(255,255,255,0.08)"
-          strokeWidth="0.5"
-        />
+      {/* Globe background */}
+      <circle cx="190" cy="190" r="168" fill="url(#globeBg)" />
 
-        <g clipPath="url(#globeClip)">
-          {/* Real country outlines */}
-          {ALL_COUNTRIES.map((coords, i) => (
+      {/* Ambient glow */}
+      <circle cx="190" cy="190" r="168" fill="url(#glowGrad)" clipPath="url(#globeClip)" />
+
+      {/* Countries */}
+      <g clipPath="url(#globeClip)" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" strokeWidth="0.6" strokeLinejoin="round">
+        {countries.map((country, i) => (
+          <path key={i} d={toSVGPath(country)} />
+        ))}
+      </g>
+
+      {/* Arc routes */}
+      <g clipPath="url(#globeClip)">
+        {ARC_ROUTES.map((route, i) => {
+          const from = project(route.from.lat, route.from.lon);
+          const to = project(route.to.lat, route.to.lon);
+          const fx = (from.x / 100) * 380;
+          const fy = (from.y / 100) * 380;
+          const tx = (to.x / 100) * 380;
+          const ty = (to.y / 100) * 380;
+          const mx = (fx + tx) / 2;
+          const my = Math.min(fy, ty) - 25;
+          return (
             <path
               key={i}
-              d={coordsToSvgPath(coords)}
-              fill="rgba(255,255,255,0.13)"
-              stroke="rgba(255,255,255,0.35)"
-              strokeWidth="0.15"
-              strokeLinejoin="round"
+              d={`M ${fx},${fy} Q ${mx},${my} ${tx},${ty}`}
+              fill="none"
+              stroke="rgba(139,92,246,0.5)"
+              strokeWidth="1"
+              strokeDasharray="3 4"
+              style={{
+                animation: `arcflow ${2 + i * 0.3}s linear infinite`,
+              }}
             />
-          ))}
+          );
+        })}
+      </g>
 
-          {/* Arc flight paths */}
-          {ARCS.map(([i, j], idx) => {
-            const a = CITY_COORDS[i];
-            const b = CITY_COORDS[j];
-            const d = getArcPath(a.x, a.y, b.x, b.y);
-            return (
-              <g key={idx}>
-                <path
-                  d={d}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.3)"
-                  strokeWidth="0.35"
-                  strokeDasharray="2 1.5"
-                  strokeLinecap="round"
-                />
-                {!noAnimations && (
-                  <circle r="1.2" fill="rgba(255,255,255,0.95)">
-                    <animateMotion
-                      dur="4s"
-                      repeatCount="indefinite"
-                      path={d}
-                      key={idx}
-                    />
-                  </circle>
-                )}
-              </g>
-            );
-          })}
-
-          {/* City dots */}
-          {CITY_COORDS.map((city) => (
-            <g key={city.name}>
-              {city.name === "Dubai" ? (
-                <>
-                  <circle cx={city.x} cy={city.y} r="3.5" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
-                  <circle cx={city.x} cy={city.y} r="2.5" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
-                  <circle cx={city.x} cy={city.y} r="1.2" fill="rgba(255,255,255,1)" />
-                </>
-              ) : (
-                <>
-                  <circle cx={city.x} cy={city.y} r="2" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.4" />
-                  <circle cx={city.x} cy={city.y} r="0.9" fill="rgba(255,255,255,0.9)" />
-                </>
+      {/* City dots */}
+      <g clipPath="url(#globeClip)">
+        {CITIES.map((city, i) => {
+          const { x, y } = project(city.lat, city.lon);
+          const cx = (x / 100) * 380;
+          const cy2 = (y / 100) * 380;
+          return (
+            <g key={i}>
+              {city.rings >= 3 && (
+                <circle cx={cx} cy={cy2} r="12" fill="none" stroke="rgba(139,92,246,0.2)" strokeWidth="1" />
               )}
+              {city.rings >= 2 && (
+                <circle cx={cx} cy={cy2} r="7" fill="none" stroke="rgba(139,92,246,0.4)" strokeWidth="1" />
+              )}
+              <circle cx={cx} cy={cy2} r={city.bright ? 4 : 2.5} fill={city.bright ? "#a78bfa" : "rgba(255,255,255,0.8)"} />
               <text
-                x={city.x + 2}
-                y={city.y + 0.5}
-                fontSize="2.8"
-                fill="rgba(255,255,255,0.65)"
-                fontFamily="system-ui, sans-serif"
-                dominantBaseline="middle"
-                textAnchor="start"
+                x={cx + 7}
+                y={cy2 + 4}
+                fontSize="9"
+                fill="rgba(255,255,255,0.7)"
+                fontFamily="sans-serif"
+                fontWeight="500"
               >
                 {city.name}
               </text>
             </g>
+          );
+        })}
+      </g>
+
+      {/* Globe border */}
+      <circle cx="190" cy="190" r="168" fill="none" stroke="#252525" strokeWidth="1.5" />
+      <circle cx="190" cy="190" r="166" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+
+      <style>{`
+        @keyframes arcflow { to { stroke-dashoffset: -20; } }
+        path[stroke="rgba(139,92,246,0.5)"] { stroke-dashoffset: 0; }
+      `}</style>
+    </svg>
+  );
+}
+
+export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
+  const [theme, setTheme] = useState("dark");
+
+  const isDark = theme === "dark";
+
+  const bg = isDark ? "#0a0a0a" : "#f8f8f8";
+  const text = isDark ? "#ffffff" : "#0a0a0a";
+  const muted = isDark ? "#888" : "#666";
+  const cardBg = isDark ? "#141414" : "#ffffff";
+  const border = isDark ? "#222" : "#e5e5e5";
+  const navBg = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+  const navBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+
+  return (
+    <div style={{ background: bg, minHeight: "100vh", color: text, fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
+
+      {/* TUBELIGHT NAV */}
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 40px", height: "64px",
+        background: isDark ? "rgba(10,10,10,0.8)" : "rgba(248,248,248,0.8)",
+        backdropFilter: "blur(20px)",
+        borderBottom: `1px solid ${navBorder}`,
+      }}>
+        {/* Logo */}
+        <div
+          onClick={() => setPage && setPage("landing")}
+          style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+        >
+          <img src="/images/falcon-icon.png" alt="CVPassport" style={{ height: "32px", width: "auto" }} />
+          <span style={{
+            fontSize: "18px", fontWeight: "800", letterSpacing: "-0.5px",
+            background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          }}>CVPassport</span>
+        </div>
+
+        {/* Nav links */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px",
+          background: navBg, border: `1px solid ${navBorder}`,
+          borderRadius: "100px", padding: "6px 16px", backdropFilter: "blur(12px)" }}>
+          {["Templates", "ATS Check", "Pricing"].map(item => (
+            <button key={item} style={{
+              background: "none", border: "none", color: muted,
+              fontSize: "13px", fontWeight: "500", padding: "6px 14px",
+              borderRadius: "100px", cursor: "pointer",
+              transition: "all 0.2s",
+            }}>{item}</button>
           ))}
-        </g>
-      </svg>
+        </div>
+
+        {/* Right actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* Theme toggle */}
+          <button onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{
+            background: navBg, border: `1px solid ${navBorder}`,
+            borderRadius: "50%", width: "36px", height: "36px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", fontSize: "16px",
+          }}>
+            {isDark ? "☀️" : "🌙"}
+          </button>
+          <button onClick={onLogin} style={{
+            background: "transparent", border: `1px solid ${border}`,
+            color: text, borderRadius: "8px", padding: "8px 18px",
+            fontSize: "13px", fontWeight: "600", cursor: "pointer",
+          }}>Sign In</button>
+          <button onClick={onSignup} style={{
+            background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
+            border: "none", color: "#fff", borderRadius: "8px",
+            padding: "8px 18px", fontSize: "13px", fontWeight: "700",
+            cursor: "pointer", boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
+          }}>Get Started</button>
+        </div>
+      </nav>
+
+      {/* HERO SECTION */}
+      <section style={{
+        minHeight: "100vh", display: "flex", alignItems: "center",
+        padding: "80px 80px 60px", gap: "60px",
+        maxWidth: "1300px", margin: "0 auto",
+      }}>
+        {/* Left — headline + CTAs */}
+        <div style={{ flex: 1, maxWidth: "560px" }}>
+          {/* Badge */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: "8px",
+            background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)",
+            borderRadius: "100px", padding: "6px 16px", marginBottom: "28px",
+          }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#a78bfa", display: "inline-block" }}></span>
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "#a78bfa", letterSpacing: "0.5px" }}>
+              AE Built for Gulf Job Seekers
+            </span>
+          </div>
+
+          {/* Headline */}
+          <h1 style={{
+            fontSize: isMobile ? "36px" : "58px", fontWeight: "900",
+            lineHeight: "1.05", letterSpacing: "-2px", marginBottom: "20px",
+          }}>
+            Your Resume is your{" "}
+            <span style={{
+              background: "linear-gradient(135deg, #a78bfa 0%, #f59e0b 50%, #a78bfa 100%)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              backgroundSize: "200% auto",
+              animation: "shimmer 3s linear infinite",
+            }}>passport</span>
+            {" "}to the Gulf
+          </h1>
+
+          {/* Subheadline */}
+          <p style={{
+            fontSize: "17px", color: muted, lineHeight: "1.7",
+            marginBottom: "36px", maxWidth: "440px",
+          }}>
+            ATS-optimised resumes built for UAE, Saudi & GCC job markets.
+            Free to build. Free to download.
+          </p>
+
+          {/* Gradient pills */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "36px" }}>
+            {[
+              { label: "Build my CV →", gradient: "linear-gradient(135deg, #7c3aed, #a78bfa)", color: "#fff" },
+              { label: "Browse templates", gradient: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: muted, border: `1px solid ${border}` },
+              { label: "Upload my CV ↑", gradient: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: muted, border: `1px solid ${border}` },
+            ].map((pill, i) => (
+              <button
+                key={i}
+                onClick={i === 0 ? onSignup : undefined}
+                style={{
+                  background: pill.gradient,
+                  border: pill.border || "none",
+                  color: pill.color,
+                  borderRadius: "100px",
+                  padding: "12px 24px",
+                  fontSize: "14px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: i === 0 ? "0 4px 24px rgba(124,58,237,0.35)" : "none",
+                  transition: "all 0.2s",
+                }}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Trust bar */}
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", fontSize: "12px", color: muted }}>
+            <span>⭐ 4.8 / 5</span>
+            <span style={{ color: border }}>|</span>
+            <span>Used by <strong style={{ color: text }}>2,400+</strong> Gulf job seekers</span>
+            <span style={{ color: border }}>|</span>
+            <span>ATS-tested for <strong style={{ color: text }}>UAE banks</strong></span>
+          </div>
+        </div>
+
+        {/* Right — Globe */}
+        <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center", alignItems: "center", position: "relative" }}>
+          {/* Glow behind globe */}
+          <div style={{
+            position: "absolute", width: "400px", height: "400px",
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }} />
+          <GlobeComponent />
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section style={{ padding: "80px 80px", maxWidth: "1300px", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: "60px" }}>
+          <p style={{ fontSize: "12px", fontWeight: "700", letterSpacing: "2px", color: "#a78bfa", marginBottom: "12px", textTransform: "uppercase" }}>
+            HOW IT WORKS
+          </p>
+          <h2 style={{ fontSize: "40px", fontWeight: "800", letterSpacing: "-1px" }}>
+            Your Gulf-ready CV in 3 steps
+          </h2>
+          <p style={{ color: muted, fontSize: "16px", marginTop: "12px" }}>
+            No design skills needed. Built for UAE, Saudi, and India job markets.
+          </p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+          {[
+            { step: "01", icon: "📝", title: "Fill your details", desc: "Name, experience, skills, education. Takes 5 minutes." },
+            { step: "02", icon: "🎨", title: "Choose your template", desc: "11 templates designed for Gulf employers and ATS systems." },
+            { step: "03", icon: "⬇️", title: "Download & apply", desc: "PDF download. ATS-optimised. WhatsApp-ready." },
+          ].map((item) => (
+            <div key={item.step} style={{
+              background: cardBg, border: `1px solid ${border}`,
+              borderRadius: "16px", padding: "32px", textAlign: "center",
+            }}>
+              <div style={{
+                width: "56px", height: "56px", borderRadius: "16px",
+                background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.2)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "24px", margin: "0 auto 16px",
+              }}>{item.icon}</div>
+              <p style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: "#a78bfa", marginBottom: "8px" }}>STEP {item.step}</p>
+              <h3 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "10px" }}>{item.title}</h3>
+              <p style={{ color: muted, fontSize: "14px", lineHeight: "1.6" }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{
+        borderTop: `1px solid ${border}`, padding: "40px 80px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        maxWidth: "1300px", margin: "0 auto",
+      }}>
+        <span style={{ fontSize: "14px", color: muted }}>© 2026 CVPassport. Built for Gulf job seekers.</span>
+        <div style={{ display: "flex", gap: "24px" }}>
+          {["Privacy", "Terms", "Contact"].map(item => (
+            <span key={item} style={{ fontSize: "13px", color: muted, cursor: "pointer" }}>{item}</span>
+          ))}
+        </div>
+      </footer>
+
+      <style>{`
+        @keyframes shimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+        @keyframes arcflow { to { stroke-dashoffset: -20; } }
+      `}</style>
     </div>
   );
 }
