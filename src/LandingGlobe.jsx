@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Warp } from "@paper-design/shaders-react";
 
 // Project lon/lat → SVG viewBox coords
 // Center: lon=65 (Gulf centered), lat offset=20 (vertical center), scale=280
@@ -262,35 +263,20 @@ function GlobeComponent() {
 }
 
 export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
-  const [theme, setTheme] = useState("dark");
-
-  const isDark = theme === "dark";
-
-  const bg = isDark ? "#0a0a0a" : "#f8f8f8";
-  const text = isDark ? "#ffffff" : "#0a0a0a";
-  const muted = isDark ? "#888" : "#666";
-  const cardBg = isDark ? "#141414" : "#ffffff";
-  const border = isDark ? "#222" : "#e5e5e5";
-  const navBg = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
-  const navBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-
   return (
-    <div style={{ background: bg, minHeight: "100vh", color: text, fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
-
-      {/* TUBELIGHT NAV */}
+    <div style={{ background: "#0a0a0a", minHeight: "100vh", color: "#ffffff", fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
+      
+      {/* FIXED NAVIGATION BAR */}
       <nav style={{
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 40px", height: "64px",
-        background: isDark ? "rgba(10,10,10,0.8)" : "rgba(248,248,248,0.8)",
+        padding: "0 60px", height: "64px",
+        background: "rgba(10,10,10,0.9)",
         backdropFilter: "blur(20px)",
-        borderBottom: `1px solid ${navBorder}`,
+        borderBottom: "1px solid #222222",
       }}>
         {/* Logo */}
-        <div
-          onClick={() => setPage && setPage("landing")}
-          style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
-        >
+        <div onClick={() => setPage && setPage("landing")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
           <img src="/images/falcon-icon.png" alt="CVPassport" style={{ height: "32px", width: "auto" }} />
           <span style={{
             fontSize: "18px", fontWeight: "800", letterSpacing: "-0.5px",
@@ -299,13 +285,15 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
           }}>CVPassport</span>
         </div>
 
-        {/* Nav links */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px",
-          background: navBg, border: `1px solid ${navBorder}`,
-          borderRadius: "100px", padding: "6px 16px", backdropFilter: "blur(12px)" }}>
+        {/* Center nav links */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: "8px",
+          background: "rgba(255,255,255,0.05)", border: "1px solid #222222",
+          borderRadius: "100px", padding: "6px 16px", backdropFilter: "blur(12px)"
+        }}>
           {["Templates", "ATS Check", "Pricing"].map(item => (
             <button key={item} style={{
-              background: "none", border: "none", color: muted,
+              background: "none", border: "none", color: "#888888",
               fontSize: "13px", fontWeight: "500", padding: "6px 14px",
               borderRadius: "100px", cursor: "pointer",
               transition: "all 0.2s",
@@ -315,18 +303,9 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
 
         {/* Right actions */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {/* Theme toggle */}
-          <button onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{
-            background: navBg, border: `1px solid ${navBorder}`,
-            borderRadius: "50%", width: "36px", height: "36px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", fontSize: "16px",
-          }}>
-            {isDark ? "☀️" : "🌙"}
-          </button>
           <button onClick={onLogin} style={{
-            background: "transparent", border: `1px solid ${border}`,
-            color: text, borderRadius: "8px", padding: "8px 18px",
+            background: "transparent", border: "1px solid #333333",
+            color: "#ffffff", borderRadius: "8px", padding: "8px 18px",
             fontSize: "13px", fontWeight: "600", cursor: "pointer",
           }}>Sign In</button>
           <button onClick={onSignup} style={{
@@ -341,10 +320,10 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
       {/* HERO SECTION */}
       <section style={{
         minHeight: "100vh", display: "flex", alignItems: "center",
-        padding: "80px 80px 60px", gap: "60px",
-        maxWidth: "1300px", margin: "0 auto",
+        paddingTop: "64px", padding: "80px 60px 60px",
+        maxWidth: "1300px", margin: "0 auto", gap: "60px",
       }}>
-        {/* Left — headline + CTAs */}
+        {/* Left side */}
         <div style={{ flex: 1, maxWidth: "560px" }}>
           {/* Badge */}
           <div style={{
@@ -352,7 +331,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
             background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)",
             borderRadius: "100px", padding: "6px 16px", marginBottom: "28px",
           }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#a78bfa", display: "inline-block" }}></span>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#a78bfa", display: "inline-block" }} />
             <span style={{ fontSize: "12px", fontWeight: "600", color: "#a78bfa", letterSpacing: "0.5px" }}>
               AE Built for Gulf Job Seekers
             </span>
@@ -373,119 +352,507 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
             {" "}to the Gulf
           </h1>
 
-          {/* Subheadline */}
+          {/* Subtext */}
           <p style={{
-            fontSize: "17px", color: muted, lineHeight: "1.7",
+            fontSize: "17px", color: "#888888", lineHeight: "1.7",
             marginBottom: "36px", maxWidth: "440px",
           }}>
-            ATS-optimised resumes built for UAE, Saudi & GCC job markets.
-            Free to build. Free to download.
+            ATS-optimised resumes built for UAE, Saudi & GCC job markets. Free to build. Free to download.
           </p>
 
-          {/* Gradient pills */}
+          {/* CTA pills */}
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "36px" }}>
-            {[
-              { label: "Build my CV →", gradient: "linear-gradient(135deg, #7c3aed, #a78bfa)", color: "#fff" },
-              { label: "Browse templates", gradient: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: muted, border: `1px solid ${border}` },
-              { label: "Upload my CV ↑", gradient: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: muted, border: `1px solid ${border}` },
-            ].map((pill, i) => (
-              <button
-                key={i}
-                onClick={i === 0 ? onSignup : undefined}
-                style={{
-                  background: pill.gradient,
-                  border: pill.border || "none",
-                  color: pill.color,
-                  borderRadius: "100px",
-                  padding: "12px 24px",
-                  fontSize: "14px",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                  boxShadow: i === 0 ? "0 4px 24px rgba(124,58,237,0.35)" : "none",
-                  transition: "all 0.2s",
-                }}
-              >
-                {pill.label}
-              </button>
-            ))}
+            <button onClick={onSignup} style={{
+              background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
+              border: "none", color: "#fff",
+              borderRadius: "100px", padding: "12px 24px",
+              fontSize: "14px", fontWeight: "700",
+              cursor: "pointer", boxShadow: "0 4px 24px rgba(124,58,237,0.35)",
+              transition: "all 0.2s",
+            }}>Build my CV →</button>
+            <button style={{
+              background: "rgba(255,255,255,0.06)", border: "1px solid #333333",
+              color: "#888888", borderRadius: "100px", padding: "12px 24px",
+              fontSize: "14px", fontWeight: "700", cursor: "pointer",
+              transition: "all 0.2s",
+            }}>Browse templates</button>
+            <button style={{
+              background: "rgba(255,255,255,0.06)", border: "1px solid #333333",
+              color: "#888888", borderRadius: "100px", padding: "12px 24px",
+              fontSize: "14px", fontWeight: "700", cursor: "pointer",
+              transition: "all 0.2s",
+            }}>Upload my CV ↑</button>
           </div>
 
           {/* Trust bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", fontSize: "12px", color: muted }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", fontSize: "12px", color: "#888888" }}>
             <span>⭐ 4.8 / 5</span>
-            <span style={{ color: border }}>|</span>
-            <span>Used by <strong style={{ color: text }}>2,400+</strong> Gulf job seekers</span>
-            <span style={{ color: border }}>|</span>
-            <span>ATS-tested for <strong style={{ color: text }}>UAE banks</strong></span>
+            <span style={{ color: "#333333" }}>|</span>
+            <span>Used by <strong style={{ color: "#ffffff" }}>2,400+</strong> Gulf job seekers</span>
+            <span style={{ color: "#333333" }}>|</span>
+            <span>ATS-tested for <strong style={{ color: "#ffffff" }}>UAE banks</strong></span>
           </div>
         </div>
 
-        {/* Right — Globe */}
+        {/* Right side - Globe */}
         <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center", alignItems: "center", position: "relative" }}>
-          {/* Glow behind globe */}
           <div style={{
             position: "absolute", width: "400px", height: "400px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)",
+            borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)",
             pointerEvents: "none",
           }} />
           <GlobeComponent />
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section style={{ padding: "80px 80px", maxWidth: "1300px", margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "60px" }}>
-          <p style={{ fontSize: "12px", fontWeight: "700", letterSpacing: "2px", color: "#a78bfa", marginBottom: "12px", textTransform: "uppercase" }}>
-            HOW IT WORKS
-          </p>
-          <h2 style={{ fontSize: "40px", fontWeight: "800", letterSpacing: "-1px" }}>
-            Your Gulf-ready CV in 3 steps
-          </h2>
-          <p style={{ color: muted, fontSize: "16px", marginTop: "12px" }}>
-            No design skills needed. Built for UAE, Saudi, and India job markets.
-          </p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+      {/* PROBLEM SECTION */}
+      <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+          THE PROBLEM
+        </p>
+        <h2 style={{ fontSize: "44px", fontWeight: "800", letterSpacing: "-1px", marginBottom: "16px" }}>
+          Why Most Resumes Fail
+        </h2>
+        <p style={{ fontSize: "17px", color: "#888888", marginBottom: "60px" }}>
+          80% of resumes never make it past ATS screening. Here's why.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" }}>
           {[
-            { step: "01", icon: "📝", title: "Fill your details", desc: "Name, experience, skills, education. Takes 5 minutes." },
-            { step: "02", icon: "🎨", title: "Choose your template", desc: "11 templates designed for Gulf employers and ATS systems." },
-            { step: "03", icon: "⬇️", title: "Download & apply", desc: "PDF download. ATS-optimised. WhatsApp-ready." },
-          ].map((item) => (
-            <div key={item.step} style={{
-              background: cardBg, border: `1px solid ${border}`,
+            { icon: "✗", title: "Missing Keywords", desc: "Your resume doesn't match the job description. ATS rejects it before a human sees it." },
+            { icon: "⚠️", title: "Poor Formatting", desc: "Tables, columns, and graphics confuse ATS systems and lose your data." },
+            { icon: "📊", title: "Weak Achievements", desc: "Generic job duties instead of quantified results. You look like everyone else." },
+            { icon: "📄", title: "Wrong Template", desc: "Using a template not designed for Gulf employers kills your chances instantly." },
+          ].map((item, i) => (
+            <div key={i} style={{
+              background: "#141414", border: "1px solid #222222",
               borderRadius: "16px", padding: "32px", textAlign: "center",
             }}>
-              <div style={{
-                width: "56px", height: "56px", borderRadius: "16px",
-                background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.2)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "24px", margin: "0 auto 16px",
-              }}>{item.icon}</div>
-              <p style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", color: "#a78bfa", marginBottom: "8px" }}>STEP {item.step}</p>
+              <div style={{ fontSize: "32px", marginBottom: "16px" }}>{item.icon}</div>
               <h3 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "10px" }}>{item.title}</h3>
-              <p style={{ color: muted, fontSize: "14px", lineHeight: "1.6" }}>{item.desc}</p>
+              <p style={{ color: "#888888", fontSize: "14px", lineHeight: "1.6" }}>{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* SOLUTION SECTION */}
+      <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+          HOW IT WORKS
+        </p>
+        <h2 style={{ fontSize: "44px", fontWeight: "800", letterSpacing: "-1px", marginBottom: "16px" }}>
+          Your Gulf-Ready CV in 4 Steps
+        </h2>
+        <p style={{ fontSize: "17px", color: "#888888", marginBottom: "60px" }}>
+          From upload to interview-ready in minutes.
+        </p>
+        <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", justifyContent: "center" }}>
+          {[
+            { step: "01", icon: "⬆️", title: "Upload Resume", desc: "Drop your existing CV or start from scratch." },
+            { step: "02", icon: "🎯", title: "Get ATS Score", desc: "See exactly how recruiters' systems read your resume." },
+            { step: "03", icon: "✏️", title: "Improve & Optimise", desc: "Fix keywords, formatting, and achievements instantly." },
+            { step: "04", icon: "⬇️", title: "Download & Apply", desc: "PDF download. WhatsApp-ready. Walk-in interview ready." },
+          ].map((item, i) => (
+            <div key={i} style={{
+              background: "#141414", border: "1px solid #222222",
+              borderRadius: "16px", padding: "32px", width: "220px", textAlign: "center",
+            }}>
+              <p style={{ fontSize: "11px", letterSpacing: "2px", color: "#a78bfa", fontWeight: "700", marginBottom: "8px" }}>
+                STEP {item.step}
+              </p>
+              <div style={{ fontSize: "32px", marginBottom: "12px" }}>{item.icon}</div>
+              <h4 style={{ fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>{item.title}</h4>
+              <p style={{ color: "#888888", fontSize: "13px", lineHeight: "1.6" }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURES SECTION WITH WARP SHADER CARDS */}
+      <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1200px", margin: "0 auto" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px", textAlign: "center" }}>
+          FEATURES
+        </p>
+        <h2 style={{ fontSize: "44px", fontWeight: "800", textAlign: "center", marginBottom: "16px" }}>
+          Everything You Need to Get Hired
+        </h2>
+        <p style={{ fontSize: "17px", color: "#888888", textAlign: "center", marginBottom: "60px" }}>
+          Built specifically for Indian and South Asian professionals targeting Gulf jobs.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px" }}>
+          {[
+            {
+              icon: "🎯",
+              title: "ATS Score Checker",
+              desc: "Upload your CV and get an instant ATS score. See exactly which keywords are missing.",
+              badge: "Free",
+              colors: ["hsl(270,100%,25%)", "hsl(280,100%,55%)", "hsl(260,90%,35%)", "hsl(290,100%,65%)"],
+              shape: "checks"
+            },
+            {
+              icon: "✨",
+              title: "Resume Optimisation",
+              desc: "AI-powered suggestions to fix keywords, formatting, and achievements for Gulf roles.",
+              badge: "Pro",
+              colors: ["hsl(35,100%,25%)", "hsl(45,100%,55%)", "hsl(40,90%,30%)", "hsl(50,100%,65%)"],
+              shape: "dots"
+            },
+            {
+              icon: "📄",
+              title: "11 Gulf Templates",
+              desc: "ATS-tested designs built for UAE, Saudi, and GCC employers. Free and Pro options.",
+              badge: "Free + Pro",
+              colors: ["hsl(250,100%,25%)", "hsl(270,100%,55%)", "hsl(255,90%,30%)", "hsl(265,100%,65%)"],
+              shape: "checks"
+            },
+            {
+              icon: "⚡",
+              title: "Walk-In CV Builder",
+              desc: "6 fields. 60 seconds. Share on WhatsApp. Built for Gulf walk-in interview culture.",
+              badge: "Free",
+              colors: ["hsl(220,100%,25%)", "hsl(240,100%,55%)", "hsl(230,90%,30%)", "hsl(245,100%,65%)"],
+              shape: "dots"
+            },
+          ].map((feature, i) => (
+            <div key={i} style={{ position: "relative", height: "280px", borderRadius: "24px", overflow: "hidden" }}>
+              <Warp
+                colors={feature.colors}
+                shape={feature.shape}
+                proportion={0.4}
+                softness={1.0}
+                distortion={0.18}
+                swirl={0.8}
+                swirlIterations={10}
+                shapeScale={0.1}
+                speed={0.8}
+              />
+              <div style={{
+                position: "relative", zIndex: 10, padding: "32px",
+                height: "100%", display: "flex", flexDirection: "column",
+                background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "24px",
+              }}>
+                <div style={{
+                  position: "absolute", top: "16px", right: "16px",
+                  fontSize: "11px", padding: "4px 10px", borderRadius: "100px",
+                  background: feature.badge === "Pro" ? "rgba(201,168,76,0.25)" : "rgba(255,255,255,0.15)",
+                  color: feature.badge === "Pro" ? "#C9A84C" : "#ffffff",
+                }}>
+                  {feature.badge}
+                </div>
+                <div style={{ fontSize: "32px", marginBottom: "12px" }}>{feature.icon}</div>
+                <h3 style={{ fontSize: "20px", fontWeight: "700", color: "#ffffff", marginBottom: "10px" }}>
+                  {feature.title}
+                </h3>
+                <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "14px", lineHeight: "1.6", flexGrow: 1 }}>
+                  {feature.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* TEMPLATES SHOWCASE WITH WARP SHADER CARDS */}
+      <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1200px", margin: "0 auto" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px", textAlign: "center" }}>
+          TEMPLATES
+        </p>
+        <h2 style={{ fontSize: "44px", fontWeight: "800", textAlign: "center", marginBottom: "16px" }}>
+          Professional Templates Built for Gulf Jobs
+        </h2>
+        <p style={{ fontSize: "17px", color: "#888888", textAlign: "center", marginBottom: "60px" }}>
+          ATS-optimised designs for UAE, Saudi & GCC employers. 3 free, 8 pro.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", marginBottom: "40px" }}>
+          {[
+            {
+              name: "Gulf Classic",
+              tier: "Free",
+              desc: "Clean single-column layout trusted by UAE employers.",
+              colors: ["hsl(270,100%,25%)", "hsl(280,100%,55%)", "hsl(260,90%,35%)", "hsl(290,100%,65%)"],
+              shape: "checks"
+            },
+            {
+              name: "Dubai Modern",
+              tier: "Free",
+              desc: "Contemporary two-column for Dubai's fast-paced market.",
+              colors: ["hsl(250,100%,20%)", "hsl(270,100%,50%)", "hsl(240,90%,30%)", "hsl(260,100%,60%)"],
+              shape: "dots"
+            },
+            {
+              name: "Arabia Pro",
+              tier: "Free",
+              desc: "Dark sidebar with gold accents for Saudi Gulf roles.",
+              colors: ["hsl(280,100%,22%)", "hsl(300,100%,52%)", "hsl(270,90%,32%)", "hsl(285,100%,62%)"],
+              shape: "checks"
+            },
+            {
+              name: "Executive Gold",
+              tier: "Pro",
+              desc: "Premium executive template with Gulf-specific sections.",
+              colors: ["hsl(35,100%,30%)", "hsl(45,100%,55%)", "hsl(40,90%,35%)", "hsl(50,100%,65%)"],
+              shape: "dots"
+            },
+            {
+              name: "Gulf Executive",
+              tier: "Pro",
+              desc: "Sophisticated layout for GCC leadership positions.",
+              colors: ["hsl(260,100%,25%)", "hsl(280,100%,55%)", "hsl(265,90%,30%)", "hsl(275,100%,65%)"],
+              shape: "checks"
+            },
+            {
+              name: "Banking & Finance",
+              tier: "Pro",
+              desc: "Compliance-ready with KYC/AML sections for UAE banking.",
+              colors: ["hsl(220,100%,25%)", "hsl(240,100%,55%)", "hsl(230,90%,30%)", "hsl(245,100%,65%)"],
+              shape: "dots"
+            },
+          ].map((template, i) => (
+            <div key={i} style={{ position: "relative", height: "320px", borderRadius: "24px", overflow: "hidden" }}>
+              <Warp
+                colors={template.colors}
+                shape={template.shape}
+                proportion={0.4}
+                softness={1.0}
+                distortion={0.18}
+                swirl={0.8}
+                swirlIterations={10}
+                shapeScale={0.1}
+                speed={0.8}
+              />
+              <div style={{
+                position: "relative", zIndex: 10, padding: "24px",
+                height: "100%", display: "flex", flexDirection: "column",
+                justifyContent: "flex-end",
+                background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "24px",
+              }}>
+                <div style={{
+                  position: "absolute", top: "12px", right: "12px",
+                  fontSize: "11px", padding: "4px 10px", borderRadius: "100px",
+                  background: template.tier === "Pro" ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.1)",
+                  color: template.tier === "Pro" ? "#a78bfa" : "#888888",
+                }}>
+                  {template.tier}
+                </div>
+                <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#ffffff", marginBottom: "8px" }}>
+                  {template.name}
+                </h3>
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.75)", marginBottom: "16px" }}>
+                  {template.desc}
+                </p>
+                <button onClick={onSignup} style={{
+                  background: "transparent", border: "1px solid rgba(255,255,255,0.3)",
+                  color: "#ffffff", borderRadius: "8px", padding: "8px 16px",
+                  fontSize: "13px", cursor: "pointer",
+                }}>
+                  Use Template →
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <button onClick={onSignup} style={{
+            background: "transparent", border: "1px solid #444444",
+            color: "#ffffff", borderRadius: "8px", padding: "12px 32px",
+            fontSize: "14px", cursor: "pointer", marginTop: "40px",
+          }}>
+            Explore All 11 Templates →
+          </button>
+        </div>
+      </section>
+
+      {/* PRICING SECTION */}
+      <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+          PRICING
+        </p>
+        <h2 style={{ fontSize: "44px", fontWeight: "800", marginBottom: "16px" }}>
+          Simple, Honest Pricing
+        </h2>
+        <p style={{ fontSize: "17px", color: "#888888", marginBottom: "60px" }}>
+          Start free. Upgrade when you're ready.
+        </p>
+        <div style={{ display: "flex", gap: "24px", justifyContent: "center", flexWrap: "wrap" }}>
+          {/* Free Card */}
+          <div style={{
+            background: "#141414", border: "1px solid #222222",
+            borderRadius: "20px", padding: "40px", width: "360px", textAlign: "left",
+          }}>
+            <div style={{ background: "rgba(255,255,255,0.15)", color: "#ffffff", fontSize: "11px", padding: "4px 10px", borderRadius: "100px", width: "fit-content", marginBottom: "24px" }}>
+              Free
+            </div>
+            <div style={{ fontSize: "48px", fontWeight: "900", marginBottom: "4px" }}>
+              AED 0
+            </div>
+            <div style={{ color: "#888888", fontSize: "14px", marginBottom: "32px" }}>
+              /forever
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, marginBottom: "32px" }}>
+              {["3 free templates", "ATS score checker", "3 watermark-free downloads", "Walk-In CV Builder"].map((item, i) => (
+                <li key={i} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", marginBottom: "12px", color: "#ffffff" }}>
+                  <span style={{ color: "#a78bfa" }}>✓</span> {item}
+                </li>
+              ))}
+            </ul>
+            <button onClick={onSignup} style={{
+              border: "1px solid #333333", background: "transparent",
+              color: "#ffffff", borderRadius: "10px", padding: "14px",
+              width: "100%", fontSize: "15px", fontWeight: "700", cursor: "pointer",
+            }}>
+              Get Started Free
+            </button>
+          </div>
+
+          {/* Pro Card */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(124,58,237,0.15) rgba(124,58,237,0.05))",
+            border: "1px solid rgba(124,58,237,0.4)",
+            borderRadius: "20px", padding: "40px", width: "360px", textAlign: "left", position: "relative",
+          }}>
+            <div style={{
+              position: "absolute", top: "-12px", right: "20px",
+              background: "#7c3aed", color: "#ffffff", fontSize: "11px",
+              padding: "4px 12px", borderRadius: "100px",
+            }}>
+              Most Popular
+            </div>
+            <div style={{ background: "rgba(167,139,250,0.3)", color: "#a78bfa", fontSize: "11px", padding: "4px 10px", borderRadius: "100px", width: "fit-content", marginBottom: "24px", marginTop: "12px" }}>
+              Pro
+            </div>
+            <div style={{ fontSize: "48px", fontWeight: "900", color: "#a78bfa", marginBottom: "4px" }}>
+              AED 29
+            </div>
+            <div style={{ color: "#888888", fontSize: "14px", marginBottom: "8px" }}>
+              /month
+            </div>
+            <div style={{ color: "#888888", fontSize: "13px", marginBottom: "32px" }}>
+              or AED 199/year · AED 299 lifetime
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, marginBottom: "32px" }}>
+              {["All 11 templates", "Unlimited downloads", "No watermarks", "ATS keyword matching", "Unlimited saved CVs", "Priority support"].map((item, i) => (
+                <li key={i} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", marginBottom: "12px", color: "#ffffff" }}>
+                  <span style={{ color: "#a78bfa" }}>✓</span> {item}
+                </li>
+              ))}
+            </ul>
+            <button onClick={onSignup} style={{
+              background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
+              border: "none", color: "#ffffff", borderRadius: "10px", padding: "14px",
+              width: "100%", fontSize: "15px", fontWeight: "700", cursor: "pointer",
+              boxShadow: "0 4px 20px rgba(124,58,237,0.35)",
+            }}>
+              Upgrade to Pro
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS SECTION */}
+      <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+          TESTIMONIALS
+        </p>
+        <h2 style={{ fontSize: "44px", fontWeight: "800", marginBottom: "60px" }}>
+          Loved by Gulf Job Seekers
+        </h2>
+        <div style={{ display: "flex", gap: "24px", justifyContent: "center", flexWrap: "wrap" }}>
+          {[
+            { quote: "Got called for an interview at Emirates NBD within a week of using CVPassport. The ATS score feature showed me exactly what was missing.", name: "Rahul M.", role: "Banking Professional, Dubai", initials: "RM" },
+            { quote: "I had a walk-in interview the next morning. Built my CV in 60 seconds and got the job. Unbelievable.", name: "Priya K.", role: "Customer Service, Abu Dhabi", initials: "PK" },
+            { quote: "The Gulf Executive template is exactly what Saudi recruiters want to see. Professional and ATS-ready.", name: "Mohammed A.", role: "Sales Manager, Riyadh", initials: "MA" },
+          ].map((testimonial, i) => (
+            <div key={i} style={{
+              background: "#141414", border: "1px solid #222222",
+              borderRadius: "16px", padding: "32px", width: "320px", textAlign: "left",
+            }}>
+              <div style={{ fontSize: "14px", marginBottom: "16px" }}>⭐⭐⭐⭐⭐</div>
+              <p style={{ fontSize: "14px", lineHeight: "1.6", marginBottom: "20px", color: "#ffffff" }}>
+                "{testimonial.quote}"
+              </p>
+              <div style={{
+                width: "40px", height: "40px", borderRadius: "50%",
+                background: "#333333", display: "flex", alignItems: "center",
+                justifyContent: "center", fontSize: "14px", fontWeight: "700",
+                color: "#a78bfa", marginBottom: "12px",
+              }}>
+                {testimonial.initials}
+              </div>
+              <h4 style={{ fontSize: "14px", fontWeight: "700", color: "#ffffff", marginBottom: "2px" }}>
+                {testimonial.name}
+              </h4>
+              <p style={{ fontSize: "12px", color: "#888888" }}>
+                {testimonial.role}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FINAL CTA SECTION */}
+      <section style={{
+        background: "linear-gradient(135deg, rgba(124,58,237,0.15) #0a0a0a)",
+        padding: "100px 60px", textAlign: "center",
+        borderTop: "1px solid #222222",
+      }}>
+        <h2 style={{ fontSize: "48px", fontWeight: "900", letterSpacing: "-1px", marginBottom: "20px" }}>
+          Start Building Your Gulf CV Today
+        </h2>
+        <p style={{ fontSize: "18px", color: "#888888", marginBottom: "40px" }}>
+          Free to start. No credit card needed. Download your first CV in minutes.
+        </p>
+        <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+          <button onClick={onSignup} style={{
+            background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
+            border: "none", color: "#ffffff", borderRadius: "12px",
+            padding: "16px 36px", fontSize: "16px", fontWeight: "700",
+            cursor: "pointer", boxShadow: "0 4px 24px rgba(124,58,237,0.35)",
+          }}>
+            Build My CV Free →
+          </button>
+          <button onClick={onSignup} style={{
+            background: "transparent", border: "1px solid #444444",
+            color: "#ffffff", borderRadius: "12px", padding: "16px 36px",
+            fontSize: "16px", fontWeight: "600", cursor: "pointer",
+          }}>
+            Check My ATS Score
+          </button>
+        </div>
+      </section>
+
       {/* FOOTER */}
       <footer style={{
-        borderTop: `1px solid ${border}`, padding: "40px 80px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        maxWidth: "1300px", margin: "0 auto",
+        background: "#0a0a0a", borderTop: "1px solid #222222",
+        padding: "40px 60px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", maxWidth: "1300px", margin: "0 auto",
       }}>
-        <span style={{ fontSize: "14px", color: muted }}>© 2026 CVPassport. Built for Gulf job seekers.</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <img src="/images/falcon-icon.png" alt="CVPassport" style={{ height: "24px", width: "auto" }} />
+          <span style={{
+            fontSize: "14px", fontWeight: "700",
+            background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          }}>CVPassport</span>
+        </div>
+        <span style={{ fontSize: "13px", color: "#888888" }}>
+          © 2026 CVPassport. Built for Gulf job seekers.
+        </span>
         <div style={{ display: "flex", gap: "24px" }}>
-          {["Privacy", "Terms", "Contact"].map(item => (
-            <span key={item} style={{ fontSize: "13px", color: muted, cursor: "pointer" }}>{item}</span>
+          {["Privacy", "Terms", "Contact", "support@mycvpassport.com"].map((item, i) => (
+            <span key={i} style={{ fontSize: "13px", color: "#888888", cursor: "pointer" }}>
+              {item}
+            </span>
           ))}
         </div>
       </footer>
 
       <style>{`
-        @keyframes shimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+        @keyframes shimmer { 
+          0% { background-position: 0% center; } 
+          100% { background-position: 200% center; } 
+        }
         @keyframes arcflow { to { stroke-dashoffset: -20; } }
       `}</style>
     </div>
