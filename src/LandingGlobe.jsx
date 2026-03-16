@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 
 // Lat/long to viewBox coords (100x100 circle, center 50,50, r~48)
 function project(lat, lon) {
-  const x = 50 + ((lon - 55) / 360) * 96;
+  const x = 50 + ((lon - 58) / 360) * 96;
   const y = 50 - (lat / 180) * 96;
   return { x, y };
 }
