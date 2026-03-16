@@ -1704,21 +1704,20 @@ export default function App() {
           )}
         </div>
       </nav>
-
-      {page === "landing"   && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setView={setPage} setResume={setEditingResume} setSelectedTemplate={() => {}}/>}
-      {page === "auth"      && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
-      {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
-      {page === "builder"   && (
-        <ResumeBuilder
-          user={user}
-          onBack={() => setPage(user ? "dashboard" : "landing")}
-          initialResume={editingResume?.cv_data || null}
-          initialResumeId={editingResume?.id || null}
-          initialTemplateId={editingResume?.template_id || null}
-        />
-      )}
-      {page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
-      <Analytics />
-    </div>
-  );
+{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} />}
+{page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
+{page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
+{page === "builder" && (
+  <ResumeBuilder
+    user={user}
+    onBack={() => setPage(user ? "dashboard" : "landing")}
+    initialResume={editingResume?.cv_data || null}
+    initialResumeId={editingResume?.id || null}
+    initialTemplateId={editingResume?.template_id || null}
+  />
+)}
+{page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
+<Analytics />
+</div>
+);
 }
