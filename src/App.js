@@ -916,9 +916,9 @@ const T3Preview = ({ cv, t }) => (
   </TemplateThumb>
 );
 
-// ─── LANDING PAGE ─────────────────────────────────────────────────
-function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {
-  // Walk-In Interview CV Mode state
+// —— LANDING PAGE ————————————————————————————————————————
+// eslint-disable-next-line no-unused-vars
+function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {  // Walk-In Interview CV Mode state
   const [walkInData, setWalkInData] = useState({
     fullName: "",
     jobTitle: "",
