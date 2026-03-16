@@ -11,7 +11,7 @@ import { PreviewCreativeSidebar,  pdfCreativeSidebar  } from "./Template8Creativ
 import { PreviewHospitality,      pdfHospitality      } from "./Template9Hospitality";
 import { PreviewATSInternational, pdfATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechITPro";
-
+import LandingGlobe from './LandingGlobe';
 // ─── TEMPLATES ───────────────────────────────────────────────────
 const TEMPLATES = [
   { id: 1,  name: "Gulf Classic",         tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",              layout: "banner"      },
