@@ -1697,7 +1697,7 @@ export default function App() {
   return (
     <div style={S.app}>
       <nav style={S.nav}>
-        <div style={S.logo} onClick={() => setPage(user ? "dashboard" : "landing")} role="button" tabIndex={0}>CVPassport</div>
+        <div style={S.logo} onClick={() => setPage("landing")} role="button" tabIndex={0}>CVPassport</div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           {user ? (
             <>
