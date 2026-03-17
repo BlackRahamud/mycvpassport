@@ -685,7 +685,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
           marginBottom: '20px',
           border: '1px solid rgba(234,88,12,0.25)',
         }}>
-          ⚡ Walk-In Interview Mode
+          {'⚡ Walk-In Interview Mode'}
         </div>
 
         <h2 style={{
