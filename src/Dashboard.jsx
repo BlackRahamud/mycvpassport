@@ -400,49 +400,53 @@ export default function Dashboard({
             })}
           </div>
 
-          {/* ATS banner */}
+          {/* ATS banner — below CV grid */}
+          <style>{`
+            @media (max-width: 768px) {
+              .cvp-ats-banner { flex-direction: column; align-items: flex-start; }
+              .cvp-ats-banner-btn { width: 100%; margin-top: 16px; }
+            }
+          `}</style>
           <div
+            className="cvp-ats-banner"
             style={{
-              marginTop: 16,
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-lg)",
+              marginTop: 32,
+              minHeight: 80,
+              background: "#141414",
+              border: "1px solid #2A2A2A",
+              borderRadius: 16,
               padding: "20px 24px",
               display: "flex",
+              flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 14,
-              flexWrap: "wrap",
+              gap: 16,
             }}
           >
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Check your ATS score</div>
-              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>See how recruiters and ATS systems read your CV.</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>Check your CV against any job description</div>
+              <div style={{ fontSize: 13, color: "#A0A0A0" }}>See missing keywords instantly</div>
             </div>
             <button
               type="button"
               onClick={onRunATS}
+              className="cvp-ats-banner-btn"
               style={{
-                height: 44,
-                padding: "0 16px",
-                borderRadius: 10,
-                border: "1px solid var(--border)",
-                background: isLight ? "#111" : "#fff",
-                color: isLight ? "#fff" : "#000",
-                fontWeight: 700,
+                padding: "10px 20px",
+                borderRadius: 8,
+                border: "none",
+                background: "#FFFFFF",
+                color: "#000000",
+                fontSize: 14,
+                fontWeight: 600,
                 cursor: "pointer",
-                transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                whiteSpace: "nowrap",
+                transition: `opacity 150ms ${EASE}`,
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.opacity = "0.95";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.opacity = "1";
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
             >
-              Run ATS check →
+              Run ATS Check
             </button>
           </div>
         </main>
