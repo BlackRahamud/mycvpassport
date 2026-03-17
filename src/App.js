@@ -1562,7 +1562,9 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError]   = useState(null);
   const [editingResume, setEditingResume] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [resume, setResume] = useState(EMPTY_RESUME);
+  // eslint-disable-next-line no-unused-vars
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
 
   useEffect(() => {
