@@ -224,14 +224,7 @@ export default function Dashboard({
             <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Need more? Upgrade</div>
           </div>
 
-          <div
-            className="cvp-cv-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: 16,
-            }}
-          >
+          <div className="cvp-cv-grid">
             {/* New CV card */}
             <button
               type="button"

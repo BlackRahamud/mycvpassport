@@ -87,22 +87,43 @@ input:focus, textarea:focus {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Dashboard responsive */
+/* Dashboard CV card grid — responsive columns */
+.cvp-cv-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  max-width: 1200px;
+  padding: 0 24px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1199px) {
+  .cvp-cv-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .cvp-cv-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 500px) {
+  .cvp-cv-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Dashboard responsive — sidebar & tabs */
 @media (max-width: 768px) {
   .cvp-dashboard-sidebar {
     display: none !important;
   }
-  .cvp-cv-grid {
-    grid-template-columns: 1fr !important;
-  }
   .cvp-dashboard-tabs {
     display: grid !important;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  .cvp-cv-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
