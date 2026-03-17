@@ -1,8 +1,9 @@
 import { Analytics } from "@vercel/analytics/react";
+import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useCallback } from "react";
-import LandingGlobe from "./LandingGlobe";
-import { supabase } from "./supabaseClient";
+import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
+import TiltedCard from './components/TiltedCard';
 import { PreviewGulfExecutive,    pdfGulfExecutive    } from "./Template5GulfExecutive";
 import { PreviewBankingFinance,   pdfBankingFinance   } from "./Template6BankingFinance";
 import { PreviewCompactPro,       pdfCompactPro       } from "./Template7CompactPro";
@@ -10,12 +11,18 @@ import { PreviewCreativeSidebar,  pdfCreativeSidebar  } from "./Template8Creativ
 import { PreviewHospitality,      pdfHospitality      } from "./Template9Hospitality";
 import { PreviewATSInternational, pdfATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechITPro";
+import LandingPage from './LandingPage';
+import WalkInPage from './WalkInPage';
+
+// Skip Supabase usage during react-snap prerender
+const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent.includes('ReactSnap');
+const supabase = isPrerender ? null : supabaseImport;
 
 // ─── TEMPLATES ───────────────────────────────────────────────────
 const TEMPLATES = [
   { id: 1,  name: "Gulf Classic",         tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",              layout: "banner"      },
   { id: 2,  name: "Dubai Modern",         tier: "free",    color: "#0f3460", accent: "#00b4d8", desc: "Two-column split",                layout: "twocol"      },
-  { id: 3,  name: "Arabia Pro",           tier: "free",    color: "#1a1a2e", accent: "#C9A84C", desc: "Sidebar with skills column",      layout: "sidebar"     },
+  { id: 3,  name: "Arabia Pro",           tier: "free",    color: "#533483", accent: "#f0c040", desc: "Sidebar with skills column",      layout: "sidebar"     },
   { id: 4,  name: "Executive Gold",       tier: "premium", color: "#1a0a00", accent: "#d4a017", desc: "Timeline experience style",       layout: "timeline"    },
   { id: 5,  name: "Gulf Executive",       tier: "premium", color: "#0D1B2A", accent: "#C9A84C", desc: "Dark navy with gold accents",     layout: "gulf-exec"   },
   { id: 6,  name: "Banking & Finance",    tier: "premium", color: "#000000", accent: "#000000", desc: "Ultra-clean ATS-first serif",     layout: "banking"     },
@@ -25,6 +32,31 @@ const TEMPLATES = [
   { id: 10, name: "ATS International",    tier: "premium", color: "#000000", accent: "#333333", desc: "Pure ATS — zero colour, max score",layout: "ats-intl"   },
   { id: 11, name: "Tech & IT Pro",        tier: "premium", color: "#1E2D45", accent: "#4A90D9", desc: "Dark slate sidebar for tech roles",layout: "tech-it"    },
 ];
+
+const DUMMY_RESUME = {
+  name: "Ahmed Al Mansouri",
+  title: "Senior Sales Executive",
+  email: "ahmed.mansouri@email.com",
+  phone: "+971 50 456 7890",
+  location: "Dubai, UAE",
+  summary: "Results-driven sales professional with 6 years of experience in UAE retail and banking sectors. Proven track record of exceeding targets.",
+  nationality: "UAE National",
+  visaStatus: "Citizen",
+  dob: "15 March 1990",
+  gender: "Male",
+  maritalStatus: "Married",
+  experience: [
+    { company: "Emirates NBD", role: "Relationship Officer", location: "Dubai, UAE", period: "2021 – Present", points: "Managed portfolio of 200+ HNW clients\nAchieved 140% of annual sales target\nOnboarded AED 45M in new deposits" },
+    { company: "Mashreq Bank", role: "Personal Banking Advisor", location: "Dubai, UAE", period: "2018 – 2021", points: "Cross-sold investment and insurance products\nRanked top 5% nationally for customer satisfaction\nTrained 8 new joiners on CRM systems" }
+  ],
+  education: [{ school: "University of Dubai", degree: "Bachelor of Business Administration", year: "2018" }],
+  skills: "Sales, Relationship Management, CRM, KYC/AML, Arabic, English, MS Office, Negotiation",
+  languages: "Arabic (Native), English (Fluent)",
+  certifications: "Certified Banking Professional (CBP), UAE Central Bank AML Certificate",
+  availability: "Immediately Available",
+  willingToRelocate: "Yes",
+  drivingLicense: "UAE Driving License"
+};
 
 const EMPTY_RESUME = {
   // Personal
@@ -49,20 +81,24 @@ const EMPTY_RESUME = {
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────
 const C = {
-  bg: "#050505",
-  surface: "#101010",
-  card: "#151515",
-  border: "#262626",
-  accent: "#f5f5f5",
-  gold: "#e5e5e5",
-  text: "#f5f5f5",
-  muted: "#9b9b9b",
-  success: "#d4d4d4",
-  danger: "#a3a3a3",
+  bg: "#0a0a0f", surface: "#12121a", card: "#1a1a26", border: "#2a2a3a",
+  accent: "#6366f1", gold: "#f59e0b", text: "#f0f0ff", muted: "#8888aa",
+  success: "#10b981", danger: "#ef4444",
 };
 
 const S = {
   app: { minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
+  nav: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "16px 40px", borderBottom: `1px solid ${C.border}`,
+    background: "rgba(10,10,15,0.95)", position: "sticky", top: 0, zIndex: 100,
+    backdropFilter: "blur(10px)",
+  },
+  logo: {
+    fontSize: "22px", fontWeight: "800", cursor: "pointer",
+    background: `linear-gradient(135deg,${C.accent},${C.gold})`,
+    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+  },
   btn: (v = "primary", sz = "md") => ({
     padding: sz === "lg" ? "14px 32px" : sz === "sm" ? "8px 16px" : "10px 22px",
     borderRadius: "10px", cursor: "pointer", fontWeight: "600",
@@ -107,6 +143,7 @@ const S = {
 
 // ─── SUPABASE RESUME OPERATIONS ──────────────────────────────────
 async function saveResume(userId, resume, templateId, existingId = null) {
+  if (!supabase) return null;
   const payload = {
     user_id: userId,
     title: resume.name ? `${resume.name} — ${resume.title || "Resume"}` : "My Resume",
@@ -126,12 +163,14 @@ async function saveResume(userId, resume, templateId, existingId = null) {
 }
 
 async function loadUserResumes(userId) {
+  if (!supabase) return [];
   const { data, error } = await supabase.from("cvs").select("*").eq("user_id", userId).order("updated_at", { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 async function deleteResume(resumeId, userId) {
+  if (!supabase) return;
   const { error } = await supabase.from("cvs").delete().eq("id", resumeId).eq("user_id", userId);
   if (error) throw error;
 }
@@ -856,244 +895,186 @@ async function downloadResume(cv, template) {
   doc.save(`${(cv.name || "Resume").replace(/\s+/g,"_")}_CVPassport.pdf`);
 }
 
-// ─── FALCON LOGO (shared) ─────────────────────────────────────────
-function FalconLogo({ size = 28, className = "" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false" className={className} style={{ display: "block" }}>
-      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M18 38c6-8 10-12 14-13 4-1 9 0 14 3-4 1-7 3-9 6 3 0 6 1 9 3-4 1-8 2-12 2-4 0-8-1-12-3z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M24 42c2 3 4 5 8 6 4-1 6-3 8-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M28 22c1.5-2 3-3 4-3s2.5 1 4 3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
+// ─── PREVIEW: TEMPLATE THUMB WRAPPER ──────────────────────────────
+const TemplateThumb = ({ children }) => (
+  <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#fff", borderRadius: "12px" }}>
+    <div style={{ position: "absolute", top: 0, left: 0, width: "794px", transformOrigin: "top left", transform: "scale(0.27)", pointerEvents: "none" }}>
+      {children}
+    </div>
+  </div>
+);
 
-// ─── LANDING PAGE (Phase 2) ───────────────────────────────────────
-const LANDING_TEMPLATES = TEMPLATES.slice(0, 6);
-const PRICING_UAE = [
-  { name: "Free", price: "Free", period: "" },
-  { name: "Monthly", price: "AED 29", period: "/mo" },
-  { name: "Quarterly", price: "AED 69", period: "/quarter", recommended: true },
-  { name: "Yearly", price: "AED 199", period: "/yr" },
-  { name: "Lifetime", price: "AED 299", period: " once" },
-];
-const PRICING_IN = [
-  { name: "Free", price: "Free", period: "" },
-  { name: "Monthly", price: "₹199", period: "/mo" },
-  { name: "Quarterly", price: "₹449", period: "/quarter", recommended: true },
-  { name: "Yearly", price: "₹999", period: "/yr" },
-  { name: "Lifetime", price: "₹1,499", period: " once" },
-];
+// ─── INLINE PREVIEW: T1 (BANNER LAYOUT) ───────────────────────────
+const T1Preview = ({ cv, t }) => (
+  <TemplateThumb>
+    <PreviewBanner cv={cv} t={t} />
+  </TemplateThumb>
+);
 
-function LandingPage({ onLogin, onSignup }) {
-  const [theme, setTheme] = useState("dark");
-  const [activeSection, setActiveSection] = useState("features");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [pricingRegion, setPricingRegion] = useState("uae");
-  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
+// ─── INLINE PREVIEW: T2 (TWO-COLUMN LAYOUT) ───────────────────────
+const T2Preview = ({ cv, t }) => (
+  <TemplateThumb>
+    <PreviewTwoCol cv={cv} t={t} />
+  </TemplateThumb>
+);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    const handler = () => setIsMobile(mq.matches);
-    mq.addListener(handler);
-    return () => mq.removeListener(handler);
-  }, []);
+// ─── INLINE PREVIEW: T3 (SIDEBAR LAYOUT) ──────────────────────────
+const T3Preview = ({ cv, t }) => (
+  <TemplateThumb>
+    <PreviewSidebar cv={cv} t={t} />
+  </TemplateThumb>
+);
 
-  const isDark = theme === "dark";
-  const bg = isDark ? "#050505" : "#fafafa";
-  const text = isDark ? "#f5f5f5" : "#171717";
-  const muted = isDark ? "#9b9b9b" : "#737373";
-  const border = isDark ? "#262626" : "#e5e5e5";
-
-  const scrollTo = (id) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-    setMobileMenuOpen(false);
-  };
+// —— LANDING PAGE (legacy, kept for reference) ───────────────────
+// eslint-disable-next-line no-unused-vars
+function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {
 
   return (
-    <div style={{ background: bg, color: text, minHeight: "100vh" }}>
-      {/* Nav — tubelight, sticky, backdrop blur */}
-      <nav
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px 32px",
-          background: isDark ? "rgba(5,5,5,0.85)" : "rgba(250,250,250,0.85)",
-          backdropFilter: "blur(12px)",
-          borderBottom: `1px solid ${border}`,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} role="button" tabIndex={0}>
-        <img
-  src="/images/falcon-icon.png"
-  alt="CV Passport Logo"
-  style={{ height: "80px", width: "auto" }}
-/>        </div>
-        <div className="landing-nav-center" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {["features", "templates", "pricing"].map((id) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className={`landing-nav-tubelight ${activeSection === id ? "active" : ""}`}
-              onClick={(e) => { e.preventDefault(); scrollTo(id); setActiveSection(id); }}
-              style={{ padding: "8px 14px", fontSize: "14px", fontWeight: "600", color: activeSection === id ? text : muted, textDecoration: "none", textTransform: "capitalize" }}
-            >
-              {id === "templates" ? "Templates" : id === "pricing" ? "Pricing" : "Features"}
-            </a>
-          ))}
+    <div>
+      <div style={{ textAlign: "center", padding: "80px 40px 60px", maxWidth: "800px", margin: "0 auto" }}>
+        <div style={{ ...S.badge("free"), marginBottom: "20px", fontSize: "13px" }}>🇦🇪 Built for Gulf Job Seekers</div>
+        <h1 style={{ fontSize: "clamp(36px,6vw,64px)", fontWeight: "900", lineHeight: "1.1", marginBottom: "20px", letterSpacing: "-2px" }}>
+          Your Resume is your{" "}
+          <span style={{ background: `linear-gradient(135deg,${C.accent},${C.gold})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>passport</span>
+          {" "}to the Gulf
+        </h1>
+        <p style={{ fontSize: "18px", color: C.muted, marginBottom: "36px", lineHeight: "1.7" }}>ATS-optimised resumes built for UAE, Saudi & GCC job markets. Free to build. Free to download.</p>
+        <HowItWorks />
+        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+          <button style={S.btn("primary","lg")} onClick={onSignup}>Build My Resume Free →</button>
+          <button style={S.btn("outline","lg")} onClick={onLogin}>Sign In</button>
         </div>
-        <div className="landing-nav-cta" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button type="button" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{ padding: "8px 12px", background: "transparent", border: `1px solid ${border}`, borderRadius: "8px", color: text, fontSize: "13px", cursor: "pointer" }}>
-            {isDark ? "Light" : "Dark"}
-          </button>
-          <button type="button" onClick={onLogin} style={{ padding: "8px 18px", background: "transparent", border: `1px solid ${border}`, borderRadius: "8px", color: text, fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>Login</button>
-          <button type="button" onClick={onSignup} style={{ padding: "10px 20px", background: "#fff", color: "#000", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}>Get Started</button>
-        </div>
-        <button type="button" className="landing-nav-hamburger" aria-label="Menu" onClick={() => setMobileMenuOpen(o => !o)} style={{ display: "none", padding: 8, background: "transparent", border: "none", color: text, cursor: "pointer" }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-      </nav>
-      {mobileMenuOpen && (
-        <div className="landing-mobile-menu" style={{ position: "fixed", top: 57, left: 0, right: 0, background: isDark ? "#0a0a0a" : "#fff", borderBottom: `1px solid ${border}`, padding: 16, zIndex: 99, display: "flex", flexDirection: "column", gap: 8 }}>
-          {["features", "templates", "pricing"].map((id) => (
-            <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); scrollTo(id); setActiveSection(id); setMobileMenuOpen(false); }} style={{ padding: "12px", fontSize: "14px", fontWeight: "600", color: text, textDecoration: "none" }}>{id === "templates" ? "Templates" : id === "pricing" ? "Pricing" : "Features"}</a>
-          ))}
-          <button type="button" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} style={{ padding: "12px", textAlign: "left", background: "transparent", border: "none", color: text, fontSize: "14px", cursor: "pointer" }}>{isDark ? "Light mode" : "Dark mode"}</button>
-          <button type="button" onClick={() => { onLogin(); setMobileMenuOpen(false); }} style={{ padding: "12px", textAlign: "left", background: "transparent", border: "none", color: text, fontSize: "14px", cursor: "pointer" }}>Login</button>
-          <button type="button" onClick={() => { onSignup(); setMobileMenuOpen(false); }} style={{ padding: "12px", background: "#fff", color: "#000", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>Get Started</button>
-        </div>
-      )}
+      </div>
 
-      {/* Hero */}
-      <section style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "60px 40px 48px", maxWidth: 1200, margin: "0 auto", flexWrap: "wrap", gap: 40, position: "relative", minHeight: "85vh" }}>
-        <div className="landing-hero-content" style={{ flex: "1 1 400px", maxWidth: 560 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-            <span style={{ padding: "6px 12px", borderRadius: "999px", border: `1px solid ${border}`, fontSize: "12px", fontWeight: "600" }}>🇦🇪 UAE Ready</span>
-            <span style={{ padding: "6px 12px", borderRadius: "999px", border: `1px solid ${border}`, fontSize: "12px", fontWeight: "600" }}>🎯 ATS Optimised</span>
-            <span style={{ padding: "6px 12px", borderRadius: "999px", border: `1px solid ${border}`, fontSize: "12px", fontWeight: "600" }}>⚡ 5 Minute Build</span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "20px", padding: "0 40px 60px", maxWidth: "1000px", margin: "0 auto" }}>
+        {[
+          { icon: "🎯", title: "ATS Optimised",    desc: "Beat applicant tracking systems used by UAE banks" },
+          { icon: "📐", title: "Gulf CV Sections",  desc: "Nationality, Visa, DOB, Marital Status & more" },
+          { icon: "💾", title: "Auto-Saved",         desc: "Your resume saves automatically — never lose your work" },
+          { icon: "🔒", title: "Free Download",      desc: "Build & download free. No tricks" },
+        ].map((f, i) => (
+          <div key={i} style={{ ...S.card, textAlign: "center" }}>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>{f.icon}</div>
+            <div style={{ fontWeight: "700", marginBottom: "8px" }}>{f.title}</div>
+            <div style={{ fontSize: "13px", color: C.muted, lineHeight: "1.6" }}>{f.desc}</div>
           </div>
-          <h1 style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: "800", lineHeight: "1.15", marginBottom: 16, letterSpacing: "-0.02em" }}>Your Gulf Career Starts Here</h1>
-          <p style={{ fontSize: "17px", color: muted, lineHeight: "1.65", marginBottom: 28 }}>Build an ATS-ready CV in minutes. Trusted by job seekers across UAE, India and GCC.</p>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <button type="button" className="landing-btn-primary" onClick={onSignup} style={{ padding: "14px 28px", background: "#fff", color: "#000", border: "none", borderRadius: "999px", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 0 16px rgba(255,255,255,0.3)" }}>
-              Build My CV →
-            </button>
-            <button type="button" className="landing-btn-secondary" onClick={onLogin} style={{ padding: "14px 28px", background: "transparent", color: text, border: `1px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "999px", fontSize: "15px", fontWeight: "600", cursor: "pointer" }}>
-              Analyse My CV
-            </button>
-          </div>
-          <div style={{ marginTop: 28, fontSize: "13px", color: muted }}>
-            10,000+ CVs Created · UAE & GCC Focused · ATS Optimised Templates
-          </div>
-        </div>
-        <div className="landing-hero-globe" style={{ flex: "0 1 420px", width: "100%", maxWidth: 420 }}>
-          <LandingGlobe isMobile={isMobile} />
-        </div>
-      </section>
+        ))}
+      </div>
 
-      {/* Features (anchor) */}
-      <section id="features" style={{ padding: "48px 40px", maxWidth: 1000, margin: "0 auto" }}>
-        <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: 24, textAlign: "center" }}>Built for Gulf & India job markets</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
-          {[
-            { title: "ATS Optimised", desc: "Beat applicant tracking systems used by UAE employers" },
-            { title: "Gulf CV Sections", desc: "Nationality, Visa, DOB, Marital Status & more" },
-            { title: "Auto-Saved", desc: "Your resume saves automatically — never lose your work" },
-            { title: "Free Download", desc: "Build & download free. No tricks" },
-          ].map((f, i) => (
-            <div key={i} style={{ padding: 20, border: `1px solid ${border}`, borderRadius: 12, background: isDark ? "#0a0a0a" : "#fff" }}>
-              <div style={{ fontWeight: "700", marginBottom: 8 }}>{f.title}</div>
-              <div style={{ fontSize: "14px", color: muted, lineHeight: "1.5" }}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Templates */}
-      <section id="templates" style={{ padding: "48px 40px", maxWidth: 1100, margin: "0 auto" }}>
-        <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: 24, textAlign: "center" }}>Professional Templates Built for Gulf Jobs</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20 }}>
-          {LANDING_TEMPLATES.map((t) => (
-            <div
-              key={t.id}
-              onClick={onSignup}
-              style={{
-                border: `1px solid ${border}`,
-                borderRadius: 14,
-                overflow: "hidden",
-                cursor: "pointer",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                background: isDark ? "#0a0a0a" : "#fff",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = isDark ? "0 8px 24px rgba(0,0,0,0.4)" : "0 8px 24px rgba(0,0,0,0.08)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-            >
-              <div style={{ position: "relative", width: "100%", height: 220, overflow: "hidden", borderRadius: 8, background: "#fff" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, width: 794, transformOrigin: "top left", transform: "scale(0.27)" }}>
-                  <ResumePreview cv={{ ...EMPTY_RESUME, name: "Your Name", title: "Job Title" }} template={t} />
-                </div>
+      <div style={{ padding: "0 40px 80px", maxWidth: "900px", margin: "0 auto" }}>
+        <h2 style={{ textAlign: "center", fontSize: "28px", fontWeight: "800", marginBottom: "32px" }}>Professional Templates Built for Gulf Jobs</h2>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", maxWidth: "1100px", margin: "0 auto 40px", "@media (max-width: 768px)": { gridTemplateColumns: "repeat(2, 1fr)" }, "@media (max-width: 480px)": { gridTemplateColumns: "1fr" } }}>
+          {/* T1 - Gulf Classic */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Gulf Classic</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 600 }}>Free</span>
               </div>
-              <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: "600", fontSize: "14px" }}>{t.name}</span>
-                <span style={{ fontSize: "11px", fontWeight: "700", padding: "3px 8px", borderRadius: 999, border: `1px solid ${border}`, color: muted }}>{t.tier === "free" ? "Free" : "Pro"}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" style={{ padding: "48px 40px 64px", maxWidth: 900, margin: "0 auto" }}>
-        <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: 12, textAlign: "center" }}>Pricing</h2>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 28 }}>
-          <span style={{ fontSize: "14px", color: pricingRegion === "uae" ? text : muted, fontWeight: "600" }}>UAE</span>
-          <button
-            type="button"
-            onClick={() => setPricingRegion(r => r === "uae" ? "in" : "uae")}
-            style={{ width: 48, height: 26, borderRadius: 999, background: pricingRegion === "uae" ? "#fff" : border, border: `1px solid ${border}`, cursor: "pointer", position: "relative" }}
+            }
           >
-            <span style={{ position: "absolute", left: pricingRegion === "uae" ? 4 : 26, top: 3, width: 20, height: 18, borderRadius: 999, background: pricingRegion === "uae" ? "#000" : text, transition: "left 0.2s" }} />
-          </button>
-          <span style={{ fontSize: "14px", color: pricingRegion === "in" ? text : muted, fontWeight: "600" }}>India</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 14 }}>
-          {(pricingRegion === "uae" ? PRICING_UAE : PRICING_IN).map((plan) => (
-            <div key={plan.name} style={{ padding: 20, borderRadius: 12, border: `1px solid ${plan.recommended ? (isDark ? "#fff" : "#000") : border}`, background: plan.recommended ? (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)") : "transparent", textAlign: "center" }}>
-              {plan.recommended && <div style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, color: muted }}>Recommended</div>}
-              <div style={{ fontWeight: "700", fontSize: "18px" }}>{plan.price}<span style={{ fontSize: "12px", color: muted }}>{plan.period}</span></div>
-              <div style={{ fontSize: "12px", color: muted, marginTop: 4 }}>{plan.name}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 24, padding: "16px 20px", border: `1px solid ${border}`, borderRadius: 12, display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", fontSize: "13px", color: muted }}>
-          <span>Watermark Removal AED 5</span>
-          <span>·</span>
-          <span>ATS Single Scan AED 9</span>
-          <span>·</span>
-          <span>ATS 5-Pack AED 29</span>
-          <span>·</span>
-          <span>Cover Letter AED 9</span>
-        </div>
-      </section>
+            <T1Preview cv={DUMMY_RESUME} t={TEMPLATES[0]} />
+          </TiltedCard>
 
-      {/* Footer */}
-      <footer style={{ padding: "32px 40px", borderTop: `1px solid ${border}`, textAlign: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 16 }}>
-          <FalconLogo size={22} style={{ color: text }} />
-          <span style={{ fontSize: "16px", fontWeight: "700" }}>CVPassport</span>
+          {/* T2 - Dubai Modern */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Dubai Modern</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 600 }}>Free</span>
+              </div>
+            }
+          >
+            <T2Preview cv={DUMMY_RESUME} t={TEMPLATES[1]} />
+          </TiltedCard>
+
+          {/* T3 - Arabia Pro */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Arabia Pro</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 600 }}>Free</span>
+              </div>
+            }
+          >
+            <T3Preview cv={DUMMY_RESUME} t={TEMPLATES[2]} />
+          </TiltedCard>
+
+          {/* T4 - Executive Gold (Timeline) */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Executive Gold</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(201,168,76,0.25)", color: "#C9A84C", fontWeight: 600 }}>Pro</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewTimeline cv={DUMMY_RESUME} t={TEMPLATES[3]} />
+            </TemplateThumb>
+          </TiltedCard>
+
+          {/* T5 - Gulf Executive */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Gulf Executive</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(201,168,76,0.25)", color: "#C9A84C", fontWeight: 600 }}>Pro</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewGulfExecutive cv={DUMMY_RESUME} t={TEMPLATES[4]} />
+            </TemplateThumb>
+          </TiltedCard>
+
+          {/* T6 - Banking & Finance */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Banking & Finance</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(201,168,76,0.25)", color: "#C9A84C", fontWeight: 600 }}>Pro</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewBankingFinance cv={DUMMY_RESUME} t={TEMPLATES[5]} />
+            </TemplateThumb>
+          </TiltedCard>
         </div>
-        <p style={{ fontSize: "13px", color: muted, marginBottom: 12 }}>Built for the Gulf. Trusted across South Asia.</p>
-        <div style={{ display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap", fontSize: "13px" }}>
-          <a href="#privacy" style={{ color: muted, textDecoration: "none" }}>Privacy Policy</a>
-          <a href="#terms" style={{ color: muted, textDecoration: "none" }}>Terms</a>
-          <a href="#contact" style={{ color: muted, textDecoration: "none" }}>Contact</a>
-        </div>
-      </footer>
+
+        <button 
+          onClick={() => { setResume({...EMPTY_RESUME, name: ""}); setSelectedTemplate(TEMPLATES[0]); setView('builder'); }}
+          style={{ marginTop: "40px", display: "block", margin: "40px auto 0", padding: "12px 32px", background: "transparent", border: "1px solid #444", color: "#fff", borderRadius: "8px", fontSize: "14px", cursor: "pointer", letterSpacing: "0.5px" }}
+        >
+          Explore All 11 Templates →
+        </button>
+      </div>
     </div>
   );
 }
@@ -1432,8 +1413,7 @@ function Dashboard({ user, onBuildResume, onEditResume }) {
   const [resumeList, setResumeList] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [deleting, setDeleting]     = useState(null);
-  const [activeNav, setActiveNav]   = useState("home");
-  const [showProModal, setShowProModal] = useState(false);
+  const [activeNav, setActiveNav]   = useState('dashboard');
 
   useEffect(() => {
     if (!user?.id) return;
@@ -1457,525 +1437,117 @@ function Dashboard({ user, onBuildResume, onEditResume }) {
   };
 
   const navItems = [
-    { id: "home",      label: "Home" },
-    { id: "mycvs",     label: "My CVs" },
-    { id: "ats",       label: "ATS Checker" },
-    { id: "templates", label: "Templates" },
-    { id: "settings",  label: "Settings" },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'mycvs',     label: 'My CVs' },
+    { id: 'templates', label: 'Templates' },
+    { id: 'ats',       label: 'ATS Check' },
+    { id: 'cover',     label: 'Cover Letter' },
   ];
 
-  const getStrength = (r) => {
-    if (!r) return 0;
-    const fields = [
-      r.name,
-      r.email,
-      r.phone,
-      r.title,
-      r.summary,
-      r.nationality,
-      r.visaStatus,
-      r.skills,
-      r.languages,
-      r.experience?.[0]?.company,
-      r.experience?.[0]?.role,
-      r.education?.[0]?.school,
-    ];
-    const filled = fields.filter(f => f && String(f).trim() !== "").length;
-    return Math.round((filled / fields.length) * 100);
-  };
-
-  const openProModal = () => {
-    setShowProModal(true);
-  };
-
-  const closeProModal = () => {
-    setShowProModal(false);
-  };
-
   return (
-    <div className="dashboard-shell" style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text }}>
 
       {/* ── SIDEBAR ── */}
-      <aside className="dashboard-sidebar" style={{ width: "220px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 10 }}>
-        <div className="dashboard-sidebar-header" style={{ padding: "0 20px 28px", display: "flex", alignItems: "center", gap: 10 }}>
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 64 64"
-            aria-hidden="true"
-            focusable="false"
-            style={{ display: "block" }}
-          >
-            <circle cx="32" cy="32" r="30" fill="none" stroke="#f5f5f5" strokeWidth="1.5" />
-            <path
-              d="M18 38c6-8 10-12 14-13 4-1 9 0 14 3-4 1-7 3-9 6 3 0 6 1 9 3-4 1-8 2-12 2-4 0-8-1-12-3z"
-              fill="none"
-              stroke="#f5f5f5"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M24 42c2 3 4 5 8 6 4-1 6-3 8-6"
-              fill="none"
-              stroke="#f5f5f5"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M28 22c1.5-2 3-3 4-3s2.5 1 4 3"
-              fill="none"
-              stroke="#f5f5f5"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span style={{ fontSize: "18px", fontWeight: "800", letterSpacing: "0.06em" }}>CVPassport</span>
+      <div style={{ width: "220px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 10 }}>
+        <div style={{ padding: "0 20px 28px" }}>
+          <span style={{ fontSize: "18px", fontWeight: "800", color: C.text }}>CVPassport</span>
         </div>
-        <nav className="dashboard-sidebar-nav" style={{ flex: 1, padding: "0 10px" }}>
+        <nav style={{ flex: 1, padding: "0 10px" }}>
           {navItems.map(item => (
             <div key={item.id} onClick={() => setActiveNav(item.id)} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "2px", background: activeNav === item.id ? C.card : "transparent", color: activeNav === item.id ? C.text : C.muted, border: activeNav === item.id ? `1px solid ${C.border}` : "1px solid transparent", fontSize: "14px", transition: "all 0.2s ease" }}>
               {item.label}
             </div>
           ))}
         </nav>
-        <div style={{ padding: "0 10px", marginTop: "auto" }}>
-          <button
-            type="button"
-            onClick={openProModal}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "10px",
-              background: "transparent",
-              border: `1px solid ${C.border}`,
-              color: C.text,
-              textAlign: "left",
-              marginBottom: "12px",
-              fontSize: "12px",
-            }}
-          >
-            <div style={{ fontWeight: "600", marginBottom: 4 }}>Upgrade to Pro</div>
-            <div style={{ fontSize: "11px", color: C.muted }}>AED 29/mo • Unlock all templates</div>
-          </button>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "10px 12px",
-              borderRadius: "10px",
-              background: C.card,
-              border: `1px solid ${C.border}`,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "999px",
-                  border: `1px solid ${C.border}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
-              >
-                {(user?.name || user?.email || "?")[0].toUpperCase()}
-              </div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>{user?.name || "User"}</div>
-                <div style={{ fontSize: 11, color: C.muted }}>Free Plan</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={user?.onLogout}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: C.muted,
-                fontSize: 11,
-                cursor: "pointer",
-              }}
-            >
-              Sign Out
+        <div style={{ padding: "0 10px" }}>
+          <div style={{ padding: "14px", borderRadius: "10px", background: C.card, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: "12px", color: C.muted, marginBottom: "4px" }}>{user?.email}</div>
+            <div style={{ fontSize: "11px", color: C.muted, marginBottom: "10px" }}>Free Plan</div>
+            <button style={{ width: "100%", padding: "8px", borderRadius: "6px", background: C.accent, color: C.text, border: "none", cursor: "pointer", fontWeight: "600", fontSize: "12px" }}>
+              Upgrade to Pro
             </button>
           </div>
         </div>
-      </aside>
+      </div>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="dashboard-main" style={{ marginLeft: "220px", marginRight: "260px", flex: 1, padding: "32px 28px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "4px" }}>Welcome back, {user?.name}</h1>
-        <p style={{ color: C.muted, marginBottom: "28px", fontSize: "14px" }}>Manage your CVs for UAE and Gulf roles.</p>
+      <div style={{ marginLeft: "220px", marginRight: "260px", flex: 1, padding: "32px 28px" }}>
+        <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "4px" }}>Welcome back, {user?.name} 👋</h1>
+        <p style={{ color: C.muted, marginBottom: "28px", fontSize: "14px" }}>Ready to build or update your Gulf resume?</p>
 
-        {activeNav === "home" && (
-          <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px", marginBottom: "28px" }}>
-              {[
-                { label: "Saved CVs", value: resumeList.length.toString() },
-                { label: "Last Updated", value: resumeList[0] ? new Date(resumeList[0].updated_at).toLocaleDateString() : "—" },
-                { label: "Templates", value: "11" },
-                { label: "Plan", value: "Free" },
-              ].map((stat) => (
-                <div key={stat.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
-                  <div style={{ fontSize: "22px", fontWeight: "700" }}>{stat.value}</div>
-                  <div style={{ fontSize: "12px", color: C.muted, marginTop: "4px" }}>{stat.label}</div>
-                </div>
-              ))}
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
+          {[
+            { label: "CVs Saved",  value: resumeList.length.toString() },
+            { label: "ATS Ready",  value: "✓" },
+            { label: "Templates",  value: "11" },
+            { label: "Downloads",  value: "—" },
+          ].map(stat => (
+            <div key={stat.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
+              <div style={{ fontSize: "26px", fontWeight: "800", color: C.text }}>{stat.value}</div>
+              <div style={{ fontSize: "12px", color: C.muted, marginTop: "4px" }}>{stat.label}</div>
             </div>
-          </>
-        )}
+          ))}
+        </div>
 
-        {(activeNav === "home" || activeNav === "mycvs") && (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "16px", fontWeight: "700" }}>My CVs</h2>
-              <button
-                type="button"
-                onClick={onBuildResume}
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: "999px",
-                  background: C.text,
-                  color: "#000",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  minHeight: 48,
-                }}
-              >
-                + New CV
-              </button>
-            </div>
+        {/* My CVs */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <h2 style={{ fontSize: "16px", fontWeight: "700" }}>My CVs</h2>
+          <button onClick={onBuildResume} style={{ padding: "8px 16px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.2s ease" }}>
+            + Create Resume
+          </button>
+        </div>
 
-            {loading ? (
-              <div style={{ color: C.muted, fontSize: "14px" }}>Loading your CVs...</div>
-            ) : resumeList.length === 0 ? (
-              <div
-                style={{
-                  background: C.card,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: "10px",
-                  padding: "32px",
-                  textAlign: "center",
-                }}
-              >
-                <div style={{ color: C.muted, fontSize: "14px", marginBottom: "16px" }}>
-                  No CVs yet. Create your first Gulf-ready CV.
+        {loading ? (
+          <div style={{ color: C.muted, fontSize: "14px" }}>Loading your CVs...</div>
+        ) : resumeList.length === 0 ? (
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "32px", textAlign: "center" }}>
+            <div style={{ color: C.muted, fontSize: "14px", marginBottom: "16px" }}>No CVs yet. Build your first one.</div>
+            <button onClick={onBuildResume} style={{ padding: "10px 20px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+              Build CV
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
+            {resumeList.map(r => (
+              <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
+                <div style={{ height: "100px", background: C.surface, borderRadius: "6px", marginBottom: "14px", border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: "11px", color: C.muted }}>CV Preview</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={onBuildResume}
-                  style={{
-                    padding: "12px 22px",
-                    borderRadius: "999px",
-                    background: C.text,
-                    color: "#000",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    minHeight: 48,
-                  }}
-                >
-                  Build My CV
-                </button>
+                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || "Untitled CV"}</div>
+                <div style={{ fontSize: "11px", color: C.muted, marginBottom: "14px" }}>Updated {new Date(r.updated_at).toLocaleDateString()}</div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={() => onEditResume(r)} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>Edit</button>
+                  <button onClick={() => handleDelete(r.id)} disabled={deleting === r.id} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.danger, border: `1px solid ${C.danger}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>
+                    {deleting === r.id ? "..." : "Delete"}
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px" }}>
-                {resumeList.map((r) => {
-                  const cvData = r.cv_data || EMPTY_RESUME;
-                  const strength = getStrength(cvData);
-                  const template = TEMPLATES.find((t) => t.id === r.template_id) || TEMPLATES[0];
-                  const title = r.title || cvData.name || "My CV";
-                  return (
-                    <div
-                      key={r.id}
-                      style={{
-                        background: C.card,
-                        border: `1px solid ${C.border}`,
-                        borderRadius: "12px",
-                        padding: "16px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 10,
-                      }}
-                    >
-                      <div
-                        style={{
-                          borderRadius: "8px",
-                          border: `1px solid ${C.border}`,
-                          background: "#000",
-                          padding: "6px",
-                          height: 140,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            transform: "scale(0.32)",
-                            transformOrigin: "top left",
-                            width: "310%",
-                            pointerEvents: "none",
-                          }}
-                        >
-                          <ResumePreview cv={cvData} template={template} />
-                        </div>
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            fontWeight: "600",
-                            fontSize: "14px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {title}
-                        </div>
-                        <div style={{ fontSize: "11px", color: C.muted, marginTop: 4 }}>
-                          Last edited {new Date(r.updated_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          onClick={strength < 90 ? openProModal : undefined}
-                          style={{
-                            padding: "4px 10px",
-                            borderRadius: "999px",
-                            border: `1px solid ${C.border}`,
-                            background: "transparent",
-                            fontSize: "11px",
-                            cursor: strength < 90 ? "pointer" : "default",
-                          }}
-                        >
-                          Resume strength: {strength}%
-                        </button>
-                        {typeof r.ats_score === "number" && (
-                          <span
-                            style={{
-                              padding: "3px 8px",
-                              borderRadius: "999px",
-                              border: `1px solid ${C.border}`,
-                              fontSize: "11px",
-                            }}
-                          >
-                            ATS {r.ats_score}%
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                        <button
-                          type="button"
-                          onClick={() => onEditResume(r)}
-                          style={{
-                            flex: 1,
-                            padding: "10px",
-                            borderRadius: "8px",
-                            border: `1px solid ${C.border}`,
-                            background: "transparent",
-                            color: C.text,
-                            fontSize: "12px",
-                            cursor: "pointer",
-                            minHeight: 48,
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(r.id)}
-                          disabled={deleting === r.id}
-                          style={{
-                            flex: 1,
-                            padding: "10px",
-                            borderRadius: "8px",
-                            border: `1px solid ${C.border}`,
-                            background: "transparent",
-                            color: C.muted,
-                            fontSize: "12px",
-                            cursor: deleting === r.id ? "wait" : "pointer",
-                            minHeight: 48,
-                          }}
-                        >
-                          {deleting === r.id ? "Deleting..." : "Delete"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={onBuildResume}
-                  style={{
-                    border: `1px dashed ${C.border}`,
-                    borderRadius: "12px",
-                    background: "transparent",
-                    color: C.muted,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexDirection: "column",
-                    gap: 8,
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    minHeight: 180,
-                  }}
-                >
-                  <span style={{ fontSize: 24 }}>+</span>
-                  <span>New CV</span>
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {activeNav === "ats" && (
-          <div style={{ marginTop: 24 }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "700", marginBottom: 12 }}>ATS Checker</h2>
-            <p style={{ fontSize: "13px", color: C.muted, marginBottom: 16 }}>
-              Analyse your CV against a target job description and identify missing keywords.
-            </p>
-            <div style={{ borderRadius: "12px", border: `1px solid ${C.border}`, overflow: "hidden" }}>
-              <ATSChecker />
-            </div>
+            ))}
           </div>
         )}
-
-        {activeNav === "templates" && (
-          <div style={{ marginTop: 24 }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "700", marginBottom: 12 }}>Templates</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
-              {TEMPLATES.map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    borderRadius: "10px",
-                    border: `1px solid ${C.border}`,
-                    padding: "12px",
-                    fontSize: "12px",
-                  }}
-                >
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>{t.name}</div>
-                  <div style={{ fontSize: "11px", color: C.muted }}>{t.tier === "free" ? "Free" : "Pro"}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeNav === "settings" && (
-          <div style={{ marginTop: 24 }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "700", marginBottom: 12 }}>Settings</h2>
-            <p style={{ fontSize: "13px", color: C.muted }}>Account and workspace settings will appear here.</p>
-          </div>
-        )}
-      </main>
+      </div>
 
       {/* ── RIGHT PANEL ── */}
-      <aside className="dashboard-right" style={{ width: "240px", background: C.surface, borderLeft: `1px solid ${C.border}`, padding: "28px 16px", position: "fixed", right: 0, top: 0, height: "100vh", overflowY: "auto" }}>
-        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>Overview</h3>
+      <div style={{ width: "240px", background: C.surface, borderLeft: `1px solid ${C.border}`, padding: "28px 16px", position: "fixed", right: 0, top: 0, height: "100vh", overflowY: "auto" }}>
+        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>ATS Score</h3>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "12px", color: C.muted }}>Plan</div>
-          <div style={{ fontSize: "18px", fontWeight: "700" }}>Free</div>
+          <div style={{ fontSize: "28px", fontWeight: "800", color: C.success }}>—</div>
+          <div style={{ fontSize: "12px", color: C.muted }}>Run ATS check to see score</div>
         </div>
 
         <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>Quick Tip</h3>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "12px", color: C.muted, lineHeight: "1.6" }}>
-            Add Gulf-specific details like visa status and nationality to improve recruiter matches.
-          </div>
+          <div style={{ fontSize: "12px", color: C.muted, lineHeight: "1.6" }}>Add your visa status to increase profile match rate in UAE job market.</div>
         </div>
 
-        <button
-          type="button"
-          onClick={openProModal}
-          style={{
-            width: "100%",
-            padding: "12px",
-            borderRadius: "10px",
-            background: "transparent",
-            border: `1px solid ${C.border}`,
-            color: C.text,
-            fontSize: "12px",
-            cursor: "pointer",
-          }}
-        >
-          Upgrade to Pro — AED 29/mo
-        </button>
-      </aside>
-
-      {showProModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 40,
-          }}
-        >
-          <div
-            style={{
-              background: "#050505",
-              borderRadius: "16px",
-              border: "1px solid #f5f5f5",
-              maxWidth: 420,
-              width: "90%",
-              padding: "24px 22px",
-            }}
-          >
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upgrade to Pro</h2>
-            <p style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>
-              Boost your CV score with ATS optimisation, keyword matching and AI suggestions tailored for UAE and Gulf roles.
-            </p>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>AED 29<span style={{ fontSize: 12, color: C.muted }}>/mo</span></div>
-            <button
-              type="button"
-              style={{
-                width: "100%",
-                padding: "14px",
-                borderRadius: "999px",
-                border: "1px solid #ffffff",
-                background: "#f5f5f5",
-                color: "#000",
-                fontWeight: 700,
-                cursor: "pointer",
-                marginBottom: 12,
-              }}
-            >
-              Go Pro
-            </button>
-            <button
-              type="button"
-              onClick={closeProModal}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: "999px",
-                border: "none",
-                background: "transparent",
-                color: C.muted,
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              Not now
-            </button>
-          </div>
+        <div style={{ background: C.card, border: `1px solid ${C.gold}`, borderRadius: "10px", padding: "14px" }}>
+          <div style={{ fontSize: "13px", fontWeight: "700", color: C.gold, marginBottom: "4px" }}>Go Pro</div>
+          <div style={{ fontSize: "12px", color: C.muted, marginBottom: "10px" }}>Unlimited CVs, all templates, ATS matching</div>
+          <div style={{ fontSize: "18px", fontWeight: "800", marginBottom: "10px" }}>AED 29<span style={{ fontSize: "12px", color: C.muted }}>/mo</span></div>
+          <button style={{ width: "100%", padding: "9px", borderRadius: "6px", background: C.gold, color: "#000", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "12px" }}>Upgrade Now</button>
         </div>
-      )}
+      </div>
 
     </div>
   );
@@ -1990,8 +1562,13 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError]   = useState(null);
   const [editingResume, setEditingResume] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [resume, setResume] = useState(EMPTY_RESUME);
+  // eslint-disable-next-line no-unused-vars
+  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
 
   useEffect(() => {
+    if (!supabase) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) { setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id }); setPage("dashboard"); }
     });
@@ -2003,6 +1580,7 @@ export default function App() {
   }, []);
 
   const handleAuth = async (userData) => {
+    if (!supabase) return;
     setAuthError(null); setAuthLoading(true);
     try {
       if (authMode === "signup") {
@@ -2018,33 +1596,45 @@ export default function App() {
     finally { setAuthLoading(false); }
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setPage("landing"); };
+  const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setPage("landing"); };
 
   const handleEditResume  = (record) => { setEditingResume(record); setPage("builder"); };
   const handleNewResume   = ()       => { setEditingResume(null);   setPage("builder"); };
 
   return (
     <div style={S.app}>
-      {page === "landing"   && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }}/>}
-      {page === "auth"      && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
-      {page === "dashboard" && user && (
-        <Dashboard
-          user={{ ...user, onLogout: handleLogout }}
-          onBuildResume={handleNewResume}
-          onEditResume={handleEditResume}
-        />
-      )}
-      {page === "builder"   && (
-        <ResumeBuilder
-          user={user}
-          onBack={() => setPage(user ? "dashboard" : "landing")}
-          initialResume={editingResume?.cv_data || null}
-          initialResumeId={editingResume?.id || null}
-          initialTemplateId={editingResume?.template_id || null}
-        />
-      )}
-      {page === "ats" && <ATSChecker />}
-      <Analytics />
-    </div>
-  );
+      <nav style={S.nav}>
+        <div style={S.logo} onClick={() => setPage("landing")} role="button" tabIndex={0}>CVPassport</div>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          {user ? (
+            <>
+              <span style={{ color: C.muted, fontSize: "14px" }}>Hi, {user.name}</span>
+              <button style={S.btn("outline","sm")} onClick={() => setPage("ats")}>ATS Checker</button>
+              <button style={S.btn("outline","sm")} onClick={handleLogout}>Sign Out</button>
+            </>
+          ) : (
+            <>
+              <button style={S.btn("outline","sm")} onClick={() => { setAuthMode("login"); setPage("auth"); }}>Sign In</button>
+              <button style={S.btn("primary","sm")} onClick={() => { setAuthMode("signup"); setPage("auth"); }}>Get Started</button>
+            </>
+          )}
+        </div>
+      </nav>
+{page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
+{page === "walkin" && <WalkInPage onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
+{page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
+{page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
+{page === "builder" && (
+  <ResumeBuilder
+    user={user}
+    onBack={() => setPage(user ? "dashboard" : "landing")}
+    initialResume={editingResume?.cv_data || null}
+    initialResumeId={editingResume?.id || null}
+    initialTemplateId={editingResume?.template_id || null}
+  />
+)}
+{page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
+<Analytics />
+</div>
+);
 }
