@@ -1164,14 +1164,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
-  const zoomScale = zoom / 100;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}>
-      {/* Top nav bar — 52px */}
+      {/* Top nav bar — 56px */}
       <header
         style={{
-          height: 52,
+          height: 56,
           position: "sticky",
           top: 0,
           zIndex: 100,
@@ -1227,21 +1226,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </div>
       </header>
 
-      {/* Desktop: split 380px | 1fr */}
-      <div className="cvp-builder-desktop" style={{ display: "grid", gridTemplateColumns: "380px 1fr", height: "calc(100vh - 52px)", overflow: "hidden" }}>
+      {/* Desktop: split 380px | 1fr — layout in index.css */}
+      <div className="cvp-builder-desktop">
         {/* Left panel — Editor */}
-        <aside
-          className="cvp-builder-left"
-          style={{
-            background: "#0A0A0A",
-            borderRight: "1px solid #1E1E1E",
-            overflowY: "auto",
-            padding: 12,
-            display: "grid",
-            gap: 8,
-            alignContent: "start",
-          }}
-        >
+        <aside className="cvp-builder-left">
           {builderTab === "content" && (
             <>
               {/* Personal info card — always visible */}
@@ -1344,19 +1332,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           )}
         </aside>
 
-        {/* Right panel — Live Preview */}
-        <div
-          className="cvp-builder-preview"
-          style={{
-            background: "#111111",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "32px 24px",
-            overflow: "auto",
-          }}
-        >
-          <div style={{ maxWidth: 794, width: "100%", aspectRatio: "0.707", background: "#fff", borderRadius: 4, boxShadow: "0 8px 32px rgba(0,0,0,0.6)", transform: `scale(${zoomScale})`, transformOrigin: "top center" }}>
+        {/* Right panel — Live Preview; A4 dimensions/scale in index.css */}
+        <div className="cvp-builder-preview">
+          <div className="cvp-builder-a4">
             <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
               <ResumePreview cv={resume} template={selectedTemplate} />
             </div>
@@ -1365,7 +1343,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       </div>
 
       {/* Mobile: single column + Edit | Preview pill */}
-      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", minHeight: "calc(100vh - 52px)" }}>
+      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", minHeight: "calc(100vh - 56px)" }}>
         {mobileView === "edit" ? (
           <div style={{ overflowY: "auto", padding: 12, paddingBottom: 80, display: "grid", gap: 8, alignContent: "start", background: "#0A0A0A" }}>
             {builderTab === "content" && (
