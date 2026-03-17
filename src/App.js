@@ -1714,7 +1714,7 @@ export default function App() {
           )}
         </div>
       </nav>
-{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} setView={setView} />}
+{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => { const el = document.getElementById('walkin-form-anchor'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
 {page === "builder" && (
