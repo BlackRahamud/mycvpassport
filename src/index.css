@@ -6,9 +6,28 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bg-page:#0A0A0A;
+  --bg-surface:#141414;
+  --bg-elevated:#1C1C1C;
+  --text-primary:#FFF;
+  --text-secondary:#A0A0A0;
+  --border:#2A2A2A;
+  --radius-lg:16px;
+  --radius-md:12px;
+}
+
+.cvp-theme-light {
+  --bg-page:#F5F5F0;
+  --bg-surface:#FFF;
+  --text-primary:#111;
+  --text-secondary:#555;
+  --border:#E5E5E5;
+}
+
 body {
-  background: #050505;
-  color: #f5f5f5;
+  background: var(--bg-page);
+  color: var(--text-primary);
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
@@ -35,7 +54,7 @@ h1, h2, h3 {
 
 /* Premium button hover */
 .premium-btn {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .premium-btn:hover {
