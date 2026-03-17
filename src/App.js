@@ -11,7 +11,7 @@ import { PreviewCreativeSidebar,  pdfCreativeSidebar  } from "./Template8Creativ
 import { PreviewHospitality,      pdfHospitality      } from "./Template9Hospitality";
 import { PreviewATSInternational, pdfATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechITPro";
-import LandingGlobe from './LandingGlobe';
+import LandingPage from './LandingPage';
 import WalkInPage from './WalkInPage';
 
 // Skip Supabase usage during react-snap prerender
@@ -925,9 +925,9 @@ const T3Preview = ({ cv, t }) => (
   </TemplateThumb>
 );
 
-// —— LANDING PAGE ————————————————————————————————————————
+// —— LANDING PAGE (legacy, kept for reference) ───────────────────
 // eslint-disable-next-line no-unused-vars
-function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {
+function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {
 
   return (
     <div>
@@ -1620,7 +1620,7 @@ export default function App() {
           )}
         </div>
       </nav>
-{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
+{page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
 {page === "walkin" && <WalkInPage onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}

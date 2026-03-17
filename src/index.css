@@ -7,24 +7,17 @@
 }
 
 body {
-  background: #080c14;
-  color: #f0f0ff;
+  background: #0A0A0A;
+  color: #ffffff;
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.25s cubic-bezier(0.4,0,0.2,1), color 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* Luxury background glow */
-body::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: -1;
+html.light body {
+  background: #F5F5F0;
+  color: #111111;
 }
 
 /* Glass morphism card base */
@@ -53,8 +46,8 @@ h1, h2, h3 {
 /* Input focus glow */
 input:focus, textarea:focus {
   outline: none;
-  border-color: rgba(99, 102, 241, 0.5);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: rgba(160, 160, 160, 0.5);
+  box-shadow: 0 0 0 3px rgba(160, 160, 160, 0.08);
 }
 
 /* Scrollbar styling */

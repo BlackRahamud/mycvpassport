@@ -321,8 +321,8 @@ function GlobeComponent() {
           <circle cx="190" cy="190" r="168" />
         </clipPath>
         <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="rgba(139,92,246,0.15)" />
-          <stop offset="100%" stopColor="rgba(139,92,246,0)" />
+          <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
         </radialGradient>
       </defs>
 
@@ -355,7 +355,7 @@ function GlobeComponent() {
               key={i}
               d={`M ${fx},${fy} Q ${mx},${my} ${tx},${ty}`}
               fill="none"
-              stroke="rgba(139,92,246,0.5)"
+              stroke="rgba(255,255,255,0.5)"
               strokeWidth="1"
               strokeDasharray="3 4"
               style={{
@@ -375,12 +375,12 @@ function GlobeComponent() {
           return (
             <g key={i}>
               {city.rings >= 3 && (
-                <circle cx={cx} cy={cy2} r="12" fill="none" stroke="rgba(139,92,246,0.2)" strokeWidth="1" />
+                <circle cx={cx} cy={cy2} r="12" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
               )}
               {city.rings >= 2 && (
-                <circle cx={cx} cy={cy2} r="7" fill="none" stroke="rgba(139,92,246,0.4)" strokeWidth="1" />
+                <circle cx={cx} cy={cy2} r="7" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
               )}
-              <circle cx={cx} cy={cy2} r={city.bright ? 4 : 2.5} fill={city.bright ? "#a78bfa" : "rgba(255,255,255,0.8)"} />
+              <circle cx={cx} cy={cy2} r={city.bright ? 4 : 2.5} fill={city.bright ? "#ffffff" : "rgba(255,255,255,0.8)"} />
               <text
                 x={cx + 7}
                 y={cy2 + 4}
@@ -402,7 +402,7 @@ function GlobeComponent() {
 
       <style>{`
         @keyframes arcflow { to { stroke-dashoffset: -20; } }
-        path[stroke="rgba(139,92,246,0.5)"] { stroke-dashoffset: 0; }
+        path[stroke="rgba(255,255,255,0.5)"] { stroke-dashoffset: 0; }
       `}</style>
     </svg>
   );
@@ -443,7 +443,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
           <img src="/images/falcon-icon.png" alt="CVPassport" style={{ height: "32px", width: "auto" }} />
           <span style={{
             fontSize: "18px", fontWeight: "800", letterSpacing: "-0.5px",
-            background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
+            background: "linear-gradient(135deg, #ffffff, #ffffff)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>CVPassport</span>
         </div>
@@ -472,18 +472,18 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
             fontSize: "13px", fontWeight: "600", cursor: "pointer",
           }}>Sign In</button>
           <button onClick={onSignup} style={{
-            background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
-            border: "none", color: "#fff", borderRadius: "8px",
+            background: "#ffffff",
+            border: "none", color: "#000", borderRadius: "8px",
             padding: "8px 18px", fontSize: "13px", fontWeight: "700",
-            cursor: "pointer", boxShadow: "0 4px 20px rgba(124,58,237,0.3)",
+            cursor: "pointer", boxShadow: "0 4px 20px rgba(255,255,255,0.3)",
           }}>Get Started</button>
         </div>
       </nav>
 
       {/* HERO SECTION */}
       <section style={{
-        minHeight: "100vh", display: "flex", alignItems: "center",
-        paddingTop: "64px", padding: "80px 60px 60px",
+        minHeight: "auto", display: "flex", alignItems: "center",
+        paddingTop: "64px", padding: "80px 60px 40px",
         maxWidth: "1300px", margin: "0 auto", gap: "60px",
       }}>
         {/* Left side */}
@@ -491,12 +491,12 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
           {/* Badge */}
           <div style={{
             display: "inline-flex", alignItems: "center", gap: "8px",
-            background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)",
+            background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.3)",
             borderRadius: "100px", padding: "6px 16px", marginBottom: "28px",
           }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#a78bfa", display: "inline-block" }} />
-            <span style={{ fontSize: "12px", fontWeight: "600", color: "#a78bfa", letterSpacing: "0.5px" }}>
-              AE Built for Gulf Job Seekers
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ffffff", display: "inline-block" }} />
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "#ffffff", letterSpacing: "0.5px" }}>
+              🇦🇪 Built for Gulf Job Seekers
             </span>
           </div>
 
@@ -507,7 +507,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
           }}>
             Your Resume is your{" "}
             <span style={{
-              background: "linear-gradient(135deg, #a78bfa 0%, #f59e0b 50%, #a78bfa 100%)",
+              background: "linear-gradient(135deg, #ffffff 0%, #f59e0b 50%, #ffffff 100%)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               backgroundSize: "200% auto",
               animation: "shimmer 3s linear infinite",
@@ -524,27 +524,43 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
           </p>
 
           {/* CTA pills */}
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "36px" }}>
-            <button onClick={onSignup} style={{
-              background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
-              border: "none", color: "#fff",
-              borderRadius: "100px", padding: "12px 24px",
-              fontSize: "14px", fontWeight: "700",
-              cursor: "pointer", boxShadow: "0 4px 24px rgba(124,58,237,0.35)",
-              transition: "all 0.2s",
-            }}>Build my CV →</button>
-            <button style={{
-              background: "rgba(255,255,255,0.06)", border: "1px solid #333333",
-              color: "#888888", borderRadius: "100px", padding: "12px 24px",
-              fontSize: "14px", fontWeight: "700", cursor: "pointer",
-              transition: "all 0.2s",
-            }}>Browse templates</button>
-            <button style={{
-              background: "rgba(255,255,255,0.06)", border: "1px solid #333333",
-              color: "#888888", borderRadius: "100px", padding: "12px 24px",
-              fontSize: "14px", fontWeight: "700", cursor: "pointer",
-              transition: "all 0.2s",
-            }}>Upload my CV ↑</button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px', marginTop: '32px' }}>
+            <button
+              onClick={() => setPage && setPage('walkin')}
+              style={{
+                background: '#fff',
+                color: '#000',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '14px 36px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(255,255,255,0.2)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              Build My CV Free →
+            </button>
+            <button
+              onClick={() => setPage && setPage('ats')}
+              style={{
+                background: 'transparent',
+                color: 'rgba(255,255,255,0.6)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: '12px',
+                padding: '12px 36px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+            >
+              Check My ATS Score →
+            </button>
           </div>
 
           {/* Trust bar */}
@@ -561,7 +577,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
         <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center", alignItems: "center", position: "relative" }}>
           <div style={{
             position: "absolute", width: "400px", height: "400px",
-            borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)",
+            borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)",
             pointerEvents: "none",
           }} />
           <GlobeComponent />
@@ -570,7 +586,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
       {/* PROBLEM SECTION */}
       <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#ffffff", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
           THE PROBLEM
         </p>
         <h2 style={{ fontSize: "44px", fontWeight: "800", letterSpacing: "-1px", marginBottom: "16px" }}>
@@ -754,7 +770,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
       {/* SOLUTION SECTION */}
       <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#ffffff", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
           HOW IT WORKS
         </p>
         <h2 style={{ fontSize: "44px", fontWeight: "800", letterSpacing: "-1px", marginBottom: "16px" }}>
@@ -774,7 +790,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
               background: "#141414", border: "1px solid #222222",
               borderRadius: "16px", padding: "32px", width: "220px", textAlign: "center",
             }}>
-              <p style={{ fontSize: "11px", letterSpacing: "2px", color: "#a78bfa", fontWeight: "700", marginBottom: "8px" }}>
+              <p style={{ fontSize: "11px", letterSpacing: "2px", color: "#ffffff", fontWeight: "700", marginBottom: "8px" }}>
                 STEP {item.step}
               </p>
               <div style={{ fontSize: "32px", marginBottom: "12px" }}>{item.icon}</div>
@@ -787,7 +803,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
       {/* FEATURES SECTION WITH WARP SHADER CARDS */}
       <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1200px", margin: "0 auto" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#ffffff", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px", textAlign: "center" }}>
           FEATURES
         </p>
         <h2 style={{ fontSize: "44px", fontWeight: "800", textAlign: "center", marginBottom: "16px" }}>
@@ -852,8 +868,8 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
                 <div style={{
                   position: "absolute", top: "16px", right: "16px",
                   fontSize: "11px", padding: "4px 10px", borderRadius: "100px",
-                  background: feature.badge === "Pro" ? "rgba(201,168,76,0.25)" : "rgba(255,255,255,0.15)",
-                  color: feature.badge === "Pro" ? "#C9A84C" : "#ffffff",
+                  background: feature.badge === "Pro" ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.15)",
+                  color: feature.badge === "Pro" ? "#ffffff" : "#ffffff",
                 }}>
                   {feature.badge}
                 </div>
@@ -872,7 +888,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
       {/* TEMPLATES SHOWCASE WITH WARP SHADER CARDS */}
       <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1200px", margin: "0 auto" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px", textAlign: "center" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#ffffff", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px", textAlign: "center" }}>
           TEMPLATES
         </p>
         <h2 style={{ fontSize: "44px", fontWeight: "800", textAlign: "center", marginBottom: "16px" }}>
@@ -948,8 +964,8 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
                 <div style={{
                   position: "absolute", top: "12px", right: "12px",
                   fontSize: "11px", padding: "4px 10px", borderRadius: "100px",
-                  background: template.tier === "Pro" ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.1)",
-                  color: template.tier === "Pro" ? "#a78bfa" : "#888888",
+                  background: template.tier === "Pro" ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)",
+                  color: template.tier === "Pro" ? "#ffffff" : "#888888",
                 }}>
                   {template.tier}
                 </div>
@@ -983,7 +999,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
       {/* PRICING SECTION */}
       <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#ffffff", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
           PRICING
         </p>
         <h2 style={{ fontSize: "44px", fontWeight: "800", marginBottom: "16px" }}>
@@ -1010,7 +1026,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
             <ul style={{ listStyle: "none", padding: 0, marginBottom: "32px" }}>
               {["3 free templates", "ATS score checker", "3 watermark-free downloads", "Walk-In CV Builder"].map((item, i) => (
                 <li key={i} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", marginBottom: "12px", color: "#ffffff" }}>
-                  <span style={{ color: "#a78bfa" }}>✓</span> {item}
+                  <span style={{ color: "#ffffff" }}>✓</span> {item}
                 </li>
               ))}
             </ul>
@@ -1025,21 +1041,21 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
           {/* Pro Card */}
           <div style={{
-            background: "linear-gradient(135deg, rgba(124,58,237,0.15) rgba(124,58,237,0.05))",
-            border: "1px solid rgba(124,58,237,0.4)",
+            background: "linear-gradient(135deg, rgba(255,255,255,0.15) rgba(255,255,255,0.05))",
+            border: "1px solid rgba(255,255,255,0.4)",
             borderRadius: "20px", padding: "40px", width: "360px", textAlign: "left", position: "relative",
           }}>
             <div style={{
               position: "absolute", top: "-12px", right: "20px",
-              background: "#7c3aed", color: "#ffffff", fontSize: "11px",
+              background: "#ea580c", color: "#ffffff", fontSize: "11px",
               padding: "4px 12px", borderRadius: "100px",
             }}>
               Most Popular
             </div>
-            <div style={{ background: "rgba(167,139,250,0.3)", color: "#a78bfa", fontSize: "11px", padding: "4px 10px", borderRadius: "100px", width: "fit-content", marginBottom: "24px", marginTop: "12px" }}>
+            <div style={{ background: "rgba(255,255,255,0.3)", color: "#ffffff", fontSize: "11px", padding: "4px 10px", borderRadius: "100px", width: "fit-content", marginBottom: "24px", marginTop: "12px" }}>
               Pro
             </div>
-            <div style={{ fontSize: "48px", fontWeight: "900", color: "#a78bfa", marginBottom: "4px" }}>
+            <div style={{ fontSize: "48px", fontWeight: "900", color: "#ffffff", marginBottom: "4px" }}>
               AED 29
             </div>
             <div style={{ color: "#888888", fontSize: "14px", marginBottom: "8px" }}>
@@ -1051,15 +1067,15 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
             <ul style={{ listStyle: "none", padding: 0, marginBottom: "32px" }}>
               {["All 11 templates", "Unlimited downloads", "No watermarks", "ATS keyword matching", "Unlimited saved CVs", "Priority support"].map((item, i) => (
                 <li key={i} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", marginBottom: "12px", color: "#ffffff" }}>
-                  <span style={{ color: "#a78bfa" }}>✓</span> {item}
+                  <span style={{ color: "#ffffff" }}>✓</span> {item}
                 </li>
               ))}
             </ul>
             <button onClick={onSignup} style={{
-              background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
-              border: "none", color: "#ffffff", borderRadius: "10px", padding: "14px",
+              background: "#ffffff",
+              border: "none", color: "#000000", borderRadius: "10px", padding: "14px",
               width: "100%", fontSize: "15px", fontWeight: "700", cursor: "pointer",
-              boxShadow: "0 4px 20px rgba(124,58,237,0.35)",
+              boxShadow: "0 4px 20px rgba(255,255,255,0.35)",
             }}>
               Upgrade to Pro
             </button>
@@ -1069,7 +1085,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
       {/* TESTIMONIALS SECTION */}
       <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
-        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#a78bfa", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
+        <p style={{ fontSize: "11px", letterSpacing: "3px", color: "#ffffff", fontWeight: "700", textTransform: "uppercase", marginBottom: "16px" }}>
           TESTIMONIALS
         </p>
         <h2 style={{ fontSize: "44px", fontWeight: "800", marginBottom: "60px" }}>
@@ -1093,7 +1109,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
                 width: "40px", height: "40px", borderRadius: "50%",
                 background: "#333333", display: "flex", alignItems: "center",
                 justifyContent: "center", fontSize: "14px", fontWeight: "700",
-                color: "#a78bfa", marginBottom: "12px",
+                color: "#ffffff", marginBottom: "12px",
               }}>
                 {testimonial.initials}
               </div>
@@ -1110,7 +1126,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
 
       {/* FINAL CTA SECTION */}
       <section style={{
-        background: "linear-gradient(135deg, rgba(124,58,237,0.15) #0a0a0a)",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.15) #0a0a0a)",
         padding: "100px 60px", textAlign: "center",
         borderTop: "1px solid #222222",
       }}>
@@ -1122,19 +1138,12 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
         </p>
         <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
           <button onClick={onSignup} style={{
-            background: "linear-gradient(135deg, #7c3aed, #a78bfa)",
-            border: "none", color: "#ffffff", borderRadius: "12px",
+            background: "#ffffff",
+            border: "none", color: "#000000", borderRadius: "12px",
             padding: "16px 36px", fontSize: "16px", fontWeight: "700",
-            cursor: "pointer", boxShadow: "0 4px 24px rgba(124,58,237,0.35)",
+            cursor: "pointer", boxShadow: "0 4px 24px rgba(255,255,255,0.35)",
           }}>
             Build My CV Free →
-          </button>
-          <button onClick={onSignup} style={{
-            background: "transparent", border: "1px solid #444444",
-            color: "#ffffff", borderRadius: "12px", padding: "16px 36px",
-            fontSize: "16px", fontWeight: "600", cursor: "pointer",
-          }}>
-            Check My ATS Score
           </button>
         </div>
       </section>
@@ -1149,7 +1158,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
           <img src="/images/falcon-icon.png" alt="CVPassport" style={{ height: "24px", width: "auto" }} />
           <span style={{
             fontSize: "14px", fontWeight: "700",
-            background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
+            background: "linear-gradient(135deg, #ffffff, #ffffff)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>CVPassport</span>
         </div>
