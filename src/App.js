@@ -1714,7 +1714,7 @@ export default function App() {
           )}
         </div>
       </nav>
-{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
+{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} setView={setPage} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
 {page === "builder" && (

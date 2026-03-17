@@ -408,7 +408,7 @@ function GlobeComponent() {
   );
 }
 
-export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onWalkIn }) {
+export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, setView }) {
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh", color: "#ffffff", fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
       <Helmet>
@@ -729,7 +729,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onW
         <div style={{ marginBottom: '14px' }}>
           <button
             className="walkin-cta-btn"
-            onClick={onWalkIn}
+            onClick={() => setView && setView('walkin')}
           >
             Start Now — It's Free ⚡
           </button>
