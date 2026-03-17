@@ -12,6 +12,7 @@ import { PreviewHospitality,      pdfHospitality      } from "./Template9Hospita
 import { PreviewATSInternational, pdfATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechITPro";
 import LandingGlobe from './LandingGlobe';
+import WalkInPage from './WalkInPage';
 
 // Skip Supabase usage during react-snap prerender
 const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent.includes('ReactSnap');
@@ -926,35 +927,7 @@ const T3Preview = ({ cv, t }) => (
 
 // —— LANDING PAGE ————————————————————————————————————————
 // eslint-disable-next-line no-unused-vars
-function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {  // Walk-In Interview CV Mode state
-  const [walkInData, setWalkInData] = useState({
-    fullName: "",
-    jobTitle: "",
-    phone: "",
-    email: "",
-    skills: "",
-    experience: "",
-  });
-
-  const handleWalkInSubmit = () => {
-    if (!walkInData.fullName || !walkInData.jobTitle || !walkInData.phone || !walkInData.email) {
-      alert("Please fill in all required fields");
-      return;
-    }
-    // Pre-fill resume state
-    const prefilledResume = {
-      ...EMPTY_RESUME,
-      name: walkInData.fullName,
-      title: walkInData.jobTitle,
-      phone: walkInData.phone,
-      email: walkInData.email,
-      skills: walkInData.skills,
-      summary: walkInData.experience,
-    };
-    // Store in session storage and navigate
-    sessionStorage.setItem("walkInResume", JSON.stringify(prefilledResume));
-    onSignup();
-  };
+function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplate }) {
 
   return (
     <div>
@@ -986,76 +959,6 @@ function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplat
             <div style={{ fontSize: "13px", color: C.muted, lineHeight: "1.6" }}>{f.desc}</div>
           </div>
         ))}
-      </div>
-
-      {/* Walk-In Interview CV Mode Section */}
-<div id="walkin-form-anchor" style={{ background: "#0a0a0a", padding: "80px 40px", marginBottom: "80px" }}>        <div style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontSize: "36px", fontWeight: "700", color: "#fff", marginBottom: "16px" }}>Got a Walk-In Interview Tomorrow?</h2>
-          <p style={{ fontSize: "16px", color: "#888", marginBottom: "48px" }}>Build a complete Gulf-ready CV in 60 seconds. Share instantly on WhatsApp.</p>
-          
-          <div style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: "16px", padding: "40px", marginBottom: "40px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <input
-                style={S.input}
-                placeholder="Ahmed Al Mansouri"
-                value={walkInData.fullName}
-                onChange={e => setWalkInData({...walkInData, fullName: e.target.value})}
-              />
-              <input
-                style={S.input}
-                placeholder="Sales Executive"
-                value={walkInData.jobTitle}
-                onChange={e => setWalkInData({...walkInData, jobTitle: e.target.value})}
-              />
-              <input
-                style={S.input}
-                placeholder="+971 50 123 4567"
-                value={walkInData.phone}
-                onChange={e => setWalkInData({...walkInData, phone: e.target.value})}
-              />
-              <input
-                style={S.input}
-                placeholder="ahmed@email.com"
-                value={walkInData.email}
-                onChange={e => setWalkInData({...walkInData, email: e.target.value})}
-              />
-              <input
-                style={S.input}
-                placeholder="Sales, CRM, Communication, Arabic, English"
-                value={walkInData.skills}
-                onChange={e => setWalkInData({...walkInData, skills: e.target.value})}
-              />
-              <input
-                style={S.input}
-                placeholder="3 years in UAE retail banking"
-                value={walkInData.experience}
-                onChange={e => setWalkInData({...walkInData, experience: e.target.value})}
-              />
-            </div>
-
-            <button
-              onClick={handleWalkInSubmit}
-              style={{
-                width: "100%",
-                background: "#fff",
-                color: "#000",
-                border: "none",
-                borderRadius: "12px",
-                padding: "16px",
-                fontSize: "16px",
-                fontWeight: "700",
-                cursor: "pointer",
-                marginTop: "24px",
-              }}
-            >
-              Build My Walk-In CV →
-            </button>
-
-            <div style={{ fontSize: "12px", color: "#666", textAlign: "center", marginTop: "16px" }}>
-              ⚡ Ready in 60 seconds · 📲 Share on WhatsApp · 🆓 Free
-            </div>
-          </div>
-        </div>
       </div>
 
       <div style={{ padding: "0 40px 80px", maxWidth: "900px", margin: "0 auto" }}>
@@ -1659,6 +1562,8 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError]   = useState(null);
   const [editingResume, setEditingResume] = useState(null);
+  const [resume, setResume] = useState(EMPTY_RESUME);
+  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -1713,7 +1618,8 @@ export default function App() {
           )}
         </div>
       </nav>
-{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => { const el = document.getElementById('walkin-form-anchor'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} />}
+{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
+{page === "walkin" && <WalkInPage onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
 {page === "builder" && (
