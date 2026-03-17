@@ -47,6 +47,15 @@
       "last 1 safari version"
     ]
   },
+  "reactSnap": {
+    "puppeteerArgs": ["--no-sandbox", "--disable-setuid-sandbox"],
+    "skipThirdPartyRequests": true,
+    "inlineCss": false,
+    "include": ["/"],
+    "exclude": ["/dashboard", "/builder", "/ats-checker", "/pricing", "/login", "/signup"],
+    "timeout": 10000,
+    "waitFor": 2000
+  },
   "devDependencies": {
     "husky": "^9.1.7",
     "puppeteer": "^24.39.1"

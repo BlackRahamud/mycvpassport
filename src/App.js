@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "./supabaseClient";
+import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import TiltedCard from './components/TiltedCard';
 import { PreviewGulfExecutive,    pdfGulfExecutive    } from "./Template5GulfExecutive";
@@ -12,6 +12,11 @@ import { PreviewHospitality,      pdfHospitality      } from "./Template9Hospita
 import { PreviewATSInternational, pdfATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechITPro";
 import LandingGlobe from './LandingGlobe';
+
+// Skip Supabase usage during react-snap prerender
+const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent.includes('ReactSnap');
+const supabase = isPrerender ? null : supabaseImport;
+
 // ─── TEMPLATES ───────────────────────────────────────────────────
 const TEMPLATES = [
   { id: 1,  name: "Gulf Classic",         tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",              layout: "banner"      },
@@ -137,6 +142,7 @@ const S = {
 
 // ─── SUPABASE RESUME OPERATIONS ──────────────────────────────────
 async function saveResume(userId, resume, templateId, existingId = null) {
+  if (!supabase) return null;
   const payload = {
     user_id: userId,
     title: resume.name ? `${resume.name} — ${resume.title || "Resume"}` : "My Resume",
@@ -156,12 +162,14 @@ async function saveResume(userId, resume, templateId, existingId = null) {
 }
 
 async function loadUserResumes(userId) {
+  if (!supabase) return [];
   const { data, error } = await supabase.from("cvs").select("*").eq("user_id", userId).order("updated_at", { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 async function deleteResume(resumeId, userId) {
+  if (!supabase) return;
   const { error } = await supabase.from("cvs").delete().eq("id", resumeId).eq("user_id", userId);
   if (error) throw error;
 }
@@ -1654,6 +1662,7 @@ export default function App() {
   const [editingResume, setEditingResume] = useState(null);
 
   useEffect(() => {
+    if (!supabase) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) { setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id }); setPage("dashboard"); }
     });
@@ -1665,6 +1674,7 @@ export default function App() {
   }, []);
 
   const handleAuth = async (userData) => {
+    if (!supabase) return;
     setAuthError(null); setAuthLoading(true);
     try {
       if (authMode === "signup") {
@@ -1680,7 +1690,7 @@ export default function App() {
     finally { setAuthLoading(false); }
   };
 
-  const handleLogout = async () => { await supabase.auth.signOut(); setUser(null); setPage("landing"); };
+  const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setPage("landing"); };
 
   const handleEditResume  = (record) => { setEditingResume(record); setPage("builder"); };
   const handleNewResume   = ()       => { setEditingResume(null);   setPage("builder"); };
