@@ -989,7 +989,7 @@ function LandingPage({ onLogin, onSignup, setView, setResume, setSelectedTemplat
       </div>
 
       {/* Walk-In Interview CV Mode Section */}
-      <div id="walkin-form-anchor" style={{ background: "#0a0a0a", padding: "80px 40px", marginBottom: "80px" }}>
+      <div style={{ background: "#0a0a0a", padding: "80px 40px", marginBottom: "80px" }}>
         <div style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ fontSize: "36px", fontWeight: "700", color: "#fff", marginBottom: "16px" }}>Got a Walk-In Interview Tomorrow?</h2>
           <p style={{ fontSize: "16px", color: "#888", marginBottom: "48px" }}>Build a complete Gulf-ready CV in 60 seconds. Share instantly on WhatsApp.</p>
@@ -1714,7 +1714,7 @@ export default function App() {
           )}
         </div>
       </nav>
-{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => { const el = document.getElementById('walkin-form-anchor'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} />}
+{page === "landing" && <LandingGlobe isMobile={false} onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
 {page === "builder" && (
