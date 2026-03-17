@@ -1508,31 +1508,32 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </div>
           </div>
         )}
-        {/* Download button above toggle pill — mobile only */}
-        <div className="cvp-builder-mobile-download">
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={downloading}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: 12,
-              border: "none",
-              background: "#FFFFFF",
-              color: "#000000",
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: downloading ? "not-allowed" : "pointer",
-              transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
-            }}
-          >
-            {downloading ? "Preparing..." : "Download CV"}
-          </button>
-        </div>
-        <div className="cvp-builder-toggle-pill">
-          <button type="button" onClick={() => setMobileView("edit")} className={mobileView === "edit" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Edit</button>
-          <button type="button" onClick={() => setMobileView("preview")} className={mobileView === "preview" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Preview</button>
+        <div className="cvp-builder-bottom-bar">
+          <div className="cvp-builder-toggle-pill">
+            <button type="button" onClick={() => setMobileView("edit")} className={mobileView === "edit" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Edit</button>
+            <button type="button" onClick={() => setMobileView("preview")} className={mobileView === "preview" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Preview</button>
+          </div>
+          <div className="cvp-builder-mobile-download">
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloading}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: 12,
+                border: "none",
+                background: "#FFFFFF",
+                color: "#000000",
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: downloading ? "not-allowed" : "pointer",
+                transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1)",
+              }}
+            >
+              {downloading ? "Preparing..." : "Download CV"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
