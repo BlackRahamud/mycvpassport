@@ -209,8 +209,8 @@ export default function ATSChecker(props) {
       
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.02em" }}>Professional Readiness Analysis</h1>
-        <p style={{ color: "#A0A0A0", marginTop: 8 }}>Institutional-grade ATS validation for the UAE professional market.</p>
+        <h1 className="cvp-ats-heading" style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.02em" }}>ATS Score Checker</h1>
+        <p style={{ color: "#A0A0A0", marginTop: 8 }}>See how your CV scores against any job description. Built for UAE & GCC roles.</p>
         <div
   onDragOver={(e) => e.preventDefault()}
   onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) setResumeFile(file); }}

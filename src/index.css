@@ -87,6 +87,34 @@ input:focus, textarea:focus {
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* CV thumbnail — full A4 scaled down to fit card */
+.cvp-thumb-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 0.707;
+  background: #fff;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid #2A2A2A;
+}
+
+.cvp-thumb-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 794px;
+  height: 1123px;
+  transform-origin: top left;
+  transform: scale(0.352); /* desktop: ~280px container / 794px */
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .cvp-thumb-inner {
+    transform: scale(0.175); /* mobile: ~139px container / 794px */
+  }
+}
+
 /* Dashboard CV card grid — responsive columns */
 .cvp-cv-grid {
   display: grid;
@@ -95,6 +123,15 @@ input:focus, textarea:focus {
   max-width: 1200px;
   padding: 0 24px;
   margin: 0 auto;
+}
+
+/* CV card — desktop min height, mobile natural height */
+.cvp-cv-card {
+  min-height: 380px;
+}
+
+.cvp-new-cv-card {
+  min-height: 380px; /* desktop */
 }
 
 @media (max-width: 1199px) {
@@ -327,21 +364,27 @@ input:focus, textarea:focus {
   }
   .cvp-cv-card {
     min-height: unset !important;
+    max-height: unset !important;
   }
   .cvp-cv-card [style*="aspect-ratio"] {
     aspect-ratio: 0.707 !important;
   }
 }
 
-/* Dashboard — Walk-In card padding on mobile */
+/* Dashboard — Walk-In card on mobile */
 @media (max-width: 768px) {
   .cvp-walkin-card {
-    padding: 16px !important;
+    padding: 14px !important;
+    max-height: 160px !important;
+    min-height: 160px !important;
   }
 }
 
-/* ATSChecker — visibility grid single column on mobile */
+/* ATSChecker — heading size + visibility grid on mobile */
 @media (max-width: 768px) {
+  .cvp-ats-heading {
+    font-size: 24px !important;
+  }
   .cvp-ats-visibility-grid {
     grid-template-columns: 1fr !important;
   }

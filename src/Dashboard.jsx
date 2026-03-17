@@ -234,7 +234,6 @@ export default function Dashboard({
                 border: "1px dashed var(--border)",
                 background: "transparent",
                 borderRadius: "var(--radius-lg)",
-                minHeight: 380,
                 display: "grid",
                 placeItems: "center",
                 color: "var(--text-secondary)",
@@ -281,7 +280,7 @@ export default function Dashboard({
                 <IconBolt size={12} /> Walk-In
               </span>
               <span style={{ fontSize: 18, fontWeight: 700, color: "#FFF", marginTop: 10 }}>Walk-In Mode</span>
-              <span style={{ fontSize: 13, color: "#A0A0A0", marginTop: 6, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>Ready in 60 seconds — no account needed.</span>
+              <span style={{ fontSize: 13, color: "#A0A0A0", marginTop: 6, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>60 seconds. No account needed.</span>
               <span style={{ marginTop: 16, height: 40, borderRadius: 8, background: "#FFF", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Walk-In CV</span>
             </button>
 
@@ -306,7 +305,6 @@ export default function Dashboard({
                     cursor: "pointer",
                     textAlign: "left",
                     transition: `transform 200ms ${EASE}, border-color 200ms ${EASE}`,
-                    minHeight: 380,
                     display: "grid",
                     gridTemplateRows: "auto 1fr auto",
                     gap: 12,
@@ -323,6 +321,7 @@ export default function Dashboard({
                 >
                   <div style={{ position: "relative" }}>
                     <div
+                      className="cvp-thumb-container"
                       style={{
                         width: "100%",
                         background: "#fff",

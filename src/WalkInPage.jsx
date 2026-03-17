@@ -40,7 +40,7 @@ const TEMPLATES = [
 const C = {
   bg: "#0a0a0f", surface: "#12121a", card: "#1a1a26", border: "#2a2a3a",
   accent: "#6366f1", gold: "#f59e0b", text: "#f0f0ff", muted: "#8888aa",
-  success: "#10b981", danger: "#ef4444",
+  success: "#FFFFFF", danger: "#ef4444",
 };
 
 const S = {

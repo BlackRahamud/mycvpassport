@@ -1664,7 +1664,7 @@ export default function App() {
     resumeList={resumeList}
     getStrength={(r) => getStrength(r?.cv_data || r)}
     renderThumb={(r) => (
-      <div style={{ position: "absolute", left: 0, top: 0, width: 794, height: 1123, transformOrigin: "top left", transform: "scale(0.2)" }}>
+      <div className="cvp-thumb-inner">
         <ResumePreview cv={r?.cv_data || EMPTY_RESUME} template={TEMPLATES.find(t => t.id === r?.template_id) || TEMPLATES[0]} />
       </div>
     )}
