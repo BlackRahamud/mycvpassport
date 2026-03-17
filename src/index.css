@@ -266,6 +266,11 @@ input:focus, textarea:focus {
   }
 }
 
+/* CV Builder section cards — hover inactive */
+.cvp-builder-section-card:not(.is-open):hover {
+  border-color: #3A3A3A;
+}
+
 /* CV Builder top bar — mobile: hide template & Save, shrink Download */
 @media (max-width: 768px) {
   .cvp-builder-topbar-template,
