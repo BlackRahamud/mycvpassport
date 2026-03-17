@@ -1115,7 +1115,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [resumeId, setResumeId] = useState(initialResumeId || null);
   const [resume, setResume] = useState(initialResume || { ...EMPTY_RESUME, name: user?.name||"", email: user?.email||"" });
   const [builderTab, setBuilderTab] = useState("content");
-  const [zoom, setZoom] = useState(100);
   const [openSection, setOpenSection] = useState(null);
   const [mobileView, setMobileView] = useState("edit");
 
@@ -1167,60 +1166,59 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}>
-      {/* Top nav bar — 56px */}
+      {/* Top nav bar — 56px, Download = only primary */}
       <header
+        className="cvp-builder-topbar"
         style={{
           height: 56,
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: "rgba(10,10,10,0.95)",
-          borderBottom: "1px solid #1E1E1E",
+          background: "#0A0A0A",
+          borderBottom: "1px solid #2A2A2A",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 16px",
-          gap: 12,
+          padding: "0 24px",
           flexWrap: "wrap",
         }}
       >
-        <button type="button" onClick={onBack} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>← Back</button>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", flex: "1 1 auto" }}>
-          {["content", "customize", "ats"].map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setBuilderTab(tab)}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 8,
-                border: "none",
-                background: builderTab === tab ? "#1C1C1C" : "transparent",
-                color: builderTab === tab ? "#FFF" : "#A0A0A0",
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
-              }}
-            >
-              {tab === "content" ? "Content" : tab === "customize" ? "Customize" : "ATS Check"}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 4 }}>
-            {[70, 85, 100].map((z) => (
-              <button key={z} type="button" onClick={() => setZoom(z)} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #2A2A2A", background: zoom === z ? "#1C1C1C" : "transparent", color: zoom === z ? "#FFF" : "#A0A0A0", fontSize: 12, cursor: "pointer" }}>{z}%</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, overflowX: "auto", flex: "1 1 auto", minWidth: 0 }}>
+          <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {["content", "customize", "ats"].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setBuilderTab(tab)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: builderTab === tab ? "#1C1C1C" : "transparent",
+                  color: builderTab === tab ? "#FFFFFF" : "#A0A0A0",
+                  fontWeight: builderTab === tab ? 600 : 500,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
+                }}
+              >
+                {tab === "content" ? "Content" : tab === "customize" ? "Customise" : "ATS Check"}
+              </button>
             ))}
           </div>
-          <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFF", fontSize: 12, cursor: "pointer", minWidth: 140 }}>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 140 }}>
             {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          <button type="button" onClick={handleSave} disabled={saving} style={{ height: 36, padding: "0 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontWeight: 600, fontSize: 13, cursor: saving ? "not-allowed" : "pointer" }}>
+          <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
             {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
           </button>
-          <button type="button" onClick={handleDownload} disabled={downloading} style={{ height: 36, padding: "0 16px", borderRadius: 8, border: "none", background: "#FFF", color: "#000", fontWeight: 700, fontSize: 13, cursor: downloading ? "not-allowed" : "pointer" }}>
+          <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}` }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
             {downloading ? "..." : "Download"}
           </button>
         </div>
