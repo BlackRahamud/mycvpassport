@@ -343,15 +343,43 @@ input:focus, textarea:focus {
   color: #FFFFFF;
 }
 
-/* CV Builder top bar — mobile: hide template & Save, shrink Download */
+/* CV Builder mobile — scaled A4 preview */
+.cvp-builder-mobile-preview-wrapper {
+  width: 340px;
+  height: 481px; /* 340 * 1.414 = A4 ratio */
+  overflow: hidden;
+  position: relative;
+  background: #ffffff;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.cvp-builder-mobile-preview-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 794px;
+  height: 1123px;
+  transform-origin: top left;
+  transform: scale(0.428); /* 340 / 794 */
+  pointer-events: none;
+}
+
+/* CV Builder mobile — Download button above toggle */
+.cvp-builder-mobile-download {
+  padding: 12px 16px 0;
+  background: #0A0A0A;
+}
+
+/* CV Builder top bar — mobile: hide template, Save, and Download */
 @media (max-width: 768px) {
   .cvp-builder-topbar-template,
   .cvp-builder-topbar-save {
     display: none !important;
   }
   .cvp-builder-topbar-download {
-    padding: 8px 14px !important;
-    font-size: 13px !important;
+    display: none !important;
   }
 }
 

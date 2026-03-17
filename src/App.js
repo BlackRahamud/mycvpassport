@@ -1281,7 +1281,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <button
                 key={tab}
                 type="button"
-                onClick={() => setBuilderTab(tab)}
+                onClick={() => { setBuilderTab(tab); setMobileView("edit"); }}
                 style={{
                   padding: "6px 12px",
                   borderRadius: 8,
@@ -1496,12 +1496,36 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          <div style={{ flex: 1, overflowY: "scroll", background: "#111111", padding: 16 }}>
-            <div style={{ width: "100%", background: "#FFFFFF", minHeight: 842, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
-              <ResumePreview cv={resume} template={selectedTemplate} />
+          <div style={{ flex: 1, overflowY: "auto", background: "#111111", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "16px 0" }}>
+            <div className="cvp-builder-mobile-preview-wrapper">
+              <div className="cvp-builder-mobile-preview-inner">
+                <ResumePreview cv={resume} template={selectedTemplate} />
+              </div>
             </div>
           </div>
         )}
+        {/* Download button above toggle pill — mobile only */}
+        <div className="cvp-builder-mobile-download">
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
+            style={{
+              width: "100%",
+              padding: "14px",
+              borderRadius: 12,
+              border: "none",
+              background: "#FFFFFF",
+              color: "#000000",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: downloading ? "not-allowed" : "pointer",
+              transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
+            }}
+          >
+            {downloading ? "Preparing..." : "Download CV"}
+          </button>
+        </div>
         <div className="cvp-builder-toggle-pill">
           <button type="button" onClick={() => setMobileView("edit")} className={mobileView === "edit" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Edit</button>
           <button type="button" onClick={() => setMobileView("preview")} className={mobileView === "preview" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Preview</button>
