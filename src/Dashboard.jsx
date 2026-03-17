@@ -249,19 +249,22 @@ export default function Dashboard({
               </div>
             </button>
 
-            {/* Walk-In card */}
+            {/* Walk-In card — compact, ~190–200px */}
             <button
               type="button"
               onClick={onWalkIn}
               style={{
-                border: "1px solid var(--border)",
-                background: "var(--bg-elevated)",
-                borderRadius: "var(--radius-lg)",
-                minHeight: 380,
-                padding: 16,
+                border: "1px solid #2A2A2A",
+                background: "#141414",
+                borderRadius: 16,
+                padding: "20px 24px",
                 cursor: "pointer",
-                position: "relative",
-                transition: `transform 200ms ${EASE}, border-color 200ms ${EASE}`,
+                textAlign: "left",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                maxHeight: 220,
+                transition: `transform 150ms ${EASE}, border-color 150ms ${EASE}`,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-2px)";
@@ -269,19 +272,15 @@ export default function Dashboard({
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.borderColor = "#2A2A2A";
               }}
             >
-              <div style={{ position: "absolute", top: 14, left: 14, fontSize: 11, fontWeight: 700, background: "#fff", color: "#000", padding: "4px 8px", borderRadius: 999 }}>
-                Walk-In
-              </div>
-              <div style={{ height: "100%", display: "grid", placeItems: "center", textAlign: "center", gap: 8 }}>
-                <div style={{ width: 46, height: 46, borderRadius: 999, background: "rgba(255,255,255,0.06)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-primary)" }}>
-                  <IconBolt size={24} />
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Walk-In CV</div>
-                <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Ready in 60 sec</div>
-              </div>
+              <span style={{ fontSize: 11, background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 20, padding: "4px 10px", color: "#A0A0A0", alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <IconBolt size={12} /> Walk-In
+              </span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "#FFF", marginTop: 10 }}>Walk-In Mode</span>
+              <span style={{ fontSize: 13, color: "#A0A0A0", marginTop: 6, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>Ready in 60 seconds — no account needed.</span>
+              <span style={{ marginTop: 16, height: 40, borderRadius: 8, background: "#FFF", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 14 }}>Start Walk-In CV</span>
             </button>
 
             {/* CV cards */}
