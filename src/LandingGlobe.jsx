@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Warp } from "@paper-design/shaders-react";
 import { Helmet } from 'react-helmet-async';
+import React from 'react';
 
 // Project lon/lat → SVG viewBox coords
 // Center: lon=65 (Gulf centered), lat offset=20 (vertical center), scale=280
@@ -139,6 +140,150 @@ const ARC_ROUTES = [
   { from: { lat: 25.2, lon: 55.27 }, to: { lat: 25.29, lon: 51.53 } },
   { from: { lat: 25.2, lon: 55.27 }, to: { lat: 23.59, lon: 58.39 } },
 ];
+
+function AnimatedCVCard() {
+  const [visibleLines, setVisibleLines] = React.useState(0);
+
+  React.useEffect(() => {
+    let current = 0;
+    const interval = setInterval(() => {
+      current += 1;
+      setVisibleLines(current);
+      if (current >= 12) {
+        setTimeout(() => {
+          setVisibleLines(0);
+          current = 0;
+        }, 2500);
+      }
+    }, 180);
+    return () => clearInterval(interval);
+  }, []);
+
+  const lines = [
+    { w: '70%', opacity: 1, dark: true },
+    { w: '45%', opacity: 0.6, dark: false },
+    { w: '30%', opacity: 0.4, dark: false },
+    { w: '100%', opacity: 0, dark: false, divider: true },
+    { w: '40%', opacity: 0.5, dark: true },
+    { w: '90%', opacity: 0.3, dark: false },
+    { w: '75%', opacity: 0.3, dark: false },
+    { w: '60%', opacity: 0.3, dark: false },
+    { w: '100%', opacity: 0, dark: false, divider: true },
+    { w: '40%', opacity: 0.5, dark: true },
+    { w: '80%', opacity: 0.3, dark: false },
+    { w: '55%', opacity: 0.3, dark: false },
+  ];
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px',
+      padding: '24px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '20px',
+        paddingBottom: '16px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+      }}>
+        <div style={{
+          width: '42px',
+          height: '42px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '16px',
+          fontWeight: '700',
+          color: '#fff',
+          flexShrink: 0,
+        }}>A</div>
+        <div>
+          <div style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            opacity: visibleLines >= 1 ? 1 : 0,
+            transition: 'opacity 0.4s ease',
+          }}>Ahmed Al Mansouri</div>
+          <div style={{
+            fontSize: '12px',
+            opacity: visibleLines >= 2 ? 0.5 : 0,
+            transition: 'opacity 0.4s ease',
+            marginTop: '2px',
+          }}>Sales Executive · Dubai, UAE</div>
+        </div>
+      </div>
+
+      {lines.map((line, i) => (
+        line.divider ? (
+          <div key={i} style={{
+            height: '1px',
+            background: 'rgba(255,255,255,0.06)',
+            margin: '12px 0',
+            opacity: visibleLines > i ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }} />
+        ) : (
+          <div key={i} style={{
+            height: '8px',
+            borderRadius: '4px',
+            background: line.dark ? 'rgba(234,88,12,0.4)' : 'rgba(255,255,255,0.08)',
+            width: line.w,
+            marginBottom: '8px',
+            opacity: visibleLines > i ? (line.opacity || 0.3) : 0,
+            transition: 'opacity 0.4s ease',
+          }} />
+        )
+      ))}
+
+      {visibleLines >= 12 && (
+        <div style={{
+          marginTop: '16px',
+          padding: '10px 16px',
+          background: 'rgba(37,211,102,0.1)',
+          border: '1px solid rgba(37,211,102,0.25)',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '12px',
+          color: '#25d366',
+          animation: 'cvLineIn 0.4s ease forwards',
+        }}>
+          <span style={{ fontSize: '16px' }}>📲</span>
+          Share on WhatsApp — ready in 60 sec
+        </div>
+      )}
+
+      {visibleLines < 12 && (
+        <div style={{
+          position: 'absolute',
+          bottom: '16px',
+          right: '16px',
+          fontSize: '11px',
+          opacity: 0.4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: '#ea580c',
+          }} />
+          Building...
+        </div>
+      )}
+    </div>
+  );
+}
 
 function GlobeComponent() {
   const [angle, setAngle] = useState(0);
@@ -452,6 +597,163 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
           ))}
         </div>
       </section>
+
+{/* ============ WALK-IN CV MODE SECTION ============ */}
+<section style={{ padding: '80px 24px', position: 'relative', overflow: 'hidden' }}>
+
+  <style>{`
+    @keyframes cvLineIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes shimmerSweep {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%); }
+    }
+    @keyframes stepPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(234,88,12,0); }
+      50%       { box-shadow: 0 0 0 6px rgba(234,88,12,0.15); }
+    }
+    .walkin-step-card {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px 20px;
+      transition: border-color 0.25s ease, background 0.25s ease;
+      flex: 1;
+      min-width: 160px;
+    }
+    .walkin-step-card:hover {
+      border-color: rgba(234,88,12,0.4);
+      background: rgba(234,88,12,0.05);
+      animation: stepPulse 1.5s ease infinite;
+    }
+    .walkin-step-card .shimmer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(234,88,12,0.12), transparent);
+      transform: translateX(-100%);
+      pointer-events: none;
+    }
+    .walkin-step-card:hover .shimmer {
+      animation: shimmerSweep 0.7s ease forwards;
+    }
+    .walkin-cta-btn {
+      background: #ea580c;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 44px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .walkin-cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(234,88,12,0.4);
+    }
+    .walkin-cta-btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+  `}</style>
+
+  <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', gap: '60px', alignItems: 'center', flexWrap: 'wrap' }}>
+
+      {/* LEFT */}
+      <div style={{ flex: '1', minWidth: '280px' }}>
+
+        <div style={{
+          display: 'inline-block',
+          background: 'rgba(234,88,12,0.1)',
+          color: '#ea580c',
+          fontSize: '11px',
+          fontWeight: '600',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          padding: '4px 14px',
+          borderRadius: '20px',
+          marginBottom: '20px',
+          border: '1px solid rgba(234,88,12,0.25)',
+        }}>
+          ⚡ Walk-In Interview Mode
+        </div>
+
+        <h2 style={{
+          fontSize: 'clamp(26px, 4vw, 44px)',
+          fontWeight: '700',
+          lineHeight: '1.15',
+          marginBottom: '12px',
+          letterSpacing: '-0.02em',
+        }}>
+          Need a job fast?
+        </h2>
+
+        <p style={{ fontSize: '18px', opacity: '0.65', marginBottom: '6px', lineHeight: '1.5' }}>
+          Fix your CV in 60 seconds — no signup required
+        </p>
+
+        <p style={{ fontSize: '13px', opacity: '0.4', marginBottom: '36px', letterSpacing: '0.03em' }}>
+          Made for UAE walk-in interviews
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '36px' }}>
+          {[
+            { num: '1', text: 'Fill 6 quick fields' },
+            { num: '2', text: 'Your CV builds instantly' },
+            { num: '3', text: 'Download & share on WhatsApp' },
+          ].map((step) => (
+            <div key={step.num} className="walkin-step-card">
+              <div className="shimmer" />
+              <span style={{
+                width: '28px', height: '28px', borderRadius: '50%',
+                background: 'rgba(234,88,12,0.15)', color: '#ea580c',
+                fontSize: '13px', fontWeight: '700',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, border: '1px solid rgba(234,88,12,0.3)',
+              }}>{step.num}</span>
+              <span style={{ opacity: 0.8, fontSize: '14px' }}>{step.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginBottom: '14px' }}>
+          <button
+            className="walkin-cta-btn"
+            onClick={() => {
+              const formEl = document.getElementById('walkin-form-anchor');
+              if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }}
+          >
+            Start Now — It's Free ⚡
+          </button>
+        </div>
+
+        <p style={{ fontSize: '12px', opacity: '0.35', letterSpacing: '0.05em' }}>
+          No login. No waiting. Instant results.
+        </p>
+
+      </div>
+
+      {/* RIGHT — Animated CV Card */}
+      <div style={{ flex: '1', minWidth: '260px', maxWidth: '340px' }}>
+        <AnimatedCVCard />
+      </div>
+
+    </div>
+  </div>
+
+</section>
+{/* ============ END WALK-IN SECTION ============ */}
 
       {/* SOLUTION SECTION */}
       <section style={{ background: "#0a0a0a", padding: "80px 60px", maxWidth: "1100px", margin: "0 auto", textAlign: "center" }}>
