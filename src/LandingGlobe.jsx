@@ -408,7 +408,7 @@ function GlobeComponent() {
   );
 }
 
-export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
+export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage, onWalkIn }) {
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh", color: "#ffffff", fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
       <Helmet>
@@ -729,10 +729,7 @@ export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
         <div style={{ marginBottom: '14px' }}>
           <button
             className="walkin-cta-btn"
-            onClick={() => {
-              const formEl = document.getElementById('walkin-form-anchor');
-              if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }}
+            onClick={onWalkIn}
           >
             Start Now — It's Free ⚡
           </button>
