@@ -6,6 +6,25 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bg-page: #0A0A0A;
+  --bg-surface: #141414;
+  --bg-elevated: #1C1C1C;
+  --text-primary: #FFF;
+  --text-secondary: #A0A0A0;
+  --border: #2A2A2A;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+}
+
+.cvp-theme-light {
+  --bg-page: #F5F5F0;
+  --bg-surface: #FFF;
+  --text-primary: #111;
+  --text-secondary: #555;
+  --border: #E5E5E5;
+}
+
 body {
   background: #0A0A0A;
   color: #ffffff;
@@ -36,7 +55,7 @@ h1, h2, h3 {
 
 /* Premium button hover */
 .premium-btn {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .premium-btn:hover {
@@ -66,4 +85,38 @@ input:focus, textarea:focus {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+/* Dashboard responsive */
+@media (max-width: 768px) {
+  .cvp-dashboard-sidebar {
+    display: none !important;
+  }
+  .cvp-cv-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .cvp-dashboard-tabs {
+    display: grid !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .cvp-cv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* CV Builder responsive */
+@media (max-width: 767px) {
+  .cvp-builder-desktop {
+    display: none !important;
+  }
+  .cvp-builder-mobile {
+    display: flex !important;
+  }
+}
+@media (min-width: 768px) {
+  .cvp-builder-mobile {
+    display: none !important;
+  }
 }

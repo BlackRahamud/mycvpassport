@@ -13,6 +13,7 @@ import { PreviewATSInternational, pdfATSInternational } from "./Template10ATSInt
 import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechITPro";
 import LandingPage from './LandingPage';
 import WalkInPage from './WalkInPage';
+import Dashboard from './Dashboard';
 
 // Skip Supabase usage during react-snap prerender
 const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent.includes('ReactSnap');
@@ -1105,14 +1106,18 @@ function AuthPage({ mode, onAuth, onToggle, loading, error }) {
 }
 
 // ─── RESUME BUILDER ───────────────────────────────────────────────
+const EASE = "cubic-bezier(0.4,0,0.2,1)";
 function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId }) {
-  const [step, setStep] = useState(1);
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloading, setDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
   const [resume, setResume] = useState(initialResume || { ...EMPTY_RESUME, name: user?.name||"", email: user?.email||"" });
+  const [builderTab, setBuilderTab] = useState("content");
+  const [zoom, setZoom] = useState(100);
+  const [openSection, setOpenSection] = useState(null);
+  const [mobileView, setMobileView] = useState("edit");
 
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
 
@@ -1157,401 +1162,360 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     finally { setDownloading(false); }
   };
 
-  const STEPS = ["Personal Info", "Gulf Details", "Experience", "Education", "Skills & Certs", "Template", "Preview"];
+  const isOpen = (id) => openSection === id;
+  const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
+  const zoomScale = zoom / 100;
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "30px 20px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "28px", flexWrap: "wrap" }}>
-        <button style={S.btn("outline","sm")} onClick={onBack}>← Back</button>
-        <h1 style={{ fontSize: "22px", fontWeight: "800", margin: 0 }}>Resume Builder</h1>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          {saveStatus === "saved" && <span style={{ fontSize: "12px", color: C.success }}>✓ Saved</span>}
-          {saveStatus === "error" && <span style={{ fontSize: "12px", color: C.danger }}>✗ Save failed</span>}
-          {saving && <span style={{ fontSize: "12px", color: C.muted }}>Saving...</span>}
-          <button style={{ ...S.btn("success","sm"), opacity: saving ? 0.6 : 1 }} onClick={handleSave} disabled={saving}>💾 Save Resume</button>
-          <span style={{ fontSize: "13px", color: C.muted }}>ATS:</span>
-          <span style={{ fontSize: "20px", fontWeight: "800", color: scoreColor }}>{score}%</span>
+    <div style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}>
+      {/* Top nav bar — 52px */}
+      <header
+        style={{
+          height: 52,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          background: "rgba(10,10,10,0.95)",
+          borderBottom: "1px solid #1E1E1E",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 16px",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <button type="button" onClick={onBack} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>← Back</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", flex: "1 1 auto" }}>
+          {["content", "customize", "ats"].map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setBuilderTab(tab)}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 8,
+                border: "none",
+                background: builderTab === tab ? "#1C1C1C" : "transparent",
+                color: builderTab === tab ? "#FFF" : "#A0A0A0",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
+              }}
+            >
+              {tab === "content" ? "Content" : tab === "customize" ? "Customize" : "ATS Check"}
+            </button>
+          ))}
         </div>
-      </div>
-
-      {/* Step tabs */}
-      <div style={{ display: "flex", gap: "5px", marginBottom: "28px", overflowX: "auto" }}>
-        {STEPS.map((s, i) => (
-          <button key={i} onClick={() => setStep(i+1)} style={{ padding: "8px 12px", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: "600", fontSize: "11px", whiteSpace: "nowrap", background: step === i+1 ? C.accent : C.card, color: step === i+1 ? "#fff" : C.muted }}>
-            {i+1}. {s}
-          </button>
-        ))}
-      </div>
-
-      {/* ── STEP 1: Personal Info ── */}
-      {step === 1 && (
-        <div>
-          <div style={S.sectionHeading}>Basic Information</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            {[
-              { label: "Full Name",  key: "name",     placeholder: "Junaid Khan" },
-              { label: "Job Title",  key: "title",    placeholder: "Customer Service Officer" },
-              { label: "Email",      key: "email",    placeholder: "you@email.com" },
-              { label: "Phone",      key: "phone",    placeholder: "+971 5X XXX XXXX" },
-              { label: "Location",   key: "location", placeholder: "Dubai, UAE" },
-            ].map(f => (
-              <div key={f.key}><label style={S.label}>{f.label}</label><input style={S.input} placeholder={f.placeholder} value={resume[f.key]} onChange={e=>set(f.key,e.target.value)}/></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[70, 85, 100].map((z) => (
+              <button key={z} type="button" onClick={() => setZoom(z)} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #2A2A2A", background: zoom === z ? "#1C1C1C" : "transparent", color: zoom === z ? "#FFF" : "#A0A0A0", fontSize: 12, cursor: "pointer" }}>{z}%</button>
             ))}
-            <div style={{ gridColumn: "1/-1" }}>
-              <label style={S.label}>Professional Summary (2–3 lines)</label>
-              <textarea style={{ ...S.input, height: "100px", resize: "vertical" }} placeholder="Client-focused professional with 4+ years experience in customer service across Gulf markets..." value={resume.summary} onChange={e=>set("summary",e.target.value)}/>
-            </div>
           </div>
+          <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFF", fontSize: 12, cursor: "pointer", minWidth: 140 }}>
+            {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ height: 36, padding: "0 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontWeight: 600, fontSize: 13, cursor: saving ? "not-allowed" : "pointer" }}>
+            {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
+          </button>
+          <button type="button" onClick={handleDownload} disabled={downloading} style={{ height: 36, padding: "0 16px", borderRadius: 8, border: "none", background: "#FFF", color: "#000", fontWeight: 700, fontSize: 13, cursor: downloading ? "not-allowed" : "pointer" }}>
+            {downloading ? "..." : "Download"}
+          </button>
         </div>
-      )}
+      </header>
 
-      {/* ── STEP 2: Gulf Details ── */}
-      {step === 2 && (
-        <div>
-          <div style={S.sectionHeading}>Gulf / UAE CV Details</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <div>
-              <label style={S.label}>Nationality</label>
-              <input style={S.input} placeholder="Indian, Pakistani, Filipino..." value={resume.nationality} onChange={e=>set("nationality",e.target.value)}/>
-            </div>
-            <div>
-              <label style={S.label}>Visa Status</label>
-              <select style={S.select} value={resume.visaStatus} onChange={e=>set("visaStatus",e.target.value)}>
-                <option value="">Select visa status</option>
-                <option>UAE Residence Visa</option>
-                <option>Employment Visa</option>
-                <option>Visit Visa</option>
-                <option>Freelance Permit</option>
-                <option>Golden Visa</option>
-                <option>Husband / Family Visa</option>
-                <option>Transferable Visa</option>
-                <option>Outside UAE</option>
-              </select>
-            </div>
-            <div>
-              <label style={S.label}>Date of Birth</label>
-              <input style={S.input} placeholder="DD/MM/YYYY or Month Year" value={resume.dob} onChange={e=>set("dob",e.target.value)}/>
-            </div>
-            <div>
-              <label style={S.label}>Gender <span style={{ color: C.muted }}>(optional)</span></label>
-              <select style={S.select} value={resume.gender} onChange={e=>set("gender",e.target.value)}>
-                <option value="">Prefer not to say</option>
-                <option>Male</option>
-                <option>Female</option>
-              </select>
-            </div>
-            <div>
-              <label style={S.label}>Marital Status <span style={{ color: C.muted }}>(optional)</span></label>
-              <select style={S.select} value={resume.maritalStatus} onChange={e=>set("maritalStatus",e.target.value)}>
-                <option value="">Prefer not to say</option>
-                <option>Single</option>
-                <option>Married</option>
-                <option>Divorced</option>
-              </select>
-            </div>
-            <div>
-              <label style={S.label}>Availability</label>
-              <select style={S.select} value={resume.availability} onChange={e=>set("availability",e.target.value)}>
-                <option>Immediately Available</option>
-                <option>1 Month Notice</option>
-                <option>2 Months Notice</option>
-                <option>3 Months Notice</option>
-                <option>Currently Employed</option>
-              </select>
-            </div>
-            <div>
-              <label style={S.label}>Driving License</label>
-              <input style={S.input} placeholder="UAE License, Indian License, None..." value={resume.drivingLicense} onChange={e=>set("drivingLicense",e.target.value)}/>
-            </div>
-            <div>
-              <label style={S.label}>Willing to Relocate</label>
-              <select style={S.select} value={resume.willingToRelocate} onChange={e=>set("willingToRelocate",e.target.value)}>
-                <option>Yes</option>
-                <option>No</option>
-                <option>Within UAE Only</option>
-                <option>GCC Countries</option>
-              </select>
-            </div>
-            <div style={{ gridColumn: "1/-1" }}>
-              <label style={S.label}>References</label>
-              <input style={S.input} placeholder="References available upon request" value={resume.references} onChange={e=>set("references",e.target.value)}/>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 3: Experience ── */}
-      {step === 3 && (
-        <div>
-          <div style={S.sectionHeading}>Work Experience</div>
-          {resume.experience.map((exp, i) => (
-            <div key={i} style={{ ...S.card, marginBottom: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px" }}>
-                <span style={{ fontWeight: "700" }}>Experience #{i+1}</span>
-                {i > 0 && <button style={S.btn("danger","sm")} onClick={() => setResume(r => ({ ...r, experience: r.experience.filter((_,j) => j !== i) }))}>Remove</button>}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                {[
-                  { label: "Company",  key: "company",  placeholder: "ADIB / Mashreq / FAB" },
-                  { label: "Job Title", key: "role",    placeholder: "Customer Service Officer" },
-                  { label: "Location", key: "location", placeholder: "Dubai, UAE" },
-                  { label: "Period",   key: "period",   placeholder: "Jan 2023 – Present" },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label style={S.label}>{f.label}</label>
-                    <input style={S.input} placeholder={f.placeholder} value={exp[f.key]||""} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],[f.key]:e.target.value};set("experience",u);}}/>
-                  </div>
-                ))}
-                <div style={{ gridColumn: "1/-1" }}>
-                  <label style={S.label}>Key Achievements & Responsibilities (one per line)</label>
-                  <textarea style={{ ...S.input, height: "90px", resize: "vertical" }} placeholder={"Handled 50+ customer queries daily\nAchieved 98% satisfaction score\nManaged KYC documentation for 200+ clients"} value={exp.points} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],points:e.target.value};set("experience",u);}}/>
+      {/* Desktop: split 380px | 1fr */}
+      <div className="cvp-builder-desktop" style={{ display: "grid", gridTemplateColumns: "380px 1fr", height: "calc(100vh - 52px)", overflow: "hidden" }}>
+        {/* Left panel — Editor */}
+        <aside
+          className="cvp-builder-left"
+          style={{
+            background: "#0A0A0A",
+            borderRight: "1px solid #1E1E1E",
+            overflowY: "auto",
+            padding: 12,
+            display: "grid",
+            gap: 8,
+            alignContent: "start",
+          }}
+        >
+          {builderTab === "content" && (
+            <>
+              {/* Personal info card — always visible */}
+              <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+                <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                </button>
+                <div style={{ display: "grid", gap: 10 }}>
+                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
+                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
+                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
+                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                 </div>
               </div>
-            </div>
-          ))}
-          <button style={S.btn("outline")} onClick={() => setResume(r => ({ ...r, experience: [...r.experience, { company: "", role: "", location: "", period: "", points: "" }] }))}>+ Add Experience</button>
-        </div>
-      )}
 
-      {/* ── STEP 4: Education ── */}
-      {step === 4 && (
-        <div>
-          <div style={S.sectionHeading}>Education</div>
-          {resume.education.map((edu, i) => (
-            <div key={i} style={{ ...S.card, marginBottom: "16px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                {[
-                  { label: "Institution", key: "school", placeholder: "Amity University" },
-                  { label: "Degree",      key: "degree", placeholder: "B.Com / BBA / BATA" },
-                  { label: "Year",        key: "year",   placeholder: "2021" },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label style={S.label}>{f.label}</label>
-                    <input style={S.input} placeholder={f.placeholder} value={edu[f.key]} onChange={e=>{const u=[...resume.education];u[i]={...u[i],[f.key]:e.target.value};set("education",u);}}/>
-                  </div>
+              {/* Accordion: Professional Summary */}
+              <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
+                <div style={{ padding: "8px 0" }}>
+                  <textarea style={{ ...S.input, height: 100, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
+                  <button type="button" style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>Add Entry</button>
+                </div>
+              </AccordionSection>
+
+              {/* Accordion: Professional Experience */}
+              <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
+                <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
+                  {resume.experience.map((exp, i) => (
+                    <div key={i} style={{ background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 12, padding: 12 }}>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Company" value={exp.company} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],company:e.target.value};set("experience",u);}} />
+                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Role" value={exp.role} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],role:e.target.value};set("experience",u);}} />
+                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Location" value={exp.location} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],location:e.target.value};set("experience",u);}} />
+                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Period" value={exp.period} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],period:e.target.value};set("experience",u);}} />
+                        <textarea style={{ ...S.input, height: 70, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12, resize: "vertical" }} placeholder="Points (one per line)" value={exp.points} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],points:e.target.value};set("experience",u);}} />
+                      </div>
+                      {i > 0 && <button type="button" onClick={() => setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) }))} style={{ marginTop: 8, fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer" }}>Remove</button>}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setResume(r => ({ ...r, experience: [...r.experience, { company: "", role: "", location: "", period: "", points: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
+                </div>
+              </AccordionSection>
+
+              {/* Accordion: Education */}
+              <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
+                <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
+                  {resume.education.map((edu, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="School" value={edu.school} onChange={e=>{const u=[...resume.education];u[i]={...u[i],school:e.target.value};set("education",u);}} />
+                      <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Degree" value={edu.degree} onChange={e=>{const u=[...resume.education];u[i]={...u[i],degree:e.target.value};set("education",u);}} />
+                      <input style={{ ...S.input, gridColumn: "1/-1", background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Year" value={edu.year} onChange={e=>{const u=[...resume.education];u[i]={...u[i],year:e.target.value};set("education",u);}} />
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setResume(r => ({ ...r, education: [...r.education, { school: "", degree: "", year: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
+                </div>
+              </AccordionSection>
+
+              {/* Accordion: Core Competencies */}
+              <AccordionSection id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+                <div style={{ padding: "8px 0" }}>
+                  <textarea style={{ ...S.input, height: 80, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="Comma separated skills" value={resume.skills} onChange={e=>set("skills",e.target.value)} />
+                  <input style={{ ...S.input, marginTop: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Technical skills" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
+                  <input style={{ ...S.input, marginTop: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Certifications" value={resume.certifications} onChange={e=>set("certifications",e.target.value)} />
+                  <button type="button" style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>Add Entry</button>
+                </div>
+              </AccordionSection>
+
+              {/* Accordion: Languages */}
+              <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
+                <div style={{ padding: "8px 0" }}>
+                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="e.g. English (Fluent), Arabic (Basic)" value={resume.languages} onChange={e=>set("languages",e.target.value)} />
+                  <button type="button" style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>Add Entry</button>
+                </div>
+              </AccordionSection>
+
+              <button type="button" onClick={() => {}} style={{ width: "100%", padding: 12, borderRadius: 12, border: "none", background: "#FFF", color: "#000", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Add section</button>
+              <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
+                  <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
+                  <button type="button" aria-label="Redo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↪</button>
+                </div>
+              </div>
+            </>
+          )}
+          {builderTab === "customize" && (
+            <div style={{ padding: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Template</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {TEMPLATES.map(t => (
+                  <button key={t.id} type="button" onClick={() => setSelectedTemplate(t)} style={{ padding: 12, borderRadius: 12, border: "1px solid #2A2A2A", background: selectedTemplate?.id === t.id ? "#1C1C1C" : "#141414", color: "#FFF", textAlign: "left", cursor: "pointer" }}>{t.name}</button>
                 ))}
               </div>
             </div>
-          ))}
-          <button style={S.btn("outline")} onClick={() => setResume(r => ({ ...r, education: [...r.education, { school: "", degree: "", year: "" }] }))}>+ Add Education</button>
-        </div>
-      )}
-
-      {/* ── STEP 5: Skills & Certifications ── */}
-      {step === 5 && (
-        <div style={{ display: "grid", gap: "16px" }}>
-          <div style={S.sectionHeading}>Skills & Certifications</div>
-          <div>
-            <label style={S.label}>Core Skills <span style={{ color: C.muted }}>(comma separated)</span></label>
-            <textarea style={{ ...S.input, height: "80px" }} placeholder="Customer Service, CRM Systems, Problem Solving, MS Office, Communication" value={resume.skills} onChange={e=>set("skills",e.target.value)}/>
-          </div>
-          <div>
-            <label style={S.label}>Technical Skills <span style={{ color: C.muted }}>(optional — comma separated)</span></label>
-            <input style={S.input} placeholder="Salesforce, SAP, Temenos, Finacle, MS Excel, Power BI" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)}/>
-          </div>
-          <div>
-            <label style={S.label}>Languages</label>
-            <input style={S.input} placeholder="English (Fluent), Hindi (Native), Arabic (Basic)" value={resume.languages} onChange={e=>set("languages",e.target.value)}/>
-          </div>
-          <div>
-            <label style={S.label}>Certifications <span style={{ color: C.muted }}>(optional — comma separated)</span></label>
-            <input style={S.input} placeholder="AML/KYC Certificate, CISI, Certified Banker, IELTS 7.5" value={resume.certifications} onChange={e=>set("certifications",e.target.value)}/>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 6: Template ── */}
-      {step === 6 && (
-        <div>
-          <div style={S.sectionHeading}>Choose Your Template</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "14px" }}>
-            {TEMPLATES.map(t => (
-              <div key={t.id} onClick={() => setSelectedTemplate(t)} style={{ background: t.color, border: `2px solid ${selectedTemplate?.id === t.id ? "#fff" : t.accent}`, borderRadius: "14px", padding: "20px", cursor: "pointer", transform: selectedTemplate?.id === t.id ? "scale(1.04)" : "scale(1)", transition: "all 0.2s", boxShadow: selectedTemplate?.id === t.id ? `0 0 20px ${t.accent}66` : "none" }}>
-                <div style={{ ...S.badge(t.tier), marginBottom: "10px" }}>{t.tier === "free" ? "FREE" : "⭐ PRO"}</div>
-                <div style={{ fontWeight: "700", fontSize: "13px", color: "#fff", marginBottom: "4px" }}>{t.name}</div>
-                <div style={{ fontSize: "11px", color: t.accent, marginBottom: "6px" }}>{t.desc}</div>
-                {selectedTemplate?.id === t.id && <div style={{ marginTop: "8px", fontSize: "11px", color: "#fff", fontWeight: "700" }}>✓ Selected</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 7: Preview ── */}
-      {step === 7 && (
-        <div>
-          <div style={{ maxWidth: "720px", margin: "0 auto" }}>
-            <ResumePreview cv={resume} template={selectedTemplate}/>
-          </div>
-          <div style={{ textAlign: "center", marginTop: "24px", display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-            <button style={{ ...S.btn("gold","lg"), opacity: downloading ? 0.7 : 1, cursor: downloading ? "not-allowed" : "pointer" }} disabled={downloading} onClick={handleDownload}>
-              {downloading ? "Generating PDF..." : "⬇ Download Resume"}
-            </button>
-            <button style={S.btn("success")} onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : "💾 Save Resume"}
-            </button>
-            <button style={S.btn("outline")} onClick={() => setStep(1)}>✏️ Edit Resume</button>
-          </div>
-          {saveStatus === "saved" && <p style={{ textAlign: "center", color: C.success, marginTop: "12px", fontSize: "13px" }}>✓ Resume saved to your account!</p>}
-        </div>
-      )}
-
-      {/* Nav */}
-      {step < 7 && (
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "30px" }}>
-          {step > 1 ? <button style={S.btn("outline")} onClick={() => setStep(s => s-1)}>← Previous</button> : <div/>}
-          <button style={S.btn("primary")} onClick={() => setStep(s => s+1)}>{step === 6 ? "Preview Resume →" : "Next →"}</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── DASHBOARD ────────────────────────────────────────────────────
-function Dashboard({ user, onBuildResume, onEditResume }) {
-  const [resumeList, setResumeList] = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [deleting, setDeleting]     = useState(null);
-  const [activeNav, setActiveNav]   = useState('dashboard');
-
-  useEffect(() => {
-    if (!user?.id) return;
-    loadUserResumes(user.id)
-      .then(data => setResumeList(data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [user]);
-
-  const handleDelete = async (resumeId) => {
-    if (!window.confirm("Delete this resume?")) return;
-    setDeleting(resumeId);
-    try {
-      await deleteResume(resumeId, user.id);
-      setResumeList(prev => prev.filter(r => r.id !== resumeId));
-    } catch(e) {
-      alert("Error deleting resume");
-    } finally {
-      setDeleting(null);
-    }
-  };
-
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'mycvs',     label: 'My CVs' },
-    { id: 'templates', label: 'Templates' },
-    { id: 'ats',       label: 'ATS Check' },
-    { id: 'cover',     label: 'Cover Letter' },
-  ];
-
-  return (
-    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, color: C.text }}>
-
-      {/* ── SIDEBAR ── */}
-      <div style={{ width: "220px", background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", padding: "24px 0", position: "fixed", height: "100vh", zIndex: 10 }}>
-        <div style={{ padding: "0 20px 28px" }}>
-          <span style={{ fontSize: "18px", fontWeight: "800", color: C.text }}>CVPassport</span>
-        </div>
-        <nav style={{ flex: 1, padding: "0 10px" }}>
-          {navItems.map(item => (
-            <div key={item.id} onClick={() => setActiveNav(item.id)} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "2px", background: activeNav === item.id ? C.card : "transparent", color: activeNav === item.id ? C.text : C.muted, border: activeNav === item.id ? `1px solid ${C.border}` : "1px solid transparent", fontSize: "14px", transition: "all 0.2s ease" }}>
-              {item.label}
+          )}
+          {builderTab === "ats" && (
+            <div style={{ padding: 12 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
+              <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score. Add more sections and keywords to improve.</div>
             </div>
-          ))}
-        </nav>
-        <div style={{ padding: "0 10px" }}>
-          <div style={{ padding: "14px", borderRadius: "10px", background: C.card, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: "12px", color: C.muted, marginBottom: "4px" }}>{user?.email}</div>
-            <div style={{ fontSize: "11px", color: C.muted, marginBottom: "10px" }}>Free Plan</div>
-            <button style={{ width: "100%", padding: "8px", borderRadius: "6px", background: C.accent, color: C.text, border: "none", cursor: "pointer", fontWeight: "600", fontSize: "12px" }}>
-              Upgrade to Pro
-            </button>
+          )}
+        </aside>
+
+        {/* Right panel — Live Preview */}
+        <div
+          className="cvp-builder-preview"
+          style={{
+            background: "#111111",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "32px 24px",
+            overflow: "auto",
+          }}
+        >
+          <div style={{ maxWidth: 794, width: "100%", aspectRatio: "0.707", background: "#fff", borderRadius: 4, boxShadow: "0 8px 32px rgba(0,0,0,0.6)", transform: `scale(${zoomScale})`, transformOrigin: "top center" }}>
+            <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+              <ResumePreview cv={resume} template={selectedTemplate} />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
-      <div style={{ marginLeft: "220px", marginRight: "260px", flex: 1, padding: "32px 28px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "4px" }}>Welcome back, {user?.name} 👋</h1>
-        <p style={{ color: C.muted, marginBottom: "28px", fontSize: "14px" }}>Ready to build or update your Gulf resume?</p>
-
-        {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "28px" }}>
-          {[
-            { label: "CVs Saved",  value: resumeList.length.toString() },
-            { label: "ATS Ready",  value: "✓" },
-            { label: "Templates",  value: "11" },
-            { label: "Downloads",  value: "—" },
-          ].map(stat => (
-            <div key={stat.label} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
-              <div style={{ fontSize: "26px", fontWeight: "800", color: C.text }}>{stat.value}</div>
-              <div style={{ fontSize: "12px", color: C.muted, marginTop: "4px" }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* My CVs */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: "700" }}>My CVs</h2>
-          <button onClick={onBuildResume} style={{ padding: "8px 16px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600", transition: "all 0.2s ease" }}>
-            + Create Resume
-          </button>
-        </div>
-
-        {loading ? (
-          <div style={{ color: C.muted, fontSize: "14px" }}>Loading your CVs...</div>
-        ) : resumeList.length === 0 ? (
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "32px", textAlign: "center" }}>
-            <div style={{ color: C.muted, fontSize: "14px", marginBottom: "16px" }}>No CVs yet. Build your first one.</div>
-            <button onClick={onBuildResume} style={{ padding: "10px 20px", borderRadius: "6px", background: C.surface, color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
-              Build CV
-            </button>
+      {/* Mobile: single column + Edit | Preview pill */}
+      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", minHeight: "calc(100vh - 52px)" }}>
+        {mobileView === "edit" ? (
+          <div style={{ overflowY: "auto", padding: 12, paddingBottom: 80, display: "grid", gap: 8, alignContent: "start", background: "#0A0A0A" }}>
+            {builderTab === "content" && (
+              <>
+                <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
+                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
+                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
+                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
+                  </div>
+                </div>
+                <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
+                  <div style={{ padding: "8px 0" }}><textarea style={{ ...S.input, height: 100, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} /></div>
+                </AccordionSection>
+                <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
+                  <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
+                    {resume.experience.map((exp, i) => (
+                      <div key={i} style={{ background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 12, padding: 12 }}>
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Company" value={exp.company} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],company:e.target.value};set("experience",u);}} />
+                          <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Role" value={exp.role} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],role:e.target.value};set("experience",u);}} />
+                          <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Period" value={exp.period} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],period:e.target.value};set("experience",u);}} />
+                          <textarea style={{ ...S.input, height: 70, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12, resize: "vertical" }} placeholder="Points" value={exp.points} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],points:e.target.value};set("experience",u);}} />
+                        </div>
+                        {i > 0 && <button type="button" onClick={() => setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) }))} style={{ marginTop: 8, fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer" }}>Remove</button>}
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setResume(r => ({ ...r, experience: [...r.experience, { company: "", role: "", location: "", period: "", points: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
+                  </div>
+                </AccordionSection>
+                <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
+                  <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
+                    {resume.education.map((edu, i) => (
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="School" value={edu.school} onChange={e=>{const u=[...resume.education];u[i]={...u[i],school:e.target.value};set("education",u);}} />
+                        <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Degree" value={edu.degree} onChange={e=>{const u=[...resume.education];u[i]={...u[i],degree:e.target.value};set("education",u);}} />
+                        <input style={{ ...S.input, gridColumn: "1/-1", background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Year" value={edu.year} onChange={e=>{const u=[...resume.education];u[i]={...u[i],year:e.target.value};set("education",u);}} />
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setResume(r => ({ ...r, education: [...r.education, { school: "", degree: "", year: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
+                  </div>
+                </AccordionSection>
+                <AccordionSection id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+                  <div style={{ padding: "8px 0" }}><textarea style={{ ...S.input, height: 80, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="Skills" value={resume.skills} onChange={e=>set("skills",e.target.value)} /><input style={{ ...S.input, marginTop: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Certifications" value={resume.certifications} onChange={e=>set("certifications",e.target.value)} /></div>
+                </AccordionSection>
+                <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
+                  <div style={{ padding: "8px 0" }}><input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Languages" value={resume.languages} onChange={e=>set("languages",e.target.value)} /></div>
+                </AccordionSection>
+                <button type="button" style={{ width: "100%", padding: 12, borderRadius: 12, border: "none", background: "#FFF", color: "#000", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>+ Add section</button>
+                <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
+                    <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
+                    <button type="button" aria-label="Redo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↪</button>
+                  </div>
+                </div>
+              </>
+            )}
+            {builderTab === "customize" && <div style={{ padding: 12 }}><div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Template</div><div style={{ display: "grid", gap: 8 }}>{TEMPLATES.map(t => <button key={t.id} type="button" onClick={() => setSelectedTemplate(t)} style={{ padding: 12, borderRadius: 12, border: "1px solid #2A2A2A", background: selectedTemplate?.id === t.id ? "#1C1C1C" : "#141414", color: "#FFF", textAlign: "left", cursor: "pointer" }}>{t.name}</button>)}</div></div>}
+            {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px" }}>
-            {resumeList.map(r => (
-              <div key={r.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "18px" }}>
-                <div style={{ height: "100px", background: C.surface, borderRadius: "6px", marginBottom: "14px", border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: "11px", color: C.muted }}>CV Preview</span>
-                </div>
-                <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || "Untitled CV"}</div>
-                <div style={{ fontSize: "11px", color: C.muted, marginBottom: "14px" }}>Updated {new Date(r.updated_at).toLocaleDateString()}</div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <button onClick={() => onEditResume(r)} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.text, border: `1px solid ${C.border}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>Edit</button>
-                  <button onClick={() => handleDelete(r.id)} disabled={deleting === r.id} style={{ flex: 1, padding: "7px", borderRadius: "6px", background: "transparent", color: C.danger, border: `1px solid ${C.danger}`, cursor: "pointer", fontSize: "12px", transition: "all 0.2s ease" }}>
-                    {deleting === r.id ? "..." : "Delete"}
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#111" }}>
+            <div style={{ maxWidth: 794, width: "100%", aspectRatio: "0.707", background: "#fff", borderRadius: 4, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+              <ResumePreview cv={resume} template={selectedTemplate} />
+            </div>
           </div>
         )}
-      </div>
-
-      {/* ── RIGHT PANEL ── */}
-      <div style={{ width: "240px", background: C.surface, borderLeft: `1px solid ${C.border}`, padding: "28px 16px", position: "fixed", right: 0, top: 0, height: "100vh", overflowY: "auto" }}>
-        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>ATS Score</h3>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "28px", fontWeight: "800", color: C.success }}>—</div>
-          <div style={{ fontSize: "12px", color: C.muted }}>Run ATS check to see score</div>
-        </div>
-
-        <h3 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "14px" }}>Quick Tip</h3>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "10px", padding: "14px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "12px", color: C.muted, lineHeight: "1.6" }}>Add your visa status to increase profile match rate in UAE job market.</div>
-        </div>
-
-        <div style={{ background: C.card, border: `1px solid ${C.gold}`, borderRadius: "10px", padding: "14px" }}>
-          <div style={{ fontSize: "13px", fontWeight: "700", color: C.gold, marginBottom: "4px" }}>Go Pro</div>
-          <div style={{ fontSize: "12px", color: C.muted, marginBottom: "10px" }}>Unlimited CVs, all templates, ATS matching</div>
-          <div style={{ fontSize: "18px", fontWeight: "800", marginBottom: "10px" }}>AED 29<span style={{ fontSize: "12px", color: C.muted }}>/mo</span></div>
-          <button style={{ width: "100%", padding: "9px", borderRadius: "6px", background: C.gold, color: "#000", border: "none", cursor: "pointer", fontWeight: "700", fontSize: "12px" }}>Upgrade Now</button>
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, height: 56, background: "rgba(10,10,10,0.96)", borderTop: "1px solid #1E1E1E", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <button type="button" onClick={() => setMobileView("edit")} style={{ padding: "8px 20px", borderRadius: 100, background: mobileView === "edit" ? "#1C1C1C" : "transparent", color: mobileView === "edit" ? "#FFF" : "#A0A0A0", fontWeight: 600, border: "none", cursor: "pointer" }}>Edit</button>
+          <button type="button" onClick={() => setMobileView("preview")} style={{ padding: "8px 20px", borderRadius: 100, background: mobileView === "preview" ? "#1C1C1C" : "transparent", color: mobileView === "preview" ? "#FFF" : "#A0A0A0", fontWeight: 600, border: "none", cursor: "pointer" }}>Preview</button>
         </div>
       </div>
-
     </div>
   );
 }
+
+// Accordion section with 0fr -> 1fr animation
+function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
+  return (
+    <div
+      style={{
+        background: "#141414",
+        border: "1px solid #2A2A2A",
+        borderRadius: 16,
+        overflow: "hidden",
+        transition: `border-color 150ms ${EASE}`,
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "14px 16px",
+          border: "none",
+          background: "transparent",
+          color: "var(--text-primary)",
+          cursor: "pointer",
+          textAlign: "left",
+          fontSize: 14,
+          fontWeight: 600,
+        }}
+      >
+        <span style={{ width: 20, height: 20, display: "grid", placeItems: "center" }}>
+          {icon === "summary" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>}
+          {icon === "experience" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>}
+          {icon === "education" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>}
+          {icon === "skills" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
+          {icon === "languages" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>}
+        </span>
+        <span style={{ flex: 1 }}>{title}</span>
+        <span style={{ transition: `transform 200ms ${EASE}`, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
+        </span>
+      </button>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: isOpen ? "1fr" : "0fr",
+          transition: `grid-template-rows 300ms ${EASE}`,
+        }}
+      >
+        <div style={{ overflow: "hidden" }}>
+          <div style={{ opacity: isOpen ? 1 : 0, transition: `opacity 300ms ${EASE}`, padding: "0 16px 16px" }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Resume strength: count filled fields and return 0–100
+function getStrength(cv) {
+  if (!cv || typeof cv !== "object") return 0;
+  const fields = [
+    cv.name, cv.title, cv.email, cv.phone, cv.location, cv.summary,
+    cv.skills, cv.languages, cv.nationality, cv.visaStatus,
+    Array.isArray(cv.experience) && cv.experience.some(e => e?.company || e?.role),
+    Array.isArray(cv.education) && cv.education.some(e => e?.school || e?.degree),
+  ];
+  const filled = fields.filter(Boolean).length;
+  return Math.min(100, Math.round((filled / 12) * 100));
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────
 const extractName = u => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
@@ -1562,10 +1526,18 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError]   = useState(null);
   const [editingResume, setEditingResume] = useState(null);
+  const [resumeList, setResumeList] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const [resume, setResume] = useState(EMPTY_RESUME);
   // eslint-disable-next-line no-unused-vars
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadUserResumes(user.id)
+      .then(data => setResumeList(data || []))
+      .catch(console.error);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -1623,7 +1595,33 @@ export default function App() {
 {page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
 {page === "walkin" && <WalkInPage onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
-{page === "dashboard" && user && <Dashboard user={user} onBuildResume={handleNewResume} onEditResume={handleEditResume} onGoHome={() => setPage("landing")}/>}
+{page === "dashboard" && user && (
+  <Dashboard
+    theme={document.documentElement.classList.contains("light") ? "light" : "dark"}
+    user={user}
+    resumeList={resumeList}
+    getStrength={(r) => getStrength(r?.cv_data || r)}
+    renderThumb={(r) => (
+      <div style={{ position: "absolute", left: 0, top: 0, width: 794, height: 1123, transformOrigin: "top left", transform: "scale(0.2)" }}>
+        <ResumePreview cv={r?.cv_data || EMPTY_RESUME} template={TEMPLATES.find(t => t.id === r?.template_id) || TEMPLATES[0]} />
+      </div>
+    )}
+    onBuildResume={handleNewResume}
+    onEditResume={handleEditResume}
+    onDelete={async (resumeId) => {
+      try {
+        await deleteResume(resumeId, user.id);
+        setResumeList(prev => prev.filter(r => r.id !== resumeId));
+      } catch (e) {
+        alert("Error deleting resume");
+      }
+    }}
+    onRunATS={() => setPage("ats")}
+    onWalkIn={() => setPage("walkin")}
+    onTemplates={() => {}}
+    onGoHome={() => setPage("landing")}
+  />
+)}
 {page === "builder" && (
   <ResumeBuilder
     user={user}
