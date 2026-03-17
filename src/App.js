@@ -177,10 +177,10 @@ const C = {
 };
 
 const S = {
-  app: { minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
+  app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
   nav: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
-    padding: "16px 40px", borderBottom: `1px solid ${C.border}`,
+    padding: "16px 24px", borderBottom: `1px solid ${C.border}`,
     background: "rgba(10,10,15,0.95)", position: "sticky", top: 0, zIndex: 100,
     backdropFilter: "blur(10px)",
   },
@@ -1392,7 +1392,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
               </div>
 
-              <button type="button" onClick={() => {}} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+              {builderTab === "content" && (
+                <button type="button" onClick={() => setOpenSection("summary")} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+              )}
               <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
                   <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
@@ -1483,7 +1485,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   <div style={{ padding: "8px 0" }}><input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Languages" value={resume.languages} onChange={e=>set("languages",e.target.value)} /></div>
                 </AccordionSection>
                 </div>
-                <button type="button" className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+                {builderTab === "content" && (
+                  <button type="button" onClick={() => setOpenSection("summary")} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+                )}
                 <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
                     <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
@@ -1661,7 +1665,7 @@ export default function App() {
 
   return (
     <div style={S.app}>
-      <nav style={S.nav}>
+      <nav className="cvp-app-nav" style={S.nav}>
         <div style={S.logo} onClick={() => setPage("landing")} role="button" tabIndex={0}>CVPassport</div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           {user ? (
