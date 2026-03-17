@@ -1244,7 +1244,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </div>
 
-              {/* Accordion: Professional Summary */}
+              <div className="cvp-sections-list">
               <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
                 <div style={{ padding: "8px 0" }}>
                   <textarea style={{ ...S.input, height: 100, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
@@ -1252,7 +1252,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              {/* Accordion: Professional Experience */}
               <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
                 <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
                   {resume.experience.map((exp, i) => (
@@ -1302,8 +1301,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   <button type="button" style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>Add Entry</button>
                 </div>
               </AccordionSection>
+              </div>
 
-              <button type="button" onClick={() => {}} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #3A3A3A", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A3A3A"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+              <button type="button" onClick={() => {}} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
               <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
                   <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
@@ -1355,6 +1355,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                   </div>
                 </div>
+                <div className="cvp-sections-list">
                 <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
                   <div style={{ padding: "8px 0" }}><textarea style={{ ...S.input, height: 100, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} /></div>
                 </AccordionSection>
@@ -1392,7 +1393,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
                   <div style={{ padding: "8px 0" }}><input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Languages" value={resume.languages} onChange={e=>set("languages",e.target.value)} /></div>
                 </AccordionSection>
-                <button type="button" className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #3A3A3A", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3A3A3A"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+                </div>
+                <button type="button" className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
                 <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
                     <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
@@ -1420,48 +1422,40 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   );
 }
 
-// Accordion section with 0fr -> 1fr animation
+// Accordion row inside .cvp-sections-list — unified list style
 function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
   return (
-    <div
-      className={`cvp-builder-section-card${isOpen ? " is-open" : ""}`}
-      style={{
-        background: isOpen ? "#1C1C1C" : "#141414",
-        border: `1px solid ${isOpen ? "#FFFFFF" : "#2A2A2A"}`,
-        borderRadius: 16,
-        marginBottom: 12,
-        overflow: "hidden",
-        cursor: "pointer",
-        transition: `border-color 150ms ${EASE}, background-color 150ms ${EASE}`,
-      }}
-    >
+    <div className={`cvp-section-row${isOpen ? " is-open" : ""}`}>
       <button
         type="button"
         onClick={onToggle}
+        className="cvp-section-row-header"
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          padding: "14px 16px",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: 16,
           border: "none",
           background: "transparent",
-          color: "#FFFFFF",
           cursor: "pointer",
           textAlign: "left",
-          fontSize: 15,
-          fontWeight: 600,
+          borderLeft: isOpen ? "2px solid #FFFFFF" : "2px solid transparent",
+          transition: `background-color 150ms ${EASE}, border-color 150ms ${EASE}`,
         }}
       >
-        <span style={{ width: 20, height: 20, display: "grid", placeItems: "center", color: "#A0A0A0" }}>
-          {icon === "summary" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>}
-          {icon === "experience" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>}
-          {icon === "education" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>}
-          {icon === "skills" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
-          {icon === "languages" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>}
-        </span>
-        <span style={{ flex: 1 }}>{title}</span>
-        <span style={{ transition: `transform 200ms ${EASE}`, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", color: "#A0A0A0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+          <span style={{ width: 16, height: 16, display: "grid", placeItems: "center", color: "#A0A0A0", flexShrink: 0 }}>
+            {icon === "summary" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>}
+            {icon === "experience" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>}
+            {icon === "education" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>}
+            {icon === "skills" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
+            {icon === "languages" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>}
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#FFFFFF", letterSpacing: "0.03em" }}>{title}</span>
+        </div>
+        <span style={{ color: "#A0A0A0", display: "grid", placeItems: "center", transition: `transform 300ms ${EASE}`, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
         </span>
       </button>
@@ -1473,7 +1467,7 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
         }}
       >
         <div style={{ overflow: "hidden" }}>
-          <div style={{ opacity: isOpen ? 1 : 0, transition: `opacity 300ms ${EASE}`, padding: "0 16px 16px" }}>
+          <div className="cvp-section-row-content" style={{ opacity: isOpen ? 1 : 0, transition: `opacity 300ms ${EASE}`, padding: "0 16px 16px 16px", background: "#1C1C1C", borderTop: "1px solid #2A2A2A" }}>
             {children}
           </div>
         </div>
