@@ -229,6 +229,7 @@ export default function Dashboard({
             <button
               type="button"
               onClick={onBuildResume}
+              className="cvp-new-cv-card"
               style={{
                 border: "1px dashed var(--border)",
                 background: "transparent",
@@ -253,6 +254,7 @@ export default function Dashboard({
             <button
               type="button"
               onClick={onWalkIn}
+              className="cvp-walkin-card"
               style={{
                 border: "1px solid #2A2A2A",
                 background: "#141414",
@@ -280,7 +282,7 @@ export default function Dashboard({
               </span>
               <span style={{ fontSize: 18, fontWeight: 700, color: "#FFF", marginTop: 10 }}>Walk-In Mode</span>
               <span style={{ fontSize: 13, color: "#A0A0A0", marginTop: 6, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>Ready in 60 seconds — no account needed.</span>
-              <span style={{ marginTop: 16, height: 40, borderRadius: 8, background: "#FFF", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 14 }}>Start Walk-In CV</span>
+              <span style={{ marginTop: 16, height: 40, borderRadius: 8, background: "#FFF", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Walk-In CV</span>
             </button>
 
             {/* CV cards */}

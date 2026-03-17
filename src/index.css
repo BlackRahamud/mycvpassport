@@ -313,3 +313,34 @@ input:focus, textarea:focus {
     font-size: 13px !important;
   }
 }
+
+/* Dashboard — New CV card height on mobile */
+@media (max-width: 768px) {
+  .cvp-new-cv-card {
+    min-height: 200px !important;
+    aspect-ratio: unset !important;
+  }
+}
+
+/* Dashboard — Walk-In card padding on mobile */
+@media (max-width: 768px) {
+  .cvp-walkin-card {
+    padding: 16px !important;
+  }
+}
+
+/* ATSChecker — visibility grid single column on mobile */
+@media (max-width: 768px) {
+  .cvp-ats-visibility-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ATSChecker — pricing row stack on mobile */
+@media (max-width: 768px) {
+  .cvp-ats-pricing-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 16px !important;
+  }
+}

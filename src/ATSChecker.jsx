@@ -3,19 +3,6 @@ import { getCurrentUserProfile, joinWaitlist } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import { Target, Eye, CheckCircle2 } from "lucide-react";
 
-// Executive palette (Abu Dhabi / deep blues & whites)
-const EXEC = {
-  navy: "#0D1B2A",
-  blue: "#1e3a5f",
-  accent: "#2563eb",
-  white: "#ffffff",
-  offWhite: "#f8fafc",
-  border: "#cbd5e1",
-  muted: "#64748b",
-  teal: "#22d3ee",
-  orange: "#ff9f43"
-};
-
 const STOP_WORDS = new Set(["a","an","the","and","or","but","in","on","at","to","for","of","with","by","from","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","could","should","may","might","that","this","these","those","it","its","we","you","your","our","their","they","he","she","as","if","then","than","so","up","out","about","into","through","during","including","until","against","among","throughout","within","also","very","just","more","most","some","such","no","not","only","same","other","each","few","many","how","all","both","between","i","me","my"]);
 
 const EXPECTED_SECTIONS = [
@@ -39,7 +26,7 @@ function ReadinessGauge({ score }) {
   const radius = 70;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = score > 75 ? EXEC.teal : score > 45 ? EXEC.orange : "#ef4444";
+  const color = "#FFFFFF";
 
   return (
     <div style={{ position: "relative", width: 180, height: 180, margin: "0 auto" }}>
@@ -55,7 +42,7 @@ function ReadinessGauge({ score }) {
       </svg>
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
         <div style={{ fontSize: 42, fontWeight: 900, color: color }}>{score}</div>
-        <div style={{ fontSize: 10, color: EXEC.muted, fontWeight: 700, textTransform: "uppercase" }}>Readiness</div>
+        <div style={{ fontSize: 10, color: "#A0A0A0", fontWeight: 700, textTransform: "uppercase" }}>Readiness</div>
       </div>
     </div>
   );
@@ -211,7 +198,7 @@ export default function ATSChecker(props) {
   }
 
   return (
-    <div style={{ maxWidth: 850, margin: "0 auto", padding: "40px 20px", color: EXEC.white, background: EXEC.navy, minHeight: "100vh" }}>
+    <div style={{ maxWidth: 850, margin: "0 auto", padding: "40px 20px", color: "#FFFFFF", background: "#0A0A0A", minHeight: "100vh" }}>
       
       {/* Back Button */}
       {props.onBack && (
@@ -223,20 +210,20 @@ export default function ATSChecker(props) {
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <h1 style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.02em" }}>Professional Readiness Analysis</h1>
-        <p style={{ color: EXEC.muted, marginTop: 8 }}>Institutional-grade ATS validation for the UAE professional market.</p>
+        <p style={{ color: "#A0A0A0", marginTop: 8 }}>Institutional-grade ATS validation for the UAE professional market.</p>
         <div
   onDragOver={(e) => e.preventDefault()}
   onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) setResumeFile(file); }}
   onClick={() => document.getElementById('resume-upload').click()}
-  style={{ background: "rgba(255,255,255,0.03)", padding: 24, borderRadius: 16, border: "1px dashed rgba(255,255,255,0.2)", cursor: "pointer", textAlign: "center" }}
+  style={{ background: "#141414", padding: 24, borderRadius: 16, border: "1px solid #2A2A2A", cursor: "pointer", textAlign: "center" }}
 >
-  <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: EXEC.muted }}>Resume Upload</label>
-  <div style={{ marginTop: 12, color: EXEC.muted, fontSize: 13 }}>
+  <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#A0A0A0" }}>Resume Upload</label>
+  <div style={{ marginTop: 12, color: "#A0A0A0", fontSize: 13 }}>
     {resumeFile ? `✅ ${resumeFile.name}` : "Drag & drop PDF or DOCX here, or click to browse"}
   </div>
   <input id="resume-upload" type="file" accept=".pdf,.docx,.txt" onChange={(e) => setResumeFile(e.target.files[0])} style={{ display: "none" }} />
-</div>        <div style={{ background: "rgba(255,255,255,0.03)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.1)" }}>
-          <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: EXEC.muted }}>Job Target</label>
+</div>        <div style={{ background: "#141414", padding: 24, borderRadius: 16, border: "1px solid #2A2A2A" }}>
+          <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#A0A0A0" }}>Job Target</label>
           <textarea 
             rows={3} 
             value={jobDesc} 
@@ -250,7 +237,7 @@ export default function ATSChecker(props) {
       <button 
         onClick={handleCheck} 
         disabled={loading}
-        style={{ width: "100%", padding: 16, borderRadius: 12, background: EXEC.accent, color: "#fff", fontWeight: 800, cursor: "pointer", border: "none" }}
+        style={{ width: "100%", padding: 16, borderRadius: 12, background: "#FFFFFF", color: "#000000", fontWeight: 700, cursor: "pointer", border: "none" }}
       >
         {loading ? loadingMessages[loadingStage] : "Execute Analysis"}
       </button>
@@ -262,34 +249,33 @@ export default function ATSChecker(props) {
         <div style={{ marginTop: 40 }}>
           <ReadinessGauge score={result.total} />
 
-          {/* Glassmorphism Grid */}
+          {/* Score cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20, marginTop: 40 }}>
-            
-            <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24 }}>
+            <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <Target size={18} color={EXEC.teal} />
+                <Target size={18} color="#FFFFFF" />
                 <h3 style={{ fontSize: 14, fontWeight: 800 }}>Keyword Optimization</h3>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{result.kw.score}/50</div>
-              <p style={{ fontSize: 12, color: EXEC.muted, marginTop: 8 }}>Analysis of essential industry terminology matched.</p>
+              <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Analysis of essential industry terminology matched.</p>
             </div>
 
-            <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24 }}>
+            <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <CheckCircle2 size={18} color={EXEC.teal} />
+                <CheckCircle2 size={18} color="#FFFFFF" />
                 <h3 style={{ fontSize: 14, fontWeight: 800 }}>Professional Readiness</h3>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{result.sec.score}/30</div>
-              <p style={{ fontSize: 12, color: EXEC.muted, marginTop: 8 }}>Validation of core structural pillars and headings.</p>
+              <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Validation of core structural pillars and headings.</p>
             </div>
 
-            <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 24 }}>
+            <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <Eye size={18} color={EXEC.teal} />
+                <Eye size={18} color="#FFFFFF" />
                 <h3 style={{ fontSize: 14, fontWeight: 800 }}>Readability Insight</h3>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{result.fmt.score}/20</div>
-              <p style={{ fontSize: 12, color: EXEC.muted, marginTop: 8 }}>Detection of layout interference and parsing risks.</p>
+              <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Detection of layout interference and parsing risks.</p>
             </div>
           </div>
 
@@ -297,7 +283,7 @@ export default function ATSChecker(props) {
           {!isPro && (
             <div style={{ marginTop: 40 }}>
               <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 20 }}>ATS Visibility Check</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              <div className="cvp-ats-visibility-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                 <div style={{ background: "#fff", padding: 10, borderRadius: 12, height: 300, overflow: "hidden" }}>
                   <div style={{ color: "#000", fontSize: 10, fontWeight: 800, marginBottom: 5 }}>Human View (Formatted)</div>
                   <iframe title="CV Human View" src={result.pdfPreviewUrl} style={{ width: "100%", height: "100%", border: "none" }} />
@@ -311,22 +297,22 @@ export default function ATSChecker(props) {
           )}
 
           {/* Pricing Wall */}
-          <div style={{ marginTop: 40, padding: 32, borderRadius: 24, background: "linear-gradient(135deg, #1e3a5f 0%, #0D1B2A 100%)", textAlign: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <div style={{ marginTop: 40, padding: 32, borderRadius: 24, background: "#141414", textAlign: "center", border: "1px solid #2A2A2A" }}>
             <h2 style={{ fontSize: 24, fontWeight: 900 }}>Upgrade to Deep Scan Pro</h2>
-            <div style={{ display: "flex", justifyContent: "center", gap: 30, marginTop: 24 }}>
+            <div className="cvp-ats-pricing-row" style={{ display: "flex", justifyContent: "center", gap: 30, marginTop: 24 }}>
               <div>
-                <div style={{ fontSize: 12, color: EXEC.muted }}>Basic Scan</div>
+                <div style={{ fontSize: 12, color: "#A0A0A0" }}>Basic Scan</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>AED 0</div>
               </div>
-              <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
+              <div style={{ width: 1, background: "#2A2A2A" }} />
               <div>
-                <div style={{ fontSize: 12, color: EXEC.teal }}>Deep Scan Pro</div>
+                <div style={{ fontSize: 12, color: "#A0A0A0" }}>Deep Scan Pro</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>AED 49</div>
               </div>
             </div>
             <button 
               onClick={() => setShowWaitlistModal(true)}
-              style={{ marginTop: 24, padding: "12px 40px", borderRadius: 99, background: EXEC.teal, color: EXEC.navy, fontWeight: 900, border: "none", cursor: "pointer" }}
+              style={{ marginTop: 24, padding: "12px 40px", borderRadius: 99, background: "#FFFFFF", color: "#000000", fontWeight: 700, border: "none", cursor: "pointer" }}
             >
               Join Priority Waitlist
             </button>
@@ -336,13 +322,13 @@ export default function ATSChecker(props) {
 
       {/* Waitlist Modal */}
       {showWaitlistModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#1a1a1a", padding: 40, borderRadius: 24, maxWidth: 400, width: "90%", textAlign: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          <div style={{ background: "#141414", padding: 40, borderRadius: 24, maxWidth: 400, width: "90%", textAlign: "center", border: "1px solid #2A2A2A" }}>
             <h3 style={{ fontSize: 22, fontWeight: 900 }}>Coming Soon</h3>
-            <p style={{ color: EXEC.muted, margin: "12px 0 24px" }}>We are perfecting our Deep Scan engine. Join the waitlist for priority access and a 50% launch discount.</p>
+            <p style={{ color: "#A0A0A0", margin: "12px 0 24px" }}>We are perfecting our Deep Scan engine. Join the waitlist for priority access and a 50% launch discount.</p>
             
             {waitlistMessage.text ? (
-              <div style={{ color: EXEC.teal, fontWeight: 700, marginBottom: 20 }}>{waitlistMessage.text}</div>
+              <div style={{ color: "#FFFFFF", fontWeight: 700, marginBottom: 20 }}>{waitlistMessage.text}</div>
             ) : (
               <>
                 <input 
@@ -350,7 +336,7 @@ export default function ATSChecker(props) {
                   placeholder="Enter your email" 
                   value={waitlistEmail}
                   onChange={(e) => setWaitlistEmail(e.target.value)}
-                  style={{ width: "100%", padding: 14, borderRadius: 12, background: "#000", border: "1px solid #333", color: "#fff", marginBottom: 16 }}
+                  style={{ width: "100%", padding: 14, borderRadius: 12, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#fff", marginBottom: 16 }}
                 />
                 <button 
                   onClick={async () => {
@@ -362,13 +348,13 @@ export default function ATSChecker(props) {
                     setWaitlistLoading(false);
                   }}
                   disabled={waitlistLoading}
-                  style={{ width: "100%", padding: 14, borderRadius: 12, background: EXEC.teal, color: EXEC.navy, fontWeight: 800, border: "none", cursor: "pointer" }}
+                  style={{ width: "100%", padding: 14, borderRadius: 12, background: "#FFFFFF", color: "#000000", fontWeight: 700, border: "none", cursor: "pointer" }}
                 >
                   {waitlistLoading ? "Joining..." : "Join Priority List"}
                 </button>
               </>
             )}
-            <button onClick={() => setShowWaitlistModal(false)} style={{ marginTop: 20, background: "none", border: "none", color: EXEC.muted, cursor: "pointer", fontSize: 12 }}>Close</button>
+            <button onClick={() => setShowWaitlistModal(false)} style={{ marginTop: 20, background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", fontSize: 12 }}>Close</button>
           </div>
         </div>
       )}
