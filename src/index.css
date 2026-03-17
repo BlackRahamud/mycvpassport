@@ -110,20 +110,24 @@ input:focus, textarea:focus {
   }
 }
 
-@media (max-width: 500px) {
-  .cvp-cv-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
-/* Dashboard responsive — sidebar & tabs */
+/* Dashboard responsive — sidebar & tabs + wrapper (mobile: block, no black half) */
 @media (max-width: 768px) {
+  .cvp-dashboard-wrapper {
+    display: block !important;
+  }
+  .cvp-dashboard-wrapper > main {
+    padding: 16px 16px 80px !important;
+  }
   .cvp-dashboard-sidebar {
     display: none !important;
   }
   .cvp-dashboard-tabs {
     display: grid !important;
+  }
+  .cvp-cv-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    padding: 0 !important;
   }
 }
 
@@ -314,11 +318,18 @@ input:focus, textarea:focus {
   }
 }
 
-/* Dashboard — New CV card height on mobile */
+/* Dashboard — New CV card + CV card height on mobile */
 @media (max-width: 768px) {
   .cvp-new-cv-card {
-    min-height: 200px !important;
+    min-height: 160px !important;
+    max-height: 160px !important;
     aspect-ratio: unset !important;
+  }
+  .cvp-cv-card {
+    min-height: unset !important;
+  }
+  .cvp-cv-card [style*="aspect-ratio"] {
+    aspect-ratio: 0.707 !important;
   }
 }
 
@@ -342,5 +353,12 @@ input:focus, textarea:focus {
     flex-direction: column !important;
     align-items: center !important;
     gap: 16px !important;
+  }
+}
+
+/* App-level mobile tab bar (visible on dashboard, ats, walkin when logged in) */
+@media (max-width: 768px) {
+  .cvp-mobile-tabbar {
+    display: grid !important;
   }
 }

@@ -131,7 +131,7 @@ export default function Dashboard({
         fontFamily: "'DM Sans', system-ui, -apple-system, Segoe UI, sans-serif",
       }}
     >
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", height: "100%" }}>
+      <div className="cvp-dashboard-wrapper" style={{ display: "grid", gridTemplateColumns: "220px 1fr", height: "100%" }}>
         {/* Sidebar — desktop only, hidden on mobile via CSS */}
         <aside
           className="cvp-dashboard-sidebar"
@@ -293,6 +293,7 @@ export default function Dashboard({
               return (
                 <div
                   key={r?.id ?? title}
+                  className="cvp-cv-card"
                   role="button"
                   tabIndex={0}
                   onClick={() => onEditResume(r)}

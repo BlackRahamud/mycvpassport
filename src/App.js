@@ -15,6 +15,95 @@ import LandingPage from './LandingPage';
 import WalkInPage from './WalkInPage';
 import Dashboard from './Dashboard';
 
+// Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
+function TabIconDoc() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M8 13h8" />
+      <path d="M8 17h6" />
+    </svg>
+  );
+}
+function TabIconTarget() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+function TabIconBolt() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
+    </svg>
+  );
+}
+function TabIconUser() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+function MobileTabBar({ page, setPage, user }) {
+  if (!user) return null;
+  const show = ["dashboard", "ats", "walkin"].includes(page);
+  if (!show) return null;
+  const tabs = [
+    { id: "dashboard", label: "My CVs", icon: <TabIconDoc /> },
+    { id: "ats", label: "ATS", icon: <TabIconTarget /> },
+    { id: "walkin", label: "Walk-In", icon: <TabIconBolt /> },
+    { id: "account", label: "Account", icon: <TabIconUser /> },
+  ];
+  return (
+    <div
+      className="cvp-mobile-tabbar"
+      style={{
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 64,
+        background: "rgba(10,10,10,0.96)",
+        borderTop: "1px solid #1E1E1E",
+        display: "none",
+        gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
+        alignItems: "center",
+        padding: "6px 6px 10px",
+        backdropFilter: "blur(10px)",
+        zIndex: 50,
+      }}
+    >
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => setPage(t.id === "account" ? "dashboard" : t.id)}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: page === t.id ? "#FFFFFF" : "#555",
+            display: "grid",
+            justifyItems: "center",
+            gap: 4,
+            cursor: "pointer",
+            padding: 6,
+          }}
+        >
+          {t.icon}
+          <span style={{ fontSize: 11, fontWeight: 600, color: page === t.id ? "#FFFFFF" : "#555" }}>
+            {t.label}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // Skip Supabase usage during react-snap prerender
 const isPrerender = typeof navigator !== 'undefined' && navigator.userAgent.includes('ReactSnap');
 const supabase = isPrerender ? null : supabaseImport;
@@ -1605,6 +1694,7 @@ export default function App() {
   />
 )}
 {page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
+<MobileTabBar page={page} setPage={setPage} user={user} />
 <Analytics />
 </div>
 );
