@@ -217,3 +217,51 @@ input:focus, textarea:focus {
     display: none !important;
   }
 }
+
+/* CV Builder mobile — form panel padding above toggle pill */
+.cvp-builder-mobile-form {
+  padding-bottom: 80px;
+}
+
+/* CV Builder mobile — Edit/Preview toggle pill (only at max-width 768px) */
+.cvp-builder-toggle-pill {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  width: calc(100% - 32px);
+  height: 48px;
+  background: #141414;
+  border: 1px solid #2A2A2A;
+  border-radius: 12px;
+  display: flex;
+  z-index: 100;
+}
+
+.cvp-builder-toggle-pill button {
+  flex: 1;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cvp-builder-toggle-pill .cvp-toggle-active {
+  background: #FFFFFF;
+  color: #000000;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.cvp-builder-toggle-pill .cvp-toggle-inactive {
+  background: transparent;
+  color: #A0A0A0;
+  font-weight: 500;
+}
+
+@media (min-width: 769px) {
+  .cvp-builder-toggle-pill {
+    display: none !important;
+  }
+}

@@ -1345,7 +1345,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       {/* Mobile: single column + Edit | Preview pill */}
       <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", minHeight: "calc(100vh - 56px)" }}>
         {mobileView === "edit" ? (
-          <div style={{ overflowY: "auto", padding: 12, paddingBottom: 80, display: "grid", gap: 8, alignContent: "start", background: "#0A0A0A" }}>
+          <div className="cvp-builder-mobile-form" style={{ overflowY: "auto", padding: 12, display: "grid", gap: 8, alignContent: "start", background: "#0A0A0A" }}>
             {builderTab === "content" && (
               <>
                 <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
@@ -1407,15 +1407,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#111" }}>
-            <div style={{ maxWidth: 794, width: "100%", aspectRatio: "0.707", background: "#fff", borderRadius: 4, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+          <div style={{ flex: 1, overflowY: "scroll", background: "#111111", padding: 16 }}>
+            <div style={{ width: "100%", background: "#FFFFFF", minHeight: 842, boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
               <ResumePreview cv={resume} template={selectedTemplate} />
             </div>
           </div>
         )}
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, height: 56, background: "rgba(10,10,10,0.96)", borderTop: "1px solid #1E1E1E", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-          <button type="button" onClick={() => setMobileView("edit")} style={{ padding: "8px 20px", borderRadius: 100, background: mobileView === "edit" ? "#1C1C1C" : "transparent", color: mobileView === "edit" ? "#FFF" : "#A0A0A0", fontWeight: 600, border: "none", cursor: "pointer" }}>Edit</button>
-          <button type="button" onClick={() => setMobileView("preview")} style={{ padding: "8px 20px", borderRadius: 100, background: mobileView === "preview" ? "#1C1C1C" : "transparent", color: mobileView === "preview" ? "#FFF" : "#A0A0A0", fontWeight: 600, border: "none", cursor: "pointer" }}>Preview</button>
+        <div className="cvp-builder-toggle-pill">
+          <button type="button" onClick={() => setMobileView("edit")} className={mobileView === "edit" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Edit</button>
+          <button type="button" onClick={() => setMobileView("preview")} className={mobileView === "preview" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Preview</button>
         </div>
       </div>
     </div>
