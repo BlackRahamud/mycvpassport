@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Warp } from "@paper-design/shaders-react";
+import { Helmet } from 'react-helmet-async';
 
 // Project lon/lat → SVG viewBox coords
 // Center: lon=65 (Gulf centered), lat offset=20 (vertical center), scale=280
@@ -265,6 +266,23 @@ function GlobeComponent() {
 export default function LandingGlobe({ isMobile, onLogin, onSignup, setPage }) {
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh", color: "#ffffff", fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
+      <Helmet>
+        <title>CVPassport — Build ATS-Friendly Resumes for UAE & Gulf Jobs</title>
+        <meta name="description" content="Build ATS-optimised resumes for UAE, Saudi Arabia and GCC job markets. Free templates, ATS score checker, and Walk-In CV builder for Gulf job seekers." />
+        <meta name="keywords" content="resume builder UAE, CV builder Dubai, ATS resume Gulf, Gulf job CV, Saudi Arabia resume, GCC job seeker, Indian expat CV Dubai" />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="CVPassport" />
+        <link rel="canonical" href="https://mycvpassport.com" />
+        <meta property="og:title" content="CVPassport — ATS-Friendly Resume Builder for Gulf Jobs" />
+        <meta property="og:description" content="Free resume builder for UAE, Saudi & GCC job markets. ATS score checker, 11 professional templates, Walk-In CV mode." />
+        <meta property="og:url" content="https://mycvpassport.com" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://mycvpassport.com/images/falcon-icon.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="CVPassport — Resume Builder for Gulf Jobs" />
+        <meta name="twitter:description" content="ATS-optimised CVs for UAE, Saudi & GCC. Free to build, free to download." />
+        <meta name="twitter:image" content="https://mycvpassport.com/images/falcon-icon.png" />
+      </Helmet>
       
       {/* FIXED NAVIGATION BAR */}
       <nav style={{
