@@ -186,8 +186,7 @@ const S = {
   },
   logo: {
     fontSize: "22px", fontWeight: "800", cursor: "pointer",
-    background: `linear-gradient(135deg,${C.accent},${C.gold})`,
-    WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+    color: "#FFFFFF",
   },
   btn: (v = "primary", sz = "md") => ({
     padding: sz === "lg" ? "14px 32px" : sz === "sm" ? "8px 16px" : "10px 22px",

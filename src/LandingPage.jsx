@@ -535,7 +535,8 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
 
         .lp-nav        { padding: 0 60px; }
         .lp-sec        { padding: 80px 60px; }
-        .lp-hero       { padding: 80px 60px 60px; }
+        .lp-hero       { padding: 80px 60px 32px; }
+        .lp-hero + .lp-sec { padding-top: 48px; }
         .lp-walkin-sec { padding: 80px 60px; }
 
         /* Hover states */
@@ -588,7 +589,6 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
           color:       T.textPrimary,
           fontFamily:  "'DM Sans', sans-serif",
           minHeight:   '100vh',
-          overflowX:   'hidden',
         }}
       >
         {/* ── NAV ─────────────────────────────────────────────────── */}
@@ -616,7 +616,19 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             onKeyDown={e => e.key === 'Enter' && setPage && setPage('landing')}
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <img src="/images/falcon-icon.png" alt="CVPassport logo" style={{ height: '28px', width: 'auto' }} />
+            <img
+              src="/images/falcon-icon.png"
+              alt="CVPassport logo"
+              style={{
+                height: '28px',
+                width: 'auto',
+                background: 'transparent',
+                backgroundColor: 'transparent',
+                border: 'none',
+                boxShadow: 'none',
+                display: 'block',
+              }}
+            />
             <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.5px', color: T.textPrimary }}>CVPassport</span>
           </div>
 
@@ -775,7 +787,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
         {/* ── HERO ────────────────────────────────────────────────── */}
         <section
           className="lp-hero"
-          style={{ maxWidth: '1300px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '60px' }}
+          style={{ maxWidth: '1300px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '60px', overflow: 'visible' }}
         >
           {/* Left */}
           <div className="lp-hero-content" style={{ flex: 1, maxWidth: '560px' }}>
@@ -878,6 +890,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               justifyContent: 'center',
               alignItems:     'center',
               position:       'relative',
+              overflow:       'visible',
+              paddingRight:   '24px',
+              boxSizing:      'border-box',
             }}
           >
             {/* Glow halo */}
@@ -890,8 +905,8 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               pointerEvents:'none',
             }} />
             <GlobeComponent />
-            {/* Floating CV card */}
-            <div style={{ position: 'absolute', top: '10px', right: '-30px', width: '210px', zIndex: 2 }}>
+            {/* Floating CV card — inset so it stays inside viewport on desktop */}
+            <div style={{ position: 'absolute', top: '10px', right: '0', width: '210px', zIndex: 2 }}>
               <AnimatedCVCard />
             </div>
           </div>
