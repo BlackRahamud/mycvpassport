@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
 
 * {
   margin: 0;
@@ -59,9 +59,9 @@ html.light body {
   border-radius: 20px;
 }
 
-/* Typography */
-h1, h2, h3 {
-  font-family: 'Playfair Display', serif;
+/* Typography — system sans for all headings (no Playfair) */
+h1, h2, h3, h4, h5, h6 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-weight: 700;
 }
 
@@ -422,32 +422,6 @@ input:focus, textarea:focus {
     max-height: 160px !important;
     min-height: 160px !important;
   }
-}
-
-/* Auth page — sans-serif only (override global Playfair on h2) */
-.cvp-auth-page,
-.cvp-auth-page h2,
-.cvp-auth-page p,
-.cvp-auth-page label,
-.cvp-auth-page input,
-.cvp-auth-page button,
-.cvp-auth-page span {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-}
-
-/* ATSChecker — sans-serif only (override global Playfair on headings) */
-.cvp-ats-root,
-.cvp-ats-root h1,
-.cvp-ats-root h2,
-.cvp-ats-root h3,
-.cvp-ats-root p,
-.cvp-ats-root label,
-.cvp-ats-root button,
-.cvp-ats-root input,
-.cvp-ats-root textarea,
-.cvp-ats-root pre,
-.cvp-ats-root span {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
 }
 
 /* ATSChecker — heading size + visibility grid on mobile */

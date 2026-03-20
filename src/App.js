@@ -1173,6 +1173,7 @@ const AUTH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 const authCardStyle = {
   background: "#141414",
+  backgroundColor: "#141414",
   border: "1px solid #2A2A2A",
   borderRadius: "16px",
   padding: "24px",
