@@ -147,7 +147,10 @@ const DUMMY_RESUME = {
   education: [{ school: "University of Dubai", degree: "Bachelor of Business Administration", year: "2018" }],
   skills: "Sales, Relationship Management, CRM, KYC/AML, Arabic, English, MS Office, Negotiation",
   languages: "Arabic (Native), English (Fluent)",
-  certifications: "Certified Banking Professional (CBP), UAE Central Bank AML Certificate",
+  certifications: [
+    { name: "Certified Banking Professional (CBP)", issuer: "", year: "" },
+    { name: "UAE Central Bank AML Certificate", issuer: "", year: "" },
+  ],
   availability: "Immediately Available",
   willingToRelocate: "Yes",
   drivingLicense: "UAE Driving License"
@@ -174,6 +177,12 @@ const EMPTY_EDU = {
   location: "",
 };
 
+const EMPTY_CERT = {
+  name: "",
+  issuer: "",
+  year: "",
+};
+
 const EMPTY_RESUME = {
   // Personal
   name: "", email: "", phone: "", location: "Dubai, UAE",
@@ -186,7 +195,7 @@ const EMPTY_RESUME = {
   education: [],
   // Skills & extras (skills/languages stay comma strings for T1–T13)
   skills: "", languages: "English, Hindi",
-  certifications: "",
+  certifications: [],
   technicalSkills: "",
   projects: "",
   volunteerWork: "",
@@ -201,11 +210,57 @@ const EMPTY_RESUME = {
 };
 
 const OPTIONAL_BUILDER_SECTIONS = [
-  { id: "certifications", label: "Certifications", field: "certifications", multiline: true },
+  { id: "certifications", label: "Certifications", field: "certifications", multiline: false },
   { id: "projects", label: "Projects", field: "projects", multiline: true },
   { id: "volunteer", label: "Volunteer Work", field: "volunteerWork", multiline: true },
   { id: "publications", label: "Publications", field: "publications", multiline: true },
 ];
+
+function normalizeCertificationsArray(raw) {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return null;
+        if (typeof c === "string") {
+          const n = c.trim();
+          return n ? { ...EMPTY_CERT, name: n } : null;
+        }
+        return {
+          ...EMPTY_CERT,
+          name: String(c.name || "").trim(),
+          issuer: String(c.issuer || "").trim(),
+          year: String(c.year || "").trim(),
+        };
+      })
+      .filter((c) => c && c.name);
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.split(",").map((s) => ({ ...EMPTY_CERT, name: s.trim() })).filter((c) => c.name);
+  }
+  return [];
+}
+
+/** One line per cert for templates that split by comma */
+function formatCertificationLine(c) {
+  if (!c || !c.name) return "";
+  const n = c.name.replace(/,/g, " ");
+  let s = n;
+  if (c.issuer) s += ` — ${String(c.issuer).replace(/,/g, " ")}`;
+  if (c.year) s += ` (${c.year})`;
+  return s;
+}
+
+function certificationsToCommaString(arr) {
+  return normalizeCertificationsArray(arr).map(formatCertificationLine).filter(Boolean).join(", ");
+}
+
+function cvWithTemplateCertifications(cv) {
+  if (!cv || typeof cv !== "object") return cv;
+  return {
+    ...cv,
+    certifications: certificationsToCommaString(cv.certifications),
+  };
+}
 
 function normalizeResumeForBuilder(cv) {
   if (!cv || typeof cv !== "object") return { ...EMPTY_RESUME };
@@ -216,6 +271,7 @@ function normalizeResumeForBuilder(cv) {
     ...cv,
     experience: exp.length ? exp.map((e) => ({ ...EMPTY_EXP, ...e })) : [],
     education: edu.length ? edu.map((e) => ({ ...EMPTY_EDU, ...e })) : [],
+    certifications: normalizeCertificationsArray(cv.certifications),
     builderExtraSectionIds: Array.isArray(cv.builderExtraSectionIds) ? cv.builderExtraSectionIds : [],
     projects: cv.projects ?? "",
     volunteerWork: cv.volunteerWork ?? "",
@@ -883,19 +939,20 @@ function PreviewTimeline({ cv, t }) {
 
 function ResumePreview({ cv, template }) {
   const t = template || TEMPLATES[0];
-  if (t.layout === "twocol")      return <PreviewTwoCol          cv={cv} t={t} />;
-  if (t.layout === "sidebar")     return <PreviewSidebar         cv={cv} t={t} />;
-  if (t.layout === "timeline")    return <PreviewTimeline        cv={cv} t={t} />;
-  if (t.layout === "gulf-exec")   return <PreviewGulfExecutive   cv={cv} t={t} />;
-  if (t.layout === "banking")     return <PreviewBankingFinance  cv={cv} t={t} />;
-  if (t.layout === "compact-pro") return <PreviewCompactPro      cv={cv} t={t} />;
-  if (t.layout === "creative")    return <PreviewCreativeSidebar cv={cv} t={t} />;
-  if (t.layout === "hospitality") return <PreviewHospitality     cv={cv} t={t} />;
-  if (t.layout === "ats-intl")    return <PreviewATSInternational cv={cv} t={t} />;
-  if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cv} t={t} />;
-  if (t.layout === "classic")     return <PreviewClassic         cv={cv} />;
-  if (t.layout === "finance")     return <PreviewFinance         cv={cv} />;
-  return <PreviewBanner cv={cv} t={t} />;
+  const cvT = cvWithTemplateCertifications(cv);
+  if (t.layout === "twocol")      return <PreviewTwoCol          cv={cvT} t={t} />;
+  if (t.layout === "sidebar")     return <PreviewSidebar         cv={cvT} t={t} />;
+  if (t.layout === "timeline")    return <PreviewTimeline        cv={cvT} t={t} />;
+  if (t.layout === "gulf-exec")   return <PreviewGulfExecutive   cv={cvT} t={t} />;
+  if (t.layout === "banking")     return <PreviewBankingFinance  cv={cvT} t={t} />;
+  if (t.layout === "compact-pro") return <PreviewCompactPro      cv={cvT} t={t} />;
+  if (t.layout === "creative")    return <PreviewCreativeSidebar cv={cvT} t={t} />;
+  if (t.layout === "hospitality") return <PreviewHospitality     cv={cvT} t={t} />;
+  if (t.layout === "ats-intl")    return <PreviewATSInternational cv={cvT} t={t} />;
+  if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cvT} t={t} />;
+  if (t.layout === "classic")     return <PreviewClassic         cv={cvT} />;
+  if (t.layout === "finance")     return <PreviewFinance         cv={cvT} />;
+  return <PreviewBanner cv={cvT} t={t} />;
 }
 
 /** A4 page at 96dpi — matches dynamic scale math (containerWidth / 794) */
@@ -1023,7 +1080,8 @@ const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isS
 });
 
 // ─── PDF DOWNLOAD ─────────────────────────────────────────────────
-async function downloadResume(cv, template) {
+async function downloadResume(cvInput, template) {
+  const cv = cvWithTemplateCertifications(cvInput);
   const t = template || TEMPLATES[0];
 
   // ── Delegate to dedicated PDF renderers for T5–T11 ──
@@ -1530,6 +1588,136 @@ function AuthPage({ mode, onAuth, onToggle, loading, error }) {
   );
 }
 
+// ─── CERTIFICATIONS (optional section — multi-entry) ──────────────
+function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection }) {
+  const list = normalizeCertificationsArray(resume.certifications);
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      {list.length === 0 && !certificationEditor && (
+        <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No certifications yet. Add one below.</p>
+      )}
+      {list.map((c, i) => (
+        <div
+          key={i}
+          style={{
+            background: "#1C1C1C",
+            border: "1px solid #2A2A2A",
+            borderRadius: 8,
+            padding: "12px 16px",
+            marginBottom: 8,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setCertificationEditor({ mode: "edit", index: i, draft: { ...EMPTY_CERT, ...c } })}
+            style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#FFFFFF" }}>{c.name || "Certification"}</div>
+                {c.issuer ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.issuer}</div> : null}
+              </div>
+              {c.year ? (
+                <span style={{ fontSize: 12, color: "#A0A0A0", flexShrink: 0, textAlign: "right" }}>{c.year}</span>
+              ) : (
+                <span style={{ width: 0, flexShrink: 0 }} />
+              )}
+            </div>
+          </button>
+          <button
+            type="button"
+            aria-label="Delete certification"
+            onClick={(e) => {
+              e.stopPropagation();
+              setResume((r) => ({
+                ...r,
+                certifications: normalizeCertificationsArray(r.certifications).filter((_, j) => j !== i),
+              }));
+            }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4, flexShrink: 0 }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+          </button>
+        </div>
+      ))}
+      {certificationEditor && (
+        <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 8, padding: 16, display: "grid", gap: 10 }}>
+          <div>
+            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Name</label>
+            <input
+              style={{ ...CB_UI.input, marginTop: 0 }}
+              placeholder="Certification name"
+              value={certificationEditor.draft.name}
+              onChange={(e) => setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, name: e.target.value } } : null))}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Issuer</label>
+            <input
+              style={{ ...CB_UI.input, marginTop: 0 }}
+              placeholder="Issuing organisation (optional)"
+              value={certificationEditor.draft.issuer}
+              onChange={(e) => setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, issuer: e.target.value } } : null))}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Year</label>
+            <input
+              style={{ ...CB_UI.input, marginTop: 0 }}
+              placeholder="Year (optional)"
+              value={certificationEditor.draft.year}
+              onChange={(e) => setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, year: e.target.value } } : null))}
+            />
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+            <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setCertificationEditor(null)}>Cancel</button>
+            <button
+              type="button"
+              style={CB_UI.btn}
+              onClick={() => {
+                const { mode, index, draft } = certificationEditor;
+                const next = { ...EMPTY_CERT, name: draft.name.trim(), issuer: draft.issuer.trim(), year: draft.year.trim() };
+                if (!next.name) return;
+                setResume((r) => {
+                  const cur = normalizeCertificationsArray(r.certifications);
+                  if (mode === "add") return { ...r, certifications: [...cur, next] };
+                  const u = [...cur];
+                  u[index] = next;
+                  return { ...r, certifications: u };
+                });
+                setCertificationEditor(null);
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
+      <button
+        type="button"
+        className="cvp-builder-add-entry-btn"
+        style={{ ...CB_UI.btn, width: "100%", display: "block", marginBottom: 8 }}
+        onClick={() => setCertificationEditor({ mode: "add", index: -1, draft: { ...EMPTY_CERT } })}
+      >
+        + Add Certification
+      </button>
+      <button
+        type="button"
+        style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+        onClick={onRemoveSection}
+      >
+        Remove section
+      </button>
+    </div>
+  );
+}
+
 // ─── RESUME BUILDER ───────────────────────────────────────────────
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId }) {
@@ -1546,6 +1734,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [mobileView, setMobileView] = useState("edit");
   const [experienceEditor, setExperienceEditor] = useState(null);
   const [educationEditor, setEducationEditor] = useState(null);
+  const [certificationEditor, setCertificationEditor] = useState(null);
   const [skillInput, setSkillInput] = useState("");
   const [langInput, setLangInput] = useState("");
   const [addSectionPickerOpen, setAddSectionPickerOpen] = useState(false);
@@ -1624,7 +1813,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     if (resume.summary?.length > 50) s += 16;
     if (resume.experience?.some((e) => e?.company)) s += 16;
     if (resume.skills?.length > 20) s += 12;
-    if (resume.certifications) s += 6;
+    if (normalizeCertificationsArray(resume.certifications).length > 0) s += 6;
     if (resume.languages) s += 6;
     return s;
   })();
@@ -1849,14 +2038,27 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
               {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
                 <AccordionSection key={opt.id} id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {opt.multiline ? (
-                      <textarea style={{ ...CB_UI.input, minHeight: 100, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                    ) : (
-                      <input style={CB_UI.input} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                    )}
-                    <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
-                  </div>
+                  {opt.id === "certifications" ? (
+                    <CertificationsBuilderSection
+                      resume={resume}
+                      setResume={setResume}
+                      certificationEditor={certificationEditor}
+                      setCertificationEditor={setCertificationEditor}
+                      onRemoveSection={() => {
+                        setCertificationEditor(null);
+                        setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
+                      }}
+                    />
+                  ) : (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {opt.multiline ? (
+                        <textarea style={{ ...CB_UI.input, minHeight: 100, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                      ) : (
+                        <input style={CB_UI.input} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                      )}
+                      <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
+                    </div>
+                  )}
                 </AccordionSection>
               ))}
               </div>
@@ -1998,14 +2200,27 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
               {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
                 <AccordionSection key={opt.id} id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {opt.multiline ? (
-                      <textarea style={{ ...CB_UI.input, minHeight: 100, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                    ) : (
-                      <input style={CB_UI.input} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                    )}
-                    <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
-                  </div>
+                  {opt.id === "certifications" ? (
+                    <CertificationsBuilderSection
+                      resume={resume}
+                      setResume={setResume}
+                      certificationEditor={certificationEditor}
+                      setCertificationEditor={setCertificationEditor}
+                      onRemoveSection={() => {
+                        setCertificationEditor(null);
+                        setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
+                      }}
+                    />
+                  ) : (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {opt.multiline ? (
+                        <textarea style={{ ...CB_UI.input, minHeight: 100, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                      ) : (
+                        <input style={CB_UI.input} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                      )}
+                      <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
+                    </div>
+                  )}
                 </AccordionSection>
               ))}
                 </div>

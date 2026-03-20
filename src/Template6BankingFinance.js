@@ -30,8 +30,8 @@ export function PreviewBankingFinance({ cv, t }) {
   );
 
   const SectionTitle = ({ children }) => (
-    <div style={{ marginBottom: "8px", marginTop: "14px" }}>
-      <div style={{ fontSize: "9px", fontWeight: "900", letterSpacing: "2px", color: black, textTransform: "uppercase", fontFamily: "Arial, sans-serif", marginBottom: "4px" }}>
+    <div style={{ marginBottom: "10px", marginTop: "14px" }}>
+      <div style={{ fontSize: "9.5px", fontWeight: "900", letterSpacing: "1.5px", color: black, textTransform: "uppercase", fontFamily: "Arial, sans-serif", marginBottom: "4px" }}>
         {children}
       </div>
       <HR />
@@ -91,15 +91,15 @@ export function PreviewBankingFinance({ cv, t }) {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ padding: "14px 32px 24px" }}>
+      <div style={{ padding: "14px 32px 24px", lineHeight: 1.5 }}>
 
         {/* Professional Summary */}
         {cv.summary && (
           <>
             <SectionTitle>Professional Summary</SectionTitle>
             <p style={{
-              fontSize: "10.5px", lineHeight: "1.8", color: dark,
-              margin: "0 0 4px", textAlign: "justify",
+              fontSize: "10.5px", lineHeight: 1.5, color: dark,
+              margin: "0 0 10px", textAlign: "justify",
             }}>{cv.summary}</p>
           </>
         )}
@@ -109,8 +109,8 @@ export function PreviewBankingFinance({ cv, t }) {
           <>
             <SectionTitle>Core Skills</SectionTitle>
             <p style={{
-              fontSize: "10px", color: dark, margin: 0,
-              lineHeight: "1.9", fontFamily: "Arial, sans-serif",
+              fontSize: "10px", color: dark, margin: "0 0 10px",
+              lineHeight: 1.5, fontFamily: "Arial, sans-serif",
             }}>
               {skillList.join("   ·   ")}
             </p>
@@ -122,28 +122,28 @@ export function PreviewBankingFinance({ cv, t }) {
           <>
             <SectionTitle>Professional Experience</SectionTitle>
             {cv.experience.filter(e => e.company).map((e, i) => (
-              <div key={i} style={{ marginBottom: "14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div key={i} style={{ marginBottom: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}>
                   <span style={{
                     fontSize: "11px", fontWeight: "700", color: black,
                     fontFamily: "Arial, sans-serif", textTransform: "uppercase",
                     letterSpacing: "0.5px",
                   }}>{e.role}</span>
-                  <span style={{ fontSize: "9.5px", color: subtle, fontFamily: "Arial, sans-serif" }}>{e.period}</span>
+                  <span style={{ fontSize: "9.5px", color: "#666666", fontFamily: "Arial, sans-serif", textAlign: "right", flexShrink: 0 }}>{e.period}</span>
                 </div>
                 <div style={{
-                  fontSize: "10.5px", color: mid, fontStyle: "italic",
+                  fontSize: "10.5px", color: "#444444", fontStyle: "italic",
                   marginBottom: "4px",
                 }}>
                   {e.company}{e.location ? ` — ${e.location}` : ""}
                 </div>
                 {e.points && (
-                  <p style={{ fontSize: "10px", color: dark, margin: 0, lineHeight: "1.7" }}>
+                  <p style={{ fontSize: "10px", color: dark, margin: 0, lineHeight: 1.5 }}>
                     {e.points}
                   </p>
                 )}
                 {i < cv.experience.filter(e => e.company).length - 1 && (
-                  <div style={{ height: "1px", background: rule, marginTop: "10px" }} />
+                  <div style={{ height: "1px", background: rule, marginTop: "6px" }} />
                 )}
               </div>
             ))}
@@ -160,7 +160,7 @@ export function PreviewBankingFinance({ cv, t }) {
                   <span style={{ fontSize: "11px", fontWeight: "700", color: black, fontFamily: "Arial, sans-serif" }}>{e.degree}</span>
                   <span style={{ fontSize: "10px", color: mid, fontStyle: "italic" }}> — {e.school}</span>
                 </div>
-                <span style={{ fontSize: "9.5px", color: subtle, fontFamily: "Arial, sans-serif" }}>{e.year}</span>
+                <span style={{ fontSize: "9.5px", color: "#666666", fontFamily: "Arial, sans-serif" }}>{e.year}</span>
               </div>
             ))}
           </>
@@ -170,7 +170,7 @@ export function PreviewBankingFinance({ cv, t }) {
         {certList.length > 0 && (
           <>
             <SectionTitle>Certifications</SectionTitle>
-            <p style={{ fontSize: "10px", color: dark, margin: 0, lineHeight: "1.9", fontFamily: "Arial, sans-serif" }}>
+            <p style={{ fontSize: "10px", color: dark, margin: "0 0 10px", lineHeight: 1.5, fontFamily: "Arial, sans-serif" }}>
               {certList.join("   ·   ")}
             </p>
           </>
@@ -180,7 +180,7 @@ export function PreviewBankingFinance({ cv, t }) {
         {techList.length > 0 && (
           <>
             <SectionTitle>Technical Skills</SectionTitle>
-            <p style={{ fontSize: "10px", color: dark, margin: 0, lineHeight: "1.9", fontFamily: "Arial, sans-serif" }}>
+            <p style={{ fontSize: "10px", color: dark, margin: "0 0 10px", lineHeight: 1.5, fontFamily: "Arial, sans-serif" }}>
               {techList.join("   ·   ")}
             </p>
           </>
@@ -190,7 +190,7 @@ export function PreviewBankingFinance({ cv, t }) {
         {cv.languages && (
           <>
             <SectionTitle>Languages</SectionTitle>
-            <p style={{ fontSize: "10.5px", margin: 0, color: dark }}>{cv.languages}</p>
+            <p style={{ fontSize: "10.5px", margin: "0 0 10px", color: dark, lineHeight: 1.5 }}>{cv.languages}</p>
           </>
         )}
 
@@ -259,16 +259,16 @@ export function pdfBankingFinance(doc, cv, W, M) {
   doc.setLineWidth(0.3);
   doc.line(M, ruleY + 1.5, W - M, ruleY + 1.5);
 
-  let y = ruleY + 8;
+  let y = ruleY + 10;
 
   const sectionTitle = (title) => {
-    doc.setFontSize(8); doc.setFont("helvetica", "bold");
+    doc.setFontSize(9); doc.setFont("helvetica", "bold");
     doc.setTextColor(...black);
     doc.text(title.toUpperCase(), M, y);
     y += 2;
     doc.setDrawColor(...black); doc.setLineWidth(0.5);
     doc.line(M, y, W - M, y);
-    y += 5;
+    y += 6;
     doc.setFont("helvetica", "normal"); doc.setTextColor(...dark);
   };
 
@@ -276,7 +276,7 @@ export function pdfBankingFinance(doc, cv, W, M) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...dark);
     const sl = doc.splitTextToSize(cv.summary, W - M * 2);
-    doc.text(sl, M, y); y += sl.length * 4.5 + 7;
+    doc.text(sl, M, y, { lineHeightFactor: 1.5 }); y += sl.length * (4.5 * 1.5) + 10;
   }
 
   if (cv.skills) {
@@ -293,7 +293,7 @@ export function pdfBankingFinance(doc, cv, W, M) {
       doc.setTextColor(...black);
       doc.text((e.role || "").toUpperCase(), M, y);
       doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
-      doc.setTextColor(...subtle);
+      doc.setTextColor(102, 102, 102);
       doc.text(e.period || "", W - M, y, { align: "right" });
       y += 5;
       doc.setFont("helvetica", "italic"); doc.setFontSize(8.5);
@@ -304,13 +304,13 @@ export function pdfBankingFinance(doc, cv, W, M) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...dark);
         const pl = doc.splitTextToSize(e.points, W - M * 2);
-        doc.text(pl, M, y); y += pl.length * 4 + 2;
+        doc.text(pl, M, y, { lineHeightFactor: 1.5 }); y += pl.length * 4 * 1.5 + 2;
       }
       if (i < arr.length - 1) {
         doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.2);
-        doc.line(M, y + 2, W - M, y + 2); y += 5;
+        doc.line(M, y + 2, W - M, y + 2); y += 3;
       }
-      y += 4;
+      y += 3;
     });
   }
 
@@ -321,7 +321,7 @@ export function pdfBankingFinance(doc, cv, W, M) {
       doc.setTextColor(...black);
       doc.text(e.degree || "", M, y);
       doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
-      doc.setTextColor(...subtle);
+      doc.setTextColor(102, 102, 102);
       doc.text(e.year || "", W - M, y, { align: "right" });
       y += 4.5;
       doc.setFont("helvetica", "italic"); doc.setFontSize(8);

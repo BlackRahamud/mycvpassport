@@ -52,14 +52,19 @@ export function PreviewTechITPro({ cv, t }) {
   return (
     <div style={{
       background: white, borderRadius: "10px", overflow: "hidden",
-      fontFamily: "Arial, sans-serif", display: "flex", minHeight: "500px",
+      fontFamily: "Arial, sans-serif", display: "grid",
+      gridTemplateColumns: `${sideW} minmax(0, 1fr)`,
+      alignItems: "stretch",
+      minHeight: "100%",
     }}>
 
-      {/* ── Left Sidebar ── */}
+      {/* ── Left Sidebar (stretches to full row height) ── */}
       <div style={{
-        width: sideW, background: slate,
+        background: slate,
         padding: "24px 14px 24px 16px",
         display: "flex", flexDirection: "column",
+        minHeight: "100%",
+        alignSelf: "stretch",
       }}>
 
         {/* Name block */}
@@ -182,7 +187,7 @@ export function PreviewTechITPro({ cv, t }) {
       </div>
 
       {/* ── Right Main Panel ── */}
-      <div style={{ flex: 1, padding: "24px 20px", background: offwhite }}>
+      <div style={{ padding: "24px 20px", background: offwhite, minHeight: "100%" }}>
 
         {/* Summary */}
         {cv.summary && (
@@ -198,19 +203,19 @@ export function PreviewTechITPro({ cv, t }) {
         {/* Experience */}
         {cv.experience.some(e => e.company) && (
           <>
-            <MainSection>Work History</MainSection>
+            <MainSection>Professional Experience</MainSection>
             {cv.experience.filter(e => e.company).map((e, i) => (
               <div key={i} style={{ marginTop: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
                   <span style={{ fontSize: "11px", fontWeight: "800", color: dark }}>{e.role}</span>
                   <span style={{
-                    fontSize: "8px", background: slate, color: white,
-                    padding: "2px 8px", borderRadius: "3px",
-                    flexShrink: 0, marginLeft: "10px", fontWeight: "600",
+                    fontSize: "10px", color: "#888888",
+                    flexShrink: 0, marginLeft: "auto", textAlign: "right",
+                    fontWeight: "400",
                   }}>{e.period}</span>
                 </div>
                 <div style={{
-                  fontSize: "9.5px", color: accent, fontWeight: "600",
+                  fontSize: "9.5px", color: mid, fontWeight: "500",
                   fontStyle: "italic", margin: "2px 0 5px",
                 }}>
                   {e.company}{e.location ? ` — ${e.location}` : ""}
@@ -403,24 +408,22 @@ export function pdfTechITPro(doc, cv, W, M) {
   }
 
   if (cv.experience.some(e => e.company)) {
-    mainSection("Work History");
+    mainSection("Professional Experience");
     cv.experience.filter(e => e.company).forEach(e => {
       // Role
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...dark);
       doc.text(e.role || "", rx, y);
 
-      // Period badge
-      doc.setFillColor(sr, sg, sb);
-      const pw = doc.getTextWidth(e.period || "") + 6;
-      doc.roundedRect(W - M - pw, y - 3.5, pw, 5, 1.5, 1.5, "F");
-      doc.setTextColor(255, 255, 255); doc.setFontSize(7);
-      doc.text(e.period || "", W - M - pw / 2, y, { align: "center" });
+      // Period — plain text, right-aligned (no pill)
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7);
+      doc.setTextColor(136, 136, 136);
+      doc.text(e.period || "", W - M, y, { align: "right" });
       y += 5;
 
-      // Company
-      doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
-      doc.setTextColor(ar, ag, ab);
+      // Company — plain body colour (no accent/link styling)
+      doc.setFont("helvetica", "italic"); doc.setFontSize(8.5);
+      doc.setTextColor(...mid);
       const compStr = (e.company || "") + (e.location ? ` — ${e.location}` : "");
       doc.text(compStr, rx, y); y += 5;
 
