@@ -456,6 +456,11 @@ const STEPS = [
   { icon: <DownloadArrowIcon />,title: 'Download & apply',   desc: 'Export a perfect PDF in seconds. Share on WhatsApp or email it directly to recruiters.' },
 ];
 
+function scrollToLandingSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ── Main component ──────────────────────────────────────────────────
 export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
   const [theme, setTheme] = useState(() => {
@@ -505,6 +510,13 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  /** Nav items: Templates / Pricing = in-page anchors (no templates/pricing routes in App). ATS → page "ats". */
+  const handleLandingNav = (item) => {
+    if (item === 'Templates') scrollToLandingSection('lp-templates');
+    else if (item === 'ATS Check') setPage && setPage('ats');
+    else if (item === 'Pricing') scrollToLandingSection('lp-pricing');
+  };
 
   return (
     <>
@@ -649,7 +661,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             {['Templates', 'ATS Check', 'Pricing'].map(item => (
               <button
                 key={item}
+                type="button"
                 className="lp-nav-link"
+                onClick={() => handleLandingNav(item)}
                 style={{
                   background:   'none',
                   border:       'none',
@@ -687,8 +701,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               {isDark ? <SunIcon /> : <MoonIcon />}
             </button>
             <button
+              type="button"
               className="lp-ghost-btn"
-              onClick={onLogin}
+              onClick={() => onLogin && onLogin()}
               style={{
                 background:   'transparent',
                 border:       `1px solid ${T.btnGhostBorder}`,
@@ -704,8 +719,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               Sign In
             </button>
             <button
+              type="button"
               className="lp-btn"
-              onClick={onSignup}
+              onClick={() => onSignup && onSignup()}
               style={{
                 background:   T.btnPrimary,
                 border:       'none',
@@ -763,7 +779,8 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             {['Templates', 'ATS Check', 'Pricing'].map(item => (
               <button
                 key={item}
-                onClick={closeMobileMenu}
+                type="button"
+                onClick={() => { closeMobileMenu(); handleLandingNav(item); }}
                 style={{ background: 'none', border: 'none', color: T.textSecondary, fontSize: '15px', padding: '12px 0', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
               >
                 {item}
@@ -833,8 +850,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             {/* CTAs */}
             <div className="lp-hero-ctas" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '40px' }}>
               <button
+                type="button"
                 className="lp-btn"
-                onClick={onSignup}
+                onClick={() => onSignup && onSignup()}
                 style={{
                   background:   T.btnPrimary,
                   color:        T.btnPrimaryTxt,
@@ -851,7 +869,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
                 Build my CV free →
               </button>
               <button
+                type="button"
                 className="lp-ghost-btn"
+                onClick={() => scrollToLandingSection('lp-templates')}
                 style={{
                   background:   'transparent',
                   color:        T.textPrimary,
@@ -955,8 +975,8 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
           </div>
         </section>
 
-        {/* ── HOW IT WORKS ────────────────────────────────────────── */}
-        <section className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+        {/* ── HOW IT WORKS (templates step — anchor for Browse templates / nav) ── */}
+        <section id="lp-templates" className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: '11px', letterSpacing: '3px', color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px' }}>
             How it works
           </p>
@@ -1012,6 +1032,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
 
         {/* ── WALK-IN BAND ────────────────────────────────────────── */}
         <section
+          id="lp-walkin"
           className="lp-walkin-sec"
           style={{
             background:   T.walkInBg,
@@ -1070,8 +1091,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               </div>
 
               <button
+                type="button"
                 className="lp-btn"
-                onClick={onWalkIn}
+                onClick={() => onWalkIn && onWalkIn()}
                 style={{
                   background:   T.btnPrimary,
                   color:        T.btnPrimaryTxt,
@@ -1162,8 +1184,8 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
           </div>
         </section>
 
-        {/* ── FINAL CTA ───────────────────────────────────────────── */}
-        <section className="lp-sec" style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
+        {/* ── FINAL CTA (pricing / signup anchor) ─────────────────── */}
+        <section id="lp-pricing" className="lp-sec" style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
           <h2 style={{
             fontSize:     'clamp(26px, 4vw, 44px)',
             fontWeight:   '800',
@@ -1178,8 +1200,9 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             Join 2,400+ Gulf job seekers who built their CV with CVPassport.
           </p>
           <button
+            type="button"
             className="lp-btn"
-            onClick={onSignup}
+            onClick={() => onSignup && onSignup()}
             style={{
               background:   T.btnPrimary,
               color:        T.btnPrimaryTxt,
