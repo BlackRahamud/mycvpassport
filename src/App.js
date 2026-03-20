@@ -115,7 +115,7 @@ const supabase = isPrerender ? null : supabaseImport;
 const TEMPLATES = [
   { id: 1,  name: "Gulf Classic",         tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",              layout: "banner"      },
   { id: 2,  name: "Dubai Modern",         tier: "free",    color: "#0f3460", accent: "#00b4d8", desc: "Two-column split",                layout: "twocol"      },
-  { id: 3,  name: "Arabia Pro",           tier: "free",    color: "#1a1a2e", accent: "#f0c040", desc: "Sidebar with skills column",      layout: "sidebar"     },
+  { id: 3,  name: "Arabia Pro",           tier: "free",    color: "#1a1a2e", accent: "#1B3A6B", desc: "Sidebar with skills column",      layout: "sidebar"     },
   { id: 4,  name: "Executive Gold",       tier: "premium", color: "#1a0a00", accent: "#d4a017", desc: "Timeline experience style",       layout: "timeline"    },
   { id: 5,  name: "Gulf Executive",       tier: "premium", color: "#0D1B2A", accent: "#C9A84C", desc: "Dark navy with gold accents",     layout: "gulf-exec"   },
   { id: 6,  name: "Banking & Finance",    tier: "premium", color: "#000000", accent: "#000000", desc: "Ultra-clean ATS-first serif",     layout: "banking"     },
