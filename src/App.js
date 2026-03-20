@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
-import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import TiltedCard from './components/TiltedCard';
@@ -777,6 +777,40 @@ function ResumePreview({ cv, template }) {
   return <PreviewBanner cv={cv} t={t} />;
 }
 
+/** A4 page at 96dpi — matches dynamic scale math (containerWidth / 794) */
+const A4_PREVIEW_WIDTH_PX = 794;
+const A4_PREVIEW_HEIGHT_PX = 1123;
+
+function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded }) {
+  return (
+    <div
+      ref={fitRef}
+      style={{
+        width: "100%",
+        overflowX: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        boxSizing: "border-box",
+        minWidth: 0,
+        ...(padded ? { padding: "0 16px" } : {}),
+      }}
+    >
+      <div
+        style={{
+          width: A4_PREVIEW_WIDTH_PX,
+          transformOrigin: "top center",
+          transform: `scale(${scale})`,
+          marginBottom: `${(scale - 1) * A4_PREVIEW_HEIGHT_PX}px`,
+        }}
+      >
+        <div className="cvp-builder-a4-fit">
+          <ResumePreview cv={cv} template={template} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Customise tab: template row with scaled live preview thumbnail */
 const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isSelected, resume, onSelect }) {
   const isFree = t.tier === "free";
@@ -812,7 +846,7 @@ const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isS
       >
         <div
           style={{
-            width: 595,
+            width: A4_PREVIEW_WIDTH_PX,
             transform: "scale(0.2)",
             transformOrigin: "top center",
             pointerEvents: "none",
@@ -1389,6 +1423,60 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [mobileView, setMobileView] = useState("edit");
   const previewScrollRef = useRef(null);
   const mobilePreviewScrollRef = useRef(null);
+  const desktopPreviewFitRef = useRef(null);
+  const mobilePreviewFitRef = useRef(null);
+  const [desktopPreviewScale, setDesktopPreviewScale] = useState(1);
+  const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
+
+  const measureFitWidth = (el) => {
+    const w = el.getBoundingClientRect().width;
+    if (w < 1) return null;
+    return Math.min(1, w / A4_PREVIEW_WIDTH_PX);
+  };
+
+  useLayoutEffect(() => {
+    const el = desktopPreviewFitRef.current;
+    if (!el) return;
+    const s = measureFitWidth(el);
+    if (s != null) setDesktopPreviewScale(s);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (mobileView !== "preview") return;
+    const el = mobilePreviewFitRef.current;
+    if (!el) return;
+    const s = measureFitWidth(el);
+    if (s != null) setMobilePreviewScale(s);
+  }, [mobileView]);
+
+  useEffect(() => {
+    const el = desktopPreviewFitRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w < 1) continue;
+        setDesktopPreviewScale(Math.min(1, w / A4_PREVIEW_WIDTH_PX));
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (mobileView !== "preview") return;
+    const el = mobilePreviewFitRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w < 1) continue;
+        setMobilePreviewScale(Math.min(1, w / A4_PREVIEW_WIDTH_PX));
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mobileView]);
 
   useEffect(() => {
     previewScrollRef.current?.scrollTo(0, 0);
@@ -1617,13 +1705,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           )}
         </aside>
 
-        {/* Right panel — Live Preview; A4 dimensions/scale in index.css */}
+        {/* Right panel — Live Preview; scale-to-fit (794px A4) */}
         <div className="cvp-builder-preview" ref={previewScrollRef}>
-          <div className="cvp-builder-a4">
-            <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
-              <ResumePreview cv={resume} template={selectedTemplate} />
-            </div>
-          </div>
+          <BuilderA4PreviewScaled
+            cv={resume}
+            template={selectedTemplate}
+            scale={desktopPreviewScale}
+            fitRef={desktopPreviewFitRef}
+            padded={false}
+          />
         </div>
       </div>
 
@@ -1696,12 +1786,26 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          <div ref={mobilePreviewScrollRef} style={{ flex: 1, overflowY: "auto", background: "#111111", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "16px 0" }}>
-            <div className="cvp-builder-mobile-preview-wrapper">
-              <div className="cvp-builder-mobile-preview-inner">
-                <ResumePreview cv={resume} template={selectedTemplate} />
-              </div>
-            </div>
+          <div
+            ref={mobilePreviewScrollRef}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              overflowX: "hidden",
+              background: "#111111",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              padding: "16px 0",
+            }}
+          >
+            <BuilderA4PreviewScaled
+              cv={resume}
+              template={selectedTemplate}
+              scale={mobilePreviewScale}
+              fitRef={mobilePreviewFitRef}
+              padded
+            />
           </div>
         )}
         <div className="cvp-builder-bottom-bar">

@@ -218,42 +218,22 @@ input:focus, textarea:focus {
 .cvp-builder-preview {
   background: #111111;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px;
 }
 
-/* A4 preview — width/height/shadow, scale by breakpoint */
-.cvp-builder-a4 {
-  background: #FFFFFF;
-  width: 595px;
-  min-height: 842px;
+/* A4 live preview — 794×1123 @ 96dpi; scale applied in App.js (BuilderA4PreviewScaled) */
+.cvp-builder-a4-fit {
+  background: #ffffff;
+  width: 794px;
+  min-height: 1123px;
   padding: 32px;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  transform: scale(0.88);
-  transform-origin: top center;
-}
-
-@media (min-width: 1440px) {
-  .cvp-builder-a4 {
-    transform: scale(0.92);
-  }
-}
-
-@media (max-width: 1280px) {
-  .cvp-builder-a4 {
-    transform: scale(0.82);
-  }
-}
-
-@media (max-width: 1024px) {
-  .cvp-builder-a4 {
-    width: 100%;
-    max-width: none;
-    transform: none;
-  }
+  box-sizing: border-box;
 }
 
 /* CV Builder responsive — mobile show/hide */
@@ -359,28 +339,7 @@ input:focus, textarea:focus {
   color: #FFFFFF;
 }
 
-/* CV Builder mobile — scaled A4 preview */
-.cvp-builder-mobile-preview-wrapper {
-  width: 340px;
-  height: 481px; /* 340 * 1.414 = A4 ratio */
-  overflow: hidden;
-  position: relative;
-  background: #ffffff;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.cvp-builder-mobile-preview-inner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 794px;
-  height: 1123px;
-  transform-origin: top left;
-  transform: scale(0.428); /* 340 / 794 */
-  pointer-events: none;
-}
+/* CV Builder mobile — A4 preview uses BuilderA4PreviewScaled + ResizeObserver in App.js */
 
 /* CV Builder mobile — Download button above toggle */
 .cvp-builder-mobile-download {
