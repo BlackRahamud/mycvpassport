@@ -153,25 +153,144 @@ const DUMMY_RESUME = {
   drivingLicense: "UAE Driving License"
 };
 
+const EMPTY_EXP = {
+  company: "",
+  role: "",
+  location: "",
+  period: "",
+  points: "",
+  startDate: "",
+  endDate: "",
+  present: false,
+};
+
+const EMPTY_EDU = {
+  school: "",
+  degree: "",
+  year: "",
+  fieldOfStudy: "",
+  startDate: "",
+  endDate: "",
+  location: "",
+};
+
 const EMPTY_RESUME = {
   // Personal
   name: "", email: "", phone: "", location: "Dubai, UAE",
   title: "", summary: "",
   // Gulf-specific personal
   nationality: "", visaStatus: "", dob: "", gender: "", maritalStatus: "",
-  // Experience
-  experience: [{ company: "", role: "", location: "", period: "", points: "" }],
+  // Experience (templates use company, role, location, period, points)
+  experience: [],
   // Education
-  education: [{ school: "", degree: "", year: "" }],
-  // Skills & extras
+  education: [],
+  // Skills & extras (skills/languages stay comma strings for T1–T13)
   skills: "", languages: "English, Hindi",
   certifications: "",
   technicalSkills: "",
+  projects: "",
+  volunteerWork: "",
+  publications: "",
+  /** Optional accordion sections user chose to show */
+  builderExtraSectionIds: [],
   // Additional
   availability: "Immediately Available",
   drivingLicense: "",
   willingToRelocate: "Yes",
   references: "References available upon request",
+};
+
+const OPTIONAL_BUILDER_SECTIONS = [
+  { id: "certifications", label: "Certifications", field: "certifications", multiline: true },
+  { id: "projects", label: "Projects", field: "projects", multiline: true },
+  { id: "volunteer", label: "Volunteer Work", field: "volunteerWork", multiline: true },
+  { id: "publications", label: "Publications", field: "publications", multiline: true },
+];
+
+function normalizeResumeForBuilder(cv) {
+  if (!cv || typeof cv !== "object") return { ...EMPTY_RESUME };
+  const exp = Array.isArray(cv.experience) ? cv.experience : [];
+  const edu = Array.isArray(cv.education) ? cv.education : [];
+  return {
+    ...EMPTY_RESUME,
+    ...cv,
+    experience: exp.length ? exp.map((e) => ({ ...EMPTY_EXP, ...e })) : [],
+    education: edu.length ? edu.map((e) => ({ ...EMPTY_EDU, ...e })) : [],
+    builderExtraSectionIds: Array.isArray(cv.builderExtraSectionIds) ? cv.builderExtraSectionIds : [],
+    projects: cv.projects ?? "",
+    volunteerWork: cv.volunteerWork ?? "",
+    publications: cv.publications ?? "",
+  };
+}
+
+function splitCommaItems(str) {
+  if (!str || typeof str !== "string") return [];
+  return str.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function buildExperiencePeriod(e) {
+  if (e.startDate || e.endDate || e.present) {
+    const end = e.present ? "Present" : (e.endDate || "").trim();
+    const start = (e.startDate || "").trim();
+    if (start && end) return `${start} – ${end}`;
+    if (start) return e.present ? `${start} – Present` : start;
+    if (end) return end;
+    if (e.present) return "Present";
+  }
+  return (e.period || "").trim();
+}
+
+function buildEducationYearLine(e) {
+  if (e.startDate || e.endDate) {
+    const a = (e.startDate || "").trim();
+    const b = (e.endDate || "").trim();
+    if (a && b) return `${a} – ${b}`;
+    return a || b || (e.year || "").trim();
+  }
+  return (e.year || "").trim();
+}
+
+const CB_UI = {
+  btn: {
+    padding: "8px 16px",
+    borderRadius: 8,
+    border: "none",
+    background: "#FFFFFF",
+    color: "#000000",
+    fontWeight: 500,
+    fontSize: 13,
+    cursor: "pointer",
+  },
+  input: {
+    width: "100%",
+    background: "#1C1C1C",
+    border: "1px solid #2A2A2A",
+    borderRadius: 8,
+    color: "#FFFFFF",
+    padding: "10px 12px",
+    fontSize: 14,
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  card: {
+    background: "#1C1C1C",
+    border: "1px solid #2A2A2A",
+    borderRadius: 8,
+    padding: "12px 16px",
+    marginBottom: 8,
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  chip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    background: "#2A2A2A",
+    color: "#FFFFFF",
+    borderRadius: 20,
+    padding: "4px 12px",
+    fontSize: 13,
+  },
 };
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────
@@ -1417,10 +1536,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
-  const [resume, setResume] = useState(initialResume || { ...EMPTY_RESUME, name: user?.name||"", email: user?.email||"" });
+  const [resume, setResume] = useState(() =>
+    normalizeResumeForBuilder(initialResume || { ...EMPTY_RESUME, name: user?.name || "", email: user?.email || "" })
+  );
   const [builderTab, setBuilderTab] = useState("content");
   const [openSection, setOpenSection] = useState(null);
   const [mobileView, setMobileView] = useState("edit");
+  const [experienceEditor, setExperienceEditor] = useState(null);
+  const [educationEditor, setEducationEditor] = useState(null);
+  const [skillInput, setSkillInput] = useState("");
+  const [langInput, setLangInput] = useState("");
+  const [addSectionPickerOpen, setAddSectionPickerOpen] = useState(false);
   const previewScrollRef = useRef(null);
   const mobilePreviewScrollRef = useRef(null);
   const desktopPreviewFitRef = useRef(null);
@@ -1494,7 +1620,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     if (resume.nationality) s += 5;
     if (resume.visaStatus) s += 5;
     if (resume.summary?.length > 50) s += 16;
-    if (resume.experience[0].company) s += 16;
+    if (resume.experience?.some((e) => e?.company)) s += 16;
     if (resume.skills?.length > 20) s += 12;
     if (resume.certifications) s += 6;
     if (resume.languages) s += 6;
@@ -1628,65 +1754,108 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
               <div className="cvp-sections-list">
               <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
-                <div style={{ padding: "8px 0" }}>
-                  <textarea style={{ ...S.input, height: 100, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
-                  <button type="button" style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>Add Entry</button>
+                <div>
+                  <textarea style={{ ...CB_UI.input, height: 100, resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
                 </div>
               </AccordionSection>
 
               <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
-                <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {resume.experience.length === 0 && (
+                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
+                  )}
                   {resume.experience.map((exp, i) => (
-                    <div key={i} style={{ background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 12, padding: 12 }}>
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Company" value={exp.company} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],company:e.target.value};set("experience",u);}} />
-                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Role" value={exp.role} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],role:e.target.value};set("experience",u);}} />
-                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Location" value={exp.location} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],location:e.target.value};set("experience",u);}} />
-                        <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Period" value={exp.period} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],period:e.target.value};set("experience",u);}} />
-                        <textarea style={{ ...S.input, height: 70, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12, resize: "vertical" }} placeholder="Points (one per line)" value={exp.points} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],points:e.target.value};set("experience",u);}} />
-                      </div>
-                      {i > 0 && <button type="button" onClick={() => setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) }))} style={{ marginTop: 8, fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer" }}>Remove</button>}
+                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
+                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
+                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
+                      </button>
+                      <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                      </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setResume(r => ({ ...r, experience: [...r.experience, { company: "", role: "", location: "", period: "", points: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} style={{ ...CB_UI.btn }}>+ Add Experience</button>
                 </div>
               </AccordionSection>
 
-              {/* Accordion: Education */}
               <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
-                <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {resume.education.length === 0 && (
+                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
+                  )}
                   {resume.education.map((edu, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="School" value={edu.school} onChange={e=>{const u=[...resume.education];u[i]={...u[i],school:e.target.value};set("education",u);}} />
-                      <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Degree" value={edu.degree} onChange={e=>{const u=[...resume.education];u[i]={...u[i],degree:e.target.value};set("education",u);}} />
-                      <input style={{ ...S.input, gridColumn: "1/-1", background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Year" value={edu.year} onChange={e=>{const u=[...resume.education];u[i]={...u[i],year:e.target.value};set("education",u);}} />
+                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <button type="button" onClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{edu.degree || "Degree"}</div>
+                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{edu.school || "Institution"}</div>
+                        {edu.fieldOfStudy ? <div style={{ fontSize: 12, color: "#888" }}>{edu.fieldOfStudy}</div> : null}
+                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildEducationYearLine(edu) || edu.year || ""}</div>
+                      </button>
+                      <button type="button" aria-label="Delete education" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, education: r.education.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                      </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setResume(r => ({ ...r, education: [...r.education, { school: "", degree: "", year: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} style={{ ...CB_UI.btn }}>+ Add Education</button>
                 </div>
               </AccordionSection>
 
-              {/* Accordion: Core Competencies */}
               <AccordionSection id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
-                <div style={{ padding: "8px 0" }}>
-                  <textarea style={{ ...S.input, height: 80, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="Comma separated skills" value={resume.skills} onChange={e=>set("skills",e.target.value)} />
-                  <input style={{ ...S.input, marginTop: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Technical skills" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
-                  <input style={{ ...S.input, marginTop: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Certifications" value={resume.certifications} onChange={e=>set("certifications",e.target.value)} />
-                  <button type="button" style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>Add Entry</button>
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {splitCommaItems(resume.skills).map((sk, si) => (
+                      <span key={`${sk}-${si}`} style={CB_UI.chip}>
+                        {sk}
+                        <button type="button" aria-label={`Remove ${sk}`} onClick={() => setResume(r => ({ ...r, skills: splitCommaItems(r.skills).filter((x) => x !== sk).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120 }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
+                    <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 6 }}>Technical skills</label>
+                    <input style={CB_UI.input} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
+                  </div>
                 </div>
               </AccordionSection>
 
-              {/* Accordion: Languages */}
               <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
-                <div style={{ padding: "8px 0" }}>
-                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="e.g. English (Fluent), Arabic (Basic)" value={resume.languages} onChange={e=>set("languages",e.target.value)} />
-                  <button type="button" style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>Add Entry</button>
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {splitCommaItems(resume.languages).map((lg, li) => (
+                      <span key={`${lg}-${li}`} style={CB_UI.chip}>
+                        {lg}
+                        <button type="button" aria-label={`Remove ${lg}`} onClick={() => setResume(r => ({ ...r, languages: splitCommaItems(r.languages).filter((x) => x !== lg).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120 }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
+                    <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); }}>+ Add</button>
+                  </div>
                 </div>
               </AccordionSection>
+
+              {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
+                <AccordionSection key={opt.id} id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {opt.multiline ? (
+                      <textarea style={{ ...CB_UI.input, minHeight: 100, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                    ) : (
+                      <input style={CB_UI.input} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                    )}
+                    <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
+                  </div>
+                </AccordionSection>
+              ))}
               </div>
 
               {builderTab === "content" && (
-                <button type="button" onClick={() => setOpenSection("summary")} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+                <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
               )}
               <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
@@ -1733,46 +1902,108 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   </div>
                 </div>
                 <div className="cvp-sections-list">
-                <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
-                  <div style={{ padding: "8px 0" }}><textarea style={{ ...S.input, height: 100, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} /></div>
-                </AccordionSection>
-                <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
-                  <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
-                    {resume.experience.map((exp, i) => (
-                      <div key={i} style={{ background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 12, padding: 12 }}>
-                        <div style={{ display: "grid", gap: 8 }}>
-                          <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Company" value={exp.company} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],company:e.target.value};set("experience",u);}} />
-                          <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Role" value={exp.role} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],role:e.target.value};set("experience",u);}} />
-                          <input style={{ ...S.input, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Period" value={exp.period} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],period:e.target.value};set("experience",u);}} />
-                          <textarea style={{ ...S.input, height: 70, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12, resize: "vertical" }} placeholder="Points" value={exp.points} onChange={e=>{const u=[...resume.experience];u[i]={...u[i],points:e.target.value};set("experience",u);}} />
-                        </div>
-                        {i > 0 && <button type="button" onClick={() => setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) }))} style={{ marginTop: 8, fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer" }}>Remove</button>}
-                      </div>
+              <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
+                <div>
+                  <textarea style={{ ...CB_UI.input, height: 100, resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
+                </div>
+              </AccordionSection>
+
+              <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
+                <div style={{ display: "grid", gap: 10 }}>
+                  {resume.experience.length === 0 && (
+                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
+                  )}
+                  {resume.experience.map((exp, i) => (
+                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
+                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
+                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
+                      </button>
+                      <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} style={{ ...CB_UI.btn }}>+ Add Experience</button>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
+                <div style={{ display: "grid", gap: 10 }}>
+                  {resume.education.length === 0 && (
+                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
+                  )}
+                  {resume.education.map((edu, i) => (
+                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <button type="button" onClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{edu.degree || "Degree"}</div>
+                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{edu.school || "Institution"}</div>
+                        {edu.fieldOfStudy ? <div style={{ fontSize: 12, color: "#888" }}>{edu.fieldOfStudy}</div> : null}
+                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildEducationYearLine(edu) || edu.year || ""}</div>
+                      </button>
+                      <button type="button" aria-label="Delete education" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, education: r.education.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} style={{ ...CB_UI.btn }}>+ Add Education</button>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {splitCommaItems(resume.skills).map((sk, si) => (
+                      <span key={`${sk}-${si}`} style={CB_UI.chip}>
+                        {sk}
+                        <button type="button" aria-label={`Remove ${sk}`} onClick={() => setResume(r => ({ ...r, skills: splitCommaItems(r.skills).filter((x) => x !== sk).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
+                      </span>
                     ))}
-                    <button type="button" onClick={() => setResume(r => ({ ...r, experience: [...r.experience, { company: "", role: "", location: "", period: "", points: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120 }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
+                    <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 6 }}>Technical skills</label>
+                    <input style={CB_UI.input} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
+                  </div>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {splitCommaItems(resume.languages).map((lg, li) => (
+                      <span key={`${lg}-${li}`} style={CB_UI.chip}>
+                        {lg}
+                        <button type="button" aria-label={`Remove ${lg}`} onClick={() => setResume(r => ({ ...r, languages: splitCommaItems(r.languages).filter((x) => x !== lg).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120 }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
+                    <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); }}>+ Add</button>
+                  </div>
+                </div>
+              </AccordionSection>
+
+              {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
+                <AccordionSection key={opt.id} id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {opt.multiline ? (
+                      <textarea style={{ ...CB_UI.input, minHeight: 100, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                    ) : (
+                      <input style={CB_UI.input} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
+                    )}
+                    <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
                   </div>
                 </AccordionSection>
-                <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
-                  <div style={{ padding: "8px 0", display: "grid", gap: 12 }}>
-                    {resume.education.map((edu, i) => (
-                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                        <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="School" value={edu.school} onChange={e=>{const u=[...resume.education];u[i]={...u[i],school:e.target.value};set("education",u);}} />
-                        <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Degree" value={edu.degree} onChange={e=>{const u=[...resume.education];u[i]={...u[i],degree:e.target.value};set("education",u);}} />
-                        <input style={{ ...S.input, gridColumn: "1/-1", background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", fontSize: 12 }} placeholder="Year" value={edu.year} onChange={e=>{const u=[...resume.education];u[i]={...u[i],year:e.target.value};set("education",u);}} />
-                      </div>
-                    ))}
-                    <button type="button" onClick={() => setResume(r => ({ ...r, education: [...r.education, { school: "", degree: "", year: "" }] }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}>+ Add Entry</button>
-                  </div>
-                </AccordionSection>
-                <AccordionSection id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
-                  <div style={{ padding: "8px 0" }}><textarea style={{ ...S.input, height: 80, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", resize: "vertical" }} placeholder="Skills" value={resume.skills} onChange={e=>set("skills",e.target.value)} /><input style={{ ...S.input, marginTop: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Certifications" value={resume.certifications} onChange={e=>set("certifications",e.target.value)} /></div>
-                </AccordionSection>
-                <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
-                  <div style={{ padding: "8px 0" }}><input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Languages" value={resume.languages} onChange={e=>set("languages",e.target.value)} /></div>
-                </AccordionSection>
+              ))}
                 </div>
                 {builderTab === "content" && (
-                  <button type="button" onClick={() => setOpenSection("summary")} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+                  <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
                 )}
                 <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
@@ -1836,12 +2067,176 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </div>
         </div>
       </div>
+
+      {experienceEditor && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setExperienceEditor(null)}
+        >
+          <div
+            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>{experienceEditor.mode === "add" ? "Add experience" : "Edit experience"}</h3>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Company name</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={experienceEditor.draft.company} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, company: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Job title</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={experienceEditor.draft.role} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, role: e.target.value } } : null))} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4 }} placeholder="01/2020" value={experienceEditor.draft.startDate} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: e.target.value } } : null))} /></div>
+                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4 }} placeholder="12/2023" disabled={experienceEditor.draft.present} value={experienceEditor.draft.endDate} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: e.target.value } } : null))} /></div>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#FFF", cursor: "pointer" }}>
+                <input type="checkbox" checked={experienceEditor.draft.present} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, present: e.target.checked, endDate: e.target.checked ? "" : ev.draft.endDate } } : null))} />
+                Present (current role)
+              </label>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (City, Country)</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={experienceEditor.draft.location} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Description (bullet points, one per line)</label><textarea style={{ ...CB_UI.input, marginTop: 4, minHeight: 100, resize: "vertical" }} value={experienceEditor.draft.points} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: e.target.value } } : null))} /></div>
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
+              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setExperienceEditor(null)}>Cancel</button>
+              <button
+                type="button"
+                style={CB_UI.btn}
+                onClick={() => {
+                  const { mode, index, draft } = experienceEditor;
+                  const next = { ...draft, period: buildExperiencePeriod({ ...draft, present: draft.present }) };
+                  setResume((r) => {
+                    if (mode === "add") return { ...r, experience: [...r.experience, next] };
+                    const u = [...r.experience];
+                    u[index] = next;
+                    return { ...r, experience: u };
+                  });
+                  setExperienceEditor(null);
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {educationEditor && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setEducationEditor(null)}
+        >
+          <div
+            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>{educationEditor.mode === "add" ? "Add education" : "Edit education"}</h3>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Institution name</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Degree / qualification</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Field of study</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={educationEditor.draft.startDate || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: e.target.value } } : null))} /></div>
+                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={educationEditor.draft.endDate || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: e.target.value } } : null))} /></div>
+              </div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (optional)</label><input style={{ ...CB_UI.input, marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
+              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setEducationEditor(null)}>Cancel</button>
+              <button
+                type="button"
+                style={CB_UI.btn}
+                onClick={() => {
+                  const { mode, index, draft } = educationEditor;
+                  const next = { ...draft, year: buildEducationYearLine(draft) };
+                  setResume((r) => {
+                    if (mode === "add") return { ...r, education: [...r.education, next] };
+                    const u = [...r.education];
+                    u[index] = next;
+                    return { ...r, education: u };
+                  });
+                  setEducationEditor(null);
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addSectionPickerOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setAddSectionPickerOpen(false)}
+        >
+          <div
+            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 400, width: "100%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>Add optional section</h3>
+            <p style={{ fontSize: 13, color: "#A0A0A0", margin: "0 0 16px" }}>Choose a section to add to your CV.</p>
+            <div style={{ display: "grid", gap: 8 }}>
+              {OPTIONAL_BUILDER_SECTIONS.filter((opt) => !(resume.builderExtraSectionIds || []).includes(opt.id)).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  style={{ ...CB_UI.btn, width: "100%", textAlign: "left" }}
+                  onClick={() => {
+                    setResume((r) => ({
+                      ...r,
+                      builderExtraSectionIds: [...new Set([...(r.builderExtraSectionIds || []), opt.id])],
+                    }));
+                    setOpenSection(opt.id);
+                    setAddSectionPickerOpen(false);
+                  }}
+                >
+                  + {opt.label}
+                </button>
+              ))}
+              {OPTIONAL_BUILDER_SECTIONS.every((opt) => (resume.builderExtraSectionIds || []).includes(opt.id)) && (
+                <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>All optional sections are already added.</p>
+              )}
+            </div>
+            <button type="button" style={{ ...CB_UI.btn, marginTop: 16, width: "100%", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setAddSectionPickerOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // Accordion row inside .cvp-sections-list — unified list style
 function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
+  const ease = "cubic-bezier(0.4,0,0.2,1)";
   return (
     <div className={`cvp-section-row${isOpen ? " is-open" : ""}`}>
       <button
@@ -1870,10 +2265,14 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
             {icon === "education" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>}
             {icon === "skills" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
             {icon === "languages" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>}
+            {icon === "certifications" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15l-2 2 2 2 2-2-2-2z" /><path d="M4 4h16v16H4z" /></svg>}
+            {icon === "projects" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>}
+            {icon === "volunteer" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}
+            {icon === "publications" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>}
           </span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#FFFFFF", letterSpacing: "0.03em" }}>{title}</span>
+          <span style={{ fontSize: 15, fontWeight: 500, color: "#FFFFFF", letterSpacing: "0.02em" }}>{title}</span>
         </div>
-        <span style={{ color: "#A0A0A0", display: "grid", placeItems: "center", transition: `transform 300ms ${EASE}`, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+        <span style={{ color: "#A0A0A0", display: "grid", placeItems: "center", transition: `transform 300ms ${ease}`, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
         </span>
       </button>
@@ -1881,11 +2280,20 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
         style={{
           display: "grid",
           gridTemplateRows: isOpen ? "1fr" : "0fr",
-          transition: `grid-template-rows 300ms ${EASE}`,
+          transition: `grid-template-rows 300ms ${ease}`,
         }}
       >
         <div style={{ overflow: "hidden" }}>
-          <div className="cvp-section-row-content" style={{ opacity: isOpen ? 1 : 0, transition: `opacity 300ms ${EASE}`, padding: "0 16px 16px 16px", background: "#1C1C1C", borderTop: "1px solid #2A2A2A" }}>
+          <div
+            className="cvp-section-row-content"
+            style={{
+              opacity: isOpen ? 1 : 0,
+              transition: `opacity 300ms ${ease}`,
+              padding: 16,
+              background: "#141414",
+              borderTop: "1px solid #2A2A2A",
+            }}
+          >
             {children}
           </div>
         </div>
