@@ -229,7 +229,7 @@ input:focus, textarea:focus {
   padding: 24px;
 }
 
-/* A4 live preview — 794×1123 @ 96dpi; scale applied in App.js (BuilderA4PreviewScaled) */
+/* A4 live preview — 794px wide @ 96dpi; scale applied in App.js (BuilderA4PreviewScaled) */
 .cvp-builder-a4-fit {
   background: #ffffff;
   width: 794px;
@@ -238,6 +238,12 @@ input:focus, textarea:focus {
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   box-sizing: border-box;
+}
+
+/* Desktop builder preview only: paper height follows CV content (no forced full A4 white band) */
+.cvp-builder-desktop .cvp-builder-a4-fit {
+  min-height: unset;
+  height: fit-content;
 }
 
 /* CV Builder responsive — mobile show/hide */
