@@ -11,6 +11,8 @@ import { PreviewCreativeSidebar,  pdfCreativeSidebar  } from "./Template8Creativ
 import { PreviewHospitality,      pdfHospitality      } from "./Template9Hospitality";
 import { PreviewATSInternational, pdfATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechITPro";
+import { PreviewClassic,          pdfClassic          } from "./Template12Classic";
+import { PreviewFinance,          pdfFinance          } from "./Template13Finance";
 import LandingPage from './LandingPage';
 import WalkInPage from './WalkInPage';
 import Dashboard from './Dashboard';
@@ -122,6 +124,8 @@ const TEMPLATES = [
   { id: 9,  name: "Hospitality & Service",tier: "premium", color: "#6B4C3B", accent: "#6B4C3B", desc: "Warm tone for hotels & F&B",      layout: "hospitality" },
   { id: 10, name: "ATS International",    tier: "premium", color: "#000000", accent: "#333333", desc: "Pure ATS — zero colour, max score",layout: "ats-intl"   },
   { id: 11, name: "Tech & IT Pro",        tier: "premium", color: "#1E2D45", accent: "#4A90D9", desc: "Dark slate sidebar for tech roles",layout: "tech-it"    },
+  { id: 12, name: "Classic",              tier: "free",    color: "#000000", accent: "#000000", desc: "Single-column black & white · Gulf-friendly", layout: "classic", tags: ["ATS Friendly", "Popular in UAE"] },
+  { id: 13, name: "Finance",              tier: "premium", color: "#000000", accent: "#000000", desc: "Dense finance & accounting · UAE banking",    layout: "finance", tags: ["ATS Friendly", "Popular in UAE", "Banking & Finance"] },
 ];
 
 const DUMMY_RESUME = {
@@ -768,6 +772,8 @@ function ResumePreview({ cv, template }) {
   if (t.layout === "hospitality") return <PreviewHospitality     cv={cv} t={t} />;
   if (t.layout === "ats-intl")    return <PreviewATSInternational cv={cv} t={t} />;
   if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cv} t={t} />;
+  if (t.layout === "classic")     return <PreviewClassic         cv={cv} />;
+  if (t.layout === "finance")     return <PreviewFinance         cv={cv} />;
   return <PreviewBanner cv={cv} t={t} />;
 }
 
@@ -783,6 +789,8 @@ async function downloadResume(cv, template) {
   if (t.layout === "hospitality")  return pdfHospitality(cv, t);
   if (t.layout === "ats-intl")     return pdfATSInternational(cv, t);
   if (t.layout === "tech-it")      return pdfTechITPro(cv, t);
+  if (t.layout === "classic")      return pdfClassic(cv);
+  if (t.layout === "finance")      return pdfFinance(cv);
 
   // ── Built-in jsPDF renderer for T1–T4 ──
   if (!window.jspdf) {
@@ -1156,13 +1164,49 @@ function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedT
               <PreviewBankingFinance cv={DUMMY_RESUME} t={TEMPLATES[5]} />
             </TemplateThumb>
           </TiltedCard>
+
+          {/* T12 - Classic */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Classic</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(16,185,129,0.2)", color: "#10b981", fontWeight: 600 }}>Free</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewClassic cv={DUMMY_RESUME} />
+            </TemplateThumb>
+          </TiltedCard>
+
+          {/* T13 - Finance */}
+          <TiltedCard
+            containerHeight="380px"
+            rotateAmplitude={8}
+            scaleOnHover={1.04}
+            displayOverlayContent={true}
+            overlayContent={
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Finance</span>
+                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(201,168,76,0.25)", color: "#C9A84C", fontWeight: 600 }}>Pro</span>
+              </div>
+            }
+          >
+            <TemplateThumb>
+              <PreviewFinance cv={DUMMY_RESUME} />
+            </TemplateThumb>
+          </TiltedCard>
         </div>
 
         <button 
           onClick={() => { setResume({...EMPTY_RESUME, name: ""}); setSelectedTemplate(TEMPLATES[0]); setView('builder'); }}
           style={{ marginTop: "40px", display: "block", margin: "40px auto 0", padding: "12px 32px", background: "transparent", border: "1px solid #444", color: "#fff", borderRadius: "8px", fontSize: "14px", cursor: "pointer", letterSpacing: "0.5px" }}
         >
-          Explore All 11 Templates →
+          Explore All 13 Templates →
         </button>
       </div>
     </div>
