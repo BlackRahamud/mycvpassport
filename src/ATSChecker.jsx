@@ -3,6 +3,8 @@ import { getCurrentUserProfile, joinWaitlist } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import { Target, Eye, CheckCircle2 } from "lucide-react";
 
+const AT_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
 const STOP_WORDS = new Set(["a","an","the","and","or","but","in","on","at","to","for","of","with","by","from","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","could","should","may","might","that","this","these","those","it","its","we","you","your","our","their","they","he","she","as","if","then","than","so","up","out","about","into","through","during","including","until","against","among","throughout","within","also","very","just","more","most","some","such","no","not","only","same","other","each","few","many","how","all","both","between","i","me","my"]);
 
 const EXPECTED_SECTIONS = [
@@ -29,7 +31,7 @@ function ReadinessGauge({ score }) {
   const color = "#FFFFFF";
 
   return (
-    <div style={{ position: "relative", width: 180, height: 180, margin: "0 auto" }}>
+    <div style={{ position: "relative", width: 180, height: 180, margin: "0 auto", fontFamily: AT_FONT }}>
       <svg width="180" height="180" viewBox="0 0 180 180">
         <circle cx="90" cy="90" r={radius} fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
         <circle
@@ -40,9 +42,9 @@ function ReadinessGauge({ score }) {
           transform="rotate(-90 90 90)"
         />
       </svg>
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
-        <div style={{ fontSize: 42, fontWeight: 900, color: color }}>{score}</div>
-        <div style={{ fontSize: 10, color: "#A0A0A0", fontWeight: 700, textTransform: "uppercase" }}>Readiness</div>
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", fontFamily: AT_FONT }}>
+        <div style={{ fontSize: 42, fontWeight: 700, color: color, fontFamily: AT_FONT }}>{score}</div>
+        <div style={{ fontSize: 10, color: "#A0A0A0", fontWeight: 600, textTransform: "uppercase", fontFamily: AT_FONT }}>Readiness</div>
       </div>
     </div>
   );
@@ -198,51 +200,66 @@ export default function ATSChecker(props) {
   }
 
   return (
-    <div style={{ maxWidth: 850, margin: "0 auto", padding: "40px 20px", color: "#FFFFFF", background: "#0A0A0A", minHeight: "100vh" }}>
+    <div className="cvp-ats-root" style={{ maxWidth: 850, margin: "0 auto", padding: "40px 20px", color: "#FFFFFF", background: "#0A0A0A", minHeight: "100vh", fontFamily: AT_FONT }}>
       
       {/* Back Button */}
       {props.onBack && (
-        <div onClick={props.onBack} style={{ fontSize: "13px", color: "#aaa", cursor: "pointer", marginBottom: "24px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+        <div onClick={props.onBack} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") props.onBack(); }} style={{ fontSize: "13px", color: "#A0A0A0", cursor: "pointer", marginBottom: "24px", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: AT_FONT }}>
           ← Back to Dashboard
         </div>
       )}
       
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <h1 className="cvp-ats-heading" style={{ fontSize: 32, fontWeight: 900, letterSpacing: "-0.02em" }}>ATS Score Checker</h1>
-        <p style={{ color: "#A0A0A0", marginTop: 8 }}>See how your CV scores against any job description. Built for UAE & GCC roles.</p>
+        <h1 className="cvp-ats-heading" style={{ fontSize: "28px", fontWeight: 700, letterSpacing: "normal", color: "#FFFFFF", fontFamily: AT_FONT }}>ATS Score Checker</h1>
+        <p style={{ color: "#A0A0A0", marginTop: 8, fontSize: "16px", fontWeight: 400, fontFamily: AT_FONT }}>See how your CV scores against any job description. Built for UAE & GCC roles.</p>
         <div
-  onDragOver={(e) => e.preventDefault()}
-  onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) setResumeFile(file); }}
-  onClick={() => document.getElementById('resume-upload').click()}
-  style={{ background: "#141414", padding: 24, borderRadius: 16, border: "1px solid #2A2A2A", cursor: "pointer", textAlign: "center" }}
->
-  <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#A0A0A0" }}>Resume Upload</label>
-  <div style={{ marginTop: 12, color: "#A0A0A0", fontSize: 13 }}>
-    {resumeFile ? `✅ ${resumeFile.name}` : "Drag & drop PDF or DOCX here, or click to browse"}
-  </div>
-  <input id="resume-upload" type="file" accept=".pdf,.docx,.txt" onChange={(e) => setResumeFile(e.target.files[0])} style={{ display: "none" }} />
-</div>        <div style={{ background: "#141414", padding: 24, borderRadius: 16, border: "1px solid #2A2A2A" }}>
-          <label style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#A0A0A0" }}>Job Target</label>
-          <textarea 
-            rows={3} 
-            value={jobDesc} 
-            onChange={(e) => setJobDesc(e.target.value)} 
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) setResumeFile(file); }}
+          onClick={() => document.getElementById("resume-upload").click()}
+          style={{ background: "#1C1C1C", padding: 24, borderRadius: 12, border: "1px solid #2A2A2A", cursor: "pointer", textAlign: "center", marginTop: 24 }}
+        >
+          <label style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#A0A0A0", letterSpacing: "0.08em", fontFamily: AT_FONT }}>Resume Upload</label>
+          <div style={{ marginTop: 12, color: "#A0A0A0", fontSize: 13, fontFamily: AT_FONT }}>
+            {resumeFile ? `✅ ${resumeFile.name}` : "Drag & drop PDF or DOCX here, or click to browse"}
+          </div>
+          <input id="resume-upload" type="file" accept=".pdf,.docx,.txt" onChange={(e) => setResumeFile(e.target.files[0])} style={{ display: "none" }} />
+        </div>
+        <div style={{ background: "#1C1C1C", padding: 24, borderRadius: 12, border: "1px solid #2A2A2A", marginTop: 16 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#A0A0A0", letterSpacing: "0.08em", fontFamily: AT_FONT }}>Job Target</label>
+          <textarea
+            rows={3}
+            value={jobDesc}
+            onChange={(e) => setJobDesc(e.target.value)}
             placeholder="Paste target role description..."
-            style={{ width: "100%", background: "transparent", border: "none", color: "#fff", marginTop: 8, outline: "none", resize: "none" }}
+            style={{
+              width: "100%",
+              marginTop: 12,
+              background: "#1C1C1C",
+              border: "1px solid #2A2A2A",
+              borderRadius: 8,
+              color: "#FFFFFF",
+              padding: "12px 16px",
+              outline: "none",
+              resize: "vertical",
+              fontSize: 14,
+              fontFamily: AT_FONT,
+              boxSizing: "border-box",
+            }}
           />
         </div>
       </div>
 
-      <button 
-        onClick={handleCheck} 
+      <button
+        type="button"
+        onClick={handleCheck}
         disabled={loading}
-        style={{ width: "100%", padding: 16, borderRadius: 12, background: "#FFFFFF", color: "#000000", fontWeight: 700, cursor: "pointer", border: "none" }}
+        style={{ width: "100%", padding: 16, borderRadius: 8, background: "#FFFFFF", color: "#000000", fontWeight: 600, fontSize: 16, cursor: loading ? "not-allowed" : "pointer", border: "none", fontFamily: AT_FONT }}
       >
         {loading ? loadingMessages[loadingStage] : "Execute Analysis"}
       </button>
 
-      {error && <div style={{ color: "#ef4444", marginTop: 20, textAlign: "center", fontWeight: 600 }}>{error}</div>}
+      {error && <div style={{ color: "#ef4444", marginTop: 20, textAlign: "center", fontWeight: 600, fontFamily: AT_FONT }}>{error}</div>}
 
       {/* Dashboard Results */}
       {result && !loading && (
@@ -254,7 +271,7 @@ export default function ATSChecker(props) {
             <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <Target size={18} color="#FFFFFF" />
-                <h3 style={{ fontSize: 14, fontWeight: 800 }}>Keyword Optimization</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT }}>Keyword Optimization</h3>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{result.kw.score}/50</div>
               <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Analysis of essential industry terminology matched.</p>
@@ -263,7 +280,7 @@ export default function ATSChecker(props) {
             <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <CheckCircle2 size={18} color="#FFFFFF" />
-                <h3 style={{ fontSize: 14, fontWeight: 800 }}>Professional Readiness</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT }}>Professional Readiness</h3>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{result.sec.score}/30</div>
               <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Validation of core structural pillars and headings.</p>
@@ -272,7 +289,7 @@ export default function ATSChecker(props) {
             <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <Eye size={18} color="#FFFFFF" />
-                <h3 style={{ fontSize: 14, fontWeight: 800 }}>Readability Insight</h3>
+                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT }}>Readability Insight</h3>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{result.fmt.score}/20</div>
               <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Detection of layout interference and parsing risks.</p>
@@ -282,7 +299,7 @@ export default function ATSChecker(props) {
           {/* Visual Proof Hook (Free Users Only) */}
           {!isPro && (
             <div style={{ marginTop: 40 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 20 }}>ATS Visibility Check</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20, fontFamily: AT_FONT }}>ATS Visibility Check</h3>
               <div className="cvp-ats-visibility-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                 <div style={{ background: "#fff", padding: 10, borderRadius: 12, height: 300, overflow: "hidden" }}>
                   <div style={{ color: "#000", fontSize: 10, fontWeight: 800, marginBottom: 5 }}>Human View (Formatted)</div>
@@ -298,7 +315,7 @@ export default function ATSChecker(props) {
 
           {/* Pricing Wall */}
           <div style={{ marginTop: 40, padding: 32, borderRadius: 24, background: "#141414", textAlign: "center", border: "1px solid #2A2A2A" }}>
-            <h2 style={{ fontSize: 24, fontWeight: 900 }}>Upgrade to Deep Scan Pro</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700, fontFamily: AT_FONT }}>Upgrade to Deep Scan Pro</h2>
             <div className="cvp-ats-pricing-row" style={{ display: "flex", justifyContent: "center", gap: 30, marginTop: 24 }}>
               <div>
                 <div style={{ fontSize: 12, color: "#A0A0A0" }}>Basic Scan</div>
@@ -310,9 +327,10 @@ export default function ATSChecker(props) {
                 <div style={{ fontSize: 20, fontWeight: 800 }}>AED 49</div>
               </div>
             </div>
-            <button 
+            <button
+              type="button"
               onClick={() => setShowWaitlistModal(true)}
-              style={{ marginTop: 24, padding: "12px 40px", borderRadius: 99, background: "#FFFFFF", color: "#000000", fontWeight: 700, border: "none", cursor: "pointer" }}
+              style={{ marginTop: 24, padding: "12px 40px", borderRadius: 12, background: "#FFFFFF", color: "#000000", fontWeight: 600, border: "none", cursor: "pointer", fontFamily: AT_FONT }}
             >
               Join Priority Waitlist
             </button>
@@ -324,21 +342,22 @@ export default function ATSChecker(props) {
       {showWaitlistModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "#141414", padding: 40, borderRadius: 24, maxWidth: 400, width: "90%", textAlign: "center", border: "1px solid #2A2A2A" }}>
-            <h3 style={{ fontSize: 22, fontWeight: 900 }}>Coming Soon</h3>
+            <h3 style={{ fontSize: 22, fontWeight: 700, fontFamily: AT_FONT }}>Coming Soon</h3>
             <p style={{ color: "#A0A0A0", margin: "12px 0 24px" }}>We are perfecting our Deep Scan engine. Join the waitlist for priority access and a 50% launch discount.</p>
             
             {waitlistMessage.text ? (
               <div style={{ color: "#FFFFFF", fontWeight: 700, marginBottom: 20 }}>{waitlistMessage.text}</div>
             ) : (
               <>
-                <input 
-                  type="email" 
-                  placeholder="Enter your email" 
+                <input
+                  type="email"
+                  placeholder="Enter your email"
                   value={waitlistEmail}
                   onChange={(e) => setWaitlistEmail(e.target.value)}
-                  style={{ width: "100%", padding: 14, borderRadius: 12, background: "#0A0A0A", border: "1px solid #2A2A2A", color: "#fff", marginBottom: 16 }}
+                  style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFFFFF", marginBottom: 16, fontFamily: AT_FONT, fontSize: 14, boxSizing: "border-box" }}
                 />
-                <button 
+                <button
+                  type="button"
                   onClick={async () => {
                     setWaitlistLoading(true);
                     try {
@@ -348,13 +367,13 @@ export default function ATSChecker(props) {
                     setWaitlistLoading(false);
                   }}
                   disabled={waitlistLoading}
-                  style={{ width: "100%", padding: 14, borderRadius: 12, background: "#FFFFFF", color: "#000000", fontWeight: 700, border: "none", cursor: "pointer" }}
+                  style={{ width: "100%", padding: 14, borderRadius: 8, background: "#FFFFFF", color: "#000000", fontWeight: 600, border: "none", cursor: "pointer", fontFamily: AT_FONT }}
                 >
                   {waitlistLoading ? "Joining..." : "Join Priority List"}
                 </button>
               </>
             )}
-            <button onClick={() => setShowWaitlistModal(false)} style={{ marginTop: 20, background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", fontSize: 12 }}>Close</button>
+            <button type="button" onClick={() => setShowWaitlistModal(false)} style={{ marginTop: 20, background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", fontSize: 12, fontFamily: AT_FONT }}>Close</button>
           </div>
         </div>
       )}

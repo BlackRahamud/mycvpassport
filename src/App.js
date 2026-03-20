@@ -1169,25 +1169,71 @@ function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedT
   );
 }
 
+const AUTH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+const authCardStyle = {
+  background: "#141414",
+  border: "1px solid #2A2A2A",
+  borderRadius: "16px",
+  padding: "24px",
+  fontFamily: AUTH_FONT,
+};
+
+const authLabelStyle = {
+  display: "block",
+  fontWeight: 500,
+  color: "#A0A0A0",
+  fontSize: "14px",
+  marginBottom: "6px",
+  fontFamily: AUTH_FONT,
+};
+
+const authInputStyle = {
+  width: "100%",
+  padding: "12px 16px",
+  background: "#1C1C1C",
+  border: "1px solid #2A2A2A",
+  borderRadius: "8px",
+  color: "#FFFFFF",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box",
+  fontFamily: AUTH_FONT,
+};
+
+const authPrimaryBtn = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#FFFFFF",
+  color: "#000000",
+  fontWeight: 600,
+  fontSize: "16px",
+  cursor: "pointer",
+  fontFamily: AUTH_FONT,
+  transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)",
+};
+
 // ─── AUTH PAGE ────────────────────────────────────────────────────
 function AuthPage({ mode, onAuth, onToggle, loading, error }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   return (
-    <div style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
-      <div style={S.card}>
-        <h2 style={{ fontSize: "24px", fontWeight: "800", marginBottom: "6px" }}>{mode === "login" ? "Welcome back" : "Create account"}</h2>
-        <p style={{ color: C.muted, marginBottom: "28px", fontSize: "14px" }}>{mode === "login" ? "Sign in to your CVPassport account" : "Start building your Gulf resume today"}</p>
-        {error && <div style={{ background: "rgba(239,68,68,0.1)", border: `1px solid ${C.danger}`, borderRadius: "8px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: C.danger }}>{error}</div>}
-        {mode === "signup" && <div style={{ marginBottom: "16px" }}><label style={S.label}>Full Name</label><input style={S.input} placeholder="Your Name" value={form.name} onChange={e=>set("name",e.target.value)}/></div>}
-        <div style={{ marginBottom: "16px" }}><label style={S.label}>Email</label><input style={S.input} type="email" placeholder="you@email.com" value={form.email} onChange={e=>set("email",e.target.value)}/></div>
-        <div style={{ marginBottom: "24px" }}><label style={S.label}>Password</label><input style={S.input} type="password" placeholder="••••••••" value={form.password} onChange={e=>set("password",e.target.value)}/></div>
-        <button style={{ ...S.btn("primary","lg"), width: "100%", opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }} disabled={loading} onClick={() => onAuth({ ...form, name: form.name||form.email.split("@")[0] })}>
+    <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+      <div style={authCardStyle}>
+        <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF", fontFamily: AUTH_FONT }}>{mode === "login" ? "Welcome back" : "Create account"}</h2>
+        <p style={{ color: "#A0A0A0", marginBottom: "28px", fontSize: "14px", fontFamily: AUTH_FONT }}>{mode === "login" ? "Sign in to your CVPassport account" : "Start building your Gulf resume today"}</p>
+        {error && <div style={{ background: "rgba(239,68,68,0.1)", border: `1px solid ${C.danger}`, borderRadius: "8px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: C.danger, fontFamily: AUTH_FONT }}>{error}</div>}
+        {mode === "signup" && <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Full Name</label><input style={authInputStyle} placeholder="Your Name" value={form.name} onChange={e=>set("name",e.target.value)}/></div>}
+        <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Email</label><input style={authInputStyle} type="email" placeholder="you@email.com" value={form.email} onChange={e=>set("email",e.target.value)}/></div>
+        <div style={{ marginBottom: "24px" }}><label style={authLabelStyle}>Password</label><input style={authInputStyle} type="password" placeholder="••••••••" value={form.password} onChange={e=>set("password",e.target.value)}/></div>
+        <button type="button" style={{ ...authPrimaryBtn, opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }} disabled={loading} onClick={() => onAuth({ ...form, name: form.name||form.email.split("@")[0] })}>
           {loading ? "Please wait..." : mode === "login" ? "Sign In →" : "Create Free Account →"}
         </button>
-        <p style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: C.muted }}>
+        <p style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: "#A0A0A0", fontFamily: AUTH_FONT }}>
           {mode === "login" ? "No account? " : "Already have one? "}
-          <span style={{ color: C.accent, cursor: "pointer", fontWeight: "600" }} onClick={onToggle}>{mode === "login" ? "Sign up free" : "Sign in"}</span>
+          <span role="button" tabIndex={0} style={{ color: "#FFFFFF", cursor: "pointer", fontWeight: 600 }} onClick={onToggle} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(); }}>{mode === "login" ? "Sign up free" : "Sign in"}</span>
         </p>
       </div>
     </div>
