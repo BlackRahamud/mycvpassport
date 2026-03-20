@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { ReactComponent as FalconLogo } from './logo.svg';
 
 // ── Globe helpers — kept identical to LandingGlobe.jsx ─────────────
 function project(lat, lon) {
@@ -616,17 +617,17 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             onKeyDown={e => e.key === 'Enter' && setPage && setPage('landing')}
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <img
-              src="/images/falcon-icon.png"
-              alt="CVPassport logo"
+            <FalconLogo
+              width={28}
+              height={28}
+              aria-hidden="true"
               style={{
-                height: '28px',
-                width: 'auto',
-                background: 'transparent',
-                backgroundColor: 'transparent',
+                display: 'block',
+                flexShrink: 0,
+                color: T.textPrimary,
+                background: 'none',
                 border: 'none',
                 boxShadow: 'none',
-                display: 'block',
               }}
             />
             <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.5px', color: T.textPrimary }}>CVPassport</span>

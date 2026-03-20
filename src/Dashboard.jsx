@@ -1,17 +1,7 @@
 import { useMemo, useState } from "react";
+import { ReactComponent as FalconLogo } from "./logo.svg";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
-
-function FalconIcon({ size = 22 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true" focusable="false" style={{ display: "block" }}>
-      <circle cx="32" cy="32" r="30" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M18 38c6-8 10-12 14-13 4-1 9 0 14 3-4 1-7 3-9 6 3 0 6 1 9 3-4 1-8 2-12 2-4 0-8-1-12-3z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M24 42c2 3 4 5 8 6 4-1 6-3 8-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M28 22c1.5-2 3-3 4-3s2.5 1 4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function IconPlus({ size = 18 }) {
   return (
@@ -149,7 +139,7 @@ export default function Dashboard({
             role="button"
             tabIndex={0}
           >
-            <FalconIcon />
+            <FalconLogo width={22} height={22} aria-hidden="true" style={{ display: "block", flexShrink: 0, color: "var(--text-primary)", background: "none", border: "none", boxShadow: "none" }} />
             <span style={{ fontWeight: 700, letterSpacing: "0.04em" }}>CVPassport</span>
           </div>
 

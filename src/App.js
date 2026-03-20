@@ -14,6 +14,7 @@ import { PreviewTechITPro,        pdfTechITPro        } from "./Template11TechIT
 import LandingPage from './LandingPage';
 import WalkInPage from './WalkInPage';
 import Dashboard from './Dashboard';
+import { ReactComponent as FalconLogo } from "./logo.svg";
 
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
 function TabIconDoc() {
@@ -1665,8 +1666,12 @@ export default function App() {
 
   return (
     <div style={S.app}>
+      {page !== "landing" && (
       <nav className="cvp-app-nav" style={S.nav}>
-        <div style={S.logo} onClick={() => setPage("landing")} role="button" tabIndex={0}>CVPassport</div>
+        <div style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }} onClick={() => setPage("landing")} role="button" tabIndex={0}>
+          <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
+          CVPassport
+        </div>
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           {user ? (
             <>
@@ -1682,6 +1687,7 @@ export default function App() {
           )}
         </div>
       </nav>
+      )}
 {page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
 {page === "walkin" && <WalkInPage onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
