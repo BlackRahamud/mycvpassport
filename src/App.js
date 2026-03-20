@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import TiltedCard from './components/TiltedCard';
@@ -777,6 +777,96 @@ function ResumePreview({ cv, template }) {
   return <PreviewBanner cv={cv} t={t} />;
 }
 
+/** Customise tab: template row with scaled live preview thumbnail */
+const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isSelected, resume, onSelect }) {
+  const isFree = t.tier === "free";
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(t)}
+      style={{
+        width: "100%",
+        height: 120,
+        padding: 0,
+        borderRadius: 8,
+        border: isSelected ? "1px solid #FFFFFF" : "1px solid #2A2A2A",
+        background: isSelected ? "#1C1C1C" : "#141414",
+        cursor: "pointer",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        textAlign: "left",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          height: 90,
+          overflow: "hidden",
+          background: "#1C1C1C",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "flex-start",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            width: 595,
+            transform: "scale(0.2)",
+            transformOrigin: "top center",
+            pointerEvents: "none",
+            flexShrink: 0,
+          }}
+        >
+          <ResumePreview cv={resume} template={t} />
+        </div>
+      </div>
+      <div
+        style={{
+          height: 30,
+          minHeight: 30,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          padding: "0 10px",
+          boxSizing: "border-box",
+          borderTop: "1px solid #2A2A2A",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#FFFFFF",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flex: 1,
+            minWidth: 0,
+          }}
+        >
+          {t.name}
+        </span>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            padding: "2px 8px",
+            borderRadius: 6,
+            flexShrink: 0,
+            background: isFree ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.2)",
+            color: isFree ? "#10b981" : "#f59e0b",
+          }}
+        >
+          {isFree ? "Free" : "Pro"}
+        </span>
+      </div>
+    </button>
+  );
+});
+
 // ─── PDF DOWNLOAD ─────────────────────────────────────────────────
 async function downloadResume(cv, template) {
   const t = template || TEMPLATES[0];
@@ -1297,6 +1387,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [builderTab, setBuilderTab] = useState("content");
   const [openSection, setOpenSection] = useState(null);
   const [mobileView, setMobileView] = useState("edit");
+  const previewScrollRef = useRef(null);
+  const mobilePreviewScrollRef = useRef(null);
+
+  useEffect(() => {
+    previewScrollRef.current?.scrollTo(0, 0);
+    mobilePreviewScrollRef.current?.scrollTo(0, 0);
+  }, [selectedTemplate?.id]);
 
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
 
@@ -1316,6 +1413,23 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     return s;
   })();
   const scoreColor = score >= 80 ? C.success : score >= 50 ? C.gold : C.danger;
+
+  const customizePanel = (
+    <div style={{ padding: 12 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Template</div>
+      <div style={{ display: "grid", gap: 8 }}>
+        {TEMPLATES.map((t) => (
+          <BuilderTemplateCard
+            key={t.id}
+            template={t}
+            isSelected={selectedTemplate?.id === t.id}
+            resume={resume}
+            onSelect={setSelectedTemplate}
+          />
+        ))}
+      </div>
+    </div>
+  );
 
   const handleSave = useCallback(async () => {
     if (!user?.id) return;
@@ -1494,16 +1608,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </div>
             </>
           )}
-          {builderTab === "customize" && (
-            <div style={{ padding: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Template</div>
-              <div style={{ display: "grid", gap: 8 }}>
-                {TEMPLATES.map(t => (
-                  <button key={t.id} type="button" onClick={() => setSelectedTemplate(t)} style={{ padding: 12, borderRadius: 12, border: "1px solid #2A2A2A", background: selectedTemplate?.id === t.id ? "#1C1C1C" : "#141414", color: "#FFF", textAlign: "left", cursor: "pointer" }}>{t.name}</button>
-                ))}
-              </div>
-            </div>
-          )}
+          {builderTab === "customize" && customizePanel}
           {builderTab === "ats" && (
             <div style={{ padding: 12 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
@@ -1513,7 +1618,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </aside>
 
         {/* Right panel — Live Preview; A4 dimensions/scale in index.css */}
-        <div className="cvp-builder-preview">
+        <div className="cvp-builder-preview" ref={previewScrollRef}>
           <div className="cvp-builder-a4">
             <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
               <ResumePreview cv={resume} template={selectedTemplate} />
@@ -1587,11 +1692,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </>
             )}
-            {builderTab === "customize" && <div style={{ padding: 12 }}><div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Template</div><div style={{ display: "grid", gap: 8 }}>{TEMPLATES.map(t => <button key={t.id} type="button" onClick={() => setSelectedTemplate(t)} style={{ padding: 12, borderRadius: 12, border: "1px solid #2A2A2A", background: selectedTemplate?.id === t.id ? "#1C1C1C" : "#141414", color: "#FFF", textAlign: "left", cursor: "pointer" }}>{t.name}</button>)}</div></div>}
+            {builderTab === "customize" && customizePanel}
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          <div style={{ flex: 1, overflowY: "auto", background: "#111111", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "16px 0" }}>
+          <div ref={mobilePreviewScrollRef} style={{ flex: 1, overflowY: "auto", background: "#111111", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "16px 0" }}>
             <div className="cvp-builder-mobile-preview-wrapper">
               <div className="cvp-builder-mobile-preview-inner">
                 <ResumePreview cv={resume} template={selectedTemplate} />
