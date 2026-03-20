@@ -269,6 +269,8 @@ const CB_UI = {
     color: "#FFFFFF",
     padding: "10px 12px",
     fontSize: 14,
+    lineHeight: 1.6,
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     outline: "none",
     boxSizing: "border-box",
   },
@@ -1672,12 +1674,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
 
+  const builderExtraSectionIds = resume.builderExtraSectionIds || [];
+  const availableOptionalSections = OPTIONAL_BUILDER_SECTIONS.filter((s) => !builderExtraSectionIds.includes(s.id));
+  const allOptionalSectionsAdded = OPTIONAL_BUILDER_SECTIONS.every((s) => builderExtraSectionIds.includes(s.id));
+
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}>
       {/* Top nav bar — 56px, Download = only primary */}
       <header
         className="cvp-builder-topbar"
         style={{
+          flexShrink: 0,
           height: 56,
           position: "sticky",
           top: 0,
@@ -1776,7 +1783,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                       </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} style={{ ...CB_UI.btn }}>+ Add Experience</button>
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
                 </div>
               </AccordionSection>
 
@@ -1798,7 +1805,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                       </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} style={{ ...CB_UI.btn }}>+ Add Education</button>
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Education</button>
                 </div>
               </AccordionSection>
 
@@ -1812,9 +1819,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                       </span>
                     ))}
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120 }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
-                    <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <input style={{ ...CB_UI.input }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
+                    <button type="button" className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
                   </div>
                   <div>
                     <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 6 }}>Technical skills</label>
@@ -1887,9 +1894,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       </div>
 
       {/* Mobile: single column + Edit | Preview pill */}
-      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", minHeight: "calc(100vh - 56px)" }}>
+      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", flex: 1, minHeight: 0 }}>
         {mobileView === "edit" ? (
-          <div className="cvp-builder-mobile-form" style={{ overflowY: "auto", padding: 12, display: "grid", gap: 8, alignContent: "start", background: "#0A0A0A" }}>
+          <div className="cvp-builder-mobile-form">
             {builderTab === "content" && (
               <>
                 <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
@@ -1925,7 +1932,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                       </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} style={{ ...CB_UI.btn }}>+ Add Experience</button>
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
                 </div>
               </AccordionSection>
 
@@ -1947,7 +1954,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                       </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} style={{ ...CB_UI.btn }}>+ Add Education</button>
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Education</button>
                 </div>
               </AccordionSection>
 
@@ -1961,9 +1968,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                       </span>
                     ))}
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120 }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
-                    <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <input style={{ ...CB_UI.input }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
+                    <button type="button" className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
                   </div>
                   <div>
                     <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 6 }}>Technical skills</label>
@@ -2204,8 +2211,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           >
             <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>Add optional section</h3>
             <p style={{ fontSize: 13, color: "#A0A0A0", margin: "0 0 16px" }}>Choose a section to add to your CV.</p>
-            <div style={{ display: "grid", gap: 8 }}>
-              {OPTIONAL_BUILDER_SECTIONS.filter((opt) => !(resume.builderExtraSectionIds || []).includes(opt.id)).map((opt) => (
+            <div style={{ display: "grid", gap: 8, maxHeight: "55vh", overflowY: "auto" }}>
+              {availableOptionalSections.map((opt) => (
                 <button
                   key={opt.id}
                   type="button"
@@ -2216,14 +2223,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                       builderExtraSectionIds: [...new Set([...(r.builderExtraSectionIds || []), opt.id])],
                     }));
                     setOpenSection(opt.id);
-                    setAddSectionPickerOpen(false);
                   }}
                 >
                   + {opt.label}
                 </button>
               ))}
-              {OPTIONAL_BUILDER_SECTIONS.every((opt) => (resume.builderExtraSectionIds || []).includes(opt.id)) && (
-                <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>All optional sections are already added.</p>
+              {availableOptionalSections.length === 0 && (
+                <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>
+                  {allOptionalSectionsAdded ? "All optional sections have been added." : "No sections available."}
+                </p>
               )}
             </div>
             <button type="button" style={{ ...CB_UI.btn, marginTop: 16, width: "100%", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setAddSectionPickerOpen(false)}>Close</button>
@@ -2283,7 +2291,7 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
           transition: `grid-template-rows 300ms ${ease}`,
         }}
       >
-        <div style={{ overflow: "hidden" }}>
+        <div style={{ overflow: isOpen ? "visible" : "hidden" }}>
           <div
             className="cvp-section-row-content"
             style={{
