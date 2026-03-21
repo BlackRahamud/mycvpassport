@@ -1108,9 +1108,39 @@ const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isS
   );
 });
 
-// ─── PDF DOWNLOAD (html2canvas snapshot → jsPDF) ───────────────────
-async function downloadResumeFromPreview(cvInput, captureElement) {
+// ─── PDF DOWNLOAD — Template 1: server Puppeteer API; others: html2canvas + jsPDF ──
+async function downloadResumeFromPreview(cvInput, captureElement, template) {
   const cv = cvWithTemplateCertifications(cvInput);
+  const templateId = template?.id ?? 1;
+
+  if (templateId === 1) {
+    const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ templateId: 1, cv }),
+    });
+    if (!res.ok) {
+      let msg = `Server error ${res.status}`;
+      try {
+        const j = await res.json();
+        if (j.error) msg = j.error;
+      } catch {
+        /* ignore */
+      }
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
   if (!captureElement) return;
 
   if (typeof document !== "undefined" && document.fonts?.ready) {
@@ -1778,8 +1808,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       await new Promise((r) => setTimeout(r, 300));
 
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
-      if (!el) throw new Error("Preview not ready");
-      await downloadResumeFromPreview(resume, el);
+      if (selectedTemplate?.id !== 1 && !el) throw new Error("Preview not ready");
+      await downloadResumeFromPreview(resume, el, selectedTemplate);
 
       if (wasMobileEdit) setMobileView("edit");
     } catch (e) {

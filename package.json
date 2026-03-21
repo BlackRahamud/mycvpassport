@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@sparticuz/chromium": "^131.0.0",
     "@paper-design/shaders-react": "^0.0.72",
     "@supabase/supabase-js": "^2.39.0",
     "@testing-library/dom": "^10.4.1",
@@ -14,6 +15,7 @@
     "framer-motion": "^12.37.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
+    "puppeteer-core": "^24.15.0",
     "lucide-react": "^0.577.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
