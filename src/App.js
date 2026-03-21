@@ -9,7 +9,6 @@ import { jsPDF } from "jspdf";
 import {
   splitExperiencePointsForPreview,
   trimCanvasBottomWhitespace,
-  normalizeFontsForHtml2canvasClone,
 } from "./experiencePointsPreview";
 import { PreviewGulfExecutive } from "./Template5GulfExecutive";
 import { PreviewBankingFinance } from "./Template6BankingFinance";
@@ -1118,28 +1117,20 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
     await document.fonts.ready.catch(() => {});
   }
 
-  /** Offscreen clone at true 794px — avoids scaled-parent layout drift; live DOM untouched */
-  const host = document.createElement("div");
-  host.setAttribute("aria-hidden", "true");
-  host.style.cssText =
-    "position:fixed;left:-9999px;top:0;width:794px;z-index:-1;overflow:visible;pointer-events:none;margin:0;padding:0;";
+  const el = captureElement;
+  const prevWidth = el.style.width;
+  const prevMaxWidth = el.style.maxWidth;
+  const prevMinWidth = el.style.minWidth;
+  el.style.width = "794px";
+  el.style.maxWidth = "794px";
+  el.style.minWidth = "794px";
+  el.style.minHeight = "0";
+  el.style.height = "auto";
+  await new Promise((r) => setTimeout(r, 100));
 
-  const clone = captureElement.cloneNode(true);
-  clone.style.minHeight = "0";
-  clone.style.height = "auto";
-  clone.style.width = "794px";
-  clone.style.maxWidth = "794px";
-  clone.style.boxSizing = "border-box";
-  clone.style.overflow = "visible";
-
-  host.appendChild(clone);
-  document.body.appendChild(host);
-
-  await new Promise((r) => setTimeout(r, 80));
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-  const fullHeight = clone.scrollHeight;
-  clone.style.height = `${fullHeight}px`;
+  const fullHeight = el.scrollHeight;
+  el.style.height = fullHeight + "px";
+  el.style.overflow = "visible";
 
   const baseOpts = {
     scale: 2,
@@ -1147,23 +1138,26 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
     allowTaint: true,
     backgroundColor: "#ffffff",
     logging: false,
-    width: Math.ceil(clone.offsetWidth),
     height: fullHeight,
     windowWidth: 794,
     windowHeight: fullHeight,
     imageTimeout: 0,
-    onclone: normalizeFontsForHtml2canvasClone,
   };
 
   let canvas;
   try {
     try {
-      canvas = await html2canvas(clone, { ...baseOpts, foreignObjectRendering: true });
+      canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: true });
     } catch {
-      canvas = await html2canvas(clone, { ...baseOpts, foreignObjectRendering: false });
+      canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: false });
     }
   } finally {
-    host.remove();
+    el.style.width = prevWidth;
+    el.style.maxWidth = prevMaxWidth;
+    el.style.minWidth = prevMinWidth;
+    el.style.minHeight = "";
+    el.style.height = "";
+    el.style.overflow = "";
   }
 
   canvas = trimCanvasBottomWhitespace(canvas);

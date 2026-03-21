@@ -102,31 +102,3 @@ export function trimCanvasBottomWhitespace(canvas, whiteThreshold = 248) {
   out.getContext("2d").drawImage(canvas, 0, 0, width, newHeight, 0, 0, width, newHeight);
   return out;
 }
-
-/**
- * html2canvas onclone: normalize font stack on the *cloned* iframe DOM so raster text
- * metrics match a single web-safe stack (reduces line-break drift vs live preview).
- */
-export function normalizeFontsForHtml2canvasClone(clonedDoc, clonedRoot) {
-  const view = clonedDoc.defaultView;
-  if (!view || !clonedRoot) return;
-
-  const tags = new Set([
-    "P", "SPAN", "DIV", "LI", "TD", "TH",
-    "H1", "H2", "H3", "H4", "H5", "H6",
-    "LABEL", "A", "STRONG", "EM", "B", "I",
-  ]);
-
-  clonedRoot.querySelectorAll("*").forEach((node) => {
-    if (node.nodeType !== 1) return;
-    const el = /** @type {HTMLElement} */ (node);
-    if (!tags.has(el.tagName)) return;
-    const cs = view.getComputedStyle(el);
-    el.style.fontFamily = "Arial, Helvetica, sans-serif";
-    el.style.fontSize = cs.fontSize;
-    el.style.lineHeight = cs.lineHeight;
-    el.style.fontWeight = cs.fontWeight;
-    el.style.fontStyle = cs.fontStyle;
-    el.style.letterSpacing = "0px";
-  });
-}
