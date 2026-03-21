@@ -1165,7 +1165,7 @@ async function downloadResumeFromPreview(cvInput, captureElement, template) {
   let canvas;
   try {
     canvas = await html2canvas(el, {
-      scale: 2,
+      scale: window.devicePixelRatio > 1.5 ? 1.5 : 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: "#ffffff",
