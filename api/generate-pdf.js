@@ -1,6 +1,6 @@
 /**
  * Vercel serverless: CV → PDF via Puppeteer + @sparticuz/chromium.
- * POST { templateId, cv } — supported: 1–8, 10, 12, 13.
+ * POST { templateId, cv } — supported: 1–9, 10, 12, 13.
  */
 
 const chromium = require("@sparticuz/chromium");
@@ -13,6 +13,7 @@ const { buildGulfExecTemplate5Html } = require("./lib/gulfExecTemplate5Html");
 const { buildBankingTemplate6Html } = require("./lib/bankingTemplate6Html");
 const { buildCompactProTemplate7Html } = require("./lib/compactProTemplate7Html");
 const { buildCreativeSidebarTemplate8Html } = require("./lib/creativeSidebarTemplate8Html");
+const { buildHospitalityTemplate9Html } = require("./lib/hospitalityTemplate9Html");
 const { buildATSInternationalTemplate10Html } = require("./lib/atsInternationalTemplate10Html");
 const { buildClassicTemplate12Html } = require("./lib/classicTemplate12Html");
 const { buildFinanceTemplate13Html } = require("./lib/financeTemplate13Html");
@@ -51,7 +52,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing cv object" });
   }
 
-  const supported = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13];
+  const supported = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13];
   if (!supported.includes(Number(templateId))) {
     return res.status(400).json({ error: `Unsupported templateId (supported: ${supported.join(", ")})` });
   }
@@ -74,13 +75,15 @@ module.exports = async (req, res) => {
                   ? buildCompactProTemplate7Html(cv)
                   : tid === 8
                     ? buildCreativeSidebarTemplate8Html(cv)
-                    : tid === 10
-                      ? buildATSInternationalTemplate10Html(cv)
-                      : tid === 12
-                        ? buildClassicTemplate12Html(cv)
-                        : tid === 13
-                          ? buildFinanceTemplate13Html(cv)
-                          : buildBannerTemplate1Html(cv);
+                    : tid === 9
+                      ? buildHospitalityTemplate9Html(cv)
+                      : tid === 10
+                        ? buildATSInternationalTemplate10Html(cv)
+                        : tid === 12
+                          ? buildClassicTemplate12Html(cv)
+                          : tid === 13
+                            ? buildFinanceTemplate13Html(cv)
+                            : buildBannerTemplate1Html(cv);
 
     browser = await puppeteer.launch({
       args: chromium.args,
