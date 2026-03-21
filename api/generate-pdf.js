@@ -13,6 +13,7 @@ const { buildGulfExecTemplate5Html } = require("./lib/gulfExecTemplate5Html");
 const { buildBankingTemplate6Html } = require("./lib/bankingTemplate6Html");
 const { buildCompactProTemplate7Html } = require("./lib/compactProTemplate7Html");
 const { buildCreativeSidebarTemplate8Html } = require("./lib/creativeSidebarTemplate8Html");
+const { drawT8SidebarStripeOnPdf } = require("./lib/pdfDrawT8SidebarStripe");
 
 function safeFilename(name) {
   const s = String(name || "Resume")
@@ -82,15 +83,21 @@ module.exports = async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdfBuffer = await page.pdf({
+    let pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
       preferCSSPageSize: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
+      /* T8: avoid default white page fill covering pdf-lib sidebar stripe (see pdfDrawT8SidebarStripe). */
+      ...(tid === 8 ? { omitBackground: true } : {}),
     });
 
     await browser.close();
     browser = null;
+
+    if (tid === 8) {
+      pdfBuffer = await drawT8SidebarStripeOnPdf(pdfBuffer);
+    }
 
     const name = safeFilename(cv.name);
     res.setHeader("Content-Type", "application/pdf");

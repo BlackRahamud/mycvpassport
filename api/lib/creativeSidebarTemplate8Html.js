@@ -204,12 +204,12 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
+    /* No body/sidebar fill — pdf-lib draws the dark strip after Puppeteer (generate-pdf.js). */
     body {
       font-family: Inter, Arial, Helvetica, sans-serif;
       font-size: 10px;
       color: ${CHARCO};
-      background: linear-gradient(to right, #2D2D2D 32%, #ffffff 32%);
-      background-attachment: fixed;
+      background: transparent;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -232,13 +232,10 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       display: table-cell;
       width: 32%;
       vertical-align: top;
-      background: transparent;
       border-radius: 10px 0 0 10px;
       padding: 0;
       box-sizing: border-box;
       overflow: visible;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
     }
     .t8-side-inner {
       display: flex;

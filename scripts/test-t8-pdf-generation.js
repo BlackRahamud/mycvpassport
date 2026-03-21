@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
 const { buildCreativeSidebarTemplate8Html } = require("../api/lib/creativeSidebarTemplate8Html");
+const { drawT8SidebarStripeOnPdf } = require("../api/lib/pdfDrawT8SidebarStripe");
 
 const tallMainCv = {
   name: "PDF Test",
@@ -37,14 +38,17 @@ async function main() {
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "load", timeout: 120000 });
 
-  const pdfBuffer = await page.pdf({
+  let pdfBuffer = await page.pdf({
     format: "A4",
     printBackground: true,
     preferCSSPageSize: true,
+    omitBackground: true,
     margin: { top: "0", right: "0", bottom: "0", left: "0" },
   });
 
   await browser.close();
+
+  pdfBuffer = await drawT8SidebarStripeOnPdf(pdfBuffer);
 
   const out = path.join(__dirname, "t8-pdf-test-output.pdf");
   fs.writeFileSync(out, pdfBuffer);
