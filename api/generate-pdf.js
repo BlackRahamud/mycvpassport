@@ -1,6 +1,6 @@
 /**
  * Vercel serverless: CV → PDF via Puppeteer + @sparticuz/chromium.
- * POST { templateId, cv } — supported: 1–3.
+ * POST { templateId, cv } — supported: 1–4.
  */
 
 const chromium = require("@sparticuz/chromium");
@@ -8,6 +8,7 @@ const puppeteer = require("puppeteer-core");
 const { buildBannerTemplate1Html } = require("./lib/bannerTemplate1Html");
 const { buildTwocolTemplate2Html } = require("./lib/twocolTemplate2Html");
 const { buildSidebarTemplate3Html } = require("./lib/sidebarTemplate3Html");
+const { buildTimelineTemplate4Html } = require("./lib/timelineTemplate4Html");
 
 function safeFilename(name) {
   const s = String(name || "Resume")
@@ -42,7 +43,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing cv object" });
   }
 
-  const supported = [1, 2, 3];
+  const supported = [1, 2, 3, 4];
   if (!supported.includes(Number(templateId))) {
     return res.status(400).json({ error: `Unsupported templateId (supported: ${supported.join(", ")})` });
   }
@@ -55,7 +56,9 @@ module.exports = async (req, res) => {
         ? buildTwocolTemplate2Html(cv)
         : tid === 3
           ? buildSidebarTemplate3Html(cv)
-          : buildBannerTemplate1Html(cv);
+          : tid === 4
+            ? buildTimelineTemplate4Html(cv)
+            : buildBannerTemplate1Html(cv);
 
     browser = await puppeteer.launch({
       args: chromium.args,
