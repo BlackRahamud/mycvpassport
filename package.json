@@ -12,6 +12,8 @@
     "@vercel/analytics": "^1.6.1",
     "ajv": "^8.18.0",
     "framer-motion": "^12.37.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.577.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -48,11 +50,23 @@
     ]
   },
   "reactSnap": {
-    "puppeteerArgs": ["--no-sandbox", "--disable-setuid-sandbox"],
+    "puppeteerArgs": [
+      "--no-sandbox",
+      "--disable-setuid-sandbox"
+    ],
     "skipThirdPartyRequests": true,
     "inlineCss": false,
-    "include": ["/"],
-    "exclude": ["/dashboard", "/builder", "/ats-checker", "/pricing", "/login", "/signup"],
+    "include": [
+      "/"
+    ],
+    "exclude": [
+      "/dashboard",
+      "/builder",
+      "/ats-checker",
+      "/pricing",
+      "/login",
+      "/signup"
+    ],
     "timeout": 10000,
     "waitFor": 2000
   },
