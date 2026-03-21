@@ -1015,6 +1015,7 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
       }}
     >
       <div
+        ref={previewCardRef}
         style={{
           width: A4_PREVIEW_WIDTH_PX,
           transformOrigin: "top center",
@@ -1022,7 +1023,7 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
           marginBottom: `${(scale - 1) * A4_PREVIEW_HEIGHT_PX}px`,
         }}
       >
-        <div className="cvp-builder-a4-fit" ref={previewCardRef}>
+        <div className="cvp-builder-a4-fit">
           <ResumePreview cv={cv} template={template} />
         </div>
       </div>
@@ -1125,13 +1126,36 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   const cv = cvWithTemplateCertifications(cvInput);
   if (!captureElement) return;
 
-  const canvas = await html2canvas(captureElement, {
-    scale: 3,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: "#ffffff",
-    logging: false,
-  });
+  const el = captureElement;
+  const prevTransform = el.style.transform;
+  const prevTransformOrigin = el.style.transformOrigin;
+  const prevWidth = el.style.width;
+  const prevHeight = el.style.height;
+  const prevMarginBottom = el.style.marginBottom;
+
+  el.style.transform = "scale(1)";
+  el.style.transformOrigin = "top left";
+  el.style.width = "794px";
+  el.style.height = "auto";
+  el.style.marginBottom = "0";
+  await new Promise((r) => setTimeout(r, 300));
+
+  let canvas;
+  try {
+    canvas = await html2canvas(el, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
+  } finally {
+    el.style.transform = prevTransform;
+    el.style.transformOrigin = prevTransformOrigin;
+    el.style.width = prevWidth;
+    el.style.height = prevHeight;
+    el.style.marginBottom = prevMarginBottom;
+  }
 
   const pageWidth = 210;
   const pageHeight = 297;
