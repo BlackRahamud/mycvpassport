@@ -1084,16 +1084,34 @@ async function downloadResume(cvInput, template) {
   const cv = cvWithTemplateCertifications(cvInput);
   const t = template || TEMPLATES[0];
 
-  // ── Delegate to dedicated PDF renderers for T5–T11 ──
-  if (t.layout === "gulf-exec")    return pdfGulfExecutive(cv, t);
-  if (t.layout === "banking")      return pdfBankingFinance(cv, t);
-  if (t.layout === "compact-pro")  return pdfCompactPro(cv, t);
-  if (t.layout === "creative")     return pdfCreativeSidebar(cv, t);
-  if (t.layout === "hospitality")  return pdfHospitality(cv, t);
-  if (t.layout === "ats-intl")     return pdfATSInternational(cv, t);
-  if (t.layout === "tech-it")      return pdfTechITPro(cv, t);
-  if (t.layout === "classic")      return pdfClassic(cv);
-  if (t.layout === "finance")      return pdfFinance(cv);
+  // ── Dedicated PDF renderers T5–T11: body fns expect (doc, cv, W, M), not (cv, template) ──
+  const pdfPageW = 210;
+  const pdfMargin = 18;
+  const runDedicatedPdf = async (drawBody) => {
+    if (!window.jspdf) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    drawBody(doc, cv, pdfPageW, pdfMargin);
+    doc.save(`${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport.pdf`);
+  };
+
+  if (t.layout === "gulf-exec") return runDedicatedPdf(pdfGulfExecutive);
+  if (t.layout === "banking") return runDedicatedPdf(pdfBankingFinance);
+  if (t.layout === "compact-pro") return runDedicatedPdf(pdfCompactPro);
+  if (t.layout === "creative") return runDedicatedPdf(pdfCreativeSidebar);
+  if (t.layout === "hospitality") return runDedicatedPdf(pdfHospitality);
+  if (t.layout === "ats-intl") return runDedicatedPdf(pdfATSInternational);
+  if (t.layout === "tech-it") return runDedicatedPdf(pdfTechITPro);
+  if (t.layout === "classic") return pdfClassic(cv);
+  if (t.layout === "finance") return pdfFinance(cv);
 
   // ── Built-in jsPDF renderer for T1–T4 ──
   if (!window.jspdf) {
