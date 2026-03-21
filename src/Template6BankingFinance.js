@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
@@ -147,13 +148,9 @@ export function PreviewBankingFinance({ cv, t }) {
                 </div>
                 {e.points && (
                   <div className="cvp-preview-exp-t6-wrap">
-                    {!/[•\n]/.test(String(e.points)) ? (
-                      <p className="cvp-preview-exp-t6-line">{String(e.points).trim()}</p>
-                    ) : (
-                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
-                        <p key={j} className="cvp-preview-exp-t6-line">{j === 0 ? line : `• ${line}`}</p>
-                      ))
-                    )}
+                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                      <p key={j} className="cvp-preview-exp-t6-line">{j === 0 ? line : `• ${line}`}</p>
+                    ))}
                   </div>
                 )}
                 {i < cv.experience.filter(e => e.company).length - 1 && (

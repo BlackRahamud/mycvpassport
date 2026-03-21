@@ -6,6 +6,7 @@ import ATSChecker from "./ATSChecker";
 import TiltedCard from './components/TiltedCard';
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { splitExperiencePointsForPreview, trimCanvasBottomWhitespace } from "./experiencePointsPreview";
 import { PreviewGulfExecutive } from "./Template5GulfExecutive";
 import { PreviewBankingFinance } from "./Template6BankingFinance";
 import { PreviewCompactPro } from "./Template7CompactPro";
@@ -526,13 +527,9 @@ function PreviewBanner({ cv, t }) {
                 <div style={{ color: t.accent, fontSize: "11px", fontWeight: "700", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
                 {e.points && (
                   <div className="cvp-preview-exp-banner-wrap">
-                    {!/[•\n]/.test(String(e.points)) ? (
-                      <p className="cvp-preview-exp-banner-line">{String(e.points).trim()}</p>
-                    ) : (
-                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
-                        <p key={j} className="cvp-preview-exp-banner-line">{j === 0 ? line : `• ${line}`}</p>
-                      ))
-                    )}
+                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                      <p key={j} className="cvp-preview-exp-banner-line">{j === 0 ? line : `• ${line}`}</p>
+                    ))}
                   </div>
                 )}
               </div>
@@ -685,13 +682,9 @@ function PreviewTwoCol({ cv, t }) {
                 <div style={{ color: t.accent, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
                 {e.points && (
                   <div className="cvp-preview-exp-twocol-wrap">
-                    {!/[•\n]/.test(String(e.points)) ? (
-                      <p className="cvp-preview-exp-twocol-line">{String(e.points).trim()}</p>
-                    ) : (
-                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
-                        <p key={j} className="cvp-preview-exp-twocol-line">{j === 0 ? line : `• ${line}`}</p>
-                      ))
-                    )}
+                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                      <p key={j} className="cvp-preview-exp-twocol-line">{j === 0 ? line : `• ${line}`}</p>
+                    ))}
                   </div>
                 )}
               </div>
@@ -805,13 +798,9 @@ function PreviewSidebar({ cv, t }) {
                 <div style={{ color: t.accent, fontSize: "10px", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
                 {e.points && (
                   <div className="cvp-preview-exp-sidebar-wrap">
-                    {!/[•\n]/.test(String(e.points)) ? (
-                      <p className="cvp-preview-exp-sidebar-line">{String(e.points).trim()}</p>
-                    ) : (
-                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
-                        <p key={j} className="cvp-preview-exp-sidebar-line">{j === 0 ? line : `• ${line}`}</p>
-                      ))
-                    )}
+                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                      <p key={j} className="cvp-preview-exp-sidebar-line">{j === 0 ? line : `• ${line}`}</p>
+                    ))}
                   </div>
                 )}
               </div>
@@ -910,13 +899,9 @@ function PreviewTimeline({ cv, t }) {
                   <div style={{ color: t.accent, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
                   {e.points && (
                     <div className="cvp-preview-exp-timeline-wrap">
-                      {!/[•\n]/.test(String(e.points)) ? (
-                        <p className="cvp-preview-exp-timeline-line">{String(e.points).trim()}</p>
-                      ) : (
-                        String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
-                          <p key={j} className="cvp-preview-exp-timeline-line">{j === 0 ? line : `• ${line}`}</p>
-                        ))
-                      )}
+                      {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-timeline-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -1152,12 +1137,17 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
     el.style.overflow = "";
   }
 
+  canvas = trimCanvasBottomWhitespace(canvas);
+
   const pageWidth = 210;
   const pageHeight = 297;
   const imgData = canvas.toDataURL("image/jpeg", 1.0);
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const canvasAspect = canvas.width / canvas.height;
   const imgHeight = pageWidth / canvasAspect;
+
+  /** ~1 rendered text line at scale 3 — overlap hides mid-line cuts at page seams */
+  const PAGE_SLICE_OVERLAP_PX = 48;
 
   if (imgHeight <= pageHeight) {
     doc.addImage(imgData, "JPEG", 0, 0, pageWidth, imgHeight);
@@ -1197,7 +1187,7 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
 
       yOffset += sliceHeight;
       if (yOffset < canvas.height) {
-        yOffset -= 2;
+        yOffset -= PAGE_SLICE_OVERLAP_PX;
       }
       pageNum++;
     }

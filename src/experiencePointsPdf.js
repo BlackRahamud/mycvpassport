@@ -33,7 +33,11 @@ export function renderPdfExperiencePoints(
     });
   };
 
-  const parts = text.split(/[\n•]+/).map((s) => s.trim()).filter(Boolean);
+  const parts = text
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.replace(/^•\s*/, ""));
   if (parts.length === 0) return startY;
 
   parts.forEach((part, i) => {

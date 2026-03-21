@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
@@ -206,13 +207,9 @@ export function PreviewCreativeSidebar({ cv, t }) {
                 </div>
                 {e.points && (
                   <div className="cvp-preview-exp-t8-wrap">
-                    {!/[•\n]/.test(String(e.points)) ? (
-                      <p className="cvp-preview-exp-t8-line">{String(e.points).trim()}</p>
-                    ) : (
-                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
-                        <p key={j} className="cvp-preview-exp-t8-line">{j === 0 ? line : `• ${line}`}</p>
-                      ))
-                    )}
+                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                      <p key={j} className="cvp-preview-exp-t8-line">{j === 0 ? line : `• ${line}`}</p>
+                    ))}
                   </div>
                 )}
               </div>

@@ -246,6 +246,13 @@ input:focus, textarea:focus {
   height: fit-content;
 }
 
+/* Mobile builder preview: same as desktop — base .cvp-builder-a4-fit min-height:1123px
+   does not apply here, so scrollHeight/PDF capture match content (no forced blank tail). */
+.cvp-builder-mobile .cvp-builder-a4-fit {
+  min-height: unset;
+  height: fit-content;
+}
+
 /* CV Builder responsive — mobile show/hide */
 @media (max-width: 767px) {
   .cvp-builder-desktop {
@@ -551,4 +558,20 @@ input:focus, textarea:focus {
   color: #3d3d3d;
   margin: 0;
   line-height: 1.7;
+}
+
+/* Preview experience lines: normal word breaking (avoid splitting words mid-token) */
+.cvp-preview-exp-banner-line,
+.cvp-preview-exp-twocol-line,
+.cvp-preview-exp-sidebar-line,
+.cvp-preview-exp-timeline-line,
+.cvp-preview-exp-t5-line,
+.cvp-preview-exp-t6-line,
+.cvp-preview-exp-t7-line,
+.cvp-preview-exp-t8-line,
+.cvp-preview-exp-t9-line,
+.cvp-preview-exp-t10-line,
+.cvp-preview-exp-t11-line {
+  word-break: normal;
+  overflow-wrap: break-word;
 }
