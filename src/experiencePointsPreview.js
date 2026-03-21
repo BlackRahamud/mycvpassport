@@ -66,7 +66,7 @@ export function splitExperiencePointsForPreview(text) {
  * Remove uniform white/empty rows from the bottom of a raster (post–html2canvas).
  * Fixes extra band below content when the DOM height was slightly larger than ink.
  */
-export function trimCanvasBottomWhitespace(canvas, whiteThreshold = 248) {
+export function trimCanvasBottomWhitespace(canvas, whiteThreshold = 240) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
   const { width, height } = canvas;
