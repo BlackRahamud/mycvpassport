@@ -208,7 +208,8 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       font-family: Inter, Arial, Helvetica, sans-serif;
       font-size: 10px;
       color: ${CHARCO};
-      background: #fff;
+      background: linear-gradient(to right, #2D2D2D 32%, #ffffff 32%);
+      background-attachment: fixed;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -222,7 +223,7 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       table-layout: fixed;
       border-radius: 10px;
       overflow: hidden;
-      background: ${WHITE};
+      background: transparent;
       min-height: 297mm;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -231,10 +232,7 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       display: table-cell;
       width: 32%;
       vertical-align: top;
-      background: #2D2D2D;
-      background-clip: padding-box;
-      -webkit-box-decoration-break: clone;
-      box-decoration-break: clone;
+      background: transparent;
       border-radius: 10px 0 0 10px;
       padding: 0;
       box-sizing: border-box;
