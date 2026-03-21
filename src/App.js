@@ -1816,13 +1816,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
       const wasMobileEdit = isMobileViewport && mobileView === "edit";
       if (wasMobileEdit) setMobileView("preview");
-      await new Promise((r) => setTimeout(r, 300));
+      if (isMobileViewport) setMobilePreviewScale(1);
+      await new Promise((r) => setTimeout(r, 500));
 
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
       if (![1, 2, 3, 4, 5, 6, 7, 8].includes(selectedTemplate?.id) && !el) throw new Error("Preview not ready");
       await downloadResumeFromPreview(resume, el, selectedTemplate);
 
       if (wasMobileEdit) setMobileView("edit");
+      if (isMobileViewport) setMobilePreviewScale(Math.min(1, window.innerWidth / 794));
     } catch (e) {
       alert("PDF error: " + e.message);
     } finally {
