@@ -6,8 +6,8 @@ export const PDF_TOP_NEW_PAGE_MM = 15;
 export const PDF_CONTENT_BOTTOM_Y = PDF_PAGE_HEIGHT_MM - PDF_BOTTOM_MARGIN_MM;
 export const PDF_NEW_PAGE_TOP_Y = PDF_TOP_NEW_PAGE_MM;
 
-/** Subtract 6mm from any splitTextToSize width (wrapping buffer) */
-export const PDF_WRAP_WIDTH_BUFFER_MM = 6;
+/** Subtract 10mm from any splitTextToSize width (wrapping buffer) */
+export const PDF_WRAP_WIDTH_BUFFER_MM = 10;
 
 /** Page footer number color #888888 */
 export const PDF_PAGE_NUM_COLOR = [136, 136, 136];
