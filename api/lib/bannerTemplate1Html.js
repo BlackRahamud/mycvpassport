@@ -14,6 +14,16 @@ function escapeHtml(s) {
     .replace(/'/g, "&#39;");
 }
 
+/** Remove emoji / pictographs from stored CV strings so PDF shows icon + text only. */
+function stripEmojiPictographs(s) {
+  if (s == null) return "";
+  return String(s)
+    .replace(/\p{Extended_Pictographic}/gu, "")
+    .replace(/\uFE0F/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Same logic as src/experiencePointsPreview.js — keep bullet/line merging identical. */
 function stripLeadingBulletToken(str) {
   return String(str ?? "")
@@ -127,10 +137,6 @@ const ICON_PHONE = `<svg class="cvp-pdf-icon" viewBox="0 0 24 24" fill="none" st
 const ICON_MAP = `<svg class="cvp-pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
 const ICON_GLOBE = `<svg class="cvp-pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
 const ICON_ID = `<svg class="cvp-pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>`;
-const ICON_CAL = `<svg class="cvp-pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
-const ICON_CAR = `<svg class="cvp-pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-.4-2.2-.6c-.3-.1-.7-.1-1.1-.1h-5.8c-.4 0-.8 0-1.1.1-.9.2-2.2.6-2.2.6s-2.7.6-3.5 1.5C2.7 11.3 2 12.1 2 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>`;
-const ICON_PLANE = `<svg class="cvp-pdf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`;
-
 function sectionHtml(title, accent, inner) {
   return `
   <div class="cvp-section">
@@ -261,10 +267,33 @@ function buildBannerTemplate1Html(rawCv) {
 
   if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
     const bits = [];
-    if (cv.availability) bits.push(`<span>${ICON_CAL} ${escapeHtml(cv.availability)}</span>`);
-    if (cv.drivingLicense) bits.push(`<span>${ICON_CAR} License: ${escapeHtml(cv.drivingLicense)}</span>`);
-    if (cv.willingToRelocate) bits.push(`<span>${ICON_PLANE} Relocate: ${escapeHtml(cv.willingToRelocate)}</span>`);
-    bodyInner += sectionHtml("Additional Information", t.accent, `<div class="cvp-extra-row">${bits.join("")}</div>`);
+    if (cv.availability) {
+      const availText = escapeHtml(stripEmojiPictographs(cv.availability));
+      if (availText) {
+        bits.push(
+          `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;display:inline-block" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${availText}</span>`,
+        );
+      }
+    }
+    if (cv.drivingLicense) {
+      const licText = escapeHtml(stripEmojiPictographs(cv.drivingLicense));
+      if (licText) {
+        bits.push(
+          `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;display:inline-block" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-.4-2.2-.6c-.3-.1-.7-.1-1.1-.1h-5.8c-.4 0-.8 0-1.1.1-.9.2-2.2.6-2.2.6s-2.7.6-3.5 1.5C2.7 11.3 2 12.1 2 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg> License: ${licText}</span>`,
+        );
+      }
+    }
+    if (cv.willingToRelocate) {
+      const relText = escapeHtml(stripEmojiPictographs(cv.willingToRelocate));
+      if (relText) {
+        bits.push(
+          `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;display:inline-block" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg> Relocate: ${relText}</span>`,
+        );
+      }
+    }
+    if (bits.length > 0) {
+      bodyInner += sectionHtml("Additional Information", t.accent, `<div class="cvp-extra-row">${bits.join("")}</div>`);
+    }
   }
 
   if (cv.references) {
@@ -424,7 +453,7 @@ function buildBannerTemplate1Html(rawCv) {
       gap: 16px;
       flex-wrap: wrap;
       font-size: 10px;
-      color: #555;
+      color: #333;
       font-family: Merriweather, Georgia, serif;
     }
     .cvp-refs { font-size: 10px; margin: 0; color: #888; font-style: italic; }
