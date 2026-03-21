@@ -1151,10 +1151,6 @@ async function downloadResumeFromPreview(cvInput, captureElement, template) {
   const parentEl = el.parentElement;
   const prevParentTransform = parentEl ? parentEl.style.transform : null;
   const prevParentTransformOrigin = parentEl ? parentEl.style.transformOrigin : null;
-  if (parentEl) {
-    parentEl.style.transform = "none";
-    parentEl.style.transformOrigin = "top center";
-  }
   const prevWidth = el.style.width;
   const prevMaxWidth = el.style.maxWidth;
   const prevMinWidth = el.style.minWidth;
@@ -1163,7 +1159,11 @@ async function downloadResumeFromPreview(cvInput, captureElement, template) {
   el.style.minWidth = "794px";
   el.style.minHeight = "0";
   el.style.height = "auto";
-  await new Promise((r) => setTimeout(r, 100));
+  if (parentEl) {
+    parentEl.style.transform = "none";
+    parentEl.style.transformOrigin = "top center";
+  }
+  await new Promise((r) => setTimeout(r, 400));
 
   const fullHeight = el.scrollHeight;
   el.style.height = fullHeight + "px";
