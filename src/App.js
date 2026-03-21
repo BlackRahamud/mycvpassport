@@ -1108,16 +1108,16 @@ const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isS
   );
 });
 
-// ─── PDF DOWNLOAD — Template 1: server Puppeteer API; others: html2canvas + jsPDF ──
+// ─── PDF DOWNLOAD — Templates 1–2: Puppeteer API; others: html2canvas + jsPDF ──
 async function downloadResumeFromPreview(cvInput, captureElement, template) {
   const cv = cvWithTemplateCertifications(cvInput);
   const templateId = template?.id ?? 1;
 
-  if (templateId === 1) {
+  if (templateId === 1 || templateId === 2) {
     const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ templateId: 1, cv }),
+      body: JSON.stringify({ templateId, cv }),
     });
     if (!res.ok) {
       let msg = `Server error ${res.status}`;
@@ -1808,7 +1808,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       await new Promise((r) => setTimeout(r, 300));
 
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
-      if (selectedTemplate?.id !== 1 && !el) throw new Error("Preview not ready");
+      if (![1, 2].includes(selectedTemplate?.id) && !el) throw new Error("Preview not ready");
       await downloadResumeFromPreview(resume, el, selectedTemplate);
 
       if (wasMobileEdit) setMobileView("edit");

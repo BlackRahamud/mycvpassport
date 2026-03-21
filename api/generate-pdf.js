@@ -1,11 +1,12 @@
 /**
  * Vercel serverless: CV → PDF via Puppeteer + @sparticuz/chromium.
- * Template 1 (Gulf Classic / banner) only — POST { templateId: 1, cv: <same shape as preview> }
+ * POST { templateId, cv } — supported: 1 (banner), 2 (two-column).
  */
 
 const chromium = require("@sparticuz/chromium");
 const puppeteer = require("puppeteer-core");
 const { buildBannerTemplate1Html } = require("./lib/bannerTemplate1Html");
+const { buildTwocolTemplate2Html } = require("./lib/twocolTemplate2Html");
 
 function safeFilename(name) {
   const s = String(name || "Resume")
@@ -40,13 +41,17 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing cv object" });
   }
 
-  if (templateId !== 1) {
-    return res.status(400).json({ error: "Only templateId 1 is supported" });
+  const supported = [1, 2];
+  if (!supported.includes(Number(templateId))) {
+    return res.status(400).json({ error: `Unsupported templateId (supported: ${supported.join(", ")})` });
   }
 
   let browser;
   try {
-    const html = buildBannerTemplate1Html(cv);
+    const html =
+      Number(templateId) === 2
+        ? buildTwocolTemplate2Html(cv)
+        : buildBannerTemplate1Html(cv);
 
     browser = await puppeteer.launch({
       args: chromium.args,
