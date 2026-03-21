@@ -1148,6 +1148,13 @@ async function downloadResumeFromPreview(cvInput, captureElement, template) {
   }
 
   const el = captureElement;
+  const parentEl = el.parentElement;
+  const prevParentTransform = parentEl ? parentEl.style.transform : null;
+  const prevParentTransformOrigin = parentEl ? parentEl.style.transformOrigin : null;
+  if (parentEl) {
+    parentEl.style.transform = "none";
+    parentEl.style.transformOrigin = "top center";
+  }
   const prevWidth = el.style.width;
   const prevMaxWidth = el.style.maxWidth;
   const prevMinWidth = el.style.minWidth;
@@ -1179,6 +1186,10 @@ async function downloadResumeFromPreview(cvInput, captureElement, template) {
     el.style.minHeight = "";
     el.style.height = "";
     el.style.overflow = "";
+    if (parentEl && prevParentTransform !== null) {
+      parentEl.style.transform = prevParentTransform;
+      parentEl.style.transformOrigin = prevParentTransformOrigin;
+    }
   }
 
   canvas = trimCanvasBottomWhitespace(canvas);
