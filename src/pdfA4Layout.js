@@ -64,11 +64,20 @@ export function pdfEnsureY(
 }
 
 /**
- * setFontSize then splitTextToSize with buffered width
+ * Measure wrapped lines using normal weight (splitTextToSize uses current font metrics),
+ * then restore previous font + size so rendering stays correct (bold/italic unchanged).
  */
 export function pdfSplitText(doc, text, maxWidthMm, fontSize) {
+  const prev =
+    typeof doc.getFont === "function"
+      ? doc.getFont()
+      : { fontName: "helvetica", fontStyle: "normal" };
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(fontSize);
-  return doc.splitTextToSize(String(text ?? ""), pdfBufW(maxWidthMm));
+  const lines = doc.splitTextToSize(String(text ?? ""), pdfBufW(maxWidthMm));
+  doc.setFont(prev.fontName, prev.fontStyle);
+  doc.setFontSize(fontSize);
+  return lines;
 }
 
 /**

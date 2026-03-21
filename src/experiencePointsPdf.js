@@ -1,12 +1,11 @@
 /**
- * Experience description → PDF: split on newlines / bullets, wrap with splitTextToSize.
- * Split pattern avoids double bullets; width uses pdfBufW; setFontSize before every splitTextToSize.
+ * Experience description → PDF: split on newlines / bullets, wrap via pdfSplitText (normal metrics + pdfBufW).
  */
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
-  pdfBufW,
   pdfEnsureY,
+  pdfSplitText,
 } from "./pdfA4Layout";
 
 export function renderPdfExperiencePoints(
@@ -39,8 +38,7 @@ export function renderPdfExperiencePoints(
 
   parts.forEach((part, i) => {
     const display = i === 0 ? part : `• ${part}`;
-    doc.setFontSize(fontSize);
-    const wrapped = doc.splitTextToSize(display, pdfBufW(maxWidth));
+    const wrapped = pdfSplitText(doc, display, maxWidth, fontSize);
     drawLines(wrapped);
   });
   return y;
