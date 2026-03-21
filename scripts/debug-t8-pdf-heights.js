@@ -4,7 +4,7 @@
  * Run: node scripts/debug-t8-pdf-heights.js
  */
 const puppeteer = require("puppeteer");
-const { buildCreativeSidebarTemplate8Html } = require("../api/lib/creativeSidebarTemplate8Html");
+const { buildCreativeSidebarTemplate8Html } = require("../src/serverLib/creativeSidebarTemplate8Html");
 
 const sampleCv = {
   name: "Debug User",

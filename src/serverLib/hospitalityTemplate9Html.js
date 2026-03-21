@@ -1,6 +1,6 @@
 /**
  * Template 9 — Hospitality & Service. Mirrors PreviewHospitality in src/Template9Hospitality.js
- * Pattern aligned with api/lib/bankingTemplate6Html.js (header + body, sections).
+ * Pattern aligned with src/serverLib/bankingTemplate6Html.js (header + body, sections).
  */
 
 const {

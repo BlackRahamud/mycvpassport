@@ -5,8 +5,8 @@
 const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
-const { buildCreativeSidebarTemplate8Html } = require("../api/lib/creativeSidebarTemplate8Html");
-const { drawT8SidebarStripeOnPdf } = require("../api/lib/pdfDrawT8SidebarStripe");
+const { buildCreativeSidebarTemplate8Html } = require("../src/serverLib/creativeSidebarTemplate8Html");
+const { drawT8SidebarStripeOnPdf } = require("../src/serverLib/pdfDrawT8SidebarStripe");
 
 const tallMainCv = {
   name: "PDF Test",
