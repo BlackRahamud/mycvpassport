@@ -53,7 +53,7 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
     plane: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#CCCCCC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px;display:inline-block" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`,
   };
 
-  let sidebar = `<aside class="t8-side" style="background:${DARK}">
+  let sidebar = `<aside class="t8-side" style="background:transparent">
     <div class="t8-avatar" style="background:${CORAL};border:3px solid ${CORAL}44;color:${WHITE}">${initial}</div>
     <h1 class="t8-side-name" style="color:${WHITE}">${escapeHtml(cv.name || "Your Name")}</h1>
     <p class="t8-side-title" style="color:${CORAL}">${escapeHtml(cv.title || "Job Title")}</p>
@@ -125,7 +125,12 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
     if (add) sidebar += `${sideLabel("Additional")}<div class="t8-side-text">${add}</div>`;
   }
 
-  sidebar += `</aside>`;
+  sidebar += `<div class="t8-side-spacer" aria-hidden="true"></div>
+    <div class="t8-side-footer" aria-hidden="true">
+      <div class="t8-side-footer-line"></div>
+      <div class="t8-side-footer-dots"></div>
+    </div>
+  </aside>`;
 
   let main = `<div class="t8-main" style="background:${LIGHT}">`;
 
@@ -187,7 +192,12 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
 
   main += `</div>`;
 
-  const inner = `<div class="t8-root">${sidebar}${main}</div>`;
+  /* Main column is in-flow (last) so .t8-root height follows the right column; dark strip + aside are absolute. */
+  const inner = `<div class="t8-root">
+    <div class="t8-side-bg" aria-hidden="true"></div>
+    ${sidebar}
+    ${main}
+  </div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -207,22 +217,60 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       print-color-adjust: exact;
     }
     .t8-root {
+      position: relative;
       width: 794px;
       max-width: 100%;
       margin: 0 auto;
-      background: ${WHITE};
       border-radius: 10px;
       overflow: hidden;
-      display: flex;
-      min-height: 500px;
-      align-items: stretch;
+      background: ${WHITE};
+    }
+    /* Fills full root height; height comes from in-flow .t8-main (Puppeteer PDF flex stretch was unreliable). */
+    .t8-side-bg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 32%;
+      z-index: 0;
+      background: ${DARK};
+      border-radius: 10px 0 0 10px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     .t8-side {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
       width: 32%;
-      flex-shrink: 0;
+      z-index: 2;
       padding: 24px 16px;
       display: flex;
       flex-direction: column;
+      box-sizing: border-box;
+      overflow: visible;
+    }
+    .t8-side-spacer {
+      flex: 1 1 auto;
+      min-height: 12px;
+    }
+    .t8-side-footer {
+      flex-shrink: 0;
+      padding-top: 8px;
+    }
+    .t8-side-footer-line {
+      height: 2px;
+      background: linear-gradient(90deg, ${CORAL}55 0%, ${CORAL}18 45%, transparent 100%);
+      border-radius: 1px;
+      margin-bottom: 6px;
+    }
+    .t8-side-footer-dots {
+      height: 8px;
+      opacity: 0.4;
+      background-image: radial-gradient(${CORAL}55 0.8px, transparent 0.8px);
+      background-size: 6px 6px;
+      background-position: 0 2px;
     }
     .t8-avatar {
       width: 70px;
@@ -261,7 +309,16 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
     .t8-lang-line { font-size: 9px; color: #ccc; margin-bottom: 4px; display: flex; align-items: center; }
     .t8-cert-block { font-size: 8.5px; color: #ccc; line-height: 1.4; }
     .t8-cert-line { margin-bottom: 4px; display: flex; align-items: flex-start; }
-    .t8-main { flex: 1; padding: 24px 20px; min-width: 0; }
+    .t8-main {
+      position: relative;
+      z-index: 1;
+      margin-left: 32%;
+      width: 68%;
+      max-width: 68%;
+      min-width: 0;
+      box-sizing: border-box;
+      padding: 24px 20px;
+    }
     .t8-maintitle {
       font-size: 9px;
       font-weight: 800;
