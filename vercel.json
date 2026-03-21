@@ -1,11 +1,9 @@
 {
   "functions": {
     "api/generate-pdf.js": {
-      "memory": 2048,
       "maxDuration": 60
     },
     "api/parse-resume.js": {
-      "memory": 2048,
       "maxDuration": 30
     }
   }
