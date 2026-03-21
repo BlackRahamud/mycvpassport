@@ -263,6 +263,8 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   const [dr, dg, db] = dark;
 
   const sideW = 62;
+  /** Sidebar text inset x=5; rule ends at sideW-5 */
+  const sideTextW = sideW - 5 - 5;
 
   // Sidebar background
   doc.setFillColor(dr, dg, db);
@@ -283,13 +285,13 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   // Name
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11); doc.setFont("helvetica", "bold");
-  const nameLines = doc.splitTextToSize(cv.name || "Your Name", sideW - 10);
+  const nameLines = doc.splitTextToSize(cv.name || "Your Name", sideTextW);
   doc.text(nameLines, 5, 32);
 
   // Title
   doc.setTextColor(cr, cg, cb);
   doc.setFontSize(8); doc.setFont("helvetica", "normal");
-  const titleLines = doc.splitTextToSize(cv.title || "Job Title", sideW - 10);
+  const titleLines = doc.splitTextToSize(cv.title || "Job Title", sideTextW);
   doc.text(titleLines, 5, 32 + nameLines.length * 5.5);
 
   // Coral divider
@@ -311,14 +313,14 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   };
 
   sideSection("Contact");
-  if (cv.email) { const l = doc.splitTextToSize(cv.email, sideW - 12); doc.text(l, 5, sy); sy += l.length * 3.5 + 2; }
+  if (cv.email) { const l = doc.splitTextToSize(cv.email, sideTextW); doc.text(l, 5, sy); sy += l.length * 3.5 + 2; }
   if (cv.phone) { doc.text(cv.phone, 5, sy); sy += 5; }
   if (cv.location) { doc.text(cv.location, 5, sy); sy += 7; }
 
   if (cv.nationality || cv.visaStatus || cv.dob || cv.gender || cv.maritalStatus) {
     sideSection("Personal");
     if (cv.nationality)   { doc.text(cv.nationality, 5, sy); sy += 4.5; }
-    if (cv.visaStatus)    { const l = doc.splitTextToSize(cv.visaStatus, sideW - 12); doc.text(l, 5, sy); sy += l.length * 3.5 + 1; }
+    if (cv.visaStatus)    { const l = doc.splitTextToSize(cv.visaStatus, sideTextW); doc.text(l, 5, sy); sy += l.length * 3.5 + 1; }
     if (cv.dob)           { doc.text(`DOB: ${cv.dob}`, 5, sy); sy += 4.5; }
     if (cv.gender)        { doc.text(cv.gender, 5, sy); sy += 4.5; }
     if (cv.maritalStatus) { doc.text(cv.maritalStatus, 5, sy); sy += 6; }
@@ -348,7 +350,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
     sideSection("Certifications");
     cv.certifications.split(",").forEach(c => {
       if (!c.trim()) return;
-      const l = doc.splitTextToSize("• " + c.trim(), sideW - 12);
+      const l = doc.splitTextToSize("• " + c.trim(), sideTextW);
       doc.text(l, 5, sy); sy += l.length * 3.5 + 1.5;
     });
     sy += 2;
@@ -364,7 +366,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   // Right main content
   let y = 12;
   const rx = sideW + 8;
-  const rw = W - sideW - 14;
+  const rw = W - M - rx;
 
   const mainTitle = (title) => {
     doc.setTextColor(cr, cg, cb);
@@ -407,7 +409,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...charco);
-        const pl = doc.splitTextToSize(e.points, rw - 7);
+        const pl = doc.splitTextToSize(e.points, rw - 5);
         doc.text(pl, rx + 5, y); y += pl.length * 4 + 2;
       }
       y += 4;

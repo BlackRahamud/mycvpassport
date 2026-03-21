@@ -226,6 +226,7 @@ export function PreviewGulfExecutive({ cv, t }) {
 
 // ─── PDF: Gulf Executive ──────────────────────────────────────────
 export function pdfGulfExecutive(doc, cv, W, M) {
+  const fullTextW = W - M * 2;
   const gold  = [201, 168, 76];
   const navy  = [13,  27,  42];
   const body  = [44,  44,  44];
@@ -292,7 +293,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
     doc.setTextColor(...body);
     doc.setDrawColor(gr, gg, gb); doc.setLineWidth(0.8);
     doc.line(M, y, M, y + 12);
-    const sl = doc.splitTextToSize(cv.summary, W - M * 2 - 5);
+    const sl = doc.splitTextToSize(cv.summary, fullTextW - 4);
     doc.text(sl, M + 4, y);
     y += sl.length * 4.5 + 7;
   }
@@ -300,7 +301,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   if (cv.skills) {
     sectionTitle("Core Competencies");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const sl = doc.splitTextToSize(cv.skills, W - M * 2);
+    const sl = doc.splitTextToSize(cv.skills, fullTextW);
     doc.text(sl, M, y);
     y += sl.length * 4 + 6;
   }
@@ -330,7 +331,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...body);
-        const pl = doc.splitTextToSize(e.points, W - M * 2 - 7);
+        const pl = doc.splitTextToSize(e.points, fullTextW - 5);
         doc.text(pl, M + 5, y);
         y += pl.length * 4 + 2;
       }
@@ -357,14 +358,14 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const sl = doc.splitTextToSize(cv.certifications, W - M * 2);
+    const sl = doc.splitTextToSize(cv.certifications, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const sl = doc.splitTextToSize(cv.technicalSkills, W - M * 2);
+    const sl = doc.splitTextToSize(cv.technicalSkills, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
@@ -381,7 +382,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("Driving License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Willing to Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const al = doc.splitTextToSize(adds.join("   •   "), W - M * 2);
+    const al = doc.splitTextToSize(adds.join("   •   "), fullTextW);
     doc.text(al, M, y); y += al.length * 4 + 5;
   }
 

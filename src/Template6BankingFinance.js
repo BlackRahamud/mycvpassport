@@ -220,6 +220,7 @@ export function PreviewBankingFinance({ cv, t }) {
 
 // ─── PDF: Banking & Finance ───────────────────────────────────────
 export function pdfBankingFinance(doc, cv, W, M) {
+  const fullTextW = W - M * 2;
   const black  = [10,  10,  10];
   const dark   = [26,  26,  26];
   const mid    = [68,  68,  68];
@@ -275,14 +276,14 @@ export function pdfBankingFinance(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...dark);
-    const sl = doc.splitTextToSize(cv.summary, W - M * 2);
+    const sl = doc.splitTextToSize(cv.summary, fullTextW);
     doc.text(sl, M, y, { lineHeightFactor: 1.5 }); y += sl.length * (4.5 * 1.5) + 10;
   }
 
   if (cv.skills) {
     sectionTitle("Core Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...dark);
-    const sl = doc.splitTextToSize(cv.skills, W - M * 2);
+    const sl = doc.splitTextToSize(cv.skills, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 6;
   }
 
@@ -303,7 +304,7 @@ export function pdfBankingFinance(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...dark);
-        const pl = doc.splitTextToSize(e.points, W - M * 2);
+        const pl = doc.splitTextToSize(e.points, fullTextW);
         doc.text(pl, M, y, { lineHeightFactor: 1.5 }); y += pl.length * 4 * 1.5 + 2;
       }
       if (i < arr.length - 1) {
@@ -333,14 +334,14 @@ export function pdfBankingFinance(doc, cv, W, M) {
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...dark);
-    const sl = doc.splitTextToSize(cv.certifications, W - M * 2);
+    const sl = doc.splitTextToSize(cv.certifications, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...dark);
-    const sl = doc.splitTextToSize(cv.technicalSkills, W - M * 2);
+    const sl = doc.splitTextToSize(cv.technicalSkills, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
@@ -357,7 +358,7 @@ export function pdfBankingFinance(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push(`Driving License: ${cv.drivingLicense}`);
     if (cv.willingToRelocate) adds.push(`Willing to Relocate: ${cv.willingToRelocate}`);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...dark);
-    const al = doc.splitTextToSize(adds.join("   •   "), W - M * 2);
+    const al = doc.splitTextToSize(adds.join("   •   "), fullTextW);
     doc.text(al, M, y); y += al.length * 4 + 5;
   }
 

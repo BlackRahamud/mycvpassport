@@ -233,6 +233,7 @@ export function PreviewHospitality({ cv, t }) {
 
 // ─── PDF: Hospitality & Service ───────────────────────────────────
 export function pdfHospitality(doc, cv, W, M) {
+  const fullTextW = W - M * 2;
   const brown  = [107, 76,  59];
   const warm   = [196, 149, 106];
   const dark   = [44,  24,  16];
@@ -291,7 +292,7 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Profile");
     doc.setFontSize(8.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.summary, W - M * 2 - 10);
+    const sl = doc.splitTextToSize(cv.summary, fullTextW);
     doc.text(sl, W / 2, y, { align: "center" });
     y += sl.length * 4.5 + 7;
   }
@@ -299,7 +300,7 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.skills) {
     sectionTitle("Core Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.skills, W - M * 2);
+    const sl = doc.splitTextToSize(cv.skills, fullTextW);
     doc.text(sl, W / 2, y, { align: "center" });
     y += sl.length * 4 + 6;
   }
@@ -332,7 +333,7 @@ export function pdfHospitality(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        const pl = doc.splitTextToSize(e.points, W - M * 2 - 8);
+        const pl = doc.splitTextToSize(e.points, fullTextW - 6);
         doc.text(pl, M + 6, y); y += pl.length * 4 + 2;
       }
       y += 6;
@@ -357,14 +358,14 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.certifications, W - M * 2);
+    const sl = doc.splitTextToSize(cv.certifications, fullTextW);
     doc.text(sl, W / 2, y, { align: "center" }); y += sl.length * 4 + 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.technicalSkills, W - M * 2);
+    const sl = doc.splitTextToSize(cv.technicalSkills, fullTextW);
     doc.text(sl, W / 2, y, { align: "center" }); y += sl.length * 4 + 5;
   }
 

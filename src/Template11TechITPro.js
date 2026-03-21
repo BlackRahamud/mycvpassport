@@ -275,6 +275,10 @@ export function pdfTechITPro(doc, cv, W, M) {
   const [ar, ag, ab] = accent;
 
   const sideW = 65;
+  /** Sidebar: text from x=6 to column edge at sideW-5 */
+  const sideTextW = sideW - 6 - 5;
+  /** Bullet lines with body text starting at x=11 */
+  const sideSkillW = sideW - 5 - 11;
 
   // Sidebar
   doc.setFillColor(sr, sg, sb);
@@ -287,7 +291,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   // Name
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(13); doc.setFont("helvetica", "bold");
-  const nameLines = doc.splitTextToSize(cv.name || "Your Name", sideW - 10);
+  const nameLines = doc.splitTextToSize(cv.name || "Your Name", sideTextW);
   doc.text(nameLines, 6, 12);
 
   // Accent underline
@@ -297,7 +301,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   // Title
   doc.setTextColor(ar, ag, ab);
   doc.setFontSize(7.5); doc.setFont("helvetica", "normal");
-  const titleLines = doc.splitTextToSize(cv.title || "IT Professional", sideW - 10);
+  const titleLines = doc.splitTextToSize(cv.title || "IT Professional", sideTextW);
   doc.text(titleLines, 6, 12 + nameLines.length * 5.5 + 6);
 
   let sy = 12 + nameLines.length * 5.5 + titleLines.length * 4.5 + 10;
@@ -315,7 +319,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   };
 
   sideSection("Contact");
-  if (cv.email) { const l = doc.splitTextToSize(cv.email, sideW - 12); doc.text(l, 6, sy); sy += l.length * 3.5 + 2; }
+  if (cv.email) { const l = doc.splitTextToSize(cv.email, sideTextW); doc.text(l, 6, sy); sy += l.length * 3.5 + 2; }
   if (cv.phone) { doc.text(cv.phone, 6, sy); sy += 5; }
   if (cv.location) { doc.text(cv.location, 6, sy); sy += 6; }
 
@@ -337,7 +341,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       doc.setFillColor(ar, ag, ab);
       doc.circle(7.5, sy - 1, 1.2, "F");
       doc.setTextColor(207, 216, 220); doc.setFontSize(7.5);
-      const sl = doc.splitTextToSize(s.trim(), sideW - 16);
+      const sl = doc.splitTextToSize(s.trim(), sideSkillW);
       doc.text(sl, 11, sy); sy += sl.length * 3.5 + 1.5;
     });
     sy += 2;
@@ -349,7 +353,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       if (!s.trim()) return;
       doc.setTextColor(ar, ag, ab); doc.text("—", 6, sy);
       doc.setTextColor(176, 190, 197);
-      const sl = doc.splitTextToSize(s.trim(), sideW - 14);
+      const sl = doc.splitTextToSize(s.trim(), sideSkillW);
       doc.text(sl, 11, sy); sy += sl.length * 3.5 + 1.5;
     });
     sy += 2;
@@ -371,7 +375,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       if (!c.trim()) return;
       doc.setTextColor(ar, ag, ab); doc.text("✦", 6, sy);
       doc.setTextColor(176, 190, 197);
-      const sl = doc.splitTextToSize(c.trim(), sideW - 14);
+      const sl = doc.splitTextToSize(c.trim(), sideSkillW);
       doc.text(sl, 11, sy); sy += sl.length * 3.5 + 2;
     });
     sy += 2;
@@ -387,7 +391,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   // Right panel
   let y = 10;
   const rx = sideW + 8;
-  const rw = W - sideW - 14;
+  const rw = W - M - rx;
 
   const mainSection = (title) => {
     doc.setTextColor(sr, sg, sb);

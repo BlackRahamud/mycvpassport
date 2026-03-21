@@ -218,6 +218,7 @@ export function PreviewCompactPro({ cv, t }) {
 
 // ─── PDF: Compact Pro ─────────────────────────────────────────────
 export function pdfCompactPro(doc, cv, W, M) {
+  const fullTextW = W - M * 2;
   const teal   = [13,  115, 119];
   const dark   = [20,  33,  61];
   const mid    = [61,  61,  61];
@@ -287,7 +288,7 @@ export function pdfCompactPro(doc, cv, W, M) {
     doc.text("CORE SKILLS", M, y + 3);
     doc.setTextColor(...dark); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
     const skillStr = cv.skills.split(",").map(s => s.trim()).filter(Boolean).join("   ·   ");
-    const sl = doc.splitTextToSize(skillStr, W - M * 2 - 25);
+    const sl = doc.splitTextToSize(skillStr, fullTextW - 28);
     doc.text(sl, M + 28, y + 3);
     y += 14;
   }
@@ -295,7 +296,7 @@ export function pdfCompactPro(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.summary, W - M * 2);
+    const sl = doc.splitTextToSize(cv.summary, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4.5 + 7;
   }
 
@@ -326,7 +327,7 @@ export function pdfCompactPro(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        const pl = doc.splitTextToSize(e.points, W - M * 2 - 8);
+        const pl = doc.splitTextToSize(e.points, fullTextW - 6);
         doc.text(pl, M + 6, y); y += pl.length * 4 + 2;
       }
       y += 4;
@@ -352,14 +353,14 @@ export function pdfCompactPro(doc, cv, W, M) {
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.certifications, W - M * 2);
+    const sl = doc.splitTextToSize(cv.certifications, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.technicalSkills, W - M * 2);
+    const sl = doc.splitTextToSize(cv.technicalSkills, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
@@ -376,7 +377,7 @@ export function pdfCompactPro(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const al = doc.splitTextToSize(adds.join("   •   "), W - M * 2);
+    const al = doc.splitTextToSize(adds.join("   •   "), fullTextW);
     doc.text(al, M, y); y += al.length * 4 + 5;
   }
 

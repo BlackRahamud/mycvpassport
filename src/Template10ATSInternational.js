@@ -210,6 +210,7 @@ export function PreviewATSInternational({ cv, t }) {
 
 // ─── PDF: ATS International ───────────────────────────────────────
 export function pdfATSInternational(doc, cv, W, M) {
+  const fullTextW = W - M * 2;
   const black  = [0,   0,   0  ];
  // const dark   = [17,  17,  17 ];
   const mid    = [51,  51,  51 ];
@@ -263,7 +264,7 @@ export function pdfATSInternational(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.summary, W - M * 2);
+    const sl = doc.splitTextToSize(cv.summary, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4.5 + 7;
   }
 
@@ -271,7 +272,7 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("Core Skills");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const skillStr = cv.skills.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
-    const sl = doc.splitTextToSize(skillStr, W - M * 2);
+    const sl = doc.splitTextToSize(skillStr, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4.5 + 6;
   }
 
@@ -292,7 +293,7 @@ export function pdfATSInternational(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        const pl = doc.splitTextToSize(e.points, W - M * 2);
+        const pl = doc.splitTextToSize(e.points, fullTextW);
         doc.text(pl, M, y); y += pl.length * 4 + 2;
       }
       y += 4;
@@ -319,7 +320,7 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("Certifications");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const certStr = cv.certifications.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
-    const sl = doc.splitTextToSize(certStr, W - M * 2);
+    const sl = doc.splitTextToSize(certStr, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
@@ -327,7 +328,7 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const techStr = cv.technicalSkills.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
-    const sl = doc.splitTextToSize(techStr, W - M * 2);
+    const sl = doc.splitTextToSize(techStr, fullTextW);
     doc.text(sl, M, y); y += sl.length * 4 + 5;
   }
 
