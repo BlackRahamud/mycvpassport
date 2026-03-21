@@ -1,8 +1,25 @@
 /**
  * Experience description → PDF: split on newlines and •, wrap with splitTextToSize.
- * Does not change maxWidth values — pass the same width already used per layout.
+ * Width uses pdfBufW(maxWidth) — always call setFontSize immediately before splitTextToSize.
  */
-export function renderPdfExperiencePoints(doc, rawText, x, startY, maxWidth, lineHeight, bottomY, topYOnNewPage) {
+import {
+  PDF_CONTENT_BOTTOM_Y,
+  PDF_NEW_PAGE_TOP_Y,
+  pdfBufW,
+  pdfEnsureY,
+} from "./pdfA4Layout";
+
+export function renderPdfExperiencePoints(
+  doc,
+  rawText,
+  x,
+  startY,
+  maxWidth,
+  lineHeight,
+  bottomY = PDF_CONTENT_BOTTOM_Y,
+  topYOnNewPage = PDF_NEW_PAGE_TOP_Y,
+  fontSize = 7.5
+) {
   const text = String(rawText ?? "");
   if (!text.trim()) return startY;
 
@@ -10,17 +27,15 @@ export function renderPdfExperiencePoints(doc, rawText, x, startY, maxWidth, lin
 
   const drawLines = (lines) => {
     lines.forEach((line) => {
-      if (y + lineHeight > bottomY) {
-        doc.addPage();
-        y = topYOnNewPage;
-      }
+      y = pdfEnsureY(doc, y, lineHeight, bottomY, topYOnNewPage);
       doc.text(line, x, y);
       y += lineHeight;
     });
   };
 
   if (!/[•\n]/.test(text)) {
-    const wrapped = doc.splitTextToSize(text.trim(), maxWidth);
+    doc.setFontSize(fontSize);
+    const wrapped = doc.splitTextToSize(text.trim(), pdfBufW(maxWidth));
     drawLines(wrapped);
     return y;
   }
@@ -29,7 +44,8 @@ export function renderPdfExperiencePoints(doc, rawText, x, startY, maxWidth, lin
   if (parts.length === 0) return y;
   parts.forEach((part, i) => {
     const display = i === 0 ? part : `• ${part}`;
-    const wrapped = doc.splitTextToSize(display, maxWidth);
+    doc.setFontSize(fontSize);
+    const wrapped = doc.splitTextToSize(display, pdfBufW(maxWidth));
     drawLines(wrapped);
   });
   return y;

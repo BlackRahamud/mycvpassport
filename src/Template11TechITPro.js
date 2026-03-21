@@ -8,6 +8,13 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import {
+  PDF_CONTENT_BOTTOM_Y,
+  PDF_NEW_PAGE_TOP_Y,
+  pdfEnsureY,
+  pdfDrawWrappedText,
+  pdfSplitText,
+} from "./pdfA4Layout";
 
 export function PreviewTechITPro({ cv, t }) {
   const skillList = cv.skills
@@ -266,8 +273,8 @@ export function PreviewTechITPro({ cv, t }) {
 
 // ─── PDF: Tech & IT Pro ───────────────────────────────────────────
 export function pdfTechITPro(doc, cv, W, M) {
-  const pdfBottomY = 297 - M;
-  const pdfTopY = M;
+  const pdfBottomY = PDF_CONTENT_BOTTOM_Y;
+  const pdfTopY = PDF_NEW_PAGE_TOP_Y;
   const slate  = [30,  45,  69];
   const accent = [74,  144, 217];
   const dark   = [26,  26,  46];
@@ -284,33 +291,48 @@ export function pdfTechITPro(doc, cv, W, M) {
   /** Bullet lines with body text starting at x=11 */
   const sideSkillW = sideW - 5 - 11;
 
-  // Sidebar
-  doc.setFillColor(sr, sg, sb);
-  doc.rect(0, 0, sideW, 297, "F");
+  const redrawSidebar = () => {
+    doc.setFillColor(sr, sg, sb);
+    doc.rect(0, 0, sideW, 297, "F");
+    doc.setFillColor(ar, ag, ab);
+    doc.rect(0, 0, sideW, 3, "F");
+  };
+  redrawSidebar();
 
-  // Accent top bar
-  doc.setFillColor(ar, ag, ab);
-  doc.rect(0, 0, sideW, 3, "F");
+  const ensureSy = (sy, lh) => {
+    if (sy + lh > pdfBottomY) { doc.addPage(); redrawSidebar(); return pdfTopY; }
+    return sy;
+  };
+  const drawSideWrapped = (lines, x, sy, lh) => {
+    let yy = sy;
+    lines.forEach((line) => {
+      yy = ensureSy(yy, lh);
+      doc.text(line, x, yy);
+      yy += lh;
+    });
+    return yy;
+  };
 
   // Name
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(13); doc.setFont("helvetica", "bold");
-  const nameLines = doc.splitTextToSize(cv.name || "Your Name", sideTextW);
-  doc.text(nameLines, 6, 12);
+  doc.setFont("helvetica", "bold");
+  const nameLines = pdfSplitText(doc, cv.name || "Your Name", sideTextW, 13);
+  let sy = drawSideWrapped(nameLines, 6, 12, 5.5);
 
   // Accent underline
   doc.setFillColor(ar, ag, ab);
-  doc.rect(6, 12 + nameLines.length * 5.5, 22, 2, "F");
+  doc.rect(6, sy + 2, 22, 2, "F");
 
   // Title
   doc.setTextColor(ar, ag, ab);
-  doc.setFontSize(7.5); doc.setFont("helvetica", "normal");
-  const titleLines = doc.splitTextToSize(cv.title || "IT Professional", sideTextW);
-  doc.text(titleLines, 6, 12 + nameLines.length * 5.5 + 6);
+  doc.setFont("helvetica", "normal");
+  const titleLines = pdfSplitText(doc, cv.title || "IT Professional", sideTextW, 7.5);
+  sy = drawSideWrapped(titleLines, 6, sy + 6, 4.5);
 
-  let sy = 12 + nameLines.length * 5.5 + titleLines.length * 4.5 + 10;
+  sy += 10;
 
   const sideSection = (label) => {
+    sy = ensureSy(sy, 4);
     doc.setTextColor(ar, ag, ab);
     doc.setFontSize(6.5); doc.setFont("helvetica", "bold");
     doc.text(label.toUpperCase(), 6, sy);
@@ -323,14 +345,15 @@ export function pdfTechITPro(doc, cv, W, M) {
   };
 
   sideSection("Contact");
-  if (cv.email) { const l = doc.splitTextToSize(cv.email, sideTextW); doc.text(l, 6, sy); sy += l.length * 3.5 + 2; }
-  if (cv.phone) { doc.text(cv.phone, 6, sy); sy += 5; }
-  if (cv.location) { doc.text(cv.location, 6, sy); sy += 6; }
+  if (cv.email) { const l = pdfSplitText(doc, cv.email, sideTextW, 7.5); sy = drawSideWrapped(l, 6, sy, 3.5); sy += 2; }
+  if (cv.phone) { sy = ensureSy(sy, 5); doc.text(cv.phone, 6, sy); sy += 5; }
+  if (cv.location) { sy = ensureSy(sy, 6); doc.text(cv.location, 6, sy); sy += 6; }
 
   if (cv.nationality || cv.visaStatus || cv.dob || cv.gender || cv.maritalStatus) {
     sideSection("Personal Info");
     const fields = [cv.nationality, cv.visaStatus, cv.dob, cv.gender, cv.maritalStatus].filter(Boolean);
     fields.forEach(f => {
+      sy = ensureSy(sy, 4.5);
       doc.setTextColor(ar, ag, ab); doc.text("›", 6, sy);
       doc.setTextColor(180, 190, 200); doc.text(f, 10, sy);
       sy += 4.5;
@@ -342,11 +365,12 @@ export function pdfTechITPro(doc, cv, W, M) {
     sideSection("Core Skills");
     cv.skills.split(",").forEach(s => {
       if (!s.trim()) return;
+      sy = ensureSy(sy, 5);
       doc.setFillColor(ar, ag, ab);
       doc.circle(7.5, sy - 1, 1.2, "F");
       doc.setTextColor(207, 216, 220); doc.setFontSize(7.5);
-      const sl = doc.splitTextToSize(s.trim(), sideSkillW);
-      doc.text(sl, 11, sy); sy += sl.length * 3.5 + 1.5;
+      const sl = pdfSplitText(doc, s.trim(), sideSkillW, 7.5);
+      sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 1.5;
     });
     sy += 2;
   }
@@ -355,10 +379,11 @@ export function pdfTechITPro(doc, cv, W, M) {
     sideSection("Tech Stack");
     cv.technicalSkills.split(",").forEach(s => {
       if (!s.trim()) return;
+      sy = ensureSy(sy, 5);
       doc.setTextColor(ar, ag, ab); doc.text("—", 6, sy);
       doc.setTextColor(176, 190, 197);
-      const sl = doc.splitTextToSize(s.trim(), sideSkillW);
-      doc.text(sl, 11, sy); sy += sl.length * 3.5 + 1.5;
+      const sl = pdfSplitText(doc, s.trim(), sideSkillW, 7.5);
+      sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 1.5;
     });
     sy += 2;
   }
@@ -366,6 +391,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   if (cv.languages) {
     sideSection("Languages");
     cv.languages.split(",").forEach(l => {
+      sy = ensureSy(sy, 4.5);
       doc.setTextColor(ar, ag, ab); doc.text("›", 6, sy);
       doc.setTextColor(176, 190, 197); doc.text(l.trim(), 10, sy);
       sy += 4.5;
@@ -377,19 +403,20 @@ export function pdfTechITPro(doc, cv, W, M) {
     sideSection("Certifications");
     cv.certifications.split(",").forEach(c => {
       if (!c.trim()) return;
+      sy = ensureSy(sy, 5);
       doc.setTextColor(ar, ag, ab); doc.text("✦", 6, sy);
       doc.setTextColor(176, 190, 197);
-      const sl = doc.splitTextToSize(c.trim(), sideSkillW);
-      doc.text(sl, 11, sy); sy += sl.length * 3.5 + 2;
+      const sl = pdfSplitText(doc, c.trim(), sideSkillW, 7.5);
+      sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 2;
     });
     sy += 2;
   }
 
   if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
     sideSection("Additional");
-    if (cv.availability)      { doc.setTextColor(ar,ag,ab); doc.text("›",6,sy); doc.setTextColor(176,190,197); doc.text(cv.availability,10,sy); sy+=4.5; }
-    if (cv.drivingLicense)    { doc.setTextColor(ar,ag,ab); doc.text("›",6,sy); doc.setTextColor(176,190,197); doc.text(cv.drivingLicense,10,sy); sy+=4.5; }
-    if (cv.willingToRelocate) { doc.setTextColor(ar,ag,ab); doc.text("›",6,sy); doc.setTextColor(176,190,197); doc.text("Relocate: "+cv.willingToRelocate,10,sy); sy+=4.5; }
+    if (cv.availability)      { sy = ensureSy(sy, 4.5); doc.setTextColor(ar,ag,ab); doc.text("›",6,sy); doc.setTextColor(176,190,197); doc.text(cv.availability,10,sy); sy+=4.5; }
+    if (cv.drivingLicense)    { sy = ensureSy(sy, 4.5); doc.setTextColor(ar,ag,ab); doc.text("›",6,sy); doc.setTextColor(176,190,197); doc.text(cv.drivingLicense,10,sy); sy+=4.5; }
+    if (cv.willingToRelocate) { sy = ensureSy(sy, 4.5); doc.setTextColor(ar,ag,ab); doc.text("›",6,sy); doc.setTextColor(176,190,197); doc.text("Relocate: "+cv.willingToRelocate,10,sy); sy+=4.5; }
   }
 
   // Right panel
@@ -398,6 +425,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   const rw = W - M - rx;
 
   const mainSection = (title) => {
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
     doc.setTextColor(sr, sg, sb);
     doc.setFontSize(8); doc.setFont("helvetica", "bold");
     doc.text(title.toUpperCase(), rx, y);
@@ -411,13 +439,14 @@ export function pdfTechITPro(doc, cv, W, M) {
   if (cv.summary) {
     mainSection("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.summary, rw);
-    doc.text(sl, rx, y); y += sl.length * 4.5 + 8;
+    y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY);
+    y += 8;
   }
 
   if (cv.experience.some(e => e.company)) {
     mainSection("Professional Experience");
     cv.experience.filter(e => e.company).forEach(e => {
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       // Role
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...dark);
@@ -430,6 +459,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       y += 5;
 
       // Company — plain body colour (no accent/link styling)
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "italic"); doc.setFontSize(8.5);
       doc.setTextColor(...mid);
       const compStr = (e.company || "") + (e.location ? ` — ${e.location}` : "");
@@ -439,7 +469,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        y = renderPdfExperiencePoints(doc, e.points, rx, y, rw, 4, pdfBottomY, pdfTopY) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, rx, y, rw, 4, pdfBottomY, pdfTopY, 8) + 2;
       }
       y += 5;
     });
@@ -448,6 +478,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     mainSection("Education");
     cv.education.filter(e => e.school).forEach(e => {
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...dark);
       doc.text(e.degree || "", rx, y);
@@ -455,6 +486,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       doc.setTextColor(ar, ag, ab);
       doc.text(e.year || "", W - M, y, { align: "right" });
       y += 4.5;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "italic"); doc.setFontSize(8.5);
       doc.setTextColor(...subtle);
       doc.text(e.school || "", rx, y); y += 9;
@@ -462,8 +494,10 @@ export function pdfTechITPro(doc, cv, W, M) {
   }
 
   if (cv.references) {
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
     doc.setDrawColor(ar, ag, ab); doc.setLineWidth(0.2);
     doc.line(rx, y, rx + rw, y); y += 5;
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
     doc.text(cv.references, rx, y);

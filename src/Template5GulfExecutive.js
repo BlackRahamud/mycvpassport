@@ -6,6 +6,14 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import {
+  PDF_CONTENT_BOTTOM_Y,
+  PDF_NEW_PAGE_TOP_Y,
+  pdfEnsureY,
+  pdfSplitText,
+  pdfDrawWrappedLines,
+  pdfDrawWrappedText,
+} from "./pdfA4Layout";
 
 export function PreviewGulfExecutive({ cv, t }) {
   const skillList = cv.skills
@@ -235,8 +243,8 @@ export function PreviewGulfExecutive({ cv, t }) {
 // ─── PDF: Gulf Executive ──────────────────────────────────────────
 export function pdfGulfExecutive(doc, cv, W, M) {
   const fullTextW = W - M * 2;
-  const pdfBottomY = 297 - M;
-  const pdfTopY = M;
+  const pdfBottomY = PDF_CONTENT_BOTTOM_Y;
+  const pdfTopY = PDF_NEW_PAGE_TOP_Y;
   const gold  = [201, 168, 76];
   const navy  = [13,  27,  42];
   const body  = [44,  44,  44];
@@ -284,6 +292,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   let y = 50;
 
   const sectionTitle = (title) => {
+    y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY);
     // gold dash + label + faint rule
     doc.setFillColor(gr, gg, gb);
     doc.rect(M, y, 8, 1.2, "F");
@@ -301,47 +310,51 @@ export function pdfGulfExecutive(doc, cv, W, M) {
     sectionTitle("Executive Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "italic");
     doc.setTextColor(...body);
+    const sumLines = pdfSplitText(doc, cv.summary, fullTextW - 4, 8.5);
+    const sumLineH = 4.5;
+    y = pdfEnsureY(doc, y, sumLineH, pdfBottomY, pdfTopY);
     doc.setDrawColor(gr, gg, gb); doc.setLineWidth(0.8);
-    doc.line(M, y, M, y + 12);
-    const sl = doc.splitTextToSize(cv.summary, fullTextW - 4);
-    doc.text(sl, M + 4, y);
-    y += sl.length * 4.5 + 7;
+    doc.line(M, y, M, y + Math.max(12, sumLines.length * sumLineH));
+    y = pdfDrawWrappedLines(doc, sumLines, M + 4, y, sumLineH, pdfBottomY, pdfTopY);
+    y += 7;
   }
 
   if (cv.skills) {
     sectionTitle("Core Competencies");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const sl = doc.splitTextToSize(cv.skills, fullTextW);
-    doc.text(sl, M, y);
-    y += sl.length * 4 + 6;
+    y = pdfDrawWrappedText(doc, cv.skills, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY);
+    y += 6;
   }
 
   if (cv.experience.some(e => e.company)) {
     sectionTitle("Professional Experience");
     cv.experience.filter(e => e.company).forEach(e => {
+      y = pdfEnsureY(doc, y, 16, pdfBottomY, pdfTopY);
       // left accent bar
       doc.setFillColor(gr, gg, gb);
       doc.rect(M, y - 1, 1.5, 14, "F");
 
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(...navy);
-      doc.text(e.role || "", M + 5, y + 2);
+      const roleBase = pdfEnsureY(doc, y + 2, 4.5, pdfBottomY, pdfTopY);
+      doc.text(e.role || "", M + 5, roleBase);
 
       doc.setFont("helvetica", "italic"); doc.setFontSize(7.5);
       doc.setTextColor(...subtle);
-      doc.text(e.period || "", W - M, y + 2, { align: "right" });
+      doc.text(e.period || "", W - M, roleBase, { align: "right" });
 
       y += 5;
       doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
       doc.setTextColor(gr, gg, gb);
       const compStr = (e.company || "") + (e.location ? ` · ${e.location}` : "");
-      doc.text(compStr, M + 5, y);
-      y += 5;
+      const compBase = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      doc.text(compStr, M + 5, compBase);
+      y = compBase + 5;
 
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...body);
-        y = renderPdfExperiencePoints(doc, e.points, M + 5, y, fullTextW - 5, 4, pdfBottomY, pdfTopY) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M + 5, y, fullTextW - 5, 4, pdfBottomY, pdfTopY, 8) + 2;
       }
       y += 4;
     });
@@ -350,6 +363,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     sectionTitle("Education");
     cv.education.filter(e => e.school).forEach(e => {
+      y = pdfEnsureY(doc, y, 9, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(...navy);
       doc.text(e.degree || "", M, y);
@@ -357,6 +371,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
       doc.setTextColor(...subtle);
       doc.text(e.year || "", W - M, y, { align: "right" });
       y += 5;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8);
       doc.text(e.school || "", M, y);
       y += 8;
@@ -366,21 +381,23 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const sl = doc.splitTextToSize(cv.certifications, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, cv.certifications, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const sl = doc.splitTextToSize(cv.technicalSkills, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, cv.technicalSkills, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.languages) {
     sectionTitle("Languages");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    doc.text(cv.languages, M, y); y += 8;
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+    doc.text(cv.languages, M, y);
+    y += 8;
   }
 
   if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
@@ -390,14 +407,15 @@ export function pdfGulfExecutive(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("Driving License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Willing to Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
-    const al = doc.splitTextToSize(adds.join("   •   "), fullTextW);
-    doc.text(al, M, y); y += al.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, adds.join("   •   "), fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.references) {
     sectionTitle("References");
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.text(cv.references, M, y);
   }
 }

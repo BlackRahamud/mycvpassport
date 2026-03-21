@@ -7,6 +7,13 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import {
+  PDF_CONTENT_BOTTOM_Y,
+  PDF_NEW_PAGE_TOP_Y,
+  pdfEnsureY,
+  pdfDrawWrappedLines,
+  pdfSplitText,
+} from "./pdfA4Layout";
 
 export function PreviewHospitality({ cv, t }) {
   const skillList = cv.skills
@@ -242,8 +249,8 @@ export function PreviewHospitality({ cv, t }) {
 // ─── PDF: Hospitality & Service ───────────────────────────────────
 export function pdfHospitality(doc, cv, W, M) {
   const fullTextW = W - M * 2;
-  const pdfBottomY = 297 - M;
-  const pdfTopY = M;
+  const pdfBottomY = PDF_CONTENT_BOTTOM_Y;
+  const pdfTopY = PDF_NEW_PAGE_TOP_Y;
   const brown  = [107, 76,  59];
   const warm   = [196, 149, 106];
   const dark   = [44,  24,  16];
@@ -287,6 +294,7 @@ export function pdfHospitality(doc, cv, W, M) {
   let y = 48;
 
   const sectionTitle = (title) => {
+    y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY);
     doc.setDrawColor(wr, wg, wb); doc.setLineWidth(0.3);
     const titleW = doc.getTextWidth(title.toUpperCase()) + 10;
     const lineStart = (W - titleW) / 2 - 20;
@@ -302,17 +310,17 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Profile");
     doc.setFontSize(8.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.summary, fullTextW);
-    doc.text(sl, W / 2, y, { align: "center" });
-    y += sl.length * 4.5 + 7;
+    const lines = pdfSplitText(doc, cv.summary, fullTextW, 8.5);
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4.5, pdfBottomY, pdfTopY, { align: "center" });
+    y += 7;
   }
 
   if (cv.skills) {
     sectionTitle("Core Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.skills, fullTextW);
-    doc.text(sl, W / 2, y, { align: "center" });
-    y += sl.length * 4 + 6;
+    const lines = pdfSplitText(doc, cv.skills, fullTextW, 8);
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y += 6;
   }
 
   if (cv.experience.some(e => e.company)) {
@@ -323,6 +331,7 @@ export function pdfHospitality(doc, cv, W, M) {
       doc.setFillColor(wr, wg, wb);
       doc.rect(M, y - 2, 2.5, 18, "F");
 
+      y = pdfEnsureY(doc, y, 18, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(...dark);
       doc.text(e.role || "", M + 6, y + 3);
@@ -335,6 +344,7 @@ export function pdfHospitality(doc, cv, W, M) {
       doc.text(e.period || "", W - M - pw / 2, y + 2.5, { align: "center" });
 
       y += 7;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
       doc.setTextColor(wr, wg, wb);
       const compStr = (e.company || "") + (e.location ? ` · ${e.location}` : "");
@@ -343,7 +353,7 @@ export function pdfHospitality(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY, 8) + 2;
       }
       y += 6;
     });
@@ -352,6 +362,7 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     sectionTitle("Education");
     cv.education.filter(e => e.school).forEach(e => {
+      y = pdfEnsureY(doc, y, 14, pdfBottomY, pdfTopY);
       doc.setFillColor(245, 237, 224);
       doc.roundedRect(M, y - 2, W - M * 2, 13, 2, 2, "F");
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...dark);
@@ -359,6 +370,7 @@ export function pdfHospitality(doc, cv, W, M) {
       doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(wr, wg, wb);
       doc.text(e.year || "", W - M - 4, y + 3, { align: "right" });
       y += 6;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...subtle);
       doc.text(e.school || "", M + 6, y); y += 9;
     });
@@ -367,20 +379,23 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.certifications, fullTextW);
-    doc.text(sl, W / 2, y, { align: "center" }); y += sl.length * 4 + 5;
+    const lines = pdfSplitText(doc, cv.certifications, fullTextW, 8);
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y += 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.technicalSkills, fullTextW);
-    doc.text(sl, W / 2, y, { align: "center" }); y += sl.length * 4 + 5;
+    const lines = pdfSplitText(doc, cv.technicalSkills, fullTextW, 8);
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y += 5;
   }
 
   if (cv.languages) {
     sectionTitle("Languages");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.text(cv.languages, W / 2, y, { align: "center" }); y += 8;
   }
 
@@ -391,13 +406,16 @@ export function pdfHospitality(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    doc.text(adds.join("   •   "), W / 2, y, { align: "center" }); y += 8;
+    const lines = pdfSplitText(doc, adds.join("   •   "), fullTextW, 8);
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y += 8;
   }
 
   if (cv.references) {
     sectionTitle("References");
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.text(cv.references, W / 2, y, { align: "center" });
   }
 }

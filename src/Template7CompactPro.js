@@ -7,6 +7,12 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import {
+  PDF_CONTENT_BOTTOM_Y,
+  PDF_NEW_PAGE_TOP_Y,
+  pdfEnsureY,
+  pdfDrawWrappedText,
+} from "./pdfA4Layout";
 
 export function PreviewCompactPro({ cv, t }) {
   const skillList = cv.skills
@@ -227,8 +233,8 @@ export function PreviewCompactPro({ cv, t }) {
 // ─── PDF: Compact Pro ─────────────────────────────────────────────
 export function pdfCompactPro(doc, cv, W, M) {
   const fullTextW = W - M * 2;
-  const pdfBottomY = 297 - M;
-  const pdfTopY = M;
+  const pdfBottomY = PDF_CONTENT_BOTTOM_Y;
+  const pdfTopY = PDF_NEW_PAGE_TOP_Y;
   const teal   = [13,  115, 119];
   const dark   = [20,  33,  61];
   const mid    = [61,  61,  61];
@@ -278,6 +284,7 @@ export function pdfCompactPro(doc, cv, W, M) {
   let y = 46;
 
   const sectionTitle = (title) => {
+    y = pdfEnsureY(doc, y, 12, pdfBottomY, pdfTopY);
     doc.setFillColor(tr, tg, tb);
     doc.rect(M, y - 1, 2.5, 10, "F");
     doc.setTextColor(...dark);
@@ -292,27 +299,28 @@ export function pdfCompactPro(doc, cv, W, M) {
 
   // Skills strip
   if (cv.skills) {
+    y = pdfEnsureY(doc, y, 14, pdfBottomY, pdfTopY);
     doc.setFillColor(240, 247, 247);
     doc.rect(0, y - 3, W, 10, "F");
     doc.setTextColor(tr, tg, tb); doc.setFontSize(7); doc.setFont("helvetica", "bold");
     doc.text("CORE SKILLS", M, y + 3);
     doc.setTextColor(...dark); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
     const skillStr = cv.skills.split(",").map(s => s.trim()).filter(Boolean).join("   ·   ");
-    const sl = doc.splitTextToSize(skillStr, fullTextW - 28);
-    doc.text(sl, M + 28, y + 3);
-    y += 14;
+    y = pdfDrawWrappedText(doc, skillStr, fullTextW - 28, 7.5, M + 28, y + 3, 4, pdfBottomY, pdfTopY);
+    y += 4;
   }
 
   if (cv.summary) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.summary, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4.5 + 7;
+    y = pdfDrawWrappedText(doc, cv.summary, fullTextW, 8.5, M, y, 4.5, pdfBottomY, pdfTopY);
+    y += 7;
   }
 
   if (cv.experience.some(e => e.company)) {
     sectionTitle("Work Experience");
     cv.experience.filter(e => e.company).forEach(e => {
+      y = pdfEnsureY(doc, y, 12, pdfBottomY, pdfTopY);
       // dot marker
       doc.setFillColor(tr, tg, tb);
       doc.circle(M + 1.5, y + 1, 1.5, "F");
@@ -329,15 +337,17 @@ export function pdfCompactPro(doc, cv, W, M) {
       doc.text(e.period || "", W - M - periodW / 2, y + 2.5, { align: "center" });
 
       y += 5;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
       doc.setTextColor(tr, tg, tb);
       const compStr = (e.company || "") + (e.location ? ` · ${e.location}` : "");
-      doc.text(compStr, M + 6, y); y += 5;
+      doc.text(compStr, M + 6, y);
+      y += 5;
 
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY, 8) + 2;
       }
       y += 4;
     });
@@ -346,6 +356,7 @@ export function pdfCompactPro(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     sectionTitle("Education");
     cv.education.filter(e => e.school).forEach(e => {
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(...dark);
       doc.text(e.degree || "", M, y);
@@ -353,30 +364,34 @@ export function pdfCompactPro(doc, cv, W, M) {
       doc.setTextColor(tr, tg, tb);
       doc.text(e.year || "", W - M, y, { align: "right" });
       y += 4.5;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8);
       doc.setTextColor(...subtle);
-      doc.text(e.school || "", M, y); y += 8;
+      doc.text(e.school || "", M, y);
+      y += 8;
     });
   }
 
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.certifications, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, cv.certifications, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.technicalSkills, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, cv.technicalSkills, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.languages) {
     sectionTitle("Languages");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    doc.text(cv.languages, M, y); y += 8;
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+    doc.text(cv.languages, M, y);
+    y += 8;
   }
 
   if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
@@ -386,13 +401,15 @@ export function pdfCompactPro(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const al = doc.splitTextToSize(adds.join("   •   "), fullTextW);
-    doc.text(al, M, y); y += al.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, adds.join("   •   "), fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.references) {
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
     doc.setDrawColor(tr, tg, tb); doc.setLineWidth(0.2);
     doc.line(M, y, W - M, y); y += 5;
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
     doc.text(cv.references, M, y);

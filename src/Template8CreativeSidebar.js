@@ -7,6 +7,13 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import {
+  PDF_CONTENT_BOTTOM_Y,
+  PDF_NEW_PAGE_TOP_Y,
+  pdfEnsureY,
+  pdfDrawWrappedText,
+  pdfSplitText,
+} from "./pdfA4Layout";
 
 export function PreviewCreativeSidebar({ cv, t }) {
   const skillList = cv.skills
@@ -261,8 +268,8 @@ export function PreviewCreativeSidebar({ cv, t }) {
 
 // ─── PDF: Creative Sidebar ────────────────────────────────────────
 export function pdfCreativeSidebar(doc, cv, W, M) {
-  const pdfBottomY = 297 - M;
-  const pdfTopY = M;
+  const pdfBottomY = PDF_CONTENT_BOTTOM_Y;
+  const pdfTopY = PDF_NEW_PAGE_TOP_Y;
   const coral  = [232, 83,  63];
   const dark   = [43,  43,  43];
   const charco = [61,  61,  61];
@@ -276,13 +283,14 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   /** Sidebar text inset x=5; rule ends at sideW-5 */
   const sideTextW = sideW - 5 - 5;
 
+  const redrawSidebar = () => {
+    doc.setFillColor(dr, dg, db);
+    doc.rect(0, 0, sideW, 297, "F");
+    doc.setFillColor(cr, cg, cb);
+    doc.rect(0, 0, sideW, 3, "F");
+  };
   // Sidebar background
-  doc.setFillColor(dr, dg, db);
-  doc.rect(0, 0, sideW, 297, "F");
-
-  // Coral accent bar at top of sidebar
-  doc.setFillColor(cr, cg, cb);
-  doc.rect(0, 0, sideW, 3, "F");
+  redrawSidebar();
 
   // Initial circle
   doc.setFillColor(cr, cg, cb);
@@ -292,25 +300,40 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   const initial = (cv.name || "?")[0].toUpperCase();
   doc.text(initial, sideW / 2, 19, { align: "center" });
 
+  const ensureSy = (sy, lh) => {
+    if (sy + lh > pdfBottomY) { doc.addPage(); redrawSidebar(); return pdfTopY; }
+    return sy;
+  };
+  const drawSideWrapped = (lines, x, sy, lh) => {
+    let yy = sy;
+    lines.forEach((line) => {
+      yy = ensureSy(yy, lh);
+      doc.text(line, x, yy);
+      yy += lh;
+    });
+    return yy;
+  };
+
   // Name
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(11); doc.setFont("helvetica", "bold");
-  const nameLines = doc.splitTextToSize(cv.name || "Your Name", sideTextW);
-  doc.text(nameLines, 5, 32);
+  doc.setFont("helvetica", "bold");
+  const nameLines = pdfSplitText(doc, cv.name || "Your Name", sideTextW, 11);
+  let sy = drawSideWrapped(nameLines, 5, 32, 5.5);
 
   // Title
   doc.setTextColor(cr, cg, cb);
-  doc.setFontSize(8); doc.setFont("helvetica", "normal");
-  const titleLines = doc.splitTextToSize(cv.title || "Job Title", sideTextW);
-  doc.text(titleLines, 5, 32 + nameLines.length * 5.5);
+  doc.setFont("helvetica", "normal");
+  const titleLines = pdfSplitText(doc, cv.title || "Job Title", sideTextW, 8);
+  sy = drawSideWrapped(titleLines, 5, sy, 4);
 
   // Coral divider
   doc.setFillColor(cr, cg, cb);
-  doc.rect(5, 32 + nameLines.length * 5.5 + titleLines.length * 4 + 2, 20, 1.5, "F");
+  doc.rect(5, sy + 2, 20, 1.5, "F");
 
-  let sy = 32 + nameLines.length * 5.5 + titleLines.length * 4 + 8;
+  sy += 8;
 
   const sideSection = (label) => {
+    sy = ensureSy(sy, 4);
     doc.setTextColor(cr, cg, cb);
     doc.setFontSize(7); doc.setFont("helvetica", "bold");
     doc.text(label.toUpperCase(), 5, sy);
@@ -323,23 +346,24 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   };
 
   sideSection("Contact");
-  if (cv.email) { const l = doc.splitTextToSize(cv.email, sideTextW); doc.text(l, 5, sy); sy += l.length * 3.5 + 2; }
-  if (cv.phone) { doc.text(cv.phone, 5, sy); sy += 5; }
-  if (cv.location) { doc.text(cv.location, 5, sy); sy += 7; }
+  if (cv.email) { const l = pdfSplitText(doc, cv.email, sideTextW, 7.5); sy = drawSideWrapped(l, 5, sy, 3.5); sy += 2; }
+  if (cv.phone) { sy = ensureSy(sy, 5); doc.text(cv.phone, 5, sy); sy += 5; }
+  if (cv.location) { sy = ensureSy(sy, 7); doc.text(cv.location, 5, sy); sy += 7; }
 
   if (cv.nationality || cv.visaStatus || cv.dob || cv.gender || cv.maritalStatus) {
     sideSection("Personal");
-    if (cv.nationality)   { doc.text(cv.nationality, 5, sy); sy += 4.5; }
-    if (cv.visaStatus)    { const l = doc.splitTextToSize(cv.visaStatus, sideTextW); doc.text(l, 5, sy); sy += l.length * 3.5 + 1; }
-    if (cv.dob)           { doc.text(`DOB: ${cv.dob}`, 5, sy); sy += 4.5; }
-    if (cv.gender)        { doc.text(cv.gender, 5, sy); sy += 4.5; }
-    if (cv.maritalStatus) { doc.text(cv.maritalStatus, 5, sy); sy += 6; }
+    if (cv.nationality)   { sy = ensureSy(sy, 4.5); doc.text(cv.nationality, 5, sy); sy += 4.5; }
+    if (cv.visaStatus)    { const l = pdfSplitText(doc, cv.visaStatus, sideTextW, 7.5); sy = drawSideWrapped(l, 5, sy, 3.5); sy += 1; }
+    if (cv.dob)           { sy = ensureSy(sy, 4.5); doc.text(`DOB: ${cv.dob}`, 5, sy); sy += 4.5; }
+    if (cv.gender)        { sy = ensureSy(sy, 4.5); doc.text(cv.gender, 5, sy); sy += 4.5; }
+    if (cv.maritalStatus) { sy = ensureSy(sy, 6); doc.text(cv.maritalStatus, 5, sy); sy += 6; }
   }
 
   if (cv.skills) {
     sideSection("Core Skills");
     cv.skills.split(",").forEach((s, i) => {
       if (!s.trim()) return;
+      sy = ensureSy(sy, 5);
       doc.text(s.trim(), 5, sy); sy += 3.5;
       doc.setFillColor(60, 60, 60);
       doc.rect(5, sy, sideW - 12, 2.5, "F");
@@ -352,7 +376,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
 
   if (cv.languages) {
     sideSection("Languages");
-    cv.languages.split(",").forEach(l => { doc.text("• " + l.trim(), 5, sy); sy += 4.5; });
+    cv.languages.split(",").forEach(l => { sy = ensureSy(sy, 4.5); doc.text("• " + l.trim(), 5, sy); sy += 4.5; });
     sy += 2;
   }
 
@@ -360,17 +384,17 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
     sideSection("Certifications");
     cv.certifications.split(",").forEach(c => {
       if (!c.trim()) return;
-      const l = doc.splitTextToSize("• " + c.trim(), sideTextW);
-      doc.text(l, 5, sy); sy += l.length * 3.5 + 1.5;
+      const l = pdfSplitText(doc, "• " + c.trim(), sideTextW, 7.5);
+      sy = drawSideWrapped(l, 5, sy, 3.5); sy += 1.5;
     });
     sy += 2;
   }
 
   if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
     sideSection("Additional");
-    if (cv.availability)      { doc.text(cv.availability, 5, sy); sy += 4.5; }
-    if (cv.drivingLicense)    { doc.text(cv.drivingLicense, 5, sy); sy += 4.5; }
-    if (cv.willingToRelocate) { doc.text("Relocate: " + cv.willingToRelocate, 5, sy); sy += 4.5; }
+    if (cv.availability)      { sy = ensureSy(sy, 4.5); doc.text(cv.availability, 5, sy); sy += 4.5; }
+    if (cv.drivingLicense)    { sy = ensureSy(sy, 4.5); doc.text(cv.drivingLicense, 5, sy); sy += 4.5; }
+    if (cv.willingToRelocate) { sy = ensureSy(sy, 4.5); doc.text("Relocate: " + cv.willingToRelocate, 5, sy); sy += 4.5; }
   }
 
   // Right main content
@@ -379,6 +403,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   const rw = W - M - rx;
 
   const mainTitle = (title) => {
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
     doc.setTextColor(cr, cg, cb);
     doc.setFontSize(8); doc.setFont("helvetica", "bold");
     doc.text(title.toUpperCase(), rx, y);
@@ -392,13 +417,14 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.summary) {
     mainTitle("About Me");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...charco);
-    const sl = doc.splitTextToSize(cv.summary, rw);
-    doc.text(sl, rx, y); y += sl.length * 4.5 + 7;
+    y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY);
+    y += 7;
   }
 
   if (cv.experience.some(e => e.company)) {
     mainTitle("Work Experience");
     cv.experience.filter(e => e.company).forEach(e => {
+      y = pdfEnsureY(doc, y, 14, pdfBottomY, pdfTopY);
       doc.setFillColor(cr, cg, cb);
       doc.rect(rx, y - 1, 2, 12, "F");
 
@@ -411,6 +437,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       doc.text(e.period || "", rx + rw, y + 2, { align: "right" });
       y += 5;
 
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
       doc.setTextColor(cr, cg, cb);
       const compStr = (e.company || "") + (e.location ? ` · ${e.location}` : "");
@@ -419,7 +446,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...charco);
-        y = renderPdfExperiencePoints(doc, e.points, rx + 5, y, rw - 5, 4, pdfBottomY, pdfTopY) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, rx + 5, y, rw - 5, 4, pdfBottomY, pdfTopY, 8) + 2;
       }
       y += 4;
     });
@@ -428,6 +455,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     mainTitle("Education");
     cv.education.filter(e => e.school).forEach(e => {
+      y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(...dark);
       doc.text(e.degree || "", rx, y);
@@ -439,6 +467,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       doc.text(e.year || "", rx + rw - yw / 2, y + 0.5, { align: "center" });
       y += 5;
 
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8);
       doc.setTextColor(...subtle);
       doc.text(e.school || "", rx, y); y += 8;
@@ -448,13 +477,15 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.technicalSkills) {
     mainTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...charco);
-    const sl = doc.splitTextToSize(cv.technicalSkills, rw);
-    doc.text(sl, rx, y); y += sl.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, cv.technicalSkills, rw, 8, rx, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.references) {
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
     doc.setDrawColor(cr, cg, cb); doc.setLineWidth(0.2);
     doc.line(rx, y, rx + rw, y); y += 5;
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
     doc.text(cv.references, rx, y);

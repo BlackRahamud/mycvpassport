@@ -9,6 +9,12 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import {
+  PDF_CONTENT_BOTTOM_Y,
+  PDF_NEW_PAGE_TOP_Y,
+  pdfEnsureY,
+  pdfDrawWrappedText,
+} from "./pdfA4Layout";
 
 export function PreviewATSInternational({ cv, t }) {
   const skillList = cv.skills
@@ -213,8 +219,8 @@ export function PreviewATSInternational({ cv, t }) {
 // ─── PDF: ATS International ───────────────────────────────────────
 export function pdfATSInternational(doc, cv, W, M) {
   const fullTextW = W - M * 2;
-  const pdfBottomY = 297 - M;
-  const pdfTopY = M;
+  const pdfBottomY = PDF_CONTENT_BOTTOM_Y;
+  const pdfTopY = PDF_NEW_PAGE_TOP_Y;
   const black  = [0,   0,   0  ];
  // const dark   = [17,  17,  17 ];
   const mid    = [51,  51,  51 ];
@@ -255,6 +261,7 @@ export function pdfATSInternational(doc, cv, W, M) {
   let y = ruleY + 8;
 
   const sectionTitle = (title) => {
+    y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY);
     doc.setFontSize(9); doc.setFont("helvetica", "bold");
     doc.setTextColor(...black);
     doc.text(title.toUpperCase(), M, y);
@@ -268,21 +275,22 @@ export function pdfATSInternational(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    const sl = doc.splitTextToSize(cv.summary, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4.5 + 7;
+    y = pdfDrawWrappedText(doc, cv.summary, fullTextW, 8.5, M, y, 4.5, pdfBottomY, pdfTopY);
+    y += 7;
   }
 
   if (cv.skills) {
     sectionTitle("Core Skills");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const skillStr = cv.skills.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
-    const sl = doc.splitTextToSize(skillStr, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4.5 + 6;
+    y = pdfDrawWrappedText(doc, skillStr, fullTextW, 8.5, M, y, 4.5, pdfBottomY, pdfTopY);
+    y += 6;
   }
 
   if (cv.experience.some(e => e.company)) {
     sectionTitle("Professional Experience");
     cv.experience.filter(e => e.company).forEach(e => {
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...black);
       doc.text(e.role || "", M, y);
@@ -290,6 +298,7 @@ export function pdfATSInternational(doc, cv, W, M) {
       doc.setTextColor(...subtle);
       doc.text(e.period || "", W - M, y, { align: "right" });
       y += 5;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
       doc.setTextColor(...mid);
       const compStr = (e.company || "") + (e.location ? ` | ${e.location}` : "");
@@ -297,7 +306,7 @@ export function pdfATSInternational(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        y = renderPdfExperiencePoints(doc, e.points, M, y, fullTextW, 4, pdfBottomY, pdfTopY) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M, y, fullTextW, 4, pdfBottomY, pdfTopY, 8) + 2;
       }
       y += 4;
     });
@@ -306,6 +315,7 @@ export function pdfATSInternational(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     sectionTitle("Education");
     cv.education.filter(e => e.school).forEach(e => {
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...black);
       doc.text(e.degree || "", M, y);
@@ -313,6 +323,7 @@ export function pdfATSInternational(doc, cv, W, M) {
       doc.setTextColor(...subtle);
       doc.text(e.year || "", W - M, y, { align: "right" });
       y += 4.5;
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
       doc.setTextColor(...mid);
       doc.text(e.school || "", M, y); y += 8;
@@ -323,30 +334,31 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("Certifications");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const certStr = cv.certifications.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
-    const sl = doc.splitTextToSize(certStr, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, certStr, fullTextW, 8.5, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const techStr = cv.technicalSkills.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
-    const sl = doc.splitTextToSize(techStr, fullTextW);
-    doc.text(sl, M, y); y += sl.length * 4 + 5;
+    y = pdfDrawWrappedText(doc, techStr, fullTextW, 8.5, M, y, 4, pdfBottomY, pdfTopY);
+    y += 5;
   }
 
   if (cv.languages) {
     sectionTitle("Languages");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.text(cv.languages, M, y); y += 8;
   }
 
   if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
     sectionTitle("Additional Information");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    if (cv.availability)      { doc.text(`Availability: ${cv.availability}`, M, y); y += 5; }
-    if (cv.drivingLicense)    { doc.text(`Driving License: ${cv.drivingLicense}`, M, y); y += 5; }
-    if (cv.willingToRelocate) { doc.text(`Willing to Relocate: ${cv.willingToRelocate}`, M, y); y += 5; }
+    if (cv.availability)      { y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY); doc.text(`Availability: ${cv.availability}`, M, y); y += 5; }
+    if (cv.drivingLicense)    { y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY); doc.text(`Driving License: ${cv.drivingLicense}`, M, y); y += 5; }
+    if (cv.willingToRelocate) { y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY); doc.text(`Willing to Relocate: ${cv.willingToRelocate}`, M, y); y += 5; }
     y += 3;
   }
 
@@ -354,6 +366,7 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("References");
     doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
     doc.setTextColor(...subtle);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
     doc.text(cv.references, M, y);
   }
 }
