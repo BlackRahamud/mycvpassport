@@ -232,6 +232,9 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       width: 32%;
       vertical-align: top;
       background: #2D2D2D;
+      background-clip: padding-box;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
       border-radius: 10px 0 0 10px;
       padding: 0;
       box-sizing: border-box;
