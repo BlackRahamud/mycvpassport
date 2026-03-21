@@ -89,10 +89,12 @@ module.exports = async (req, res) => {
                               ? buildFinanceTemplate13Html(cv)
                               : buildBannerTemplate1Html(cv);
 
+    const executablePath = await chromium.executablePath();
+    process.env.LD_LIBRARY_PATH = require("path").dirname(executablePath);
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath: executablePath,
       headless: chromium.headless,
     });
 
