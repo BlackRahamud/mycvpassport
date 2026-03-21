@@ -1,6 +1,6 @@
 /**
  * Vercel serverless: CV → PDF via Puppeteer + @sparticuz/chromium.
- * POST { templateId, cv } — supported: 1–7.
+ * POST { templateId, cv } — supported: 1–8.
  */
 
 const chromium = require("@sparticuz/chromium");
@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing cv object" });
   }
 
-  const supported = [1, 2, 3, 4, 5, 6, 7];
+  const supported = [1, 2, 3, 4, 5, 6, 7, 8];
   if (!supported.includes(Number(templateId))) {
     return res.status(400).json({ error: `Unsupported templateId (supported: ${supported.join(", ")})` });
   }
@@ -67,7 +67,9 @@ module.exports = async (req, res) => {
                 ? buildBankingTemplate6Html(cv)
                 : tid === 7
                   ? buildCompactProTemplate7Html(cv)
-                  : buildBannerTemplate1Html(cv);
+                  : tid === 8
+                    ? buildCreativeSidebarTemplate8Html(cv)
+                    : buildBannerTemplate1Html(cv);
 
     browser = await puppeteer.launch({
       args: chromium.args,
