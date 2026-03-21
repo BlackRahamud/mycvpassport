@@ -11,6 +11,7 @@ import { renderPdfExperiencePoints } from "./experiencePointsPdf";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
+  drawNewPage,
   pdfEnsureY,
   pdfDrawWrappedText,
   pdfSplitText,
@@ -286,6 +287,11 @@ export function pdfTechITPro(doc, cv, W, M) {
   const [ar, ag, ab] = accent;
 
   const sideW = 65;
+  const newPageOpts = {
+    sidebarWidth: sideW,
+    sidebarColor: [sr, sg, sb],
+    accentColor: [ar, ag, ab],
+  };
   /** Sidebar: text from x=6 to column edge at sideW-5 */
   const sideTextW = sideW - 6 - 5;
   /** Bullet lines with body text starting at x=11 */
@@ -300,7 +306,10 @@ export function pdfTechITPro(doc, cv, W, M) {
   redrawSidebar();
 
   const ensureSy = (sy, lh) => {
-    if (sy + lh > pdfBottomY) { doc.addPage(); redrawSidebar(); return pdfTopY; }
+    if (sy + lh > pdfBottomY) {
+      drawNewPage(doc, newPageOpts);
+      return pdfTopY;
+    }
     return sy;
   };
   const drawSideWrapped = (lines, x, sy, lh) => {
@@ -425,7 +434,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   const rw = W - M - rx;
 
   const mainSection = (title) => {
-    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY, newPageOpts);
     doc.setTextColor(sr, sg, sb);
     doc.setFontSize(8); doc.setFont("helvetica", "bold");
     doc.text(title.toUpperCase(), rx, y);
@@ -439,14 +448,14 @@ export function pdfTechITPro(doc, cv, W, M) {
   if (cv.summary) {
     mainSection("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY);
+    y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 8;
   }
 
   if (cv.experience.some(e => e.company)) {
     mainSection("Professional Experience");
     cv.experience.filter(e => e.company).forEach(e => {
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       // Role
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...dark);
@@ -459,7 +468,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       y += 5;
 
       // Company — plain body colour (no accent/link styling)
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "italic"); doc.setFontSize(8.5);
       doc.setTextColor(...mid);
       const compStr = (e.company || "") + (e.location ? ` — ${e.location}` : "");
@@ -478,7 +487,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     mainSection("Education");
     cv.education.filter(e => e.school).forEach(e => {
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...dark);
       doc.text(e.degree || "", rx, y);
@@ -486,7 +495,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       doc.setTextColor(ar, ag, ab);
       doc.text(e.year || "", W - M, y, { align: "right" });
       y += 4.5;
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "italic"); doc.setFontSize(8.5);
       doc.setTextColor(...subtle);
       doc.text(e.school || "", rx, y); y += 9;
@@ -494,10 +503,10 @@ export function pdfTechITPro(doc, cv, W, M) {
   }
 
   if (cv.references) {
-    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY, newPageOpts);
     doc.setDrawColor(ar, ag, ab); doc.setLineWidth(0.2);
     doc.line(rx, y, rx + rw, y); y += 5;
-    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
     doc.text(cv.references, rx, y);

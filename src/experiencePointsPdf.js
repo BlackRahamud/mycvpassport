@@ -1,6 +1,6 @@
 /**
- * Experience description → PDF: split on newlines and •, wrap with splitTextToSize.
- * Width uses pdfBufW(maxWidth) — always call setFontSize immediately before splitTextToSize.
+ * Experience description → PDF: split on newlines / bullets, wrap with splitTextToSize.
+ * Split pattern avoids double bullets; width uses pdfBufW; setFontSize before every splitTextToSize.
  */
 import {
   PDF_CONTENT_BOTTOM_Y,
@@ -18,7 +18,8 @@ export function renderPdfExperiencePoints(
   lineHeight,
   bottomY = PDF_CONTENT_BOTTOM_Y,
   topYOnNewPage = PDF_NEW_PAGE_TOP_Y,
-  fontSize = 7.5
+  fontSize = 7.5,
+  newPageOptions = null
 ) {
   const text = String(rawText ?? "");
   if (!text.trim()) return startY;
@@ -27,21 +28,15 @@ export function renderPdfExperiencePoints(
 
   const drawLines = (lines) => {
     lines.forEach((line) => {
-      y = pdfEnsureY(doc, y, lineHeight, bottomY, topYOnNewPage);
+      y = pdfEnsureY(doc, y, lineHeight, bottomY, topYOnNewPage, newPageOptions);
       doc.text(line, x, y);
       y += lineHeight;
     });
   };
 
-  if (!/[•\n]/.test(text)) {
-    doc.setFontSize(fontSize);
-    const wrapped = doc.splitTextToSize(text.trim(), pdfBufW(maxWidth));
-    drawLines(wrapped);
-    return y;
-  }
+  const parts = text.split(/[\n•]+/).map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return startY;
 
-  const parts = text.split(/\n|•/).map((l) => l.trim()).filter(Boolean);
-  if (parts.length === 0) return y;
   parts.forEach((part, i) => {
     const display = i === 0 ? part : `• ${part}`;
     doc.setFontSize(fontSize);

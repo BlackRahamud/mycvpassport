@@ -251,6 +251,7 @@ export function pdfHospitality(doc, cv, W, M) {
   const fullTextW = W - M * 2;
   const pdfBottomY = PDF_CONTENT_BOTTOM_Y;
   const pdfTopY = PDF_NEW_PAGE_TOP_Y;
+  const newPageOpts = {};
   const brown  = [107, 76,  59];
   const warm   = [196, 149, 106];
   const dark   = [44,  24,  16];
@@ -261,13 +262,14 @@ export function pdfHospitality(doc, cv, W, M) {
   const [br, bg, bb] = brown;
   const [wr, wg, wb] = warm;
 
+  const headerH = 40;
   doc.setFillColor(br, bg, bb);
-  doc.rect(0, 0, W, 40, "F");
+  doc.rect(0, 0, W, headerH, "F");
 
   doc.setFillColor(wr, wg, wb);
   doc.rect(0, 0, W, 1.5, "F");
   doc.setFillColor(wr, wg, wb);
-  doc.rect(0, 39, W, 1.5, "F");
+  doc.rect(0, headerH - 1, W, 1.5, "F");
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(20); doc.setFont("helvetica", "bold");
@@ -291,10 +293,10 @@ export function pdfHospitality(doc, cv, W, M) {
     doc.text(gparts.join("   •   "), W / 2, 33, { align: "center" });
   }
 
-  let y = 48;
+  let y = headerH + 5;
 
   const sectionTitle = (title) => {
-    y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY, newPageOpts);
     doc.setDrawColor(wr, wg, wb); doc.setLineWidth(0.3);
     const titleW = doc.getTextWidth(title.toUpperCase()) + 10;
     const lineStart = (W - titleW) / 2 - 20;
@@ -311,7 +313,7 @@ export function pdfHospitality(doc, cv, W, M) {
     sectionTitle("Professional Profile");
     doc.setFontSize(8.5); doc.setFont("helvetica", "italic"); doc.setTextColor(...mid);
     const lines = pdfSplitText(doc, cv.summary, fullTextW, 8.5);
-    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4.5, pdfBottomY, pdfTopY, { align: "center" });
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4.5, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 7;
   }
 
@@ -319,7 +321,7 @@ export function pdfHospitality(doc, cv, W, M) {
     sectionTitle("Core Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const lines = pdfSplitText(doc, cv.skills, fullTextW, 8);
-    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 6;
   }
 
@@ -331,7 +333,7 @@ export function pdfHospitality(doc, cv, W, M) {
       doc.setFillColor(wr, wg, wb);
       doc.rect(M, y - 2, 2.5, 18, "F");
 
-      y = pdfEnsureY(doc, y, 18, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 18, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(...dark);
       doc.text(e.role || "", M + 6, y + 3);
@@ -344,7 +346,7 @@ export function pdfHospitality(doc, cv, W, M) {
       doc.text(e.period || "", W - M - pw / 2, y + 2.5, { align: "center" });
 
       y += 7;
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
       doc.setTextColor(wr, wg, wb);
       const compStr = (e.company || "") + (e.location ? ` · ${e.location}` : "");
@@ -353,7 +355,7 @@ export function pdfHospitality(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY, 8) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY, 8, newPageOpts) + 2;
       }
       y += 6;
     });
@@ -362,7 +364,7 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     sectionTitle("Education");
     cv.education.filter(e => e.school).forEach(e => {
-      y = pdfEnsureY(doc, y, 14, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 14, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFillColor(245, 237, 224);
       doc.roundedRect(M, y - 2, W - M * 2, 13, 2, 2, "F");
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(...dark);
@@ -370,7 +372,7 @@ export function pdfHospitality(doc, cv, W, M) {
       doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(wr, wg, wb);
       doc.text(e.year || "", W - M - 4, y + 3, { align: "right" });
       y += 6;
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(...subtle);
       doc.text(e.school || "", M + 6, y); y += 9;
     });
@@ -380,7 +382,7 @@ export function pdfHospitality(doc, cv, W, M) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const lines = pdfSplitText(doc, cv.certifications, fullTextW, 8);
-    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 5;
   }
 
@@ -388,14 +390,14 @@ export function pdfHospitality(doc, cv, W, M) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const lines = pdfSplitText(doc, cv.technicalSkills, fullTextW, 8);
-    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 5;
   }
 
   if (cv.languages) {
     sectionTitle("Languages");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
-    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
     doc.text(cv.languages, W / 2, y, { align: "center" }); y += 8;
   }
 
@@ -407,7 +409,7 @@ export function pdfHospitality(doc, cv, W, M) {
     if (cv.willingToRelocate) adds.push("Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const lines = pdfSplitText(doc, adds.join("   •   "), fullTextW, 8);
-    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" });
+    y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 8;
   }
 
@@ -415,7 +417,7 @@ export function pdfHospitality(doc, cv, W, M) {
     sectionTitle("References");
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
-    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
     doc.text(cv.references, W / 2, y, { align: "center" });
   }
 }

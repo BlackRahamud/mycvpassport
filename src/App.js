@@ -24,6 +24,8 @@ import {
   pdfEnsureY,
   pdfSplitText,
   pdfDrawWrappedText,
+  drawNewPage,
+  pdfFinalizePageNumbers,
 } from "./pdfA4Layout";
 
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
@@ -1148,6 +1150,7 @@ async function downloadResume(cvInput, template) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     drawBody(doc, cv, pdfPageW, pdfMargin);
+    pdfFinalizePageNumbers(doc);
     doc.save(`${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport.pdf`);
   };
 
@@ -1181,8 +1184,10 @@ async function downloadResume(cvInput, template) {
   const [ar, ag, ab] = hex2rgb(t.accent);
   const [cr, cg, cb] = hex2rgb(t.color);
 
+  /** Set per layout (sidebar templates pass width + page-1 sidebar fill RGB) */
+  let pdfNewPageOpts = {};
   const sectionTitle = (title, y) => {
-    y = pdfEnsureY(doc, y, 8, pdfPageBottomY, pdfPageTopY);
+    y = pdfEnsureY(doc, y, 8, pdfPageBottomY, pdfPageTopY, pdfNewPageOpts);
     doc.setDrawColor(ar,ag,ab); doc.setLineWidth(0.4); doc.line(M, y, W-M, y); y += 4;
     doc.setTextColor(ar,ag,ab); doc.setFontSize(8); doc.setFont("helvetica","bold");
     doc.text(title.toUpperCase(), M, y); y += 5;
@@ -1203,16 +1208,16 @@ async function downloadResume(cvInput, template) {
 
   if (t.layout === "twocol" || t.layout === "sidebar") {
     const sideW = t.layout === "sidebar" ? 58 : 68;
+    pdfNewPageOpts = { sidebarWidth: sideW, sidebarColor: [cr, cg, cb] };
     /** Sidebar text at x=7; pad to column edge (line uses sideW-4) */
     const sideTextW = sideW - 7 - 4;
     /** Right column: from rx to right margin (W-M) */
     const rx = sideW + 8;
     const rw = W - M - rx;
-    const redrawSideCol = () => { doc.setFillColor(cr,cg,cb); doc.rect(0,0,sideW,297,"F"); };
     doc.setFillColor(cr,cg,cb); doc.rect(0,0,sideW,297,"F");
 
     const ensureSy = (sy, lh) => {
-      if (sy + lh > pdfPageBottomY) { doc.addPage(); redrawSideCol(); return pdfPageTopY; }
+      if (sy + lh > pdfPageBottomY) { drawNewPage(doc, pdfNewPageOpts); return pdfPageTopY; }
       return sy;
     };
     const drawSideWrapped = (lines, x, sy, lh) => {
@@ -1279,32 +1284,34 @@ async function downloadResume(cvInput, template) {
     // Right column (rx, rw already set to match margin-aligned width)
     let ry = 14;
     const rightSection=(label)=>{
-      ry = pdfEnsureY(doc, ry, 6, pdfPageBottomY, pdfPageTopY);
+      ry = pdfEnsureY(doc, ry, 6, pdfPageBottomY, pdfPageTopY, pdfNewPageOpts);
       doc.setFontSize(8);doc.setFont("helvetica","bold");doc.setTextColor(ar,ag,ab);
       doc.text(label,rx,ry);ry+=2;
       doc.setDrawColor(ar,ag,ab);doc.line(rx,ry,rx+rw,ry);ry+=5;
     };
 
-    if(cv.summary){rightSection("PROFESSIONAL SUMMARY");doc.setFont("helvetica","normal");doc.setTextColor(60,60,60);ry=pdfDrawWrappedText(doc,cv.summary,rw,8,rx,ry,4,pdfPageBottomY,pdfPageTopY);ry+=7;}
+    if(cv.summary){rightSection("PROFESSIONAL SUMMARY");doc.setFont("helvetica","normal");doc.setTextColor(60,60,60);ry=pdfDrawWrappedText(doc,cv.summary,rw,8,rx,ry,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);ry+=7;}
     if(cv.experience.some(e=>e.company)){
       rightSection("WORK EXPERIENCE");
       cv.experience.filter(e=>e.company).forEach(e=>{
-        ry=pdfEnsureY(doc,ry,5,pdfPageBottomY,pdfPageTopY);
+        ry=pdfEnsureY(doc,ry,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
         doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(40,40,40);doc.text(e.role||"",rx,ry);
         doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(120,120,120);doc.text(e.period||"",W-M,ry,{align:"right"});ry+=4.5;
-        ry=pdfEnsureY(doc,ry,5,pdfPageBottomY,pdfPageTopY);
+        ry=pdfEnsureY(doc,ry,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
         doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(ar,ag,ab);
         const compStr = e.company+(e.location?` · ${e.location}`:"");
         doc.text(compStr,rx,ry);ry+=4.5;
-        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(7.5);ry=renderPdfExperiencePoints(doc,e.points,rx,ry,rw,3.5,pdfPageBottomY,pdfPageTopY,7.5)+3;}
+        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(7.5);ry=renderPdfExperiencePoints(doc,e.points,rx,ry,rw,3.5,pdfPageBottomY,pdfPageTopY,7.5,pdfNewPageOpts)+3;}
         ry+=2;
       });
     }
-    if(cv.technicalSkills){rightSection("TECHNICAL SKILLS");doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);ry=pdfDrawWrappedText(doc,cv.technicalSkills,rw,7.5,rx,ry,3.5,pdfPageBottomY,pdfPageTopY);ry+=6;}
-    if(cv.references){ry=pdfEnsureY(doc,ry,5,pdfPageBottomY,pdfPageTopY);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(140,140,140);doc.text(cv.references,rx,ry);}
+    if(cv.technicalSkills){rightSection("TECHNICAL SKILLS");doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);ry=pdfDrawWrappedText(doc,cv.technicalSkills,rw,7.5,rx,ry,3.5,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);ry+=6;}
+    if(cv.references){ry=pdfEnsureY(doc,ry,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(140,140,140);doc.text(cv.references,rx,ry);}
 
   } else if (t.layout === "timeline") {
-    doc.setFillColor(ar,ag,ab); doc.rect(0,0,W,38,"F");
+    pdfNewPageOpts = {};
+    const headerH = 38;
+    doc.setFillColor(ar,ag,ab); doc.rect(0,0,W,headerH,"F");
     doc.setTextColor(cr,cg,cb); doc.setFontSize(20); doc.setFont("helvetica","bold"); doc.text(cv.name||"Your Name",M,14);
     doc.setTextColor(ar,ag,ab); doc.setFontSize(10); doc.setFont("helvetica","bolditalic"); doc.text(cv.title||"Job Title",M,21);
     doc.setFontSize(7.5); doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100);
@@ -1313,31 +1320,31 @@ async function downloadResume(cvInput, template) {
     if(gl){doc.text(gl,M,32);}
     doc.setDrawColor(ar,ag,ab);doc.setLineWidth(0.8);doc.line(M,37,W-M,37);
 
-    let y = 44;
-    if(cv.summary){doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(70,70,70);y=pdfDrawWrappedText(doc,cv.summary,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY);y+=8;}
-    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.skills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY);y+=6;}
+    let y = headerH + 5;
+    if(cv.summary){doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(70,70,70);y=pdfDrawWrappedText(doc,cv.summary,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=8;}
+    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.skills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=6;}
     if(cv.experience.some(e=>e.company)){
       y=sectionTitle("Work Experience",y);
       const lineX=M+3;
       cv.experience.filter(e=>e.company).forEach(e=>{
-        y=pdfEnsureY(doc,y,10,pdfPageBottomY,pdfPageTopY);
+        y=pdfEnsureY(doc,y,10,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
         doc.setFillColor(ar,ag,ab);doc.circle(lineX,y+1,1.5,"F");
         doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(40,40,40);doc.text(e.role||"",lineX+5,y+2);
         doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(120,120,120);doc.text(e.period||"",W-M,y+2,{align:"right"});
         doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(ar,ag,ab);
         const compStr=e.company+(e.location?` · ${e.location}`:"");
         doc.text(compStr,lineX+5,y+7);y+=10;
-        if(e.points){doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(70,70,70);y=renderPdfExperiencePoints(doc,e.points,lineX+5,y,fullTextW-8,3.5,pdfPageBottomY,pdfPageTopY,7.5)+2;}
+        if(e.points){doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(70,70,70);y=renderPdfExperiencePoints(doc,e.points,lineX+5,y,fullTextW-8,3.5,pdfPageBottomY,pdfPageTopY,7.5,pdfNewPageOpts)+2;}
         y+=5;
       });
     }
     if(cv.education.some(e=>e.school)){y=sectionTitle("Education",y);cv.education.filter(e=>e.school).forEach(e=>{
-      y=pdfEnsureY(doc,y,11,pdfPageBottomY,pdfPageTopY);
+      y=pdfEnsureY(doc,y,11,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
       doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(40,40,40);doc.text(e.degree||"",M,y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(100,100,100);doc.text(e.school||"",M,y+4.5);doc.text(e.year||"",W-M,y,{align:"right"});y+=11;
     });}
-    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY);y+=5;}
-    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY);y+=5;}
-    if(cv.languages){y=sectionTitle("Languages",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY);doc.text(cv.languages,M,y);y+=8;}
+    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
+    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
+    if(cv.languages){y=sectionTitle("Languages",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.text(cv.languages,M,y);y+=8;}
     if(cv.availability||cv.drivingLicense||cv.willingToRelocate){
       y=sectionTitle("Additional Information",y);
       const adds=[];
@@ -1345,45 +1352,47 @@ async function downloadResume(cvInput, template) {
       if(cv.drivingLicense)adds.push("Driving License: "+cv.drivingLicense);
       if(cv.willingToRelocate)adds.push("Willing to Relocate: "+cv.willingToRelocate);
       doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);
-      y=pdfDrawWrappedText(doc,adds.join("   •   "),fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY);y+=8;
+      y=pdfDrawWrappedText(doc,adds.join("   •   "),fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=8;
     }
-    if(cv.references){y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(140,140,140);doc.text(cv.references,M,y);}
+    if(cv.references){y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(140,140,140);doc.text(cv.references,M,y);}
 
   } else {
     // Banner layout
-    doc.setFillColor(cr,cg,cb); doc.rect(0,0,W,36,"F"); doc.setFillColor(ar,ag,ab); doc.rect(0,34,W,2,"F");
+    pdfNewPageOpts = {};
+    const headerH = 36;
+    doc.setFillColor(cr,cg,cb); doc.rect(0,0,W,headerH,"F"); doc.setFillColor(ar,ag,ab); doc.rect(0,headerH-2,W,2,"F");
     doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont("helvetica","bold"); doc.text(cv.name||"Your Name",M,13);
     doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(ar,ag,ab); doc.text(cv.title||"Job Title",M,20);
     doc.setFontSize(7.5); doc.setTextColor(200,200,200); doc.text([cv.email,cv.phone,cv.location].filter(Boolean).join("  •  "),M,27);
     const gl = gulfLine();
     if(gl){doc.setFontSize(7);doc.text(gl,M,33);}
 
-    let y = 44;
-    if(cv.summary){y=sectionTitle("Professional Summary",y);doc.setFontSize(8.5);y=pdfDrawWrappedText(doc,cv.summary,fullTextW,8.5,M,y,4.5,pdfPageBottomY,pdfPageTopY);y+=7;}
-    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFontSize(8);y=pdfDrawWrappedText(doc,cv.skills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY);y+=6;}
+    let y = headerH + 5;
+    if(cv.summary){y=sectionTitle("Professional Summary",y);doc.setFontSize(8.5);y=pdfDrawWrappedText(doc,cv.summary,fullTextW,8.5,M,y,4.5,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=7;}
+    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFontSize(8);y=pdfDrawWrappedText(doc,cv.skills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=6;}
     if(cv.experience.some(e=>e.company)){
       y=sectionTitle("Work Experience",y);
       cv.experience.filter(e=>e.company).forEach(e=>{
-        y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY);
+        y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
         doc.setFont("helvetica","bold");doc.setFontSize(9.5);doc.setTextColor(40,40,40);doc.text(e.role||"",M,y);
         doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(120,120,120);doc.text(e.period||"",W-M,y,{align:"right"});y+=4.5;
-        y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY);
+        y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
         doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(ar,ag,ab);
         const compStr=e.company+(e.location?` · ${e.location}`:"");
         doc.text(compStr,M,y);y+=4.5;
-        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(8);y=renderPdfExperiencePoints(doc,e.points,M,y,fullTextW,4,pdfPageBottomY,pdfPageTopY,8)+2;}
+        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(8);y=renderPdfExperiencePoints(doc,e.points,M,y,fullTextW,4,pdfPageBottomY,pdfPageTopY,8,pdfNewPageOpts)+2;}
         y+=3;
       });
       y+=3;
     }
     if(cv.education.some(e=>e.school)){y=sectionTitle("Education",y);cv.education.filter(e=>e.school).forEach(e=>{
-      y=pdfEnsureY(doc,y,8,pdfPageBottomY,pdfPageTopY);
+      y=pdfEnsureY(doc,y,8,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
       doc.setFont("helvetica","bold");doc.setFontSize(9.5);doc.setTextColor(40,40,40);doc.text(`${e.degree} — ${e.school}`,M,y);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(120,120,120);doc.text(e.year||"",W-M,y,{align:"right"});y+=8;
     });y+=3;}
-    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY);y+=5;}
-    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY);y+=5;}
+    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
+    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
     if(cv.skills&&false){}
-    if(cv.languages){y=sectionTitle("Languages",y);doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(60,60,60);y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY);doc.text(cv.languages,M,y);y+=8;}
+    if(cv.languages){y=sectionTitle("Languages",y);doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(60,60,60);y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.text(cv.languages,M,y);y+=8;}
     if(cv.availability||cv.drivingLicense||cv.willingToRelocate){
       y=sectionTitle("Additional Information",y);
       const adds=[];
@@ -1391,11 +1400,12 @@ async function downloadResume(cvInput, template) {
       if(cv.drivingLicense)adds.push("Driving License: "+cv.drivingLicense);
       if(cv.willingToRelocate)adds.push("Willing to Relocate: "+cv.willingToRelocate);
       doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);
-      y=pdfDrawWrappedText(doc,adds.join("   •   "),fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY);y+=5;
+      y=pdfDrawWrappedText(doc,adds.join("   •   "),fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;
     }
-    if(cv.references){y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY);doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(140,140,140);doc.text(cv.references,M,y);}
+    if(cv.references){y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(140,140,140);doc.text(cv.references,M,y);}
   }
 
+  pdfFinalizePageNumbers(doc);
   doc.save(`${(cv.name || "Resume").replace(/\s+/g,"_")}_CVPassport.pdf`);
 }
 

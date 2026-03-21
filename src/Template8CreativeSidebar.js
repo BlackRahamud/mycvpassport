@@ -10,6 +10,7 @@ import { renderPdfExperiencePoints } from "./experiencePointsPdf";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
+  drawNewPage,
   pdfEnsureY,
   pdfDrawWrappedText,
   pdfSplitText,
@@ -280,6 +281,11 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   const [dr, dg, db] = dark;
 
   const sideW = 62;
+  const newPageOpts = {
+    sidebarWidth: sideW,
+    sidebarColor: [dr, dg, db],
+    accentColor: [cr, cg, cb],
+  };
   /** Sidebar text inset x=5; rule ends at sideW-5 */
   const sideTextW = sideW - 5 - 5;
 
@@ -301,7 +307,10 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   doc.text(initial, sideW / 2, 19, { align: "center" });
 
   const ensureSy = (sy, lh) => {
-    if (sy + lh > pdfBottomY) { doc.addPage(); redrawSidebar(); return pdfTopY; }
+    if (sy + lh > pdfBottomY) {
+      drawNewPage(doc, newPageOpts);
+      return pdfTopY;
+    }
     return sy;
   };
   const drawSideWrapped = (lines, x, sy, lh) => {
@@ -403,7 +412,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   const rw = W - M - rx;
 
   const mainTitle = (title) => {
-    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY, newPageOpts);
     doc.setTextColor(cr, cg, cb);
     doc.setFontSize(8); doc.setFont("helvetica", "bold");
     doc.text(title.toUpperCase(), rx, y);
@@ -417,14 +426,14 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.summary) {
     mainTitle("About Me");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...charco);
-    y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY);
+    y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 7;
   }
 
   if (cv.experience.some(e => e.company)) {
     mainTitle("Work Experience");
     cv.experience.filter(e => e.company).forEach(e => {
-      y = pdfEnsureY(doc, y, 14, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 14, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFillColor(cr, cg, cb);
       doc.rect(rx, y - 1, 2, 12, "F");
 
@@ -437,7 +446,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       doc.text(e.period || "", rx + rw, y + 2, { align: "right" });
       y += 5;
 
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
       doc.setTextColor(cr, cg, cb);
       const compStr = (e.company || "") + (e.location ? ` · ${e.location}` : "");
@@ -446,7 +455,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...charco);
-        y = renderPdfExperiencePoints(doc, e.points, rx + 5, y, rw - 5, 4, pdfBottomY, pdfTopY, 8) + 2;
+        y = renderPdfExperiencePoints(doc, e.points, rx + 5, y, rw - 5, 4, pdfBottomY, pdfTopY, 8, newPageOpts) + 2;
       }
       y += 4;
     });
@@ -455,7 +464,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.education.some(e => e.school)) {
     mainTitle("Education");
     cv.education.filter(e => e.school).forEach(e => {
-      y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 10, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
       doc.setTextColor(...dark);
       doc.text(e.degree || "", rx, y);
@@ -467,7 +476,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       doc.text(e.year || "", rx + rw - yw / 2, y + 0.5, { align: "center" });
       y += 5;
 
-      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
       doc.setFont("helvetica", "normal"); doc.setFontSize(8);
       doc.setTextColor(...subtle);
       doc.text(e.school || "", rx, y); y += 8;
@@ -477,15 +486,15 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.technicalSkills) {
     mainTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...charco);
-    y = pdfDrawWrappedText(doc, cv.technicalSkills, rw, 8, rx, y, 4, pdfBottomY, pdfTopY);
+    y = pdfDrawWrappedText(doc, cv.technicalSkills, rw, 8, rx, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }
 
   if (cv.references) {
-    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 8, pdfBottomY, pdfTopY, newPageOpts);
     doc.setDrawColor(cr, cg, cb); doc.setLineWidth(0.2);
     doc.line(rx, y, rx + rw, y); y += 5;
-    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY);
+    y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
     doc.setFont("helvetica", "italic"); doc.setFontSize(8);
     doc.setTextColor(...subtle);
     doc.text(cv.references, rx, y);
