@@ -132,7 +132,7 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
     </div>
   </div></aside>`;
 
-  let main = `<div class="t8-main" style="background:${LIGHT}">`;
+  let main = `<div class="t8-main" style="background:${LIGHT};margin-left:32%">`;
 
   if (cv.summary) {
     main += `${mainTitle("About Me")}<p class="t8-sum" style="color:${CHARCO}">${escapeHtml(cv.summary)}</p>`;
