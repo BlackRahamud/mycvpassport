@@ -1015,7 +1015,6 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
       }}
     >
       <div
-        ref={previewCardRef}
         style={{
           width: A4_PREVIEW_WIDTH_PX,
           transformOrigin: "top center",
@@ -1023,7 +1022,7 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
           marginBottom: `${(scale - 1) * A4_PREVIEW_HEIGHT_PX}px`,
         }}
       >
-        <div className="cvp-builder-a4-fit">
+        <div className="cvp-builder-a4-fit" ref={previewCardRef}>
           <ResumePreview cv={cv} template={template} />
         </div>
       </div>
@@ -1127,22 +1126,7 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   if (!captureElement) return;
 
   const el = captureElement;
-  const prevTransform = el.style.transform;
-  const prevTransformOrigin = el.style.transformOrigin;
-  const prevWidth = el.style.width;
-  const prevHeight = el.style.height;
-  const prevMarginBottom = el.style.marginBottom;
-
-  el.style.transform = "scale(1)";
-  el.style.transformOrigin = "top left";
-  el.style.width = "794px";
-  el.style.height = "auto";
-  el.style.marginBottom = "0";
-  await new Promise((r) => setTimeout(r, 300));
-
   const fullHeight = el.scrollHeight;
-  el.style.height = fullHeight + "px";
-  const prevOverflow = el.style.overflow;
   el.style.overflow = "visible";
 
   let canvas;
@@ -1158,12 +1142,7 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
       windowHeight: fullHeight,
     });
   } finally {
-    el.style.transform = prevTransform;
-    el.style.transformOrigin = prevTransformOrigin;
-    el.style.width = prevWidth;
-    el.style.height = prevHeight;
-    el.style.marginBottom = prevMarginBottom;
-    el.style.overflow = prevOverflow;
+    el.style.overflow = "";
   }
 
   const pageWidth = 210;
