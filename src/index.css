@@ -265,28 +265,41 @@ input:focus, textarea:focus {
   }
 }
 
-/* CV Builder mobile — form panel padding above toggle pill */
+/* CV Builder mobile — form / edit panel scroll area */
 .cvp-builder-mobile-form {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 12px;
-  padding-bottom: 140px;
   display: grid;
   gap: 8px;
   align-content: start;
   background: #0a0a0a;
 }
 
-/* CV Builder mobile — bottom bar (toggle + download) */
+@media (max-width: 767px) {
+  .cvp-builder-mobile-form {
+    /* Space so last fields stay above the in-flow bottom bar (toggle + download) */
+    padding-bottom: 140px;
+  }
+}
+
+/* CV Builder mobile — bottom bar (toggle + download); in-flow at bottom of builder, not fixed to viewport */
 .cvp-builder-bottom-bar {
+  position: relative;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
   background: #0A0A0A;
   border-top: 1px solid #1E1E1E;
   padding: 10px 16px 0;
 }
 
+/* Edit | Preview — stays in document flow (relative), not position:fixed */
 .cvp-builder-toggle-pill {
   position: relative;
   width: 100%;
@@ -382,7 +395,7 @@ input:focus, textarea:focus {
 
 /* CV Builder mobile — A4 preview uses BuilderA4PreviewScaled + ResizeObserver in App.js */
 
-/* CV Builder mobile — Download button above toggle */
+/* CV Builder mobile — Download below toggle pill (order: toggle, then download) */
 .cvp-builder-mobile-download {
   padding: 6px 16px 16px;
   background: #0A0A0A;
