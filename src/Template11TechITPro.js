@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
@@ -231,9 +232,11 @@ export function PreviewTechITPro({ cv, t }) {
                   {e.company}{e.location ? ` — ${e.location}` : ""}
                 </div>
                 {e.points && (
-                  <p style={{ fontSize: "9.5px", color: mid, margin: 0, lineHeight: "1.7" }}>
-                    {e.points}
-                  </p>
+                  <div className="cvp-preview-exp-t11-wrap">
+                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                      <p key={j} className="cvp-preview-exp-t11-line" style={{ color: mid }}>• {line}</p>
+                    ))}
+                  </div>
                 )}
               </div>
             ))}

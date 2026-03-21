@@ -1111,6 +1111,12 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   if (!captureElement) return;
 
   const el = captureElement;
+  const prevWidth = el.style.width;
+  const prevMaxWidth = el.style.maxWidth;
+  const prevMinWidth = el.style.minWidth;
+  el.style.width = "794px";
+  el.style.maxWidth = "794px";
+  el.style.minWidth = "794px";
   el.style.minHeight = "0";
   el.style.height = "auto";
   await new Promise((r) => setTimeout(r, 100));
@@ -1132,6 +1138,9 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
       windowHeight: fullHeight,
     });
   } finally {
+    el.style.width = prevWidth;
+    el.style.maxWidth = prevMaxWidth;
+    el.style.minWidth = prevMinWidth;
     el.style.minHeight = "";
     el.style.height = "";
     el.style.overflow = "";

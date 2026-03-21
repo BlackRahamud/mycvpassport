@@ -7,6 +7,7 @@ import {
   pdfEnsureY,
   pdfSplitText,
 } from "./pdfA4Layout";
+import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 export function renderPdfExperiencePoints(
   doc,
@@ -33,15 +34,11 @@ export function renderPdfExperiencePoints(
     });
   };
 
-  const parts = text
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => s.replace(/^•\s*/, ""));
+  const parts = splitExperiencePointsForPreview(text);
   if (parts.length === 0) return startY;
 
-  parts.forEach((part, i) => {
-    const display = i === 0 ? part : `• ${part}`;
+  parts.forEach((part) => {
+    const display = `• ${part}`;
     doc.setFont("helvetica", "normal");
     const wrapped = pdfSplitText(doc, display, maxWidth, fontSize);
     drawLines(wrapped);

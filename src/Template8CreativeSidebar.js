@@ -208,7 +208,7 @@ export function PreviewCreativeSidebar({ cv, t }) {
                 {e.points && (
                   <div className="cvp-preview-exp-t8-wrap">
                     {splitExperiencePointsForPreview(e.points).map((line, j) => (
-                      <p key={j} className="cvp-preview-exp-t8-line">{j === 0 ? line : `• ${line}`}</p>
+                      <p key={j} className="cvp-preview-exp-t8-line">• {line}</p>
                     ))}
                   </div>
                 )}
