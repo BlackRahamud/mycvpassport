@@ -1,6 +1,6 @@
 /**
  * Vercel serverless: CV → PDF via Puppeteer + @sparticuz/chromium.
- * POST { templateId, cv } — supported: 1–9, 10, 12, 13.
+ * POST { templateId, cv } — supported: 1–10, 11, 12, 13.
  */
 
 const chromium = require("@sparticuz/chromium");
@@ -15,9 +15,11 @@ const { buildCompactProTemplate7Html } = require("./lib/compactProTemplate7Html"
 const { buildCreativeSidebarTemplate8Html } = require("./lib/creativeSidebarTemplate8Html");
 const { buildHospitalityTemplate9Html } = require("./lib/hospitalityTemplate9Html");
 const { buildATSInternationalTemplate10Html } = require("./lib/atsInternationalTemplate10Html");
+const { buildTechITProTemplate11Html } = require("./lib/techITProTemplate11Html");
 const { buildClassicTemplate12Html } = require("./lib/classicTemplate12Html");
 const { buildFinanceTemplate13Html } = require("./lib/financeTemplate13Html");
 const { drawT8SidebarStripeOnPdf } = require("./lib/pdfDrawT8SidebarStripe");
+const { drawT11SidebarStripeOnPdf } = require("./lib/pdfDrawT11SidebarStripe");
 
 function safeFilename(name) {
   const s = String(name || "Resume")
@@ -52,7 +54,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing cv object" });
   }
 
-  const supported = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13];
+  const supported = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
   if (!supported.includes(Number(templateId))) {
     return res.status(400).json({ error: `Unsupported templateId (supported: ${supported.join(", ")})` });
   }
@@ -79,11 +81,13 @@ module.exports = async (req, res) => {
                       ? buildHospitalityTemplate9Html(cv)
                       : tid === 10
                         ? buildATSInternationalTemplate10Html(cv)
-                        : tid === 12
-                          ? buildClassicTemplate12Html(cv)
-                          : tid === 13
-                            ? buildFinanceTemplate13Html(cv)
-                            : buildBannerTemplate1Html(cv);
+                        : tid === 11
+                          ? buildTechITProTemplate11Html(cv)
+                          : tid === 12
+                            ? buildClassicTemplate12Html(cv)
+                            : tid === 13
+                              ? buildFinanceTemplate13Html(cv)
+                              : buildBannerTemplate1Html(cv);
 
     browser = await puppeteer.launch({
       args: chromium.args,
@@ -100,8 +104,8 @@ module.exports = async (req, res) => {
       printBackground: true,
       preferCSSPageSize: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
-      /* T8: avoid default white page fill covering pdf-lib sidebar stripe (see pdfDrawT8SidebarStripe). */
-      ...(tid === 8 ? { omitBackground: true } : {}),
+      /* T8/T11: avoid default white page fill covering pdf-lib sidebar stripe. */
+      ...(tid === 8 || tid === 11 ? { omitBackground: true } : {}),
     });
 
     await browser.close();
@@ -109,6 +113,9 @@ module.exports = async (req, res) => {
 
     if (tid === 8) {
       pdfBuffer = await drawT8SidebarStripeOnPdf(pdfBuffer);
+    }
+    if (tid === 11) {
+      pdfBuffer = await drawT11SidebarStripeOnPdf(pdfBuffer);
     }
 
     const name = safeFilename(cv.name);
