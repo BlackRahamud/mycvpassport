@@ -1126,7 +1126,12 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   if (!captureElement) return;
 
   const el = captureElement;
+  el.style.minHeight = "0";
+  el.style.height = "auto";
+  await new Promise((r) => setTimeout(r, 100));
+
   const fullHeight = el.scrollHeight;
+  el.style.height = fullHeight + "px";
   el.style.overflow = "visible";
 
   let canvas;
@@ -1142,6 +1147,8 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
       windowHeight: fullHeight,
     });
   } finally {
+    el.style.minHeight = "";
+    el.style.height = "";
     el.style.overflow = "";
   }
 
@@ -1155,24 +1162,44 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   if (imgHeight <= pageHeight) {
     doc.addImage(imgData, "JPEG", 0, 0, pageWidth, imgHeight);
   } else {
-    const pxPerMm = canvas.width / pageWidth;
-    const pageHeightPx = pageHeight * pxPerMm;
+    const pxPerMm = canvas.width / 210;
+    const pageHeightPx = Math.floor(297 * pxPerMm);
     let yOffset = 0;
+    let pageNum = 0;
 
     while (yOffset < canvas.height) {
-      const sliceHeight = Math.min(pageHeightPx, canvas.height - yOffset);
+      const remaining = canvas.height - yOffset;
+      const sliceHeight = Math.min(pageHeightPx, remaining);
+
       const sliceCanvas = document.createElement("canvas");
       sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeight;
+      sliceCanvas.height = pageHeightPx;
       const ctx = sliceCanvas.getContext("2d");
+
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-      ctx.drawImage(canvas, 0, -yOffset);
+
+      ctx.drawImage(
+        canvas,
+        0,
+        yOffset,
+        canvas.width,
+        sliceHeight,
+        0,
+        0,
+        canvas.width,
+        sliceHeight,
+      );
+
       const sliceData = sliceCanvas.toDataURL("image/jpeg", 1.0);
-      const sliceMmHeight = sliceHeight / pxPerMm;
-      if (yOffset > 0) doc.addPage();
-      doc.addImage(sliceData, "JPEG", 0, 0, pageWidth, sliceMmHeight);
-      yOffset += pageHeightPx;
+      if (pageNum > 0) doc.addPage();
+      doc.addImage(sliceData, "JPEG", 0, 0, 210, 297);
+
+      yOffset += sliceHeight;
+      if (yOffset < canvas.height) {
+        yOffset -= 2;
+      }
+      pageNum++;
     }
   }
 
