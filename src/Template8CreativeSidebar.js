@@ -326,13 +326,16 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   // Name
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   const nameLines = pdfSplitText(doc, cv.name || "Your Name", sideTextW, 11);
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold");
   let sy = drawSideWrapped(nameLines, 5, 32, 5.5);
 
   // Title
   doc.setTextColor(cr, cg, cb);
   doc.setFont("helvetica", "normal");
   const titleLines = pdfSplitText(doc, cv.title || "Job Title", sideTextW, 8);
+  doc.setTextColor(cr, cg, cb); doc.setFont("helvetica", "normal");
   sy = drawSideWrapped(titleLines, 5, sy, 4);
 
   // Coral divider
@@ -355,14 +358,14 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   };
 
   sideSection("Contact");
-  if (cv.email) { const l = pdfSplitText(doc, cv.email, sideTextW, 7.5); sy = drawSideWrapped(l, 5, sy, 3.5); sy += 2; }
+  if (cv.email) { doc.setFont("helvetica", "normal"); const l = pdfSplitText(doc, cv.email, sideTextW, 7.5); sy = drawSideWrapped(l, 5, sy, 3.5); sy += 2; }
   if (cv.phone) { sy = ensureSy(sy, 5); doc.text(cv.phone, 5, sy); sy += 5; }
   if (cv.location) { sy = ensureSy(sy, 7); doc.text(cv.location, 5, sy); sy += 7; }
 
   if (cv.nationality || cv.visaStatus || cv.dob || cv.gender || cv.maritalStatus) {
     sideSection("Personal");
     if (cv.nationality)   { sy = ensureSy(sy, 4.5); doc.text(cv.nationality, 5, sy); sy += 4.5; }
-    if (cv.visaStatus)    { const l = pdfSplitText(doc, cv.visaStatus, sideTextW, 7.5); sy = drawSideWrapped(l, 5, sy, 3.5); sy += 1; }
+    if (cv.visaStatus)    { doc.setFont("helvetica", "normal"); const l = pdfSplitText(doc, cv.visaStatus, sideTextW, 7.5); sy = drawSideWrapped(l, 5, sy, 3.5); sy += 1; }
     if (cv.dob)           { sy = ensureSy(sy, 4.5); doc.text(`DOB: ${cv.dob}`, 5, sy); sy += 4.5; }
     if (cv.gender)        { sy = ensureSy(sy, 4.5); doc.text(cv.gender, 5, sy); sy += 4.5; }
     if (cv.maritalStatus) { sy = ensureSy(sy, 6); doc.text(cv.maritalStatus, 5, sy); sy += 6; }
@@ -393,7 +396,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
     sideSection("Certifications");
     cv.certifications.split(",").forEach(c => {
       if (!c.trim()) return;
-      const l = pdfSplitText(doc, "• " + c.trim(), sideTextW, 7.5);
+      doc.setFont("helvetica", "normal"); const l = pdfSplitText(doc, "• " + c.trim(), sideTextW, 7.5);
       sy = drawSideWrapped(l, 5, sy, 3.5); sy += 1.5;
     });
     sy += 2;
@@ -426,6 +429,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.summary) {
     mainTitle("About Me");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...charco);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 7;
   }
@@ -486,6 +490,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
   if (cv.technicalSkills) {
     mainTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...charco);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.technicalSkills, rw, 8, rx, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }

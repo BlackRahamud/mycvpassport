@@ -324,6 +324,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   if (cv.skills) {
     sectionTitle("Core Competencies");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.skills, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 6;
   }
@@ -383,6 +384,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   if (cv.certifications) {
     sectionTitle("Certifications");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.certifications, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }
@@ -390,6 +392,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.technicalSkills, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }
@@ -409,6 +412,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("Driving License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Willing to Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...body);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, adds.join("   •   "), fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }

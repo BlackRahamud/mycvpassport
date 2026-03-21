@@ -320,6 +320,7 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.skills) {
     sectionTitle("Core Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     const lines = pdfSplitText(doc, cv.skills, fullTextW, 8);
     y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 6;
@@ -389,6 +390,7 @@ export function pdfHospitality(doc, cv, W, M) {
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     const lines = pdfSplitText(doc, cv.technicalSkills, fullTextW, 8);
     y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 5;
@@ -408,6 +410,7 @@ export function pdfHospitality(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     const lines = pdfSplitText(doc, adds.join("   •   "), fullTextW, 8);
     y = pdfDrawWrappedLines(doc, lines, W / 2, y, 4, pdfBottomY, pdfTopY, { align: "center" }, newPageOpts);
     y += 8;

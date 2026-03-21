@@ -66,6 +66,7 @@ export function pdfEnsureY(
 /**
  * Measure wrapped lines using normal weight (splitTextToSize uses current font metrics),
  * then restore previous font + size so rendering stays correct (bold/italic unchanged).
+ * setFont must precede setFontSize so measurement uses normal metrics.
  */
 export function pdfSplitText(doc, text, maxWidthMm, fontSize) {
   const prev =
@@ -105,7 +106,8 @@ export function pdfDrawWrappedLines(
 }
 
 /**
- * Split (with font size) + draw wrapped lines
+ * Split (with font size) + draw wrapped lines.
+ * Measurement uses normal weight only; restores caller font for drawing (italic/bold preserved).
  */
 export function pdfDrawWrappedText(
   doc,
@@ -120,7 +122,15 @@ export function pdfDrawWrappedText(
   textArgs,
   newPageOptions
 ) {
-  const lines = pdfSplitText(doc, text, maxWidthMm, fontSize);
+  const prevForDraw =
+    typeof doc.getFont === "function"
+      ? doc.getFont()
+      : { fontName: "helvetica", fontStyle: "normal" };
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(fontSize);
+  const lines = doc.splitTextToSize(String(text ?? ""), pdfBufW(maxWidthMm));
+  doc.setFont(prevForDraw.fontName, prevForDraw.fontStyle);
+  doc.setFontSize(fontSize);
   return pdfDrawWrappedLines(doc, lines, x, y, lineHeightMm, bottomY, topY, textArgs, newPageOptions);
 }
 

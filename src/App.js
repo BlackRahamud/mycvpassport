@@ -1232,10 +1232,14 @@ async function downloadResume(cvInput, template) {
 
     // Name & title
     doc.setTextColor(255,255,255); doc.setFont("helvetica","bold");
+    doc.setFont("helvetica","normal");
     const nameLines = pdfSplitText(doc, cv.name||"Your Name", sideTextW, 13);
+    doc.setTextColor(255,255,255); doc.setFont("helvetica","bold");
     let sy = drawSideWrapped(nameLines, 7, 18, 6);
     doc.setTextColor(ar,ag,ab); doc.setFont("helvetica","bolditalic");
+    doc.setFont("helvetica","normal");
     const titleLines = pdfSplitText(doc, cv.title||"Job Title", sideTextW, 9);
+    doc.setTextColor(ar,ag,ab); doc.setFont("helvetica","bolditalic");
     sy = drawSideWrapped(titleLines, 7, sy, 5);
     sy += 6;
 
@@ -1248,7 +1252,7 @@ async function downloadResume(cvInput, template) {
     };
 
     sideSection("Contact");
-    if(cv.email){const l=pdfSplitText(doc,cv.email,sideTextW,7);sy=drawSideWrapped(l,7,sy,3.5);sy+=2;}
+    if(cv.email){doc.setFont("helvetica","normal");const l=pdfSplitText(doc,cv.email,sideTextW,7);sy=drawSideWrapped(l,7,sy,3.5);sy+=2;}
     if(cv.phone){sy=ensureSy(sy,5);doc.text(cv.phone,7,sy);sy+=5;}
     if(cv.location){sy=ensureSy(sy,7);doc.text(cv.location,7,sy);sy+=7;}
 
@@ -1262,16 +1266,16 @@ async function downloadResume(cvInput, template) {
       if(cv.maritalStatus){sy=ensureSy(sy,6);doc.text(cv.maritalStatus,7,sy);sy+=6;}
     }
 
-    if(cv.skills){sideSection("Core Skills");cv.skills.split(",").forEach(sk=>{if(!sk.trim())return;const l=pdfSplitText(doc,"• "+sk.trim(),sideTextW,7);sy=drawSideWrapped(l,7,sy,3.5);sy+=1.5;});sy+=3;}
+    if(cv.skills){sideSection("Core Skills");cv.skills.split(",").forEach(sk=>{if(!sk.trim())return;doc.setFont("helvetica","normal");const l=pdfSplitText(doc,"• "+sk.trim(),sideTextW,7);sy=drawSideWrapped(l,7,sy,3.5);sy+=1.5;});sy+=3;}
     if(cv.languages){sideSection("Languages");cv.languages.split(",").forEach(lg=>{sy=ensureSy(sy,4.5);doc.text("• "+lg.trim(),7,sy);sy+=4.5;});sy+=3;}
-    if(cv.certifications){sideSection("Certifications");cv.certifications.split(",").forEach(c=>{if(!c.trim())return;const l=pdfSplitText(doc,"• "+c.trim(),sideTextW,7);sy=drawSideWrapped(l,7,sy,3.5);sy+=1.5;});sy+=3;}
+    if(cv.certifications){sideSection("Certifications");cv.certifications.split(",").forEach(c=>{if(!c.trim())return;doc.setFont("helvetica","normal");const l=pdfSplitText(doc,"• "+c.trim(),sideTextW,7);sy=drawSideWrapped(l,7,sy,3.5);sy+=1.5;});sy+=3;}
     if(cv.education.some(e=>e.school)){
       sideSection("Education");
       cv.education.filter(e=>e.school).forEach(e=>{
         sy=ensureSy(sy,4);doc.setFont("helvetica","bold");doc.setTextColor(ar,ag,ab);doc.text(e.year||"",7,sy);sy+=3.5;
         doc.setTextColor(220,220,220);doc.setFont("helvetica","normal");
-        const dl=pdfSplitText(doc,e.degree,sideTextW,7);sy=drawSideWrapped(dl,7,sy,3.5);sy+=1;
-        const sl=pdfSplitText(doc,e.school,sideTextW,7);sy=drawSideWrapped(sl,7,sy,3.5);sy+=4;
+        doc.setFont("helvetica","normal");const dl=pdfSplitText(doc,e.degree,sideTextW,7);sy=drawSideWrapped(dl,7,sy,3.5);sy+=1;
+        doc.setFont("helvetica","normal");const sl=pdfSplitText(doc,e.school,sideTextW,7);sy=drawSideWrapped(sl,7,sy,3.5);sy+=4;
       });
     }
     if(cv.availability||cv.drivingLicense||cv.willingToRelocate){
@@ -1290,7 +1294,7 @@ async function downloadResume(cvInput, template) {
       doc.setDrawColor(ar,ag,ab);doc.line(rx,ry,rx+rw,ry);ry+=5;
     };
 
-    if(cv.summary){rightSection("PROFESSIONAL SUMMARY");doc.setFont("helvetica","normal");doc.setTextColor(60,60,60);ry=pdfDrawWrappedText(doc,cv.summary,rw,8,rx,ry,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);ry+=7;}
+    if(cv.summary){rightSection("PROFESSIONAL SUMMARY");doc.setFont("helvetica","normal");doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");ry=pdfDrawWrappedText(doc,cv.summary,rw,8,rx,ry,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);ry+=7;}
     if(cv.experience.some(e=>e.company)){
       rightSection("WORK EXPERIENCE");
       cv.experience.filter(e=>e.company).forEach(e=>{
@@ -1305,7 +1309,7 @@ async function downloadResume(cvInput, template) {
         ry+=2;
       });
     }
-    if(cv.technicalSkills){rightSection("TECHNICAL SKILLS");doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);ry=pdfDrawWrappedText(doc,cv.technicalSkills,rw,7.5,rx,ry,3.5,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);ry+=6;}
+    if(cv.technicalSkills){rightSection("TECHNICAL SKILLS");doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");ry=pdfDrawWrappedText(doc,cv.technicalSkills,rw,7.5,rx,ry,3.5,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);ry+=6;}
     if(cv.references){ry=pdfEnsureY(doc,ry,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(140,140,140);doc.text(cv.references,rx,ry);}
 
   } else if (t.layout === "timeline") {
@@ -1322,7 +1326,7 @@ async function downloadResume(cvInput, template) {
 
     let y = headerH + 5;
     if(cv.summary){doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(70,70,70);y=pdfDrawWrappedText(doc,cv.summary,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=8;}
-    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.skills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=6;}
+    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");y=pdfDrawWrappedText(doc,cv.skills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=6;}
     if(cv.experience.some(e=>e.company)){
       y=sectionTitle("Work Experience",y);
       const lineX=M+3;
@@ -1342,8 +1346,8 @@ async function downloadResume(cvInput, template) {
       y=pdfEnsureY(doc,y,11,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
       doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(40,40,40);doc.text(e.degree||"",M,y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(100,100,100);doc.text(e.school||"",M,y+4.5);doc.text(e.year||"",W-M,y,{align:"right"});y+=11;
     });}
-    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
-    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
+    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
+    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
     if(cv.languages){y=sectionTitle("Languages",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.text(cv.languages,M,y);y+=8;}
     if(cv.availability||cv.drivingLicense||cv.willingToRelocate){
       y=sectionTitle("Additional Information",y);
@@ -1351,7 +1355,7 @@ async function downloadResume(cvInput, template) {
       if(cv.availability)adds.push(cv.availability);
       if(cv.drivingLicense)adds.push("Driving License: "+cv.drivingLicense);
       if(cv.willingToRelocate)adds.push("Willing to Relocate: "+cv.willingToRelocate);
-      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);
+      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");
       y=pdfDrawWrappedText(doc,adds.join("   •   "),fullTextW,7.5,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=8;
     }
     if(cv.references){y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(140,140,140);doc.text(cv.references,M,y);}
@@ -1368,8 +1372,8 @@ async function downloadResume(cvInput, template) {
     if(gl){doc.setFontSize(7);doc.text(gl,M,33);}
 
     let y = headerH + 5;
-    if(cv.summary){y=sectionTitle("Professional Summary",y);doc.setFontSize(8.5);y=pdfDrawWrappedText(doc,cv.summary,fullTextW,8.5,M,y,4.5,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=7;}
-    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFontSize(8);y=pdfDrawWrappedText(doc,cv.skills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=6;}
+    if(cv.summary){y=sectionTitle("Professional Summary",y);doc.setFontSize(8.5);doc.setFont("helvetica","normal");y=pdfDrawWrappedText(doc,cv.summary,fullTextW,8.5,M,y,4.5,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=7;}
+    if(cv.skills){y=sectionTitle("Core Skills",y);doc.setFontSize(8);doc.setFont("helvetica","normal");y=pdfDrawWrappedText(doc,cv.skills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=6;}
     if(cv.experience.some(e=>e.company)){
       y=sectionTitle("Work Experience",y);
       cv.experience.filter(e=>e.company).forEach(e=>{
@@ -1389,8 +1393,8 @@ async function downloadResume(cvInput, template) {
       y=pdfEnsureY(doc,y,8,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);
       doc.setFont("helvetica","bold");doc.setFontSize(9.5);doc.setTextColor(40,40,40);doc.text(`${e.degree} — ${e.school}`,M,y);doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(120,120,120);doc.text(e.year||"",W-M,y,{align:"right"});y+=8;
     });y+=3;}
-    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
-    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
+    if(cv.certifications){y=sectionTitle("Certifications",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");y=pdfDrawWrappedText(doc,cv.certifications,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
+    if(cv.technicalSkills){y=sectionTitle("Technical Skills",y);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");y=pdfDrawWrappedText(doc,cv.technicalSkills,fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;}
     if(cv.skills&&false){}
     if(cv.languages){y=sectionTitle("Languages",y);doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(60,60,60);y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.text(cv.languages,M,y);y+=8;}
     if(cv.availability||cv.drivingLicense||cv.willingToRelocate){
@@ -1399,7 +1403,7 @@ async function downloadResume(cvInput, template) {
       if(cv.availability)adds.push(cv.availability);
       if(cv.drivingLicense)adds.push("Driving License: "+cv.drivingLicense);
       if(cv.willingToRelocate)adds.push("Willing to Relocate: "+cv.willingToRelocate);
-      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);doc.setFont("helvetica","normal");
       y=pdfDrawWrappedText(doc,adds.join("   •   "),fullTextW,8,M,y,4,pdfPageBottomY,pdfPageTopY,undefined,pdfNewPageOpts);y+=5;
     }
     if(cv.references){y=pdfEnsureY(doc,y,5,pdfPageBottomY,pdfPageTopY,pdfNewPageOpts);doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(140,140,140);doc.text(cv.references,M,y);}

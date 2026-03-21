@@ -38,6 +38,7 @@ export function renderPdfExperiencePoints(
 
   parts.forEach((part, i) => {
     const display = i === 0 ? part : `• ${part}`;
+    doc.setFont("helvetica", "normal");
     const wrapped = pdfSplitText(doc, display, maxWidth, fontSize);
     drawLines(wrapped);
   });

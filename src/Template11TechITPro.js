@@ -325,7 +325,9 @@ export function pdfTechITPro(doc, cv, W, M) {
   // Name
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "normal");
   const nameLines = pdfSplitText(doc, cv.name || "Your Name", sideTextW, 13);
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold");
   let sy = drawSideWrapped(nameLines, 6, 12, 5.5);
 
   // Accent underline
@@ -336,6 +338,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   doc.setTextColor(ar, ag, ab);
   doc.setFont("helvetica", "normal");
   const titleLines = pdfSplitText(doc, cv.title || "IT Professional", sideTextW, 7.5);
+  doc.setTextColor(ar, ag, ab); doc.setFont("helvetica", "normal");
   sy = drawSideWrapped(titleLines, 6, sy + 6, 4.5);
 
   sy += 10;
@@ -354,7 +357,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   };
 
   sideSection("Contact");
-  if (cv.email) { const l = pdfSplitText(doc, cv.email, sideTextW, 7.5); sy = drawSideWrapped(l, 6, sy, 3.5); sy += 2; }
+  if (cv.email) { doc.setFont("helvetica", "normal"); const l = pdfSplitText(doc, cv.email, sideTextW, 7.5); sy = drawSideWrapped(l, 6, sy, 3.5); sy += 2; }
   if (cv.phone) { sy = ensureSy(sy, 5); doc.text(cv.phone, 6, sy); sy += 5; }
   if (cv.location) { sy = ensureSy(sy, 6); doc.text(cv.location, 6, sy); sy += 6; }
 
@@ -378,6 +381,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       doc.setFillColor(ar, ag, ab);
       doc.circle(7.5, sy - 1, 1.2, "F");
       doc.setTextColor(207, 216, 220); doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
       const sl = pdfSplitText(doc, s.trim(), sideSkillW, 7.5);
       sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 1.5;
     });
@@ -391,6 +395,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       sy = ensureSy(sy, 5);
       doc.setTextColor(ar, ag, ab); doc.text("—", 6, sy);
       doc.setTextColor(176, 190, 197);
+      doc.setFont("helvetica", "normal");
       const sl = pdfSplitText(doc, s.trim(), sideSkillW, 7.5);
       sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 1.5;
     });
@@ -415,6 +420,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       sy = ensureSy(sy, 5);
       doc.setTextColor(ar, ag, ab); doc.text("✦", 6, sy);
       doc.setTextColor(176, 190, 197);
+      doc.setFont("helvetica", "normal");
       const sl = pdfSplitText(doc, c.trim(), sideSkillW, 7.5);
       sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 2;
     });
@@ -448,6 +454,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   if (cv.summary) {
     mainSection("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.summary, rw, 8.5, rx, y, 4.5, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 8;
   }

@@ -308,6 +308,7 @@ export function pdfCompactPro(doc, cv, W, M) {
     doc.text("CORE SKILLS", M, y + 3);
     doc.setTextColor(...dark); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
     const skillStr = cv.skills.split(",").map(s => s.trim()).filter(Boolean).join("   ·   ");
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, skillStr, fullTextW - 28, 7.5, M + 28, y + 3, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 4;
   }
@@ -315,6 +316,7 @@ export function pdfCompactPro(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.summary, fullTextW, 8.5, M, y, 4.5, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 7;
   }
@@ -384,6 +386,7 @@ export function pdfCompactPro(doc, cv, W, M) {
   if (cv.technicalSkills) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.technicalSkills, fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }
@@ -403,6 +406,7 @@ export function pdfCompactPro(doc, cv, W, M) {
     if (cv.drivingLicense)    adds.push("License: " + cv.drivingLicense);
     if (cv.willingToRelocate) adds.push("Relocate: " + cv.willingToRelocate);
     doc.setFontSize(8); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, adds.join("   •   "), fullTextW, 8, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }

@@ -276,6 +276,7 @@ export function pdfATSInternational(doc, cv, W, M) {
   if (cv.summary) {
     sectionTitle("Professional Summary");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, cv.summary, fullTextW, 8.5, M, y, 4.5, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 7;
   }
@@ -284,6 +285,7 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("Core Skills");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const skillStr = cv.skills.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, skillStr, fullTextW, 8.5, M, y, 4.5, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 6;
   }
@@ -335,6 +337,7 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("Certifications");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const certStr = cv.certifications.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, certStr, fullTextW, 8.5, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }
@@ -343,6 +346,7 @@ export function pdfATSInternational(doc, cv, W, M) {
     sectionTitle("Technical Skills");
     doc.setFontSize(8.5); doc.setFont("helvetica", "normal"); doc.setTextColor(...mid);
     const techStr = cv.technicalSkills.split(",").map(s => s.trim()).filter(Boolean).join(" | ");
+    doc.setFont("helvetica", "normal");
     y = pdfDrawWrappedText(doc, techStr, fullTextW, 8.5, M, y, 4, pdfBottomY, pdfTopY, undefined, newPageOpts);
     y += 5;
   }
