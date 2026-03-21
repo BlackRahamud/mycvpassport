@@ -198,7 +198,10 @@ export function PreviewTechITPro({ cv, t }) {
       </div>
 
       {/* ── Right Main Panel ── */}
-      <div style={{ padding: "24px 20px", background: offwhite, minHeight: "100%" }}>
+      <div
+        className="cvp-preview-right-col"
+        style={{ padding: "24px 20px", background: offwhite, minHeight: "100%" }}
+      >
 
         {/* Summary */}
         {cv.summary && (

@@ -171,7 +171,10 @@ export function PreviewCreativeSidebar({ cv, t }) {
       </div>
 
       {/* ── Right Main Content ── */}
-      <div style={{ flex: 1, padding: "24px 20px", background: light }}>
+      <div
+        className="cvp-preview-right-col"
+        style={{ flex: 1, padding: "24px 20px", background: light }}
+      >
 
         {/* Summary */}
         {cv.summary && (

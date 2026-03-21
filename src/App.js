@@ -6,7 +6,11 @@ import ATSChecker from "./ATSChecker";
 import TiltedCard from './components/TiltedCard';
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { splitExperiencePointsForPreview, trimCanvasBottomWhitespace } from "./experiencePointsPreview";
+import {
+  splitExperiencePointsForPreview,
+  trimCanvasBottomWhitespace,
+  pinExperienceBulletWidthsForPdfCapture,
+} from "./experiencePointsPreview";
 import { PreviewGulfExecutive } from "./Template5GulfExecutive";
 import { PreviewBankingFinance } from "./Template6BankingFinance";
 import { PreviewCompactPro } from "./Template7CompactPro";
@@ -1121,6 +1125,9 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   el.style.height = "auto";
   await new Promise((r) => setTimeout(r, 100));
 
+  const unpinPdfWidths = pinExperienceBulletWidthsForPdfCapture(el);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
   const fullHeight = el.scrollHeight;
   el.style.height = fullHeight + "px";
   el.style.overflow = "visible";
@@ -1138,6 +1145,7 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
       windowHeight: fullHeight,
     });
   } finally {
+    unpinPdfWidths();
     el.style.width = prevWidth;
     el.style.maxWidth = prevMaxWidth;
     el.style.minWidth = prevMinWidth;
