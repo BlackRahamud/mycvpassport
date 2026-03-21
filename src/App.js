@@ -1132,25 +1132,16 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   el.style.height = fullHeight + "px";
   el.style.overflow = "visible";
 
-  const baseOpts = {
-    scale: 2,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: "#ffffff",
-    logging: false,
-    height: fullHeight,
-    windowWidth: 794,
-    windowHeight: fullHeight,
-    imageTimeout: 0,
-  };
-
   let canvas;
   try {
-    try {
-      canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: true });
-    } catch {
-      canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: false });
-    }
+    canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      imageTimeout: 0,
+      logging: false,
+    });
   } finally {
     el.style.width = prevWidth;
     el.style.maxWidth = prevMaxWidth;
