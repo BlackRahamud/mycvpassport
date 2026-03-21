@@ -60,11 +60,13 @@ export function PreviewCreativeSidebar({ cv, t }) {
       background: white, borderRadius: "10px", overflow: "hidden",
       fontFamily: "Arial, sans-serif", color: charco,
       fontSize: "10px", display: "flex", minHeight: "500px",
+      alignItems: "stretch",
     }}>
       {/* ── Left Sidebar ── */}
       <div style={{
         width: sideW, background: dark, padding: "24px 16px",
         display: "flex", flexDirection: "column",
+        alignSelf: "stretch",
       }}>
         {/* Photo placeholder */}
         <div style={{
