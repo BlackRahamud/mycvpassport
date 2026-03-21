@@ -1111,7 +1111,7 @@ const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isS
 // ─── PDF DOWNLOAD — Templates 1–13: Puppeteer API; others: html2canvas + jsPDF ──
 async function downloadResumeFromPreview(cvInput, captureElement, template) {
   const cv = cvWithTemplateCertifications(cvInput);
-  const templateId = template?.id ?? 1;
+  const templateId = Number(template?.id ?? 1);
 
   if ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(templateId)) {
     const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
