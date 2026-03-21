@@ -462,3 +462,93 @@ input:focus, textarea:focus {
     display: grid !important;
   }
 }
+
+/* A4 preview — experience description lines (split on \n and •; matches prior inline typography) */
+.cvp-preview-exp-banner-line {
+  font-size: 10px;
+  color: #555;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.cvp-preview-exp-twocol-line {
+  font-size: 10px;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cvp-preview-exp-sidebar-line {
+  font-size: 10px;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cvp-preview-exp-timeline-line {
+  font-size: 10px;
+  color: #555;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.cvp-preview-exp-t5-line {
+  font-size: 10px;
+  color: #2c2c2c;
+  margin: 0;
+  line-height: 1.65;
+}
+
+.cvp-preview-exp-t5-wrap .cvp-preview-exp-t5-line:first-child {
+  margin-top: 5px;
+}
+
+.cvp-preview-exp-t6-line {
+  font-size: 10px;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cvp-preview-exp-t7-wrap {
+  margin-left: 11px;
+}
+
+.cvp-preview-exp-t7-line {
+  font-size: 9.5px;
+  color: #3d3d3d;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.cvp-preview-exp-t8-line {
+  font-size: 9.5px;
+  color: #3d3d3d;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.cvp-preview-exp-t9-wrap {
+  margin-top: 6px;
+}
+
+.cvp-preview-exp-t9-line {
+  font-size: 10px;
+  color: #4a3728;
+  margin: 0;
+  line-height: 1.65;
+}
+
+.cvp-preview-exp-t10-line {
+  font-size: 10px;
+  color: #333333;
+  margin: 0;
+  line-height: 1.7;
+}
+
+.cvp-preview-exp-t11-line {
+  font-size: 9.5px;
+  color: #3d3d3d;
+  margin: 0;
+  line-height: 1.7;
+}

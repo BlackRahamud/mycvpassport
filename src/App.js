@@ -17,6 +17,7 @@ import LandingPage from './LandingPage';
 import WalkInPage from './WalkInPage';
 import Dashboard from './Dashboard';
 import { ReactComponent as FalconLogo } from "./logo.svg";
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
 
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
 function TabIconDoc() {
@@ -523,7 +524,17 @@ function PreviewBanner({ cv, t }) {
                   <span style={{ fontSize: "10px", color: "#888", whiteSpace: "nowrap", marginLeft: "8px" }}>{e.period}</span>
                 </div>
                 <div style={{ color: t.accent, fontSize: "11px", fontWeight: "700", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
-                {e.points && <p style={{ fontSize: "10px", color: "#555", margin: 0, lineHeight: "1.6" }}>{e.points}</p>}
+                {e.points && (
+                  <div className="cvp-preview-exp-banner-wrap">
+                    {!/[•\n]/.test(String(e.points)) ? (
+                      <p className="cvp-preview-exp-banner-line">{String(e.points).trim()}</p>
+                    ) : (
+                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-banner-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </Section>
@@ -672,7 +683,17 @@ function PreviewTwoCol({ cv, t }) {
                   <span style={{ fontSize: "9px", color: "#888" }}>{e.period}</span>
                 </div>
                 <div style={{ color: t.accent, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
-                {e.points && <p style={{ fontSize: "10px", color: "#555", margin: 0, lineHeight: "1.5" }}>{e.points}</p>}
+                {e.points && (
+                  <div className="cvp-preview-exp-twocol-wrap">
+                    {!/[•\n]/.test(String(e.points)) ? (
+                      <p className="cvp-preview-exp-twocol-line">{String(e.points).trim()}</p>
+                    ) : (
+                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-twocol-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -782,7 +803,17 @@ function PreviewSidebar({ cv, t }) {
                   <span style={{ fontSize: "9px", color: "#888", background: `${t.accent}18`, padding: "1px 6px", borderRadius: "8px" }}>{e.period}</span>
                 </div>
                 <div style={{ color: t.accent, fontSize: "10px", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
-                {e.points && <p style={{ fontSize: "10px", color: "#555", margin: 0, lineHeight: "1.5" }}>{e.points}</p>}
+                {e.points && (
+                  <div className="cvp-preview-exp-sidebar-wrap">
+                    {!/[•\n]/.test(String(e.points)) ? (
+                      <p className="cvp-preview-exp-sidebar-line">{String(e.points).trim()}</p>
+                    ) : (
+                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-sidebar-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -877,7 +908,17 @@ function PreviewTimeline({ cv, t }) {
                     <span style={{ fontSize: "9px", color: "#888" }}>{e.period}</span>
                   </div>
                   <div style={{ color: t.accent, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
-                  {e.points && <p style={{ fontSize: "10px", color: "#555", margin: 0, lineHeight: "1.6" }}>{e.points}</p>}
+                  {e.points && (
+                    <div className="cvp-preview-exp-timeline-wrap">
+                      {!/[•\n]/.test(String(e.points)) ? (
+                        <p className="cvp-preview-exp-timeline-line">{String(e.points).trim()}</p>
+                      ) : (
+                        String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                          <p key={j} className="cvp-preview-exp-timeline-line">{j === 0 ? line : `• ${line}`}</p>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1127,6 +1168,8 @@ async function downloadResume(cvInput, template) {
   const W = 210, M = 18;
   /** Usable width for full-width body text (page minus left + right margin) */
   const fullTextW = W - M * 2;
+  const pdfPageBottomY = 297 - M;
+  const pdfPageTopY = M;
   const hex2rgb = h => { const x = h.replace("#", ""); return [parseInt(x.slice(0,2),16), parseInt(x.slice(2,4),16), parseInt(x.slice(4,6),16)]; };
   const [ar, ag, ab] = hex2rgb(t.accent);
   const [cr, cg, cb] = hex2rgb(t.color);
@@ -1227,7 +1270,7 @@ async function downloadResume(cvInput, template) {
         doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(ar,ag,ab);
         const compStr = e.company+(e.location?` · ${e.location}`:"");
         doc.text(compStr,rx,ry);ry+=4.5;
-        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(7.5);const pl=doc.splitTextToSize(e.points,rw);doc.text(pl,rx,ry);ry+=pl.length*3.5+3;}
+        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(7.5);ry=renderPdfExperiencePoints(doc,e.points,rx,ry,rw,3.5,pdfPageBottomY,pdfPageTopY)+3;}
         ry+=2;
       });
     }
@@ -1257,7 +1300,7 @@ async function downloadResume(cvInput, template) {
         doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(ar,ag,ab);
         const compStr=e.company+(e.location?` · ${e.location}`:"");
         doc.text(compStr,lineX+5,y+7);y+=10;
-        if(e.points){doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(70,70,70);const pl=doc.splitTextToSize(e.points,fullTextW-8);doc.text(pl,lineX+5,y);y+=pl.length*3.5+2;}
+        if(e.points){doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(70,70,70);y=renderPdfExperiencePoints(doc,e.points,lineX+5,y,fullTextW-8,3.5,pdfPageBottomY,pdfPageTopY)+2;}
         y+=5;
       });
     }
@@ -1296,7 +1339,7 @@ async function downloadResume(cvInput, template) {
         doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(ar,ag,ab);
         const compStr=e.company+(e.location?` · ${e.location}`:"");
         doc.text(compStr,M,y);y+=4.5;
-        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(8);const pl=doc.splitTextToSize(e.points,fullTextW);doc.text(pl,M,y);y+=pl.length*4+2;}
+        if(e.points){doc.setFont("helvetica","normal");doc.setTextColor(70,70,70);doc.setFontSize(8);y=renderPdfExperiencePoints(doc,e.points,M,y,fullTextW,4,pdfPageBottomY,pdfPageTopY)+2;}
         y+=3;
       });
       y+=3;

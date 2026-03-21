@@ -6,6 +6,8 @@
 //          bold name treatment, skills with progress bars
 // ─────────────────────────────────────────────────────────────────
 
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+
 export function PreviewCreativeSidebar({ cv, t }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
@@ -193,9 +195,15 @@ export function PreviewCreativeSidebar({ cv, t }) {
                   {e.company}{e.location ? ` · ${e.location}` : ""}
                 </div>
                 {e.points && (
-                  <p style={{ fontSize: "9.5px", color: charco, margin: 0, lineHeight: "1.6" }}>
-                    {e.points}
-                  </p>
+                  <div className="cvp-preview-exp-t8-wrap">
+                    {!/[•\n]/.test(String(e.points)) ? (
+                      <p className="cvp-preview-exp-t8-line">{String(e.points).trim()}</p>
+                    ) : (
+                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-t8-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             ))}
@@ -253,6 +261,8 @@ export function PreviewCreativeSidebar({ cv, t }) {
 
 // ─── PDF: Creative Sidebar ────────────────────────────────────────
 export function pdfCreativeSidebar(doc, cv, W, M) {
+  const pdfBottomY = 297 - M;
+  const pdfTopY = M;
   const coral  = [232, 83,  63];
   const dark   = [43,  43,  43];
   const charco = [61,  61,  61];
@@ -409,8 +419,7 @@ export function pdfCreativeSidebar(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...charco);
-        const pl = doc.splitTextToSize(e.points, rw - 5);
-        doc.text(pl, rx + 5, y); y += pl.length * 4 + 2;
+        y = renderPdfExperiencePoints(doc, e.points, rx + 5, y, rw - 5, 4, pdfBottomY, pdfTopY) + 2;
       }
       y += 4;
     });

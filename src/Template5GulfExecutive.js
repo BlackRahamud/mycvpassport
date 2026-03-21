@@ -5,6 +5,8 @@
 //  ATS-friendly: clean reading order, no tables, no columns in main body
 // ─────────────────────────────────────────────────────────────────
 
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+
 export function PreviewGulfExecutive({ cv, t }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
@@ -54,9 +56,15 @@ export function PreviewGulfExecutive({ cv, t }) {
         }}>{e.period}</span>
       </div>
       {e.points && (
-        <p style={{ fontSize: "10px", color: body, margin: "5px 0 0", lineHeight: "1.65" }}>
-          {e.points}
-        </p>
+        <div className="cvp-preview-exp-t5-wrap">
+          {!/[•\n]/.test(String(e.points)) ? (
+            <p className="cvp-preview-exp-t5-line">{String(e.points).trim()}</p>
+          ) : (
+            String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+              <p key={j} className="cvp-preview-exp-t5-line">{j === 0 ? line : `• ${line}`}</p>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
@@ -227,6 +235,8 @@ export function PreviewGulfExecutive({ cv, t }) {
 // ─── PDF: Gulf Executive ──────────────────────────────────────────
 export function pdfGulfExecutive(doc, cv, W, M) {
   const fullTextW = W - M * 2;
+  const pdfBottomY = 297 - M;
+  const pdfTopY = M;
   const gold  = [201, 168, 76];
   const navy  = [13,  27,  42];
   const body  = [44,  44,  44];
@@ -331,9 +341,7 @@ export function pdfGulfExecutive(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...body);
-        const pl = doc.splitTextToSize(e.points, fullTextW - 5);
-        doc.text(pl, M + 5, y);
-        y += pl.length * 4 + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M + 5, y, fullTextW - 5, 4, pdfBottomY, pdfTopY) + 2;
       }
       y += 4;
     });

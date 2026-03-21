@@ -6,6 +6,8 @@
 //          clean structured sections, welcoming professional feel
 // ─────────────────────────────────────────────────────────────────
 
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+
 export function PreviewHospitality({ cv, t }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
@@ -145,9 +147,15 @@ export function PreviewHospitality({ cv, t }) {
                   }}>{e.period}</span>
                 </div>
                 {e.points && (
-                  <p style={{ fontSize: "10px", color: mid, margin: "6px 0 0", lineHeight: "1.65" }}>
-                    {e.points}
-                  </p>
+                  <div className="cvp-preview-exp-t9-wrap">
+                    {!/[•\n]/.test(String(e.points)) ? (
+                      <p className="cvp-preview-exp-t9-line">{String(e.points).trim()}</p>
+                    ) : (
+                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-t9-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             ))}
@@ -234,6 +242,8 @@ export function PreviewHospitality({ cv, t }) {
 // ─── PDF: Hospitality & Service ───────────────────────────────────
 export function pdfHospitality(doc, cv, W, M) {
   const fullTextW = W - M * 2;
+  const pdfBottomY = 297 - M;
+  const pdfTopY = M;
   const brown  = [107, 76,  59];
   const warm   = [196, 149, 106];
   const dark   = [44,  24,  16];
@@ -333,8 +343,7 @@ export function pdfHospitality(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        const pl = doc.splitTextToSize(e.points, fullTextW - 6);
-        doc.text(pl, M + 6, y); y += pl.length * 4 + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY) + 2;
       }
       y += 6;
     });

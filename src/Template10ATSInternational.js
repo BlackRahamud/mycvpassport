@@ -8,6 +8,8 @@
 //          ATS compatibility of all 10 templates.
 // ─────────────────────────────────────────────────────────────────
 
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+
 export function PreviewATSInternational({ cv, t }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
@@ -211,6 +213,8 @@ export function PreviewATSInternational({ cv, t }) {
 // ─── PDF: ATS International ───────────────────────────────────────
 export function pdfATSInternational(doc, cv, W, M) {
   const fullTextW = W - M * 2;
+  const pdfBottomY = 297 - M;
+  const pdfTopY = M;
   const black  = [0,   0,   0  ];
  // const dark   = [17,  17,  17 ];
   const mid    = [51,  51,  51 ];
@@ -293,8 +297,7 @@ export function pdfATSInternational(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        const pl = doc.splitTextToSize(e.points, fullTextW);
-        doc.text(pl, M, y); y += pl.length * 4 + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M, y, fullTextW, 4, pdfBottomY, pdfTopY) + 2;
       }
       y += 4;
     });

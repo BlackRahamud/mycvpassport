@@ -7,6 +7,8 @@
 //          right, bold role + muted company treatment
 // ─────────────────────────────────────────────────────────────────
 
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+
 export function PreviewTechITPro({ cv, t }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
@@ -264,6 +266,8 @@ export function PreviewTechITPro({ cv, t }) {
 
 // ─── PDF: Tech & IT Pro ───────────────────────────────────────────
 export function pdfTechITPro(doc, cv, W, M) {
+  const pdfBottomY = 297 - M;
+  const pdfTopY = M;
   const slate  = [30,  45,  69];
   const accent = [74,  144, 217];
   const dark   = [26,  26,  46];
@@ -435,8 +439,7 @@ export function pdfTechITPro(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        const pl = doc.splitTextToSize(e.points, rw);
-        doc.text(pl, rx, y); y += pl.length * 4 + 2;
+        y = renderPdfExperiencePoints(doc, e.points, rx, y, rw, 4, pdfBottomY, pdfTopY) + 2;
       }
       y += 5;
     });

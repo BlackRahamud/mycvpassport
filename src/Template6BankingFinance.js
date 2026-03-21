@@ -6,6 +6,8 @@
 //          no colour distractions, pure professionalism
 // ─────────────────────────────────────────────────────────────────
 
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+
 export function PreviewBankingFinance({ cv, t }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
@@ -138,9 +140,15 @@ export function PreviewBankingFinance({ cv, t }) {
                   {e.company}{e.location ? ` — ${e.location}` : ""}
                 </div>
                 {e.points && (
-                  <p style={{ fontSize: "10px", color: dark, margin: 0, lineHeight: 1.5 }}>
-                    {e.points}
-                  </p>
+                  <div className="cvp-preview-exp-t6-wrap">
+                    {!/[•\n]/.test(String(e.points)) ? (
+                      <p className="cvp-preview-exp-t6-line">{String(e.points).trim()}</p>
+                    ) : (
+                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-t6-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))
+                    )}
+                  </div>
                 )}
                 {i < cv.experience.filter(e => e.company).length - 1 && (
                   <div style={{ height: "1px", background: rule, marginTop: "6px" }} />
@@ -221,6 +229,8 @@ export function PreviewBankingFinance({ cv, t }) {
 // ─── PDF: Banking & Finance ───────────────────────────────────────
 export function pdfBankingFinance(doc, cv, W, M) {
   const fullTextW = W - M * 2;
+  const pdfBottomY = 297 - M;
+  const pdfTopY = M;
   const black  = [10,  10,  10];
   const dark   = [26,  26,  26];
   const mid    = [68,  68,  68];
@@ -304,8 +314,7 @@ export function pdfBankingFinance(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...dark);
-        const pl = doc.splitTextToSize(e.points, fullTextW);
-        doc.text(pl, M, y, { lineHeightFactor: 1.5 }); y += pl.length * 4 * 1.5 + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M, y, fullTextW, 6, pdfBottomY, pdfTopY) + 2;
       }
       if (i < arr.length - 1) {
         doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.2);

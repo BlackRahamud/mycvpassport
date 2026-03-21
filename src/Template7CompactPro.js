@@ -6,6 +6,8 @@
 //          Teal/charcoal palette, tight spacing, tabular skills
 // ─────────────────────────────────────────────────────────────────
 
+import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+
 export function PreviewCompactPro({ cv, t }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
@@ -129,9 +131,15 @@ export function PreviewCompactPro({ cv, t }) {
                   {e.company}{e.location ? ` · ${e.location}` : ""}
                 </div>
                 {e.points && (
-                  <p style={{ fontSize: "9.5px", color: mid, margin: "0 0 0 11px", lineHeight: "1.6" }}>
-                    {e.points}
-                  </p>
+                  <div className="cvp-preview-exp-t7-wrap">
+                    {!/[•\n]/.test(String(e.points)) ? (
+                      <p className="cvp-preview-exp-t7-line">{String(e.points).trim()}</p>
+                    ) : (
+                      String(e.points).split(/\n|•/).map((l) => l.trim()).filter(Boolean).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-t7-line">{j === 0 ? line : `• ${line}`}</p>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             ))}
@@ -219,6 +227,8 @@ export function PreviewCompactPro({ cv, t }) {
 // ─── PDF: Compact Pro ─────────────────────────────────────────────
 export function pdfCompactPro(doc, cv, W, M) {
   const fullTextW = W - M * 2;
+  const pdfBottomY = 297 - M;
+  const pdfTopY = M;
   const teal   = [13,  115, 119];
   const dark   = [20,  33,  61];
   const mid    = [61,  61,  61];
@@ -327,8 +337,7 @@ export function pdfCompactPro(doc, cv, W, M) {
       if (e.points) {
         doc.setFont("helvetica", "normal"); doc.setFontSize(8);
         doc.setTextColor(...mid);
-        const pl = doc.splitTextToSize(e.points, fullTextW - 6);
-        doc.text(pl, M + 6, y); y += pl.length * 4 + 2;
+        y = renderPdfExperiencePoints(doc, e.points, M + 6, y, fullTextW - 6, 4, pdfBottomY, pdfTopY) + 2;
       }
       y += 4;
     });
