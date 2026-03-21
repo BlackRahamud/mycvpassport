@@ -53,7 +53,7 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
     plane: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#CCCCCC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:5px;display:inline-block" aria-hidden="true"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>`,
   };
 
-  let sidebar = `<aside class="t8-side" style="background:transparent">
+  let sidebar = `<aside class="t8-side"><div class="t8-side-inner">
     <div class="t8-avatar" style="background:${CORAL};border:3px solid ${CORAL}44;color:${WHITE}">${initial}</div>
     <h1 class="t8-side-name" style="color:${WHITE}">${escapeHtml(cv.name || "Your Name")}</h1>
     <p class="t8-side-title" style="color:${CORAL}">${escapeHtml(cv.title || "Job Title")}</p>
@@ -130,7 +130,7 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       <div class="t8-side-footer-line"></div>
       <div class="t8-side-footer-dots"></div>
     </div>
-  </aside>`;
+  </div></aside>`;
 
   let main = `<div class="t8-main" style="background:${LIGHT}">`;
 
@@ -192,12 +192,8 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
 
   main += `</div>`;
 
-  /* Main column is in-flow (last) so .t8-root height follows the right column; dark strip + aside are absolute. */
-  const inner = `<div class="t8-root">
-    <div class="t8-side-bg" aria-hidden="true"></div>
-    ${sidebar}
-    ${main}
-  </div>`;
+  /* Equal-height columns via display:table (reliable in print/Puppeteer). */
+  const inner = `<div class="t8-root">${sidebar}${main}</div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -217,39 +213,39 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       print-color-adjust: exact;
     }
     .t8-root {
-      position: relative;
-      width: 794px;
-      max-width: 100%;
+      display: table;
+      width: 100%;
+      max-width: 794px;
       margin: 0 auto;
+      border-collapse: collapse;
+      border-spacing: 0;
+      table-layout: fixed;
       border-radius: 10px;
       overflow: hidden;
       background: ${WHITE};
-    }
-    /* Fills full root height; height comes from in-flow .t8-main (Puppeteer PDF flex stretch was unreliable). */
-    .t8-side-bg {
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 32%;
-      z-index: 0;
-      background: ${DARK};
-      border-radius: 10px 0 0 10px;
+      min-height: 297mm;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     .t8-side {
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
+      display: table-cell;
       width: 32%;
-      z-index: 2;
-      padding: 24px 16px;
-      display: flex;
-      flex-direction: column;
+      vertical-align: top;
+      background: #2D2D2D;
+      border-radius: 10px 0 0 10px;
+      padding: 0;
       box-sizing: border-box;
       overflow: visible;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .t8-side-inner {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      height: 100%;
+      padding: 24px 16px;
+      box-sizing: border-box;
     }
     .t8-side-spacer {
       flex: 1 1 auto;
@@ -310,11 +306,9 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
     .t8-cert-block { font-size: 8.5px; color: #ccc; line-height: 1.4; }
     .t8-cert-line { margin-bottom: 4px; display: flex; align-items: flex-start; }
     .t8-main {
-      position: relative;
-      z-index: 1;
-      margin-left: 32%;
+      display: table-cell;
       width: 68%;
-      max-width: 68%;
+      vertical-align: top;
       min-width: 0;
       box-sizing: border-box;
       padding: 24px 20px;
