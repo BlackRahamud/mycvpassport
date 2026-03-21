@@ -1140,6 +1140,11 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   el.style.marginBottom = "0";
   await new Promise((r) => setTimeout(r, 300));
 
+  const fullHeight = el.scrollHeight;
+  el.style.height = fullHeight + "px";
+  const prevOverflow = el.style.overflow;
+  el.style.overflow = "visible";
+
   let canvas;
   try {
     canvas = await html2canvas(el, {
@@ -1148,6 +1153,9 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
       allowTaint: true,
       backgroundColor: "#ffffff",
       logging: false,
+      height: fullHeight,
+      windowWidth: 794,
+      windowHeight: fullHeight,
     });
   } finally {
     el.style.transform = prevTransform;
@@ -1155,6 +1163,7 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
     el.style.width = prevWidth;
     el.style.height = prevHeight;
     el.style.marginBottom = prevMarginBottom;
+    el.style.overflow = prevOverflow;
   }
 
   const pageWidth = 210;
