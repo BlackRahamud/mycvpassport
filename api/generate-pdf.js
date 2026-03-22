@@ -3,7 +3,7 @@
  * POST { templateId, cv } — supported: 1–10, 11, 12, 13.
  */
 
-const chromium = require("@sparticuz/chromium");
+const chromium = require("@sparticuz/chromium-min");
 const puppeteer = require("puppeteer-core");
 const { buildBannerTemplate1Html } = require("../src/serverLib/bannerTemplate1Html");
 const { buildTwocolTemplate2Html } = require("../src/serverLib/twocolTemplate2Html");
@@ -89,8 +89,9 @@ module.exports = async (req, res) => {
                               ? buildFinanceTemplate13Html(cv)
                               : buildBannerTemplate1Html(cv);
 
-    const executablePath = await chromium.executablePath();
-    process.env.LD_LIBRARY_PATH = require("path").dirname(executablePath);
+    const executablePath = await chromium.executablePath(
+      "https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar"
+    );
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
