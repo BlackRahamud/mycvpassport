@@ -935,7 +935,20 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         paddingTop: isMobile ? 200 : 0,
       }}
     >
-      <WalkInCvPreview data={formData} />
+      {isMobile ? (
+        <div
+          style={{
+            transform: "scale(0.45)",
+            transformOrigin: "top center",
+            width: "222%",
+            marginBottom: "-55%",
+          }}
+        >
+          <WalkInCvPreview data={formData} />
+        </div>
+      ) : (
+        <WalkInCvPreview data={formData} />
+      )}
     </div>
   );
 
