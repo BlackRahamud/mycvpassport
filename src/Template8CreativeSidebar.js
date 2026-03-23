@@ -17,7 +17,7 @@ import {
   pdfSplitText,
 } from "./pdfA4Layout";
 
-export function PreviewCreativeSidebar({ cv, t }) {
+export function PreviewCreativeSidebar({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
     : [];
@@ -62,10 +62,12 @@ export function PreviewCreativeSidebar({ cv, t }) {
       fontFamily: "Arial, sans-serif", color: charco,
       fontSize: "10px", display: "flex", minHeight: "500px",
       alignItems: "stretch",
+      width: mobileMode ? "100%" : undefined,
+      flexDirection: mobileMode ? "column" : "row",
     }}>
       {/* ── Left Sidebar ── */}
       <div style={{
-        width: sideW, background: dark, padding: "24px 16px",
+        width: mobileMode ? "100%" : sideW, background: dark, padding: "24px 16px",
         display: "flex", flexDirection: "column",
         alignSelf: "stretch",
       }}>

@@ -16,7 +16,7 @@ import {
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
 
-export function PreviewATSInternational({ cv, t }) {
+export function PreviewATSInternational({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
     : [];
@@ -57,6 +57,7 @@ export function PreviewATSInternational({ cv, t }) {
       background: "#ffffff", borderRadius: "10px", overflow: "hidden",
       fontFamily: "Arial, sans-serif", color: dark, fontSize: "10.5px",
       padding: "28px 32px",
+      width: mobileMode ? "100%" : undefined,
     }}>
 
       {/* ── Header ── */}

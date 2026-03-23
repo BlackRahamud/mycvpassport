@@ -15,7 +15,7 @@ import {
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
 
-export function PreviewCompactPro({ cv, t }) {
+export function PreviewCompactPro({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
     : [];
@@ -51,10 +51,11 @@ export function PreviewCompactPro({ cv, t }) {
     <div style={{
       background: white, borderRadius: "10px", overflow: "hidden",
       fontFamily: "Arial, sans-serif", color: mid, fontSize: "10px",
+      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Header — split layout ── */}
       <div style={{ background: dark, padding: "20px 24px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", flexDirection: mobileMode ? "column" : "row" }}>
           {/* Left: name + title */}
           <div>
             <h1 style={{

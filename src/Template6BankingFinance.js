@@ -15,7 +15,7 @@ import {
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
 
-export function PreviewBankingFinance({ cv, t }) {
+export function PreviewBankingFinance({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
     : [];
@@ -51,6 +51,7 @@ export function PreviewBankingFinance({ cv, t }) {
     <div style={{
       background: bg, borderRadius: "10px", overflow: "hidden",
       fontFamily: "'Times New Roman', serif", color: dark, fontSize: "11px",
+      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Header — centered, formal ── */}
       <div style={{ padding: "28px 32px 16px", textAlign: "center", borderBottom: `3px double ${black}` }}>

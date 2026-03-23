@@ -16,7 +16,7 @@ import {
   pdfSplitText,
 } from "./pdfA4Layout";
 
-export function PreviewHospitality({ cv, t }) {
+export function PreviewHospitality({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
     : [];
@@ -54,6 +54,7 @@ export function PreviewHospitality({ cv, t }) {
     <div style={{
       background: cream, borderRadius: "10px", overflow: "hidden",
       fontFamily: "'Georgia', serif", color: mid, fontSize: "11px",
+      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Elegant Header ── */}
       <div style={{

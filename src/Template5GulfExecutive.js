@@ -16,7 +16,7 @@ import {
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
 
-export function PreviewGulfExecutive({ cv, t }) {
+export function PreviewGulfExecutive({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
     : [];
@@ -78,6 +78,7 @@ export function PreviewGulfExecutive({ cv, t }) {
     <div style={{
       background: "#fff", borderRadius: "10px", overflow: "hidden",
       fontFamily: "'Georgia', serif", color: body, fontSize: "11px",
+      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Header ── */}
       <div style={{ background: navy, padding: "26px 28px 20px", position: "relative", overflow: "hidden" }}>

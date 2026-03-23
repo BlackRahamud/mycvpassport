@@ -893,11 +893,11 @@ function PreviewSidebar({ cv, t, mobileMode = false }) {
 }
 
 // ─── PREVIEW: TIMELINE LAYOUT ─────────────────────────────────────
-function PreviewTimeline({ cv, t }) {
+function PreviewTimeline({ cv, t, mobileMode = false }) {
   const skillList = cv.skills ? cv.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
   const certList  = cv.certifications ? cv.certifications.split(",").map(s => s.trim()).filter(Boolean) : [];
   return (
-    <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", fontFamily: "Georgia,serif", color: "#222", fontSize: "11px" }}>
+    <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", fontFamily: "Georgia,serif", color: "#222", fontSize: "11px", width: mobileMode ? "100%" : undefined }}>
       {/* Header */}
       <div style={{ padding: "24px 28px 16px", borderBottom: `3px solid ${t.accent}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -962,7 +962,7 @@ function PreviewTimeline({ cv, t }) {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: mobileMode ? "1fr" : "1fr 1fr", gap: "16px" }}>
           <div>
             {cv.education.some(e => e.school) && (
               <div style={{ marginBottom: "12px" }}>
@@ -1020,14 +1020,14 @@ function ResumePreview({ cv, template, mobileMode = false }) {
   const cvT = cvWithTemplateCertifications(cv);
   if (t.layout === "twocol")      return <PreviewTwoCol          cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "sidebar")     return <PreviewSidebar         cv={cvT} t={t} mobileMode={mobileMode} />;
-  if (t.layout === "timeline")    return <PreviewTimeline        cv={cvT} t={t} />;
-  if (t.layout === "gulf-exec")   return <PreviewGulfExecutive   cv={cvT} t={t} />;
-  if (t.layout === "banking")     return <PreviewBankingFinance  cv={cvT} t={t} />;
-  if (t.layout === "compact-pro") return <PreviewCompactPro      cv={cvT} t={t} />;
-  if (t.layout === "creative")    return <PreviewCreativeSidebar cv={cvT} t={t} />;
-  if (t.layout === "hospitality") return <PreviewHospitality     cv={cvT} t={t} />;
-  if (t.layout === "ats-intl")    return <PreviewATSInternational cv={cvT} t={t} />;
-  if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cvT} t={t} />;
+  if (t.layout === "timeline")    return <PreviewTimeline        cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "gulf-exec")   return <PreviewGulfExecutive   cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "banking")     return <PreviewBankingFinance  cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "compact-pro") return <PreviewCompactPro      cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "creative")    return <PreviewCreativeSidebar cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "hospitality") return <PreviewHospitality     cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "ats-intl")    return <PreviewATSInternational cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "classic")     return <PreviewClassic         cv={cvT} />;
   if (t.layout === "finance")     return <PreviewFinance         cv={cvT} />;
   return <PreviewBanner cv={cvT} t={t} mobileMode={mobileMode} />;
@@ -2261,7 +2261,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          ["banner", "twocol", "sidebar"].includes(selectedTemplate?.layout) ? (
+          ["banner", "twocol", "sidebar", "timeline", "gulf-exec", "banking", "compact-pro", "creative", "hospitality", "ats-intl", "tech-it"].includes(selectedTemplate?.layout) ? (
             <div
               ref={mobilePreviewScrollRef}
               style={{

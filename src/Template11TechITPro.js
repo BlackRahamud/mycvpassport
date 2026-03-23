@@ -18,7 +18,7 @@ import {
   pdfSplitText,
 } from "./pdfA4Layout";
 
-export function PreviewTechITPro({ cv, t }) {
+export function PreviewTechITPro({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
     ? cv.skills.split(",").map(s => s.trim()).filter(Boolean)
     : [];
@@ -64,9 +64,10 @@ export function PreviewTechITPro({ cv, t }) {
     <div style={{
       background: white, borderRadius: "10px", overflow: "hidden",
       fontFamily: "Arial, sans-serif", display: "grid",
-      gridTemplateColumns: `${sideW} minmax(0, 1fr)`,
+      gridTemplateColumns: mobileMode ? "1fr" : `${sideW} minmax(0, 1fr)`,
       alignItems: "stretch",
       minHeight: "100%",
+      width: mobileMode ? "100%" : undefined,
     }}>
 
       {/* ── Left Sidebar (stretches to full row height) ── */}
