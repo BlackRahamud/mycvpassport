@@ -1,10 +1,9 @@
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Briefcase, CheckCircle2, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-export function CVPlayCard() {
+function CVPlayCard() {
   const [isHovered, setIsHovered] = useState(false);
-  const [_activeSkill, setActiveSkill] = useState(null);
 
   const skills = [
     { name: "Banking", color: "bg-white text-black" },
@@ -181,8 +180,6 @@ export function CVPlayCard() {
                 transition={{ delay: 1 + index * 0.1, type: "spring", stiffness: 200 }}
                 whileHover={{ scale: 1.1, borderColor: "rgba(255, 255, 255, 0.3)" }}
                 whileTap={{ scale: 0.95 }}
-                onHoverStart={() => setActiveSkill(skill.name)}
-                onHoverEnd={() => setActiveSkill(null)}
               >
                 {skill.name}
               </motion.button>
