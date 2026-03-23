@@ -848,25 +848,28 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             }}
           >
             <div style={{ position: 'relative', overflow: 'visible' }}>
-              {/* Glow halo */}
-              <div style={{
-                position:     'absolute',
-                width:        '400px',
-                height:       '400px',
-                borderRadius: '50%',
-                background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
-                pointerEvents:'none',
-              }} />
-              <GlobeComponent />
+              {/* Globe only (sibling to card — avoids clipping the card inside globe visuals) */}
+              <div style={{ position: 'relative', display: 'inline-block', overflow: 'visible' }}>
+                {/* Glow halo */}
+                <div style={{
+                  position:     'absolute',
+                  width:        '400px',
+                  height:       '400px',
+                  borderRadius: '50%',
+                  background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+                  pointerEvents:'none',
+                }} />
+                <GlobeComponent />
+              </div>
               <div
                 className="hidden md:block"
                 style={{
-                  position:       'absolute',
-                  right:          '-60px',
-                  top:            '50%',
-                  transform:      'translateY(-50%)',
-                  zIndex:         10,
-                  pointerEvents:  'none',
+                  position:      'absolute',
+                  right:         '-80px',
+                  top:           '50%',
+                  transform:     'translateY(-50%)',
+                  zIndex:        10,
+                  pointerEvents: 'none',
                 }}
               >
                 <CVPlayCard />
