@@ -256,7 +256,8 @@ function buildTwocolTemplate2Html(rawCv) {
       border-radius: 10px;
       overflow: hidden;
       display: flex;
-      align-items: flex-start;
+      align-items: stretch;
+      min-height: 500px;
     }
     .t2-sidebar {
       width: 34%;
