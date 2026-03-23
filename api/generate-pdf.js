@@ -102,14 +102,30 @@ module.exports = async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    let pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-      /* T8/T11: avoid default white page fill covering pdf-lib sidebar stripe. */
-      ...(tid === 8 || tid === 11 ? { omitBackground: true } : {}),
-    });
+    const pdfOptions =
+      tid === 1
+        ? {
+            width: "794px",
+            height: `${Math.ceil(
+              await page.evaluate(() => {
+                const root = document.querySelector(".cvp-root");
+                const h = root ? root.scrollHeight : document.body.scrollHeight;
+                return h;
+              }),
+            )}px`,
+            printBackground: true,
+            margin: { top: "0", right: "0", bottom: "0", left: "0" },
+          }
+        : {
+            format: "A4",
+            printBackground: true,
+            preferCSSPageSize: true,
+            margin: { top: "0", right: "0", bottom: "0", left: "0" },
+            /* T8/T11: avoid default white page fill covering pdf-lib sidebar stripe. */
+            ...(tid === 8 || tid === 11 ? { omitBackground: true } : {}),
+          };
+
+    let pdfBuffer = await page.pdf(pdfOptions);
 
     await browser.close();
     browser = null;
