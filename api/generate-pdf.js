@@ -100,6 +100,13 @@ module.exports = async (req, res) => {
     });
 
     const page = await browser.newPage();
+    if (tid === 2 || tid === 3) {
+      await page.setViewport({
+        width: 794,
+        height: 2000,
+        deviceScaleFactor: 1,
+      });
+    }
     await page.setContent(html, { waitUntil: "networkidle0" });
 
     const dynamicHeightSelector =
@@ -108,7 +115,13 @@ module.exports = async (req, res) => {
     const pdfOptions =
       dynamicHeightSelector
         ? {
-            width: "794px",
+            width: `${Math.ceil(
+              await page.evaluate((selector) => {
+                const root = document.querySelector(selector);
+                const w = root ? root.scrollWidth : document.body.scrollWidth;
+                return w;
+              }, dynamicHeightSelector),
+            )}px`,
             height: `${Math.ceil(
               await page.evaluate((selector) => {
                 const root = document.querySelector(selector);

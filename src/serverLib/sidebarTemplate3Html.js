@@ -220,7 +220,7 @@ function buildSidebarTemplate3Html(rawCv) {
       border-radius: 10px;
       overflow: hidden;
       display: flex;
-      align-items: stretch;
+      align-items: flex-start;
     }
     .t3-sidebar {
       width: 28%;
