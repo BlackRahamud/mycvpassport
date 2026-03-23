@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ReactComponent as FalconLogo } from './logo.svg';
+import CVPlayCard from './components/CVPlayCard';
 
 // ── Globe helpers — kept identical to LandingGlobe.jsx ─────────────
 function project(lat, lon) {
@@ -222,76 +223,6 @@ function GlobeComponent() {
       <circle cx="190" cy="190" r="168" fill="none" stroke="#252525" strokeWidth="1.5" />
       <circle cx="190" cy="190" r="166" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
     </svg>
-  );
-}
-
-function AnimatedCVCard() {
-  const [visibleLines, setVisibleLines] = React.useState(0);
-
-  React.useEffect(() => {
-    let current = 0;
-    const interval = setInterval(() => {
-      current += 1;
-      setVisibleLines(current);
-      if (current >= 12) {
-        setTimeout(() => { setVisibleLines(0); current = 0; }, 2500);
-      }
-    }, 180);
-    return () => clearInterval(interval);
-  }, []);
-
-  const lines = [
-    { w: '70%', opacity: 1,   dark: true  },
-    { w: '45%', opacity: 0.6, dark: false },
-    { w: '30%', opacity: 0.4, dark: false },
-    { w: '100%',opacity: 0,   dark: false, divider: true },
-    { w: '40%', opacity: 0.5, dark: true  },
-    { w: '90%', opacity: 0.3, dark: false },
-    { w: '75%', opacity: 0.3, dark: false },
-    { w: '60%', opacity: 0.3, dark: false },
-    { w: '100%',opacity: 0,   dark: false, divider: true },
-    { w: '40%', opacity: 0.5, dark: true  },
-    { w: '80%', opacity: 0.3, dark: false },
-    { w: '55%', opacity: 0.3, dark: false },
-  ];
-
-  return (
-    <div style={{
-      background: 'rgba(20,20,20,0.95)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: '16px',
-      padding: '20px',
-      position: 'relative',
-      overflow: 'hidden',
-      backdropFilter: 'blur(12px)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg,#ea580c,#c2410c)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: '#fff', flexShrink: 0 }}>A</div>
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: '600', opacity: visibleLines >= 1 ? 1 : 0, color: '#fff', transition: 'opacity 0.4s ease' }}>Ahmed Al Mansouri</div>
-          <div style={{ fontSize: '11px', opacity: visibleLines >= 2 ? 0.5 : 0, color: '#fff', transition: 'opacity 0.4s ease', marginTop: '2px' }}>Sales Executive · Dubai, UAE</div>
-        </div>
-      </div>
-      {lines.map((line, i) =>
-        line.divider ? (
-          <div key={i} style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '10px 0', opacity: visibleLines > i ? 1 : 0, transition: 'opacity 0.3s ease' }} />
-        ) : (
-          <div key={i} style={{ height: '7px', borderRadius: '4px', background: line.dark ? 'rgba(234,88,12,0.4)' : 'rgba(255,255,255,0.08)', width: line.w, marginBottom: '7px', opacity: visibleLines > i ? (line.opacity || 0.3) : 0, transition: 'opacity 0.4s ease' }} />
-        )
-      )}
-      {visibleLines >= 12 && (
-        <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.25)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#25d366' }}>
-          <WhatsAppIcon size={14} />
-          Share on WhatsApp — ready in 60 sec
-        </div>
-      )}
-      {visibleLines < 12 && (
-        <div style={{ position: 'absolute', bottom: '14px', right: '14px', fontSize: '10px', opacity: 0.4, display: 'flex', alignItems: 'center', gap: '5px', color: '#fff' }}>
-          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ea580c' }} />
-          Building...
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -926,9 +857,8 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               pointerEvents:'none',
             }} />
             <GlobeComponent />
-            {/* Floating CV card — inset so it stays inside viewport on desktop */}
-            <div style={{ position: 'absolute', top: '10px', right: '0', width: '210px', zIndex: 2 }}>
-              <AnimatedCVCard />
+            <div className="hidden md:block" style={{ position: 'absolute', top: '10px', right: '0', zIndex: 2, transform: 'scale(0.75)', transformOrigin: 'top right', pointerEvents: 'none' }}>
+              <CVPlayCard />
             </div>
           </div>
         </section>
