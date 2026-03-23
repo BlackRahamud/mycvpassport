@@ -4,7 +4,7 @@ import { useState } from "react";
 
 export function CVPlayCard() {
   const [isHovered, setIsHovered] = useState(false);
-  const [activeSkill, setActiveSkill] = useState(null);
+  const [_activeSkill, setActiveSkill] = useState(null);
 
   const skills = [
     { name: "Banking", color: "bg-white text-black" },
