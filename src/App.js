@@ -482,12 +482,24 @@ function RightLabel({ accent, children }) {
 }
 
 // ─── PREVIEW: BANNER LAYOUT ───────────────────────────────────────
-function PreviewBanner({ cv, t }) {
+function PreviewBanner({ cv, t, mobileMode = false }) {
   const skillList = cv.skills ? cv.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
   const techList  = cv.technicalSkills ? cv.technicalSkills.split(",").map(s => s.trim()).filter(Boolean) : [];
   const certList  = cv.certifications ? cv.certifications.split(",").map(s => s.trim()).filter(Boolean) : [];
   return (
-    <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", fontFamily: "Georgia,serif", color: "#222", fontSize: "12px" }}>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "10px",
+        overflow: "hidden",
+        fontFamily: "Georgia,serif",
+        color: "#222",
+        fontSize: "12px",
+        width: mobileMode ? "100%" : undefined,
+        maxWidth: mobileMode ? "100%" : undefined,
+        transform: "none",
+      }}
+    >
       {/* Header */}
       <div style={{ background: t.color, borderBottom: `5px solid ${t.accent}`, padding: "24px 28px 18px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: "900", color: "#fff", margin: "0 0 3px" }}>{cv.name || "Your Name"}</h1>
@@ -966,7 +978,7 @@ function PreviewTimeline({ cv, t }) {
   );
 }
 
-function ResumePreview({ cv, template }) {
+function ResumePreview({ cv, template, mobileMode = false }) {
   const t = template || TEMPLATES[0];
   const cvT = cvWithTemplateCertifications(cv);
   if (t.layout === "twocol")      return <PreviewTwoCol          cv={cvT} t={t} />;
@@ -981,7 +993,7 @@ function ResumePreview({ cv, template }) {
   if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cvT} t={t} />;
   if (t.layout === "classic")     return <PreviewClassic         cv={cvT} />;
   if (t.layout === "finance")     return <PreviewFinance         cv={cvT} />;
-  return <PreviewBanner cv={cvT} t={t} />;
+  return <PreviewBanner cv={cvT} t={t} mobileMode={mobileMode} />;
 }
 
 /** A4 page at 96dpi — matches dynamic scale math (containerWidth / 794) */
@@ -2212,28 +2224,47 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          <div
-            ref={mobilePreviewScrollRef}
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              overflowX: "hidden",
-              background: "#111111",
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "center",
-              padding: "16px 0",
-            }}
-          >
-            <BuilderA4PreviewScaled
-              cv={resume}
-              template={selectedTemplate}
-              scale={mobilePreviewScale}
-              fitRef={mobilePreviewFitRef}
-              padded
-              previewCardRef={mobileCvPreviewRef}
-            />
-          </div>
+          selectedTemplate?.layout === "banner" ? (
+            <div
+              ref={mobilePreviewScrollRef}
+              style={{
+                flex: 1,
+                width: "100%",
+                overflowY: "auto",
+                overflowX: "hidden",
+                background: "#111111",
+                padding: "16px 16px 160px",
+                boxSizing: "border-box",
+              }}
+            >
+              <div ref={mobileCvPreviewRef} className="cvp-builder-a4-fit" style={{ width: "100%" }}>
+                <ResumePreview cv={resume} template={selectedTemplate} mobileMode />
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={mobilePreviewScrollRef}
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                overflowX: "hidden",
+                background: "#111111",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "center",
+                padding: "16px 0",
+              }}
+            >
+              <BuilderA4PreviewScaled
+                cv={resume}
+                template={selectedTemplate}
+                scale={mobilePreviewScale}
+                fitRef={mobilePreviewFitRef}
+                padded
+                previewCardRef={mobileCvPreviewRef}
+              />
+            </div>
+          )
         )}
         <div className="cvp-builder-bottom-bar">
           <div className="cvp-builder-toggle-pill">
