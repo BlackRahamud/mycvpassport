@@ -833,7 +833,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             </div>
           </div>
 
-          {/* Right — globe, hidden on mobile */}
+          {/* Right — globe + CV card (siblings in relative wrapper; card outside globe SVG to avoid clipping) */}
           <div
             className="lp-hero-right"
             style={{
@@ -847,18 +847,30 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               boxSizing:      'border-box',
             }}
           >
-            {/* Glow halo */}
-            <div style={{
-              position:     'absolute',
-              width:        '400px',
-              height:       '400px',
-              borderRadius: '50%',
-              background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
-              pointerEvents:'none',
-            }} />
-            <GlobeComponent />
-            <div className="hidden md:block" style={{ position: 'absolute', top: '10px', right: '0', zIndex: 2, transform: 'scale(0.75)', transformOrigin: 'top right', pointerEvents: 'none' }}>
-              <CVPlayCard />
+            <div style={{ position: 'relative', overflow: 'visible' }}>
+              {/* Glow halo */}
+              <div style={{
+                position:     'absolute',
+                width:        '400px',
+                height:       '400px',
+                borderRadius: '50%',
+                background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+                pointerEvents:'none',
+              }} />
+              <GlobeComponent />
+              <div
+                className="hidden md:block"
+                style={{
+                  position:       'absolute',
+                  right:          '-60px',
+                  top:            '50%',
+                  transform:      'translateY(-50%)',
+                  zIndex:         10,
+                  pointerEvents:  'none',
+                }}
+              >
+                <CVPlayCard />
+              </div>
             </div>
           </div>
         </section>
