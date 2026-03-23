@@ -833,13 +833,13 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             </div>
           </div>
 
-          {/* Right — globe + CV card (siblings in relative wrapper; card outside globe SVG to avoid clipping) */}
+          {/* Right — CV card left of globe, side-by-side with gap (no overlap) */}
           <div
             className="lp-hero-right"
             style={{
               flex:           '0 0 auto',
               display:        'flex',
-              justifyContent: 'center',
+              justifyContent: 'flex-end',
               alignItems:     'center',
               position:       'relative',
               overflow:       'visible',
@@ -847,9 +847,20 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               boxSizing:      'border-box',
             }}
           >
-            <div style={{ position: 'relative', overflow: 'visible' }}>
-              {/* Globe only (sibling to card — avoids clipping the card inside globe visuals) */}
-              <div style={{ position: 'relative', display: 'inline-block', overflow: 'visible' }}>
+            <div
+              style={{
+                display:        'flex',
+                flexDirection:  'row',
+                alignItems:     'center',
+                justifyContent: 'flex-end',
+                gap:            '48px',
+                flexWrap:       'nowrap',
+              }}
+            >
+              <div className="hidden md:block" style={{ flexShrink: 0, pointerEvents: 'none' }}>
+                <CVPlayCard />
+              </div>
+              <div style={{ position: 'relative', display: 'inline-block', overflow: 'visible', flexShrink: 0 }}>
                 {/* Glow halo */}
                 <div style={{
                   position:     'absolute',
@@ -860,19 +871,6 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
                   pointerEvents:'none',
                 }} />
                 <GlobeComponent />
-              </div>
-              <div
-                className="hidden md:block"
-                style={{
-                  position:      'absolute',
-                  right:         '-80px',
-                  top:           '50%',
-                  transform:     'translateY(-50%)',
-                  zIndex:        10,
-                  pointerEvents: 'none',
-                }}
-              >
-                <CVPlayCard />
               </div>
             </div>
           </div>
