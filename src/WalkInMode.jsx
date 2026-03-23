@@ -125,15 +125,6 @@ function getSkillsForJob(jobLabel) {
   return DEFAULT_SKILLS;
 }
 
-function languageBarPercent(name) {
-  const n = (name || "").trim().toLowerCase();
-  if (n === "english") return 80;
-  if (n === "arabic") return 40;
-  if (["hindi", "urdu", "tamil", "malayalam", "tagalog"].includes(n)) return 100;
-  if (n === "bengali") return 95;
-  return 90;
-}
-
 function experiencePhrase(exp) {
   switch (exp) {
     case "Fresher":
@@ -275,37 +266,21 @@ function Chip({ label, selected, onClick }) {
 
 function SectionHeading({ children }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-      <span style={{ width: 16, height: 1.5, background: "#1A2A1A", display: "inline-block", flexShrink: 0 }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+      <span style={{ width: 20, height: 1, background: "#bbb", display: "inline-block", flexShrink: 0 }} />
       <span
         style={{
           fontSize: 8,
-          fontWeight: 700,
-          letterSpacing: 2,
+          fontWeight: 500,
+          letterSpacing: 2.5,
           textTransform: "uppercase",
-          color: "#AAA",
-          fontFamily: FONT,
+          color: "#999",
+          fontFamily: "Arial, Helvetica, sans-serif",
         }}
       >
         {children}
       </span>
     </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true" style={{ display: "block" }}>
-      <circle cx="12" cy="12" r="11" fill="#111" />
-      <path
-        d="M7 12l3 3 7-7"
-        fill="none"
-        stroke="#fff"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 
@@ -315,7 +290,7 @@ function WalkInCvPreview({ data }) {
   const availPhrase = availabilityPhrase(data.availability);
   const profileText = `Experienced ${displayJob} with ${expPhrase} of hands-on experience in UAE. ${data.visaStatus || ""} Visa holder. ${availPhrase} for new opportunities in ${data.location || "the UAE"}.`;
 
-  const langs = useMemo(() => {
+  const languagesText = useMemo(() => {
     const base = [...(data.languages || [])];
     if (data.languageCustom) {
       data.languageCustom.split(",").forEach((p) => {
@@ -323,7 +298,8 @@ function WalkInCvPreview({ data }) {
         if (t) base.push(t);
       });
     }
-    return [...new Set(base)];
+    const unique = [...new Set(base)];
+    return unique.length ? unique.join(", ") : "English";
   }, [data.languages, data.languageCustom]);
 
   const skillPills = useMemo(() => {
@@ -343,111 +319,93 @@ function WalkInCvPreview({ data }) {
         margin: "0 auto",
         background: "#fff",
         color: "#111",
-        fontFamily: FONT,
+        fontFamily: "Arial, Helvetica, sans-serif",
         boxSizing: "border-box",
         overflow: "hidden",
         borderRadius: 8,
         border: "1px solid #E8E8E8",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 1123,
       }}
     >
-      {/* Header */}
-      <div style={{ position: "relative", background: "#0D1117", color: "#fff", padding: "16px 16px 12px 20px" }}>
-        <div
+      <div style={{ background: "#0d0d0d", color: "#fff", padding: "36px 48px 30px" }}>
+        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>{data.fullName || "Your name"}</div>
+        <div style={{ marginTop: 8, fontSize: 10, color: "#888", letterSpacing: 3, textTransform: "uppercase", fontWeight: 500 }}>
+          {displayJob}
+        </div>
+        <span
           style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 3,
-            background: TOKENS.greenBadge,
+            marginTop: 14,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            padding: "6px 12px",
+            borderRadius: 20,
+            border: "1px solid #2d4a2d",
+            background: "#1a2e1a",
+            fontSize: 9,
+            color: "#4ade80",
+            fontWeight: 500,
           }}
-        />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, paddingLeft: 8 }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.4, color: "#fff" }}>
-              {data.fullName || "Your name"}
-            </div>
-            <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 1.5, color: "#888", marginTop: 4 }}>
-              {displayJob}
-            </div>
-          </div>
-          <div style={{ textAlign: "right", fontSize: 9, color: "#444", lineHeight: 1.6 }}>
-            <div>{data.phone || "—"}</div>
-            <div>{data.email || "—"}</div>
-            <div>{data.location || "—"}</div>
-            <div>{data.nationality || "—"}</div>
-          </div>
-        </div>
-        <div style={{ borderTop: "1px solid #1A2A1A", marginTop: 12, paddingTop: 10 }} />
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 8 }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              background: "#052E16",
-              color: TOKENS.greenBadge,
-              border: "1px solid #166834",
-              borderRadius: 8,
-              padding: "4px 8px",
-              fontSize: 9,
-              fontWeight: 500,
-            }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: TOKENS.greenBadge }} />
-            {data.availability || "Availability"}
-          </span>
-          {[data.visaStatus, data.drivingLicence, data.experience].map(
-            (t, i) =>
-              t && (
-                <span
-                  key={i}
-                  style={{
-                    background: "#161616",
-                    color: "#888",
-                    border: "1px solid #222",
-                    borderRadius: 8,
-                    padding: "4px 8px",
-                    fontSize: 9,
-                    fontWeight: 500,
-                  }}
-                >
-                  {i === 0 ? `Visa: ${t}` : i === 1 ? `Licence: ${t}` : `Experience: ${t}`}
-                </span>
-              ),
-          )}
-        </div>
+        >
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80" }} />
+          Available Immediately · Visa Holder · UAE
+        </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", minHeight: 280 }}>
-        <div style={{ padding: "14px 16px 14px 20px" }}>
-          <SectionHeading>Profile</SectionHeading>
-          <p style={{ fontSize: 9.5, color: "#555", lineHeight: 1.65, margin: "0 0 14px" }}>{profileText}</p>
+      <div style={{ padding: "26px 48px 0", flex: "1 1 auto" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 32, paddingBottom: 14, borderBottom: "1px solid #ebebeb", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 7.5, color: "#999", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Phone</div>
+            <div style={{ fontSize: 10, color: "#222", fontWeight: 600 }}>{data.phone || "—"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 7.5, color: "#999", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Email</div>
+            <div style={{ fontSize: 10, color: "#222", fontWeight: 600 }}>{data.email || "—"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 7.5, color: "#999", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Location</div>
+            <div style={{ fontSize: 10, color: "#222", fontWeight: 600 }}>{data.location || "UAE"}</div>
+          </div>
+        </div>
 
+        <div style={{ marginBottom: 20 }}>
+          <SectionHeading>Profile</SectionHeading>
+          <p style={{ fontSize: 10, color: "#333", lineHeight: 1.8, margin: 0 }}>{profileText}</p>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
           <SectionHeading>Experience</SectionHeading>
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: 9.5, color: "#111" }}>{displayJob}</div>
-            <div style={{ fontSize: 8.5, color: "#AAA" }}>
-              {data.location || "UAE"} · {data.experience || "—"}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 11, color: "#111" }}>{displayJob}</div>
+              <div style={{ fontSize: 9, color: "#999", textAlign: "right" }}>{data.experience || "Current"}</div>
             </div>
-            {lines.map((line, idx) => (
-              <p key={idx} style={{ fontSize: 9.5, color: "#555", margin: "6px 0 0", lineHeight: 1.5 }}>
-                {line}
+            <div style={{ fontSize: 9.5, color: "#777", marginTop: 3 }}>
+              Various employers — {data.location || "UAE"}
+            </div>
+            {lines.slice(0, 2).map((line, idx) => (
+              <p key={idx} style={{ fontSize: 10, color: "#444", margin: "8px 0 0", lineHeight: 1.8 }}>
+                · {line}
               </p>
             ))}
           </div>
+        </div>
 
+        <div style={{ marginBottom: 20 }}>
           <SectionHeading>Skills</SectionHeading>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
             {skillPills.map((s) => (
               <span
                 key={s}
                 style={{
-                  background: "#0D1117",
+                  background: "#111",
                   color: "#fff",
                   borderRadius: 20,
-                  fontSize: 8.5,
-                  padding: "2px 9px",
+                  fontSize: 9,
+                  padding: "6px 0",
+                  textAlign: "center",
                   fontWeight: 500,
                 }}
               >
@@ -455,74 +413,55 @@ function WalkInCvPreview({ data }) {
               </span>
             ))}
           </div>
-
-          {data.references ? (
-            <>
-              <SectionHeading>References</SectionHeading>
-              <p style={{ fontSize: 9, color: "#555", fontStyle: "italic", margin: 0 }}>{data.references}</p>
-            </>
-          ) : null}
         </div>
 
-        <div
-          style={{
-            background: "#FAFAFA",
-            borderLeft: "0.5px solid #F0F0F0",
-            padding: "14px 12px",
-            fontSize: 8.5,
-            color: "#555",
-          }}
-        >
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "#888", marginBottom: 8 }}>Languages</div>
-          {langs.length === 0 ? (
-            <div style={{ color: "#AAA" }}>—</div>
-          ) : (
-            langs.map((lang) => (
-              <div key={lang} style={{ marginBottom: 10 }}>
-                <div style={{ marginBottom: 4 }}>{lang}</div>
-                <div style={{ height: 2.5, background: "#EBEBEB", borderRadius: 2, overflow: "hidden" }}>
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${languageBarPercent(lang)}%`,
-                      background: "#1A2A1A",
-                      borderRadius: 2,
-                    }}
-                  />
-                </div>
-              </div>
-            ))
-          )}
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "#888", margin: "16px 0 8px" }}>
-            Key details
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[data.drivingLicence, data.visaStatus, data.nationality, data.availability].map(
-              (item, idx) =>
-                item && (
-                  <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                    <CheckIcon />
-                    <span>{item}</span>
-                  </div>
-                ),
-            )}
+        <div style={{ marginBottom: 20 }}>
+          <SectionHeading>Key details</SectionHeading>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 40, rowGap: 16 }}>
+            <div>
+              <div style={{ fontSize: 7.5, color: "#999", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Nationality</div>
+              <div style={{ fontSize: 10.5, color: "#111", fontWeight: 600 }}>{data.nationality || "—"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 7.5, color: "#999", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Languages</div>
+              <div style={{ fontSize: 10.5, color: "#111", fontWeight: 600 }}>{languagesText}</div>
+            </div>
+            <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #f0f0f0", height: 0 }} />
+            <div>
+              <div style={{ fontSize: 7.5, color: "#999", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Visa status</div>
+              <div style={{ fontSize: 10.5, color: "#111", fontWeight: 600 }}>{data.visaStatus || "—"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 7.5, color: "#999", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Notice period</div>
+              <div style={{ fontSize: 10.5, color: "#111", fontWeight: 600 }}>{data.availability || "Immediate"}</div>
+            </div>
           </div>
         </div>
       </div>
 
       <div
         style={{
-          background: "#F5F5F3",
-          borderTop: "0.5px solid #EBEBEB",
-          padding: "10px 16px",
+          marginTop: "auto",
+          background: "#fff",
+          borderTop: "1px solid #ebebeb",
+          padding: "12px 48px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          fontSize: 7.5,
+          gap: 12,
         }}
       >
-        <span style={{ color: "#BBB" }}>Walk-In Express · mycvpassport.com</span>
-        <span style={{ color: "#CCC", textTransform: "uppercase", letterSpacing: 0.5 }}>CVPassport</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span style={{ color: "#555", fontSize: 9, fontWeight: 500 }}>Created with CVPassport</span>
+          <span style={{ color: "#555", fontSize: 9, fontWeight: 500 }}>mycvpassport.com</span>
+        </div>
+        <img
+          src="https://chart.googleapis.com/chart?chs=60x60&cht=qr&chl=https://mycvpassport.com"
+          alt="QR to mycvpassport.com"
+          width={60}
+          height={60}
+          style={{ display: "block", border: "none" }}
+        />
       </div>
     </div>
   );
@@ -701,7 +640,7 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         border: `1px solid ${TOKENS.borderDefault}`,
         borderRadius: 16,
         padding: isMobile ? 16 : 24,
-        paddingBottom: isMobile ? 200 : 24,
+        paddingBottom: 24,
       }}
     >
       <button
@@ -928,8 +867,7 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         </div>
       </div>
 
-      {!isMobile && (
-        <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
           <button
             type="button"
             disabled={pdfBusy}
@@ -984,88 +922,22 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
           >
             Want a full CV? Build it here →
           </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 
   const previewSection = (
-    <div style={{ position: isMobile ? "relative" : "sticky", top: isMobile ? 0 : 24, alignSelf: "start" }}>
+    <div
+      style={{
+        position: isMobile ? "relative" : "sticky",
+        top: isMobile ? 0 : 24,
+        alignSelf: "start",
+        paddingTop: isMobile ? 200 : 0,
+      }}
+    >
       <WalkInCvPreview data={formData} />
     </div>
   );
-
-  const fixedMobileActions = isMobile ? (
-    <div
-      style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 50,
-        background: "rgba(10,10,10,0.96)",
-        borderTop: `1px solid ${TOKENS.borderDefault}`,
-        padding: "12px 16px 16px",
-        backdropFilter: "blur(10px)",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <button
-          type="button"
-          disabled={pdfBusy}
-          onClick={handleDownloadPdf}
-          style={{
-            background: "#FFFFFF",
-            color: "#000000",
-            border: "none",
-            borderRadius: 12,
-            padding: 14,
-            fontWeight: 700,
-            fontSize: 11,
-            cursor: pdfBusy ? "wait" : "pointer",
-            boxShadow: "0 0 20px rgba(255,255,255,0.15), 0 0 40px rgba(255,255,255,0.05)",
-            fontFamily: FONT,
-          }}
-        >
-          {pdfBusy ? "Preparing PDF…" : "Download PDF"}
-        </button>
-        <button
-          type="button"
-          onClick={handleWhatsApp}
-          style={{
-            background: TOKENS.whatsapp,
-            color: "#ffffff",
-            border: "none",
-            borderRadius: 12,
-            padding: 14,
-            fontWeight: 700,
-            fontSize: 11,
-            cursor: "pointer",
-            boxShadow: "0 0 20px rgba(37,211,102,0.3), 0 0 40px rgba(37,211,102,0.1)",
-            fontFamily: FONT,
-          }}
-        >
-          Share via WhatsApp
-        </button>
-        <button
-          type="button"
-          onClick={handleGoBuilder}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "#A0A0A0",
-            fontSize: 12,
-            textAlign: "center",
-            cursor: "pointer",
-            paddingBottom: 4,
-            fontFamily: FONT,
-          }}
-        >
-          Want a full CV? Build it here →
-        </button>
-      </div>
-    </div>
-  ) : null;
 
   return (
     <div
@@ -1075,7 +947,7 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         color: TOKENS.textPrimary,
         fontFamily: FONT,
         padding: isMobile ? "24px 16px" : "48px 24px",
-        paddingBottom: isMobile ? 32 : 48,
+        paddingBottom: isMobile ? 120 : 48,
         boxSizing: "border-box",
       }}
     >
@@ -1092,7 +964,6 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         {formSection}
         {previewSection}
       </div>
-      {fixedMobileActions}
     </div>
   );
 }
