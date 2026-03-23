@@ -102,16 +102,19 @@ module.exports = async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
+    const dynamicHeightSelector =
+      tid === 1 ? ".cvp-root" : tid === 2 ? ".t2-root" : tid === 3 ? ".t3-root" : null;
+
     const pdfOptions =
-      tid === 1
+      dynamicHeightSelector
         ? {
             width: "794px",
             height: `${Math.ceil(
-              await page.evaluate(() => {
-                const root = document.querySelector(".cvp-root");
+              await page.evaluate((selector) => {
+                const root = document.querySelector(selector);
                 const h = root ? root.scrollHeight : document.body.scrollHeight;
                 return h;
-              }),
+              }, dynamicHeightSelector),
             )}px`,
             printBackground: true,
             margin: { top: "0", right: "0", bottom: "0", left: "0" },

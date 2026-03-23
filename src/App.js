@@ -598,13 +598,37 @@ function PreviewBanner({ cv, t, mobileMode = false }) {
 }
 
 // ─── PREVIEW: TWO-COLUMN LAYOUT ───────────────────────────────────
-function PreviewTwoCol({ cv, t }) {
+function PreviewTwoCol({ cv, t, mobileMode = false }) {
   const skillList = cv.skills ? cv.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
   const certList  = cv.certifications ? cv.certifications.split(",").map(s => s.trim()).filter(Boolean) : [];
   return (
-    <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", fontFamily: "Arial,sans-serif", color: "#222", display: "flex", minHeight: "500px", fontSize: "11px", alignItems: "stretch" }}>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "10px",
+        overflow: "hidden",
+        fontFamily: "Arial,sans-serif",
+        color: "#222",
+        display: "flex",
+        flexDirection: mobileMode ? "column" : "row",
+        minHeight: mobileMode ? "0" : "500px",
+        fontSize: "11px",
+        alignItems: "stretch",
+        width: mobileMode ? "100%" : undefined,
+      }}
+    >
       {/* Left sidebar */}
-      <div style={{ width: "34%", background: t.color, padding: "24px 16px", display: "flex", flexDirection: "column", gap: "14px", alignSelf: "stretch" }}>
+      <div
+        style={{
+          width: mobileMode ? "100%" : "34%",
+          background: t.color,
+          padding: "24px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+          alignSelf: "stretch",
+        }}
+      >
         <div>
           <h1 style={{ fontSize: "16px", fontWeight: "900", color: "#fff", margin: "0 0 3px" }}>{cv.name || "Your Name"}</h1>
           <p style={{ color: t.accent, fontWeight: "700", fontSize: "10px", margin: 0 }}>{cv.title || "Job Title"}</p>
@@ -723,13 +747,26 @@ function PreviewTwoCol({ cv, t }) {
 }
 
 // ─── PREVIEW: SIDEBAR LAYOUT ──────────────────────────────────────
-function PreviewSidebar({ cv, t }) {
+function PreviewSidebar({ cv, t, mobileMode = false }) {
   const skillList = cv.skills ? cv.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
   const certList  = cv.certifications ? cv.certifications.split(",").map(s => s.trim()).filter(Boolean) : [];
   return (
-    <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", fontFamily: "'Trebuchet MS',sans-serif", color: "#222", display: "flex", fontSize: "11px", alignItems: "stretch" }}>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "10px",
+        overflow: "hidden",
+        fontFamily: "'Trebuchet MS',sans-serif",
+        color: "#222",
+        display: "flex",
+        flexDirection: mobileMode ? "column" : "row",
+        fontSize: "11px",
+        alignItems: "stretch",
+        width: mobileMode ? "100%" : undefined,
+      }}
+    >
       {/* Sidebar */}
-      <div style={{ width: "28%", background: t.color, padding: "22px 14px", alignSelf: "stretch" }}>
+      <div style={{ width: mobileMode ? "100%" : "28%", background: t.color, padding: "22px 14px", alignSelf: "stretch" }}>
         <div style={{ width: "50px", height: "50px", borderRadius: "50%", background: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", fontWeight: "900", color: t.color, marginBottom: "12px" }}>
           {(cv.name || "?")[0].toUpperCase()}
         </div>
@@ -981,8 +1018,8 @@ function PreviewTimeline({ cv, t }) {
 function ResumePreview({ cv, template, mobileMode = false }) {
   const t = template || TEMPLATES[0];
   const cvT = cvWithTemplateCertifications(cv);
-  if (t.layout === "twocol")      return <PreviewTwoCol          cv={cvT} t={t} />;
-  if (t.layout === "sidebar")     return <PreviewSidebar         cv={cvT} t={t} />;
+  if (t.layout === "twocol")      return <PreviewTwoCol          cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "sidebar")     return <PreviewSidebar         cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "timeline")    return <PreviewTimeline        cv={cvT} t={t} />;
   if (t.layout === "gulf-exec")   return <PreviewGulfExecutive   cv={cvT} t={t} />;
   if (t.layout === "banking")     return <PreviewBankingFinance  cv={cvT} t={t} />;
@@ -2224,7 +2261,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
           </div>
         ) : (
-          selectedTemplate?.layout === "banner" ? (
+          ["banner", "twocol", "sidebar"].includes(selectedTemplate?.layout) ? (
             <div
               ref={mobilePreviewScrollRef}
               style={{
