@@ -20,7 +20,7 @@ import { PreviewTechITPro } from "./Template11TechITPro";
 import { PreviewClassic } from "./Template12Classic";
 import { PreviewFinance } from "./Template13Finance";
 import LandingPage from './LandingPage';
-import WalkInPage from './WalkInPage';
+import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
 import { ReactComponent as FalconLogo } from "./logo.svg";
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
@@ -2515,8 +2515,13 @@ function getStrength(cv) {
 // ─── MAIN APP ─────────────────────────────────────────────────────
 const extractName = u => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
+function isWalkInPath() {
+  if (typeof window === "undefined") return false;
+  return window.location.pathname.replace(/\/$/, "") === "/walk-in";
+}
+
 export default function App() {
-  const [page, setPage]             = useState("landing");
+  const [page, setPage]             = useState(() => (isWalkInPath() ? "walkin" : "landing"));
   const [authMode, setAuthMode]     = useState("signup");
   const [user, setUser]             = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
@@ -2538,7 +2543,10 @@ export default function App() {
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id }); setPage("dashboard"); }
+      if (session?.user) {
+        setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
+        if (!isWalkInPath()) setPage("dashboard");
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       if (session?.user) setUser(prev => ({ name: prev?.name||extractName(session.user), email: session.user.email, id: session.user.id }));
@@ -2546,6 +2554,15 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (page === "walkin" && !isWalkInPath()) {
+      window.history.pushState({}, "", "/walk-in");
+    } else if (page === "landing" && isWalkInPath()) {
+      window.history.replaceState({}, "", "/");
+    }
+  }, [page]);
 
   const handleAuth = async (userData) => {
     if (!supabase) return;
@@ -2594,7 +2611,7 @@ export default function App() {
       </nav>
       )}
 {page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
-{page === "walkin" && <WalkInPage onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
+{page === "walkin" && <WalkInMode onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && (
   <Dashboard
