@@ -625,30 +625,30 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               boxSizing:      'border-box',
             }}
           >
-            <div
-              style={{
-                display:        'flex',
-                flexDirection:  'row',
-                alignItems:     'center',
-                justifyContent: 'flex-end',
-                gap:            '48px',
-                flexWrap:       'nowrap',
-              }}
-            >
-              <div className="hidden md:block" style={{ flexShrink: 0, pointerEvents: 'none' }}>
+            <div style={{ position: 'relative', display: 'inline-block', overflow: 'visible', flexShrink: 0 }}>
+              {/* Glow halo */}
+              <div style={{
+                position:     'absolute',
+                width:        '400px',
+                height:       '400px',
+                borderRadius: '50%',
+                background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+                pointerEvents:'none',
+              }} />
+              <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '340px', height: 'auto' }} />
+              <div
+                className="hidden md:block"
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '61%',
+                  transform: 'translateY(-50%) scale(0.78)',
+                  transformOrigin: 'left center',
+                  pointerEvents: 'none',
+                  zIndex: 2,
+                }}
+              >
                 <CVPlayCard />
-              </div>
-              <div style={{ position: 'relative', display: 'inline-block', overflow: 'visible', flexShrink: 0 }}>
-                {/* Glow halo */}
-                <div style={{
-                  position:     'absolute',
-                  width:        '400px',
-                  height:       '400px',
-                  borderRadius: '50%',
-                  background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
-                  pointerEvents:'none',
-                }} />
-                <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '340px', height: 'auto' }} />
               </div>
             </div>
           </div>
