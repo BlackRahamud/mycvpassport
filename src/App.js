@@ -4,6 +4,7 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from 
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
+import CoverLetterModal from "./CoverLetterModal";
 import TiltedCard from './components/TiltedCard';
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -1751,6 +1752,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const mobileCvPreviewRef = useRef(null);
   const [desktopPreviewScale, setDesktopPreviewScale] = useState(1);
   const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
+  const [coverLetterOpen, setCoverLetterOpen] = useState(false);
 
   const measureFitWidth = (el) => {
     const w = el.getBoundingClientRect().width;
@@ -1946,6 +1948,25 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </button>
           <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}` }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
             {downloading ? "..." : "Download"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCoverLetterOpen(true)}
+            style={{
+              padding: "10px 16px",
+              borderRadius: 8,
+              border: "1px solid #2A2A2A",
+              background: "transparent",
+              color: "#FFFFFF",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: `border-color 150ms ${EASE}`,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
+          >
+            Get Cover Letter
           </button>
         </div>
       </header>
@@ -2336,6 +2357,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </div>
         </div>
       </div>
+
+      <CoverLetterModal
+        isOpen={coverLetterOpen}
+        onClose={() => setCoverLetterOpen(false)}
+        resume={resume}
+      />
 
       {experienceEditor && (
         <div
