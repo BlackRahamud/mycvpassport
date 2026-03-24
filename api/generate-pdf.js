@@ -1,14 +1,8 @@
 /**
  * Vercel serverless: HTML → PDF via @ilovepdf/ilovepdf-nodejs (tool: htmlpdf).
  *
- * Matches the official ilovepdf-nodejs flow:
- *   const task = instance.newTask('htmlpdf');
- *   await task.start();
- *   await task.addFile(<public URL string>);  // cloud_file — not ILovePDFFile (that class is for local paths)
- *   await task.process({ single_page: true });
- *   const data = await task.download();
- *
- * ILovePDFFile path (local files only): require("@ilovepdf/ilovepdf-nodejs/ILovePDFFile")
+ * Matches ilovepdf-js-core: addFile(string URL) → cloud_file JSON upload.
+ * process({ page_size, page_orientation, single_page }); download() → Uint8Array.
  *
  * POST { html: string, filename?: string }
  *
@@ -28,14 +22,6 @@ function getSupabaseConfig() {
   return { url, key };
 }
 
-function safeFilename(name) {
-  const s = String(name || "cv_cvpassport")
-    .replace(/[^\w\s\-_.]/g, "")
-    .replace(/\s+/g, "_")
-    .slice(0, 120);
-  return s || "cv_cvpassport";
-}
-
 function formatIlovepdfError(err) {
   if (err.response?.data != null) {
     const d = err.response.data;
@@ -44,13 +30,6 @@ function formatIlovepdfError(err) {
     return JSON.stringify(d);
   }
   return err.message || String(err);
-}
-
-function toPdfBuffer(data) {
-  if (Buffer.isBuffer(data)) return data;
-  if (data instanceof ArrayBuffer) return Buffer.from(data);
-  if (ArrayBuffer.isView(data)) return Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-  return Buffer.from(data);
 }
 
 module.exports = async (req, res) => {
@@ -89,7 +68,6 @@ module.exports = async (req, res) => {
     });
   }
 
-  const attachmentName = `${safeFilename(body.filename)}.pdf`;
   const supabase = createClient(supabaseUrl, supabaseKey);
   const storagePath = `pdf/${Date.now()}-${randomBytes(8).toString("hex")}.html`;
   let htmlUploaded = false;
@@ -114,13 +92,16 @@ module.exports = async (req, res) => {
     const task = instance.newTask("htmlpdf");
     await task.start();
     await task.addFile(publicHtmlUrl);
-    await task.process({ single_page: true });
+    await task.process({
+      page_size: "A4",
+      page_orientation: "portrait",
+      single_page: false,
+    });
     const data = await task.download();
-    const pdfBuf = toPdfBuffer(data);
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${attachmentName}"`);
-    return res.status(200).send(pdfBuf);
+    res.setHeader("Content-Disposition", 'attachment; filename="cv.pdf"');
+    return res.status(200).send(Buffer.from(data));
   } catch (err) {
     console.error("generate-pdf error", formatIlovepdfError(err), err);
     return res.status(500).json({ error: formatIlovepdfError(err) });
