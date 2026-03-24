@@ -22,6 +22,7 @@ import { PreviewATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro } from "./Template11TechITPro";
 import { PreviewClassic } from "./Template12Classic";
 import { PreviewFinance } from "./Template13Finance";
+import Pricing from "./Pricing";
 import LandingPage from './LandingPage';
 import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
@@ -2631,8 +2632,13 @@ function isWalkInPath() {
   return window.location.pathname.replace(/\/$/, "") === "/walk-in";
 }
 
+function isPricingPath() {
+  if (typeof window === "undefined") return false;
+  return window.location.pathname.replace(/\/$/, "") === "/pricing";
+}
+
 export default function App() {
-  const [page, setPage]             = useState(() => (isWalkInPath() ? "walkin" : "landing"));
+  const [page, setPage]             = useState(() => (isWalkInPath() ? "walkin" : isPricingPath() ? "pricing" : "landing"));
   const [authMode, setAuthMode]     = useState("signup");
   const [user, setUser]             = useState(null);
   const [isPro, setIsPro]           = useState(false);
@@ -2666,7 +2672,7 @@ export default function App() {
       if (session?.user) {
         setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
         fetchProStatus(session.user.id);
-        if (!isWalkInPath()) setPage("dashboard");
+        if (!isWalkInPath() && !isPricingPath()) setPage("dashboard");
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -2685,7 +2691,11 @@ export default function App() {
     if (typeof window === "undefined") return;
     if (page === "walkin" && !isWalkInPath()) {
       window.history.pushState({}, "", "/walk-in");
+    } else if (page === "pricing" && !isPricingPath()) {
+      window.history.pushState({}, "", "/pricing");
     } else if (page === "landing" && isWalkInPath()) {
+      window.history.replaceState({}, "", "/");
+    } else if (page === "landing" && isPricingPath()) {
       window.history.replaceState({}, "", "/");
     }
   }, [page]);
@@ -2714,7 +2724,7 @@ export default function App() {
 
   return (
     <div style={S.app}>
-      {page !== "landing" && (
+      {page !== "landing" && page !== "pricing" && (
       <nav className="cvp-app-nav" style={S.nav}>
         <div style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }} onClick={() => setPage("landing")} role="button" tabIndex={0}>
           <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
@@ -2737,6 +2747,7 @@ export default function App() {
       </nav>
       )}
 {page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
+{page === "pricing" && <Pricing onBackHome={() => setPage("landing")} isLight={document.documentElement.classList.contains("light")} />}
 {page === "walkin" && <WalkInMode onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && (
