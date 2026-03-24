@@ -625,24 +625,24 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
               boxSizing:      'border-box',
             }}
           >
-            <div style={{ position: 'relative', display: 'inline-block', overflow: 'hidden', flexShrink: 0, width: '560px', height: '560px' }}>
+            <div style={{ position: 'relative', display: 'inline-block', overflow: 'hidden', flexShrink: 0, width: '700px', height: '700px' }}>
               {/* Glow halo */}
               <div style={{
                 position:     'absolute',
-                width:        '560px',
-                height:       '560px',
+                width:        '700px',
+                height:       '700px',
                 borderRadius: '50%',
                 background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
                 pointerEvents:'none',
               }} />
-              <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '520px', height: '520px' }} />
+              <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '680px', height: '680px' }} />
               <div
                 className="hidden md:block"
                 style={{
                   position: 'absolute',
                   top: '50%',
                   left: '52%',
-                  transform: 'translateY(-50%) scale(0.72)',
+                  transform: 'translateY(-50%) scale(0.67)',
                   transformOrigin: 'left center',
                   pointerEvents: 'none',
                   zIndex: 2,
