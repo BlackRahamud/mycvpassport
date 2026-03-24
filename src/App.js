@@ -3,6 +3,7 @@ import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
+import JobMatch from "./JobMatch";
 import TiltedCard from './components/TiltedCard';
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -1913,7 +1914,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {["content", "customize", "ats"].map((tab) => (
+            {["content", "customize", "ats", "jobmatch"].map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -1931,7 +1932,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
                 }}
               >
-                {tab === "content" ? "Content" : tab === "customize" ? "Customise" : "ATS Check"}
+                {tab === "content" ? "Content" : tab === "customize" ? "Customise" : tab === "ats" ? "ATS Check" : "Job Match"}
               </button>
             ))}
           </div>
@@ -2102,6 +2103,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score. Add more sections and keywords to improve.</div>
             </div>
           )}
+          {builderTab === "jobmatch" && (
+            <JobMatch resume={resume} selectedTemplate={selectedTemplate} />
+          )}
         </aside>
 
         {/* Right panel — Live Preview; scale-to-fit (794px A4) */}
@@ -2259,6 +2263,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             )}
             {builderTab === "customize" && customizePanel}
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
+            {builderTab === "jobmatch" && <JobMatch resume={resume} selectedTemplate={selectedTemplate} />}
           </div>
         ) : (
           ["banner", "twocol", "sidebar", "timeline", "gulf-exec", "banking", "compact-pro", "creative", "hospitality", "ats-intl", "tech-it"].includes(selectedTemplate?.layout) ? (
