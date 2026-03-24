@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
     "@paper-design/shaders-react": "^0.0.72",
     "@sparticuz/chromium-min": "^133.0.0",
     "@supabase/supabase-js": "^2.39.0",

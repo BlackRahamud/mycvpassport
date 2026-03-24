@@ -8,11 +8,8 @@ import JobMatch from "./JobMatch";
 import CoverLetterModal from "./CoverLetterModal";
 import UpgradeModal from "./UpgradeModal";
 import TiltedCard from './components/TiltedCard';
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 import {
   splitExperiencePointsForPreview,
-  trimCanvasBottomWhitespace,
 } from "./experiencePointsPreview";
 import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 import { PreviewGulfExecutive } from "./Template5GulfExecutive";
@@ -1163,147 +1160,78 @@ const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isS
   );
 });
 
-// ─── PDF DOWNLOAD — Templates 1–13: Puppeteer API; others: html2canvas + jsPDF ──
-async function downloadResumeFromPreview(cvInput, captureElement, template) {
-  const cv = cvWithTemplateCertifications(cvInput);
-  const templateId = Number(template?.id ?? 1);
-
-  if ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(templateId)) {
-    const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ templateId, cv }),
-    });
-    if (!res.ok) {
-      let msg = `Server error ${res.status}`;
-      try {
-        const j = await res.json();
-        if (j.error) msg = j.error;
-      } catch {
-        /* ignore */
-      }
-      throw new Error(msg);
+/** Full HTML document for iLovePDF (fonts + A4 preview shell; mirrors index.css .cvp-builder-a4-fit desktop rules). */
+function buildCvPdfHtmlDocument(cvFragmentHtml) {
+  const style = `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: #ffffff; }
+    body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .cvp-builder-a4-fit {
+      background: #ffffff;
+      width: 794px;
+      min-height: unset;
+      height: auto;
+      padding: 32px;
+      border-radius: 8px;
+      box-shadow: none;
+      box-sizing: border-box;
     }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    return;
-  }
+  `;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"/>
+<style>${style}</style>
+</head>
+<body>
+${cvFragmentHtml}
+</body>
+</html>`;
+}
 
-  if (!captureElement) return;
+// ─── PDF DOWNLOAD — iLovePDF API (A4) from live preview HTML ───────────────────
+async function downloadResumeFromPreview(cvInput, captureElement) {
+  const cv = cvWithTemplateCertifications(cvInput);
+  if (!captureElement) throw new Error("Preview not ready");
+
+  const cvElement = captureElement.classList.contains("cvp-builder-a4-fit")
+    ? captureElement
+    : captureElement.querySelector(".cvp-builder-a4-fit");
+  if (!cvElement) throw new Error("Preview not ready");
 
   if (typeof document !== "undefined" && document.fonts?.ready) {
     await document.fonts.ready.catch(() => {});
   }
 
-  const el = captureElement;
-  const parentEl = el.parentElement;
-  const prevParentTransform = parentEl ? parentEl.style.transform : null;
-  const prevParentTransformOrigin = parentEl ? parentEl.style.transformOrigin : null;
-  const prevWidth = el.style.width;
-  const prevMaxWidth = el.style.maxWidth;
-  const prevMinWidth = el.style.minWidth;
-  el.style.width = "794px";
-  el.style.maxWidth = "794px";
-  el.style.minWidth = "794px";
-  el.style.minHeight = "0";
-  el.style.height = "auto";
-  if (parentEl) {
-    parentEl.style.transform = "none";
-    parentEl.style.transformOrigin = "top center";
-  }
-  await new Promise((r) => setTimeout(r, 400));
+  const html = buildCvPdfHtmlDocument(cvElement.outerHTML);
+  const baseName = `${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport`;
 
-  const fullHeight = el.scrollHeight;
-  el.style.height = fullHeight + "px";
-  el.style.overflow = "visible";
-
-  let canvas;
-  try {
-    canvas = await html2canvas(el, {
-      scale: window.devicePixelRatio > 1.5 ? 1.5 : 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      imageTimeout: 0,
-      logging: false,
-    });
-  } finally {
-    el.style.width = prevWidth;
-    el.style.maxWidth = prevMaxWidth;
-    el.style.minWidth = prevMinWidth;
-    el.style.minHeight = "";
-    el.style.height = "";
-    el.style.overflow = "";
-    if (parentEl && prevParentTransform !== null) {
-      parentEl.style.transform = prevParentTransform;
-      parentEl.style.transformOrigin = prevParentTransformOrigin;
+  const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ html, filename: baseName }),
+  });
+  if (!res.ok) {
+    let msg = `Server error ${res.status}`;
+    try {
+      const j = await res.json();
+      if (j.error) msg = j.error;
+    } catch {
+      /* ignore */
     }
+    throw new Error(msg);
   }
-
-  canvas = trimCanvasBottomWhitespace(canvas);
-
-  const pageWidth = 210;
-  const pageHeight = 297;
-  const imgData = canvas.toDataURL("image/jpeg", 1.0);
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const canvasAspect = canvas.width / canvas.height;
-  const imgHeight = pageWidth / canvasAspect;
-
-  /** ~1 rendered text line at scale 2 — overlap hides mid-line cuts at page seams */
-  const PAGE_SLICE_OVERLAP_PX = 48;
-
-  if (imgHeight <= pageHeight) {
-    doc.addImage(imgData, "JPEG", 0, 0, pageWidth, imgHeight);
-  } else {
-    const pxPerMm = canvas.width / 210;
-    const pageHeightPx = Math.floor(297 * pxPerMm);
-    let yOffset = 0;
-    let pageNum = 0;
-
-    while (yOffset < canvas.height) {
-      const remaining = canvas.height - yOffset;
-      const sliceHeight = Math.min(pageHeightPx, remaining);
-
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = pageHeightPx;
-      const ctx = sliceCanvas.getContext("2d");
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-
-      ctx.drawImage(
-        canvas,
-        0,
-        yOffset,
-        canvas.width,
-        sliceHeight,
-        0,
-        0,
-        canvas.width,
-        sliceHeight,
-      );
-
-      const sliceData = sliceCanvas.toDataURL("image/jpeg", 1.0);
-      if (pageNum > 0) doc.addPage();
-      doc.addImage(sliceData, "JPEG", 0, 0, 210, 297);
-
-      yOffset += sliceHeight;
-      if (yOffset < canvas.height) {
-        yOffset -= PAGE_SLICE_OVERLAP_PX;
-      }
-      pageNum++;
-    }
-  }
-
-  doc.save(`${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport.pdf`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${baseName}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ─── PREVIEW: TEMPLATE THUMB WRAPPER ──────────────────────────────
@@ -1877,8 +1805,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       await new Promise((r) => setTimeout(r, 500));
 
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
-      if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(selectedTemplate?.id) && !el) throw new Error("Preview not ready");
-      await downloadResumeFromPreview(resume, el, selectedTemplate);
+      if (!el) throw new Error("Preview not ready");
+      await downloadResumeFromPreview(resume, el);
 
       if (wasMobileEdit) setMobileView("edit");
       if (isMobileViewport) setMobilePreviewScale(Math.min(1, window.innerWidth / 794));
