@@ -400,7 +400,7 @@ export default function ATSChecker(props) {
           </div>
         </div>
       )}
-      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="ats" />
     </div>
   );
 }

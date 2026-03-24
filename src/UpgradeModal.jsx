@@ -1,5 +1,51 @@
-export default function UpgradeModal({ isOpen, onClose }) {
+function FeatureItem({ text }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", color: "#FFFFFF", fontSize: 15, fontWeight: 500, lineHeight: 1.5 }}>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "20px",
+          height: "20px",
+          borderRadius: "50%",
+          background: "rgba(34,197,94,0.15)",
+          marginRight: "10px",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+          <path d="M2 5.5L4.5 8L9 3" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      {text}
+    </div>
+  );
+}
+
+export default function UpgradeModal({ isOpen, onClose, feature }) {
   if (!isOpen) return null;
+
+  const isAts = feature === "ats";
+  const heading = isAts
+    ? "Your free ATS scan is used up"
+    : "You're one step away from more interviews";
+  const subtext = isAts
+    ? "Most jobs in UAE get 200+ applicants. Only ATS-optimised CVs make it to the hiring manager. Don't leave it to chance."
+    : "Job seekers using AI-matched CVs get 3x more callbacks. Unlock Job Match and Cover Letter Generator with CVPassport Pro.";
+  const features = isAts
+    ? [
+        "Unlimited ATS scans",
+        "Match your CV to any job description",
+        "Cover letter generator in seconds",
+        "All premium templates, unlimited CVs",
+      ]
+    : [
+        "Match your CV to any job description instantly",
+        "Generate a professional cover letter in seconds",
+        "All 11 premium templates, unlimited CVs",
+      ];
+  const ctaLabel = isAts ? "Unlock Pro — AED 29/month" : "Upgrade to Pro — AED 29/month";
 
   return (
     <div
@@ -20,64 +66,62 @@ export default function UpgradeModal({ isOpen, onClose }) {
       <div
         style={{
           width: "100%",
-          maxWidth: 480,
+          maxWidth: 440,
           background: "#141414",
           border: "1px solid #2A2A2A",
-          borderRadius: 16,
-          padding: 20,
+          borderRadius: 20,
+          padding: 32,
+          boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
           boxSizing: "border-box",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ color: "#FFF", fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>
-          You're one step away from more interviews
-        </div>
-        <div style={{ color: "#A0A0A0", fontSize: 14, marginTop: 10, lineHeight: 1.55 }}>
-          Job seekers using AI-matched CVs get 3x more callbacks. Unlock Job Match and Cover Letter Generator with CVPassport Pro.
-        </div>
+        <div style={{ color: "#FFF", fontSize: 24, fontWeight: 700, letterSpacing: "-0.5px", lineHeight: 1.25 }}>{heading}</div>
+        <div style={{ color: "#A0A0A0", fontSize: 15, marginTop: 12, lineHeight: 1.6 }}>{subtext}</div>
 
-        <div style={{ marginTop: 16, display: "grid", gap: 8, color: "#FFF", fontSize: 14 }}>
-          <div><span style={{ color: "#22C55E" }}>✅</span> Match your CV to any job description instantly</div>
-          <div><span style={{ color: "#22C55E" }}>✅</span> Generate a professional cover letter in seconds</div>
-          <div><span style={{ color: "#22C55E" }}>✅</span> All 11 premium templates, unlimited CVs</div>
+        <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
+          {features.map((item) => (
+            <FeatureItem key={item} text={item} />
+          ))}
         </div>
 
         <a
           href="/pricing"
           style={{
-            marginTop: 18,
+            marginTop: 22,
             display: "block",
             width: "100%",
             textAlign: "center",
             textDecoration: "none",
             border: "none",
-            borderRadius: 10,
-            padding: "12px 14px",
+            borderRadius: 12,
+            padding: "14px",
             background: "#FFFFFF",
             color: "#000000",
             fontWeight: 700,
-            fontSize: 14,
+            fontSize: 15,
             boxSizing: "border-box",
           }}
         >
-          Upgrade to Pro — AED 29/month
+          {ctaLabel}
         </a>
 
         <button
           type="button"
           onClick={onClose}
           style={{
-            marginTop: 10,
+            marginTop: 12,
             width: "100%",
             borderRadius: 10,
-            padding: "11px 14px",
+            padding: "8px 14px",
             background: "transparent",
-            border: "1px solid #2A2A2A",
+            border: "none",
             color: "#A0A0A0",
-            fontWeight: 600,
             fontSize: 14,
             cursor: "pointer",
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
         >
           Maybe Later
         </button>
