@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { HelmetProvider } from 'react-helmet-async';
+import { BrowserRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');
 
@@ -12,7 +13,9 @@ if (rootElement.hasChildNodes()) {
     rootElement,
     <React.StrictMode>
       <HelmetProvider>
-        <App />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
       </HelmetProvider>
     </React.StrictMode>
   );
@@ -21,7 +24,9 @@ if (rootElement.hasChildNodes()) {
   root.render(
     <React.StrictMode>
       <HelmetProvider>
-        <App />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
       </HelmetProvider>
     </React.StrictMode>
   );

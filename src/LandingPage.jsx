@@ -220,11 +220,11 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  /** Nav items: Templates / Pricing = in-page anchors (no templates/pricing routes in App). ATS → page "ats". */
+  /** Nav items: Templates = in-page anchor; ATS/Pricing route via App page state. */
   const handleLandingNav = (item) => {
     if (item === 'Templates') scrollToLandingSection('lp-templates');
     else if (item === 'ATS Check') setPage && setPage('ats');
-    else if (item === 'Pricing') scrollToLandingSection('lp-pricing');
+    else if (item === 'Pricing') setPage && setPage('pricing');
   };
 
   return (

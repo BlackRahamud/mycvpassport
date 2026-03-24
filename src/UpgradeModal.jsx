@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 function FeatureItem({ text }) {
   return (
     <div style={{ display: "flex", alignItems: "center", color: "#FFFFFF", fontSize: 15, fontWeight: 500, lineHeight: 1.5 }}>
@@ -24,6 +26,7 @@ function FeatureItem({ text }) {
 }
 
 export default function UpgradeModal({ isOpen, onClose, feature }) {
+  const navigate = useNavigate();
   if (!isOpen) return null;
 
   const isAts = feature === "ats";
@@ -85,14 +88,17 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
           ))}
         </div>
 
-        <a
-          href="/pricing"
+        <button
+          type="button"
+          onClick={() => {
+            onClose && onClose();
+            navigate("/pricing");
+          }}
           style={{
             marginTop: 22,
             display: "block",
             width: "100%",
             textAlign: "center",
-            textDecoration: "none",
             border: "none",
             borderRadius: 12,
             padding: "14px",
@@ -101,10 +107,11 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
             fontWeight: 700,
             fontSize: 15,
             boxSizing: "border-box",
+            cursor: "pointer",
           }}
         >
           {ctaLabel}
-        </a>
+        </button>
 
         <button
           type="button"

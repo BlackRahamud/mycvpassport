@@ -1,6 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
@@ -2637,8 +2638,17 @@ function isPricingPath() {
   return window.location.pathname.replace(/\/$/, "") === "/pricing";
 }
 
+function getPageFromPath(pathname) {
+  const clean = String(pathname || "/").replace(/\/$/, "") || "/";
+  if (clean === "/walk-in") return "walkin";
+  if (clean === "/pricing") return "pricing";
+  return "landing";
+}
+
 export default function App() {
-  const [page, setPage]             = useState(() => (isWalkInPath() ? "walkin" : isPricingPath() ? "pricing" : "landing"));
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [page, setPage]             = useState(() => getPageFromPath(typeof window !== "undefined" ? window.location.pathname : "/"));
   const [authMode, setAuthMode]     = useState("signup");
   const [user, setUser]             = useState(null);
   const [isPro, setIsPro]           = useState(false);
@@ -2688,17 +2698,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (page === "walkin" && !isWalkInPath()) {
-      window.history.pushState({}, "", "/walk-in");
-    } else if (page === "pricing" && !isPricingPath()) {
-      window.history.pushState({}, "", "/pricing");
-    } else if (page === "landing" && isWalkInPath()) {
-      window.history.replaceState({}, "", "/");
-    } else if (page === "landing" && isPricingPath()) {
-      window.history.replaceState({}, "", "/");
+    const routePage = getPageFromPath(location.pathname);
+    if (routePage === "walkin" || routePage === "pricing") {
+      setPage(routePage);
     }
-  }, [page]);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const clean = location.pathname.replace(/\/$/, "") || "/";
+    if (page === "walkin" && clean !== "/walk-in") {
+      navigate("/walk-in");
+    } else if (page === "pricing" && clean !== "/pricing") {
+      navigate("/pricing");
+    } else if (page === "landing" && (clean === "/walk-in" || clean === "/pricing")) {
+      navigate("/", { replace: true });
+    }
+  }, [page, location.pathname, navigate]);
 
   const handleAuth = async (userData) => {
     if (!supabase) return;
