@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 function StatusIcon({ ok }) {
   if (ok) {
     return (
@@ -42,7 +44,7 @@ function StatusIcon({ ok }) {
   );
 }
 
-function PlanCard({ plan, isActive, isLight }) {
+function PlanCard({ plan, isActive, isLight, onNavigate }) {
   const cardBg = isLight ? (isActive ? "#EFF6FF" : "#FFFFFF") : (isActive ? "#1C1C1C" : "#141414");
   const cardBorder = isLight ? (isActive ? "1px solid #3B82F6" : "1px solid #E5E7EB") : (isActive ? "2px solid #FFFFFF" : "1px solid #2A2A2A");
   const textPrimary = isLight ? "#111111" : "#FFFFFF";
@@ -99,11 +101,11 @@ function PlanCard({ plan, isActive, isLight }) {
         ))}
       </div>
 
-      <a
-        href={plan.href}
+      <button
+        type="button"
+        onClick={() => onNavigate(plan.href)}
         style={{
           marginTop: 10,
-          textDecoration: "none",
           width: "100%",
           textAlign: "center",
           background: "#FFFFFF",
@@ -114,15 +116,18 @@ function PlanCard({ plan, isActive, isLight }) {
           padding: "12px 14px",
           boxSizing: "border-box",
           display: "block",
+          border: "none",
+          cursor: "pointer",
         }}
       >
         {plan.cta}
-      </a>
+      </button>
     </div>
   );
 }
 
 export default function Pricing({ onBackHome = () => {}, isLight = false }) {
+  const navigate = useNavigate();
   const pageBg = isLight ? "#F8FAFC" : "#0A0A0A";
   const textPrimary = isLight ? "#111111" : "#FFFFFF";
   const textSecondary = "#A0A0A0";
@@ -228,7 +233,7 @@ export default function Pricing({ onBackHome = () => {}, isLight = false }) {
 
         <div className="cvp-pricing-grid">
           {plans.map((plan) => (
-            <PlanCard key={plan.name} plan={plan} isActive={plan.name === "Active Hunter"} isLight={isLight} />
+            <PlanCard key={plan.name} plan={plan} isActive={plan.name === "Active Hunter"} isLight={isLight} onNavigate={navigate} />
           ))}
         </div>
 
