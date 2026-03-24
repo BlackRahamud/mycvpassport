@@ -43,7 +43,7 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
     : [
         "Match your CV to any job description instantly",
         "Generate a professional cover letter in seconds",
-        "All 11 premium templates, unlimited CVs",
+        "All premium templates, unlimited CVs",
       ];
   const ctaLabel = isAts ? "Unlock Pro — AED 29/month" : "Upgrade to Pro — AED 29/month";
 
