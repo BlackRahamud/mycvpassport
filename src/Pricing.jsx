@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 function StatusIcon({ ok }) {
@@ -90,7 +91,10 @@ function PlanCard({ plan, isActive, isLight, onNavigate }) {
 
       <div style={{ color: textPrimary, fontSize: 19, fontWeight: 700, marginTop: plan.popular ? 8 : 0 }}>{plan.name}</div>
       <div style={{ color: textPrimary, fontSize: 32, fontWeight: 700, lineHeight: 1.1 }}>{plan.price}</div>
-      <div style={{ color: textSecondary, fontSize: 13, marginBottom: 6 }}>{plan.tagline}</div>
+      {plan.priceSubtext ? (
+        <div style={{ color: textSecondary, fontSize: 13, marginTop: 2, marginBottom: 0 }}>{plan.priceSubtext}</div>
+      ) : null}
+      <div style={{ color: textSecondary, fontSize: 13, marginBottom: 6, marginTop: plan.priceSubtext ? 4 : 0 }}>{plan.tagline}</div>
 
       <div style={{ display: "grid", gap: 8, marginTop: 4 }}>
         {plan.features.map((f) => (
@@ -126,74 +130,150 @@ function PlanCard({ plan, isActive, isLight, onNavigate }) {
   );
 }
 
+const PLANS_AE = [
+  {
+    name: "Explorer",
+    price: "Free",
+    tagline: "Best for first-time users",
+    cta: "Get Started Free",
+    href: "/register",
+    features: [
+      { ok: true, label: "1 template" },
+      { ok: true, label: "1 CV" },
+      { ok: true, label: "1 ATS scan" },
+      { ok: true, label: "1 download" },
+      { ok: false, label: "Job Match keywords" },
+      { ok: false, label: "Cover Letter" },
+      { ok: false, label: "Clean PDF" },
+    ],
+  },
+  {
+    name: "Express Pass",
+    price: "AED 49 one-time",
+    tagline: "For one-time job seekers.",
+    cta: "Get Express Pass",
+    href: "/checkout",
+    features: [
+      { ok: true, label: "All premium templates" },
+      { ok: true, label: "3 CVs" },
+      { ok: true, label: "3 ATS scans" },
+      { ok: true, label: "3 Job Match keywords" },
+      { ok: true, label: "3 Cover Letters" },
+      { ok: true, label: "Clean PDF" },
+    ],
+  },
+  {
+    name: "Active Hunter",
+    price: "AED 29/month",
+    tagline: "Most value for active job seekers",
+    cta: "Start Hunting",
+    href: "/checkout",
+    popular: true,
+    features: [
+      { ok: true, label: "All premium templates" },
+      { ok: true, label: "Unlimited CVs" },
+      { ok: true, label: "Unlimited ATS scans" },
+      { ok: true, label: "Unlimited Job Match keywords" },
+      { ok: true, label: "Unlimited Cover Letters" },
+      { ok: true, label: "Walk-In CV mode" },
+      { ok: true, label: "Clean PDF" },
+    ],
+  },
+  {
+    name: "Career Pro",
+    price: "AED 199/year",
+    tagline: "Save 43% vs monthly",
+    cta: "Go Pro",
+    href: "/checkout",
+    features: [
+      { ok: true, label: "Everything in Active Hunter" },
+      { ok: true, label: "Save 43% vs monthly" },
+      { ok: true, label: "Cancel anytime" },
+    ],
+  },
+];
+
+const PLANS_IN = [
+  {
+    name: "Explorer",
+    price: "Free",
+    tagline: "Best for first-time users",
+    cta: "Get Started Free",
+    href: "/register",
+    features: [
+      { ok: true, label: "1 template" },
+      { ok: true, label: "1 CV" },
+      { ok: true, label: "1 ATS scan" },
+      { ok: true, label: "1 download" },
+      { ok: false, label: "Job Match keywords" },
+      { ok: false, label: "Cover Letter" },
+      { ok: false, label: "Clean PDF" },
+    ],
+  },
+  {
+    name: "Express Pass",
+    price: "₹399 one-time",
+    tagline: "For one-time job seekers.",
+    cta: "Get Express Pass",
+    href: "/checkout",
+    features: [
+      { ok: true, label: "All premium templates" },
+      { ok: true, label: "3 CVs" },
+      { ok: true, label: "3 ATS scans" },
+      { ok: true, label: "3 Job Match keywords" },
+      { ok: true, label: "3 Cover Letters" },
+      { ok: true, label: "Clean PDF" },
+    ],
+  },
+  {
+    name: "Active Hunter",
+    price: "₹199/month",
+    tagline: "It's not the burger at stake. It's your career.",
+    cta: "Start Hunting",
+    href: "/checkout",
+    popular: true,
+    features: [
+      { ok: true, label: "All premium templates" },
+      { ok: true, label: "Unlimited CVs" },
+      { ok: true, label: "Unlimited ATS scans" },
+      { ok: true, label: "Unlimited Job Match keywords" },
+      { ok: true, label: "Unlimited Cover Letters" },
+      { ok: true, label: "Walk-In CV mode" },
+      { ok: true, label: "Clean PDF" },
+    ],
+  },
+  {
+    name: "Career Pro",
+    price: "₹599/year",
+    priceSubtext: "Save 66% vs monthly",
+    tagline: "Invest in yourself.",
+    cta: "Go Pro",
+    href: "/checkout",
+    features: [
+      { ok: true, label: "Everything in Active Hunter" },
+      { ok: true, label: "Save 66% vs monthly" },
+      { ok: true, label: "Cancel anytime" },
+    ],
+  },
+];
+
 export default function Pricing({ isLight = false }) {
   const navigate = useNavigate();
+  const [currency, setCurrency] = useState("AE");
   const pageBg = isLight ? "#F8FAFC" : "#0A0A0A";
   const textPrimary = isLight ? "#111111" : "#FFFFFF";
   const textSecondary = "#A0A0A0";
 
-  const plans = [
-    {
-      name: "Explorer",
-      price: "Free",
-      tagline: "Best for first-time users",
-      cta: "Get Started Free",
-      href: "/register",
-      features: [
-        { ok: true, label: "1 template" },
-        { ok: true, label: "1 CV" },
-        { ok: true, label: "1 ATS scan" },
-        { ok: true, label: "1 download" },
-        { ok: false, label: "Job Match" },
-        { ok: false, label: "Cover Letter" },
-        { ok: false, label: "Clean PDF" },
-      ],
-    },
-    {
-      name: "Express Pass",
-      price: "AED 49",
-      tagline: "one-time",
-      cta: "Get Express Pass",
-      href: "/checkout",
-      features: [
-        { ok: true, label: "All premium templates" },
-        { ok: true, label: "3 CVs" },
-        { ok: true, label: "3 ATS scans" },
-        { ok: true, label: "3 Job Matches" },
-        { ok: true, label: "3 Cover Letters" },
-        { ok: true, label: "Clean PDF" },
-      ],
-    },
-    {
-      name: "Active Hunter",
-      price: "AED 29/month",
-      tagline: "Most value for active job seekers",
-      cta: "Start Hunting",
-      href: "/checkout",
-      popular: true,
-      features: [
-        { ok: true, label: "All premium templates" },
-        { ok: true, label: "Unlimited CVs" },
-        { ok: true, label: "Unlimited ATS scans" },
-        { ok: true, label: "Unlimited Job Matches" },
-        { ok: true, label: "Unlimited Cover Letters" },
-        { ok: true, label: "Walk-In CV mode" },
-        { ok: true, label: "Clean PDF" },
-      ],
-    },
-    {
-      name: "Career Pro",
-      price: "AED 199/year",
-      tagline: "Save 43% vs monthly",
-      cta: "Go Pro",
-      href: "/checkout",
-      features: [
-        { ok: true, label: "Everything in Active Hunter" },
-        { ok: true, label: "Save 43% vs monthly" },
-        { ok: true, label: "Cancel anytime" },
-      ],
-    },
-  ];
+  const plans = currency === "IN" ? PLANS_IN : PLANS_AE;
+
+  useEffect(() => {
+    fetch("https://ipapi.co/json/")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.country_code === "IN") setCurrency("IN");
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div style={{ minHeight: "100vh", background: pageBg, color: textPrimary, fontFamily: "'DM Sans', system-ui, -apple-system, Segoe UI, sans-serif" }}>
@@ -213,7 +293,63 @@ export default function Pricing({ isLight = false }) {
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 42, fontWeight: 800, color: textPrimary, lineHeight: 1.15 }}>Land the job. Not just the interview.</div>
           <div style={{ marginTop: 10, fontSize: 17, color: textSecondary }}>
-            Built for job seekers across UAE, GCC & India. Pay only for what you need.
+            {currency === "IN" ? (
+              <>You spend ₹249 on a burger. Your resume gets you ₹40,000 a month. Do the math.</>
+            ) : (
+              <>Built for job seekers across UAE, GCC & India. Pay only for what you need.</>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: 320,
+              height: 48,
+              background: isLight ? "#F1F5F9" : "#141414",
+              border: isLight ? "1px solid #E5E7EB" : "1px solid #2A2A2A",
+              borderRadius: 12,
+              display: "flex",
+              zIndex: 1,
+              margin: 0,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setCurrency("AE")}
+              style={{
+                flex: 1,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 14,
+                transition: "background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+                background: currency === "AE" ? (isLight ? "#FFFFFF" : "#FFFFFF") : "transparent",
+                color: currency === "AE" ? "#000000" : isLight ? "#64748B" : "#A0A0A0",
+                borderRadius: currency === "AE" ? 10 : 0,
+                fontWeight: currency === "AE" ? 600 : 500,
+              }}
+            >
+              UAE
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrency("IN")}
+              style={{
+                flex: 1,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 14,
+                transition: "background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+                background: currency === "IN" ? (isLight ? "#FFFFFF" : "#FFFFFF") : "transparent",
+                color: currency === "IN" ? "#000000" : isLight ? "#64748B" : "#A0A0A0",
+                borderRadius: currency === "IN" ? 10 : 0,
+                fontWeight: currency === "IN" ? 600 : 500,
+              }}
+            >
+              India
+            </button>
           </div>
         </div>
 
