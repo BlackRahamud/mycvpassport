@@ -1,16 +1,28 @@
 /**
  * Vercel serverless: HTML → PDF via iLovePDF (htmlpdf).
- * iLovePDF only accepts htmlpdf inputs as public URLs (cloud_file), not raw multipart HTML.
- * We upload HTML to Vercel Blob (public), pass the URL to iLovePDF, then delete the blob.
+ * iLovePDF only accepts htmlpdf inputs as public URLs (cloud_file). We upload HTML to
+ * Supabase Storage (public bucket cv-html-temp), pass the public URL to iLovePDF, then remove the object.
  *
  * POST { html: string, filename?: string }
  *
- * Env: ILOVEPDF_PUBLIC_KEY, ILOVEPDF_SECRET_KEY, BLOB_READ_WRITE_TOKEN (Vercel Blob)
+ * Env: ILOVEPDF_PUBLIC_KEY, ILOVEPDF_SECRET_KEY,
+ *      REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY
+ *
+ * Supabase: create a public bucket named "cv-html-temp" and policies so this API can
+ * insert/delete objects (e.g. anon or service role per your security model).
  */
 
 const { randomBytes } = require("crypto");
+const { createClient } = require("@supabase/supabase-js");
 const ILovePDFApi = require("@ilovepdf/ilovepdf-nodejs");
-const { put, del } = require("@vercel/blob");
+
+const CV_HTML_BUCKET = "cv-html-temp";
+
+function getSupabaseConfig() {
+  const url = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  return { url, key };
+}
 
 function safeFilename(name) {
   const s = String(name || "cv_cvpassport")
@@ -59,30 +71,40 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: "PDF service not configured" });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const { url: supabaseUrl, key: supabaseKey } = getSupabaseConfig();
+  if (!supabaseUrl || !supabaseKey) {
     return res.status(500).json({
-      error:
-        "PDF: add BLOB_READ_WRITE_TOKEN (Vercel Blob). iLovePDF HTML→PDF requires a public URL; the server uploads HTML to Blob and passes that URL.",
+      error: "Missing REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY (or SUPABASE_URL / SUPABASE_ANON_KEY).",
     });
   }
 
   const attachmentName = `${safeFilename(body.filename)}.pdf`;
-  let htmlBlobUrl;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const storagePath = `pdf/${Date.now()}-${randomBytes(8).toString("hex")}.html`;
+  let publicHtmlUrl;
+  let htmlUploaded = false;
 
   try {
-    const pathname = `cv-pdf-html/${Date.now()}-${randomBytes(8).toString("hex")}.html`;
-    const blob = await put(pathname, html, {
-      access: "public",
+    const { error: uploadError } = await supabase.storage.from(CV_HTML_BUCKET).upload(storagePath, Buffer.from(html, "utf8"), {
       contentType: "text/html; charset=utf-8",
-      addRandomSuffix: true,
+      upsert: false,
     });
-    htmlBlobUrl = blob.url;
+    if (uploadError) {
+      console.error("generate-pdf supabase upload", uploadError);
+      return res.status(500).json({
+        error: `Supabase upload failed: ${uploadError.message}. Ensure bucket "${CV_HTML_BUCKET}" exists and is public with insert allowed.`,
+      });
+    }
+    htmlUploaded = true;
+
+    const { data: pub } = supabase.storage.from(CV_HTML_BUCKET).getPublicUrl(storagePath);
+    publicHtmlUrl = pub.publicUrl;
 
     const instance = new ILovePDFApi(publicKey, secretKey);
     const task = instance.newTask("htmlpdf");
     await task.start();
 
-    await task.addFile(htmlBlobUrl);
+    await task.addFile(publicHtmlUrl);
 
     await task.process({
       page_size: "A4",
@@ -100,11 +122,11 @@ module.exports = async (req, res) => {
     console.error("generate-pdf error", formatIlovepdfError(err), err);
     return res.status(500).json({ error: formatIlovepdfError(err) });
   } finally {
-    if (htmlBlobUrl) {
+    if (htmlUploaded) {
       try {
-        await del(htmlBlobUrl);
+        await supabase.storage.from(CV_HTML_BUCKET).remove([storagePath]);
       } catch (e) {
-        console.error("generate-pdf blob cleanup", e);
+        console.error("generate-pdf supabase cleanup", e);
       }
     }
   }
