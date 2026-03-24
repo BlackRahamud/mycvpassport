@@ -249,6 +249,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
 
       <style>{`
         @keyframes lp-arcflow { to { stroke-dashoffset: -20; } }
+        @keyframes lp-globe-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         path[stroke="rgba(255,255,255,0.5)"] { stroke-dashoffset: 0; }
         @keyframes lp-cvLineIn {
           from { opacity: 0; transform: translateX(-12px); }
@@ -635,7 +636,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
                 background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
                 pointerEvents:'none',
               }} />
-              <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '680px', height: '680px' }} />
+              <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '680px', height: '680px', animation: 'lp-globe-rotate 60s linear infinite' }} />
               <div
                 className="hidden md:block"
                 style={{
