@@ -640,8 +640,8 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
                 className="hidden md:block"
                 style={{
                   position: 'absolute',
-                  top: '50%',
-                  right: '10%',
+                  top: '68%',
+                  right: '6%',
                   transform: 'translateY(-50%) scale(0.67)',
                   transformOrigin: 'left center',
                   pointerEvents: 'none',
