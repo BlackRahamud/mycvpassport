@@ -139,6 +139,21 @@ function Chip({ text, good }) {
   );
 }
 
+function SkeletonBlock({ height, width = "100%", radius = 10 }) {
+  return (
+    <div
+      style={{
+        height,
+        width,
+        borderRadius: radius,
+        background: "linear-gradient(90deg, #1C1C1C 25%, #232323 37%, #1C1C1C 63%)",
+        backgroundSize: "400% 100%",
+        animation: "jobmatch-skeleton 1.4s ease infinite",
+      }}
+    />
+  );
+}
+
 export default function JobMatch({ resume, selectedTemplate }) {
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -260,6 +275,59 @@ export default function JobMatch({ resume, selectedTemplate }) {
         {error ? <div style={{ marginTop: 10, color: "#EF4444", fontSize: 13 }}>{error}</div> : null}
       </div>
 
+      {!loading && !result ? (
+        <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16 }}>
+          <div style={{ color: "#FFFFFF", fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Ready to analyse</div>
+          <div style={{ color: "#A0A0A0", fontSize: 13, lineHeight: 1.5 }}>
+            Paste a job description and click <span style={{ color: "#FFFFFF" }}>Analyse Match</span> to see your keyword score, matched terms, missing terms, and one improvement tip.
+          </div>
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div style={{ display: "grid", gap: 16 }}>
+          <div
+            style={{
+              background: "#141414",
+              border: "1px solid #2A2A2A",
+              borderRadius: 16,
+              padding: 16,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 20,
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <SkeletonBlock height={150} width={150} radius={999} />
+            <div style={{ flex: "1 1 220px", minWidth: 220, display: "grid", gap: 10 }}>
+              <SkeletonBlock height={16} width="45%" radius={6} />
+              <SkeletonBlock height={12} width="100%" radius={6} />
+              <SkeletonBlock height={12} width="85%" radius={6} />
+            </div>
+          </div>
+
+          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
+            <SkeletonBlock height={16} width="38%" radius={6} />
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <SkeletonBlock height={32} width={110} radius={999} />
+              <SkeletonBlock height={32} width={95} radius={999} />
+              <SkeletonBlock height={32} width={120} radius={999} />
+              <SkeletonBlock height={32} width={80} radius={999} />
+            </div>
+          </div>
+
+          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
+            <SkeletonBlock height={16} width="38%" radius={6} />
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <SkeletonBlock height={32} width={130} radius={999} />
+              <SkeletonBlock height={32} width={100} radius={999} />
+              <SkeletonBlock height={32} width={90} radius={999} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {result ? (
         <div style={{ display: "grid", gap: 16 }}>
           <div
@@ -301,6 +369,12 @@ export default function JobMatch({ resume, selectedTemplate }) {
           </div>
         </div>
       ) : null}
+      <style>{`
+        @keyframes jobmatch-skeleton {
+          0% { background-position: 100% 50%; }
+          100% { background-position: 0 50%; }
+        }
+      `}</style>
     </div>
   );
 }
