@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { getCurrentUserProfile, joinWaitlist } from "./supabaseClient";
+import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
+import UpgradeModal from "./UpgradeModal";
 import { Target, Eye, CheckCircle2 } from "lucide-react";
 
 const AT_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
@@ -131,6 +132,9 @@ export default function ATSChecker(props) {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [isPro, setIsPro] = useState(false);
+  const [atsScansUsed, setAtsScansUsed] = useState(0);
+  const [profileId, setProfileId] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistLoading, setWaitlistLoading] = useState(false);
@@ -145,8 +149,10 @@ export default function ATSChecker(props) {
   useEffect(() => {
     async function checkPro() {
       try {
-        const profile = await getCurrentUserProfile();
-        if (profile?.isPro) setIsPro(true);
+        const { profile, isPro: pro } = await getCurrentUserProfile();
+        setIsPro(!!pro);
+        setAtsScansUsed(Number(profile?.ats_scans_used || 0));
+        setProfileId(profile?.id || null);
       } catch (e) { console.error("Profile check failed", e); }
     }
     checkPro();
@@ -155,6 +161,10 @@ export default function ATSChecker(props) {
   async function handleCheck() {
     if (!resumeFile || !jobDesc.trim()) {
       setError("Please provide both a resume and a job description.");
+      return;
+    }
+    if (!isPro && atsScansUsed >= 1) {
+      setShowUpgradeModal(true);
       return;
     }
     setError("");
@@ -182,7 +192,15 @@ export default function ATSChecker(props) {
       const sec = analyzeSections(normalized);
       const fmt = analyzeFormatting(normalized);
 
-      setTimeout(() => {
+      setTimeout(async () => {
+        if (!isPro && profileId) {
+          const nextScans = atsScansUsed + 1;
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ ats_scans_used: nextScans })
+            .eq("id", profileId);
+          if (!updateError) setAtsScansUsed(nextScans);
+        }
         setResult({
           kw, sec, fmt,
           total: kw.score + sec.score + fmt.score,
@@ -260,6 +278,11 @@ export default function ATSChecker(props) {
       </button>
 
       {error && <div style={{ color: "#ef4444", marginTop: 20, textAlign: "center", fontWeight: 600, fontFamily: AT_FONT }}>{error}</div>}
+      {!isPro ? (
+        <div style={{ color: "#A0A0A0", marginTop: 12, textAlign: "center", fontSize: 12, fontFamily: AT_FONT }}>
+          Free plan usage: {Math.min(atsScansUsed, 1)}/1 scan used
+        </div>
+      ) : null}
 
       {/* Dashboard Results */}
       {result && !loading && (
@@ -377,6 +400,7 @@ export default function ATSChecker(props) {
           </div>
         </div>
       )}
+      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
     </div>
   );
 }

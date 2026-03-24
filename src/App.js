@@ -5,6 +5,7 @@ import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
 import CoverLetterModal from "./CoverLetterModal";
+import UpgradeModal from "./UpgradeModal";
 import TiltedCard from './components/TiltedCard';
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
@@ -1726,7 +1727,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
 
 // ─── RESUME BUILDER ───────────────────────────────────────────────
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
-function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId }) {
+function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId, isPro = false }) {
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloading, setDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1753,6 +1754,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [desktopPreviewScale, setDesktopPreviewScale] = useState(1);
   const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const measureFitWidth = (el) => {
     const w = el.getBoundingClientRect().width;
@@ -1884,6 +1886,14 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     }
   };
 
+  const handleOpenCoverLetter = () => {
+    if (!isPro) {
+      setUpgradeOpen(true);
+      return;
+    }
+    setCoverLetterOpen(true);
+  };
+
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
 
@@ -1951,7 +1961,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </button>
           <button
             type="button"
-            onClick={() => setCoverLetterOpen(true)}
+            onClick={handleOpenCoverLetter}
             style={{
               padding: "10px 16px",
               borderRadius: 8,
@@ -2125,7 +2135,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </div>
           )}
           {builderTab === "jobmatch" && (
-            <JobMatch resume={resume} selectedTemplate={selectedTemplate} />
+            <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />
           )}
         </aside>
 
@@ -2284,7 +2294,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             )}
             {builderTab === "customize" && customizePanel}
             {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
-            {builderTab === "jobmatch" && <JobMatch resume={resume} selectedTemplate={selectedTemplate} />}
+            {builderTab === "jobmatch" && <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />}
           </div>
         ) : (
           ["banner", "twocol", "sidebar", "timeline", "gulf-exec", "banking", "compact-pro", "creative", "hospitality", "ats-intl", "tech-it"].includes(selectedTemplate?.layout) ? (
@@ -2363,6 +2373,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         onClose={() => setCoverLetterOpen(false)}
         resume={resume}
       />
+      <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
 
       {experienceEditor && (
         <div
@@ -2624,6 +2635,7 @@ export default function App() {
   const [page, setPage]             = useState(() => (isWalkInPath() ? "walkin" : "landing"));
   const [authMode, setAuthMode]     = useState("signup");
   const [user, setUser]             = useState(null);
+  const [isPro, setIsPro]           = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError]   = useState(null);
   const [editingResume, setEditingResume] = useState(null);
@@ -2642,15 +2654,29 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase) return;
+    const fetchProStatus = async (userId) => {
+      try {
+        const { data: profile } = await supabase.from("profiles").select("is_pro").eq("id", userId).single();
+        setIsPro(!!profile?.is_pro);
+      } catch {
+        setIsPro(false);
+      }
+    };
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
+        fetchProStatus(session.user.id);
         if (!isWalkInPath()) setPage("dashboard");
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session?.user) setUser(prev => ({ name: prev?.name||extractName(session.user), email: session.user.email, id: session.user.id }));
-      else setUser(null);
+      if (session?.user) {
+        setUser(prev => ({ name: prev?.name||extractName(session.user), email: session.user.email, id: session.user.id }));
+        fetchProStatus(session.user.id);
+      } else {
+        setUser(null);
+        setIsPro(false);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -2671,7 +2697,7 @@ export default function App() {
       if (authMode === "signup") {
         const { data, error } = await supabase.auth.signUp({ email: userData.email, password: userData.password, options: { data: { name: userData.name } } });
         if (error) throw error;
-        if (data.user) { setUser({ name: userData.name, email: data.user.email, id: data.user.id }); setPage("dashboard"); }
+        if (data.user) { setUser({ name: userData.name, email: data.user.email, id: data.user.id }); setPage("dashboard"); setIsPro(false); }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email: userData.email, password: userData.password });
         if (error) throw error;
@@ -2681,7 +2707,7 @@ export default function App() {
     finally { setAuthLoading(false); }
   };
 
-  const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setPage("landing"); };
+  const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setIsPro(false); setPage("landing"); };
 
   const handleEditResume  = (record) => { setEditingResume(record); setPage("builder"); };
   const handleNewResume   = ()       => { setEditingResume(null);   setPage("builder"); };
@@ -2743,6 +2769,7 @@ export default function App() {
 {page === "builder" && (
   <ResumeBuilder
     user={user}
+    isPro={isPro}
     onBack={() => setPage(user ? "dashboard" : "landing")}
     initialResume={editingResume?.cv_data || null}
     initialResumeId={editingResume?.id || null}

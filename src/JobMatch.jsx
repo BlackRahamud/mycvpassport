@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import UpgradeModal from "./UpgradeModal";
 
 const BANK_FILE = "/cvpassport_keywords.json";
 
@@ -154,14 +155,19 @@ function SkeletonBlock({ height, width = "100%", radius = 10 }) {
   );
 }
 
-export default function JobMatch({ resume, selectedTemplate }) {
+export default function JobMatch({ resume, selectedTemplate, isPro = false }) {
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const templateKey = useMemo(() => detectTemplateKey(selectedTemplate), [selectedTemplate]);
 
   async function handleAnalyse() {
+    if (!isPro) {
+      setUpgradeOpen(true);
+      return;
+    }
     const jd = normalizeText(jobDescription);
     if (!jd) {
       setError("Paste a job description to continue.");
@@ -230,6 +236,7 @@ export default function JobMatch({ resume, selectedTemplate }) {
 
   return (
     <div style={{ display: "grid", gap: 16, padding: 12 }}>
+      <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16 }}>
         <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Job Description Match</div>
         <div style={{ color: "#A0A0A0", fontSize: 13, marginBottom: 12 }}>
@@ -273,6 +280,11 @@ export default function JobMatch({ resume, selectedTemplate }) {
           {loading ? "Analysing..." : "Analyse Match"}
         </button>
         {error ? <div style={{ marginTop: 10, color: "#EF4444", fontSize: 13 }}>{error}</div> : null}
+        {!isPro ? (
+          <div style={{ marginTop: 10, color: "#A0A0A0", fontSize: 13 }}>
+            Job Match is a Pro feature. Click Analyse Match to upgrade.
+          </div>
+        ) : null}
       </div>
 
       {!loading && !result ? (
