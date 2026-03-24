@@ -1,24 +1,11 @@
+import React from 'react';
+
 export default function LandingGlobe() {
   return (
-    <svg viewBox="0 0 505 520" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 505 520" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: 'auto' }}>
       <defs>
-        <marker
-          id="arrow"
-          viewBox="0 0 10 10"
-          refX="8"
-          refY="5"
-          markerWidth="5"
-          markerHeight="5"
-          orient="auto-start-reverse"
-        >
-          <path
-            d="M2 1L8 5L2 9"
-            fill="none"
-            stroke="context-stroke"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </marker>
         <radialGradient id="globeGrad" cx="42%" cy="38%" r="55%">
           <stop offset="0%" stopColor="#1e1e1e" />
@@ -27,6 +14,32 @@ export default function LandingGlobe() {
         <clipPath id="globeClip">
           <circle cx="300" cy="255" r="205" />
         </clipPath>
+        <mask id="imagine-text-gaps-vz0ha1" maskUnits="userSpaceOnUse">
+          <rect x="0" y="0" width="680" height="520" fill="white" />
+          <rect x="361.9619445800781" y="192.63658142089844" width="38.07616424560547" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="416.4836730957031" y="220.63658142089844" width="47.03266906738281" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="257.42315673828125" y="142.63658142089844" width="49.36418914794922" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="261.2327575683594" y="176.63658142089844" width="43.74931335449219" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="322.0174255371094" y="279.6365661621094" width="36.177791595458984" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="434.6918640136719" y="122.41986846923828" width="24.87755584716797" height="18.153489112854004" fill="black" rx="2" />
+          <rect x="601.8505859375" y="121.27992248535156" width="45.655517578125" height="13.650106430053711" fill="black" rx="2" />
+          <rect x="428.9999694824219" y="154.4898681640625" width="97.98723602294922" height="20.726850509643555" fill="black" rx="2" />
+          <rect x="428.9999694824219" y="175.63658142089844" width="178.26405334472656" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="446" y="205.63658142089844" width="73.98259735107422" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="468.0000305175781" y="233.3498992919922" width="137.14053344726562" height="15.580127716064453" fill="black" rx="2" />
+          <rect x="468.0000305175781" y="247.63658142089844" width="64.97583389282227" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="479.0000305175781" y="260.2799072265625" width="63.9588737487793" height="13.650106430053711" fill="black" rx="2" />
+          <rect x="468.0000305175781" y="299.34991455078125" width="101.55577087402344" height="15.580127716064453" fill="black" rx="2" />
+          <rect x="468.0000305175781" y="313.6365966796875" width="85.62920379638672" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="479.0000305175781" y="326.2799072265625" width="53.36555099487305" height="13.650106430053711" fill="black" rx="2" />
+          <rect x="441.0000305175781" y="361.6365966796875" width="44.78097915649414" height="14.29344654083252" fill="black" rx="2" />
+          <rect x="439.6402587890625" y="383.2799377441406" width="38.719505310058594" height="13.650106430053711" fill="black" rx="2" />
+          <rect x="495.31976318359375" y="383.2799377441406" width="27.360525131225586" height="13.650106430053711" fill="black" rx="2" />
+          <rect x="537.2596435546875" y="383.2799377441406" width="25.77027702331543" height="13.650106430053711" fill="black" rx="2" />
+          <rect x="577.6162719726562" y="383.2799377441406" width="26.53785514831543" height="13.650106430053711" fill="black" rx="2" />
+          <rect x="441.6675109863281" y="418.9932556152344" width="17.006765365600586" height="14.936786651611328" fill="black" rx="2" />
+          <rect x="465.44366455078125" y="418.9932556152344" width="149.3420867919922" height="14.936786651611328" fill="black" rx="2" />
+        </mask>
       </defs>
 
       <circle cx="300" cy="255" r="205" fill="url(#globeGrad)" stroke="#2a2a2a" strokeWidth="1" />
@@ -49,9 +62,9 @@ export default function LandingGlobe() {
         <circle cx="245" cy="228" r="2" /><circle cx="238" cy="241" r="2.5" /><circle cx="250" cy="251" r="2" />
       </g>
 
-      <path d="M353 201 Q398 165 405 221" fill="none" stroke="#aaa" strokeWidth="1.3" strokeDasharray="4 3" opacity="0.6" markerEnd="url(#arrow)" />
+      <path d="M353 201 Q398 165 405 221" fill="none" stroke="#aaa" strokeWidth="1.3" strokeDasharray="4 3" opacity="0.6" markerEnd="url(#arrow)" mask="url(#imagine-text-gaps-vz0ha1)" />
       <path d="M348 195 Q325 171 310 181" fill="none" stroke="#aaa" strokeWidth="1.3" strokeDasharray="4 3" opacity="0.55" markerEnd="url(#arrow)" />
-      <path d="M346 188 Q318 138 294 148" fill="none" stroke="#aaa" strokeWidth="1.3" strokeDasharray="4 3" opacity="0.5" markerEnd="url(#arrow)" />
+      <path d="M346 188 Q318 138 294 148" fill="none" stroke="#aaa" strokeWidth="1.3" strokeDasharray="4 3" opacity="0.5" markerEnd="url(#arrow)" mask="url(#imagine-text-gaps-vz0ha1)" />
       <path d="M358 208 Q375 253 365 278" fill="none" stroke="#aaa" strokeWidth="1.3" strokeDasharray="4 3" opacity="0.45" markerEnd="url(#arrow)" />
 
       <circle cx="353" cy="201" r="5" fill="#fff" />
@@ -63,19 +76,15 @@ export default function LandingGlobe() {
       <rect x="359" y="191" width="44" height="17" rx="3" fill="#1a1a1a" />
       <rect x="359" y="191" width="44" height="17" rx="3" fill="none" stroke="#444" strokeWidth="0.8" />
       <text x="381" y="203" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="white" fontFamily="sans-serif">DUBAI</text>
-
       <rect x="414" y="219" width="52" height="17" rx="3" fill="#1a1a1a" />
       <rect x="414" y="219" width="52" height="17" rx="3" fill="none" stroke="#444" strokeWidth="0.8" />
       <text x="440" y="231" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="white" fontFamily="sans-serif">MUMBAI</text>
-
       <rect x="258" y="141" width="48" height="17" rx="3" fill="#1a1a1a" />
       <rect x="258" y="141" width="48" height="17" rx="3" fill="none" stroke="#444" strokeWidth="0.8" />
       <text x="282" y="153" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="white" fontFamily="sans-serif">LONDON</text>
-
       <rect x="260" y="175" width="46" height="17" rx="3" fill="#1a1a1a" />
       <rect x="260" y="175" width="46" height="17" rx="3" fill="none" stroke="#444" strokeWidth="0.8" />
       <text x="283" y="187" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="white" fontFamily="sans-serif">RIYADH</text>
-
       <rect x="320" y="278" width="40" height="17" rx="3" fill="#1a1a1a" />
       <rect x="320" y="278" width="40" height="17" rx="3" fill="none" stroke="#444" strokeWidth="0.8" />
       <text x="340" y="290" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="white" fontFamily="sans-serif">DOHA</text>
