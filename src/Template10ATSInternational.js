@@ -15,6 +15,7 @@ import {
   pdfEnsureY,
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
 export function PreviewATSInternational({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
@@ -54,10 +55,10 @@ export function PreviewATSInternational({ cv, t, mobileMode = false }) {
 
   return (
     <div style={{
-      background: "#ffffff", borderRadius: "10px", overflow: "hidden",
+      ...resumePageRootBoxStyle(mobileMode),
+      background: "#ffffff",
       fontFamily: "Arial, sans-serif", color: dark, fontSize: "10.5px",
       padding: "28px 32px",
-      width: mobileMode ? "100%" : undefined,
     }}>
 
       {/* ── Header ── */}

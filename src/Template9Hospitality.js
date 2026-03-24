@@ -15,6 +15,7 @@ import {
   pdfDrawWrappedLines,
   pdfSplitText,
 } from "./pdfA4Layout";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
 export function PreviewHospitality({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
@@ -52,9 +53,9 @@ export function PreviewHospitality({ cv, t, mobileMode = false }) {
 
   return (
     <div style={{
-      background: cream, borderRadius: "10px", overflow: "hidden",
+      ...resumePageRootBoxStyle(mobileMode),
+      background: cream,
       fontFamily: "'Georgia', serif", color: mid, fontSize: "11px",
-      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Elegant Header ── */}
       <div style={{

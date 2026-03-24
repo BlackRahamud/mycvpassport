@@ -15,6 +15,7 @@ import {
   pdfDrawWrappedLines,
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
 export function PreviewGulfExecutive({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
@@ -76,9 +77,9 @@ export function PreviewGulfExecutive({ cv, t, mobileMode = false }) {
 
   return (
     <div style={{
-      background: "#fff", borderRadius: "10px", overflow: "hidden",
+      ...resumePageRootBoxStyle(mobileMode),
+      background: "#fff",
       fontFamily: "'Georgia', serif", color: body, fontSize: "11px",
-      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Header ── */}
       <div style={{ background: navy, padding: "26px 28px 20px", position: "relative", overflow: "hidden" }}>

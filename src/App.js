@@ -14,6 +14,7 @@ import {
   splitExperiencePointsForPreview,
   trimCanvasBottomWhitespace,
 } from "./experiencePointsPreview";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 import { PreviewGulfExecutive } from "./Template5GulfExecutive";
 import { PreviewBankingFinance } from "./Template6BankingFinance";
 import { PreviewCompactPro } from "./Template7CompactPro";
@@ -494,15 +495,11 @@ function PreviewBanner({ cv, t, mobileMode = false }) {
   return (
     <div
       style={{
+        ...resumePageRootBoxStyle(mobileMode),
         background: "#fff",
-        borderRadius: "10px",
-        overflow: "hidden",
         fontFamily: "Georgia,serif",
         color: "#222",
         fontSize: "12px",
-        width: mobileMode ? "100%" : undefined,
-        maxWidth: mobileMode ? "100%" : undefined,
-        transform: "none",
       }}
     >
       {/* Header */}
@@ -609,17 +606,15 @@ function PreviewTwoCol({ cv, t, mobileMode = false }) {
   return (
     <div
       style={{
+        ...resumePageRootBoxStyle(mobileMode),
         background: "#fff",
-        borderRadius: "10px",
-        overflow: "hidden",
         fontFamily: "Arial,sans-serif",
         color: "#222",
         display: "flex",
         flexDirection: mobileMode ? "column" : "row",
-        minHeight: mobileMode ? "0" : "500px",
+        minHeight: mobileMode ? "0" : undefined,
         fontSize: "11px",
         alignItems: "stretch",
-        width: mobileMode ? "100%" : undefined,
       }}
     >
       {/* Left sidebar */}
@@ -758,16 +753,14 @@ function PreviewSidebar({ cv, t, mobileMode = false }) {
   return (
     <div
       style={{
+        ...resumePageRootBoxStyle(mobileMode),
         background: "#fff",
-        borderRadius: "10px",
-        overflow: "hidden",
         fontFamily: "'Trebuchet MS',sans-serif",
         color: "#222",
         display: "flex",
         flexDirection: mobileMode ? "column" : "row",
         fontSize: "11px",
         alignItems: "stretch",
-        width: mobileMode ? "100%" : undefined,
       }}
     >
       {/* Sidebar */}
@@ -902,7 +895,15 @@ function PreviewTimeline({ cv, t, mobileMode = false }) {
   const skillList = cv.skills ? cv.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
   const certList  = cv.certifications ? cv.certifications.split(",").map(s => s.trim()).filter(Boolean) : [];
   return (
-    <div style={{ background: "#fff", borderRadius: "10px", overflow: "hidden", fontFamily: "Georgia,serif", color: "#222", fontSize: "11px", width: mobileMode ? "100%" : undefined }}>
+    <div
+      style={{
+        ...resumePageRootBoxStyle(mobileMode),
+        background: "#fff",
+        fontFamily: "Georgia,serif",
+        color: "#222",
+        fontSize: "11px",
+      }}
+    >
       {/* Header */}
       <div style={{ padding: "24px 28px 16px", borderBottom: `3px solid ${t.accent}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

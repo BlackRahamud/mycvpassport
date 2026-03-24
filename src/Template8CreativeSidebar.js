@@ -16,6 +16,7 @@ import {
   pdfDrawWrappedText,
   pdfSplitText,
 } from "./pdfA4Layout";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
 export function PreviewCreativeSidebar({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
@@ -58,11 +59,12 @@ export function PreviewCreativeSidebar({ cv, t, mobileMode = false }) {
 
   return (
     <div style={{
-      background: white, borderRadius: "10px", overflow: "hidden",
+      ...resumePageRootBoxStyle(mobileMode),
+      background: white,
       fontFamily: "Arial, sans-serif", color: charco,
-      fontSize: "10px", display: "flex", minHeight: "500px",
+      fontSize: "10px", display: "flex",
+      minHeight: mobileMode ? "500px" : undefined,
       alignItems: "stretch",
-      width: mobileMode ? "100%" : undefined,
       flexDirection: mobileMode ? "column" : "row",
     }}>
       {/* ── Left Sidebar ── */}

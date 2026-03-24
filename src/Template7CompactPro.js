@@ -14,6 +14,7 @@ import {
   pdfEnsureY,
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
 export function PreviewCompactPro({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
@@ -49,9 +50,9 @@ export function PreviewCompactPro({ cv, t, mobileMode = false }) {
 
   return (
     <div style={{
-      background: white, borderRadius: "10px", overflow: "hidden",
+      ...resumePageRootBoxStyle(mobileMode),
+      background: white,
       fontFamily: "Arial, sans-serif", color: mid, fontSize: "10px",
-      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Header — split layout ── */}
       <div style={{ background: dark, padding: "20px 24px 16px" }}>

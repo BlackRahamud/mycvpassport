@@ -17,6 +17,7 @@ import {
   pdfDrawWrappedText,
   pdfSplitText,
 } from "./pdfA4Layout";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
 export function PreviewTechITPro({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
@@ -62,12 +63,12 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
 
   return (
     <div style={{
-      background: white, borderRadius: "10px", overflow: "hidden",
+      ...resumePageRootBoxStyle(mobileMode),
+      background: white,
       fontFamily: "Arial, sans-serif", display: "grid",
       gridTemplateColumns: mobileMode ? "1fr" : `${sideW} minmax(0, 1fr)`,
       alignItems: "stretch",
-      minHeight: "100%",
-      width: mobileMode ? "100%" : undefined,
+      minHeight: mobileMode ? "100%" : undefined,
     }}>
 
       {/* ── Left Sidebar (stretches to full row height) ── */}

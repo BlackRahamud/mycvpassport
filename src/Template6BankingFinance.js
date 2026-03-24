@@ -14,6 +14,7 @@ import {
   pdfEnsureY,
   pdfDrawWrappedText,
 } from "./pdfA4Layout";
+import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
 export function PreviewBankingFinance({ cv, t, mobileMode = false }) {
   const skillList = cv.skills
@@ -49,9 +50,9 @@ export function PreviewBankingFinance({ cv, t, mobileMode = false }) {
 
   return (
     <div style={{
-      background: bg, borderRadius: "10px", overflow: "hidden",
+      ...resumePageRootBoxStyle(mobileMode),
+      background: bg,
       fontFamily: "'Times New Roman', serif", color: dark, fontSize: "11px",
-      width: mobileMode ? "100%" : undefined,
     }}>
       {/* ── Header — centered, formal ── */}
       <div style={{ padding: "28px 32px 16px", textAlign: "center", borderBottom: `3px double ${black}` }}>
