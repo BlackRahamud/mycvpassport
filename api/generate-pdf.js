@@ -1,17 +1,13 @@
 /**
- * Vercel serverless: HTML → PDF via iLovePDF (htmlpdf).
+ * Vercel serverless: HTML → PDF via iLovePDF REST API (tool: htmlpdf).
  *
- * Flow (correct order, all awaited):
- * 1. Upload HTML → Supabase public bucket `cv-html-temp`
- * 2. ILovePDFApi.newTask('htmlpdf') → HtmlPdfTask (tool type `htmlpdf`)
- * 3. task.start() → worker server + task id
- * 4. task.addFile(publicHtmlUrl) → cloud_file URL registered
- * 5. task.process({ page_size, page_orientation, page_margin, tool: htmlpdf via task.type })
- * 6. Download binary from GET /v1/download/{task} (see downloadIlovePdfBuffer — avoids axios
- *    following a redirect back to the Supabase HTML URL, which returns raw HTML)
- * 7. Normalize: PDF bytes, or if iLovePDF returned a ZIP (stored PDF), slice %PDF…%%EOF (no jszip dep)
- * 8. Respond with Content-Type: application/pdf
- * 9. finally: remove temp object from Supabase
+ * Official flow (https://developer.ilovepdf.com/docs):
+ * 1. JWT Bearer: sign locally with public + secret key (same as @ilovepdf/ilovepdf-js-core JWT).
+ * 2. Start: GET https://api.ilovepdf.com/v1/start/htmlpdf
+ * 3. Upload: POST https://{server}/v1/upload — JSON body { task, cloud_file } (not multipart)
+ * 4. Process: POST https://{server}/v1/process — JSON { task, tool: "htmlpdf", files: [...], ... }
+ * 5. Download: GET https://{server}/v1/download/{task} (manual redirect handling; see downloadIlovePdfBuffer)
+ * 6. Supabase: temp HTML at publicHtmlUrl; delete object in finally
  *
  * POST { html: string, filename?: string }
  *
@@ -21,10 +17,16 @@
 
 const { randomBytes } = require("crypto");
 const axios = require("axios");
+const jwt = require("jsonwebtoken");
 const { createClient } = require("@supabase/supabase-js");
-const ILovePDFApi = require("@ilovepdf/ilovepdf-nodejs");
 
 const CV_HTML_BUCKET = "cv-html-temp";
+
+const ILOVE_API_HOST = "api.ilovepdf.com";
+const ILOVE_API_VER = "v1";
+const ILOVE_TOOL = "htmlpdf";
+/** Matches ilovepdf-js-core auth/JWT.js — servers reject tokens with iat “too new” */
+const JWT_IAT_DELAY_SEC = 5;
 
 const ILOVEPDF_OK_STATUS = new Set(["TaskSuccess", "TaskSuccessWithWarnings"]);
 
@@ -52,6 +54,70 @@ function formatIlovepdfError(err) {
   return err.message || String(err);
 }
 
+function createIloveBearerToken(publicKey, secretKey) {
+  const timeNow = Date.now() / 1000;
+  const payload = {
+    jti: publicKey,
+    iss: ILOVE_API_HOST,
+    iat: timeNow - JWT_IAT_DELAY_SEC,
+  };
+  return jwt.sign(payload, secretKey);
+}
+
+function basenameFromUrl(url) {
+  const i = url.lastIndexOf("/") + 1;
+  if (i <= 0) return "file.html";
+  return url.substring(i).split("?")[0] || "file.html";
+}
+
+async function iloveStartHtmlpdf(bearerToken) {
+  const { data } = await axios.get(`https://${ILOVE_API_HOST}/${ILOVE_API_VER}/start/${ILOVE_TOOL}`, {
+    headers: {
+      Authorization: `Bearer ${bearerToken}`,
+      "Content-Type": "application/json;charset=UTF-8",
+    },
+  });
+  const { task, server } = data;
+  if (!task || !server) {
+    throw new Error("iLovePDF start/htmlpdf: missing task or server in response");
+  }
+  return { taskId: task, server };
+}
+
+async function iloveUploadCloudFile(bearerToken, server, taskId, cloudFileUrl) {
+  const { data } = await axios.post(
+    `https://${server}/${ILOVE_API_VER}/upload`,
+    JSON.stringify({ task: taskId, cloud_file: cloudFileUrl }),
+    {
+      headers: {
+        Authorization: `Bearer ${bearerToken}`,
+        "Content-Type": "application/json;charset=UTF-8",
+      },
+    },
+  );
+  const { server_filename } = data;
+  if (!server_filename) {
+    throw new Error("iLovePDF upload: missing server_filename in response");
+  }
+  return { server_filename, filename: basenameFromUrl(cloudFileUrl) };
+}
+
+async function iloveProcessHtmlpdf(bearerToken, server, taskId, files, options) {
+  const body = {
+    task: taskId,
+    tool: ILOVE_TOOL,
+    files,
+    ...options,
+  };
+  const { data } = await axios.post(`https://${server}/${ILOVE_API_VER}/process`, JSON.stringify(body), {
+    headers: {
+      Authorization: `Bearer ${bearerToken}`,
+      "Content-Type": "application/json;charset=UTF-8",
+    },
+  });
+  return data;
+}
+
 function looksLikePdf(buf) {
   return buf.length >= 4 && buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46; // %PDF
 }
@@ -66,19 +132,16 @@ function looksLikeHtml(buf) {
 }
 
 /**
- * iLovePDF GET /v1/download/{task} may respond with 302 to a temporary file URL (e.g. S3).
- * Axios default: follow all redirects. If Location ever pointed at the same Supabase HTML URL
- * (or another HTML document), the client would return that HTML as the "PDF" body.
- * We follow redirects manually and refuse to follow to the source HTML URL.
+ * GET /v1/download/{task} may 302 to a CDN URL; avoid following back to the Supabase HTML source URL.
  */
-async function downloadIlovePdfBuffer(task, sourceHtmlUrl) {
-  const token = await task.auth.getToken();
-  let url = `https://${task.server}/v1/download/${task.id}`;
+async function downloadIlovePdfBuffer(ctx, sourceHtmlUrl) {
+  const { bearerToken, server, taskId } = ctx;
+  let url = `https://${server}/${ILOVE_API_VER}/download/${taskId}`;
   let useAuth = true;
 
   for (let hop = 0; hop < 12; hop++) {
     const res = await axios.get(url, {
-      headers: useAuth ? { Authorization: `Bearer ${token}` } : {},
+      headers: useAuth ? { Authorization: `Bearer ${bearerToken}` } : {},
       responseType: "arraybuffer",
       maxRedirects: 0,
       validateStatus: (s) =>
@@ -118,7 +181,6 @@ async function downloadIlovePdfBuffer(task, sourceHtmlUrl) {
   throw new Error("Too many download redirects");
 }
 
-/** ZIP with deflate-compressed PDF would need a full unzip lib; iLovePDF usually serves a raw PDF or a ZIP with stored PDF. */
 const PDF_MAGIC = Buffer.from("%PDF");
 const PDF_EOF = Buffer.from("%%EOF");
 
@@ -217,13 +279,12 @@ module.exports = async (req, res) => {
     const { data: pub } = supabase.storage.from(CV_HTML_BUCKET).getPublicUrl(storagePath);
     publicHtmlUrl = pub.publicUrl;
 
-    const instance = new ILovePDFApi(publicKey, secretKey);
-    const task = instance.newTask("htmlpdf");
-    await task.start();
+    const bearerToken = createIloveBearerToken(publicKey, secretKey);
+    const { taskId, server } = await iloveStartHtmlpdf(bearerToken);
 
-    await task.addFile(publicHtmlUrl);
+    const { server_filename, filename } = await iloveUploadCloudFile(bearerToken, server, taskId, publicHtmlUrl);
 
-    const processResult = await task.process({
+    const processResult = await iloveProcessHtmlpdf(bearerToken, server, taskId, [{ server_filename, filename }], {
       page_size: "A4",
       page_orientation: "portrait",
       page_margin: 0,
@@ -233,7 +294,7 @@ module.exports = async (req, res) => {
       throw new Error(`iLovePDF process did not succeed (status: ${processResult.status})`);
     }
 
-    const rawDownload = await downloadIlovePdfBuffer(task, publicHtmlUrl);
+    const rawDownload = await downloadIlovePdfBuffer({ bearerToken, server, taskId }, publicHtmlUrl);
     const pdfBuf = normalizeToPdfBuffer(rawDownload);
 
     res.setHeader("Content-Type", "application/pdf");
