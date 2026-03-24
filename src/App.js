@@ -2701,8 +2701,10 @@ export default function App() {
     const routePage = getPageFromPath(location.pathname);
     if (routePage === "walkin" || routePage === "pricing") {
       setPage(routePage);
+    } else if (routePage === "landing" && (page === "walkin" || page === "pricing")) {
+      setPage("landing");
     }
-  }, [location.pathname]);
+  }, [location.pathname, page]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
