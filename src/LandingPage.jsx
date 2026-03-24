@@ -870,7 +870,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
                   background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
                   pointerEvents:'none',
                 }} />
-                <GlobeComponent />
+                <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '340px', height: 'auto' }} />
               </div>
             </div>
           </div>
