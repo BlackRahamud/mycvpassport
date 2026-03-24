@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Routes, Route } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
@@ -2633,22 +2633,10 @@ function isWalkInPath() {
   return window.location.pathname.replace(/\/$/, "") === "/walk-in";
 }
 
-function isPricingPath() {
-  if (typeof window === "undefined") return false;
-  return window.location.pathname.replace(/\/$/, "") === "/pricing";
-}
-
-function getPageFromPath(pathname) {
-  const clean = String(pathname || "/").replace(/\/$/, "") || "/";
-  if (clean === "/walk-in") return "walkin";
-  if (clean === "/pricing") return "pricing";
-  return "landing";
-}
-
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [page, setPage]             = useState(() => getPageFromPath(typeof window !== "undefined" ? window.location.pathname : "/"));
+  const [page, setPage]             = useState(() => (isWalkInPath() ? "walkin" : "landing"));
   const [authMode, setAuthMode]     = useState("signup");
   const [user, setUser]             = useState(null);
   const [isPro, setIsPro]           = useState(false);
@@ -2682,7 +2670,7 @@ export default function App() {
       if (session?.user) {
         setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
         fetchProStatus(session.user.id);
-        if (!isWalkInPath() && !isPricingPath()) setPage("dashboard");
+        if (!isWalkInPath()) setPage("dashboard");
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -2698,10 +2686,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const routePage = getPageFromPath(location.pathname);
-    if (routePage === "walkin" || routePage === "pricing") {
-      setPage(routePage);
-    } else if (routePage === "landing" && (page === "walkin" || page === "pricing")) {
+    const clean = location.pathname.replace(/\/$/, "") || "/";
+    if (clean === "/walk-in" && page !== "walkin") {
+      setPage("walkin");
+    } else if (clean !== "/walk-in" && page === "walkin") {
       setPage("landing");
     }
   }, [location.pathname, page]);
@@ -2713,7 +2701,7 @@ export default function App() {
       navigate("/walk-in");
     } else if (page === "pricing" && clean !== "/pricing") {
       navigate("/pricing");
-    } else if (page === "landing" && (clean === "/walk-in" || clean === "/pricing")) {
+    } else if (page === "landing" && clean === "/walk-in") {
       navigate("/", { replace: true });
     }
   }, [page, location.pathname, navigate]);
@@ -2741,73 +2729,80 @@ export default function App() {
   const handleNewResume   = ()       => { setEditingResume(null);   setPage("builder"); };
 
   return (
-    <div style={S.app}>
-      {page !== "landing" && page !== "pricing" && (
-      <nav className="cvp-app-nav" style={S.nav}>
-        <div style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }} onClick={() => setPage("landing")} role="button" tabIndex={0}>
-          <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
-          CVPassport
-        </div>
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          {user ? (
-            <>
-              <span style={{ color: C.muted, fontSize: "14px" }}>Hi, {user.name}</span>
-              <button style={S.btn("outline","sm")} onClick={() => setPage("ats")}>ATS Checker</button>
-              <button style={S.btn("outline","sm")} onClick={handleLogout}>Sign Out</button>
-            </>
-          ) : (
-            <>
-              <button style={S.btn("outline","sm")} onClick={() => { setAuthMode("login"); setPage("auth"); }}>Sign In</button>
-              <button style={S.btn("primary","sm")} onClick={() => { setAuthMode("signup"); setPage("auth"); }}>Get Started</button>
-            </>
-          )}
-        </div>
-      </nav>
-      )}
-{page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
-{page === "pricing" && <Pricing isLight={document.documentElement.classList.contains("light")} />}
-{page === "walkin" && <WalkInMode onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
-{page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
-{page === "dashboard" && user && (
-  <Dashboard
-    theme={document.documentElement.classList.contains("light") ? "light" : "dark"}
-    user={user}
-    resumeList={resumeList}
-    getStrength={(r) => getStrength(r?.cv_data || r)}
-    renderThumb={(r) => (
-      <div className="cvp-thumb-inner">
-        <ResumePreview cv={r?.cv_data || EMPTY_RESUME} template={TEMPLATES.find(t => t.id === r?.template_id) || TEMPLATES[0]} />
-      </div>
-    )}
-    onBuildResume={handleNewResume}
-    onEditResume={handleEditResume}
-    onDelete={async (resumeId) => {
-      try {
-        await deleteResume(resumeId, user.id);
-        setResumeList(prev => prev.filter(r => r.id !== resumeId));
-      } catch (e) {
-        alert("Error deleting resume");
-      }
-    }}
-    onRunATS={() => setPage("ats")}
-    onWalkIn={() => setPage("walkin")}
-    onTemplates={() => {}}
-    onGoHome={() => setPage("landing")}
-  />
-)}
-{page === "builder" && (
-  <ResumeBuilder
-    user={user}
-    isPro={isPro}
-    onBack={() => setPage(user ? "dashboard" : "landing")}
-    initialResume={editingResume?.cv_data || null}
-    initialResumeId={editingResume?.id || null}
-    initialTemplateId={editingResume?.template_id || null}
-  />
-)}
-{page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
-<MobileTabBar page={page} setPage={setPage} user={user} />
-<Analytics />
-</div>
-);
+    <Routes>
+      <Route path="/pricing" element={<Pricing isLight={document.documentElement.classList.contains("light")} />} />
+      <Route
+        path="*"
+        element={
+          <div style={S.app}>
+            {page !== "landing" && (
+              <nav className="cvp-app-nav" style={S.nav}>
+                <div style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }} onClick={() => setPage("landing")} role="button" tabIndex={0}>
+                  <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
+                  CVPassport
+                </div>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                  {user ? (
+                    <>
+                      <span style={{ color: C.muted, fontSize: "14px" }}>Hi, {user.name}</span>
+                      <button style={S.btn("outline","sm")} onClick={() => setPage("ats")}>ATS Checker</button>
+                      <button style={S.btn("outline","sm")} onClick={handleLogout}>Sign Out</button>
+                    </>
+                  ) : (
+                    <>
+                      <button style={S.btn("outline","sm")} onClick={() => { setAuthMode("login"); setPage("auth"); }}>Sign In</button>
+                      <button style={S.btn("primary","sm")} onClick={() => { setAuthMode("signup"); setPage("auth"); }}>Get Started</button>
+                    </>
+                  )}
+                </div>
+              </nav>
+            )}
+            {page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
+            {page === "walkin" && <WalkInMode onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
+            {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
+            {page === "dashboard" && user && (
+              <Dashboard
+                theme={document.documentElement.classList.contains("light") ? "light" : "dark"}
+                user={user}
+                resumeList={resumeList}
+                getStrength={(r) => getStrength(r?.cv_data || r)}
+                renderThumb={(r) => (
+                  <div className="cvp-thumb-inner">
+                    <ResumePreview cv={r?.cv_data || EMPTY_RESUME} template={TEMPLATES.find(t => t.id === r?.template_id) || TEMPLATES[0]} />
+                  </div>
+                )}
+                onBuildResume={handleNewResume}
+                onEditResume={handleEditResume}
+                onDelete={async (resumeId) => {
+                  try {
+                    await deleteResume(resumeId, user.id);
+                    setResumeList(prev => prev.filter(r => r.id !== resumeId));
+                  } catch (e) {
+                    alert("Error deleting resume");
+                  }
+                }}
+                onRunATS={() => setPage("ats")}
+                onWalkIn={() => setPage("walkin")}
+                onTemplates={() => {}}
+                onGoHome={() => setPage("landing")}
+              />
+            )}
+            {page === "builder" && (
+              <ResumeBuilder
+                user={user}
+                isPro={isPro}
+                onBack={() => setPage(user ? "dashboard" : "landing")}
+                initialResume={editingResume?.cv_data || null}
+                initialResumeId={editingResume?.id || null}
+                initialTemplateId={editingResume?.template_id || null}
+              />
+            )}
+            {page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
+            <MobileTabBar page={page} setPage={setPage} user={user} />
+            <Analytics />
+          </div>
+        }
+      />
+    </Routes>
+  );
 }
