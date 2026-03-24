@@ -641,7 +641,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
                 style={{
                   position: 'absolute',
                   top: '68%',
-                  right: '6%',
+                  right: '-12%',
                   transform: 'translateY(-50%) scale(0.67)',
                   transformOrigin: 'left center',
                   pointerEvents: 'none',
