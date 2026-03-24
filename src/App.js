@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
-import { useLocation, useNavigate, Routes, Route } from "react-router-dom";
+import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
@@ -62,15 +62,15 @@ function TabIconUser() {
     </svg>
   );
 }
-function MobileTabBar({ page, setPage, user }) {
+function MobileTabBar({ currentPath, onNavigate, user }) {
   if (!user) return null;
-  const show = ["dashboard", "ats", "walkin"].includes(page);
+  const show = ["/dashboard", "/ats", "/walk-in"].includes(currentPath);
   if (!show) return null;
   const tabs = [
-    { id: "dashboard", label: "My CVs", icon: <TabIconDoc /> },
-    { id: "ats", label: "ATS", icon: <TabIconTarget /> },
-    { id: "walkin", label: "Walk-In", icon: <TabIconBolt /> },
-    { id: "account", label: "Account", icon: <TabIconUser /> },
+    { id: "/dashboard", label: "My CVs", icon: <TabIconDoc /> },
+    { id: "/ats", label: "ATS", icon: <TabIconTarget /> },
+    { id: "/walk-in", label: "Walk-In", icon: <TabIconBolt /> },
+    { id: "/dashboard", label: "Account", icon: <TabIconUser /> },
   ];
   return (
     <div
@@ -95,11 +95,11 @@ function MobileTabBar({ page, setPage, user }) {
         <button
           key={t.id}
           type="button"
-          onClick={() => setPage(t.id === "account" ? "dashboard" : t.id)}
+          onClick={() => onNavigate(t.id)}
           style={{
             background: "transparent",
             border: "none",
-            color: page === t.id ? "#FFFFFF" : "#555",
+            color: currentPath === t.id ? "#FFFFFF" : "#555",
             display: "grid",
             justifyItems: "center",
             gap: 4,
@@ -108,7 +108,7 @@ function MobileTabBar({ page, setPage, user }) {
           }}
         >
           {t.icon}
-          <span style={{ fontSize: 11, fontWeight: 600, color: page === t.id ? "#FFFFFF" : "#555" }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: currentPath === t.id ? "#FFFFFF" : "#555" }}>
             {t.label}
           </span>
         </button>
@@ -2628,15 +2628,9 @@ function getStrength(cv) {
 // ─── MAIN APP ─────────────────────────────────────────────────────
 const extractName = u => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
-function isWalkInPath() {
-  if (typeof window === "undefined") return false;
-  return window.location.pathname.replace(/\/$/, "") === "/walk-in";
-}
-
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [page, setPage]             = useState(() => (isWalkInPath() ? "walkin" : "landing"));
   const [authMode, setAuthMode]     = useState("signup");
   const [user, setUser]             = useState(null);
   const [isPro, setIsPro]           = useState(false);
@@ -2670,7 +2664,10 @@ export default function App() {
       if (session?.user) {
         setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
         fetchProStatus(session.user.id);
-        if (!isWalkInPath()) setPage("dashboard");
+        const clean = location.pathname.replace(/\/$/, "") || "/";
+        if (!["/pricing", "/walk-in", "/builder", "/ats", "/dashboard"].includes(clean)) {
+          navigate("/dashboard", { replace: true });
+        }
       }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -2683,28 +2680,7 @@ export default function App() {
       }
     });
     return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const clean = location.pathname.replace(/\/$/, "") || "/";
-    if (clean === "/walk-in" && page !== "walkin") {
-      setPage("walkin");
-    } else if (clean !== "/walk-in" && page === "walkin") {
-      setPage("landing");
-    }
-  }, [location.pathname, page]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const clean = location.pathname.replace(/\/$/, "") || "/";
-    if (page === "walkin" && clean !== "/walk-in") {
-      navigate("/walk-in");
-    } else if (page === "pricing" && clean !== "/pricing") {
-      navigate("/pricing");
-    } else if (page === "landing" && clean === "/walk-in") {
-      navigate("/", { replace: true });
-    }
-  }, [page, location.pathname, navigate]);
+  }, [location.pathname, navigate]);
 
   const handleAuth = async (userData) => {
     if (!supabase) return;
@@ -2713,20 +2689,22 @@ export default function App() {
       if (authMode === "signup") {
         const { data, error } = await supabase.auth.signUp({ email: userData.email, password: userData.password, options: { data: { name: userData.name } } });
         if (error) throw error;
-        if (data.user) { setUser({ name: userData.name, email: data.user.email, id: data.user.id }); setPage("dashboard"); setIsPro(false); }
+        if (data.user) { setUser({ name: userData.name, email: data.user.email, id: data.user.id }); setIsPro(false); navigate("/dashboard"); }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email: userData.email, password: userData.password });
         if (error) throw error;
-        setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id }); setPage("dashboard");
+        setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id }); navigate("/dashboard");
       }
     } catch(err) { setAuthError(err.message); }
     finally { setAuthLoading(false); }
   };
 
-  const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setIsPro(false); setPage("landing"); };
+  const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setIsPro(false); navigate("/"); };
 
-  const handleEditResume  = (record) => { setEditingResume(record); setPage("builder"); };
-  const handleNewResume   = ()       => { setEditingResume(null);   setPage("builder"); };
+  const handleEditResume  = (record) => { setEditingResume(record); navigate("/builder"); };
+  const handleNewResume   = ()       => { setEditingResume(null);   navigate("/builder"); };
+  const currentPath = location.pathname.replace(/\/$/, "") || "/";
+  const showGlobalNav = currentPath !== "/" && currentPath !== "/pricing";
 
   return (
     <Routes>
@@ -2735,9 +2713,9 @@ export default function App() {
         path="*"
         element={
           <div style={S.app}>
-            {page !== "landing" && (
+            {showGlobalNav && (
               <nav className="cvp-app-nav" style={S.nav}>
-                <div style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }} onClick={() => setPage("landing")} role="button" tabIndex={0}>
+                <div style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }} onClick={() => navigate("/")} role="button" tabIndex={0}>
                   <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
                   CVPassport
                 </div>
@@ -2745,22 +2723,29 @@ export default function App() {
                   {user ? (
                     <>
                       <span style={{ color: C.muted, fontSize: "14px" }}>Hi, {user.name}</span>
-                      <button style={S.btn("outline","sm")} onClick={() => setPage("ats")}>ATS Checker</button>
+                      <button style={S.btn("outline","sm")} onClick={() => navigate("/ats")}>ATS Checker</button>
                       <button style={S.btn("outline","sm")} onClick={handleLogout}>Sign Out</button>
                     </>
                   ) : (
                     <>
-                      <button style={S.btn("outline","sm")} onClick={() => { setAuthMode("login"); setPage("auth"); }}>Sign In</button>
-                      <button style={S.btn("primary","sm")} onClick={() => { setAuthMode("signup"); setPage("auth"); }}>Get Started</button>
+                      <button style={S.btn("outline","sm")} onClick={() => { setAuthMode("login"); navigate("/auth"); }}>Sign In</button>
+                      <button style={S.btn("primary","sm")} onClick={() => { setAuthMode("signup"); navigate("/register"); }}>Get Started</button>
                     </>
                   )}
                 </div>
               </nav>
             )}
-            {page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
-            {page === "walkin" && <WalkInMode onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
-            {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
-            {page === "dashboard" && user && (
+            <Routes>
+              <Route path="/" element={<LandingPage onLogin={() => { setAuthMode("login"); navigate("/auth"); }} onSignup={() => { setAuthMode("signup"); navigate("/register"); }} setPage={(next) => {
+                if (next === "ats") navigate("/ats");
+                else if (next === "pricing") navigate("/pricing");
+                else if (next === "walkin") navigate("/walk-in");
+                else navigate("/");
+              }} onWalkIn={() => navigate("/walk-in")} />} />
+              <Route path="/walk-in" element={<WalkInMode onBack={() => navigate("/")} onComplete={() => navigate("/builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />} />
+              <Route path="/auth" element={<AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>} />
+              <Route path="/register" element={<AuthPage mode="signup" onAuth={handleAuth} onToggle={() => { setAuthMode("login"); setAuthError(null); navigate("/auth"); }} loading={authLoading} error={authError}/>} />
+              <Route path="/dashboard" element={user ? (
               <Dashboard
                 theme={document.documentElement.classList.contains("light") ? "light" : "dark"}
                 user={user}
@@ -2781,24 +2766,26 @@ export default function App() {
                     alert("Error deleting resume");
                   }
                 }}
-                onRunATS={() => setPage("ats")}
-                onWalkIn={() => setPage("walkin")}
+                onRunATS={() => navigate("/ats")}
+                onWalkIn={() => navigate("/walk-in")}
                 onTemplates={() => {}}
-                onGoHome={() => setPage("landing")}
+                onGoHome={() => navigate("/")}
               />
-            )}
-            {page === "builder" && (
+              ) : <Navigate to="/" replace />} />
+              <Route path="/builder" element={(
               <ResumeBuilder
                 user={user}
                 isPro={isPro}
-                onBack={() => setPage(user ? "dashboard" : "landing")}
+                onBack={() => navigate(user ? "/dashboard" : "/")}
                 initialResume={editingResume?.cv_data || null}
                 initialResumeId={editingResume?.id || null}
                 initialTemplateId={editingResume?.template_id || null}
               />
-            )}
-            {page === "ats" && <ATSChecker onBack={() => setPage(user ? "dashboard" : "landing")} />}
-            <MobileTabBar page={page} setPage={setPage} user={user} />
+              )} />
+              <Route path="/ats" element={<ATSChecker onBack={() => navigate(user ? "/dashboard" : "/")} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} />
             <Analytics />
           </div>
         }
