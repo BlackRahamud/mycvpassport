@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function StatusIcon({ ok }) {
   if (ok) {
@@ -199,13 +199,12 @@ export default function Pricing({ isLight = false }) {
     <div style={{ minHeight: "100vh", background: pageBg, color: textPrimary, fontFamily: "'DM Sans', system-ui, -apple-system, Segoe UI, sans-serif" }}>
       <div style={{ borderBottom: isLight ? "1px solid #E5E7EB" : "1px solid #2A2A2A", background: isLight ? "#FFFFFF" : "#0A0A0A" }}>
         <div style={{ maxWidth: 1240, margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            style={{ border: "none", background: "transparent", color: textSecondary, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+          <Link
+            to="/"
+            style={{ border: "none", background: "transparent", color: textSecondary, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
           >
             <span aria-hidden="true">←</span> Back
-          </button>
+          </Link>
           <div style={{ color: textPrimary, fontSize: 18, fontWeight: 700 }}>CVPassport</div>
         </div>
       </div>

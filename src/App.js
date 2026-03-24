@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
-import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
+import { useLocation, useNavigate, Routes, Route, Navigate, Link } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
@@ -2665,7 +2665,8 @@ export default function App() {
         setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
         fetchProStatus(session.user.id);
         const clean = location.pathname.replace(/\/$/, "") || "/";
-        if (!["/pricing", "/walk-in", "/builder", "/ats", "/dashboard"].includes(clean)) {
+        // Allow "/" so the logo / home link can reach the landing page without being overridden.
+        if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/dashboard"].includes(clean)) {
           navigate("/dashboard", { replace: true });
         }
       }
@@ -2715,21 +2716,14 @@ export default function App() {
           <div style={S.app}>
             {showGlobalNav && (
               <nav className="cvp-app-nav" style={S.nav}>
-                <div
-                  style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }}
-                  onClick={() => navigate("/")}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      navigate("/");
-                    }
-                  }}
+                <Link
+                  to="/"
+                  style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "inherit" }}
+                  aria-label="CVPassport home"
                 >
                   <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
                   CVPassport
-                </div>
+                </Link>
                 <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                   {user ? (
                     <>

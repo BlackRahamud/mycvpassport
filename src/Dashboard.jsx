@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ReactComponent as FalconLogo } from "./logo.svg";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -92,7 +92,6 @@ export default function Dashboard({
   onWalkIn = () => {},
   onTemplates = () => {},
 }) {
-  const navigate = useNavigate();
   const [active, setActive] = useState("mycvs");
   const [menuOpenId, setMenuOpenId] = useState(null);
   const isLight = theme === "light";
@@ -134,21 +133,14 @@ export default function Dashboard({
             flexDirection: "column",
           }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 14px", color: "var(--text-primary)", cursor: "pointer" }}
-            onClick={() => navigate("/")}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navigate("/");
-              }
-            }}
+          <Link
+            to="/"
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px 14px", color: "var(--text-primary)", cursor: "pointer", textDecoration: "none" }}
+            aria-label="CVPassport home"
           >
             <FalconLogo width={22} height={22} aria-hidden="true" style={{ display: "block", flexShrink: 0, color: "var(--text-primary)", background: "none", border: "none", boxShadow: "none" }} />
             <span style={{ fontWeight: 700, letterSpacing: "0.04em" }}>CVPassport</span>
-          </div>
+          </Link>
 
           <nav style={{ display: "grid", gap: 6, padding: "8px" }}>
             {navItems.map((it) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ReactComponent as FalconLogo } from './logo.svg';
 import CVPlayCard from './components/CVPlayCard';
@@ -333,18 +333,11 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn }) {
             borderBottom:   `1px solid ${T.navBorder}`,
           }}
         >
-          {/* Logo */}
-          <div
-            onClick={() => navigate('/')}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                navigate('/');
-              }
-            }}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          {/* Logo — Link avoids fighting App session redirect + gives native client nav */}
+          <Link
+            to="/"
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}
+            aria-label="CVPassport home"
           >
             <FalconLogo
               width={28}
@@ -360,7 +353,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn }) {
               }}
             />
             <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.5px', color: T.textPrimary }}>CVPassport</span>
-          </div>
+          </Link>
 
           {/* Center nav — desktop only */}
           <div
