@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ReactComponent as FalconLogo } from './logo.svg';
+import CVPlayCard from './components/CVPlayCard';
 
 // ── Globe helpers — kept identical to LandingGlobe.jsx ─────────────
 function project(lat, lon) {
@@ -832,7 +833,7 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             </div>
           </div>
 
-          {/* Right */}
+          {/* Right — CV card left of globe, side-by-side with gap (no overlap) */}
           <div
             className="lp-hero-right"
             style={{
@@ -847,24 +848,30 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
             }}
           >
             <div
-              className="hero-visual"
               style={{
-                position: 'relative',
-                width: '100%',
-                maxWidth: '680px',
-                margin: '0 auto',
-                overflow: 'hidden',
+                display:        'flex',
+                flexDirection:  'row',
+                alignItems:     'center',
+                justifyContent: 'flex-end',
+                gap:            '48px',
+                flexWrap:       'nowrap',
               }}
             >
-              <img
-                src="/images/globe_and_card.svg"
-                alt="CVPassport Globe and Profile Card"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                }}
-              />
+              <div className="hidden md:block" style={{ flexShrink: 0, pointerEvents: 'none' }}>
+                <CVPlayCard />
+              </div>
+              <div style={{ position: 'relative', display: 'inline-block', overflow: 'visible', flexShrink: 0 }}>
+                {/* Glow halo */}
+                <div style={{
+                  position:     'absolute',
+                  width:        '400px',
+                  height:       '400px',
+                  borderRadius: '50%',
+                  background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+                  pointerEvents:'none',
+                }} />
+                <GlobeComponent />
+              </div>
             </div>
           </div>
         </section>
