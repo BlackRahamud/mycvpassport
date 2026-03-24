@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ReactComponent as FalconLogo } from './logo.svg';
 import CVPlayCard from './components/CVPlayCard';
@@ -171,7 +172,8 @@ function scrollToLandingSection(id) {
 }
 
 // ── Main component ──────────────────────────────────────────────────
-export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
+export default function LandingPage({ onLogin, onSignup, onWalkIn }) {
+  const navigate = useNavigate();
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('cvp-theme') || 'dark'; } catch { return 'dark'; }
   });
@@ -220,11 +222,11 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  /** Nav items: Templates = in-page anchor; ATS/Pricing route via App page state. */
+  /** Nav items: Templates = in-page anchor; ATS/Pricing via React Router. */
   const handleLandingNav = (item) => {
     if (item === 'Templates') scrollToLandingSection('lp-templates');
-    else if (item === 'ATS Check') setPage && setPage('ats');
-    else if (item === 'Pricing') setPage && setPage('pricing');
+    else if (item === 'ATS Check') navigate('/ats');
+    else if (item === 'Pricing') navigate('/pricing');
   };
 
   return (
@@ -333,10 +335,15 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn, setPage }) {
         >
           {/* Logo */}
           <div
-            onClick={() => setPage && setPage('landing')}
+            onClick={() => navigate('/')}
             role="button"
             tabIndex={0}
-            onKeyDown={e => e.key === 'Enter' && setPage && setPage('landing')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/');
+              }
+            }}
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <FalconLogo

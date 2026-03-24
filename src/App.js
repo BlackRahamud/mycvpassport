@@ -2715,7 +2715,18 @@ export default function App() {
           <div style={S.app}>
             {showGlobalNav && (
               <nav className="cvp-app-nav" style={S.nav}>
-                <div style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }} onClick={() => navigate("/")} role="button" tabIndex={0}>
+                <div
+                  style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px" }}
+                  onClick={() => navigate("/")}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate("/");
+                    }
+                  }}
+                >
                   <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
                   CVPassport
                 </div>
@@ -2736,12 +2747,7 @@ export default function App() {
               </nav>
             )}
             <Routes>
-              <Route path="/" element={<LandingPage onLogin={() => { setAuthMode("login"); navigate("/auth"); }} onSignup={() => { setAuthMode("signup"); navigate("/register"); }} setPage={(next) => {
-                if (next === "ats") navigate("/ats");
-                else if (next === "pricing") navigate("/pricing");
-                else if (next === "walkin") navigate("/walk-in");
-                else navigate("/");
-              }} onWalkIn={() => navigate("/walk-in")} />} />
+              <Route path="/" element={<LandingPage onLogin={() => { setAuthMode("login"); navigate("/auth"); }} onSignup={() => { setAuthMode("signup"); navigate("/register"); }} onWalkIn={() => navigate("/walk-in")} />} />
               <Route path="/walk-in" element={<WalkInMode onBack={() => navigate("/")} onComplete={() => navigate("/builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />} />
               <Route path="/auth" element={<AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>} />
               <Route path="/register" element={<AuthPage mode="signup" onAuth={handleAuth} onToggle={() => { setAuthMode("login"); setAuthError(null); navigate("/auth"); }} loading={authLoading} error={authError}/>} />
@@ -2769,7 +2775,6 @@ export default function App() {
                 onRunATS={() => navigate("/ats")}
                 onWalkIn={() => navigate("/walk-in")}
                 onTemplates={() => {}}
-                onGoHome={() => navigate("/")}
               />
               ) : <Navigate to="/" replace />} />
               <Route path="/builder" element={(
