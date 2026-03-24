@@ -2763,7 +2763,7 @@ export default function App() {
       </nav>
       )}
 {page === "landing" && <LandingPage onLogin={() => { setAuthMode("login"); setPage("auth"); }} onSignup={() => { setAuthMode("signup"); setPage("auth"); }} setPage={setPage} onWalkIn={() => setPage('walkin')} />}
-{page === "pricing" && <Pricing onBackHome={() => setPage("landing")} isLight={document.documentElement.classList.contains("light")} />}
+{page === "pricing" && <Pricing isLight={document.documentElement.classList.contains("light")} />}
 {page === "walkin" && <WalkInMode onBack={() => setPage("landing")} onComplete={() => setPage("builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />}
 {page === "auth" && <AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>}
 {page === "dashboard" && user && (

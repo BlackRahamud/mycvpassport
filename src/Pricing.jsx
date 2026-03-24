@@ -126,7 +126,7 @@ function PlanCard({ plan, isActive, isLight, onNavigate }) {
   );
 }
 
-export default function Pricing({ onBackHome = () => {}, isLight = false }) {
+export default function Pricing({ isLight = false }) {
   const navigate = useNavigate();
   const pageBg = isLight ? "#F8FAFC" : "#0A0A0A";
   const textPrimary = isLight ? "#111111" : "#FFFFFF";
@@ -201,7 +201,7 @@ export default function Pricing({ onBackHome = () => {}, isLight = false }) {
         <div style={{ maxWidth: 1240, margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", gap: 14 }}>
           <button
             type="button"
-            onClick={onBackHome}
+            onClick={() => navigate("/")}
             style={{ border: "none", background: "transparent", color: textSecondary, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             <span aria-hidden="true">←</span> Back
