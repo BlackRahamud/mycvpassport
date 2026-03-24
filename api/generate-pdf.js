@@ -9,7 +9,7 @@
  * 5. task.process({ page_size, page_orientation, page_margin, tool: htmlpdf via task.type })
  * 6. Download binary from GET /v1/download/{task} (see downloadIlovePdfBuffer — avoids axios
  *    following a redirect back to the Supabase HTML URL, which returns raw HTML)
- * 7. Normalize: PDF bytes, or unzip if iLovePDF returned a ZIP, or throw if HTML/error body
+ * 7. Normalize: PDF bytes, or if iLovePDF returned a ZIP (stored PDF), slice %PDF…%%EOF (no jszip dep)
  * 8. Respond with Content-Type: application/pdf
  * 9. finally: remove temp object from Supabase
  *
@@ -21,7 +21,6 @@
 
 const { randomBytes } = require("crypto");
 const axios = require("axios");
-const JSZip = require("jszip");
 const { createClient } = require("@supabase/supabase-js");
 const ILovePDFApi = require("@ilovepdf/ilovepdf-nodejs");
 
@@ -119,7 +118,21 @@ async function downloadIlovePdfBuffer(task, sourceHtmlUrl) {
   throw new Error("Too many download redirects");
 }
 
-async function normalizeToPdfBuffer(raw) {
+/** ZIP with deflate-compressed PDF would need a full unzip lib; iLovePDF usually serves a raw PDF or a ZIP with stored PDF. */
+const PDF_MAGIC = Buffer.from("%PDF");
+const PDF_EOF = Buffer.from("%%EOF");
+
+function extractPdfFromZipLikeBuffer(buf) {
+  const start = buf.indexOf(PDF_MAGIC);
+  if (start === -1) return null;
+  const tail = buf.slice(start);
+  const eofRel = tail.lastIndexOf(PDF_EOF);
+  if (eofRel === -1) return null;
+  const out = tail.slice(0, eofRel + PDF_EOF.length);
+  return looksLikePdf(out) ? out : null;
+}
+
+function normalizeToPdfBuffer(raw) {
   if (!raw || !raw.length) {
     throw new Error("iLovePDF returned an empty download body");
   }
@@ -134,18 +147,13 @@ async function normalizeToPdfBuffer(raw) {
   }
 
   if (looksLikeZip(raw)) {
-    const zip = await JSZip.loadAsync(raw);
-    const pdfNames = Object.keys(zip.files).filter((n) => !zip.files[n].dir && /\.pdf$/i.test(n));
-    if (!pdfNames.length) {
-      throw new Error("iLovePDF returned a ZIP without a .pdf entry");
+    const extracted = extractPdfFromZipLikeBuffer(raw);
+    if (extracted) {
+      return extracted;
     }
-    pdfNames.sort();
-    const u8 = await zip.file(pdfNames[0]).async("uint8array");
-    const out = Buffer.from(u8);
-    if (!looksLikePdf(out)) {
-      throw new Error("Extracted file from ZIP was not a PDF");
-    }
-    return out;
+    throw new Error(
+      "iLovePDF returned a ZIP but no embedded %PDF…%%EOF could be read (compressed ZIP entries need a full unzip library).",
+    );
   }
 
   throw new Error(`iLovePDF download was not a PDF (first bytes: ${raw.slice(0, 24).toString("hex")})`);
@@ -226,7 +234,7 @@ module.exports = async (req, res) => {
     }
 
     const rawDownload = await downloadIlovePdfBuffer(task, publicHtmlUrl);
-    const pdfBuf = await normalizeToPdfBuffer(rawDownload);
+    const pdfBuf = normalizeToPdfBuffer(rawDownload);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${attachmentName}"`);
