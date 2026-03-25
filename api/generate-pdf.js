@@ -14,6 +14,7 @@ const { buildATSInternationalTemplate10Html } = require("../src/serverLib/atsInt
 const { buildTechITProTemplate11Html } = require("../src/serverLib/techITProTemplate11Html");
 const { buildClassicTemplate12Html } = require("../src/serverLib/classicTemplate12Html");
 const { buildFinanceTemplate13Html } = require("../src/serverLib/financeTemplate13Html");
+const { drawT11SidebarStripeOnPdf } = require("../src/serverLib/pdfDrawT11SidebarStripe");
 
 const BUILDERS = {
   1: buildBannerTemplate1Html,
@@ -215,12 +216,21 @@ module.exports = async (req, res) => {
       autoScaleTypography();
     }, Boolean(atsMode));
 
-    const pdfBuffer = await page.pdf({
+    let pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
       preferCSSPageSize: false,
       margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
     });
+
+    // Template 11: repaint sidebar with a subtle per-page visual reset.
+    if (Number(templateId) === 11) {
+      pdfBuffer = await drawT11SidebarStripeOnPdf(pdfBuffer, {
+        page2TopOffset: 6,
+        accentHeight: 3,
+        drawSeparator: true,
+      });
+    }
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="cv.pdf"');
