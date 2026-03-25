@@ -163,6 +163,8 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
     skillCore.length > 0 ||
     techGroups.some((g) => g.items && g.items.length);
   const projectsText = (cv.projects && String(cv.projects).trim()) || "";
+  const experience = Array.isArray(cv.experience) ? cv.experience : [];
+  const education = Array.isArray(cv.education) ? cv.education : [];
 
   return (
     <div
@@ -320,7 +322,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
       )}
 
       {/* Professional Experience */}
-      {cv.experience.some((e) => e.company) && (
+      {experience.some((e) => e.company) && (
         <section>
           <SectionTitle
             first={!cv.summary && !hasTechSection}
@@ -328,7 +330,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
             Professional Experience
           </SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
-            {cv.experience
+            {experience
               .filter((e) => e.company)
               .map((e, i) => (
                 <EntryWrap key={i}>
@@ -402,7 +404,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
             first={
               !cv.summary &&
               !hasTechSection &&
-              !cv.experience.some((e) => e.company)
+              !experience.some((e) => e.company)
             }
           >
             Projects
@@ -429,20 +431,20 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
       )}
 
       {/* Education */}
-      {cv.education.some((e) => e.school) && (
+      {education.some((e) => e.school) && (
         <section>
           <SectionTitle
             first={
               !cv.summary &&
               !hasTechSection &&
-              !cv.experience.some((e) => e.company) &&
+              !experience.some((e) => e.company) &&
               !projectsText
             }
           >
             Education
           </SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
-            {cv.education
+            {education
               .filter((e) => e.school)
               .map((e, i) => (
                 <EntryWrap key={i}>
@@ -497,9 +499,9 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
             first={
               !cv.summary &&
               !hasTechSection &&
-              !cv.experience.some((e) => e.company) &&
+              !experience.some((e) => e.company) &&
               !projectsText &&
-              !cv.education.some((e) => e.school)
+              !education.some((e) => e.school)
             }
           >
             Certifications
@@ -523,9 +525,9 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
             first={
               !cv.summary &&
               !hasTechSection &&
-              !cv.experience.some((e) => e.company) &&
+              !experience.some((e) => e.company) &&
               !projectsText &&
-              !cv.education.some((e) => e.school) &&
+              !education.some((e) => e.school) &&
               certList.length === 0
             }
           >
