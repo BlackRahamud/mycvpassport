@@ -144,25 +144,28 @@ function buildTechITProTemplate11Html(rawCv) {
   }
 
   if (experience.some((e) => e && e.company)) {
-    let exp = "";
+    let exp = `<section class="section"><div class="section-title">${mainTitle("Professional Experience")}</div><div class="section-body">`;
     experience
       .filter((e) => e && e.company)
       .forEach((e) => {
         const lines = e.points ? splitExperiencePointsForPreview(e.points) : [];
-        let pts = "";
-        lines.forEach((line) => {
-          pts += `<p class="t11-exp-line">• ${escapeHtml(line)}</p>`;
-        });
-        exp += `<div class="t11-exp-block">
-          <div class="t11-exp-head">
-            <span class="t11-exp-role">${escapeHtml(e.role || "")}</span>
-            <span class="t11-exp-period">${escapeHtml(e.period || "")}</span>
+        const pts = lines
+          .map((line) => `<li>${escapeHtml(line)}</li>`)
+          .join("");
+
+        exp += `<div class="job-entry">
+          <div class="job-header">
+            <div class="t11-exp-head">
+              <span class="t11-exp-role">${escapeHtml(e.role || "")}</span>
+              <span class="t11-exp-period">${escapeHtml(e.period || "")}</span>
+            </div>
+            <div class="t11-exp-co">${escapeHtml(e.company || "")}${e.location ? ` — ${escapeHtml(e.location)}` : ""}</div>
           </div>
-          <div class="t11-exp-co">${escapeHtml(e.company || "")}${e.location ? ` — ${escapeHtml(e.location)}` : ""}</div>
-          ${pts ? `<div class="t11-exp-points">${pts}</div>` : ""}
+          ${pts ? `<div class="job-body"><ul class="job-points">${pts}</ul></div>` : ""}
         </div>`;
       });
-    main += `${mainTitle("Professional Experience")}${exp}`;
+    exp += `</div></section>`;
+    main += exp;
   }
 
   if (education.some((e) => e && e.school)) {
@@ -331,7 +334,10 @@ function buildTechITProTemplate11Html(rawCv) {
       color: ${MID};
       margin: 8px 0 0;
     }
-    .t11-exp-block { margin-top: 12px; }
+    .section { margin-top: 12px; }
+    .section-title { display: block; }
+    .section-body { display: block; }
+    .job-entry { margin-top: 12px; }
     .t11-exp-head {
       display: flex;
       justify-content: space-between;
@@ -358,13 +364,27 @@ function buildTechITProTemplate11Html(rawCv) {
       font-weight: 500;
       margin: 2px 0 5px;
     }
-    .t11-exp-line {
+    .job-points {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .job-points li {
+      position: relative;
+      padding-left: 12px;
+      margin: 0 0 4px;
       font-size: 9.5px;
       color: ${MID};
-      margin: 0;
       line-height: 1.6;
       word-break: normal;
       overflow-wrap: break-word;
+    }
+    .job-points li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: ${MID};
     }
     .t11-edu-row {
       margin-top: 10px;
@@ -397,6 +417,7 @@ function buildTechITProTemplate11Html(rawCv) {
       /* Replace grid with print-safe fixed sidebar layout */
       .t11-root {
         display: block !important;
+        min-height: auto !important;
       }
 
       /* Sidebar fixed per page */
@@ -406,25 +427,32 @@ function buildTechITProTemplate11Html(rawCv) {
         top: 0;
         bottom: 0;
         width: 34%;
+        height: 100%;
       }
 
       /* Main content flows naturally */
       .t11-main {
         margin-left: 34%;
+        display: block !important;
       }
 
       /* Atomic blocks */
-      .t11-exp-block,
+      .section,
+      .job-entry,
+      .job-body,
+      .job-points,
+      .job-points li,
       .t11-edu-row {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 14px;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
+      .job-entry { margin-bottom: 14px; }
 
+      .section-title,
       .t11-main-title,
       h2, h3 {
-        break-after: avoid;
-        page-break-after: avoid;
+        break-after: avoid !important;
+        page-break-after: avoid !important;
       }
 
       p, li { orphans: 3; widows: 3; }
