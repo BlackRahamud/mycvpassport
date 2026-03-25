@@ -1,7 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
-import { trimCanvasBottomWhitespace } from "./experiencePointsPreview";
 
 /**
  * @typedef {Object} CVData
@@ -158,87 +155,39 @@ function genericJobLines(jobLabel) {
 async function captureWalkInPdf(captureElement, fileNameBase) {
   const el = captureElement;
   if (!el) return;
-  const parentEl = el.parentElement;
-  const prevParentTransform = parentEl ? parentEl.style.transform : null;
-  const prevParentTransformOrigin = parentEl ? parentEl.style.transformOrigin : null;
-  const prevWidth = el.style.width;
-  const prevMaxWidth = el.style.maxWidth;
-  const prevMinWidth = el.style.minWidth;
-  el.style.width = "794px";
-  el.style.maxWidth = "794px";
-  el.style.minWidth = "794px";
-  el.style.minHeight = "0";
-  el.style.height = "auto";
-  if (parentEl) {
-    parentEl.style.transform = "none";
-    parentEl.style.transformOrigin = "top center";
-  }
-  await new Promise((r) => setTimeout(r, 400));
-  const fullHeight = el.scrollHeight;
-  el.style.height = `${fullHeight}px`;
-  el.style.overflow = "visible";
 
-  let canvas;
-  try {
-    if (typeof document !== "undefined" && document.fonts?.ready) {
-      await document.fonts.ready.catch(() => {});
-    }
-    canvas = await html2canvas(el, {
-      scale: window.devicePixelRatio > 1.5 ? 1.5 : 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      imageTimeout: 0,
-      logging: false,
-    });
-  } finally {
-    el.style.width = prevWidth;
-    el.style.maxWidth = prevMaxWidth;
-    el.style.minWidth = prevMinWidth;
-    el.style.minHeight = "";
-    el.style.height = "";
-    el.style.overflow = "";
-    if (parentEl && prevParentTransform !== null) {
-      parentEl.style.transform = prevParentTransform;
-      parentEl.style.transformOrigin = prevParentTransformOrigin;
-    }
+  if (typeof document !== "undefined" && document.fonts?.ready) {
+    await document.fonts.ready.catch(() => {});
   }
 
-  canvas = trimCanvasBottomWhitespace(canvas);
-  const pageWidth = 210;
-  const pageHeight = 297;
-  const imgData = canvas.toDataURL("image/jpeg", 1.0);
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const canvasAspect = canvas.width / canvas.height;
-  const imgHeight = pageWidth / canvasAspect;
-  const PAGE_SLICE_OVERLAP_PX = 48;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /></head>
+<body>
+  <div class="cvp-root" style="width:794px;margin:0;padding:0;">${el.outerHTML}</div>
+</body>
+</html>`;
 
-  if (imgHeight <= pageHeight) {
-    doc.addImage(imgData, "JPEG", 0, 0, pageWidth, imgHeight);
-  } else {
-    const pxPerMm = canvas.width / 210;
-    const pageHeightPx = Math.floor(297 * pxPerMm);
-    let yOffset = 0;
-    let pageNum = 0;
-    while (yOffset < canvas.height) {
-      const remaining = canvas.height - yOffset;
-      const sliceHeight = Math.min(pageHeightPx, remaining);
-      const sliceCanvas = document.createElement("canvas");
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = pageHeightPx;
-      const ctx = sliceCanvas.getContext("2d");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-      ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-      const sliceData = sliceCanvas.toDataURL("image/jpeg", 1.0);
-      if (pageNum > 0) doc.addPage();
-      doc.addImage(sliceData, "JPEG", 0, 0, 210, 297);
-      yOffset += sliceHeight;
-      if (yOffset < canvas.height) yOffset -= PAGE_SLICE_OVERLAP_PX;
-      pageNum++;
-    }
+  const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ html }),
+  });
+
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.error || `Server error ${res.status}`);
   }
-  doc.save(`${fileNameBase.replace(/\s+/g, "_")}_WalkIn_CV.pdf`);
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${fileNameBase.replace(/\s+/g, "_")}_WalkIn_CV.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function Chip({ label, selected, onClick }) {

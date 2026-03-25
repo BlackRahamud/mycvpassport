@@ -1,36 +1,35 @@
-/**
- * Vercel serverless: HTML → PDF via @ilovepdf/ilovepdf-nodejs (tool: htmlpdf).
- *
- * Matches ilovepdf-js-core: addFile(string URL) → cloud_file JSON upload.
- * process({ page_size, page_orientation, single_page }); download() → Uint8Array.
- *
- * POST { html: string, filename?: string }
- *
- * Env: ILOVEPDF_PUBLIC_KEY, ILOVEPDF_SECRET_KEY,
- *      REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY
- */
+const chromium = require("@sparticuz/chromium-min");
+const puppeteer = require("puppeteer-core");
 
-const { randomBytes } = require("crypto");
-const { createClient } = require("@supabase/supabase-js");
-const ILovePDFApi = require("@ilovepdf/ilovepdf-nodejs");
+const buildBannerTemplate1Html = require("./lib/bannerTemplate1Html");
+const buildTwocolTemplate2Html = require("./lib/twocolTemplate2Html");
+const buildSidebarTemplate3Html = require("./lib/sidebarTemplate3Html");
+const buildTimelineTemplate4Html = require("./lib/timelineTemplate4Html");
+const buildGulfExecTemplate5Html = require("./lib/gulfExecTemplate5Html");
+const buildBankingTemplate6Html = require("./lib/bankingTemplate6Html");
+const buildCompactProTemplate7Html = require("./lib/compactProTemplate7Html");
+const buildCreativeSidebarTemplate8Html = require("./lib/creativeSidebarTemplate8Html");
+const buildHospitalityTemplate9Html = require("./lib/hospitalityTemplate9Html");
+const buildATSInternationalTemplate10Html = require("./lib/atsInternationalTemplate10Html");
+const buildTechITProTemplate11Html = require("./lib/techITProTemplate11Html");
+const buildClassicTemplate12Html = require("./lib/classicTemplate12Html");
+const buildFinanceTemplate13Html = require("./lib/financeTemplate13Html");
 
-const CV_HTML_BUCKET = "cv-html-temp";
-
-function getSupabaseConfig() {
-  const url = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-  return { url, key };
-}
-
-function formatIlovepdfError(err) {
-  if (err.response?.data != null) {
-    const d = err.response.data;
-    if (typeof d === "object" && d.error) return JSON.stringify(d.error);
-    if (typeof d === "string") return d;
-    return JSON.stringify(d);
-  }
-  return err.message || String(err);
-}
+const BUILDERS = {
+  1: buildBannerTemplate1Html,
+  2: buildTwocolTemplate2Html,
+  3: buildSidebarTemplate3Html,
+  4: buildTimelineTemplate4Html,
+  5: buildGulfExecTemplate5Html,
+  6: buildBankingTemplate6Html,
+  7: buildCompactProTemplate7Html,
+  8: buildCreativeSidebarTemplate8Html,
+  9: buildHospitalityTemplate9Html,
+  10: buildATSInternationalTemplate10Html,
+  11: buildTechITProTemplate11Html,
+  12: buildClassicTemplate12Html,
+  13: buildFinanceTemplate13Html,
+};
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
@@ -39,79 +38,60 @@ module.exports = async (req, res) => {
   }
 
   let body = req.body;
-  if (body == null) {
-    return res.status(400).json({ error: "Missing body" });
-  }
+  if (body == null) return res.status(400).json({ error: "Missing body" });
   if (typeof body === "string") {
-    try {
-      body = JSON.parse(body);
-    } catch {
-      return res.status(400).json({ error: "Invalid JSON" });
+    try { body = JSON.parse(body); } catch { return res.status(400).json({ error: "Invalid JSON" }); }
+  }
+
+  const { html, templateId, cv } = body;
+
+  // Determine which HTML to render
+  let finalHtml = html;
+  if (!finalHtml && templateId && cv) {
+    const builder = BUILDERS[templateId];
+    if (builder) {
+      finalHtml = builder(cv);
     }
   }
 
-  const html = body.html;
-  if (!html || typeof html !== "string") {
-    return res.status(400).json({ error: "Missing html string" });
+  if (!finalHtml || typeof finalHtml !== "string") {
+    return res.status(400).json({ error: "Missing html or templateId+cv" });
   }
 
-  const publicKey = process.env.ILOVEPDF_PUBLIC_KEY;
-  const secretKey = process.env.ILOVEPDF_SECRET_KEY;
-  if (!publicKey || !secretKey) {
-    return res.status(500).json({ error: "PDF service not configured" });
-  }
-
-  const { url: supabaseUrl, key: supabaseKey } = getSupabaseConfig();
-  if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({
-      error: "Missing REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY (or SUPABASE_URL / SUPABASE_ANON_KEY).",
-    });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  const storagePath = `pdf/${Date.now()}-${randomBytes(8).toString("hex")}.html`;
-  let htmlUploaded = false;
-
+  let browser = null;
   try {
-    const { error: uploadError } = await supabase.storage.from(CV_HTML_BUCKET).upload(storagePath, Buffer.from(html, "utf8"), {
-      contentType: "text/html; charset=utf-8",
-      upsert: false,
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(
+        "https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar"
+      ),
+      headless: chromium.headless,
     });
-    if (uploadError) {
-      console.error("generate-pdf supabase upload", uploadError);
-      return res.status(500).json({
-        error: `Supabase upload failed: ${uploadError.message}. Ensure bucket "${CV_HTML_BUCKET}" exists and is public with insert allowed.`,
-      });
-    }
-    htmlUploaded = true;
 
-    const { data: pub } = supabase.storage.from(CV_HTML_BUCKET).getPublicUrl(storagePath);
-    const publicHtmlUrl = pub.publicUrl;
+    const page = await browser.newPage();
+    await page.setContent(finalHtml, { waitUntil: "networkidle0" });
 
-    const instance = new ILovePDFApi(publicKey, secretKey);
-    const task = instance.newTask("htmlpdf");
-    await task.start();
-    await task.addFile(publicHtmlUrl);
-    await task.process({
-      page_size: "A4",
-      page_orientation: "portrait",
-      single_page: false,
+    const heightPx = await page.evaluate(() => {
+      const el = document.querySelector(".cvp-root");
+      return el ? el.scrollHeight : document.body.scrollHeight;
     });
-    const data = await task.download();
+
+    const pdfBuffer = await page.pdf({
+      width: "794px",
+      height: `${heightPx}px`,
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="cv.pdf"');
-    return res.status(200).send(Buffer.from(data));
+    return res.status(200).send(pdfBuffer);
+
   } catch (err) {
-    console.error("generate-pdf error", formatIlovepdfError(err), err);
-    return res.status(500).json({ error: formatIlovepdfError(err) });
+    console.error("generate-pdf error", err);
+    return res.status(500).json({ error: err.message || String(err) });
   } finally {
-    if (htmlUploaded) {
-      try {
-        await supabase.storage.from(CV_HTML_BUCKET).remove([storagePath]);
-      } catch (e) {
-        console.error("generate-pdf supabase cleanup", e);
-      }
-    }
+    if (browser) await browser.close();
   }
 };

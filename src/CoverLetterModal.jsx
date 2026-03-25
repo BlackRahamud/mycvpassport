@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { jsPDF } from "jspdf";
 
 function getTodayDateLabel() {
   return new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -109,7 +108,7 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
     }
   }
 
-  function handleDownloadPdf() {
+  async function handleDownloadPdf() {
     const fullText = defaultLetterTemplate({
       resume,
       generatedBody: letterBody,
@@ -117,27 +116,44 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
       jobTitle,
     });
 
-    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    const marginX = 16;
-    const marginTop = 18;
-    const maxWidth = 178;
-    const lineHeight = 6;
+    const escaped = String(fullText || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
 
-    doc.setFont("times", "normal");
-    doc.setFontSize(12);
-    const lines = doc.splitTextToSize(fullText, maxWidth);
-    let y = marginTop;
-    lines.forEach((line) => {
-      if (y > 285) {
-        doc.addPage();
-        y = 18;
-      }
-      doc.text(line, marginX, y);
-      y += lineHeight;
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #fff; }
+    .cvp-root { width: 794px; padding: 48px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="cvp-root">${escaped}</div>
+</body>
+</html>`;
+
+    const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html }),
     });
-
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || `Server error ${res.status}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
     const fileBase = (resume?.name || "Cover_Letter").replace(/\s+/g, "_");
-    doc.save(`${fileBase}_Cover_Letter.pdf`);
+    a.download = `${fileBase}_Cover_Letter.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   const displayLetter = letterBody
