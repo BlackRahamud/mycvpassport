@@ -60,6 +60,19 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
     }}>{children}</div>
   );
 
+  const BreakGuardWrap = ({ children }) => (
+    <div style={{ display: "block" }}>
+      <div style={{
+        display: "block",
+        breakInside: "avoid-page",
+        pageBreakInside: "avoid",
+        WebkitColumnBreakInside: "avoid",
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{
       ...resumePageRootBoxStyle(mobileMode),
@@ -67,7 +80,9 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
       fontFamily: "Arial, sans-serif", display: "grid",
       gridTemplateColumns: mobileMode ? "1fr" : "75mm 1fr",
       alignItems: "stretch",
-      minHeight: mobileMode ? "100%" : undefined,
+      minHeight: mobileMode ? "100%" : "297mm",
+      height: "auto",
+      overflow: "visible",
       position: "relative",
       textRendering: "optimizeLegibility",
       WebkitFontSmoothing: "antialiased",
@@ -76,9 +91,8 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
       {!mobileMode && (
         <div style={{
           position: "absolute",
-          top: 0, left: 0,
+          top: 0, left: 0, bottom: 0,
           width: "75mm",
-          height: "100%",
           background: "#1E2D45",
           zIndex: 0,
         }} />
@@ -111,16 +125,18 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
         }}>{cv.title || "IT Professional"}</p>
 
         {/* Contact */}
-        <SideSection>Contact</SideSection>
-        <div style={{ fontSize: "8.5px", color: "#B0BEC5", lineHeight: "2" }}>
-          {cv.email    && <div style={{ wordBreak: "break-all" }}>{cv.email}</div>}
-          {cv.phone    && <div>{cv.phone}</div>}
-          {cv.location && <div>{cv.location}</div>}
-        </div>
+        <BreakGuardWrap>
+          <SideSection>Contact</SideSection>
+          <div style={{ fontSize: "8.5px", color: "#B0BEC5", lineHeight: "2" }}>
+            {cv.email    && <div style={{ wordBreak: "break-all" }}>{cv.email}</div>}
+            {cv.phone    && <div>{cv.phone}</div>}
+            {cv.location && <div>{cv.location}</div>}
+          </div>
+        </BreakGuardWrap>
 
         {/* Personal */}
         {(cv.nationality || cv.visaStatus || cv.dob || cv.gender || cv.maritalStatus) && (
-          <>
+          <BreakGuardWrap>
             <SideSection>Personal Info</SideSection>
             <div style={{ fontSize: "8.5px", color: "#B0BEC5", lineHeight: "2" }}>
               {cv.nationality   && <div><span style={{ color: accent }}>›</span> {cv.nationality}</div>}
@@ -129,12 +145,12 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
               {cv.gender        && <div><span style={{ color: accent }}>›</span> {cv.gender}</div>}
               {cv.maritalStatus && <div><span style={{ color: accent }}>›</span> {cv.maritalStatus}</div>}
             </div>
-          </>
+          </BreakGuardWrap>
         )}
 
         {/* Skills */}
         {skillList.length > 0 && (
-          <div style={{ pageBreakInside: "avoid", breakInside: "avoid-page" }}>
+          <BreakGuardWrap>
             <SideSection>Core Skills</SideSection>
             {skillList.map((s, i) => (
               <div key={i} style={{
@@ -149,12 +165,12 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
                 {s}
               </div>
             ))}
-          </div>
+          </BreakGuardWrap>
         )}
 
         {/* Technical Skills */}
         {techList.length > 0 && (
-          <div style={{ pageBreakInside: "avoid", breakInside: "avoid-page" }}>
+          <BreakGuardWrap>
             <SideSection>Tech Stack</SideSection>
             {techList.map((s, i) => (
               <div key={i} style={{
@@ -166,12 +182,12 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
                 {s}
               </div>
             ))}
-          </div>
+          </BreakGuardWrap>
         )}
 
         {/* Languages */}
         {cv.languages && (
-          <>
+          <BreakGuardWrap>
             <SideSection>Languages</SideSection>
             {cv.languages.split(",").map((l, i) => (
               <div key={i} style={{
@@ -181,12 +197,12 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
                 <span style={{ color: accent }}>›</span> {l.trim()}
               </div>
             ))}
-          </>
+          </BreakGuardWrap>
         )}
 
         {/* Certifications */}
         {certList.length > 0 && (
-          <>
+          <BreakGuardWrap>
             <SideSection>Certifications</SideSection>
             {certList.map((c, i) => (
               <div key={i} style={{
@@ -198,19 +214,19 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
                 {c}
               </div>
             ))}
-          </>
+          </BreakGuardWrap>
         )}
 
         {/* Additional */}
         {(cv.availability || cv.drivingLicense || cv.willingToRelocate) && (
-          <>
+          <BreakGuardWrap>
             <SideSection>Additional</SideSection>
             <div style={{ fontSize: "8.5px", color: "#B0BEC5", lineHeight: "2" }}>
               {cv.availability      && <div><span style={{ color: accent }}>›</span> {cv.availability}</div>}
               {cv.drivingLicense    && <div><span style={{ color: accent }}>›</span> {cv.drivingLicense}</div>}
               {cv.willingToRelocate && <div><span style={{ color: accent }}>›</span> Relocate: {cv.willingToRelocate}</div>}
             </div>
-          </>
+          </BreakGuardWrap>
         )}
       </div>
 
@@ -239,33 +255,31 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
           <>
             <MainSection>Professional Experience</MainSection>
             {cv.experience.filter(e => e.company).map((e, i) => (
-              <div key={i} style={{
-                marginTop: "12px",
-                pageBreakInside: "avoid",
-                breakInside: "avoid-page",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: dark }}>{e.role}</span>
-                  <span style={{
-                    fontSize: "10px", color: "#888888",
-                    flexShrink: 0, marginLeft: "auto", textAlign: "right",
-                    fontWeight: "400",
-                  }}>{e.period}</span>
-                </div>
-                <div style={{
-                  fontSize: "9.5px", color: mid, fontWeight: "500",
-                  fontStyle: "italic", margin: "2px 0 5px",
-                }}>
-                  {e.company}{e.location ? ` — ${e.location}` : ""}
-                </div>
-                {e.points && (
-                  <div className="cvp-preview-exp-t11-wrap">
-                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
-                      <p key={j} className="cvp-preview-exp-t11-line" style={{ color: mid }}>• {line}</p>
-                    ))}
+              <BreakGuardWrap key={i}>
+                <div style={{ marginTop: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: dark }}>{e.role}</span>
+                    <span style={{
+                      fontSize: "10px", color: "#888888",
+                      flexShrink: 0, marginLeft: "auto", textAlign: "right",
+                      fontWeight: "400",
+                    }}>{e.period}</span>
                   </div>
-                )}
-              </div>
+                  <div style={{
+                    fontSize: "9.5px", color: mid, fontWeight: "500",
+                    fontStyle: "italic", margin: "2px 0 5px",
+                  }}>
+                    {e.company}{e.location ? ` — ${e.location}` : ""}
+                  </div>
+                  {e.points && (
+                    <div className="cvp-preview-exp-t11-wrap">
+                      {splitExperiencePointsForPreview(e.points).map((line, j) => (
+                        <p key={j} className="cvp-preview-exp-t11-line" style={{ color: mid }}>• {line}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </BreakGuardWrap>
             ))}
           </>
         )}
@@ -275,20 +289,20 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
           <>
             <MainSection>Education</MainSection>
             {cv.education.filter(e => e.school).map((e, i) => (
-              <div key={i} style={{
-                marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-                pageBreakInside: "avoid",
-                breakInside: "avoid-page",
-              }}>
-                <div>
-                  <div style={{ fontSize: "10.5px", fontWeight: "700", color: dark }}>{e.degree}</div>
-                  <div style={{ fontSize: "9.5px", color: subtle, fontStyle: "italic" }}>{e.school}</div>
+              <BreakGuardWrap key={i}>
+                <div style={{
+                  marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                }}>
+                  <div>
+                    <div style={{ fontSize: "10.5px", fontWeight: "700", color: dark }}>{e.degree}</div>
+                    <div style={{ fontSize: "9.5px", color: subtle, fontStyle: "italic" }}>{e.school}</div>
+                  </div>
+                  <span style={{
+                    fontSize: "8px", color: accent, fontWeight: "700",
+                    flexShrink: 0, marginLeft: "10px",
+                  }}>{e.year}</span>
                 </div>
-                <span style={{
-                  fontSize: "8px", color: accent, fontWeight: "700",
-                  flexShrink: 0, marginLeft: "10px",
-                }}>{e.year}</span>
-              </div>
+              </BreakGuardWrap>
             ))}
           </>
         )}

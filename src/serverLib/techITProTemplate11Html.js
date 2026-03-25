@@ -1,6 +1,6 @@
 /**
  * Template 11 — Tech & IT Pro. Mirrors PreviewTechITPro in src/Template11TechITPro.js
- * Sidebar background is transparent — pdf-lib draws #1E2D45 (see pdfDrawT11SidebarStripe).
+ * Sidebar column uses transparent background; body gradient provides #1E2D45 (Puppeteer PDF).
  */
 
 const {
@@ -156,7 +156,7 @@ function buildTechITProTemplate11Html(rawCv) {
           .map((line) => `<li>${escapeHtml(line)}</li>`)
           .join("");
 
-        exp += `<div class="job-entry" data-block="job">
+        exp += `<div class="break-guard"><div class="job-entry" data-block="job">
           <div class="job-header">
             <div class="t11-exp-head">
               <span class="t11-exp-role">${escapeHtml(e.role || "")}</span>
@@ -165,7 +165,7 @@ function buildTechITProTemplate11Html(rawCv) {
             <div class="t11-exp-co">${escapeHtml(e.company || "")}${e.location ? ` — ${escapeHtml(e.location)}` : ""}</div>
           </div>
           ${pts ? `<div class="job-body"><ul class="job-points" data-block="list">${pts}</ul></div>` : ""}
-        </div>`;
+        </div></div>`;
       });
     exp += `</div></section>`;
     main += exp;
@@ -176,13 +176,13 @@ function buildTechITProTemplate11Html(rawCv) {
     education
       .filter((e) => e && e.school)
       .forEach((e) => {
-        edu += `<div class="t11-edu-row" data-block="edu">
+        edu += `<div class="break-guard"><div class="t11-edu-row" data-block="edu">
           <div>
             <div class="t11-edu-deg">${escapeHtml(e.degree || "")}</div>
             <div class="t11-edu-sch">${escapeHtml(e.school || "")}</div>
           </div>
           <span class="t11-edu-year">${escapeHtml(e.year || "")}</span>
-        </div>`;
+        </div></div>`;
       });
     main += `<section class="section" data-block="section"><h2 class="section-title">${mainTitle("Education")}</h2><div class="section-body">${edu}</div></section>`;
   }
@@ -202,28 +202,38 @@ function buildTechITProTemplate11Html(rawCv) {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
     * { box-sizing: border-box; }
+    @page { size: A4; margin: 0; }
     html, body { margin: 0; padding: 0; }
     body {
       font-family: Arial, Helvetica, sans-serif;
       font-size: 10px;
       color: ${MID};
-      background: transparent;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(90deg, #1E2D45 75mm, #F7F9FC 75mm);
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .t11-root {
+    .cvp-root {
       display: grid;
-      grid-template-columns: 34% minmax(0, 1fr);
-      width: 100%;
-      max-width: 794px;
-      margin: 0 auto;
+      grid-template-columns: 75mm 1fr;
+      width: 210mm;
       min-height: 297mm;
-      border-radius: 10px;
-      overflow: hidden;
       background: transparent;
       align-items: stretch;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
+    }
+    .break-guard {
+      display: block;
+      width: 100%;
+      break-inside: avoid-page;
+      page-break-inside: avoid;
+      -webkit-column-break-inside: avoid;
+    }
+    .t11-root {
+      margin: 0 auto;
+      max-width: 100%;
+      border-radius: 0;
+      overflow: visible;
     }
     .t11-side {
       background: transparent;
@@ -417,29 +427,31 @@ function buildTechITProTemplate11Html(rawCv) {
     @media print {
       html, body { margin: 0; padding: 0; }
 
-      /* Print-safe layout: keep sidebar in normal flow so it paginates per page */
       .cvp-root {
-        display: flex !important;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: 75mm 1fr;
+        width: 210mm;
+        min-height: 297mm;
+        background: transparent;
       }
       .cvp-sidebar {
         position: static !important;
-        width: 34% !important;
+        width: auto !important;
         height: auto !important;
       }
       .cvp-main {
-        width: 66% !important;
+        width: auto !important;
         margin-left: 0 !important;
         display: block !important;
       }
 
-      /* Atomic blocks */
       .section,
       .job-entry,
       .job-body,
       .job-points,
       .job-points li,
-      .t11-edu-row {
+      .t11-edu-row,
+      .break-guard {
         break-inside: avoid !important;
         page-break-inside: avoid !important;
       }
