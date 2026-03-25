@@ -87,7 +87,7 @@ module.exports = async (req, res) => {
       content: `
         @media print {
           .cvp-page-break { break-before: page; page-break-before: always; }
-          .cvp-new-page-start { margin-top: 18px !important; }
+          .cvp-new-page-start { margin-top: 10mm !important; padding-top: 5mm !important; }
           .cvp-main { padding-top: 4mm; }
           [data-block="job"], [data-block="list"] { break-inside: avoid !important; page-break-inside: avoid !important; }
           [data-block="section"] { break-inside: avoid; page-break-inside: avoid; }
@@ -124,7 +124,9 @@ module.exports = async (req, res) => {
       }
 
       function optimizeSpacing() {
-        const sections = document.querySelectorAll('[data-block="section"]');
+        const sections = document.querySelectorAll(
+          '[data-block="section"], [data-block="experience"], [data-block="education"]',
+        );
         sections.forEach((section) => {
           const body = section.querySelector(".section-body");
           if (!body) return;
@@ -167,7 +169,11 @@ module.exports = async (req, res) => {
             return;
           }
 
-          if (type === "section") {
+          if (
+            type === "section" ||
+            type === "experience" ||
+            type === "education"
+          ) {
             const isLargeSection = h > PAGE_HEIGHT * 0.5;
 
             if (projected > PAGE_HEIGHT - SAFE_MARGIN) {
@@ -194,11 +200,18 @@ module.exports = async (req, res) => {
       }
 
       function markPageStarts() {
-        const breaks = document.querySelectorAll(".cvp-page-break");
-        breaks.forEach((br) => {
-          const next = br.nextElementSibling;
-          if (!next) return;
-          next.classList.add("cvp-new-page-start");
+        const PAGE_HEIGHT = 1027;
+        const blocks = document.querySelectorAll("[data-block]");
+
+        blocks.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          const pageIndex = Math.floor(rect.top / PAGE_HEIGHT);
+          if (pageIndex > 0) {
+            const distanceIntoPage = rect.top % PAGE_HEIGHT;
+            if (distanceIntoPage < 20) {
+              el.classList.add("cvp-new-page-start");
+            }
+          }
         });
       }
 
@@ -230,7 +243,18 @@ module.exports = async (req, res) => {
       format: "A4",
       printBackground: true,
       preferCSSPageSize: false,
-      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
+      displayHeaderFooter: true,
+      headerTemplate: "<div></div>",
+      footerTemplate: `
+    <div style="font-family: 'Inter', sans-serif; font-size: 9px; color: #94A3B8; width: 100%; text-align: center; margin-bottom: 5mm;">
+      Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+    </div>`,
+      margin: {
+        top: "10mm",
+        bottom: "15mm",
+        left: "0mm",
+        right: "0mm",
+      },
     });
 
     // Template 11: repaint sidebar with a subtle per-page visual reset.

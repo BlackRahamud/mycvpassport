@@ -71,26 +71,30 @@ function buildTechITProTemplate11Html(rawCv) {
     sidebar += `${sideLabel("Personal Info")}<div class="t11-side-text">${pers}</div>`;
   }
 
-  if (skillList.length > 0) {
-    let sk = "";
-    skillList.forEach((s) => {
-      sk += `<div class="t11-skill-row">
+  if (skillList.length > 0 || techList.length > 0) {
+    sidebar += `<div class="t11-skill-sections" data-block="skills">`;
+    if (skillList.length > 0) {
+      let sk = "";
+      skillList.forEach((s) => {
+        sk += `<div class="t11-skill-row">
         <span class="t11-skill-dot" aria-hidden="true"></span>
         <span class="t11-skill-txt">${escapeHtml(s)}</span>
       </div>`;
-    });
-    sidebar += `${sideLabel("Core Skills")}${sk}`;
-  }
+      });
+      sidebar += `${sideLabel("Core Skills")}${sk}`;
+    }
 
-  if (techList.length > 0) {
-    let tx = "";
-    techList.forEach((s) => {
-      tx += `<div class="t11-tech-row">
+    if (techList.length > 0) {
+      let tx = "";
+      techList.forEach((s) => {
+        tx += `<div class="t11-tech-row">
         <span class="t11-tech-dash">—</span>
         <span class="t11-tech-txt">${escapeHtml(s)}</span>
       </div>`;
-    });
-    sidebar += `${sideLabel("Tech Stack")}${tx}`;
+      });
+      sidebar += `${sideLabel("Tech Stack")}${tx}`;
+    }
+    sidebar += `</div>`;
   }
 
   if (cv.languages) {
@@ -104,7 +108,7 @@ function buildTechITProTemplate11Html(rawCv) {
         </div>`;
       }
     });
-    if (lang) sidebar += `${sideLabel("Languages")}${lang}`;
+    if (lang) sidebar += `<div class="t11-lang-section" data-block="languages">${sideLabel("Languages")}${lang}</div>`;
   }
 
   if (certList.length > 0) {
@@ -115,7 +119,7 @@ function buildTechITProTemplate11Html(rawCv) {
         <span class="t11-cert-txt">${escapeHtml(stripEmojiPictographs(c))}</span>
       </div>`;
     });
-    sidebar += `${sideLabel("Certifications")}${cert}`;
+    sidebar += `<div class="t11-cert-section" data-block="certifications">${sideLabel("Certifications")}${cert}</div>`;
   }
 
   if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
@@ -147,7 +151,7 @@ function buildTechITProTemplate11Html(rawCv) {
   }
 
   if (experience.some((e) => e && e.company)) {
-    let exp = `<section class="section" data-block="section"><h2 class="section-title">${mainTitle("Professional Experience")}</h2><div class="section-body">`;
+    let exp = `<section class="section" data-block="experience"><h2 class="section-title">${mainTitle("Professional Experience")}</h2><div class="section-body">`;
     experience
       .filter((e) => e && e.company)
       .forEach((e) => {
@@ -184,7 +188,7 @@ function buildTechITProTemplate11Html(rawCv) {
           <span class="t11-edu-year">${escapeHtml(e.year || "")}</span>
         </div></div>`;
       });
-    main += `<section class="section" data-block="section"><h2 class="section-title">${mainTitle("Education")}</h2><div class="section-body">${edu}</div></section>`;
+    main += `<section class="section" data-block="education"><h2 class="section-title">${mainTitle("Education")}</h2><div class="section-body">${edu}</div></section>`;
   }
 
   if (cv.references) {
@@ -228,6 +232,10 @@ function buildTechITProTemplate11Html(rawCv) {
       break-inside: avoid-page;
       page-break-inside: avoid;
       -webkit-column-break-inside: avoid;
+    }
+    .cvp-new-page-start {
+      margin-top: 10mm !important;
+      padding-top: 5mm !important;
     }
     .t11-root {
       margin: 0 auto;
