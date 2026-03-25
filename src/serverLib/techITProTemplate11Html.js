@@ -417,25 +417,19 @@ function buildTechITProTemplate11Html(rawCv) {
     @media print {
       html, body { margin: 0; padding: 0; }
 
-      /* Replace grid with print-safe fixed sidebar layout */
-      .t11-root {
-        display: block !important;
-        min-height: auto !important;
+      /* Print-safe layout: keep sidebar in normal flow so it paginates per page */
+      .cvp-root {
+        display: flex !important;
+        align-items: stretch;
       }
-
-      /* Sidebar fixed per page */
-      .t11-root > aside.t11-side {
-        position: fixed;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 34%;
-        height: 100%;
+      .cvp-sidebar {
+        position: static !important;
+        width: 34% !important;
+        height: auto !important;
       }
-
-      /* Main content flows naturally */
-      .t11-main {
-        margin-left: 34%;
+      .cvp-main {
+        width: 66% !important;
+        margin-left: 0 !important;
         display: block !important;
       }
 

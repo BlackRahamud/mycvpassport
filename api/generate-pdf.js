@@ -76,6 +76,8 @@ module.exports = async (req, res) => {
       content: `
         @media print {
           .cvp-page-break { break-before: page; page-break-before: always; }
+          .cvp-new-page-start { margin-top: 18px !important; }
+          .cvp-main { padding-top: 4mm; }
           [data-block="job"], [data-block="list"] { break-inside: avoid !important; page-break-inside: avoid !important; }
           [data-block="section"] { break-inside: avoid; page-break-inside: avoid; }
           .section-title { break-after: avoid; page-break-after: avoid; }
@@ -180,6 +182,15 @@ module.exports = async (req, res) => {
         });
       }
 
+      function markPageStarts() {
+        const breaks = document.querySelectorAll(".cvp-page-break");
+        breaks.forEach((br) => {
+          const next = br.nextElementSibling;
+          if (!next) return;
+          next.classList.add("cvp-new-page-start");
+        });
+      }
+
       function autoScaleTypography() {
         const root = document.querySelector(".cvp-root");
         if (!root) return;
@@ -200,6 +211,7 @@ module.exports = async (req, res) => {
       applyATSMode();
       optimizeSpacing();
       runSmartPagination();
+      markPageStarts();
       autoScaleTypography();
     }, Boolean(atsMode));
 
