@@ -1,19 +1,19 @@
 const chromium = require("@sparticuz/chromium-min");
 const puppeteer = require("puppeteer-core");
 
-const buildBannerTemplate1Html = require("./lib/bannerTemplate1Html");
-const buildTwocolTemplate2Html = require("./lib/twocolTemplate2Html");
-const buildSidebarTemplate3Html = require("./lib/sidebarTemplate3Html");
-const buildTimelineTemplate4Html = require("./lib/timelineTemplate4Html");
-const buildGulfExecTemplate5Html = require("./lib/gulfExecTemplate5Html");
-const buildBankingTemplate6Html = require("./lib/bankingTemplate6Html");
-const buildCompactProTemplate7Html = require("./lib/compactProTemplate7Html");
-const buildCreativeSidebarTemplate8Html = require("./lib/creativeSidebarTemplate8Html");
-const buildHospitalityTemplate9Html = require("./lib/hospitalityTemplate9Html");
-const buildATSInternationalTemplate10Html = require("./lib/atsInternationalTemplate10Html");
-const buildTechITProTemplate11Html = require("./lib/techITProTemplate11Html");
-const buildClassicTemplate12Html = require("./lib/classicTemplate12Html");
-const buildFinanceTemplate13Html = require("./lib/financeTemplate13Html");
+const { buildBannerTemplate1Html } = require("../src/serverLib/bannerTemplate1Html");
+const { buildTwocolTemplate2Html } = require("../src/serverLib/twocolTemplate2Html");
+const { buildSidebarTemplate3Html } = require("../src/serverLib/sidebarTemplate3Html");
+const { buildTimelineTemplate4Html } = require("../src/serverLib/timelineTemplate4Html");
+const { buildGulfExecTemplate5Html } = require("../src/serverLib/gulfExecTemplate5Html");
+const { buildBankingTemplate6Html } = require("../src/serverLib/bankingTemplate6Html");
+const { buildCompactProTemplate7Html } = require("../src/serverLib/compactProTemplate7Html");
+const { buildCreativeSidebarTemplate8Html } = require("../src/serverLib/creativeSidebarTemplate8Html");
+const { buildHospitalityTemplate9Html } = require("../src/serverLib/hospitalityTemplate9Html");
+const { buildATSInternationalTemplate10Html } = require("../src/serverLib/atsInternationalTemplate10Html");
+const { buildTechITProTemplate11Html } = require("../src/serverLib/techITProTemplate11Html");
+const { buildClassicTemplate12Html } = require("../src/serverLib/classicTemplate12Html");
+const { buildFinanceTemplate13Html } = require("../src/serverLib/financeTemplate13Html");
 
 const BUILDERS = {
   1: buildBannerTemplate1Html,
