@@ -21,6 +21,7 @@ import { PreviewATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro } from "./Template11TechITPro";
 import { PreviewClassic } from "./Template12Classic";
 import { PreviewFinance } from "./Template13Finance";
+import { PreviewFigmaMirror } from "./Template14FigmaMirror";
 import Pricing from "./Pricing";
 import LandingPage from './LandingPage';
 import WalkInMode from './WalkInMode';
@@ -134,6 +135,7 @@ const TEMPLATES = [
   { id: 11, name: "Tech & IT Pro",        tier: "premium", color: "#1E2D45", accent: "#4A90D9", desc: "Dark slate sidebar for tech roles",layout: "tech-it"    },
   { id: 12, name: "Classic",              tier: "free",    color: "#000000", accent: "#000000", desc: "Single-column black & white · Gulf-friendly", layout: "classic", tags: ["ATS Friendly", "Popular in UAE"] },
   { id: 13, name: "Finance",              tier: "premium", color: "#000000", accent: "#000000", desc: "Dense finance & accounting · UAE banking",    layout: "finance", tags: ["ATS Friendly", "Popular in UAE", "Banking & Finance"] },
+  { id: 14, name: "Figma Mirror",         tier: "premium", color: "#1e293b", accent: "#60a5fa", desc: "2-page Figma mirror · 595×842px",           layout: "figma-mirror", tags: ["2 Pages", "Figma Export"] },
 ];
 
 const DUMMY_RESUME = {
@@ -1033,6 +1035,7 @@ function ResumePreview({ cv, template, mobileMode = false }) {
   if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "classic")     return <PreviewClassic         cv={cvT} />;
   if (t.layout === "finance")     return <PreviewFinance         cv={cvT} />;
+  if (t.layout === "figma-mirror")return <PreviewFigmaMirror     cv={cvT} t={t} mobileMode={mobileMode} />;
   return <PreviewBanner cv={cvT} t={t} mobileMode={mobileMode} />;
 }
 
@@ -1447,7 +1450,7 @@ function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedT
           onClick={() => { setResume({...EMPTY_RESUME, name: ""}); setSelectedTemplate(TEMPLATES[0]); setView('builder'); }}
           style={{ marginTop: "40px", display: "block", margin: "40px auto 0", padding: "12px 32px", background: "transparent", border: "1px solid #444", color: "#fff", borderRadius: "8px", fontSize: "14px", cursor: "pointer", letterSpacing: "0.5px" }}
         >
-          Explore All 13 Templates →
+          Explore All 14 Templates →
         </button>
       </div>
     </div>
