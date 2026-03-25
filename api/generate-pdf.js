@@ -133,12 +133,20 @@ module.exports = async (req, res) => {
         let cursorY = 0;
         const breaks = [];
 
-        blocks.forEach((el) => {
+        blocks.forEach((el, index) => {
           const h = el.getBoundingClientRect().height;
           const type = el.dataset.block;
 
+          const next = blocks[index + 1];
+          const nextH = next ? next.getBoundingClientRect().height : 0;
+
+          let SAFE_MARGIN = 40;
+          if (cursorY > PAGE_HEIGHT * 0.7) SAFE_MARGIN = 80;
+
+          const projected = cursorY + h + nextH * 0.6;
+
           if (type === "job" || type === "list") {
-            if (cursorY + h > PAGE_HEIGHT - SAFE_MARGIN) {
+            if (projected > PAGE_HEIGHT - SAFE_MARGIN) {
               breaks.push(el);
               cursorY = 0;
             }
@@ -147,15 +155,18 @@ module.exports = async (req, res) => {
           }
 
           if (type === "section") {
-            if (cursorY + h > PAGE_HEIGHT - SAFE_MARGIN) {
-              // If section is huge, allow internal split; else start section on next page.
-              if (h <= PAGE_HEIGHT * 0.65) {
+            const isLargeSection = h > PAGE_HEIGHT * 0.5;
+
+            if (projected > PAGE_HEIGHT - SAFE_MARGIN) {
+              if (isLargeSection) {
+                cursorY += h;
+              } else {
                 breaks.push(el);
                 cursorY = h;
-                return;
               }
+            } else {
+              cursorY += h;
             }
-            cursorY += h;
             return;
           }
 
