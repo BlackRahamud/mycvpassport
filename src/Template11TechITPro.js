@@ -37,7 +37,6 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
   const dark    = "#1A1A2E";
   const mid     = "#3D3D5C";
   const subtle  = "#7A7A9A";
-  const sideW   = "34%";
 
   const SideSection = ({ children }) => (
     <div style={{
@@ -66,10 +65,24 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
       ...resumePageRootBoxStyle(mobileMode),
       background: white,
       fontFamily: "Arial, sans-serif", display: "grid",
-      gridTemplateColumns: mobileMode ? "1fr" : `${sideW} minmax(0, 1fr)`,
+      gridTemplateColumns: mobileMode ? "1fr" : "75mm 1fr",
       alignItems: "stretch",
       minHeight: mobileMode ? "100%" : undefined,
+      position: "relative",
+      textRendering: "optimizeLegibility",
+      WebkitFontSmoothing: "antialiased",
     }}>
+
+      {!mobileMode && (
+        <div style={{
+          position: "absolute",
+          top: 0, left: 0,
+          width: "75mm",
+          height: "100%",
+          background: "#1E2D45",
+          zIndex: 0,
+        }} />
+      )}
 
       {/* ── Left Sidebar (stretches to full row height) ── */}
       <div style={{
@@ -78,6 +91,8 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
         display: "flex", flexDirection: "column",
         minHeight: "100%",
         alignSelf: "stretch",
+        position: "relative",
+        zIndex: 1,
       }}>
 
         {/* Name block */}
@@ -119,7 +134,7 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
 
         {/* Skills */}
         {skillList.length > 0 && (
-          <>
+          <div style={{ pageBreakInside: "avoid", breakInside: "avoid-page" }}>
             <SideSection>Core Skills</SideSection>
             {skillList.map((s, i) => (
               <div key={i} style={{
@@ -134,12 +149,12 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
                 {s}
               </div>
             ))}
-          </>
+          </div>
         )}
 
         {/* Technical Skills */}
         {techList.length > 0 && (
-          <>
+          <div style={{ pageBreakInside: "avoid", breakInside: "avoid-page" }}>
             <SideSection>Tech Stack</SideSection>
             {techList.map((s, i) => (
               <div key={i} style={{
@@ -151,7 +166,7 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
                 {s}
               </div>
             ))}
-          </>
+          </div>
         )}
 
         {/* Languages */}
@@ -202,7 +217,10 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
       {/* ── Right Main Panel ── */}
       <div
         className="cvp-preview-right-col"
-        style={{ padding: "24px 20px", background: offwhite, minHeight: "100%" }}
+        style={{
+          padding: "24px 20px", background: offwhite, minHeight: "100%",
+          position: "relative", zIndex: 1,
+        }}
       >
 
         {/* Summary */}
@@ -221,7 +239,11 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
           <>
             <MainSection>Professional Experience</MainSection>
             {cv.experience.filter(e => e.company).map((e, i) => (
-              <div key={i} style={{ marginTop: "12px" }}>
+              <div key={i} style={{
+                marginTop: "12px",
+                pageBreakInside: "avoid",
+                breakInside: "avoid-page",
+              }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
                   <span style={{ fontSize: "11px", fontWeight: "800", color: dark }}>{e.role}</span>
                   <span style={{
@@ -253,7 +275,11 @@ export function PreviewTechITPro({ cv, t, mobileMode = false }) {
           <>
             <MainSection>Education</MainSection>
             {cv.education.filter(e => e.school).map((e, i) => (
-              <div key={i} style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div key={i} style={{
+                marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                pageBreakInside: "avoid",
+                breakInside: "avoid-page",
+              }}>
                 <div>
                   <div style={{ fontSize: "10.5px", fontWeight: "700", color: dark }}>{e.degree}</div>
                   <div style={{ fontSize: "9.5px", color: subtle, fontStyle: "italic" }}>{e.school}</div>

@@ -71,7 +71,17 @@ module.exports = async (req, res) => {
     });
 
     const page = await browser.newPage();
+    await page.setViewport({
+      width: 794,
+      height: 1123,
+      deviceScaleFactor: 2,
+    });
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });
+    await Promise.race([
+      page.evaluate(() => document.fonts.ready),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+    await page.emulateMediaType("screen");
 
     await page.addStyleTag({
       content: `
@@ -224,13 +234,13 @@ module.exports = async (req, res) => {
     });
 
     // Template 11: repaint sidebar with a subtle per-page visual reset.
-    if (Number(templateId) === 11) {
-      pdfBuffer = await drawT11SidebarStripeOnPdf(pdfBuffer, {
-        page2TopOffset: 6,
-        accentHeight: 3,
-        drawSeparator: true,
-      });
-    }
+    // if (Number(templateId) === 11) {
+    //   pdfBuffer = await drawT11SidebarStripeOnPdf(pdfBuffer, {
+    //     page2TopOffset: 6,
+    //     accentHeight: 3,
+    //     drawSeparator: true,
+    //   });
+    // }
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="cv.pdf"');
