@@ -224,7 +224,7 @@ function buildTechITProTemplate11Html(rawCv) {
       padding: 24px 14px 24px 16px;
       min-width: 0;
     }
-    .t11-side-inner { min-height: 100%; }
+    /* (print pagination) avoid forcing full-height sidebar in print */
     .t11-side-name {
       font-size: 17px;
       font-weight: 900;
@@ -389,6 +389,45 @@ function buildTechITProTemplate11Html(rawCv) {
       margin: 16px 0 0;
       padding-top: 10px;
       border-top: 1px solid ${ACCENT}33;
+    }
+
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      /* Replace grid with print-safe fixed sidebar layout */
+      .t11-root {
+        display: block !important;
+      }
+
+      /* Sidebar fixed per page */
+      .t11-root > aside.t11-side {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 34%;
+      }
+
+      /* Main content flows naturally */
+      .t11-main {
+        margin-left: 34%;
+      }
+
+      /* Atomic blocks */
+      .t11-exp-block,
+      .t11-edu-row {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      .t11-main-title,
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
     }
   </style>
 </head>

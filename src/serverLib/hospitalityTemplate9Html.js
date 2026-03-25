@@ -384,6 +384,24 @@ function buildHospitalityTemplate9Html(rawCv) {
       margin: 0;
       text-align: center;
     }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      .t9-exp-block,
+      .t9-edu-row {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      .t9-title,
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

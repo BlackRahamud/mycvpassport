@@ -346,6 +346,23 @@ function buildGulfExecTemplate5Html(rawCv) {
     .t5-add-wrap { display: flex; gap: 18px; flex-wrap: wrap; font-size: 10px; color: ${SUBTLE}; }
     .t5-add { display: inline-flex; align-items: center; }
     .t5-refs { font-size: 9.5px; color: ${SUBTLE}; font-style: italic; margin: 0; }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      .t5-exp-entry,
+      .t5-edu-row {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

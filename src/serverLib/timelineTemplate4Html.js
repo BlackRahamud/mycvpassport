@@ -326,6 +326,27 @@ function buildTimelineTemplate4Html(rawCv) {
       padding-top: 8px;
       border-top: 1px solid #eee;
     }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      /* ATOMIC — never split a job or education entry */
+      .t4-tl-item,
+      .t4-edu-block,
+      .t4-cert-line {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      /* SECTION HEADERS — keep with first item below */
+      .t4-rightlabel-text,
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

@@ -170,6 +170,23 @@ function buildFinanceTemplate13Html(rawCv) {
     .t13-skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 13px; line-height: 1.45; }
     .t13-skill-cell { color: ${BLACK}; }
     .t13-refs { font-size: 12px; color: ${BLACK}; font-style: italic; margin: 0; }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      .t13-exp,
+      .t13-edu {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

@@ -313,6 +313,31 @@ function buildSidebarTemplate3Html(rawCv) {
       padding-top: 8px;
       border-top: 1px solid #eee;
     }
+
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      /* Apply break rules only to the MAIN content column */
+      .t3-main { width: 100%; }
+
+      /* ATOMIC — never split a job or education entry */
+      .t3-main .t3-exp-item,
+      .t3-main .t3-edu-row {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      /* SECTION HEADERS — keep with first item below */
+      .t3-main .t3-rightlabel-text,
+      .t3-main h2,
+      .t3-main h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      .t3-main p, .t3-main li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

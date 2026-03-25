@@ -167,6 +167,24 @@ function buildClassicTemplate12Html(rawCv) {
     .t12-degree { font-size: 13px; color: ${MID}; }
     .t12-year { font-size: 12px; color: ${SUBTLE}; flex-shrink: 0; }
     .t12-refs { font-size: 12px; color: ${SUBTLE}; font-style: italic; margin: 0; }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      .t12-exp,
+      .t12-edu {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      .t12-sec-title,
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

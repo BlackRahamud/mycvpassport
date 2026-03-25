@@ -368,6 +368,32 @@ function buildCreativeSidebarTemplate8Html(rawCv) {
       margin: 14px 0 0;
       padding-top: 10px;
     }
+
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      /* Apply break rules only to the MAIN content column */
+      .t8-main { width: 100%; }
+
+      /* ATOMIC — never split a job or education entry */
+      .t8-main .t8-exp-block,
+      .t8-main .t8-edu-row,
+      .t8-main .t8-cert-line {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      /* SECTION HEADERS — keep with first item below */
+      .t8-main .t8-main-title,
+      .t8-main h2,
+      .t8-main h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      .t8-main p, .t8-main li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

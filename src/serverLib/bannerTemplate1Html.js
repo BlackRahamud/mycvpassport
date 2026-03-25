@@ -343,6 +343,36 @@ function buildBannerTemplate1Html(rawCv) {
       font-family: Merriweather, Georgia, serif;
     }
     .cvp-refs { font-size: 10px; margin: 0; color: #888; font-style: italic; }
+
+    @media print {
+      html, body { margin: 0; padding: 0; }
+      .cvp-root { width: 100%; }
+
+      /* ATOMIC — never split a job or education entry */
+      .cvp-exp-block,
+      .cvp-edu-row,
+      .cvp-cert-chip {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      /* SECTION HEADERS — keep with first item below */
+      .cvp-section-title,
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      /* SECTIONS — break only between sections */
+      .cvp-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

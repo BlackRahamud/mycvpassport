@@ -323,6 +323,24 @@ function buildCompactProTemplate7Html(rawCv) {
       margin: 12px 0 0;
       padding-top: 8px;
     }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      .t7-exp-block,
+      .t7-edu-row {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      .t7-title,
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

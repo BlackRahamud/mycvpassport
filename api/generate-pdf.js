@@ -72,16 +72,11 @@ module.exports = async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });
 
-    const heightPx = await page.evaluate(() => {
-      const el = document.querySelector(".cvp-root");
-      return el ? el.scrollHeight : document.body.scrollHeight;
-    });
-
     const pdfBuffer = await page.pdf({
-      width: "794px",
-      height: `${heightPx}px`,
+      format: "A4",
       printBackground: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      preferCSSPageSize: false,
+      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
     });
 
     res.setHeader("Content-Type", "application/pdf");

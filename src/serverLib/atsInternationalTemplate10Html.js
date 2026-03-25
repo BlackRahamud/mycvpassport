@@ -162,6 +162,23 @@ function buildATSInternationalTemplate10Html(rawCv) {
     .t10-edu-school { font-size: 10px; color: ${MID}; }
     .t10-edu-year { font-size: 9.5px; color: ${SUBTLE}; }
     .t10-refs { font-size: 9.5px; color: ${SUBTLE}; margin: 0; }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      .t10-exp,
+      .t10-edu-row {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      h2, h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      p, li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>

@@ -327,6 +327,36 @@ function buildTwocolTemplate2Html(rawCv) {
     }
     .t2-refs-wrap { margin-top: 14px; padding-top: 10px; border-top: 1px solid #eee; }
     .t2-refs { font-size: 10px; color: #999; font-style: italic; margin: 0; }
+
+    @media print {
+      html, body { margin: 0; padding: 0; }
+
+      /* Apply break rules only to the MAIN content column */
+      .t2-main { width: 100%; }
+
+      /* ATOMIC — never split a job or education entry */
+      .t2-main .t2-exp-wrap,
+      .t2-main .t2-edu-side {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px;
+      }
+
+      /* SECTION HEADERS — keep with first item below */
+      .t2-main .t2-rightlabel-text,
+      .t2-main h2,
+      .t2-main h3 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      /* SECTIONS — break only between sections */
+      .t2-main .t2-main-block {
+        margin-bottom: 20px;
+      }
+
+      .t2-main p, .t2-main li { orphans: 3; widows: 3; }
+    }
   </style>
 </head>
 <body>
