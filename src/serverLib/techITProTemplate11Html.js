@@ -39,7 +39,7 @@ function buildTechITProTemplate11Html(rawCv) {
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
 
-  let sidebar = `<aside class="t11-side"><div class="t11-side-inner">
+  let sidebar = `<aside class="cvp-sidebar t11-side" data-fixed="sidebar"><div class="t11-side-inner">
     <h1 class="t11-side-name">${escapeHtml(cv.name || "Your Name")}</h1>
     <div class="t11-accent-bar" aria-hidden="true"></div>
     <p class="t11-side-title">${escapeHtml(cv.title || "IT Professional")}</p>
@@ -137,14 +137,17 @@ function buildTechITProTemplate11Html(rawCv) {
 
   sidebar += `</div></aside>`;
 
-  let main = `<div class="t11-main" style="background:${OFFWHITE}">`;
+  let main = `<main class="cvp-main t11-main" style="background:${OFFWHITE}">`;
 
   if (cv.summary) {
-    main += `${mainTitle("Professional Summary")}<p class="t11-sum">${escapeHtml(cv.summary)}</p>`;
+    main += `<section class="section" data-block="section">
+      <h2 class="section-title">${mainTitle("Professional Summary")}</h2>
+      <div class="section-body" data-block="text"><p class="t11-sum">${escapeHtml(cv.summary)}</p></div>
+    </section>`;
   }
 
   if (experience.some((e) => e && e.company)) {
-    let exp = `<section class="section"><div class="section-title">${mainTitle("Professional Experience")}</div><div class="section-body">`;
+    let exp = `<section class="section" data-block="section"><h2 class="section-title">${mainTitle("Professional Experience")}</h2><div class="section-body">`;
     experience
       .filter((e) => e && e.company)
       .forEach((e) => {
@@ -153,7 +156,7 @@ function buildTechITProTemplate11Html(rawCv) {
           .map((line) => `<li>${escapeHtml(line)}</li>`)
           .join("");
 
-        exp += `<div class="job-entry">
+        exp += `<div class="job-entry" data-block="job">
           <div class="job-header">
             <div class="t11-exp-head">
               <span class="t11-exp-role">${escapeHtml(e.role || "")}</span>
@@ -161,7 +164,7 @@ function buildTechITProTemplate11Html(rawCv) {
             </div>
             <div class="t11-exp-co">${escapeHtml(e.company || "")}${e.location ? ` — ${escapeHtml(e.location)}` : ""}</div>
           </div>
-          ${pts ? `<div class="job-body"><ul class="job-points">${pts}</ul></div>` : ""}
+          ${pts ? `<div class="job-body"><ul class="job-points" data-block="list">${pts}</ul></div>` : ""}
         </div>`;
       });
     exp += `</div></section>`;
@@ -173,7 +176,7 @@ function buildTechITProTemplate11Html(rawCv) {
     education
       .filter((e) => e && e.school)
       .forEach((e) => {
-        edu += `<div class="t11-edu-row">
+        edu += `<div class="t11-edu-row" data-block="edu">
           <div>
             <div class="t11-edu-deg">${escapeHtml(e.degree || "")}</div>
             <div class="t11-edu-sch">${escapeHtml(e.school || "")}</div>
@@ -181,16 +184,16 @@ function buildTechITProTemplate11Html(rawCv) {
           <span class="t11-edu-year">${escapeHtml(e.year || "")}</span>
         </div>`;
       });
-    main += `${mainTitle("Education")}${edu}`;
+    main += `<section class="section" data-block="section"><h2 class="section-title">${mainTitle("Education")}</h2><div class="section-body">${edu}</div></section>`;
   }
 
   if (cv.references) {
     main += `<p class="t11-refs">${escapeHtml(cv.references)}</p>`;
   }
 
-  main += `</div>`;
+  main += `</main>`;
 
-  const inner = `<div class="t11-root">${sidebar}${main}</div>`;
+  const inner = `<div class="cvp-root t11-root">${sidebar}${main}</div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">

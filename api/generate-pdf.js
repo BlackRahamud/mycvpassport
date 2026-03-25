@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
     try { body = JSON.parse(body); } catch { return res.status(400).json({ error: "Invalid JSON" }); }
   }
 
-  const { html, templateId, cv } = body;
+  const { html, templateId, cv, atsMode } = body;
 
   // Determine which HTML to render
   let finalHtml = html;
@@ -71,6 +71,126 @@ module.exports = async (req, res) => {
 
     const page = await browser.newPage();
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });
+
+    await page.addStyleTag({
+      content: `
+        @media print {
+          .cvp-page-break { break-before: page; page-break-before: always; }
+          [data-block="job"], [data-block="list"] { break-inside: avoid !important; page-break-inside: avoid !important; }
+          [data-block="section"] { break-inside: avoid; page-break-inside: avoid; }
+          .section-title { break-after: avoid; page-break-after: avoid; }
+          .section-title + * { break-before: avoid; page-break-before: avoid; }
+          p, li { orphans: 3; widows: 3; }
+        }
+      `,
+    });
+
+    await page.evaluate((ats) => {
+      // Only run if templates implement semantic layout markers
+      const main = document.querySelector(".cvp-main");
+      if (!main) return;
+
+      const PAGE_HEIGHT = 1122; // ~A4 @ 96dpi (794x1123)
+      const SAFE_MARGIN = 40;
+
+      function applyATSMode() {
+        if (!ats) return;
+        const root = document.querySelector(".cvp-root");
+        const sidebar = document.querySelector(".cvp-sidebar");
+        const mainEl = document.querySelector(".cvp-main");
+        if (root) root.style.display = "block";
+        if (sidebar) {
+          sidebar.style.position = "static";
+          sidebar.style.width = "100%";
+          sidebar.style.height = "auto";
+        }
+        if (mainEl) {
+          mainEl.style.marginLeft = "0";
+          mainEl.style.display = "block";
+        }
+      }
+
+      function optimizeSpacing() {
+        const sections = document.querySelectorAll('[data-block="section"]');
+        sections.forEach((section) => {
+          const body = section.querySelector(".section-body");
+          if (!body) return;
+          const h = section.getBoundingClientRect().height;
+          if (h > 600) {
+            body.style.rowGap = "4px";
+            body.style.marginTop = "4px";
+            body.querySelectorAll("[data-block]").forEach((el) => {
+              el.style.marginBottom = "4px";
+            });
+          }
+        });
+      }
+
+      function runSmartPagination() {
+        const blocks = Array.from(main.querySelectorAll("[data-block]"));
+        if (!blocks.length) return;
+
+        let cursorY = 0;
+        const breaks = [];
+
+        blocks.forEach((el) => {
+          const h = el.getBoundingClientRect().height;
+          const type = el.dataset.block;
+
+          if (type === "job" || type === "list") {
+            if (cursorY + h > PAGE_HEIGHT - SAFE_MARGIN) {
+              breaks.push(el);
+              cursorY = 0;
+            }
+            cursorY += h;
+            return;
+          }
+
+          if (type === "section") {
+            if (cursorY + h > PAGE_HEIGHT - SAFE_MARGIN) {
+              // If section is huge, allow internal split; else start section on next page.
+              if (h <= PAGE_HEIGHT * 0.65) {
+                breaks.push(el);
+                cursorY = h;
+                return;
+              }
+            }
+            cursorY += h;
+            return;
+          }
+
+          cursorY += h;
+        });
+
+        breaks.forEach((el) => {
+          const b = document.createElement("div");
+          b.className = "cvp-page-break";
+          el.parentNode && el.parentNode.insertBefore(b, el);
+        });
+      }
+
+      function autoScaleTypography() {
+        const root = document.querySelector(".cvp-root");
+        if (!root) return;
+        let scale = 1;
+
+        const max = PAGE_HEIGHT;
+        const height = () => root.getBoundingClientRect().height;
+
+        // Only gently scale down if the first page is badly overflowing.
+        while (height() > max && scale > 0.92) {
+          scale -= 0.02;
+          root.style.transform = `scale(${scale})`;
+          root.style.transformOrigin = "top left";
+          root.style.width = `${100 / scale}%`;
+        }
+      }
+
+      applyATSMode();
+      optimizeSpacing();
+      runSmartPagination();
+      autoScaleTypography();
+    }, Boolean(atsMode));
 
     const pdfBuffer = await page.pdf({
       format: "A4",
