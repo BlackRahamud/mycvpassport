@@ -1,27 +1,41 @@
 import React from "react";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
-const NAVY = "#1E2D45";
-const ACCENT_BLUE = "#4A90E2";
-const BODY_GREY = "#475569";
-const LIGHT_GREY = "#94A3B8";
-const PILL_BG = "#EBF4FF";
-const PROGRESS_TRACK = "#E2E8F0";
-const CARD_BG_GRADIENT = "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)";
-const OUTER_BG = "linear-gradient(135deg, #4F5B66 0%, #2D3748 100%)";
+/**
+ * Modern SaaS-inspired Resume Template - PDF Builder Function
+ * Constraints: Single column HTML structure, Flexbox row for visual split,
+ * Puppeteer-safe, strict Arial/system fonts.
+ */
+
+const COLORS = {
+  PRIMARY_TEXT: "#2c3e50",
+  SUBTITLE_TEXT: "#6b7c93",
+  BODY_TEXT: "#444",
+  LIGHT_GREY_TEXT: "#8a99a8",
+  ACCENT_BLUE: "#4a90e2",
+  SOFT_BLUE: "#5aa0e6",
+  HERO_BG: "#dfeaf5",
+  HERO_WAVE: "#c9dced",
+  PAGE_BG: "#f5f7fa",
+  PILL_BG: "#e6eef7",
+  PROGRESS_BG: "#e0e6ed",
+  SKELETON_BG: "#D1D5DB",
+};
 
 export function PreviewSaaSModern({ cv, mobileMode = false }) {
-  if (!cv.name) {
+  if (!cv || !cv.name) {
     return (
       <div
         style={{
-          width: mobileMode ? "100%" : "1000px",
+          width: mobileMode ? "100%" : "800px",
           height: "500px",
-          backgroundColor: "#D1D5DB",
+          backgroundColor: COLORS.SKELETON_BG,
           borderRadius: "20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          margin: "0 auto",
+          fontFamily: "Arial, sans-serif",
           color: "#4B5563",
         }}
       >
@@ -35,20 +49,20 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
 
-  const SectionTitle = ({ children }) => (
-    <div
+  const SectionHeading = ({ children }) => (
+    <h2
       style={{
         fontSize: "11px",
         fontWeight: "bold",
-        color: ACCENT_BLUE,
+        color: COLORS.SUBTITLE_TEXT,
         textTransform: "uppercase",
         letterSpacing: "0.05em",
         marginBottom: "12px",
-        marginTop: "20px",
+        marginTop: "0",
       }}
     >
       {children}
-    </div>
+    </h2>
   );
 
   return (
@@ -56,96 +70,94 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
       style={{
         width: "100%",
         minHeight: "auto",
-        background: OUTER_BG,
-        padding: mobileMode ? "20px" : "60px 20px",
+        backgroundColor: COLORS.PAGE_BG,
+        padding: mobileMode ? "10px" : "40px 20px",
         display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        fontFamily: "Arial, sans-serif",
+        flexDirection: "column",
+        alignItems: "center",
+        fontFamily: 'Arial, "system-ui", sans-serif',
         WebkitPrintColorAdjust: "exact",
       }}
     >
       <div
+        className="main-container"
         style={{
-          width: mobileMode ? "100%" : "950px",
+          width: "100%",
+          maxWidth: "800px",
           backgroundColor: "#FFFFFF",
-          backgroundImage: CARD_BG_GRADIENT,
           borderRadius: "20px",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
-          padding: "32px",
-          position: "relative",
+          boxShadow: mobileMode ? "none" : "0 10px 25px rgba(0,0,0,0.05)",
           overflow: "hidden",
-          minHeight: "600px",
+          position: "relative",
+          paddingBottom: "40px",
         }}
       >
-        <div
+        <header
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            opacity: 0.03,
-            pointerEvents: "none",
-            background: "radial-gradient(circle at 2px 2px, #000 1px, transparent 0)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: "32px",
-            borderBottom: `1px solid ${PROGRESS_TRACK}`,
-            paddingBottom: "24px",
+            backgroundColor: COLORS.HERO_BG,
+            padding: "40px 32px 24px 32px",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          <div>
-            <h1 style={{ fontSize: "28px", fontWeight: "bold", color: NAVY, margin: 0 }}>{cv.name}</h1>
-            <div style={{ fontSize: "14px", color: ACCENT_BLUE, marginTop: "4px", fontWeight: "500" }}>{cv.title || "Professional Title"}</div>
-            <div style={{ display: "flex", gap: "12px", marginTop: "12px", color: LIGHT_GREY, fontSize: "11px" }}>
+          <div
+            style={{
+              position: "absolute",
+              top: "-40px",
+              right: "-20px",
+              width: "240px",
+              height: "240px",
+              borderRadius: "50%",
+              background: COLORS.HERO_WAVE,
+              opacity: 0.5,
+              zIndex: 0,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: "-20px",
+              right: "150px",
+              width: "100px",
+              height: "100px",
+              borderRadius: "50%",
+              background: COLORS.HERO_WAVE,
+              opacity: 0.3,
+              zIndex: 0,
+            }}
+          />
+
+          <div style={{ position: "relative", zIndex: 1, textAlign: "left" }}>
+            <h1 style={{ fontSize: "28px", fontWeight: "bold", color: COLORS.PRIMARY_TEXT, margin: 0 }}>{cv.name.toUpperCase()}</h1>
+            <p style={{ fontSize: "14px", color: COLORS.SUBTITLE_TEXT, margin: "4px 0 16px 0" }}>{cv.title || "The role you are applying for?"}</p>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", fontSize: "12px", color: COLORS.LIGHT_GREY_TEXT }}>
               {cv.phone && <span>{cv.phone}</span>}
               {cv.email && <span>{cv.email}</span>}
               {cv.location && <span>{cv.location}</span>}
             </div>
           </div>
+        </header>
 
-          <div
-            style={{
-              width: "70px",
-              height: "70px",
-              borderRadius: "50%",
-              backgroundColor: PROGRESS_TRACK,
-              border: "3px solid #FFF",
-              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            {cv.profileImage ? (
-              <img src={cv.profileImage} alt="profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <span style={{ color: "#FFF", fontSize: "24px", fontWeight: "bold" }}>{cv.name[0]}</span>
-            )}
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: "40px" }}>
-          <div style={{ flex: "0 0 62%" }}>
-            <SectionTitle>Experience</SectionTitle>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: "32px",
+            padding: "32px",
+          }}
+        >
+          <div style={{ flex: "0 0 60%" }}>
+            <SectionHeading>Experience</SectionHeading>
             {experience.map((exp, i) => (
               <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: "bold", color: NAVY, fontSize: "15px" }}>{exp.role}</div>
-                <div style={{ color: LIGHT_GREY, fontSize: "12px", marginBottom: "8px" }}>
-                  {exp.company} | {exp.period}
+                <div style={{ fontWeight: "bold", color: COLORS.PRIMARY_TEXT, fontSize: "14px" }}>{exp.role}</div>
+                <div style={{ color: COLORS.LIGHT_GREY_TEXT, fontSize: "12px", marginBottom: "8px" }}>
+                  {exp.company} • {exp.period}
                 </div>
                 {exp.points &&
                   splitExperiencePointsForPreview(exp.points).map((point, j) => (
-                    <div key={j} style={{ fontSize: "12.5px", color: BODY_GREY, marginBottom: "4px", display: "flex" }}>
+                    <div key={j} style={{ fontSize: "13px", color: COLORS.BODY_TEXT, marginBottom: "4px", display: "flex", lineHeight: "1.5" }}>
                       <span style={{ marginRight: "8px" }}>•</span>
                       <span>{point}</span>
                     </div>
@@ -153,85 +165,87 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
               </div>
             ))}
 
-            <SectionTitle>Education</SectionTitle>
+            <SectionHeading>Education</SectionHeading>
             {education.map((edu, i) => (
-              <div key={i} style={{ marginBottom: "12px", pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: "bold", color: NAVY, fontSize: "14px" }}>{edu.degree}</div>
-                <div style={{ color: BODY_GREY, fontSize: "12px" }}>
+              <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
+                <div style={{ fontWeight: "bold", color: COLORS.PRIMARY_TEXT, fontSize: "13px" }}>{edu.degree}</div>
+                <div style={{ color: COLORS.SUBTITLE_TEXT, fontSize: "12px" }}>
                   {edu.school} • {edu.year}
                 </div>
               </div>
             ))}
-          </div>
 
-          <div style={{ flex: "1" }}>
-            <SectionTitle>Summary</SectionTitle>
-            <p style={{ fontSize: "12px", color: BODY_GREY, lineHeight: "1.5", margin: 0 }}>{cv.summary}</p>
-
-            <SectionTitle>Skills</SectionTitle>
+            <SectionHeading>Skills</SectionHeading>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {skills.map((skill, i) => (
                 <span
                   key={i}
                   style={{
-                    padding: "4px 10px",
-                    backgroundColor: PILL_BG,
-                    color: ACCENT_BLUE,
-                    borderRadius: "12px",
-                    fontSize: "11px",
-                    fontWeight: "500",
+                    padding: "6px 10px",
+                    backgroundColor: COLORS.PILL_BG,
+                    color: COLORS.PRIMARY_TEXT,
+                    borderRadius: "8px",
+                    fontSize: "12px",
                   }}
                 >
                   {skill}
                 </span>
               ))}
             </div>
+          </div>
 
-            <SectionTitle>Languages</SectionTitle>
+          <div style={{ flex: "1" }}>
+            <SectionHeading>Summary</SectionHeading>
+            <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.5", margin: "0 0 24px 0" }}>{cv.summary}</p>
+
+            <SectionHeading>Key Achievements</SectionHeading>
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "13px" }}>Strategic Leadership</div>
+              <div style={{ color: COLORS.LIGHT_GREY_TEXT, fontSize: "11px" }}>Delivered 20% efficiency increase in SaaS deployment workflows.</div>
+            </div>
+
+            <SectionHeading>Languages</SectionHeading>
             {languages.map((lang, i) => (
-              <div key={i} style={{ marginBottom: "10px" }}>
-                <div style={{ fontSize: "12px", color: NAVY, marginBottom: "4px" }}>{lang}</div>
-                <div style={{ height: "6px", width: "100%", background: PROGRESS_TRACK, borderRadius: "3px" }}>
-                  <div style={{ height: "100%", width: "80%", background: ACCENT_BLUE, borderRadius: "3px" }} />
+              <div key={i} style={{ marginBottom: "12px" }}>
+                <div style={{ fontSize: "12px", color: COLORS.PRIMARY_TEXT, marginBottom: "4px" }}>{lang}</div>
+                <div style={{ height: "6px", width: "100%", background: COLORS.PROGRESS_BG, borderRadius: "999px" }}>
+                  <div style={{ height: "100%", width: "85%", background: COLORS.SOFT_BLUE, borderRadius: "999px" }} />
                 </div>
               </div>
             ))}
+
+            <SectionHeading>Interests</SectionHeading>
+            <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "12px" }}>Open Source Contribution</div>
+            <div style={{ color: COLORS.LIGHT_GREY_TEXT, fontSize: "11px" }}>Maintaining UI libraries and documentation.</div>
           </div>
         </div>
-
-        <div style={{ height: "40px" }} />
 
         <div
           style={{
             position: "absolute",
-            bottom: "10px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 10,
+            bottom: "0",
+            left: "0",
+            width: "120px",
+            height: "120px",
+            background: `radial-gradient(circle at bottom left, ${COLORS.HERO_WAVE}, transparent)`,
+            opacity: 0.3,
+            pointerEvents: "none",
           }}
-        >
-          <button
-            style={{
-              background: "linear-gradient(to right, #10B981, #059669)",
-              color: "white",
-              padding: "12px 32px",
-              borderRadius: "9999px",
-              border: "none",
-              fontWeight: "bold",
-              fontSize: "14px",
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Start With This Template
-          </button>
-        </div>
+        />
       </div>
+
+      <style>
+        {`
+          @media print {
+            .main-container { box-shadow: none !important; border-radius: 0 !important; }
+            body { background: white !important; -webkit-print-color-adjust: exact; }
+          }
+        `}
+      </style>
     </div>
   );
 }
 
-export function PreviewATSInternational({ cv, t, mobileMode = false }) {
+export function PreviewATSInternational({ cv, mobileMode = false }) {
   return <PreviewSaaSModern cv={cv} mobileMode={mobileMode} />;
 }
