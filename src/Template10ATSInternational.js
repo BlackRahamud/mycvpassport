@@ -2,35 +2,32 @@ import React from "react";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 /**
- * Modern SaaS-inspired Resume Template - PDF Builder Function
- * Constraints: Single column HTML structure, Flexbox row for visual split,
- * Puppeteer-safe, strict Arial/system fonts.
+ * Template 10: Continuous Surface Modern CV
+ * Constraints: Single-column HTML, Flexbox visual split, Puppeteer-safe.
+ * Design: No cards, no shadows, continuous white surface with integrated header.
  */
 
 const COLORS = {
-  PRIMARY_TEXT: "#2c3e50",
-  SUBTITLE_TEXT: "#6b7c93",
-  BODY_TEXT: "#444",
-  LIGHT_GREY_TEXT: "#8a99a8",
+  TEXT_MAIN: "#2c3e50",
+  TEXT_MUTED: "#6b7c93",
+  TEXT_BODY: "#444",
+  TEXT_LIGHT: "#8a99a8",
   ACCENT_BLUE: "#4a90e2",
-  SOFT_BLUE: "#5aa0e6",
-  HERO_BG: "#dfeaf5",
-  HERO_WAVE: "#c9dced",
-  PAGE_BG: "#f5f7fa",
+  HEADER_BG: "#c9dced",
+  PROGRESS_TRACK: "#e0e6ed",
   PILL_BG: "#e6eef7",
-  PROGRESS_BG: "#e0e6ed",
-  SKELETON_BG: "#D1D5DB",
+  SKELETON_BG: "#D1D5DB"
 };
 
 export function PreviewSaaSModern({ cv, mobileMode = false }) {
+  // Empty state: placeholder skeleton when cv.name is empty
   if (!cv || !cv.name) {
     return (
       <div
         style={{
           width: mobileMode ? "100%" : "800px",
-          height: "500px",
+          height: "600px",
           backgroundColor: COLORS.SKELETON_BG,
-          borderRadius: "20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -54,10 +51,10 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
       style={{
         fontSize: "11px",
         fontWeight: "bold",
-        color: COLORS.SUBTITLE_TEXT,
+        color: COLORS.TEXT_MUTED,
         textTransform: "uppercase",
-        letterSpacing: "0.05em",
-        marginBottom: "12px",
+        letterSpacing: "0.08em",
+        marginBottom: "16px",
         marginTop: "0",
       }}
     >
@@ -69,9 +66,8 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
     <div
       style={{
         width: "100%",
-        minHeight: "auto",
-        backgroundColor: COLORS.PAGE_BG,
-        padding: mobileMode ? "10px" : "40px 20px",
+        minHeight: "auto", // Required constraint
+        backgroundColor: "#FFFFFF", // Continuous white surface
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -85,53 +81,55 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
           width: "100%",
           maxWidth: "800px",
           backgroundColor: "#FFFFFF",
-          borderRadius: "20px",
-          boxShadow: mobileMode ? "none" : "0 10px 25px rgba(0,0,0,0.05)",
-          overflow: "hidden",
           position: "relative",
-          paddingBottom: "40px",
+          paddingBottom: "40px", // Required for Puppeteer footer safety
         }}
       >
+        {/* TOP HEADER SECTION */}
         <header
           style={{
-            backgroundColor: COLORS.HERO_BG,
-            padding: "40px 32px 24px 32px",
+            backgroundColor: COLORS.HEADER_BG,
+            padding: "40px 32px 28px 32px",
             position: "relative",
             overflow: "hidden",
           }}
         >
+          {/* Subtle Abstract Shapes */}
           <div
             style={{
               position: "absolute",
-              top: "-40px",
-              right: "-20px",
-              width: "240px",
-              height: "240px",
+              top: "-30px",
+              right: "-30px",
+              width: "180px",
+              height: "180px",
               borderRadius: "50%",
-              background: COLORS.HERO_WAVE,
-              opacity: 0.5,
-              zIndex: 0,
+              border: `2px solid ${COLORS.TEXT_MAIN}`,
+              opacity: 0.05,
             }}
           />
           <div
             style={{
               position: "absolute",
               bottom: "-20px",
-              right: "150px",
+              left: "40%",
               width: "100px",
               height: "100px",
               borderRadius: "50%",
-              background: COLORS.HERO_WAVE,
-              opacity: 0.3,
-              zIndex: 0,
+              backgroundColor: "#FFF",
+              opacity: 0.15,
             }}
           />
 
           <div style={{ position: "relative", zIndex: 1, textAlign: "left" }}>
-            <h1 style={{ fontSize: "28px", fontWeight: "bold", color: COLORS.PRIMARY_TEXT, margin: 0 }}>{cv.name.toUpperCase()}</h1>
-            <p style={{ fontSize: "14px", color: COLORS.SUBTITLE_TEXT, margin: "4px 0 16px 0" }}>{cv.title || "The role you are applying for?"}</p>
+            <h1 style={{ fontSize: "30px", fontWeight: "bold", color: COLORS.TEXT_MAIN, margin: 0, letterSpacing: "-0.02em" }}>
+              {cv.name.toUpperCase()}
+            </h1>
+            <p style={{ fontSize: "14px", color: COLORS.TEXT_MUTED, margin: "6px 0 16px 0", fontWeight: "500" }}>
+              {cv.title || "The role you are applying for?"}
+            </p>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", fontSize: "12px", color: COLORS.LIGHT_GREY_TEXT }}>
+            {/* CONTACT ROW */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", fontSize: "12px", color: COLORS.TEXT_MUTED }}>
               {cv.phone && <span>{cv.phone}</span>}
               {cv.email && <span>{cv.email}</span>}
               {cv.location && <span>{cv.location}</span>}
@@ -142,23 +140,24 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
         <div
           style={{
             display: "flex",
-            flexDirection: "row",
-            gap: "32px",
+            flexDirection: "row", // Visual split
+            gap: "40px",
             padding: "32px",
           }}
         >
-          <div style={{ flex: "0 0 60%" }}>
+          {/* LEFT COLUMN (60%) */}
+          <div style={{ flex: "0 0 58%" }}>
             <SectionHeading>Experience</SectionHeading>
             {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: "bold", color: COLORS.PRIMARY_TEXT, fontSize: "14px" }}>{exp.role}</div>
-                <div style={{ color: COLORS.LIGHT_GREY_TEXT, fontSize: "12px", marginBottom: "8px" }}>
+              <div key={i} style={{ marginBottom: "24px", pageBreakInside: "avoid" }}>
+                <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "14px" }}>{exp.role}</div>
+                <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "12px", marginBottom: "8px" }}>
                   {exp.company} • {exp.period}
                 </div>
                 {exp.points &&
                   splitExperiencePointsForPreview(exp.points).map((point, j) => (
-                    <div key={j} style={{ fontSize: "13px", color: COLORS.BODY_TEXT, marginBottom: "4px", display: "flex", lineHeight: "1.5" }}>
-                      <span style={{ marginRight: "8px" }}>•</span>
+                    <div key={j} style={{ fontSize: "13px", color: COLORS.TEXT_BODY, marginBottom: "5px", display: "flex", lineHeight: "1.5" }}>
+                      <span style={{ marginRight: "10px", color: COLORS.ACCENT_BLUE }}>•</span>
                       <span>{point}</span>
                     </div>
                   ))}
@@ -168,8 +167,8 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
             <SectionHeading>Education</SectionHeading>
             {education.map((edu, i) => (
               <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: "bold", color: COLORS.PRIMARY_TEXT, fontSize: "13px" }}>{edu.degree}</div>
-                <div style={{ color: COLORS.SUBTITLE_TEXT, fontSize: "12px" }}>
+                <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "13px" }}>{edu.degree}</div>
+                <div style={{ color: COLORS.TEXT_MUTED, fontSize: "12px" }}>
                   {edu.school} • {edu.year}
                 </div>
               </div>
@@ -181,10 +180,10 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
                 <span
                   key={i}
                   style={{
-                    padding: "6px 10px",
+                    padding: "5px 12px",
                     backgroundColor: COLORS.PILL_BG,
-                    color: COLORS.PRIMARY_TEXT,
-                    borderRadius: "8px",
+                    color: COLORS.TEXT_MAIN,
+                    borderRadius: "6px",
                     fontSize: "12px",
                   }}
                 >
@@ -194,51 +193,47 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
             </div>
           </div>
 
+          {/* RIGHT COLUMN (40%) */}
           <div style={{ flex: "1" }}>
             <SectionHeading>Summary</SectionHeading>
-            <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.5", margin: "0 0 24px 0" }}>{cv.summary}</p>
+            <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", margin: "0 0 28px 0" }}>
+              {cv.summary}
+            </p>
 
             <SectionHeading>Key Achievements</SectionHeading>
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "13px" }}>Strategic Leadership</div>
-              <div style={{ color: COLORS.LIGHT_GREY_TEXT, fontSize: "11px" }}>Delivered 20% efficiency increase in SaaS deployment workflows.</div>
+            <div style={{ marginBottom: "24px" }}>
+              <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "13px", marginBottom: "2px" }}>Project Excellence</div>
+              <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px", lineHeight: "1.4" }}>Successfully migrated legacy architecture to cloud-native microservices.</div>
             </div>
 
             <SectionHeading>Languages</SectionHeading>
             {languages.map((lang, i) => (
-              <div key={i} style={{ marginBottom: "12px" }}>
-                <div style={{ fontSize: "12px", color: COLORS.PRIMARY_TEXT, marginBottom: "4px" }}>{lang}</div>
-                <div style={{ height: "6px", width: "100%", background: COLORS.PROGRESS_BG, borderRadius: "999px" }}>
-                  <div style={{ height: "100%", width: "85%", background: COLORS.SOFT_BLUE, borderRadius: "999px" }} />
+              <div key={i} style={{ marginBottom: "14px" }}>
+                <div style={{ fontSize: "12px", color: COLORS.TEXT_MAIN, marginBottom: "5px" }}>{lang}</div>
+                <div style={{ height: "5px", width: "100%", background: COLORS.PROGRESS_TRACK, borderRadius: "999px" }}>
+                  <div style={{ height: "100%", width: "80%", background: COLORS.ACCENT_BLUE, borderRadius: "999px" }} />
                 </div>
               </div>
             ))}
 
+            <SectionHeading>Courses</SectionHeading>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ color: COLORS.TEXT_MAIN, fontWeight: "bold", fontSize: "12px" }}>Advanced System Design</div>
+              <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px" }}>Focus on scalability and fault tolerance.</div>
+            </div>
+
             <SectionHeading>Interests</SectionHeading>
-            <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "12px" }}>Open Source Contribution</div>
-            <div style={{ color: COLORS.LIGHT_GREY_TEXT, fontSize: "11px" }}>Maintaining UI libraries and documentation.</div>
+            <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "12px" }}>UI/UX Research</div>
+            <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px" }}>Passionate about accessible design patterns.</div>
           </div>
         </div>
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: "0",
-            left: "0",
-            width: "120px",
-            height: "120px",
-            background: `radial-gradient(circle at bottom left, ${COLORS.HERO_WAVE}, transparent)`,
-            opacity: 0.3,
-            pointerEvents: "none",
-          }}
-        />
       </div>
 
       <style>
         {`
           @media print {
-            .main-container { box-shadow: none !important; border-radius: 0 !important; }
             body { background: white !important; -webkit-print-color-adjust: exact; }
+            header { background-color: ${COLORS.HEADER_BG} !important; }
           }
         `}
       </style>
