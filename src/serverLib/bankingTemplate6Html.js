@@ -6,7 +6,7 @@ function pdfBankingFinance(cv) {
   const GREY = "#6b7280";
   const BODY_TEXT = "#333333";
 
-  const isPlaceholder = !cv.name;
+  const isPlaceholder = !cv.name || String(cv.name).trim() === "";
   const textColor = isPlaceholder ? "#D1D5DB" : TEXT_DARK;
   const subTextColor = isPlaceholder ? "#D1D5DB" : GREY;
   const accentColor = isPlaceholder ? "#D1D5DB" : ACCENT;
@@ -87,20 +87,26 @@ function pdfBankingFinance(cv) {
           .edu-right { flex: 1; }
           .edu-school { font-size: 11pt; font-weight: bold; color: ${textColor}; }
           .edu-degree { font-size: 10pt; color: ${BODY_TEXT}; }
+
+          .skeleton-box { background: #D1D5DB; }
         </style>
       </head>
       <body>
         <div class="header">
           <h1 class="name">${cv.name || "Full Name"}</h1>
           <div class="title">${cv.title || "Banking & Finance Professional"}</div>
-          <div class="contact">${contactParts.join("  •  ")}</div>
+          <div class="contact">
+            ${isPlaceholder ? "email@address.com  •  +00 000 000  •  Location" : contactParts.join("  •  ")}
+          </div>
         </div>
 
         ${
-          cv.summary
+          cv.summary || isPlaceholder
             ? `
           <div class="section-title"><span>Professional Profile</span></div>
-          <p style="font-size: 10pt; margin: 0; text-align: justify; color: ${BODY_TEXT};">${cv.summary}</p>
+          <p style="font-size: 10pt; margin: 0; text-align: justify; color: ${isPlaceholder ? "#D1D5DB" : BODY_TEXT};">${
+            cv.summary || "Strategically-minded professional with 10+ years of experience..."
+          }</p>
         `
             : ""
         }
@@ -109,9 +115,25 @@ function pdfBankingFinance(cv) {
           experience.length > 0 || isPlaceholder
             ? `
           <div class="section-title"><span>Professional Experience</span></div>
-          ${experience
-            .map(
-              (exp) => `
+          ${
+            isPlaceholder
+              ? `
+            <div class="exp-row">
+              <div class="exp-left">
+                <div class="skeleton-box" style="height:12px; width:70%; margin-bottom:6px;"></div>
+                <div class="skeleton-box" style="height:10px; width:55%;"></div>
+              </div>
+              <div class="exp-right">
+                <div class="skeleton-box" style="height:12px; width:60%; margin-bottom:6px;"></div>
+                <div class="skeleton-box" style="height:10px; width:45%; margin-bottom:10px;"></div>
+                <div class="skeleton-box" style="height:10px; width:90%; margin-bottom:5px;"></div>
+                <div class="skeleton-box" style="height:10px; width:85%;"></div>
+              </div>
+            </div>
+          `
+              : experience
+                  .map(
+                    (exp) => `
             <div class="exp-row">
               <div class="exp-left">
                 <div style="font-weight:bold;">${exp.period || ""}</div>
@@ -136,28 +158,42 @@ function pdfBankingFinance(cv) {
               </div>
             </div>
           `,
-            )
-            .join("")}
+                  )
+                  .join("")
+          }
         `
             : ""
         }
 
         ${
-          skills.length > 0
+          skills.length > 0 || isPlaceholder
             ? `
           <div class="section-title"><span>Expertise & Skills</span></div>
-          <p class="skills">${skills.join(" • ")}</p>
+          <p class="skills" style="color: ${isPlaceholder ? "#D1D5DB" : BODY_TEXT};">${
+            isPlaceholder ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")
+          }</p>
         `
             : ""
         }
 
         ${
-          education.length > 0
+          education.length > 0 || isPlaceholder
             ? `
           <div class="section-title"><span>Education</span></div>
-          ${education
-            .map(
-              (edu) => `
+          ${
+            isPlaceholder
+              ? `
+            <div class="edu-row">
+              <div class="edu-left"><div class="skeleton-box" style="height:10px; width:55%;"></div></div>
+              <div class="edu-right">
+                <div class="skeleton-box" style="height:12px; width:60%; margin-bottom:6px;"></div>
+                <div class="skeleton-box" style="height:10px; width:75%;"></div>
+              </div>
+            </div>
+          `
+              : education
+                  .map(
+                    (edu) => `
             <div class="edu-row">
               <div class="edu-left"><div style="font-weight:bold;">${edu.year || ""}</div></div>
               <div class="edu-right">
@@ -166,8 +202,9 @@ function pdfBankingFinance(cv) {
               </div>
             </div>
           `,
-            )
-            .join("")}
+                  )
+                  .join("")
+          }
         `
             : ""
         }

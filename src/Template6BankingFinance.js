@@ -11,7 +11,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
   const pt = (n) => `${n * s}pt`;
 
   // Placeholder Logic
-  const isPlaceholder = !cv.name;
+  const isPlaceholder = !cv.name || String(cv.name).trim() === "";
   const textColor = isPlaceholder ? "#D1D5DB" : TEXT_DARK;
   const subTextColor = isPlaceholder ? "#D1D5DB" : GREY;
   const accentColor = isPlaceholder ? "#D1D5DB" : ACCENT;
@@ -43,6 +43,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
     <div
       style={{
         width: mobileMode ? "100%" : "210mm",
+        maxWidth: "100%",
         minHeight: "auto",
         background: "#FFFFFF",
         padding: "15mm 18mm 40px", // Puppeteer footer constraint
@@ -54,7 +55,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
       }}
     >
       {/* Header - Clean White */}
-      <header style={{ marginBottom: "10mm" }}>
+      <header style={{ marginBottom: "10mm", textAlign: "left" }}>
         <h1 style={{ fontSize: pt(24), fontWeight: "bold", margin: 0, color: textColor }}>{cv.name || "Full Name"}</h1>
         <div style={{ fontSize: pt(12), fontWeight: "bold", marginTop: "1mm", color: textColor }}>
           {cv.title || "Banking & Finance Professional"}
@@ -73,14 +74,17 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
           {cv.phone && <span>• {cv.phone}</span>}
           {cv.location && <span>• {cv.location}</span>}
           {(cv.linkedin || cv.linkedIn) && <span>• LinkedIn</span>}
+          {isPlaceholder && <span style={{ color: "#D1D5DB" }}>email@address.com • +00 000 000 • Location</span>}
         </div>
       </header>
 
       {/* Summary */}
-      {cv.summary && (
+      {(cv.summary || isPlaceholder) && (
         <section>
           <SectionTitle>Professional Profile</SectionTitle>
-          <p style={{ fontSize: pt(10), margin: 0, textAlign: "justify", color: "#333" }}>{cv.summary}</p>
+          <p style={{ fontSize: pt(10), margin: 0, textAlign: "justify", color: isPlaceholder ? "#D1D5DB" : "#333" }}>
+            {cv.summary || "Strategically-minded professional with 10+ years of experience..."}
+          </p>
         </section>
       )}
 
@@ -88,63 +92,92 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
       {(experience.length > 0 || isPlaceholder) && (
         <section>
           <SectionTitle>Professional Experience</SectionTitle>
-          {experience.map((exp, i) => (
-            <div key={i} style={{ display: "flex", marginBottom: "6mm", pageBreakInside: "avoid", gap: "10mm" }}>
-              {/* Left Column: Date and Location Stacked */}
-              <div style={{ width: "35mm", flexShrink: 0, fontSize: pt(9), color: subTextColor, textAlign: "left" }}>
-                <div style={{ fontWeight: "bold" }}>{exp.period}</div>
-                <div>{exp.location}</div>
+          {isPlaceholder ? (
+            <div style={{ display: "flex", marginBottom: "6mm", pageBreakInside: "avoid", gap: "10mm" }}>
+              <div style={{ width: "35mm", flexShrink: 0, fontSize: pt(9), color: "#D1D5DB" }}>
+                <div style={{ height: "12px", width: "70%", backgroundColor: "#D1D5DB", marginBottom: "6px" }} />
+                <div style={{ height: "10px", width: "55%", backgroundColor: "#D1D5DB" }} />
               </div>
-
-              {/* Right Column: Experience Details */}
               <div style={{ flexGrow: 1 }}>
-                <div style={{ fontSize: pt(11), fontWeight: "bold", color: accentColor }}>{exp.company}</div>
-                <div style={{ fontSize: pt(10), fontStyle: "italic", marginBottom: "2mm" }}>{exp.role}</div>
-                {exp.points &&
-                  splitExperiencePointsForPreview(exp.points).map((point, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        fontSize: pt(10),
-                        display: "flex",
-                        gap: "6px",
-                        marginBottom: "1mm",
-                        color: "#333",
-                      }}
-                    >
-                      <span>•</span>
-                      <span>{point}</span>
-                    </div>
-                  ))}
+                <div style={{ height: "12px", width: "60%", backgroundColor: "#D1D5DB", marginBottom: "6px" }} />
+                <div style={{ height: "10px", width: "45%", backgroundColor: "#D1D5DB", marginBottom: "10px" }} />
+                <div style={{ height: "10px", width: "90%", backgroundColor: "#D1D5DB", marginBottom: "5px" }} />
+                <div style={{ height: "10px", width: "85%", backgroundColor: "#D1D5DB" }} />
               </div>
             </div>
-          ))}
+          ) : (
+            experience.map((exp, i) => (
+              <div key={i} style={{ display: "flex", marginBottom: "6mm", pageBreakInside: "avoid", gap: "10mm" }}>
+                {/* Left Column: Date and Location Stacked */}
+                <div style={{ width: "35mm", flexShrink: 0, fontSize: pt(9), color: subTextColor, textAlign: "left" }}>
+                  <div style={{ fontWeight: "bold" }}>{exp.period}</div>
+                  <div>{exp.location}</div>
+                </div>
+
+                {/* Right Column: Experience Details */}
+                <div style={{ flexGrow: 1 }}>
+                  <div style={{ fontSize: pt(11), fontWeight: "bold", color: accentColor }}>{exp.company}</div>
+                  <div style={{ fontSize: pt(10), fontStyle: "italic", marginBottom: "2mm" }}>{exp.role}</div>
+                  {exp.points &&
+                    splitExperiencePointsForPreview(exp.points).map((point, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          fontSize: pt(10),
+                          display: "flex",
+                          gap: "6px",
+                          marginBottom: "1mm",
+                          color: "#333",
+                        }}
+                      >
+                        <span>•</span>
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))
+          )}
         </section>
       )}
 
       {/* Skills */}
-      {skills.length > 0 && (
+      {(skills.length > 0 || isPlaceholder) && (
         <section style={{ pageBreakInside: "avoid" }}>
           <SectionTitle>Expertise & Skills</SectionTitle>
-          <p style={{ fontSize: pt(10), margin: 0, color: "#333" }}>{skills.join(" • ")}</p>
+          <p style={{ fontSize: pt(10), margin: 0, color: isPlaceholder ? "#D1D5DB" : "#333" }}>
+            {isPlaceholder ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")}
+          </p>
         </section>
       )}
 
       {/* Education */}
-      {education.length > 0 && (
+      {(education.length > 0 || isPlaceholder) && (
         <section>
           <SectionTitle>Education</SectionTitle>
-          {education.map((edu, i) => (
-            <div key={i} style={{ display: "flex", marginBottom: "4mm", gap: "10mm", pageBreakInside: "avoid" }}>
-              <div style={{ width: "35mm", flexShrink: 0, fontSize: pt(9), color: subTextColor }}>
-                <div style={{ fontWeight: "bold" }}>{edu.year}</div>
+          {isPlaceholder ? (
+            <div style={{ display: "flex", marginBottom: "4mm", gap: "10mm", pageBreakInside: "avoid" }}>
+              <div style={{ width: "35mm", flexShrink: 0 }}>
+                <div style={{ height: "10px", width: "55%", backgroundColor: "#D1D5DB" }} />
               </div>
               <div style={{ flexGrow: 1 }}>
-                <div style={{ fontSize: pt(11), fontWeight: "bold" }}>{edu.school}</div>
-                <div style={{ fontSize: pt(10) }}>{edu.degree}</div>
+                <div style={{ height: "12px", width: "60%", backgroundColor: "#D1D5DB", marginBottom: "6px" }} />
+                <div style={{ height: "10px", width: "75%", backgroundColor: "#D1D5DB" }} />
               </div>
             </div>
-          ))}
+          ) : (
+            education.map((edu, i) => (
+              <div key={i} style={{ display: "flex", marginBottom: "4mm", gap: "10mm", pageBreakInside: "avoid" }}>
+                <div style={{ width: "35mm", flexShrink: 0, fontSize: pt(9), color: subTextColor }}>
+                  <div style={{ fontWeight: "bold" }}>{edu.year}</div>
+                </div>
+                <div style={{ flexGrow: 1 }}>
+                  <div style={{ fontSize: pt(11), fontWeight: "bold" }}>{edu.school}</div>
+                  <div style={{ fontSize: pt(10) }}>{edu.degree}</div>
+                </div>
+              </div>
+            ))
+          )}
         </section>
       )}
     </div>
