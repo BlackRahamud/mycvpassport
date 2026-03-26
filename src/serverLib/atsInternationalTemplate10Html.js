@@ -1,190 +1,224 @@
-/**
- * Template 10 — ATS International. Single column, Arial, black/white. Mirrors PreviewATSInternational.
- */
+const { cvWithTemplateCertifications } = require("./pdfCommon");
 
-const {
-  escapeHtml,
-  stripEmojiPictographs,
-  splitExperiencePointsForPreview,
-  cvWithTemplateCertifications,
-} = require("./pdfCommon");
+function pdfSaaSModern(cv) {
+  const NAVY = "#1E2D45";
+  const ACCENT_BLUE = "#4A90E2";
+  const BODY_GREY = "#475569";
+  const LIGHT_GREY = "#94A3B8";
+  const PILL_BG = "#EBF4FF";
+  const PROGRESS_TRACK = "#E2E8F0";
+  const CARD_BG_GRADIENT = "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)";
+  const OUTER_BG = "linear-gradient(135deg, #4F5B66 0%, #2D3748 100%)";
+  const SKELETON = "#D1D5DB";
 
-const BLACK = "#000000";
-const MID = "#333333";
-const SUBTLE = "#666666";
+  const isPlaceholder = !cv.name || String(cv.name).trim() === "";
+  const experience = Array.isArray(cv.experience) ? cv.experience : [];
+  const education = Array.isArray(cv.education) ? cv.education : [];
+  const skills = cv.skills ? String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const languages = cv.languages ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean) : [];
 
-function sectionTitleT10(label) {
-  return `<div class="t10-sec-wrap">
-    <div class="t10-sec-title">${escapeHtml(label)}</div>
-    <div class="t10-sec-rule"></div>
-  </div>`;
+  const safeName = cv.name || "Isabella Adams";
+  const initials = safeName.trim() ? safeName.trim()[0].toUpperCase() : "I";
+  const contact = [cv.phone, cv.email, cv.location].filter(Boolean).join(" &nbsp; | &nbsp; ");
+
+  return `
+    <html>
+      <head>
+        <style>
+          @page { size: A4; margin: 0; }
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            color: ${BODY_GREY};
+            background: ${OUTER_BG};
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .outer {
+            min-height: 297mm;
+            padding: 60px 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+          }
+          .card {
+            width: 950px;
+            max-width: 100%;
+            min-height: 600px;
+            background-color: #FFFFFF;
+            background-image: ${CARD_BG_GRADIENT};
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            padding: 32px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+          }
+          .overlay {
+            position: absolute;
+            inset: 0;
+            opacity: 0.03;
+            pointer-events: none;
+            background: radial-gradient(circle at 2px 2px, #000 1px, transparent 0);
+            background-size: 24px 24px;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            border-bottom: 1px solid ${PROGRESS_TRACK};
+            padding-bottom: 24px;
+            position: relative;
+            z-index: 1;
+          }
+          .name { font-size: 28px; font-weight: bold; color: ${isPlaceholder ? SKELETON : NAVY}; margin: 0; }
+          .title { font-size: 14px; color: ${isPlaceholder ? SKELETON : ACCENT_BLUE}; margin-top: 4px; font-weight: 500; }
+          .contact { display: flex; gap: 12px; margin-top: 12px; color: ${isPlaceholder ? SKELETON : LIGHT_GREY}; font-size: 11px; flex-wrap: wrap; }
+          .avatar {
+            width: 70px; height: 70px; border-radius: 50%;
+            background-color: ${isPlaceholder ? SKELETON : PROGRESS_TRACK};
+            border: 3px solid #FFF;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            font-size: 24px; font-weight: bold; color: #FFF;
+          }
+          .body { display: flex; gap: 40px; position: relative; z-index: 1; }
+          .left { flex: 0 0 62%; }
+          .right { flex: 1; }
+          .section-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: ${isPlaceholder ? SKELETON : ACCENT_BLUE};
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            margin-top: 20px;
+          }
+          .exp-item { margin-bottom: 20px; page-break-inside: avoid; }
+          .exp-role { font-weight: bold; color: ${isPlaceholder ? SKELETON : NAVY}; font-size: 15px; }
+          .exp-meta { color: ${isPlaceholder ? SKELETON : LIGHT_GREY}; font-size: 12px; margin-bottom: 8px; }
+          .bullet { font-size: 12.5px; color: ${isPlaceholder ? SKELETON : BODY_GREY}; margin-bottom: 4px; display: flex; }
+          .bullet span:first-child { margin-right: 8px; }
+          .edu-item { margin-bottom: 12px; page-break-inside: avoid; }
+          .edu-degree { font-weight: bold; color: ${isPlaceholder ? SKELETON : NAVY}; font-size: 14px; }
+          .edu-meta { color: ${isPlaceholder ? SKELETON : BODY_GREY}; font-size: 12px; }
+          .summary { font-size: 12px; color: ${isPlaceholder ? SKELETON : BODY_GREY}; line-height: 1.5; margin: 0; }
+          .skills { display: flex; flex-wrap: wrap; gap: 8px; }
+          .skill-pill {
+            padding: 4px 10px; background-color: ${isPlaceholder ? "#F3F4F6" : PILL_BG};
+            color: ${isPlaceholder ? SKELETON : ACCENT_BLUE}; border-radius: 12px;
+            font-size: 11px; font-weight: 500;
+          }
+          .lang-item { margin-bottom: 10px; }
+          .lang-name { font-size: 12px; color: ${isPlaceholder ? SKELETON : NAVY}; margin-bottom: 4px; }
+          .lang-track { height: 6px; width: 100%; background: ${isPlaceholder ? "#E5E7EB" : PROGRESS_TRACK}; border-radius: 3px; }
+          .lang-fill { height: 100%; width: 80%; background: ${isPlaceholder ? SKELETON : ACCENT_BLUE}; border-radius: 3px; }
+          .footer-pad { height: 40px; }
+        </style>
+      </head>
+      <body>
+        <div class="outer">
+          <div class="card">
+            <div class="overlay"></div>
+            <div class="header">
+              <div>
+                <h1 class="name">${safeName}</h1>
+                <div class="title">${cv.title || "Professional Title"}</div>
+                <div class="contact">${contact || (isPlaceholder ? "Phone | Email | Location" : "")}</div>
+              </div>
+              <div class="avatar">${initials}</div>
+            </div>
+
+            <div class="body">
+              <div class="left">
+                <div class="section-title">Experience</div>
+                ${
+                  experience.length
+                    ? experience
+                        .map(
+                          (exp) => `
+                    <div class="exp-item">
+                      <div class="exp-role">${exp.role || ""}</div>
+                      <div class="exp-meta">${exp.company || ""} | ${exp.period || ""}</div>
+                      ${(exp.points || "")
+                        .split("\\n")
+                        .filter(Boolean)
+                        .map((p) => `<div class="bullet"><span>•</span><span>${String(p).replace(/^•\\s*/, "")}</span></div>`)
+                        .join("")}
+                    </div>`,
+                        )
+                        .join("")
+                    : isPlaceholder
+                      ? `<div class="exp-item"><div class="exp-role">Role Title</div><div class="exp-meta">Company | Period</div><div class="bullet"><span>•</span><span>Achievement placeholder</span></div></div>`
+                      : ""
+                }
+
+                <div class="section-title">Education</div>
+                ${
+                  education.length
+                    ? education
+                        .map(
+                          (edu) => `
+                    <div class="edu-item">
+                      <div class="edu-degree">${edu.degree || ""}</div>
+                      <div class="edu-meta">${edu.school || ""} • ${edu.year || ""}</div>
+                    </div>`,
+                        )
+                        .join("")
+                    : isPlaceholder
+                      ? `<div class="edu-item"><div class="edu-degree">Degree Title</div><div class="edu-meta">University • Year</div></div>`
+                      : ""
+                }
+              </div>
+
+              <div class="right">
+                <div class="section-title">Summary</div>
+                <p class="summary">${cv.summary || (isPlaceholder ? "Professional summary placeholder text..." : "")}</p>
+
+                <div class="section-title">Skills</div>
+                <div class="skills">
+                  ${
+                    skills.length
+                      ? skills.map((skill) => `<span class="skill-pill">${skill}</span>`).join("")
+                      : isPlaceholder
+                        ? `<span class="skill-pill">Skill</span><span class="skill-pill">Skill</span><span class="skill-pill">Skill</span>`
+                        : ""
+                  }
+                </div>
+
+                <div class="section-title">Languages</div>
+                ${
+                  languages.length
+                    ? languages
+                        .map(
+                          (lang) => `
+                    <div class="lang-item">
+                      <div class="lang-name">${lang}</div>
+                      <div class="lang-track"><div class="lang-fill"></div></div>
+                    </div>`,
+                        )
+                        .join("")
+                    : isPlaceholder
+                      ? `<div class="lang-item"><div class="lang-name">Language</div><div class="lang-track"><div class="lang-fill"></div></div></div>`
+                      : ""
+                }
+              </div>
+            </div>
+            <div class="footer-pad"></div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
 }
 
 function buildATSInternationalTemplate10Html(rawCv) {
   const cv = cvWithTemplateCertifications(rawCv || {});
-  const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const techList = cv.technicalSkills ? cv.technicalSkills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const certList = cv.certifications ? cv.certifications.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const experience = Array.isArray(cv.experience) ? cv.experience : [];
-  const education = Array.isArray(cv.education) ? cv.education : [];
-
-  const contactLine = [cv.email, cv.phone, cv.location].filter(Boolean).map((x) => escapeHtml(stripEmojiPictographs(x))).join("   |   ");
-
-  const gulfBits = [];
-  if (cv.nationality) gulfBits.push(`Nationality: ${escapeHtml(stripEmojiPictographs(cv.nationality))}`);
-  if (cv.visaStatus) gulfBits.push(`Visa Status: ${escapeHtml(stripEmojiPictographs(cv.visaStatus))}`);
-  if (cv.dob) gulfBits.push(`Date of Birth: ${escapeHtml(stripEmojiPictographs(cv.dob))}`);
-  if (cv.gender) gulfBits.push(`Gender: ${escapeHtml(stripEmojiPictographs(cv.gender))}`);
-  if (cv.maritalStatus) gulfBits.push(`Marital Status: ${escapeHtml(stripEmojiPictographs(cv.maritalStatus))}`);
-  const gulfLine = gulfBits.join("   |   ");
-
-  let inner = `<div class="t10-root">
-    <div class="t10-header">
-      <h1 class="t10-name">${escapeHtml(cv.name || "Your Name")}</h1>
-      <p class="t10-title">${escapeHtml(cv.title || "Professional Title")}</p>
-      ${contactLine ? `<div class="t10-contact">${contactLine}</div>` : ""}
-      ${gulfLine ? `<div class="t10-gulf">${gulfLine}</div>` : ""}
-    </div>
-    <div class="t10-hr-thick"></div>`;
-
-  if (cv.summary) {
-    inner += `${sectionTitleT10("Professional Summary")}<p class="t10-body">${escapeHtml(cv.summary)}</p>`;
-  }
-
-  if (skillList.length > 0) {
-    inner += `${sectionTitleT10("Core Skills")}<p class="t10-body">${skillList.map((s) => escapeHtml(s)).join(" | ")}</p>`;
-  }
-
-  if (experience.some((e) => e && e.company)) {
-    let exp = "";
-    experience
-      .filter((e) => e && e.company)
-      .forEach((e) => {
-        const lines = e.points ? splitExperiencePointsForPreview(e.points) : [];
-        let bullets = "";
-        lines.forEach((line) => {
-          bullets += `<p class="t10-bullet">• ${escapeHtml(line)}</p>`;
-        });
-        exp += `<div class="t10-exp">
-          <div class="t10-exp-row">
-            <span class="t10-exp-role">${escapeHtml(e.role || "")}</span>
-            <span class="t10-exp-period">${escapeHtml(e.period || "")}</span>
-          </div>
-          <div class="t10-exp-co">${escapeHtml(e.company || "")}${e.location ? ` | ${escapeHtml(e.location)}` : ""}</div>
-          ${bullets}
-        </div>`;
-      });
-    inner += `${sectionTitleT10("Professional Experience")}${exp}`;
-  }
-
-  if (education.some((e) => e && e.school)) {
-    let edu = "";
-    education
-      .filter((e) => e && e.school)
-      .forEach((e) => {
-        edu += `<div class="t10-edu-row">
-          <div><span class="t10-edu-deg">${escapeHtml(e.degree || "")}</span><span class="t10-edu-school"> | ${escapeHtml(e.school || "")}</span></div>
-          <span class="t10-edu-year">${escapeHtml(e.year || "")}</span>
-        </div>`;
-      });
-    inner += `${sectionTitleT10("Education")}${edu}`;
-  }
-
-  if (certList.length > 0) {
-    inner += `${sectionTitleT10("Certifications")}<p class="t10-body">${certList.map((c) => escapeHtml(c)).join(" | ")}</p>`;
-  }
-
-  if (techList.length > 0) {
-    inner += `${sectionTitleT10("Technical Skills")}<p class="t10-body">${techList.map((s) => escapeHtml(s)).join(" | ")}</p>`;
-  }
-
-  if (cv.languages) {
-    inner += `${sectionTitleT10("Languages")}<p class="t10-body">${escapeHtml(cv.languages)}</p>`;
-  }
-
-  if (cv.availability || cv.drivingLicense || cv.willingToRelocate) {
-    let add = "";
-    if (cv.availability) add += `<div>Availability: ${escapeHtml(stripEmojiPictographs(cv.availability))}</div>`;
-    if (cv.drivingLicense) add += `<div>Driving License: ${escapeHtml(stripEmojiPictographs(cv.drivingLicense))}</div>`;
-    if (cv.willingToRelocate) add += `<div>Willing to Relocate: ${escapeHtml(stripEmojiPictographs(cv.willingToRelocate))}</div>`;
-    if (add) inner += `${sectionTitleT10("Additional Information")}<div class="t10-body">${add}</div>`;
-  }
-
-  if (cv.references) {
-    inner += `${sectionTitleT10("References")}<p class="t10-refs">${escapeHtml(cv.references)}</p>`;
-  }
-
-  inner += `</div>`;
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 10.5px;
-      color: ${MID};
-      background: #fff;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .t10-root {
-      width: 794px;
-      max-width: 100%;
-      margin: 0 auto;
-      padding: 28px 32px;
-      background: #fff;
-    }
-    .t10-header { margin-bottom: 14px; }
-    .t10-name { font-size: 22px; font-weight: 900; color: ${BLACK}; margin: 0 0 3px; letter-spacing: 0.5px; }
-    .t10-title { font-size: 11px; font-weight: 700; color: ${MID}; margin: 0 0 8px; }
-    .t10-contact { font-size: 9.5px; color: ${MID}; line-height: 1.8; }
-    .t10-gulf { font-size: 9px; color: ${SUBTLE}; line-height: 1.8; margin-top: 2px; }
-    .t10-hr-thick { height: 2px; background: ${BLACK}; margin: 6px 0 8px; }
-    .t10-sec-wrap { margin: 14px 0 6px; }
-    .t10-sec-title {
-      font-size: 10px; font-weight: 900; color: ${BLACK}; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;
-    }
-    .t10-sec-rule { height: 2px; background: ${BLACK}; }
-    .t10-body { font-size: 10px; line-height: 1.75; color: ${MID}; margin: 0 0 4px; }
-    .t10-bullet { font-size: 10px; line-height: 1.7; color: ${MID}; margin: 0 0 4px; }
-    .t10-exp { margin-bottom: 13px; }
-    .t10-exp-row { display: flex; justify-content: space-between; align-items: baseline; }
-    .t10-exp-role { font-size: 11px; font-weight: 700; color: ${BLACK}; }
-    .t10-exp-period { font-size: 9.5px; color: ${SUBTLE}; }
-    .t10-exp-co { font-size: 10px; font-weight: 600; color: ${MID}; margin-bottom: 4px; }
-    .t10-edu-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-    .t10-edu-deg { font-size: 10.5px; font-weight: 700; color: ${BLACK}; }
-    .t10-edu-school { font-size: 10px; color: ${MID}; }
-    .t10-edu-year { font-size: 9.5px; color: ${SUBTLE}; }
-    .t10-refs { font-size: 9.5px; color: ${SUBTLE}; margin: 0; }
-    @media print {
-      html, body { margin: 0; padding: 0; }
-
-      .t10-exp,
-      .t10-edu-row {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 14px;
-      }
-
-      h2, h3 {
-        break-after: avoid;
-        page-break-after: avoid;
-      }
-
-      p, li { orphans: 3; widows: 3; }
-    }
-  </style>
-</head>
-<body>
-${inner}
-</body>
-</html>`;
+  return pdfSaaSModern(cv);
 }
 
 module.exports = { buildATSInternationalTemplate10Html };
