@@ -1,7 +1,7 @@
 const chromium = require("@sparticuz/chromium-min");
 const puppeteer = require("puppeteer-core");
 
-const { buildBannerTemplate1Html } = require("../src/serverLib/bannerTemplate1Html");
+const { pdfModernEmerald } = require("../src/serverLib/bannerTemplate1Html");
 const { buildTwocolTemplate2Html } = require("../src/serverLib/twocolTemplate2Html");
 const { buildSidebarTemplate3Html } = require("../src/serverLib/sidebarTemplate3Html");
 const { buildTimelineTemplate4Html } = require("../src/serverLib/timelineTemplate4Html");
@@ -17,7 +17,7 @@ const { buildFinanceTemplate13Html } = require("../src/serverLib/financeTemplate
 const { drawT11SidebarStripeOnPdf } = require("../src/serverLib/pdfDrawT11SidebarStripe");
 
 const BUILDERS = {
-  1: buildBannerTemplate1Html,
+  1: pdfModernEmerald,
   2: buildTwocolTemplate2Html,
   3: buildSidebarTemplate3Html,
   4: buildTimelineTemplate4Html,

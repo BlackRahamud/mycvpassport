@@ -122,7 +122,7 @@ const supabase = isPrerender ? null : supabaseImport;
 
 // ─── TEMPLATES ───────────────────────────────────────────────────
 const TEMPLATES = [
-  { id: 1,  name: "Gulf Classic",         tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",              layout: "banner"      },
+  { id: 1,  name: "Modern Emerald",      tier: "free",    color: "#1a1a2e", accent: "#e94560", desc: "Bold banner header",              layout: "banner"      },
   { id: 2,  name: "Dubai Modern",         tier: "free",    color: "#0f3460", accent: "#00b4d8", desc: "Two-column split",                layout: "twocol"      },
   { id: 3,  name: "Arabia Pro",           tier: "free",    color: "#1a1a2e", accent: "#1B3A6B", desc: "Sidebar with skills column",      layout: "sidebar"     },
   { id: 4,  name: "Executive Gold",       tier: "premium", color: "#1a0a00", accent: "#d4a017", desc: "Timeline experience style",       layout: "timeline"    },
@@ -486,114 +486,185 @@ function RightLabel({ accent, children }) {
   );
 }
 
-// ─── PREVIEW: BANNER LAYOUT ───────────────────────────────────────
-function PreviewBanner({ cv, t, mobileMode = false }) {
-  const skillList = cv.skills ? cv.skills.split(",").map(s => s.trim()).filter(Boolean) : [];
-  const techList  = cv.technicalSkills ? cv.technicalSkills.split(",").map(s => s.trim()).filter(Boolean) : [];
-  const certList  = cv.certifications ? cv.certifications.split(",").map(s => s.trim()).filter(Boolean) : [];
+// ─── PREVIEW: T1 (MODERN EMERALD) ──────────────────────────────────
+function PreviewModernEmerald({ cv, mobileMode = false }) {
+  const PRIMARY = "#064E3B"; // Deep Emerald
+  const ACCENT = "#B45309"; // Amber/Gold
+  const TEXT_MAIN = "#1F2937"; // Gray 800
+  const TEXT_MUTED = "#6B7280"; // Gray 500
+  const BG = "#FFFFFF";
+  const FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
+  const s = mobileMode ? 0.8 : 1;
+  const pt = (n) => `${n * s}pt`;
+
+  const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const techList = cv.technicalSkills ? cv.technicalSkills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  // eslint-disable-next-line no-unused-vars
+  const certList = cv.certifications ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean) : [];
+
+  const SectionTitle = ({ children, first }) => (
+    <div
+      style={{
+        marginTop: first ? 0 : "8mm",
+        marginBottom: "4mm",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        breakAfter: "avoid",
+        pageBreakAfter: "avoid",
+      }}
+    >
+      <span
+        style={{
+          fontSize: pt(12),
+          fontWeight: 800,
+          color: PRIMARY,
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {children}
+      </span>
+      <div style={{ height: "1px", background: "#E5E7EB", width: "100%" }} />
+    </div>
+  );
+
+  const EntryWrap = ({ children }) => (
+    <div style={{ marginBottom: "5mm", breakInside: "avoid", pageBreakInside: "avoid" }}>{children}</div>
+  );
+
   return (
     <div
       style={{
         ...resumePageRootBoxStyle(mobileMode),
-        background: "#fff",
-        fontFamily: "Georgia,serif",
-        color: "#222",
-        fontSize: "12px",
+        width: mobileMode ? "100%" : "210mm",
+        minHeight: mobileMode ? "100%" : "297mm",
+        background: BG,
+        padding: "15mm",
+        paddingLeft: mobileMode ? "15mm" : "25mm",
+        paddingRight: "15mm",
+        boxSizing: "border-box",
+        fontFamily: FONT,
+        color: TEXT_MAIN,
+        WebkitPrintColorAdjust: "exact",
       }}
     >
-      {/* Header */}
-      <div style={{ background: t.color, borderBottom: `5px solid ${t.accent}`, padding: "24px 28px 18px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: "900", color: "#fff", margin: "0 0 3px" }}>{cv.name || "Your Name"}</h1>
-        <p style={{ color: t.accent, fontWeight: "700", fontSize: "12px", margin: "0 0 8px", fontFamily: "sans-serif" }}>{cv.title || "Job Title"}</p>
-        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "10px", color: "#ccc", fontFamily: "sans-serif" }}>
-          {cv.email && <span>✉ {cv.email}</span>}
-          {cv.phone && <span>📞 {cv.phone}</span>}
-          {cv.location && <span>📍 {cv.location}</span>}
-          {cv.nationality && <span>🌍 {cv.nationality}</span>}
-          {cv.visaStatus && <span>🪪 {cv.visaStatus}</span>}
+      {/* Header - Refined Centered Stack */}
+      <header style={{ textAlign: "center", marginBottom: "10mm" }}>
+        <h1 style={{ fontSize: pt(28), fontWeight: 900, color: PRIMARY, margin: 0, letterSpacing: "-0.02em" }}>
+          {cv.name || "YOUR NAME"}
+        </h1>
+        <div
+          style={{
+            fontSize: pt(12),
+            fontWeight: 600,
+            color: ACCENT,
+            textTransform: "uppercase",
+            letterSpacing: "0.2em",
+            margin: "4px 0 12px",
+          }}
+        >
+          {cv.title || "PROFESSIONAL TITLE"}
         </div>
-        {/* Gulf info bar */}
-        {(cv.dob || cv.gender || cv.maritalStatus) && (
-          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "10px", color: "#aaa", fontFamily: "sans-serif", marginTop: "5px" }}>
-            {cv.dob && <span>DOB: {cv.dob}</span>}
-            {cv.gender && <span>Gender: {cv.gender}</span>}
-            {cv.maritalStatus && <span>Status: {cv.maritalStatus}</span>}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: "8px 16px",
+            fontSize: pt(9.5),
+            color: TEXT_MUTED,
+          }}
+        >
+          {cv.email && <span>{cv.email}</span>}
+          {cv.phone && <span>{cv.phone}</span>}
+          {cv.location && <span>{cv.location}</span>}
+        </div>
+      </header>
+
+      {/* Summary */}
+      {cv.summary && (
+        <section>
+          <SectionTitle first>Executive Profile</SectionTitle>
+          <p style={{ fontSize: pt(10), lineHeight: 1.6, margin: 0, textAlign: "justify" }}>{cv.summary}</p>
+        </section>
+      )}
+
+      {/* Skills - Chip style but ATS safe */}
+      {(skillList.length > 0 || techList.length > 0) && (
+        <section>
+          <SectionTitle>Competencies</SectionTitle>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {[...skillList, ...techList].map((skill, i) => (
+              <span
+                key={i}
+                style={{
+                  fontSize: pt(9),
+                  padding: "2px 8px",
+                  background: "#F0FDF4",
+                  border: `1px solid #DCFCE7`,
+                  color: PRIMARY,
+                  borderRadius: "4px",
+                  fontWeight: 600,
+                }}
+              >
+                {skill}
+              </span>
+            ))}
           </div>
-        )}
-      </div>
-      <div style={{ padding: "20px 28px" }}>
-        {cv.summary && <Section title="Professional Summary" accent={t.accent}><p style={{ fontSize: "11px", lineHeight: "1.7", margin: 0, color: "#444" }}>{cv.summary}</p></Section>}
+        </section>
+      )}
 
-        {skillList.length > 0 && (
-          <Section title="Core Skills" accent={t.accent}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-              {skillList.map((s, i) => <span key={i} style={{ padding: "3px 10px", background: `${t.accent}18`, border: `1px solid ${t.accent}44`, borderRadius: "20px", fontSize: "10px", color: "#333" }}>{s}</span>)}
-            </div>
-          </Section>
-        )}
-
-        {cv.experience.some(e => e.company) && (
-          <Section title="Work Experience" accent={t.accent}>
-            {cv.experience.filter(e => e.company).map((e, i) => (
-              <div key={i} style={{ marginBottom: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <strong style={{ fontSize: "12px" }}>{e.role}</strong>
-                  <span style={{ fontSize: "10px", color: "#888", whiteSpace: "nowrap", marginLeft: "8px" }}>{e.period}</span>
-                </div>
-                <div style={{ color: t.accent, fontSize: "11px", fontWeight: "700", marginBottom: "3px" }}>{e.company}{e.location ? ` · ${e.location}` : ""}</div>
-                {e.points && (
-                  <div className="cvp-preview-exp-banner-wrap">
-                    {splitExperiencePointsForPreview(e.points).map((line, j) => (
-                      <p key={j} className="cvp-preview-exp-banner-line">{j === 0 ? line : `• ${line}`}</p>
-                    ))}
-                  </div>
-                )}
+      {/* Experience */}
+      {cv.experience?.length > 0 && (
+        <section>
+          <SectionTitle>Professional Experience</SectionTitle>
+          {cv.experience.map((e, i) => (
+            <EntryWrap key={i}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontSize: pt(11), fontWeight: 700, color: PRIMARY }}>{e.role}</span>
+                <span style={{ fontSize: pt(9), fontWeight: 600, color: ACCENT }}>{e.period}</span>
               </div>
-            ))}
-          </Section>
-        )}
-
-        {cv.education.some(e => e.school) && (
-          <Section title="Education" accent={t.accent}>
-            {cv.education.filter(e => e.school).map((e, i) => (
-              <div key={i} style={{ marginBottom: "6px", display: "flex", justifyContent: "space-between" }}>
-                <div><strong style={{ fontSize: "11px" }}>{e.degree}</strong><div style={{ fontSize: "10px", color: "#666" }}>{e.school}</div></div>
-                <span style={{ fontSize: "10px", color: "#888" }}>{e.year}</span>
+              <div style={{ fontSize: pt(10), fontWeight: 600, color: TEXT_MUTED, marginBottom: "2mm" }}>
+                {e.company} {e.location && `| ${e.location}`}
               </div>
-            ))}
-          </Section>
-        )}
+              {e.points &&
+                splitExperiencePointsForPreview(e.points).map((p, j) => (
+                  <p
+                    key={j}
+                    style={{
+                      fontSize: pt(9.5),
+                      margin: "0 0 1mm",
+                      lineHeight: 1.4,
+                      paddingLeft: "12px",
+                      position: "relative",
+                    }}
+                  >
+                    <span style={{ position: "absolute", left: 0, color: ACCENT }}>•</span> {p}
+                  </p>
+                ))}
+            </EntryWrap>
+          ))}
+        </section>
+      )}
 
-        {certList.length > 0 && (
-          <Section title="Certifications" accent={t.accent}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-              {certList.map((c, i) => <span key={i} style={{ padding: "2px 8px", background: `${t.accent}12`, border: `1px solid ${t.accent}33`, borderRadius: "4px", fontSize: "10px", color: "#333" }}>{c}</span>)}
-            </div>
-          </Section>
-        )}
-
-        {techList.length > 0 && (
-          <Section title="Technical Skills" accent={t.accent}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-              {techList.map((s, i) => <span key={i} style={{ padding: "2px 8px", background: "#f5f5f5", borderRadius: "4px", fontSize: "10px", color: "#333" }}>{s}</span>)}
-            </div>
-          </Section>
-        )}
-
-        {cv.languages && <Section title="Languages" accent={t.accent}><p style={{ fontSize: "11px", margin: 0, color: "#444" }}>{cv.languages}</p></Section>}
-
-        {(cv.availability || cv.drivingLicense || cv.willingToRelocate) && (
-          <Section title="Additional Information" accent={t.accent}>
-            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", fontSize: "10px", color: "#555" }}>
-              {cv.availability && <span>📅 {cv.availability}</span>}
-              {cv.drivingLicense && <span>🚗 License: {cv.drivingLicense}</span>}
-              {cv.willingToRelocate && <span>✈️ Relocate: {cv.willingToRelocate}</span>}
-            </div>
-          </Section>
-        )}
-
-        {cv.references && <Section title="References" accent={t.accent}><p style={{ fontSize: "10px", margin: 0, color: "#888", fontStyle: "italic" }}>{cv.references}</p></Section>}
-      </div>
+      {/* Education */}
+      {cv.education?.length > 0 && (
+        <section>
+          <SectionTitle>Education</SectionTitle>
+          {cv.education.map((edu, i) => (
+            <EntryWrap key={i}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontWeight: 700, fontSize: pt(10) }}>{edu.degree}</span>
+                <span style={{ color: TEXT_MUTED, fontSize: pt(9) }}>{edu.year}</span>
+              </div>
+              <div style={{ fontSize: pt(9.5), color: TEXT_MUTED }}>{edu.school}</div>
+            </EntryWrap>
+          ))}
+        </section>
+      )}
     </div>
   );
 }
@@ -1036,7 +1107,7 @@ function ResumePreview({ cv, template, mobileMode = false }) {
   if (t.layout === "classic")     return <PreviewClassic         cv={cvT} />;
   if (t.layout === "finance")     return <PreviewFinance         cv={cvT} />;
   if (t.layout === "figma-mirror")return <PreviewFigmaMirror     cv={cvT} t={t} mobileMode={mobileMode} />;
-  return <PreviewBanner cv={cvT} t={t} mobileMode={mobileMode} />;
+  return <PreviewModernEmerald cv={cvT} mobileMode={mobileMode} />;
 }
 
 /** A4 page at 96dpi — matches dynamic scale math (containerWidth / 794) */
@@ -1246,10 +1317,10 @@ const TemplateThumb = ({ children }) => (
   </div>
 );
 
-// ─── INLINE PREVIEW: T1 (BANNER LAYOUT) ───────────────────────────
+// ─── INLINE PREVIEW: T1 (MODERN EMERALD) ──────────────────────────
 const T1Preview = ({ cv, t }) => (
   <TemplateThumb>
-    <PreviewBanner cv={cv} t={t} />
+    <PreviewModernEmerald cv={cv} />
   </TemplateThumb>
 );
 
@@ -1307,7 +1378,7 @@ function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedT
         <h2 style={{ textAlign: "center", fontSize: "28px", fontWeight: "800", marginBottom: "32px" }}>Professional Templates Built for Gulf Jobs</h2>
         
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", maxWidth: "1100px", margin: "0 auto 40px", "@media (max-width: 768px)": { gridTemplateColumns: "repeat(2, 1fr)" }, "@media (max-width: 480px)": { gridTemplateColumns: "1fr" } }}>
-          {/* T1 - Gulf Classic */}
+          {/* T1 - Modern Emerald */}
           <TiltedCard
             containerHeight="380px"
             rotateAmplitude={8}
@@ -1315,7 +1386,7 @@ function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedT
             displayOverlayContent={true}
             overlayContent={
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Gulf Classic</span>
+                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Modern Emerald</span>
                 <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(255,255,255,0.15)", color: "#fff", fontWeight: 600 }}>Free</span>
               </div>
             }

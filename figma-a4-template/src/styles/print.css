@@ -1,0 +1,48 @@
+/* Print and PDF Export Styles for Puppeteer */
+
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+
+  /* Remove preview background and spacing */
+  body > div {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* Ensure pages stack without gaps */
+  [style*="595px"] {
+    margin: 0 !important;
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+
+  /* Last page should not force a break */
+  [style*="595px"]:last-child {
+    page-break-after: auto;
+  }
+
+  /* Prevent text orphans and widows */
+  p, li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Ensure all backgrounds print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+
+/* Puppeteer-specific optimizations */
+@page {
+  size: A4;
+  margin: 0;
+}

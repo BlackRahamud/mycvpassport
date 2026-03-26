@@ -112,7 +112,7 @@ const EMPTY_RESUME = {
 };
 
 const TEMPLATES = [
-  { id: 1, name: "Gulf Classic", tier: "free", color: "#1a1a2e", accent: "#e94560", desc: "", layout: "banner" },
+  { id: 1, name: "Modern Emerald", tier: "free", color: "#1a1a2e", accent: "#e94560", desc: "", layout: "banner" },
 ];
 
 function getSkillsForJob(jobLabel) {
