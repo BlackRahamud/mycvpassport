@@ -44,6 +44,8 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
     <div
       style={{
         width: mobileMode ? "100%" : "210mm",
+        maxWidth: "100%",
+        minHeight: "auto",
         background: "#fff",
         padding: "15mm 20mm",
         paddingBottom: "40px", // Puppeteer constraint
@@ -53,13 +55,13 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
         WebkitPrintColorAdjust: "exact",
       }}
     >
-      {/* Centered Header - No Shading, No Sidebar */}
-      <header style={{ textAlign: "center", marginBottom: "8mm" }}>
+      {/* Left-aligned header (same behavior as T1/T2) */}
+      <header style={{ marginBottom: "8mm", borderLeft: `4px solid ${isEmpty ? SKELETON : PRIMARY}`, paddingLeft: "15px" }}>
         <h1
           style={{
             fontSize: pt(26),
             fontWeight: "900",
-            margin: "0 0 4px 0",
+            margin: 0,
             color: isEmpty ? SKELETON : PRIMARY,
             letterSpacing: "-0.5px",
           }}
@@ -71,6 +73,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
             fontSize: pt(13),
             fontWeight: "600",
             color: isEmpty ? SKELETON : ACCENT,
+            marginTop: "4px",
             marginBottom: "12px",
             textTransform: "uppercase",
             letterSpacing: "1px",
@@ -83,7 +86,6 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
             fontSize: pt(9.5),
             color: TEXT_BODY,
             display: "flex",
-            justifyContent: "center",
             flexWrap: "wrap",
             gap: "8px 15px",
           }}
@@ -121,74 +123,94 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
       {/* Experience - T11 Structural Flow */}
       <section>
         <SectionHeader>Work Experience</SectionHeader>
-        {(cv.experience || [])
-          .filter((e) => e.company)
-          .map((e, i) => (
-            <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "2px" }}>
-                <span style={{ fontWeight: "bold", fontSize: pt(11), color: PRIMARY }}>{e.company}</span>
-                <span style={{ fontSize: pt(9), fontWeight: "bold", color: ACCENT }}>{e.period}</span>
+        {isEmpty ? (
+          <div style={{ marginBottom: "6mm" }}>
+            <div style={{ height: "15px", width: "60%", backgroundColor: SKELETON, marginBottom: "5px" }} />
+            <div style={{ height: "10px", width: "40%", backgroundColor: SKELETON, marginBottom: "8px" }} />
+            <div style={{ height: "10px", width: "90%", backgroundColor: SKELETON }} />
+          </div>
+        ) : (
+          (cv.experience || [])
+            .filter((e) => e.company)
+            .map((e, i) => (
+              <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "2px" }}>
+                  <span style={{ fontWeight: "bold", fontSize: pt(11), color: PRIMARY }}>{e.company}</span>
+                  <span style={{ fontSize: pt(9), fontWeight: "bold", color: ACCENT }}>{e.period}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "2mm" }}>
+                  <span style={{ fontStyle: "italic", fontSize: pt(10), color: TEXT_BODY }}>{e.role}</span>
+                  <span style={{ fontSize: pt(9), color: TEXT_BODY }}>{e.location}</span>
+                </div>
+                {e.points &&
+                  splitExperiencePointsForPreview(e.points).map((p, j) => (
+                    <p
+                      key={j}
+                      style={{
+                        fontSize: pt(9.5),
+                        margin: "0 0 1.2mm",
+                        lineHeight: 1.4,
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
+                      <span style={{ color: ACCENT }}>•</span> <span>{p}</span>
+                    </p>
+                  ))}
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "2mm" }}>
-                <span style={{ fontStyle: "italic", fontSize: pt(10), color: TEXT_BODY }}>{e.role}</span>
-                <span style={{ fontSize: pt(9), color: TEXT_BODY }}>{e.location}</span>
-              </div>
-              {e.points &&
-                splitExperiencePointsForPreview(e.points).map((p, j) => (
-                  <p
-                    key={j}
-                    style={{
-                      fontSize: pt(9.5),
-                      margin: "0 0 1.2mm",
-                      lineHeight: 1.4,
-                      display: "flex",
-                      gap: "8px",
-                    }}
-                  >
-                    <span style={{ color: ACCENT }}>•</span> <span>{p}</span>
-                  </p>
-                ))}
-            </div>
-          ))}
+            ))
+        )}
       </section>
 
       {/* Education */}
       <section>
         <SectionHeader>Education</SectionHeader>
-        {(cv.education || [])
-          .filter((edu) => edu.school)
-          .map((edu, i) => (
-            <div key={i} style={{ marginBottom: "4mm", breakInside: "avoid" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
-                <span style={{ fontSize: pt(10.5), color: PRIMARY }}>{edu.degree}</span>
-                <span style={{ fontSize: pt(9.5), color: ACCENT }}>{edu.year}</span>
+        {isEmpty ? (
+          <div style={{ height: "20px", width: "50%", backgroundColor: SKELETON }} />
+        ) : (
+          (cv.education || [])
+            .filter((edu) => edu.school)
+            .map((edu, i) => (
+              <div key={i} style={{ marginBottom: "4mm", breakInside: "avoid" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+                  <span style={{ fontSize: pt(10.5), color: PRIMARY }}>{edu.degree}</span>
+                  <span style={{ fontSize: pt(9.5), color: ACCENT }}>{edu.year}</span>
+                </div>
+                <div style={{ fontSize: pt(10), color: TEXT_BODY }}>{edu.school}</div>
               </div>
-              <div style={{ fontSize: pt(10), color: TEXT_BODY }}>{edu.school}</div>
-            </div>
-          ))}
+            ))
+        )}
       </section>
 
       {/* Skills - Grid layout for stability */}
       <section>
         <SectionHeader>Core Competencies</SectionHeader>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: "10px 20px",
-            fontSize: pt(9.5),
-            color: TEXT_BODY,
-            textAlign: "center",
-          }}
-        >
-          {(cv.skills || "")
-            .split(",")
-            .map((s, i) => (
-              <div key={i} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: "2px" }}>
-                {s.trim()}
-              </div>
+        {isEmpty ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px 20px" }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ height: "12px", backgroundColor: SKELETON, borderRadius: "2px" }} />
             ))}
-        </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "10px 20px",
+              fontSize: pt(9.5),
+              color: TEXT_BODY,
+              textAlign: "center",
+            }}
+          >
+            {(cv.skills || "")
+              .split(",")
+              .map((s, i) => (
+                <div key={i} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: "2px" }}>
+                  {s.trim()}
+                </div>
+              ))}
+          </div>
+        )}
       </section>
     </div>
   );
