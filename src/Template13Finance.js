@@ -213,6 +213,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
  * Design: Single-sheet continuous surface, Finance-grade, No Cards.
  */
 
+// eslint-disable-next-line no-unused-vars
 function PreviewFinanceDuplicate({ cv, mobileMode = false }) {
   // Empty state: placeholder skeleton per T11 requirement
   if (!cv || !cv.name) {
@@ -433,6 +434,7 @@ function PreviewFinanceDuplicate({ cv, mobileMode = false }) {
  * Design: Single-sheet continuous surface, Finance-grade, No Cards.
  */
 
+// eslint-disable-next-line no-unused-vars
 function PreviewFinanceDuplicate2({ cv, mobileMode = false }) {
   // Empty state: placeholder skeleton per T11 requirement
   if (!cv || !cv.name) {
