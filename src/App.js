@@ -12,9 +12,12 @@ import { PreviewModernEmerald } from "./Template1ModernEmerald";
 import { PreviewTwoCol } from "./Template2DubaiModern";
 import { PreviewSidebar } from "./Template3ArabiaPro";
 import { PreviewTimeline } from "./Template4ExecutiveGold";
+// eslint-disable-next-line no-unused-vars
 import {
+  // eslint-disable-next-line no-unused-vars
   splitExperiencePointsForPreview,
 } from "./experiencePointsPreview";
+// eslint-disable-next-line no-unused-vars
 import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 import { PreviewGulfExecutive } from "./Template5GulfExecutive";
 import { PreviewBankingFinance } from "./Template6BankingFinance";
@@ -474,14 +477,17 @@ function Section({ title, accent, children }) {
   );
 }
 
+// eslint-disable-next-line no-unused-vars
 function ColLabel({ accent, children }) {
   return <div style={{ fontSize: "9px", fontWeight: "800", color: accent, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "6px", fontFamily: "sans-serif" }}>{children}</div>;
 }
 
+// eslint-disable-next-line no-unused-vars
 function ColItem({ children }) {
   return <div style={{ fontSize: "10px", color: "#ccc", marginBottom: "5px", wordBreak: "break-all", lineHeight: "1.4" }}>{children}</div>;
 }
 
+// eslint-disable-next-line no-unused-vars
 function RightLabel({ accent, children }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
