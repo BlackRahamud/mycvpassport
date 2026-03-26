@@ -457,6 +457,7 @@ async function deleteResume(resumeId, userId) {
 }
 
 // ─── SHARED PREVIEW SUB-COMPONENTS ───────────────────────────────
+// eslint-disable-next-line no-unused-vars
 function Section({ title, accent, children }) {
   return (
     <div style={{ marginBottom: "16px" }}>
