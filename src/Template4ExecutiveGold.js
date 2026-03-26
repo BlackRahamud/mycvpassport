@@ -1,207 +1,202 @@
-// ─────────────────────────────────────────────────────────────────
-//  TEMPLATE 4 — Executive Gold (timeline layout)
-//  Preview component only (PDF builder lives in serverLib).
-// ─────────────────────────────────────────────────────────────────
-
 import React from "react";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
-import { resumePageRootBoxStyle } from "./resumePageRootBoxStyle";
 
-function RightLabel({ accent, children }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+const BAND_BG = "#F3F4F6"; // Light grey for header and section bars
+const TEXT_PRIMARY = "#1F2937"; // Dark charcoal
+const TEXT_SECONDARY = "#4B5563"; // Subtle accent/body
+const SKELETON = "#D1D5DB";
+
+const FONT = 'Arial, "Helvetica Neue", Helvetica, sans-serif';
+
+export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
+  const s = mobileMode ? 0.8 : 1;
+  const pt = (n) => `${n * s}pt`;
+  const isEmpty = !cv.name || cv.name.trim() === "";
+
+  const SectionBand = ({ children }) => (
+    <div
+      style={{
+        background: BAND_BG,
+        padding: "4px 0",
+        textAlign: "center",
+        marginTop: "8mm",
+        marginBottom: "5mm",
+        breakAfter: "avoid",
+        pageBreakAfter: "avoid",
+      }}
+    >
       <span
         style={{
-          fontSize: "10px",
-          fontWeight: "800",
-          letterSpacing: "1.5px",
-          color: accent,
+          fontSize: pt(11),
+          fontWeight: "700",
+          color: TEXT_PRIMARY,
           textTransform: "uppercase",
-          fontFamily: "sans-serif",
+          letterSpacing: "2px",
         }}
       >
         {children}
       </span>
-      <div style={{ flex: 1, height: "1px", background: `${accent}33` }} />
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        width: mobileMode ? "100%" : "210mm",
+        maxWidth: "100%",
+        minHeight: "auto",
+        background: "#FFFFFF",
+        paddingBottom: "40px", // Puppeteer footer constraint
+        boxSizing: "border-box",
+        fontFamily: FONT,
+        color: TEXT_SECONDARY,
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
+      }}
+    >
+      {/* Shaded Header Band */}
+      <header
+        style={{
+          background: BAND_BG,
+          padding: "12mm 15mm",
+          textAlign: "center",
+          borderBottom: `1px solid ${SKELETON}`,
+        }}
+      >
+        <h1
+          style={{
+            fontSize: pt(28),
+            fontWeight: "900",
+            margin: 0,
+            color: isEmpty ? SKELETON : TEXT_PRIMARY,
+            letterSpacing: "-0.5px",
+          }}
+        >
+          {cv.name || "JONATHAN DOE"}
+        </h1>
+        <div
+          style={{
+            fontSize: pt(13),
+            fontWeight: "400",
+            color: isEmpty ? SKELETON : TEXT_SECONDARY,
+            marginTop: "4px",
+            textTransform: "uppercase",
+            letterSpacing: "3px",
+          }}
+        >
+          {cv.title || "EXECUTIVE IT MANAGER"}
+        </div>
+        <div
+          style={{
+            marginTop: "12px",
+            fontSize: pt(9.5),
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: "8px 20px",
+            color: TEXT_PRIMARY,
+            fontWeight: "500",
+          }}
+        >
+          {isEmpty ? (
+            <span style={{ color: SKELETON }}>email@address.com • +00 000 000 • Location</span>
+          ) : (
+            <>
+              {cv.email && <span>{cv.email}</span>}
+              {cv.phone && <span>{cv.phone}</span>}
+              {cv.location && <span>{cv.location}</span>}
+              {cv.linkedin && <span>LINKEDIN</span>}
+            </>
+          )}
+        </div>
+      </header>
+
+      <div style={{ padding: "0 15mm" }}>
+        {/* Profile */}
+        <section>
+          <SectionBand>Professional Profile</SectionBand>
+          <p
+            style={{
+              fontSize: pt(10),
+              lineHeight: 1.6,
+              margin: 0,
+              textAlign: "center",
+              color: TEXT_SECONDARY,
+            }}
+          >
+            {cv.summary || "Strategically-minded professional with 10+ years of experience..."}
+          </p>
+        </section>
+
+        {/* Experience - Two Column Feel within Single Column */}
+        <section>
+          <SectionBand>Work History</SectionBand>
+          {cv.experience.filter((e) => e.company).map((e, i) => (
+            <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid", pageBreakInside: "avoid" }}>
+              <div style={{ display: "flex", marginBottom: "2px" }}>
+                {/* Left side: Date/Location */}
+                <div style={{ width: "30%", fontSize: pt(9), fontWeight: "700", color: TEXT_SECONDARY }}>
+                  {e.period} <br />
+                  <span style={{ fontWeight: "400", fontSize: pt(8.5) }}>{e.location}</span>
+                </div>
+                {/* Right side: Company/Role */}
+                <div style={{ width: "70%", textAlign: "right" }}>
+                  <div style={{ fontWeight: "800", fontSize: pt(11), color: TEXT_PRIMARY }}>{e.role}</div>
+                  <div style={{ fontStyle: "italic", fontSize: pt(10), color: TEXT_SECONDARY }}>{e.company}</div>
+                </div>
+              </div>
+
+              {/* Bullets: Full Width below */}
+              <div style={{ marginTop: "3mm" }}>
+                {e.points &&
+                  splitExperiencePointsForPreview(e.points).map((p, j) => (
+                    <p
+                      key={j}
+                      style={{
+                        fontSize: pt(9.5),
+                        margin: "0 0 1.5mm",
+                        lineHeight: 1.5,
+                        display: "flex",
+                        gap: "10px",
+                      }}
+                    >
+                      <span style={{ color: SKELETON }}>•</span>
+                      <span>{p}</span>
+                    </p>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Skills - 3 Column Grid */}
+        <section>
+          <SectionBand>Core Competencies</SectionBand>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: "8px 20px",
+              fontSize: pt(9.5),
+              color: TEXT_PRIMARY,
+            }}
+          >
+            {(cv.skills || "")
+              .split(",")
+              .map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ color: SKELETON }}>•</span> {s.trim()}
+                </div>
+              ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
+// Keep the same exported name used by src/App.js
 export function PreviewTimeline({ cv, t, mobileMode = false }) {
-  const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const certList = cv.certifications ? cv.certifications.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  return (
-    <div
-      style={{
-        ...resumePageRootBoxStyle(mobileMode),
-        background: "#fff",
-        fontFamily: "Georgia,serif",
-        color: "#222",
-        fontSize: "11px",
-      }}
-    >
-      {/* Header */}
-      <div style={{ padding: "24px 28px 16px", borderBottom: `3px solid ${t.accent}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <h1 style={{ fontSize: "24px", fontWeight: "900", color: t.color, margin: "0 0 3px" }}>{cv.name || "Your Name"}</h1>
-            <p style={{ color: t.accent, fontWeight: "700", fontSize: "11px", margin: "0 0 6px" }}>{cv.title || "Job Title"}</p>
-            <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", fontSize: "9px", color: "#666" }}>
-              {cv.nationality && <span>🌍 {cv.nationality}</span>}
-              {cv.visaStatus && <span>🪪 {cv.visaStatus}</span>}
-              {cv.dob && <span>DOB: {cv.dob}</span>}
-              {cv.gender && <span>{cv.gender}</span>}
-              {cv.maritalStatus && <span>{cv.maritalStatus}</span>}
-            </div>
-          </div>
-          <div style={{ textAlign: "right", fontSize: "9px", color: "#666", lineHeight: "1.8" }}>
-            {cv.email && <div>✉ {cv.email}</div>}
-            {cv.phone && <div>📞 {cv.phone}</div>}
-            {cv.location && <div>📍 {cv.location}</div>}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: "18px 28px" }}>
-        {cv.summary && (
-          <div
-            style={{
-              marginBottom: "16px",
-              padding: "12px 14px",
-              background: `${t.accent}0d`,
-              borderLeft: `3px solid ${t.accent}`,
-              borderRadius: "0 6px 6px 0",
-            }}
-          >
-            <p style={{ fontSize: "10px", lineHeight: "1.7", margin: 0, color: "#444", fontStyle: "italic" }}>{cv.summary}</p>
-          </div>
-        )}
-
-        {skillList.length > 0 && (
-          <div style={{ marginBottom: "14px" }}>
-            <RightLabel accent={t.accent}>Core Skills</RightLabel>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-              {skillList.map((s, i) => (
-                <span
-                  key={i}
-                  style={{ padding: "2px 9px", background: `${t.accent}15`, border: `1px solid ${t.accent}44`, borderRadius: "10px", fontSize: "9px", color: "#333" }}
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {cv.experience.some((e) => e.company) && (
-          <div style={{ marginBottom: "14px" }}>
-            <RightLabel accent={t.accent}>Work Experience</RightLabel>
-            <div style={{ position: "relative", paddingLeft: "20px" }}>
-              <div style={{ position: "absolute", left: "5px", top: "4px", bottom: "4px", width: "2px", background: `${t.accent}33` }} />
-              {cv.experience
-                .filter((e) => e.company)
-                .map((e, i) => (
-                  <div key={i} style={{ position: "relative", marginBottom: "14px" }}>
-                    <div
-                      style={{
-                        position: "absolute",
-                        left: "-17px",
-                        top: "3px",
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "50%",
-                        background: t.accent,
-                        border: "2px solid #fff",
-                        boxShadow: `0 0 0 2px ${t.accent}`,
-                      }}
-                    />
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <strong style={{ fontSize: "11px", color: t.color }}>{e.role}</strong>
-                      <span style={{ fontSize: "9px", color: "#888" }}>{e.period}</span>
-                    </div>
-                    <div style={{ color: t.accent, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>
-                      {e.company}
-                      {e.location ? ` · ${e.location}` : ""}
-                    </div>
-                    {e.points && (
-                      <div className="cvp-preview-exp-timeline-wrap">
-                        {splitExperiencePointsForPreview(e.points).map((line, j) => (
-                          <p key={j} className="cvp-preview-exp-timeline-line">
-                            {j === 0 ? line : `• ${line}`}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: "grid", gridTemplateColumns: mobileMode ? "1fr" : "1fr 1fr", gap: "16px" }}>
-          <div>
-            {cv.education.some((e) => e.school) && (
-              <div style={{ marginBottom: "12px" }}>
-                <RightLabel accent={t.accent}>Education</RightLabel>
-                {cv.education
-                  .filter((e) => e.school)
-                  .map((e, i) => (
-                    <div key={i} style={{ marginBottom: "8px" }}>
-                      <strong style={{ fontSize: "11px" }}>{e.degree}</strong>
-                      <div style={{ fontSize: "9px", color: "#666" }}>{e.school}</div>
-                      <div style={{ fontSize: "9px", color: t.accent }}>{e.year}</div>
-                    </div>
-                  ))}
-              </div>
-            )}
-            {certList.length > 0 && (
-              <div>
-                <RightLabel accent={t.accent}>Certifications</RightLabel>
-                {certList.map((c, i) => (
-                  <div key={i} style={{ fontSize: "10px", color: "#444", marginBottom: "3px" }}>
-                    🏅 {c}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            {cv.technicalSkills && (
-              <div style={{ marginBottom: "12px" }}>
-                <RightLabel accent={t.accent}>Technical Skills</RightLabel>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                  {cv.technicalSkills.split(",").map((s, i) => (
-                    <span key={i} style={{ padding: "2px 7px", background: "#f5f5f5", borderRadius: "4px", fontSize: "9px", color: "#333" }}>
-                      {s.trim()}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {cv.languages && (
-              <div style={{ marginBottom: "12px" }}>
-                <RightLabel accent={t.accent}>Languages</RightLabel>
-                <p style={{ fontSize: "10px", margin: 0, color: "#444" }}>{cv.languages}</p>
-              </div>
-            )}
-            {(cv.availability || cv.drivingLicense || cv.willingToRelocate) && (
-              <div>
-                <RightLabel accent={t.accent}>Additional Info</RightLabel>
-                {cv.availability && <div style={{ fontSize: "9px", color: "#555", marginBottom: "3px" }}>📅 {cv.availability}</div>}
-                {cv.drivingLicense && <div style={{ fontSize: "9px", color: "#555", marginBottom: "3px" }}>🚗 License: {cv.drivingLicense}</div>}
-                {cv.willingToRelocate && <div style={{ fontSize: "9px", color: "#555" }}>✈️ Relocate: {cv.willingToRelocate}</div>}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {cv.references && (
-          <p style={{ fontSize: "9px", color: "#999", fontStyle: "italic", marginTop: "12px", paddingTop: "8px", borderTop: "1px solid #eee" }}>
-            {cv.references}
-          </p>
-        )}
-      </div>
-    </div>
-  );
+  return <PreviewSlateMinimalist cv={cv} mobileMode={mobileMode} />;
 }
 
