@@ -1,5 +1,6 @@
 /**
- * Template 13 — Finance. Dense single column, Arial, black/white. Mirrors PreviewFinance.
+ * Template 13 — Finance. Dense single column, Arial-based.
+ * Mirrors PreviewFinance in src/Template13Finance.js
  */
 
 const {
@@ -9,116 +10,156 @@ const {
   cvWithTemplateCertifications,
 } = require("./pdfCommon");
 
-const BLACK = "#000000";
-const MID = "#333333";
+const ACCENT = "#5c6ac4";
+const TEXT_PRIMARY = "#1f2933";
+const TEXT_SECONDARY = "#6b7280";
+const DIVIDER = "#e5e7eb";
+const SKELETON_BG = "#D1D5DB";
 
-function sectionTitleT13(label) {
-  return `<div class="t13-sec-wrap">
-    <div class="t13-sec-title">${escapeHtml(label)}</div>
-  </div>`;
+function sectionTitle(label) {
+  return `
+    <div class="t13-section-title">
+      <h2>${escapeHtml(label)}</h2>
+      <div class="t13-section-divider"></div>
+    </div>
+  `;
 }
 
 function buildFinanceTemplate13Html(rawCv) {
   const cv = cvWithTemplateCertifications(rawCv || {});
-  const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const certs = cv.certifications ? cv.certifications.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const techList = cv.technicalSkills ? cv.technicalSkills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const isPlaceholder = !cv.name || String(cv.name).trim() === "";
+
+  if (isPlaceholder) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    @page { size: A4; margin: 0; }
+    body {
+      margin: 0;
+      width: 794px;
+      height: 1123px;
+      max-width: 100%;
+      background: ${SKELETON_BG};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+      color: ${TEXT_SECONDARY};
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .ph { font-size: 14px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="ph">Loading Template 13...</div>
+</body>
+</html>`;
+  }
+
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
+  const languages = cv.languages ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean) : [];
+  const skills = cv.skills ? String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const certifications = cv.certifications ? String(cv.certifications).split(",").map((c) => c.trim()).filter(Boolean) : [];
 
-  const contactRow = [cv.email, cv.phone, cv.location, cv.nationality, cv.visaStatus].filter(Boolean).map((x) => escapeHtml(stripEmojiPictographs(x)));
-  const extraRow = [];
-  if (cv.dob) extraRow.push(`DOB: ${escapeHtml(stripEmojiPictographs(cv.dob))}`);
-  if (cv.drivingLicense) extraRow.push(`Driving License: ${escapeHtml(stripEmojiPictographs(cv.drivingLicense))}`);
-
-  let inner = `<div class="t13-root">
-    <div class="t13-header">
-      <div class="t13-name-wrap">
-        <h1 class="t13-name">${escapeHtml(cv.name || "Your Name")}</h1>
-      </div>
-      <p class="t13-title">${escapeHtml(cv.title || "Professional Title")}</p>
-      ${contactRow.length ? `<div class="t13-contact">${contactRow.join(" | ")}</div>` : ""}
-      ${extraRow.length ? `<div class="t13-contact t13-extra">${extraRow.join(" | ")}</div>` : ""}
-    </div>`;
-
-  if (cv.summary) {
-    inner += `${sectionTitleT13("Professional Summary")}<p class="t13-sum">${escapeHtml(cv.summary)}</p>`;
+  const contactParts = [];
+  if (cv.phone) contactParts.push(escapeHtml(stripEmojiPictographs(cv.phone)));
+  if (cv.email) {
+    if (contactParts.length) contactParts.push("•");
+    contactParts.push(escapeHtml(stripEmojiPictographs(cv.email)));
   }
-
-  if (experience.some((e) => e && e.company)) {
-    let exp = "";
-    experience
-      .filter((e) => e && e.company)
-      .forEach((e) => {
-        const lines = e.points ? splitExperiencePointsForPreview(e.points) : [];
-        let bullets = "";
-        lines.forEach((line) => {
-          bullets += `<div class="t13-bull"><span class="t13-bull-dot">•</span> ${escapeHtml(line)}</div>`;
-        });
-        exp += `<div class="t13-exp">
-          <div class="t13-exp-top">
-            <span class="t13-co">${escapeHtml(e.company || "")}${e.location ? ` — ${escapeHtml(e.location)}` : ""}</span>
-            <span class="t13-period">${escapeHtml(e.period || "")}</span>
-          </div>
-          <div class="t13-role">${escapeHtml(e.role || "")}</div>
-          ${bullets}
-        </div>`;
-      });
-    inner += `${sectionTitleT13("Professional Experience")}${exp}`;
+  if (cv.location) {
+    if (contactParts.length) contactParts.push("•");
+    contactParts.push(escapeHtml(stripEmojiPictographs(cv.location)));
   }
+  // Preview contact row order: phone • email • location, omitting missing parts.
+  const contactRow = contactParts.length ? `<div class="t13-contact">${contactParts.join(" ")}</div>` : "";
 
-  if (education.some((e) => e && e.school)) {
-    let edu = "";
-    education
-      .filter((e) => e && e.school)
-      .forEach((e) => {
-        edu += `<div class="t13-edu">
-          <div>
-            <div class="t13-school">${escapeHtml(e.school || "")}</div>
-            <div class="t13-degree">${escapeHtml(e.degree || "")}</div>
-          </div>
-          <span class="t13-year">${escapeHtml(e.year || "")}</span>
-        </div>`;
-      });
-    inner += `${sectionTitleT13("Education")}${edu}`;
-  }
-
-  if (skills.length > 0) {
-    let grid = "";
-    skills.forEach((s) => {
-      grid += `<div class="t13-skill-cell">${escapeHtml(s)}</div>`;
+  let left = "";
+  if (experience.length) {
+    let expHtml = "";
+    experience.forEach((exp) => {
+      let pointsHtml = "";
+      if (exp.points) {
+        const points = splitExperiencePointsForPreview(exp.points);
+        pointsHtml = points
+          .map(
+            (p) => `
+              <div class="t13-point">
+                <span class="t13-dot">•</span>
+                <span>${escapeHtml(p)}</span>
+              </div>
+            `,
+          )
+          .join("");
+      }
+      expHtml += `
+        <div class="t13-item">
+          <div class="t13-exp-role">${escapeHtml(exp.role || "")}</div>
+          <div class="t13-exp-meta">${escapeHtml(exp.company || "")} • ${escapeHtml(exp.period || "")}</div>
+          ${pointsHtml}
+        </div>
+      `;
     });
-    inner += `${sectionTitleT13("Skills")}<div class="t13-skill-grid">${grid}</div>`;
+
+    left += `${sectionTitle("Experience")}${expHtml}`;
   }
 
-  if (techList.length > 0) {
-    inner += `${sectionTitleT13("Technical Skills")}<p class="t13-body">${techList.map((s) => escapeHtml(s)).join(" | ")}</p>`;
+  if (education.length) {
+    let eduHtml = education
+      .map(
+        (edu) => `
+        <div class="t13-item">
+          <div class="t13-edu-degree">${escapeHtml(edu.degree || "")}</div>
+          <div class="t13-edu-meta">${escapeHtml(edu.school || "")} • ${escapeHtml(edu.year || "")}</div>
+        </div>
+      `,
+      )
+      .join("");
+    left += `${sectionTitle("Education")}${eduHtml}`;
   }
 
-  if (certs.length > 0) {
-    let certHtml = "";
-    certs.forEach((c) => {
-      certHtml += `<div class="t13-bull"><span class="t13-bull-dot">•</span> ${escapeHtml(c)}</div>`;
-    });
-    inner += `${sectionTitleT13("Certifications & Training")}${certHtml}`;
+  if (skills.length) {
+    left += `${sectionTitle("Skills")}<div class="t13-skills">${skills.map((s) => `<span class="t13-skill">${escapeHtml(s)}</span>`).join("")}</div>`;
   }
 
-  if (cv.languages) {
-    inner += `${sectionTitleT13("Languages")}<p class="t13-body">${escapeHtml(cv.languages)}</p>`;
-  }
+  let right = "";
+  right += `${sectionTitle("Professional Summary")}<p class="t13-summary">${escapeHtml(cv.summary || "")}</p>`;
 
-  if (cv.availability || cv.willingToRelocate) {
-    let add = "";
-    if (cv.availability) add += `<div>${escapeHtml(stripEmojiPictographs(cv.availability))}</div>`;
-    if (cv.willingToRelocate) add += `<div>Willing to relocate: ${escapeHtml(stripEmojiPictographs(cv.willingToRelocate))}</div>`;
-    if (add) inner += `${sectionTitleT13("Additional Information")}<div class="t13-body">${add}</div>`;
-  }
+  right += `
+    ${sectionTitle("Key Metrics")}
+    <div class="t13-metrics">
+      <div class="t13-metric"><span class="t13-metric-label">Portfolio:</span> $2.5M+</div>
+      <div class="t13-metric"><span class="t13-metric-label">Cost Reduction:</span> 15%</div>
+    </div>
+  `;
 
-  if (cv.references) {
-    inner += `${sectionTitleT13("References")}<p class="t13-refs">${escapeHtml(cv.references)}</p>`;
-  }
+  const certHtml =
+    certifications.length
+      ? certifications.map((c) => `<div class="t13-bullet">• ${escapeHtml(c)}</div>`).join("")
+      : `<div class="t13-bullet">• CFA Level 1</div>`;
 
-  inner += `</div>`;
+  right += `${sectionTitle("Certifications")}<div class="t13-certs">${certHtml}</div>`;
+
+  const langsHtml = languages.length ? languages.map((l) => `<div class="t13-lang">${escapeHtml(l)} — Fluent</div>`).join("") : "";
+  right += `${sectionTitle("Languages")}<div class="t13-langs">${langsHtml}</div>`;
+
+  right += `
+    ${sectionTitle("Courses")}
+    <div class="t13-course">
+      <div class="t13-course-title">Advanced System Design</div>
+      <div class="t13-course-desc">Focus on scalability and fault tolerance.</div>
+    </div>
+    ${sectionTitle("Interests")}
+    <div class="t13-course">
+      <div class="t13-course-title">UI/UX Research</div>
+      <div class="t13-course-desc">Passionate about accessible design patterns.</div>
+    </div>
+  `;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -126,73 +167,107 @@ function buildFinanceTemplate13Html(rawCv) {
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
+    @page { size: A4; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 13px;
-      color: ${BLACK};
+      font-family: Arial, sans-serif;
+      width: 794px;
+      max-width: 100%;
       background: #fff;
+      color: ${TEXT_PRIMARY};
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+
     .t13-root {
       width: 794px;
       max-width: 100%;
       margin: 0 auto;
-      padding: 40px 48px;
       background: #fff;
     }
-    .t13-header { margin-bottom: 14px; }
-    .t13-name-wrap { padding-bottom: 8px; border-bottom: 2px solid ${BLACK}; margin-bottom: 10px; }
-    .t13-name { font-size: 28px; font-weight: 700; color: ${BLACK}; margin: 0; }
-    .t13-title { font-size: 14px; color: ${MID}; margin: 0 0 10px; }
-    .t13-contact { font-size: 12px; color: #555; line-height: 1.6; }
-    .t13-extra { margin-top: 4px; }
-    .t13-sec-wrap { margin-top: 18px; margin-bottom: 10px; }
-    .t13-sec-title {
-      font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: ${BLACK};
-      padding-bottom: 6px; border-bottom: 1px solid ${BLACK};
+    .t13-topbar { height: 6px; background: ${ACCENT}; width: 100%; }
+
+    .t13-header { padding: 32px 32px 20px 32px; }
+    .t13-name { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; text-transform: uppercase; color: ${TEXT_PRIMARY}; }
+    .t13-title { font-size: 14px; color: ${TEXT_SECONDARY}; margin: 4px 0 12px 0; }
+    .t13-contact { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: ${TEXT_SECONDARY}; }
+
+    .t13-content {
+      display: flex;
+      flex-direction: row;
+      gap: 40px;
+      padding: 0 32px 32px 32px;
     }
-    .t13-sum { font-size: 13px; line-height: 1.5; color: ${BLACK}; margin: 0; }
-    .t13-body { font-size: 13px; color: ${BLACK}; margin: 0; line-height: 1.45; }
-    .t13-exp { margin-bottom: 14px; }
-    .t13-exp-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-    .t13-co { font-size: 13px; font-weight: 700; color: ${BLACK}; }
-    .t13-period { font-size: 12px; color: ${BLACK}; flex-shrink: 0; }
-    .t13-role { font-size: 13px; font-style: italic; color: ${BLACK}; margin-bottom: 6px; }
-    .t13-bull { font-size: 13px; color: ${BLACK}; margin-left: 12px; text-indent: -12px; line-height: 1.45; margin-bottom: 4px; }
-    .t13-bull-dot { margin-right: 6px; }
-    .t13-edu { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
-    .t13-school { font-size: 13px; font-weight: 700; color: ${BLACK}; }
-    .t13-degree { font-size: 13px; color: ${BLACK}; }
-    .t13-year { font-size: 12px; color: ${BLACK}; flex-shrink: 0; }
-    .t13-skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 13px; line-height: 1.45; }
-    .t13-skill-cell { color: ${BLACK}; }
-    .t13-refs { font-size: 12px; color: ${BLACK}; font-style: italic; margin: 0; }
+
+    .t13-left { flex: 0 0 62%; }
+    .t13-right { flex: 1; }
+
+    .t13-section-title { margin-bottom: 12px; }
+    .t13-section-title h2 {
+      font-size: 12px;
+      font-weight: 700;
+      color: ${TEXT_SECONDARY};
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0 0 8px 0;
+    }
+    .t13-section-divider { height: 1px; background: ${DIVIDER}; width: 100%; }
+
+    .t13-item { margin-bottom: 20px; break-inside: avoid; page-break-inside: avoid; }
+
+    .t13-exp-role { font-weight: 700; color: ${TEXT_PRIMARY}; font-size: 14px; margin-bottom: 0; }
+    .t13-exp-meta { color: ${TEXT_SECONDARY}; font-size: 12px; margin-bottom: 6px; }
+
+    .t13-point { font-size: 12.5px; color: ${TEXT_PRIMARY}; margin-bottom: 4px; display: flex; line-height: 1.5; }
+    .t13-dot { margin-right: 8px; color: ${ACCENT}; }
+
+    .t13-edu-degree { font-weight: 700; color: ${TEXT_PRIMARY}; font-size: 13px; }
+    .t13-edu-meta { color: ${TEXT_SECONDARY}; font-size: 12px; margin-top: 0; }
+
+    .t13-skills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .t13-skill { padding: 5px 12px; background: #e6eef7; color: ${TEXT_PRIMARY}; border-radius: 6px; font-size: 12px; }
+
+    .t13-summary { font-size: 12.5px; color: ${TEXT_PRIMARY}; line-height: 1.5; margin: 0 0 24px 0; }
+
+    .t13-metrics { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+    .t13-metric { font-size: 12px; }
+    .t13-metric-label { color: ${ACCENT}; font-weight: 700; }
+
+    .t13-certs { font-size: 12px; color: ${TEXT_PRIMARY}; line-height: 1.8; margin-bottom: 24px; }
+    .t13-bullet { margin: 0; }
+
+    .t13-langs { font-size: 12px; color: ${TEXT_PRIMARY}; }
+    .t13-lang { margin: 0 0 2px 0; }
+
+    .t13-course { margin-bottom: 16px; }
+    .t13-course-title { font-weight: 700; font-size: 12px; color: ${TEXT_PRIMARY}; }
+    .t13-course-desc { font-size: 11px; color: ${TEXT_SECONDARY}; margin-top: 2px; }
+
     @media print {
       html, body { margin: 0; padding: 0; }
-
-      .t13-exp,
-      .t13-edu {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        margin-bottom: 14px;
-      }
-
-      h2, h3 {
-        break-after: avoid;
-        page-break-after: avoid;
-      }
-
-      p, li { orphans: 3; widows: 3; }
+      .t13-item { break-inside: avoid; page-break-inside: avoid; }
+      p { orphans: 3; widows: 3; }
+      .t13-section-title, .t13-item { break-after: avoid; page-break-after: avoid; }
     }
   </style>
 </head>
 <body>
-${inner}
+  <div class="t13-root">
+    <div class="t13-topbar"></div>
+    <header class="t13-header">
+      <h1 class="t13-name">${escapeHtml(cv.name || "").toUpperCase()}</h1>
+      <div class="t13-title">${escapeHtml(cv.title || "Finance Professional")}</div>
+      ${contactRow}
+    </header>
+    <div class="t13-content">
+      <div class="t13-left">${left}</div>
+      <div class="t13-right">${right}</div>
+    </div>
+  </div>
 </body>
 </html>`;
 }
 
 module.exports = { buildFinanceTemplate13Html };
+
