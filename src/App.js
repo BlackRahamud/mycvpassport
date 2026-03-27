@@ -2035,6 +2035,7 @@ export default function App() {
   const [user, setUser]             = useState(null);
   const [isPro, setIsPro]           = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError]   = useState(null);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
@@ -2069,7 +2070,11 @@ export default function App() {
         if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/dashboard", "/admin"].includes(clean)) {
           navigate("/dashboard", { replace: true });
         }
+      } else {
+        setUser(null);
+        setIsPro(false);
       }
+      setAuthReady(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       if (session?.user) {
@@ -2079,6 +2084,7 @@ export default function App() {
         setUser(null);
         setIsPro(false);
       }
+      setAuthReady(true);
     });
     return () => subscription.unsubscribe();
   }, [location.pathname, navigate]);
@@ -2129,7 +2135,7 @@ export default function App() {
               <Route path="/walk-in" element={<WalkInMode onBack={() => navigate("/")} onComplete={() => navigate("/builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />} />
               <Route path="/auth" element={<AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>} />
               <Route path="/register" element={<AuthPage mode="signup" onAuth={handleAuth} onToggle={() => { setAuthMode("login"); setAuthError(null); navigate("/auth"); }} loading={authLoading} error={authError}/>} />
-              <Route path="/admin" element={user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanel /> : <Navigate to="/" replace />} />
+              <Route path="/admin" element={!authReady ? null : (user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanel /> : <Navigate to="/" replace />)} />
               <Route path="/dashboard" element={user ? (
               <Dashboard
                 theme={document.documentElement.classList.contains("light") ? "light" : "dark"}
