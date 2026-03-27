@@ -1411,25 +1411,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}` }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
             {downloading ? "..." : "Download"}
           </button>
-          <button
-            type="button"
-            onClick={handleOpenCoverLetter}
-            style={{
-              padding: "10px 16px",
-              borderRadius: 8,
-              border: "1px solid #2A2A2A",
-              background: "transparent",
-              color: "#FFFFFF",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: `border-color 150ms ${EASE}`,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
-          >
-            Get Cover Letter
-          </button>
         </div>
       </header>
 
@@ -1571,23 +1552,59 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {builderTab === "content" && (
                 <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
               )}
-              <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
-                  <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
-                  <button type="button" aria-label="Redo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↪</button>
-                </div>
-              </div>
             </>
           )}
           {builderTab === "customize" && customizePanel}
           {builderTab === "ats" && (
-            <div style={{ padding: 12 }}>
+            <div style={{ padding: 12, display: "grid", gap: 12 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
               <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score. Add more sections and keywords to improve.</div>
+              <button
+                type="button"
+                onClick={handleOpenCoverLetter}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "1px solid #2A2A2A",
+                  background: "transparent",
+                  color: "#FFFFFF",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: `border-color 150ms ${EASE}`,
+                  justifySelf: "start",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
+              >
+                Get Cover Letter
+              </button>
             </div>
           )}
           {builderTab === "jobmatch" && (
-            <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />
+            <div style={{ display: "grid", gap: 12 }}>
+              <button
+                type="button"
+                onClick={handleOpenCoverLetter}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "1px solid #2A2A2A",
+                  background: "transparent",
+                  color: "#FFFFFF",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: `border-color 150ms ${EASE}`,
+                  justifySelf: "start",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
+              >
+                Get Cover Letter
+              </button>
+              <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />
+            </div>
           )}
         </aside>
 
@@ -1736,17 +1753,60 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 {builderTab === "content" && (
                   <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
                 )}
-                <div style={{ display: "flex", justifyContent: "center", padding: "8px 0" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "6px 16px", borderRadius: 100, background: "#141414", border: "1px solid #2A2A2A" }}>
-                    <button type="button" aria-label="Undo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↩</button>
-                    <button type="button" aria-label="Redo" style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 4 }}>↪</button>
-                  </div>
-                </div>
               </>
             )}
             {builderTab === "customize" && customizePanel}
-            {builderTab === "ats" && <div style={{ padding: 12 }}><div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div><div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div></div>}
-            {builderTab === "jobmatch" && <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />}
+            {builderTab === "ats" && (
+              <div style={{ padding: 12, display: "grid", gap: 12 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
+                <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div>
+                <button
+                  type="button"
+                  onClick={handleOpenCoverLetter}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: 8,
+                    border: "1px solid #2A2A2A",
+                    background: "transparent",
+                    color: "#FFFFFF",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: `border-color 150ms ${EASE}`,
+                    justifySelf: "start",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
+                >
+                  Get Cover Letter
+                </button>
+              </div>
+            )}
+            {builderTab === "jobmatch" && (
+              <div style={{ display: "grid", gap: 12, padding: "0 12px 12px" }}>
+                <button
+                  type="button"
+                  onClick={handleOpenCoverLetter}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: 8,
+                    border: "1px solid #2A2A2A",
+                    background: "transparent",
+                    color: "#FFFFFF",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: `border-color 150ms ${EASE}`,
+                    justifySelf: "start",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
+                >
+                  Get Cover Letter
+                </button>
+                <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />
+              </div>
+            )}
           </div>
         ) : (
           ["banner", "twocol", "sidebar", "timeline", "gulf-exec", "banking", "compact-pro", "creative", "hospitality", "ats-intl", "tech-it"].includes(selectedTemplate?.layout) ? (
@@ -1791,33 +1851,35 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </div>
           )
         )}
-        <div className="cvp-builder-bottom-bar">
-          <div className="cvp-builder-toggle-pill">
-            <button type="button" onClick={() => setMobileView("edit")} className={mobileView === "edit" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Edit</button>
-            <button type="button" onClick={() => setMobileView("preview")} className={mobileView === "preview" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Preview</button>
+        {builderTab === "content" && (
+          <div className="cvp-builder-bottom-bar">
+            <div className="cvp-builder-toggle-pill">
+              <button type="button" onClick={() => setMobileView("edit")} className={mobileView === "edit" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Edit</button>
+              <button type="button" onClick={() => setMobileView("preview")} className={mobileView === "preview" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Preview</button>
+            </div>
+            <div className="cvp-builder-mobile-download">
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                style={{
+                  width: "100%",
+                  padding: "14px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: "#FFFFFF",
+                  color: "#000000",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: downloading ? "not-allowed" : "pointer",
+                  transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1)",
+                }}
+              >
+                {downloading ? "Preparing..." : "Download CV"}
+              </button>
+            </div>
           </div>
-          <div className="cvp-builder-mobile-download">
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloading}
-              style={{
-                width: "100%",
-                padding: "14px",
-                borderRadius: 12,
-                border: "none",
-                background: "#FFFFFF",
-                color: "#000000",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: downloading ? "not-allowed" : "pointer",
-                transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1)",
-              }}
-            >
-              {downloading ? "Preparing..." : "Download CV"}
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       <CoverLetterModal
