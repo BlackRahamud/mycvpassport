@@ -24,6 +24,7 @@ export function Template12Split({ cv, mobileMode = false }) {
 
   const containerStyle = {
     width: mobileMode ? "100%" : "210mm",
+    maxWidth: "100%",
     minHeight: "auto",
     background: "#FFFFFF",
     color: TEXT_DARK,
