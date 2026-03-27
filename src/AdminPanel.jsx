@@ -45,6 +45,8 @@ export default function AdminPanel() {
   const [pricing, setPricing] = useState({ PRO: 10, MAX: 25 });
   const [theme, setTheme] = useState("dark");
   const isDark = theme === "dark";
+  const modeColors = ["#4F46E5", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444"];
+  const [modeColorIndex, setModeColorIndex] = useState(0);
 
   // 🔐 AUTH CHECK
   useEffect(() => {
@@ -119,6 +121,13 @@ export default function AdminPanel() {
 
     setFiltered(data);
   }, [search, tab, users]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setModeColorIndex((prev) => (prev + 1) % modeColors.length);
+    }, 15000);
+    return () => clearInterval(intervalId);
+  }, [modeColors.length]);
 
   // 🧠 UPDATE PLAN
   const updatePlan = async () => {
@@ -421,8 +430,8 @@ export default function AdminPanel() {
         <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderTop: `1px solid ${T.border}` }}>
           <div style={s.avatar}>JK</div>
           <div style={{ fontSize: "12px" }}>
-            <div style={{ fontWeight: "600" }}>Junaid Khan</div>
-            <div style={{ color: T.textSubtle, fontSize: "10px" }}>Nuclear Mode</div>
+            <div style={{ color: "#555", fontSize: "11px", fontWeight: 400 }}>Junaid Khan</div>
+            <div style={{ color: modeColors[modeColorIndex], fontSize: "14px", fontWeight: 500 }}>Nuclear Mode</div>
           </div>
         </div>
       </aside>
