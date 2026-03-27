@@ -721,6 +721,16 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+
+  if (supabase) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { error } = await supabase
+        .from('downloads')
+        .insert([{ user_id: user.id }]);
+      if (error) console.error('Error tracking download:', error);
+    }
+  }
 }
 
 // ─── PREVIEW: TEMPLATE THUMB WRAPPER ──────────────────────────────
@@ -1254,6 +1264,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     setSaving(true);
     try {
       const saved = await saveResume(user.id, resume, selectedTemplate.id, resumeId);
+      if (supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { error } = await supabase
+            .from('cvs')
+            .insert([{ user_id: user.id }]);
+          if (error) console.error('Error tracking CV creation:', error);
+        }
+      }
       setResumeId(saved.id);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus(null), 3000);
