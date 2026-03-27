@@ -123,23 +123,187 @@ function getTodayDateLabelCL() {
   return new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
-function defaultLetterTemplateForCL({ resume, generatedBody, companyName, jobTitle }) {
+/** Matches Pricing.jsx: AE → UAE template, IN → India template. */
+function getCoverLetterPricingMarket() {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem("cvp_pricing_currency") === "IN" ? "India" : "UAE";
+  } catch {
+    return "UAE";
+  }
+}
+
+function isCoverLetterPaidUnlock() {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem("cvp_cl_full_unlocked") === "1";
+  } catch {
+    return false;
+  }
+}
+
+const CL_JOB_KEYWORDS = [
+  "customer service",
+  "communication",
+  "leadership",
+  "sales",
+  "banking",
+  "finance",
+  "operations",
+  "compliance",
+  "kyc",
+  "aml",
+  "teamwork",
+  "management",
+  "excel",
+  "reporting",
+  "analysis",
+  "relationship",
+  "client",
+  "target",
+  "revenue",
+  "retail",
+  "branch",
+  "onboarding",
+  "support",
+  "processing",
+  "coordination",
+  "planning",
+  "digital",
+  "mobile",
+  "data",
+  "service",
+];
+
+function extractRole(jobDescription) {
+  const text = String(jobDescription || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return "this position";
+  const lower = text.toLowerCase();
+  const needles = ["for a ", "for the ", "position of ", "role of "];
+  let start = -1;
+  for (const n of needles) {
+    const i = lower.indexOf(n);
+    if (i !== -1) {
+      start = i + n.length;
+      break;
+    }
+  }
+  if (start === -1) return "this position";
+  const after = text.slice(start).trim();
+  const words = after.split(/\s+/).filter(Boolean).slice(0, 3);
+  if (!words.length) return "this position";
+  return words.join(" ");
+}
+
+function extractKeywords(jobDescription) {
+  const jd = String(jobDescription || "").toLowerCase();
+  const hits = [];
+  for (const raw of CL_JOB_KEYWORDS) {
+    const phrase = raw.toLowerCase();
+    const idx = jd.indexOf(phrase);
+    if (idx !== -1) hits.push({ raw, idx });
+  }
+  hits.sort((a, b) => a.idx - b.idx);
+  const out = [];
+  const seen = new Set();
+  for (const { raw } of hits) {
+    const key = raw.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(raw);
+  }
+  return out;
+}
+
+function prettifyKeywordPhrase(phrase) {
+  const upper = { kyc: "KYC", aml: "AML", excel: "Excel" };
+  return String(phrase || "")
+    .split(/\s+/)
+    .map((w) => {
+      const key = w.toLowerCase();
+      if (upper[key]) return upper[key];
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+function experiencePhraseForCL(summary) {
+  if (summary?.exp?.length) {
+    const first = String(summary.exp[0] || "").trim();
+    if (first) return first.length > 120 ? `${first.slice(0, 117)}…` : first;
+  }
+  if (summary?.summary) {
+    const s = String(summary.summary).trim();
+    const sentence = s.split(/[.!?]/)[0]?.trim() || s;
+    return sentence.length > 120 ? `${sentence.slice(0, 117)}…` : sentence;
+  }
+  return "strong professional experience";
+}
+
+function industryKeywordsPhrase(keywordsOrdered, jobDescription) {
+  const rest = keywordsOrdered.slice(2, 6).map(prettifyKeywordPhrase).filter(Boolean);
+  if (rest.length) return rest.join(", ");
+  const more = keywordsOrdered.slice(0, 4).map(prettifyKeywordPhrase).filter(Boolean);
+  if (more.length) return more.join(", ");
+  const jd = String(jobDescription || "").trim();
+  if (jd.length > 20) return jd.split(/\s+/).slice(0, 8).join(" ");
+  return "demanding professional environments";
+}
+
+function extractCityForIndiaTemplate(location) {
+  const part = String(location || "")
+    .split(",")[0]
+    .trim();
+  if (!part || /^uae|u\.a\.e\.|india$/i.test(part)) return "";
+  return part;
+}
+
+function buildCoverLetterTemplateBodyUAE({ jobDescription, summary, resume }) {
+  const roleFromJd = extractRole(jobDescription);
+  const jobTitle = (summary?.role || resume?.title || "professional").trim() || "professional";
+  const experiencePhrase = experiencePhraseForCL(summary);
+  const kw = extractKeywords(jobDescription);
+  const k1 = prettifyKeywordPhrase(kw[0] || "professional excellence");
+  const k2 = prettifyKeywordPhrase(kw[1] || "measurable results");
+  const industryPhrase = industryKeywordsPhrase(kw, jobDescription);
+  const p1 = `I am writing to express my strong interest in the ${roleFromJd} position. With my background as a ${jobTitle} and ${experiencePhrase} in the UAE market, I bring a proven track record of ${k1} and ${k2}.`;
+  const p2 = `Having worked in ${industryPhrase}, I understand the expectations of Gulf-based employers and consistently deliver results that align with organisational goals.`;
+  const p3 = `I would welcome the opportunity to discuss how my experience can contribute to your team. Thank you for your consideration.`;
+  return `${p1}\n\n${p2}\n\n${p3}`;
+}
+
+function buildCoverLetterTemplateBodyIndia({ jobDescription, summary, resume }) {
+  const roleFromJd = extractRole(jobDescription);
+  const experiencePhrase = experiencePhraseForCL(summary);
+  const kw = extractKeywords(jobDescription);
+  const k1 = prettifyKeywordPhrase(kw[0] || "professional excellence");
+  const k2 = prettifyKeywordPhrase(kw[1] || "team collaboration");
+  const industryPhrase = industryKeywordsPhrase(kw, jobDescription);
+  const city = extractCityForIndiaTemplate(resume?.location || "") || "your organisation";
+  const p1 = `I would like to apply for the ${roleFromJd} position at your esteemed organisation. With ${experiencePhrase}, I have developed strong expertise in ${k1} and ${k2}.`;
+  const p2 = `My background in ${industryPhrase} has equipped me with the skills to contribute effectively to your team in ${city}.`;
+  const p3 = `I am eager to bring my dedication and skills to this role and would appreciate the opportunity to discuss my application further.`;
+  return `${p1}\n\n${p2}\n\n${p3}`;
+}
+
+function defaultLetterTemplateForCL({ resume, generatedBody, companyName, jobTitle, salutationLine, closingBlock }) {
   const fullName = resume?.name || "Candidate Name";
   const email = resume?.email || "email@example.com";
   const phone = resume?.phone || "Phone";
   const location = resume?.location || "Location";
   const companyLine = (companyName || "").trim() || "Company Name";
   const dateLine = getTodayDateLabelCL();
+  const salutation = salutationLine != null ? salutationLine : "Dear Hiring Manager,";
+  const closing = closingBlock != null ? closingBlock : `Yours sincerely,\n${fullName}`;
   return `${fullName} | ${email} | ${phone} | ${location}
 ${dateLine}
 
 ${companyLine}
-Dear Hiring Manager,
+${salutation}
 
 ${generatedBody || `I am writing to express my interest in the ${jobTitle || "position"}. My background aligns well with this opportunity.`}
 
-Yours sincerely,
-${fullName}`;
+${closing}`;
 }
 
 /**
@@ -218,7 +382,11 @@ function CoverLetterPage({ user, onBack }) {
   const [showDescribeSheet, setShowDescribeSheet] = useState(false);
   const [describeReady, setDescribeReady] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [clFreePreview, setClFreePreview] = useState(false);
+  const [clTemplateVariant, setClTemplateVariant] = useState(null);
+  const [clUnlocking, setClUnlocking] = useState(false);
   const uploadInputRef = useRef(null);
+  const lastClPayloadRef = useRef(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -286,13 +454,41 @@ function CoverLetterPage({ user, onBack }) {
   const fullLetterDisplay = useMemo(() => {
     if (!letterBody || !resumeForApi) return "";
     const jt = jobDescription.split("\n")[0]?.slice(0, 120) || "Position";
+    const fullName = resumeForApi?.name || "Candidate Name";
+    let salutationLine;
+    let closingBlock;
+    if (clTemplateVariant === "uae") {
+      salutationLine = "Dear Hiring Manager,";
+      closingBlock = `Sincerely,\n${fullName}`;
+    } else if (clTemplateVariant === "india") {
+      salutationLine = "Dear Sir/Madam,";
+      closingBlock = `Yours sincerely,\n${fullName}`;
+    }
     return defaultLetterTemplateForCL({
       resume: resumeForApi,
       generatedBody: letterBody,
       companyName: "",
       jobTitle: jt,
+      salutationLine,
+      closingBlock,
     });
-  }, [letterBody, resumeForApi, jobDescription]);
+  }, [letterBody, resumeForApi, jobDescription, clTemplateVariant]);
+
+  const clPreviewParts = useMemo(() => {
+    if (!clFreePreview || !letterBody || !resumeForApi) return null;
+    const fullName = resumeForApi?.name || "Candidate Name";
+    const email = resumeForApi?.email || "email@example.com";
+    const phone = resumeForApi?.phone || "Phone";
+    const location = resumeForApi?.location || "Location";
+    const dateLine = getTodayDateLabelCL();
+    const header = `${fullName} | ${email} | ${phone} | ${location}\n${dateLine}\n\nCompany Name`;
+    const salutation = clTemplateVariant === "india" ? "Dear Sir/Madam," : "Dear Hiring Manager,";
+    const closing = clTemplateVariant === "india" ? `Yours sincerely,\n${fullName}` : `Sincerely,\n${fullName}`;
+    const bodyParts = letterBody.split(/\n\n+/).filter(Boolean);
+    const firstPara = bodyParts[0] || "";
+    const restBody = bodyParts.slice(1).join("\n\n");
+    return { header, salutation, firstPara, restBody, closing };
+  }, [clFreePreview, letterBody, resumeForApi, clTemplateVariant]);
 
   const processUploadFile = async (file) => {
     if (!file) return;
@@ -351,28 +547,63 @@ function CoverLetterPage({ user, onBack }) {
     setGenError("");
     setPhase("loading");
     setLetterBody("");
+    setClFreePreview(false);
+    setClTemplateVariant(null);
     const minWait = new Promise((r) => setTimeout(r, 5000));
     const summary = buildImportedSummaryForCL(resumeForApi);
     const jobTitleGuess = jobDescription.split("\n")[0]?.slice(0, 120) || "Role";
+    const requestPayload = {
+      cvData: {
+        name: summary.name,
+        role: summary.role,
+        summary: summary.summary,
+        skills: summary.skills,
+        experience: summary.exp,
+        email: resumeForApi?.email || "",
+        phone: resumeForApi?.phone || "",
+        location: resumeForApi?.location || "",
+      },
+      jobTitle: jobTitleGuess,
+      companyName: "",
+      jobDescription: jobDescription.trim(),
+      date: getTodayDateLabelCL(),
+    };
+    lastClPayloadRef.current = requestPayload;
+
+    const paid = isCoverLetterPaidUnlock();
+
+    if (!paid) {
+      try {
+        await minWait;
+        const market = getCoverLetterPricingMarket();
+        const templateBody =
+          market === "India"
+            ? buildCoverLetterTemplateBodyIndia({
+                jobDescription: jobDescription.trim(),
+                summary,
+                resume: resumeForApi,
+              })
+            : buildCoverLetterTemplateBodyUAE({
+                jobDescription: jobDescription.trim(),
+                summary,
+                resume: resumeForApi,
+              });
+        setLetterBody(templateBody);
+        setClTemplateVariant(market === "India" ? "india" : "uae");
+        setClFreePreview(true);
+        setPhase("result");
+      } catch (err) {
+        console.error(err);
+        setGenError(err.message || "Generation failed.");
+        setPhase("entry");
+      }
+      return;
+    }
+
     const apiCall = fetch("/api/cover-letter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cvData: {
-          name: summary.name,
-          role: summary.role,
-          summary: summary.summary,
-          skills: summary.skills,
-          experience: summary.exp,
-          email: resumeForApi?.email || "",
-          phone: resumeForApi?.phone || "",
-          location: resumeForApi?.location || "",
-        },
-        jobTitle: jobTitleGuess,
-        companyName: "",
-        jobDescription: jobDescription.trim(),
-        date: getTodayDateLabelCL(),
-      }),
+      body: JSON.stringify(requestPayload),
     }).then(async (response) => {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
@@ -381,6 +612,8 @@ function CoverLetterPage({ user, onBack }) {
     try {
       const [, body] = await Promise.all([minWait, apiCall]);
       setLetterBody(body);
+      setClFreePreview(false);
+      setClTemplateVariant(null);
       setPhase("result");
     } catch (err) {
       console.error(err);
@@ -389,9 +622,35 @@ function CoverLetterPage({ user, onBack }) {
     }
   };
 
-  const paras = fullLetterDisplay ? fullLetterDisplay.split(/\n\s*\n/).filter(Boolean) : [];
-  const visibleParas = paras.slice(0, 2).join("\n\n");
-  const restParas = paras.slice(2).join("\n\n");
+  const handleUnlockFullCoverLetter = async () => {
+    const payload = lastClPayloadRef.current;
+    if (!payload) {
+      alert("Generate a letter first.");
+      return;
+    }
+    setClUnlocking(true);
+    setGenError("");
+    try {
+      if (typeof localStorage !== "undefined") localStorage.setItem("cvp_cl_full_unlocked", "1");
+      const response = await fetch("/api/cover-letter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
+      const body = String(data?.coverLetterBody || "").trim();
+      setLetterBody(body);
+      setClFreePreview(false);
+      setClTemplateVariant(null);
+    } catch (e) {
+      console.error(e);
+      if (typeof localStorage !== "undefined") localStorage.removeItem("cvp_cl_full_unlocked");
+      alert(e.message || "Could not unlock the full letter. Try again.");
+    } finally {
+      setClUnlocking(false);
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#FFFFFF", fontFamily: "'DM Sans',sans-serif", padding: "16px 16px 96px", boxSizing: "border-box" }}>
@@ -868,19 +1127,27 @@ function CoverLetterPage({ user, onBack }) {
                 fontWeight: 700,
                 padding: "4px 10px",
                 borderRadius: 999,
-                background: "#0D2B1F",
-                color: CL_GREEN,
+                background: clFreePreview ? "#2A2A2A" : "#0D2B1F",
+                color: clFreePreview ? "#A0A0A0" : CL_GREEN,
               }}
             >
-              AI Generated
+              {clFreePreview ? "Preview" : "AI Generated"}
             </span>
           </div>
           <div style={{ position: "relative", background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16, marginBottom: 16, overflow: "hidden" }}>
-            <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>{visibleParas}</div>
-            {restParas ? (
+            {clPreviewParts ? (
               <>
+                <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>
+                  {clPreviewParts.header}
+                  {"\n\n"}
+                  {clPreviewParts.salutation}
+                  {"\n\n"}
+                  {clPreviewParts.firstPara}
+                </div>
                 <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5", filter: "blur(5px)", marginTop: 12 }}>
-                  {restParas}
+                  {clPreviewParts.restBody}
+                  {clPreviewParts.restBody ? "\n\n" : ""}
+                  {clPreviewParts.closing}
                 </div>
                 <div
                   style={{
@@ -894,65 +1161,77 @@ function CoverLetterPage({ user, onBack }) {
                   }}
                 />
               </>
-            ) : null}
+            ) : (
+              <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>{fullLetterDisplay}</div>
+            )}
           </div>
-          <div
-            style={{
-              background: "linear-gradient(135deg, #0D1117, #0D2B1F)",
-              border: "1px solid #1a4a30",
-              borderRadius: 16,
-              padding: 16,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: CL_GREEN,
-                  display: "grid",
-                  placeItems: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.2" strokeLinecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 500, color: "#FFF" }}>Download full cover letter</div>
-                <div style={{ fontSize: 12, color: CL_GREEN, marginTop: 4, lineHeight: 1.4 }}>
-                  This is a highly advanced AI feature, personalised for this exact role
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => alert("Payment flow coming soon — AED 10 one-time.")}
+          {clFreePreview ? (
+            <div
               style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: 12,
-                border: "none",
-                background: CL_GREEN,
-                color: "#000000",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: "pointer",
+                background: "linear-gradient(135deg, #0D1117, #0D2B1F)",
+                border: "1px solid #1a4a30",
+                borderRadius: 16,
+                padding: 16,
               }}
             >
-              Download — AED 10 only
-            </button>
-            <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
-          </div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    background: CL_GREEN,
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.2" strokeLinecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: "#FFF" }}>Unlock full AI cover letter</div>
+                  <div style={{ fontSize: 12, color: CL_GREEN, marginTop: 4, lineHeight: 1.4 }}>
+                    Reveal the rest with a personalised Anthropic-powered letter for this role
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={clUnlocking}
+                onClick={handleUnlockFullCoverLetter}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: "none",
+                  background: CL_GREEN,
+                  color: "#000000",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: clUnlocking ? "wait" : "pointer",
+                  opacity: clUnlocking ? 0.75 : 1,
+                }}
+              >
+                {clUnlocking
+                  ? "Unlocking…"
+                  : getCoverLetterPricingMarket() === "India"
+                    ? "Unlock full letter — from ₹199"
+                    : "Unlock full letter — AED 10"}
+              </button>
+              <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={() => {
               setPhase("entry");
               setLetterBody("");
+              setClFreePreview(false);
+              setClTemplateVariant(null);
             }}
             style={{
               marginTop: 16,
