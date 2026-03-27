@@ -1,5 +1,4 @@
 import React from "react";
-import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 /**
  * TEMPLATE 14 — Single Column Timeline (Based on T11 Logic)
@@ -10,6 +9,8 @@ export function Template14({ cv, mobileMode = false }) {
   const ACCENT_ORANGE = "#EA580C";
   const PAGE_BG = "#F9FAFB";
   const TEXT_MAIN = "#1F2937";
+
+  const splitPoints = (pts) => (pts ? pts.split("\n").filter((p) => p.trim()) : []);
 
   return (
     <div
@@ -152,7 +153,7 @@ export function Template14({ cv, mobileMode = false }) {
                     {exp.company}
                   </div>
 
-                  {splitExperiencePointsForPreview(exp.points).map((p, pIdx) => (
+                  {splitPoints(exp.points).map((p, pIdx) => (
                     <div
                       key={pIdx}
                       style={{
