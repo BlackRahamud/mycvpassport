@@ -27,6 +27,7 @@ import { PreviewHospitality } from "./Template9Hospitality";
 import { PreviewATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro } from "./Template11TechITPro";
 import { PreviewClassic } from "./Template12Classic";
+import { Template12Split } from "./Template12Split";
 import { PreviewFinance } from "./Template13Finance";
 import { PreviewFigmaMirror } from "./Template14FigmaMirror";
 import Pricing from "./Pricing";
@@ -140,7 +141,7 @@ const TEMPLATES = [
   { id: 9,  name: "Hospitality & Service",tier: "premium", color: "#6B4C3B", accent: "#6B4C3B", desc: "Warm tone for hotels & F&B",      layout: "hospitality" },
   { id: 10, name: "ATS International",    tier: "premium", color: "#000000", accent: "#333333", desc: "Pure ATS — zero colour, max score",layout: "ats-intl"   },
   { id: 11, name: "Tech & IT Pro",        tier: "premium", color: "#1E2D45", accent: "#4A90D9", desc: "Dark slate sidebar for tech roles",layout: "tech-it"    },
-  { id: 12, name: "Classic",              tier: "free",    color: "#000000", accent: "#000000", desc: "Single-column black & white · Gulf-friendly", layout: "classic", tags: ["ATS Friendly", "Popular in UAE"] },
+  { id: 12, name: "Flat Split",           tier: "premium", color: "#F5E6E0", accent: "#000000", desc: "Flat split layout · beige header, grey sidebar", layout: "flat-split" },
   { id: 13, name: "Finance",              tier: "premium", color: "#000000", accent: "#000000", desc: "Dense finance & accounting · UAE banking",    layout: "finance", tags: ["ATS Friendly", "Popular in UAE", "Banking & Finance"] },
   { id: 14, name: "Figma Mirror",         tier: "premium", color: "#1e293b", accent: "#60a5fa", desc: "2-page Figma mirror · 595×842px",           layout: "figma-mirror", tags: ["2 Pages", "Figma Export"] },
 ];
@@ -519,6 +520,7 @@ function ResumePreview({ cv, template, mobileMode = false }) {
   if (t.layout === "hospitality") return <PreviewHospitality     cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "ats-intl")    return <PreviewATSInternational cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "flat-split")  return <Template12Split        cv={cvT} mobileMode={mobileMode} />;
   if (t.layout === "classic")     return <PreviewClassic         cv={cvT} />;
   if (t.layout === "finance")     return <PreviewFinance         cv={cvT} />;
   if (t.layout === "figma-mirror")return <PreviewFigmaMirror     cv={cvT} t={t} mobileMode={mobileMode} />;

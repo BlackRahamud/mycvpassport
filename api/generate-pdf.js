@@ -13,6 +13,8 @@ const { buildHospitalityTemplate9Html } = require("../src/serverLib/hospitalityT
 const { buildATSInternationalTemplate10Html } = require("../src/serverLib/atsInternationalTemplate10Html");
 const { buildTechITProTemplate11Html } = require("../src/serverLib/techITProTemplate11Html");
 const { buildClassicTemplate12Html } = require("../src/serverLib/classicTemplate12Html");
+const { buildTemplate12Html } = require("../src/serverLib/template12Builder");
+const { markPageStarts } = require("../src/serverLib/markPageStarts");
 const { buildFinanceTemplate13Html } = require("../src/serverLib/financeTemplate13Html");
 const { drawT11SidebarStripeOnPdf } = require("../src/serverLib/pdfDrawT11SidebarStripe");
 
@@ -28,7 +30,7 @@ const BUILDERS = {
   9: buildHospitalityTemplate9Html,
   10: buildATSInternationalTemplate10Html,
   11: buildTechITProTemplate11Html,
-  12: buildClassicTemplate12Html,
+  12: (cv) => markPageStarts(buildTemplate12Html(cv), { PAGE_HEIGHT: 1027 }),
   13: buildFinanceTemplate13Html,
 };
 
