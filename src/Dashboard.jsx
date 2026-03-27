@@ -389,6 +389,54 @@ export default function Dashboard({
                 </div>
               );
             })}
+
+            {/* WELCOME BANNER FOR NEW USERS */}
+            {resumeList.length === 0 && (
+              <div
+                style={{
+                  gridColumn: "1 / -1", // Span full width of the grid
+                  background: "#141414",
+                  border: "1px solid #2A2A2A",
+                  borderRadius: "16px",
+                  padding: "24px",
+                  textAlign: "center",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  marginTop: "8px"
+                }}
+              >
+                <div style={{ fontSize: "18px", fontWeight: "600", color: "#FFFFFF" }}>
+                  Welcome to CVPassport
+                </div>
+                <div style={{ fontSize: "14px", color: "#A0A0A0", marginBottom: "16px" }}>
+                  You're 3 minutes away from a Gulf-ready CV. Start with a template.
+                </div>
+                <button
+                  type="button"
+                  onClick={onBuildResume}
+                  style={{
+                    width: "100%",
+                    maxWidth: "320px",
+                    height: "44px",
+                    background: "#FFFFFF",
+                    color: "#000000",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    transition: "opacity 150ms ease"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                >
+                  Build My First CV →
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ATS banner — below CV grid */}
