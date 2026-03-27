@@ -388,6 +388,7 @@ export default function AdminPanel() {
             onChange={(e) => setSearch(e.target.value)}
           />
           <div style={{ display: "flex", gap: "12px" }}>
+            <button style={s.btnGhost} onClick={savePaymentSettings}>Save Settings</button>
             <button style={s.btnGhost}>Export CSV</button>
             <button style={s.btnWhite} onClick={() => setShowModal(true)}>Grant Access</button>
           </div>
