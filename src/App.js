@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
 import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
@@ -2177,6 +2178,7 @@ export default function App() {
             </Routes>
             <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} />
             <Analytics />
+            <SpeedInsights />
           </div>
         }
       />
