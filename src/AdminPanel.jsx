@@ -3,6 +3,30 @@ import { supabase } from "./supabaseClient";
 
 const ADMIN_EMAIL = "connectingjunaidkhan@gmail.com";
 
+function SunIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -19,6 +43,8 @@ export default function AdminPanel() {
   // payment system
   const [provider, setProvider] = useState("stripe");
   const [pricing, setPricing] = useState({ PRO: 10, MAX: 25 });
+  const [theme, setTheme] = useState("dark");
+  const isDark = theme === "dark";
 
   // 🔐 AUTH CHECK
   useEffect(() => {
@@ -124,19 +150,41 @@ export default function AdminPanel() {
     fetchPayment();
   };
 
+  const T = isDark
+    ? {
+        bg: "#000000",
+        surface: "#111111",
+        panel: "#000000",
+        text: "#FFFFFF",
+        textMuted: "#888",
+        textSubtle: "#444",
+        border: "rgba(255,255,255,0.08)",
+        borderSoft: "rgba(255,255,255,0.04)",
+      }
+    : {
+        bg: "#F5F5F7",
+        surface: "#FFFFFF",
+        panel: "#FFFFFF",
+        text: "#111111",
+        textMuted: "#555",
+        textSubtle: "#777",
+        border: "rgba(0,0,0,0.10)",
+        borderSoft: "rgba(0,0,0,0.06)",
+      };
+
   const s = {
     container: {
       display: "flex",
       height: "100vh",
-      backgroundColor: "#000000",
-      color: "#FFFFFF",
+      backgroundColor: T.bg,
+      color: T.text,
       fontFamily: "Inter, -apple-system, system-ui, sans-serif",
       overflow: "hidden",
     },
     sidebar: {
       width: "220px",
-      backgroundColor: "#000000",
-      borderRight: "1px solid rgba(255,255,255,0.08)",
+      backgroundColor: T.panel,
+      borderRight: `1px solid ${T.border}`,
       display: "flex",
       flexDirection: "column",
       padding: "24px 16px",
@@ -155,7 +203,7 @@ export default function AdminPanel() {
     navLabel: {
       fontSize: "11px",
       fontWeight: "500",
-      color: "#444",
+      color: T.textSubtle,
       textTransform: "uppercase",
       letterSpacing: "0.05em",
       marginBottom: "12px",
@@ -166,8 +214,8 @@ export default function AdminPanel() {
       alignItems: "center",
       padding: "8px 12px",
       fontSize: "13px",
-      color: active ? "#FFF" : "#888",
-      backgroundColor: active ? "rgba(255,255,255,0.05)" : "transparent",
+      color: active ? T.text : T.textMuted,
+      backgroundColor: active ? (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)") : "transparent",
       borderRadius: "6px",
       textDecoration: "none",
       marginBottom: "4px",
@@ -181,15 +229,15 @@ export default function AdminPanel() {
       display: "flex",
       alignItems: "center",
       gap: "24px",
-      borderBottom: "1px solid rgba(255,255,255,0.08)",
+      borderBottom: `1px solid ${T.border}`,
     },
     searchPill: {
       flex: 1,
-      backgroundColor: "#111111",
-      border: "1px solid rgba(255,255,255,0.08)",
+      backgroundColor: T.surface,
+      border: `1px solid ${T.border}`,
       borderRadius: "20px",
       padding: "8px 16px",
-      color: "#FFF",
+      color: T.text,
       fontSize: "13px",
       outline: "none",
       transition: "border-color 0.2s",
@@ -206,12 +254,12 @@ export default function AdminPanel() {
     },
     btnGhost: {
       backgroundColor: "transparent",
-      color: "#888",
+      color: T.textMuted,
       padding: "8px 16px",
       borderRadius: "8px",
       fontSize: "13px",
       fontWeight: "500",
-      border: "1px solid rgba(255,255,255,0.08)",
+      border: `1px solid ${T.border}`,
       cursor: "pointer",
     },
     content: { padding: "32px", overflowY: "auto", flex: 1 },
@@ -222,30 +270,30 @@ export default function AdminPanel() {
       marginBottom: "40px",
     },
     statCard: {
-      backgroundColor: "#111111",
-      border: "1px solid rgba(255,255,255,0.08)",
+      backgroundColor: T.surface,
+      border: `1px solid ${T.border}`,
       padding: "20px",
       borderRadius: "10px",
     },
-    statLabel: { fontSize: "12px", color: "#888", marginBottom: "8px" },
+    statLabel: { fontSize: "12px", color: T.textMuted, marginBottom: "8px" },
     statValue: { fontSize: "24px", fontWeight: "600", letterSpacing: "-0.02em" },
     tabBar: {
       display: "flex",
       gap: "8px",
       marginBottom: "24px",
       padding: "4px",
-      backgroundColor: "#111111",
+      backgroundColor: T.surface,
       borderRadius: "10px",
       width: "fit-content",
-      border: "1px solid rgba(255,255,255,0.08)",
+      border: `1px solid ${T.border}`,
     },
     tabBtn: (active) => ({
       padding: "6px 16px",
       fontSize: "13px",
       borderRadius: "6px",
       cursor: "pointer",
-      backgroundColor: active ? "#1A1A1A" : "transparent",
-      color: active ? "#FFF" : "#888",
+      backgroundColor: active ? (isDark ? "#1A1A1A" : "#F3F4F6") : "transparent",
+      color: active ? T.text : T.textMuted,
       border: "none",
       transition: "0.2s",
     }),
@@ -253,9 +301,9 @@ export default function AdminPanel() {
       width: "100%",
       borderCollapse: "separate",
       borderSpacing: "0",
-      backgroundColor: "#111111",
+      backgroundColor: T.surface,
       borderRadius: "10px",
-      border: "1px solid rgba(255,255,255,0.08)",
+      border: `1px solid ${T.border}`,
       overflow: "hidden",
     },
     th: {
@@ -263,15 +311,15 @@ export default function AdminPanel() {
       padding: "12px 16px",
       fontSize: "11px",
       fontWeight: "600",
-      color: "#444",
+      color: T.textSubtle,
       textTransform: "uppercase",
-      borderBottom: "1px solid rgba(255,255,255,0.08)",
+      borderBottom: `1px solid ${T.border}`,
     },
     td: {
       padding: "14px 16px",
       fontSize: "13px",
-      color: "#CCC",
-      borderBottom: "1px solid rgba(255,255,255,0.04)",
+      color: isDark ? "#CCC" : "#333",
+      borderBottom: `1px solid ${T.borderSoft}`,
     },
     badge: (type) => {
       const colors = {
@@ -303,8 +351,8 @@ export default function AdminPanel() {
       width: "32px",
       height: "32px",
       borderRadius: "50%",
-      backgroundColor: "#1A1A1A",
-      border: "1px solid rgba(255,255,255,0.1)",
+      backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6",
+      border: `1px solid ${T.border}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -323,18 +371,18 @@ export default function AdminPanel() {
       alignItems: "center",
     },
     modal: {
-      background: "#111",
+      background: T.surface,
       padding: 20,
-      border: "1px solid rgba(255,255,255,0.08)",
+      border: `1px solid ${T.border}`,
       minWidth: 320,
     },
     input: {
       width: "100%",
       marginTop: 10,
       padding: "8px 10px",
-      backgroundColor: "#111111",
-      color: "#FFFFFF",
-      border: "1px solid rgba(255,255,255,0.08)",
+      backgroundColor: T.surface,
+      color: T.text,
+      border: `1px solid ${T.border}`,
       outline: "none",
       boxSizing: "border-box",
     },
@@ -343,7 +391,7 @@ export default function AdminPanel() {
   if (loading) {
     return (
       <div style={{ ...s.container, alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center", color: "#444", fontSize: "13px" }}>
+        <div style={{ textAlign: "center", color: T.textSubtle, fontSize: "13px" }}>
           Syncing with Supabase...
         </div>
       </div>
@@ -370,11 +418,11 @@ export default function AdminPanel() {
             <div style={s.navItem(false)}>Abuse Reports</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderTop: `1px solid ${T.border}` }}>
           <div style={s.avatar}>JK</div>
           <div style={{ fontSize: "12px" }}>
-            <div style={{ fontWeight: "600" }}>Janis K.</div>
-            <div style={{ color: "#444", fontSize: "10px" }}>Founder</div>
+            <div style={{ fontWeight: "600" }}>Junaid Khan</div>
+            <div style={{ color: T.textSubtle, fontSize: "10px" }}>Nuclear Mode</div>
           </div>
         </div>
       </aside>
@@ -388,6 +436,13 @@ export default function AdminPanel() {
             onChange={(e) => setSearch(e.target.value)}
           />
           <div style={{ display: "flex", gap: "12px" }}>
+            <button
+              style={{ ...s.btnGhost, padding: "8px 10px", color: T.text, display: "flex", alignItems: "center" }}
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              aria-label="Toggle theme"
+            >
+              {isDark ? <SunIcon /> : <MoonIcon />}
+            </button>
             <button style={s.btnGhost} onClick={savePaymentSettings}>Save Settings</button>
             <button style={s.btnGhost}>Export CSV</button>
             <button style={s.btnWhite} onClick={() => setShowModal(true)}>Grant Access</button>
@@ -445,15 +500,15 @@ export default function AdminPanel() {
               {filtered.map((u) => (
                 <tr key={u.id}>
                   <td style={s.td}>
-                    <div style={{ fontWeight: "500", color: "#FFF" }}>{u.email}</div>
-                    <div style={{ fontSize: "11px", color: "#444", fontFamily: "monospace" }}>ID: {String(u.id || "").slice(0, 8)}</div>
+                    <div style={{ fontWeight: "500", color: T.text }}>{u.email}</div>
+                    <div style={{ fontSize: "11px", color: T.textSubtle, fontFamily: "monospace" }}>ID: {String(u.id || "").slice(0, 8)}</div>
                   </td>
                   <td style={s.td}>
                     <span style={s.badge(u.flagged ? "FLAGGED" : String(u.plan || "FREE").toUpperCase())}>{u.plan}</span>
                   </td>
                   <td style={s.td}>
                     <div style={{ fontSize: "12px" }}>{u.cv_count || 0} CVs</div>
-                    <div style={{ fontSize: "11px", color: "#444" }}>{u.download_count || 0} DLs</div>
+                    <div style={{ fontSize: "11px", color: T.textSubtle }}>{u.download_count || 0} DLs</div>
                   </td>
                   <td style={s.td}>
                     <div style={{ display: "flex", gap: "4px" }}>
