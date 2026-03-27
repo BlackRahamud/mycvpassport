@@ -7,7 +7,6 @@ import React from "react";
 export function Template14({ cv, mobileMode = false }) {
   const ACCENT_BLUE = "#1E40AF";
   const ACCENT_ORANGE = "#EA580C";
-  const PAGE_BG = "#F9FAFB";
   const TEXT_MAIN = "#1F2937";
 
   const splitPoints = (pts) => (pts ? pts.split("\n").filter((p) => p.trim()) : []);
@@ -16,13 +15,16 @@ export function Template14({ cv, mobileMode = false }) {
     <div
       style={{
         width: mobileMode ? "100%" : "210mm",
-        backgroundColor: PAGE_BG,
+        maxWidth: "100%",
+        minHeight: "auto",
+        background: "#FFFFFF",
         color: TEXT_MAIN,
         fontFamily: "Inter, Arial, sans-serif",
         display: "flex",
         flexDirection: "column",
         margin: "0 auto",
         padding: 0,
+        paddingBottom: "40px",
         WebkitPrintColorAdjust: "exact",
       }}
     >
