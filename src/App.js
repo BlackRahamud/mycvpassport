@@ -4,6 +4,7 @@ import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, mem
 import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import { mapAuthError, trimAuthFields } from "./authUtils";
+import mammoth from "mammoth";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
 import CoverLetterModal from "./CoverLetterModal";
@@ -145,9 +146,6 @@ ${fullName}`;
  * PDF text is not extracted in-browser here (avoids bundling pdfjs-dist — fixes Vercel/CRA resolve issues).
  * Upload flow uses the file name + pasted job description for /api/cover-letter.
  */
-async function extractTextFromPdfFile() {
-  return "";
-}
 
 function resumeFromPdfText(text, nameFallback) {
   const t = text.replace(/\s+/g, " ").trim();
@@ -207,15 +205,20 @@ function CoverLetterSpinnerArrow({ size = 48 }) {
 
 function CoverLetterPage({ user, onBack }) {
   const [phase, setPhase] = useState("entry");
-  const [sourceMode, setSourceMode] = useState("saved");
+  const [selectedOption, setSelectedOption] = useState(null);
   const [savedList, setSavedList] = useState([]);
   const [selectedCvId, setSelectedCvId] = useState("");
   const [uploadName, setUploadName] = useState("");
   const [uploadResume, setUploadResume] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
+  const [aboutYou, setAboutYou] = useState("");
   const [letterBody, setLetterBody] = useState("");
   const [activeResume, setActiveResume] = useState(null);
   const [genError, setGenError] = useState("");
+  const [showDescribeSheet, setShowDescribeSheet] = useState(false);
+  const [describeReady, setDescribeReady] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const uploadInputRef = useRef(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -231,57 +234,116 @@ function CoverLetterPage({ user, onBack }) {
   }, [user?.id]);
 
   useEffect(() => {
-    if (sourceMode !== "saved" || !savedList.length) return;
+    if (selectedOption !== "saved" || !savedList.length) return;
     const row = savedList.find((r) => String(r.id) === String(selectedCvId));
     if (row?.cv_data) setActiveResume(row.cv_data);
-  }, [sourceMode, selectedCvId, savedList]);
+  }, [selectedOption, selectedCvId, savedList]);
 
   useEffect(() => {
-    if (sourceMode !== "upload") {
+    if (selectedOption !== "upload") {
       setUploadName("");
       setUploadResume(null);
     }
-  }, [sourceMode]);
+  }, [selectedOption]);
 
-  const jdLen = jobDescription.trim().length;
-  const canGenerate = jdLen >= 100 && (sourceMode === "saved" ? !!activeResume : !!uploadResume);
+  useEffect(() => {
+    if (selectedOption !== "describe") {
+      setDescribeReady(false);
+      setAboutYou("");
+      setShowDescribeSheet(false);
+    }
+  }, [selectedOption]);
+
+  const resumeForApi = useMemo(() => {
+    if (selectedOption === "describe") {
+      const displayName =
+        (user?.user_metadata?.name || user?.email?.split("@")[0] || "Candidate").trim();
+      return {
+        name: displayName,
+        title: "",
+        email: user?.email || "",
+        phone: "",
+        location: "",
+        summary: aboutYou.trim(),
+        experience: [],
+        skills: "",
+        languages: "",
+        technicalSkills: "",
+      };
+    }
+    return activeResume;
+  }, [selectedOption, aboutYou, user, activeResume]);
+
+  const canGenerate =
+    selectedOption !== null &&
+    ((selectedOption === "saved" &&
+      selectedCvId &&
+      savedList.some((r) => String(r.id) === String(selectedCvId) && r.cv_data) &&
+      jobDescription.trim()) ||
+      (selectedOption === "upload" && uploadResume && jobDescription.trim()) ||
+      (selectedOption === "describe" && describeReady && aboutYou.trim() && jobDescription.trim()));
 
   const fullLetterDisplay = useMemo(() => {
-    if (!letterBody || !activeResume) return "";
+    if (!letterBody || !resumeForApi) return "";
     const jt = jobDescription.split("\n")[0]?.slice(0, 120) || "Position";
     return defaultLetterTemplateForCL({
-      resume: activeResume,
+      resume: resumeForApi,
       generatedBody: letterBody,
       companyName: "",
       jobTitle: jt,
     });
-  }, [letterBody, activeResume, jobDescription]);
+  }, [letterBody, resumeForApi, jobDescription]);
 
-  const handlePdfPick = async (e) => {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    if (f.type !== "application/pdf") {
-      alert("Please choose a PDF file.");
+  const processUploadFile = async (file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Max file size is 5MB.");
       return;
     }
-    if (f.size > 5 * 1024 * 1024) {
-      alert("File must be 5MB or smaller.");
+    const lower = file.name.toLowerCase();
+    const isDocx =
+      lower.endsWith(".docx") ||
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const isPdf = lower.endsWith(".pdf") || file.type === "application/pdf";
+    if (!isDocx && !isPdf) {
+      alert("Please upload a PDF or Word (.docx) file.");
       return;
     }
-    setUploadName(f.name);
     try {
-      const text = await extractTextFromPdfFile(f);
-      const base = f.name.replace(/\.pdf$/i, "").replace(/_/g, " ");
-      const r = resumeFromPdfText(text, base);
-      setUploadResume(r);
-      setActiveResume(r);
+      if (isDocx) {
+        const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+        const base = file.name.replace(/\.docx$/i, "").replace(/_/g, " ");
+        const r = resumeFromPdfText(value, base);
+        setUploadResume(r);
+        setActiveResume(r);
+      } else {
+        const base = file.name.replace(/\.pdf$/i, "").replace(/_/g, " ");
+        const r = resumeFromPdfText("", base);
+        setUploadResume(r);
+        setActiveResume(r);
+      }
+      setUploadName(file.name);
     } catch (err) {
       console.error(err);
-      alert("Could not read this PDF. Try another file or use a saved CV.");
+      alert("Could not read this file. Try another file.");
       setUploadName("");
       setUploadResume(null);
+      setActiveResume(null);
     }
+  };
+
+  const handleUploadInput = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (f) processUploadFile(f);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) processUploadFile(f);
   };
 
   const handleGenerate = async () => {
@@ -290,7 +352,7 @@ function CoverLetterPage({ user, onBack }) {
     setPhase("loading");
     setLetterBody("");
     const minWait = new Promise((r) => setTimeout(r, 5000));
-    const summary = buildImportedSummaryForCL(activeResume);
+    const summary = buildImportedSummaryForCL(resumeForApi);
     const jobTitleGuess = jobDescription.split("\n")[0]?.slice(0, 120) || "Role";
     const apiCall = fetch("/api/cover-letter", {
       method: "POST",
@@ -302,9 +364,9 @@ function CoverLetterPage({ user, onBack }) {
           summary: summary.summary,
           skills: summary.skills,
           experience: summary.exp,
-          email: activeResume?.email || "",
-          phone: activeResume?.phone || "",
-          location: activeResume?.location || "",
+          email: resumeForApi?.email || "",
+          phone: resumeForApi?.phone || "",
+          location: resumeForApi?.location || "",
         },
         jobTitle: jobTitleGuess,
         companyName: "",
@@ -357,133 +419,254 @@ function CoverLetterPage({ user, onBack }) {
 
       {phase === "entry" && (
         <>
-          <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 8, marginBottom: 16 }}>Cover Letter</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 8, marginBottom: 4 }}>Cover Letter</h1>
+          <p style={{ fontSize: 15, color: "#A0A0A0", marginTop: 0, marginBottom: 20 }}>How would you like to start?</p>
           {genError ? (
             <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{genError}</div>
           ) : null}
-          <div
-            style={{
-              background: "#141414",
-              border: "1px solid #2A2A2A",
-              borderRadius: 16,
-              padding: 16,
-              display: "grid",
-              gap: 14,
-            }}
-          >
-            <div>
+
+          <div style={{ display: "grid", gap: 12 }}>
+            {[
+              {
+                id: "saved",
+                title: "Use my CVPassport CV",
+                sub: "Pull from your saved profile",
+                icon: (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6" />
+                  </svg>
+                ),
+              },
+              {
+                id: "upload",
+                title: "Upload existing CV",
+                sub: "PDF or Word — we'll read it for you",
+                icon: (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                ),
+              },
+              {
+                id: "describe",
+                title: "Describe yourself",
+                sub: "Just tell us about yourself",
+                icon: (
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                ),
+              },
+            ].map((opt) => (
               <button
+                key={opt.id}
                 type="button"
-                onClick={() => setSourceMode("saved")}
+                onClick={() => {
+                  setSelectedOption(opt.id);
+                  if (opt.id === "describe" && !describeReady) setShowDescribeSheet(true);
+                }}
                 style={{
-                  width: "100%",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 14,
                   textAlign: "left",
-                  padding: 14,
-                  borderRadius: 12,
-                  border: sourceMode === "saved" ? `1px solid ${CL_GREEN}` : "1px solid #2A2A2A",
-                  background: sourceMode === "saved" ? "rgba(13,43,31,0.5)" : "transparent",
+                  padding: 16,
+                  borderRadius: 14,
+                  border: selectedOption === opt.id ? `1px solid ${CL_GREEN}` : "1px solid #2A2A2A",
+                  background: "#141414",
                   color: "#FFF",
                   cursor: "pointer",
-                  fontSize: 15,
-                  fontWeight: 600,
+                  boxSizing: "border-box",
                 }}
               >
-                Use my saved CV
+                <span style={{ color: CL_GREEN, flexShrink: 0, marginTop: 2 }}>{opt.icon}</span>
+                <span>
+                  <span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>{opt.title}</span>
+                  <span style={{ display: "block", fontSize: 13, color: "#A0A0A0", marginTop: 4 }}>{opt.sub}</span>
+                </span>
               </button>
-              {sourceMode === "saved" && (
-                <select
-                  value={selectedCvId}
-                  onChange={(e) => setSelectedCvId(e.target.value)}
-                  style={{
-                    width: "100%",
-                    marginTop: 10,
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #2A2A2A",
-                    background: "#0A0A0A",
-                    color: "#FFF",
-                    fontSize: 14,
-                  }}
-                >
-                  {savedList.length === 0 ? (
-                    <option value="">No saved CVs yet</option>
-                  ) : (
-                    savedList.map((r) => (
-                      <option key={r.id} value={String(r.id)}>
-                        {r.title || r?.cv_data?.name || "My CV"}
-                      </option>
-                    ))
-                  )}
-                </select>
-              )}
-            </div>
-            <div>
-              <button
-                type="button"
-                onClick={() => setSourceMode("upload")}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: 14,
-                  borderRadius: 12,
-                  border: sourceMode === "upload" ? `1px solid ${CL_GREEN}` : "1px solid #2A2A2A",
-                  background: sourceMode === "upload" ? "rgba(13,43,31,0.5)" : "transparent",
-                  color: "#FFF",
-                  cursor: "pointer",
-                  fontSize: 15,
-                  fontWeight: 600,
-                }}
-              >
-                Upload your CV
-              </button>
-              {sourceMode === "upload" && (
-                <div style={{ marginTop: 10 }}>
-                  <label
-                    style={{
-                      display: "block",
-                      padding: "12px 14px",
-                      borderRadius: 10,
-                      border: "1px dashed #3A3A3A",
-                      color: "#A0A0A0",
-                      fontSize: 14,
-                      cursor: "pointer",
-                      textAlign: "center",
-                    }}
-                  >
-                    <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handlePdfPick} />
-                    {uploadName || "PDF only · max 5MB"}
-                  </label>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
 
-          <div style={{ marginTop: 18, position: "relative" }}>
-            <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Paste job description</label>
-            <textarea
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              placeholder="Paste the full job description here…"
-              style={{
-                width: "100%",
-                minHeight: 160,
-                padding: "12px 12px 28px",
-                borderRadius: 12,
-                border: "1px solid #2A2A2A",
-                background: "#141414",
-                color: "#FFF",
-                fontSize: 14,
-                resize: "vertical",
-                boxSizing: "border-box",
-              }}
-            />
-            <span style={{ position: "absolute", right: 12, bottom: 10, fontSize: 12, color: jdLen >= 100 ? "#6EE7B7" : "#A0A0A0" }}>
-              {jdLen} characters
-            </span>
-          </div>
-          {jdLen > 0 && jdLen < 100 ? (
-            <p style={{ fontSize: 13, color: "#A0A0A0", marginTop: 8, marginBottom: 0 }}>Add more detail so we can personalise this for you</p>
-          ) : null}
+          {selectedOption === "saved" && (
+            <div style={{ marginTop: 18 }}>
+              <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Your CV</label>
+              <select
+                value={selectedCvId}
+                onChange={(e) => setSelectedCvId(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  border: "1px solid #2A2A2A",
+                  background: "#0A0A0A",
+                  color: "#FFF",
+                  fontSize: 14,
+                  fontFamily: "'DM Sans',sans-serif",
+                }}
+              >
+                {savedList.length === 0 ? (
+                  <option value="">No saved CVs yet</option>
+                ) : (
+                  savedList.map((r) => (
+                    <option key={r.id} value={String(r.id)}>
+                      {r.title || r?.cv_data?.name || "My CV"}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          )}
+
+          {selectedOption === "upload" && (
+            <div style={{ marginTop: 18 }}>
+              <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Your CV</label>
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                style={{ display: "none" }}
+                onChange={handleUploadInput}
+              />
+              <button
+                type="button"
+                onClick={() => uploadInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                style={{
+                  width: "100%",
+                  padding: "28px 16px",
+                  borderRadius: 14,
+                  border: dragOver ? `1px dashed ${CL_GREEN}` : "1px dashed #2A2A2A",
+                  background: "#141414",
+                  cursor: "pointer",
+                  display: "grid",
+                  gap: 10,
+                  placeItems: "center",
+                  boxSizing: "border-box",
+                }}
+              >
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={CL_GREEN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+                <span style={{ fontSize: 14, color: "#E5E5E5" }}>Drop your CV here or tap to browse</span>
+                <span style={{ fontSize: 12, color: "#707070" }}>PDF or Word · max 5MB</span>
+              </button>
+              {uploadName ? (
+                <div
+                  style={{
+                    marginTop: 12,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 12px",
+                    borderRadius: 999,
+                    background: "#1C1C1C",
+                    border: "1px solid #2A2A2A",
+                    fontSize: 13,
+                    color: "#FFF",
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CL_GREEN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {uploadName}
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {selectedOption === "describe" && describeReady && (
+            <div style={{ marginTop: 18, display: "grid", gap: 16 }}>
+              <div style={{ position: "relative" }}>
+                <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>About you</label>
+                <textarea
+                  value={aboutYou}
+                  onChange={(e) => setAboutYou(e.target.value)}
+                  placeholder="Your background, strengths, and what you're looking for…"
+                  style={{
+                    width: "100%",
+                    minHeight: 120,
+                    padding: "12px 12px 28px",
+                    borderRadius: 12,
+                    border: "1px solid #2A2A2A",
+                    background: "#141414",
+                    color: "#FFF",
+                    fontSize: 15,
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    bottom: 10,
+                    fontSize: 12,
+                    color: aboutYou.trim().length > 50 ? CL_GREEN : "#A0A0A0",
+                  }}
+                >
+                  More detail = better letter
+                </span>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Job description</label>
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste or summarise the role you're applying for…"
+                  style={{
+                    width: "100%",
+                    minHeight: 120,
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "1px solid #2A2A2A",
+                    background: "#141414",
+                    color: "#FFF",
+                    fontSize: 15,
+                    resize: "vertical",
+                    boxSizing: "border-box",
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {selectedOption && selectedOption !== "describe" && (
+            <div style={{ marginTop: 18 }}>
+              <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Job description</label>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Paste or summarise the role you're applying for…"
+                style={{
+                  width: "100%",
+                  minHeight: 140,
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  border: "1px solid #2A2A2A",
+                  background: "#141414",
+                  color: "#FFF",
+                  fontSize: 15,
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                }}
+              />
+            </div>
+          )}
 
           <button
             type="button"
@@ -491,19 +674,122 @@ function CoverLetterPage({ user, onBack }) {
             disabled={!canGenerate}
             style={{
               width: "100%",
-              marginTop: 20,
+              marginTop: 24,
               padding: "14px 18px",
               borderRadius: 12,
               border: "none",
-              background: canGenerate ? "#FFFFFF" : "#333",
-              color: canGenerate ? "#000000" : "#777",
+              background: canGenerate ? CL_GREEN : "#1C1C1C",
+              color: canGenerate ? "#000000" : "#A0A0A0",
               fontSize: 15,
               fontWeight: 700,
               cursor: canGenerate ? "pointer" : "not-allowed",
+              boxShadow: canGenerate ? "0 0 16px rgba(110,231,183,0.3)" : "none",
             }}
           >
             Generate My Cover Letter
           </button>
+
+          {showDescribeSheet ? (
+            <div
+              role="presentation"
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 2000,
+                background: "rgba(0,0,0,0.55)",
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+              }}
+              onClick={() => setShowDescribeSheet(false)}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cl-describe-sheet-title"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: "100%",
+                  maxWidth: 520,
+                  maxHeight: "85vh",
+                  overflow: "auto",
+                  background: "#141414",
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  border: "1px solid #2A2A2A",
+                  borderBottom: "none",
+                  padding: "12px 20px 28px",
+                  boxSizing: "border-box",
+                }}
+              >
+                <div style={{ width: 40, height: 4, borderRadius: 2, background: "#3A3A3A", margin: "0 auto 16px" }} />
+                <h2 id="cl-describe-sheet-title" style={{ fontSize: 18, fontWeight: 700, margin: "0 0 16px", color: "#FFF" }}>
+                  How to describe yourself
+                </h2>
+                <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
+                  {[
+                    { n: 1, t: "Your current or last job title", e: 'e.g. "Customer Service Officer"' },
+                    { n: 2, t: "One line of experience", e: 'e.g. "3 years in retail banking, Dubai"' },
+                    { n: 3, t: "Don't overthink it", e: "We personalise the rest using AI" },
+                  ].map((row) => (
+                    <div
+                      key={row.n}
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        padding: 14,
+                        borderRadius: 12,
+                        border: "1px solid #2A2A2A",
+                        background: "#0A0A0A",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          background: CL_GREEN,
+                          color: "#000",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {row.n}
+                      </span>
+                      <span>
+                        <span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#FFF" }}>{row.t}</span>
+                        <span style={{ display: "block", fontSize: 13, color: "#A0A0A0", marginTop: 4 }}>{row.e}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDescribeReady(true);
+                    setShowDescribeSheet(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "14px 18px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: CL_GREEN,
+                    color: "#000000",
+                    fontSize: 15,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Got it, let&apos;s go
+                </button>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
 
