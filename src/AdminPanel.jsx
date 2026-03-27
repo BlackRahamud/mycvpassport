@@ -91,22 +91,30 @@ export default function AdminPanel() {
   const fetchUsers = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase.from("profiles").select(`
-        id,
-        created_at,
-        email,
-        plan,
-        expiry,
-        flagged,
-        features
-      `);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, created_at, email, plan, expiry, flagged, features");
 
     if (!error && data) {
-      const mapped = data.map((u) => ({
-        ...u,
-        cv_count: 0,
-        download_count: 0,
-      }));
+      const mapped = data.map((u) => {
+        let features = u.features;
+        if (typeof features === "string") {
+          try {
+            const p = JSON.parse(features);
+            features = p && typeof p === "object" && !Array.isArray(p) ? p : {};
+          } catch {
+            features = {};
+          }
+        } else if (!features || typeof features !== "object" || Array.isArray(features)) {
+          features = {};
+        }
+        return {
+          ...u,
+          features,
+          cv_count: 0,
+          download_count: 0,
+        };
+      });
 
       setUsers(mapped);
       setFiltered(mapped);
@@ -556,10 +564,10 @@ export default function AdminPanel() {
                   </td>
                   <td style={s.td}>
                     <div style={{ display: "flex", gap: "4px" }}>
-                      <div style={s.dot(Boolean(u.features?.download))}></div>
-                      <div style={s.dot(Boolean(u.features?.ats))}></div>
-                      <div style={s.dot(Boolean(u.features?.cover_letter))}></div>
-                      <div style={s.dot(Boolean(u.features?.premium_templates))}></div>
+                      <div style={s.dot(u.features?.download === true)}></div>
+                      <div style={s.dot(u.features?.ats === true)}></div>
+                      <div style={s.dot(u.features?.cover_letter === true)}></div>
+                      <div style={s.dot(u.features?.premium_templates === true)}></div>
                     </div>
                   </td>
                   <td style={s.td}>{u.expiry ? new Date(u.expiry).toLocaleDateString() : "-"}</td>
