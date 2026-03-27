@@ -450,7 +450,7 @@ export default function AdminPanel() {
           </div>
           <div style={s.navGroup}>
             <div style={s.navLabel}>Users</div>
-            <div style={s.navItem(false)}>All Users</div>
+            <div style={s.navItem(false)} onClick={() => setTab("all")}>All Users</div>
             <div style={s.navItem(false)}>Pro Access</div>
             <div style={s.navItem(false)}>Abuse Reports</div>
           </div>
