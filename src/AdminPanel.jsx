@@ -33,6 +33,7 @@ export default function AdminPanel() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [adminUser, setAdminUser] = useState(null);
 
   // modal
   const [showModal, setShowModal] = useState(false);
@@ -56,6 +57,8 @@ export default function AdminPanel() {
       if (!data.user || data.user.email !== ADMIN_EMAIL) {
         window.location.href = "/";
       } else {
+        setAdminUser(data.user);
+        await ensureAdminProfileRow(data.user);
         fetchUsers();
         fetchPayment();
       }
@@ -64,6 +67,25 @@ export default function AdminPanel() {
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const ensureAdminProfileRow = async (authUser) => {
+    if (!authUser?.id || authUser.email !== ADMIN_EMAIL) return;
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", authUser.id)
+      .maybeSingle();
+
+    if (!existing) {
+      await supabase.from("profiles").insert({
+        id: authUser.id,
+        email: authUser.email,
+        plan: "MAX_PRO",
+        flagged: false,
+        features: {},
+      });
+    }
+  };
 
   // 📡 FETCH USERS
   const fetchUsers = async () => {
@@ -131,17 +153,23 @@ export default function AdminPanel() {
 
   // 🧠 UPDATE PLAN
   const updatePlan = async () => {
-    if (!selectedUser) return;
+    const targetId = selectedUser?.id || adminUser?.id;
+    const targetEmail = selectedUser?.email || adminUser?.email || ADMIN_EMAIL;
+    if (!targetId) return;
 
     await supabase
       .from("profiles")
-      .update({
+      .upsert({
+        id: targetId,
+        email: targetEmail,
         plan: newPlan,
         expiry: expiry || null,
-      })
-      .eq("id", selectedUser.id);
+        flagged: selectedUser?.flagged ?? false,
+        features: selectedUser?.features ?? {},
+      }, { onConflict: "id" });
 
     setShowModal(false);
+    setSelectedUser(null);
     fetchUsers();
   };
 
@@ -454,7 +482,15 @@ export default function AdminPanel() {
             </button>
             <button style={s.btnGhost} onClick={savePaymentSettings}>Save Settings</button>
             <button style={s.btnGhost}>Export CSV</button>
-            <button style={s.btnWhite} onClick={() => setShowModal(true)}>Grant Access</button>
+            <button
+              style={s.btnWhite}
+              onClick={() => {
+                setSelectedUser(null);
+                setShowModal(true);
+              }}
+            >
+              Grant Access
+            </button>
           </div>
         </header>
 
