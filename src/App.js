@@ -33,6 +33,7 @@ import Pricing from "./Pricing";
 import LandingPage from './LandingPage';
 import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
+import AdminPanel from "./AdminPanel";
 import { ReactComponent as FalconLogo } from "./logo.svg";
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
 function TabIconDoc() {
@@ -2145,6 +2146,7 @@ export default function App() {
               <Route path="/walk-in" element={<WalkInMode onBack={() => navigate("/")} onComplete={() => navigate("/builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />} />
               <Route path="/auth" element={<AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>} />
               <Route path="/register" element={<AuthPage mode="signup" onAuth={handleAuth} onToggle={() => { setAuthMode("login"); setAuthError(null); navigate("/auth"); }} loading={authLoading} error={authError}/>} />
+              <Route path="/admin" element={user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanel /> : <Navigate to="/" replace />} />
               <Route path="/dashboard" element={user ? (
               <Dashboard
                 theme={document.documentElement.classList.contains("light") ? "light" : "dark"}
