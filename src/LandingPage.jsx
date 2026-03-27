@@ -172,7 +172,7 @@ function scrollToLandingSection(id) {
 }
 
 // ── Main component ──────────────────────────────────────────────────
-export default function LandingPage({ onLogin, onSignup, onWalkIn }) {
+export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalkIn }) {
   const navigate = useNavigate();
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('cvp-theme') || 'dark'; } catch { return 'dark'; }
@@ -410,42 +410,65 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn }) {
             >
               {isDark ? <SunIcon /> : <MoonIcon />}
             </button>
-            <button
-              type="button"
-              className="lp-ghost-btn"
-              onClick={() => onLogin && onLogin()}
-              style={{
-                background:   'transparent',
-                border:       `1px solid ${T.btnGhostBorder}`,
-                color:        T.btnGhostTxt,
-                borderRadius: '8px',
-                padding:      '8px 18px',
-                fontSize:     '13px',
-                fontWeight:   '600',
-                cursor:       'pointer',
-                fontFamily:   'inherit',
-              }}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              className="lp-btn"
-              onClick={() => onSignup && onSignup()}
-              style={{
-                background:   T.btnPrimary,
-                border:       'none',
-                color:        T.btnPrimaryTxt,
-                borderRadius: '8px',
-                padding:      '8px 18px',
-                fontSize:     '13px',
-                fontWeight:   '700',
-                cursor:       'pointer',
-                fontFamily:   'inherit',
-              }}
-            >
-              Get Started
-            </button>
+            {user ? (
+              <button
+                type="button"
+                className="lp-ghost-btn"
+                onClick={() => onSignOut && onSignOut()}
+                style={{
+                  background:   'transparent',
+                  border:       `1px solid ${T.btnGhostBorder}`,
+                  color:        T.btnGhostTxt,
+                  borderRadius: '8px',
+                  padding:      '8px 18px',
+                  fontSize:     '13px',
+                  fontWeight:   '600',
+                  cursor:       'pointer',
+                  fontFamily:   'inherit',
+                }}
+              >
+                Sign Out
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="lp-ghost-btn"
+                  onClick={() => onLogin && onLogin()}
+                  style={{
+                    background:   'transparent',
+                    border:       `1px solid ${T.btnGhostBorder}`,
+                    color:        T.btnGhostTxt,
+                    borderRadius: '8px',
+                    padding:      '8px 18px',
+                    fontSize:     '13px',
+                    fontWeight:   '600',
+                    cursor:       'pointer',
+                    fontFamily:   'inherit',
+                  }}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  className="lp-btn"
+                  onClick={() => onSignup && onSignup()}
+                  style={{
+                    background:   T.btnPrimary,
+                    border:       'none',
+                    color:        T.btnPrimaryTxt,
+                    borderRadius: '8px',
+                    padding:      '8px 18px',
+                    fontSize:     '13px',
+                    fontWeight:   '700',
+                    cursor:       'pointer',
+                    fontFamily:   'inherit',
+                  }}
+                >
+                  Get Started
+                </button>
+              </>
+            )}
           </div>
 
           {/* Hamburger — mobile only */}
@@ -497,18 +520,29 @@ export default function LandingPage({ onLogin, onSignup, onWalkIn }) {
               </button>
             ))}
             <div style={{ height: '1px', background: T.border, margin: '8px 0' }} />
-            <button
-              onClick={() => { closeMobileMenu(); onLogin && onLogin(); }}
-              style={{ background: 'none', border: `1px solid ${T.border}`, color: T.textPrimary, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => { closeMobileMenu(); onSignup && onSignup(); }}
-              style={{ background: T.btnPrimary, border: 'none', color: T.btnPrimaryTxt, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '6px', fontFamily: 'inherit' }}
-            >
-              Get Started
-            </button>
+            {user ? (
+              <button
+                onClick={() => { closeMobileMenu(); onSignOut && onSignOut(); }}
+                style={{ background: 'none', border: `1px solid ${T.border}`, color: T.textPrimary, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Sign Out
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => { closeMobileMenu(); onLogin && onLogin(); }}
+                  style={{ background: 'none', border: `1px solid ${T.border}`, color: T.textPrimary, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => { closeMobileMenu(); onSignup && onSignup(); }}
+                  style={{ background: T.btnPrimary, border: 'none', color: T.btnPrimaryTxt, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '6px', fontFamily: 'inherit' }}
+                >
+                  Get Started
+                </button>
+              </>
+            )}
           </div>
         )}
 

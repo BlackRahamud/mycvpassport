@@ -1,7 +1,7 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
-import { useLocation, useNavigate, Routes, Route, Navigate, Link } from "react-router-dom";
+import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
@@ -34,7 +34,6 @@ import LandingPage from './LandingPage';
 import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
 import AdminPanel from "./AdminPanel";
-import { ReactComponent as FalconLogo } from "./logo.svg";
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
 function TabIconDoc() {
   return (
@@ -2106,7 +2105,6 @@ export default function App() {
   const handleEditResume  = (record) => { setEditingResume(record); navigate("/builder"); };
   const handleNewResume   = ()       => { setEditingResume(null);   navigate("/builder"); };
   const currentPath = location.pathname.replace(/\/$/, "") || "/";
-  const showGlobalNav = currentPath !== "/pricing" && (currentPath !== "/" || !!user);
 
   return (
     <Routes>
@@ -2115,34 +2113,19 @@ export default function App() {
         path="*"
         element={
           <div style={S.app}>
-            {showGlobalNav && (
-              <nav className="cvp-app-nav" style={S.nav}>
-                <Link
-                  to="/"
-                  style={{ ...S.logo, display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "inherit" }}
-                  aria-label="CVPassport home"
-                >
-                  <FalconLogo width={28} height={28} style={{ display: "block", flexShrink: 0, color: "#FFFFFF", background: "none", border: "none", boxShadow: "none" }} aria-hidden="true" />
-                  CVPassport
-                </Link>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                  {user ? (
-                    <>
-                      <span style={{ color: C.muted, fontSize: "14px" }}>Hi, {user.name}</span>
-                      <button style={S.btn("outline","sm")} onClick={() => navigate("/ats")}>ATS Checker</button>
-                      <button style={S.btn("outline","sm")} onClick={handleLogout}>Sign Out</button>
-                    </>
-                  ) : (
-                    <>
-                      <button style={S.btn("outline","sm")} onClick={() => { setAuthMode("login"); navigate("/auth"); }}>Sign In</button>
-                      <button style={S.btn("primary","sm")} onClick={() => { setAuthMode("signup"); navigate("/register"); }}>Get Started</button>
-                    </>
-                  )}
-                </div>
-              </nav>
-            )}
             <Routes>
-              <Route path="/" element={<LandingPage onLogin={() => { setAuthMode("login"); navigate("/auth"); }} onSignup={() => { setAuthMode("signup"); navigate("/register"); }} onWalkIn={() => navigate("/walk-in")} />} />
+              <Route
+                path="/"
+                element={
+                  <LandingPage
+                    user={user}
+                    onSignOut={handleLogout}
+                    onLogin={() => { setAuthMode("login"); navigate("/auth"); }}
+                    onSignup={() => { setAuthMode("signup"); navigate("/register"); }}
+                    onWalkIn={() => navigate("/walk-in")}
+                  />
+                }
+              />
               <Route path="/walk-in" element={<WalkInMode onBack={() => navigate("/")} onComplete={() => navigate("/builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />} />
               <Route path="/auth" element={<AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>} />
               <Route path="/register" element={<AuthPage mode="signup" onAuth={handleAuth} onToggle={() => { setAuthMode("login"); setAuthError(null); navigate("/auth"); }} loading={authLoading} error={authError}/>} />
