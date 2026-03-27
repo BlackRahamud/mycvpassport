@@ -8,7 +8,7 @@ import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
  */
 export function Template12Split({ cv, mobileMode = false }) {
   // Color Palette
-  const HEADER_BG = "#F5E6E0";
+  const HEADER_BG = "#D6D3D1";
   const SIDEBAR_BG = "#F3F4F6";
   const TEXT_DARK = "#1A1A1A";
   const TEXT_MUTED = "#4B5563";

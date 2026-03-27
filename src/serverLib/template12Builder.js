@@ -4,7 +4,7 @@
  */
 function buildTemplate12Html(cv) {
   const safeCv = cv || {};
-  const HEADER_BG = safeCv.name ? "#F5E6E0" : "#D1D5DB";
+  const HEADER_BG = safeCv.name ? "#D6D3D1" : "#D1D5DB";
   const SIDEBAR_BG = "#F3F4F6";
 
   const experienceHtml = (safeCv.experience || [])
