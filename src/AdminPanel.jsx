@@ -93,7 +93,6 @@ export default function AdminPanel() {
 
     const { data, error } = await supabase.from("profiles").select(`
         id,
-        is_pro,
         created_at,
         email,
         plan,
@@ -105,8 +104,8 @@ export default function AdminPanel() {
     if (!error && data) {
       const mapped = data.map((u) => ({
         ...u,
-        cv_count: u.cvs?.[0]?.count || 0,
-        download_count: u.downloads?.[0]?.count || 0,
+        cv_count: 0,
+        download_count: 0,
       }));
 
       setUsers(mapped);
@@ -138,7 +137,8 @@ export default function AdminPanel() {
     }
 
     if (search) {
-      data = data.filter((u) => u.email.toLowerCase().includes(search.toLowerCase()));
+      const q = search.toLowerCase();
+      data = data.filter((u) => String(u.email || "").toLowerCase().includes(q));
     }
 
     setFiltered(data);
