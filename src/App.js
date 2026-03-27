@@ -2106,7 +2106,7 @@ export default function App() {
   const handleEditResume  = (record) => { setEditingResume(record); navigate("/builder"); };
   const handleNewResume   = ()       => { setEditingResume(null);   navigate("/builder"); };
   const currentPath = location.pathname.replace(/\/$/, "") || "/";
-  const showGlobalNav = currentPath !== "/" && currentPath !== "/pricing";
+  const showGlobalNav = currentPath !== "/pricing" && (currentPath !== "/" || !!user);
 
   return (
     <Routes>
