@@ -2067,7 +2067,7 @@ export default function App() {
         fetchProStatus(session.user.id);
         const clean = location.pathname.replace(/\/$/, "") || "/";
         // Allow "/" so the logo / home link can reach the landing page without being overridden.
-        if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/dashboard"].includes(clean)) {
+        if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/dashboard", "/admin"].includes(clean)) {
           navigate("/dashboard", { replace: true });
         }
       }
