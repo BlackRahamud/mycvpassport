@@ -3,6 +3,7 @@ import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
 import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
+import { mapAuthError, trimAuthFields } from "./authUtils";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
 import CoverLetterModal from "./CoverLetterModal";
@@ -983,21 +984,51 @@ const authPrimaryBtn = {
 };
 
 // ─── AUTH PAGE ────────────────────────────────────────────────────
-function AuthPage({ mode, onAuth, onToggle, loading, error }) {
+function AuthPage({ mode, onAuth, onToggle, loading, error, success }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const submit = () => {
+    if (loading) return;
+    onAuth({ ...form, name: form.name || form.email.split("@")[0] }, mode);
+  };
   return (
     <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
       <div style={authCardStyle}>
         <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF", fontFamily: AUTH_FONT }}>{mode === "login" ? "Welcome back" : "Create account"}</h2>
         <p style={{ color: "#A0A0A0", marginBottom: "28px", fontSize: "14px", fontFamily: AUTH_FONT }}>{mode === "login" ? "Sign in to your CVPassport account" : "Start building your Gulf resume today"}</p>
+        {success && (
+          <div
+            role="status"
+            style={{
+              background: "rgba(34,197,94,0.12)",
+              border: "1px solid rgba(34,197,94,0.45)",
+              borderRadius: "8px",
+              padding: "12px 16px",
+              marginBottom: "20px",
+              fontSize: "13px",
+              color: "#86EFAC",
+              fontFamily: AUTH_FONT,
+              lineHeight: 1.45,
+            }}
+          >
+            {success}
+          </div>
+        )}
         {error && <div style={{ background: "rgba(239,68,68,0.1)", border: `1px solid ${C.danger}`, borderRadius: "8px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: C.danger, fontFamily: AUTH_FONT }}>{error}</div>}
-        {mode === "signup" && <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Full Name</label><input style={authInputStyle} placeholder="Your Name" value={form.name} onChange={e=>set("name",e.target.value)}/></div>}
-        <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Email</label><input style={authInputStyle} type="email" placeholder="you@email.com" value={form.email} onChange={e=>set("email",e.target.value)}/></div>
-        <div style={{ marginBottom: "24px" }}><label style={authLabelStyle}>Password</label><input style={authInputStyle} type="password" placeholder="••••••••" value={form.password} onChange={e=>set("password",e.target.value)}/></div>
-        <button type="button" style={{ ...authPrimaryBtn, opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }} disabled={loading} onClick={() => onAuth({ ...form, name: form.name||form.email.split("@")[0] })}>
-          {loading ? "Please wait..." : mode === "login" ? "Sign In →" : "Create Free Account →"}
-        </button>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+          noValidate
+        >
+          {mode === "signup" && <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Full Name</label><input style={authInputStyle} name="name" autoComplete="name" placeholder="Your Name" value={form.name} onChange={e=>set("name",e.target.value)}/></div>}
+          <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Email</label><input style={authInputStyle} type="email" name="email" autoComplete="email" placeholder="you@email.com" value={form.email} onChange={e=>set("email",e.target.value)}/></div>
+          <div style={{ marginBottom: "24px" }}><label style={authLabelStyle}>Password</label><input style={authInputStyle} type="password" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="••••••••" value={form.password} onChange={e=>set("password",e.target.value)}/></div>
+          <button type="submit" style={{ ...authPrimaryBtn, opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }} disabled={loading}>
+            {loading ? "Please wait..." : mode === "login" ? "Sign In →" : "Create Free Account →"}
+          </button>
+        </form>
         <p style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: "#A0A0A0", fontFamily: AUTH_FONT }}>
           {mode === "login" ? "No account? " : "Already have one? "}
           <span role="button" tabIndex={0} style={{ color: "#FFFFFF", cursor: "pointer", fontWeight: 600 }} onClick={onToggle} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(); }}>{mode === "login" ? "Sign up free" : "Sign in"}</span>
@@ -2056,6 +2087,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError]   = useState(null);
+  const [authSuccess, setAuthSuccess] = useState(null);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
   // eslint-disable-next-line no-unused-vars
@@ -2086,66 +2118,115 @@ export default function App() {
 
   useEffect(() => {
     if (!supabase) return;
+    let cancelled = false;
     const fetchProStatus = async (userId) => {
       try {
         const { data: profile } = await supabase.from("profiles").select("is_pro").eq("id", userId).single();
-        setIsPro(!!profile?.is_pro);
+        if (!cancelled) setIsPro(!!profile?.is_pro);
       } catch {
-        setIsPro(false);
+        if (!cancelled) setIsPro(false);
       }
     };
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const applySession = (session) => {
+      if (cancelled) return;
       if (session?.user) {
-        ensureProfileRow(session.user).catch(() => {});
+        ensureProfileRow(session.user).catch((e) => console.error("ensureProfileRow:", e));
         setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
         fetchProStatus(session.user.id);
-        const clean = location.pathname.replace(/\/$/, "") || "/";
-        // Allow "/" so the logo / home link can reach the landing page without being overridden.
-        if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/dashboard", "/admin"].includes(clean)) {
-          navigate("/dashboard", { replace: true });
-        }
       } else {
         setUser(null);
         setIsPro(false);
       }
       setAuthReady(true);
+    };
+    supabase.auth.getSession().then(({ data: { session } }) => applySession(session)).catch((e) => {
+      console.error("getSession:", e);
+      if (!cancelled) setAuthReady(true);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session?.user) {
-        ensureProfileRow(session.user).catch(() => {});
-        setUser(prev => ({ name: prev?.name||extractName(session.user), email: session.user.email, id: session.user.id }));
-        fetchProStatus(session.user.id);
-      } else {
-        setUser(null);
-        setIsPro(false);
-      }
-      setAuthReady(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
     });
-    return () => subscription.unsubscribe();
-  }, [location.pathname, navigate]);
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
-  const handleAuth = async (userData) => {
+  useEffect(() => {
+    if (!authReady || !user) return;
+    const clean = location.pathname.replace(/\/$/, "") || "/";
+    if (clean === "/auth" || clean === "/register") {
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/dashboard", "/admin"].includes(clean)) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authReady, user, location.pathname, navigate]);
+
+  const handleAuth = async (userData, modeOverride) => {
     if (!supabase) return;
-    setAuthError(null); setAuthLoading(true);
+    const isSignup = (modeOverride ?? authMode) === "signup";
+    const trimmed = trimAuthFields(userData);
+    setAuthError(null);
+    setAuthSuccess(null);
+    setAuthLoading(true);
     try {
-      if (authMode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email: userData.email, password: userData.password, options: { data: { name: userData.name } } });
+      if (!trimmed.email || !trimmed.password) {
+        setAuthError("Please enter your email and password.");
+        return;
+      }
+      if (isSignup && trimmed.password.length < 6) {
+        setAuthError("Password must be at least 6 characters.");
+        return;
+      }
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const emailRedirectTo = origin ? `${origin}/auth` : undefined;
+
+      if (isSignup) {
+        const { data, error } = await supabase.auth.signUp({
+          email: trimmed.email,
+          password: trimmed.password,
+          options: {
+            emailRedirectTo,
+            data: { name: trimmed.name || trimmed.email.split("@")[0] },
+          },
+        });
         if (error) throw error;
-        if (data.user) {
+        if (data.session && data.user) {
           await ensureProfileRow(data.user);
-          setUser({ name: userData.name, email: data.user.email, id: data.user.id });
+          setUser({ name: trimmed.name || extractName(data.user), email: data.user.email, id: data.user.id });
           setIsPro(false);
-          navigate("/dashboard");
+          navigate("/dashboard", { replace: true });
+          return;
         }
+        if (data.user && !data.session) {
+          setAuthSuccess(
+            "Account created successfully. Check your email for a verification link, then sign in here.",
+          );
+          return;
+        }
+        setAuthError("Signup could not be completed. Try again or use a different email.");
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: userData.email, password: userData.password });
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: trimmed.email,
+          password: trimmed.password,
+        });
         if (error) throw error;
+        if (!data.user) {
+          setAuthError("Sign in failed. Please try again.");
+          return;
+        }
         await ensureProfileRow(data.user);
         setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id });
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
-    } catch(err) { setAuthError(err.message); }
-    finally { setAuthLoading(false); }
+    } catch (err) {
+      console.error("handleAuth:", err);
+      setAuthError(mapAuthError(err));
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setIsPro(false); navigate("/"); };
@@ -2175,8 +2256,41 @@ export default function App() {
                 }
               />
               <Route path="/walk-in" element={<WalkInMode onBack={() => navigate("/")} onComplete={() => navigate("/builder")} setResume={setResume} setSelectedTemplate={setSelectedTemplate} />} />
-              <Route path="/auth" element={<AuthPage mode={authMode} onAuth={handleAuth} onToggle={() => { setAuthMode(m => m === "login" ? "signup" : "login"); setAuthError(null); }} loading={authLoading} error={authError}/>} />
-              <Route path="/register" element={<AuthPage mode="signup" onAuth={handleAuth} onToggle={() => { setAuthMode("login"); setAuthError(null); navigate("/auth"); }} loading={authLoading} error={authError}/>} />
+              <Route
+                path="/auth"
+                element={
+                  <AuthPage
+                    mode={authMode}
+                    onAuth={handleAuth}
+                    onToggle={() => {
+                      setAuthMode((m) => (m === "login" ? "signup" : "login"));
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                    }}
+                    loading={authLoading}
+                    error={authError}
+                    success={authSuccess}
+                  />
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <AuthPage
+                    mode="signup"
+                    onAuth={handleAuth}
+                    onToggle={() => {
+                      setAuthMode("login");
+                      setAuthError(null);
+                      setAuthSuccess(null);
+                      navigate("/auth");
+                    }}
+                    loading={authLoading}
+                    error={authError}
+                    success={authSuccess}
+                  />
+                }
+              />
               <Route path="/admin" element={!authReady ? null : (user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanel /> : <Navigate to="/" replace />)} />
               <Route path="/dashboard" element={user ? (
               <Dashboard
