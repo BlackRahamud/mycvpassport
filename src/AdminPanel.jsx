@@ -17,7 +17,6 @@ export default function AdminPanel() {
   const [expiry, setExpiry] = useState("");
 
   // payment system
-  const [payment, setPayment] = useState(null);
   const [provider, setProvider] = useState("stripe");
   const [pricing, setPricing] = useState({ PRO: 10, MAX: 25 });
 
@@ -72,7 +71,6 @@ export default function AdminPanel() {
     const { data } = await supabase.from("payment_settings").select("*").single();
 
     if (data) {
-      setPayment(data);
       setProvider(data.provider);
       setPricing(data.config || {});
     }
