@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
-import { useState, useEffect, useLayoutEffect, useCallback, useRef, memo } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, memo } from "react";
 import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import { mapAuthError, trimAuthFields } from "./authUtils";
@@ -79,9 +79,262 @@ function TabIconCoverLetter() {
     </svg>
   );
 }
-function CoverLetterHub({ onBack, onOpenBuilder }) {
+const CL_GREEN = "#6EE7B7";
+
+function toExperienceBulletsForCL(resume) {
+  const list = Array.isArray(resume?.experience) ? resume.experience : [];
+  return list
+    .slice(0, 3)
+    .map((e) => {
+      const role = e?.role ? `${e.role}` : "Role";
+      const company = e?.company ? ` at ${e.company}` : "";
+      const points = String(e?.points || "")
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean);
+      const topPoint = points[0] ? ` — ${points[0]}` : "";
+      return `${role}${company}${topPoint}`;
+    })
+    .filter(Boolean);
+}
+
+function buildImportedSummaryForCL(resume) {
+  if (!resume || typeof resume !== "object") {
+    return { name: "", role: "", summary: "", skills: "", exp: [] };
+  }
+  const skills = String(resume.skills || "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+    .join(", ");
+  const exp = toExperienceBulletsForCL(resume);
+  return {
+    name: resume.name || "",
+    role: resume.title || "",
+    summary: resume.summary || "",
+    skills,
+    exp,
+  };
+}
+
+function getTodayDateLabelCL() {
+  return new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+}
+
+function defaultLetterTemplateForCL({ resume, generatedBody, companyName, jobTitle }) {
+  const fullName = resume?.name || "Candidate Name";
+  const email = resume?.email || "email@example.com";
+  const phone = resume?.phone || "Phone";
+  const location = resume?.location || "Location";
+  const companyLine = (companyName || "").trim() || "Company Name";
+  const dateLine = getTodayDateLabelCL();
+  return `${fullName} | ${email} | ${phone} | ${location}
+${dateLine}
+
+${companyLine}
+Dear Hiring Manager,
+
+${generatedBody || `I am writing to express my interest in the ${jobTitle || "position"}. My background aligns well with this opportunity.`}
+
+Yours sincerely,
+${fullName}`;
+}
+
+async function extractTextFromPdfFile(file) {
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  let text = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    text += tc.items.map((it) => it.str).join(" ") + "\n";
+  }
+  return text.trim();
+}
+
+function resumeFromPdfText(text, nameFallback) {
+  const t = text.replace(/\s+/g, " ").trim();
+  const emailMatch = t.match(/[\w.+-]+@[\w.-]+\.\w+/);
+  return {
+    name: nameFallback || "Candidate",
+    title: "",
+    email: emailMatch ? emailMatch[0] : "",
+    phone: "",
+    location: "",
+    summary: t.slice(0, 4000),
+    experience: [],
+    skills: "",
+    languages: "",
+    technicalSkills: "",
+  };
+}
+
+function CoverLetterSpinnerArrow({ size = 48 }) {
+  const s = typeof size === "number" ? size : 48;
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#FFFFFF", fontFamily: "'DM Sans',sans-serif", padding: "20px 20px 96px" }}>
+    <div style={{ position: "relative", width: s, height: s, margin: "0 auto" }}>
+      <style>{`
+        @keyframes cvpClSpin { to { transform: rotate(360deg); } }
+        @keyframes cvpClBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+      `}</style>
+      <svg
+        width={s}
+        height={s}
+        viewBox="0 0 48 48"
+        style={{ animation: "cvpClSpin 1.1s linear infinite" }}
+        aria-hidden
+      >
+        <circle cx="24" cy="24" r="20" stroke={CL_GREEN} strokeWidth="3" fill="none" strokeDasharray="32 120" strokeLinecap="round" />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          pointerEvents: "none",
+          animation: "cvpClBounce 0.9s ease-in-out infinite",
+        }}
+      >
+        <svg width={Math.round(s * 0.38)} height={Math.round(s * 0.38)} viewBox="0 0 24 24" fill="none" stroke={CL_GREEN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 5v14M19 12l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function CoverLetterPage({ user, onBack }) {
+  const [phase, setPhase] = useState("entry");
+  const [sourceMode, setSourceMode] = useState("saved");
+  const [savedList, setSavedList] = useState([]);
+  const [selectedCvId, setSelectedCvId] = useState("");
+  const [uploadName, setUploadName] = useState("");
+  const [uploadResume, setUploadResume] = useState(null);
+  const [jobDescription, setJobDescription] = useState("");
+  const [letterBody, setLetterBody] = useState("");
+  const [activeResume, setActiveResume] = useState(null);
+  const [genError, setGenError] = useState("");
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadUserResumes(user.id)
+      .then((rows) => {
+        setSavedList(rows || []);
+        if (rows?.length && !selectedCvId) {
+          setSelectedCvId(String(rows[0].id));
+        }
+      })
+      .catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (sourceMode !== "saved" || !savedList.length) return;
+    const row = savedList.find((r) => String(r.id) === String(selectedCvId));
+    if (row?.cv_data) setActiveResume(row.cv_data);
+  }, [sourceMode, selectedCvId, savedList]);
+
+  useEffect(() => {
+    if (sourceMode !== "upload") {
+      setUploadName("");
+      setUploadResume(null);
+    }
+  }, [sourceMode]);
+
+  const jdLen = jobDescription.trim().length;
+  const canGenerate = jdLen >= 100 && (sourceMode === "saved" ? !!activeResume : !!uploadResume);
+
+  const fullLetterDisplay = useMemo(() => {
+    if (!letterBody || !activeResume) return "";
+    const jt = jobDescription.split("\n")[0]?.slice(0, 120) || "Position";
+    return defaultLetterTemplateForCL({
+      resume: activeResume,
+      generatedBody: letterBody,
+      companyName: "",
+      jobTitle: jt,
+    });
+  }, [letterBody, activeResume, jobDescription]);
+
+  const handlePdfPick = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.type !== "application/pdf") {
+      alert("Please choose a PDF file.");
+      return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      alert("File must be 5MB or smaller.");
+      return;
+    }
+    setUploadName(f.name);
+    try {
+      const text = await extractTextFromPdfFile(f);
+      const base = f.name.replace(/\.pdf$/i, "").replace(/_/g, " ");
+      const r = resumeFromPdfText(text, base);
+      setUploadResume(r);
+      setActiveResume(r);
+    } catch (err) {
+      console.error(err);
+      alert("Could not read this PDF. Try another file or use a saved CV.");
+      setUploadName("");
+      setUploadResume(null);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!canGenerate) return;
+    setGenError("");
+    setPhase("loading");
+    setLetterBody("");
+    const minWait = new Promise((r) => setTimeout(r, 5000));
+    const summary = buildImportedSummaryForCL(activeResume);
+    const jobTitleGuess = jobDescription.split("\n")[0]?.slice(0, 120) || "Role";
+    const apiCall = fetch("/api/cover-letter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cvData: {
+          name: summary.name,
+          role: summary.role,
+          summary: summary.summary,
+          skills: summary.skills,
+          experience: summary.exp,
+          email: activeResume?.email || "",
+          phone: activeResume?.phone || "",
+          location: activeResume?.location || "",
+        },
+        jobTitle: jobTitleGuess,
+        companyName: "",
+        jobDescription: jobDescription.trim(),
+        date: getTodayDateLabelCL(),
+      }),
+    }).then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
+      return String(data?.coverLetterBody || "").trim();
+    });
+    try {
+      const [, body] = await Promise.all([minWait, apiCall]);
+      setLetterBody(body);
+      setPhase("result");
+    } catch (err) {
+      console.error(err);
+      setGenError(err.message || "Generation failed.");
+      setPhase("entry");
+    }
+  };
+
+  const paras = fullLetterDisplay ? fullLetterDisplay.split(/\n\s*\n/).filter(Boolean) : [];
+  const visibleParas = paras.slice(0, 2).join("\n\n");
+  const restParas = paras.slice(2).join("\n\n");
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#FFFFFF", fontFamily: "'DM Sans',sans-serif", padding: "16px 16px 96px", boxSizing: "border-box" }}>
       <button
         type="button"
         onClick={onBack}
@@ -103,28 +356,336 @@ function CoverLetterHub({ onBack, onOpenBuilder }) {
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
       </button>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 12, marginBottom: 0 }}>Cover Letter</h1>
-      <p style={{ fontSize: 14, color: "#A0A0A0", lineHeight: 1.55, marginTop: 12, marginBottom: 24 }}>
-        Generate a tailored letter from your CV in the builder — open the Job Match tab and use Get Cover Letter, or start from your latest CV.
-      </p>
-      <button
-        type="button"
-        onClick={onOpenBuilder}
-        style={{
-          width: "100%",
-          maxWidth: 360,
-          padding: "14px 18px",
-          borderRadius: 12,
-          border: "none",
-          background: "#FFFFFF",
-          color: "#000000",
-          fontSize: 15,
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        Open builder
-      </button>
+
+      {phase === "entry" && (
+        <>
+          <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 8, marginBottom: 16 }}>Cover Letter</h1>
+          {genError ? (
+            <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{genError}</div>
+          ) : null}
+          <div
+            style={{
+              background: "#141414",
+              border: "1px solid #2A2A2A",
+              borderRadius: 16,
+              padding: 16,
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <div>
+              <button
+                type="button"
+                onClick={() => setSourceMode("saved")}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: 14,
+                  borderRadius: 12,
+                  border: sourceMode === "saved" ? `1px solid ${CL_GREEN}` : "1px solid #2A2A2A",
+                  background: sourceMode === "saved" ? "rgba(13,43,31,0.5)" : "transparent",
+                  color: "#FFF",
+                  cursor: "pointer",
+                  fontSize: 15,
+                  fontWeight: 600,
+                }}
+              >
+                Use my saved CV
+              </button>
+              {sourceMode === "saved" && (
+                <select
+                  value={selectedCvId}
+                  onChange={(e) => setSelectedCvId(e.target.value)}
+                  style={{
+                    width: "100%",
+                    marginTop: 10,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #2A2A2A",
+                    background: "#0A0A0A",
+                    color: "#FFF",
+                    fontSize: 14,
+                  }}
+                >
+                  {savedList.length === 0 ? (
+                    <option value="">No saved CVs yet</option>
+                  ) : (
+                    savedList.map((r) => (
+                      <option key={r.id} value={String(r.id)}>
+                        {r.title || r?.cv_data?.name || "My CV"}
+                      </option>
+                    ))
+                  )}
+                </select>
+              )}
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => setSourceMode("upload")}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: 14,
+                  borderRadius: 12,
+                  border: sourceMode === "upload" ? `1px solid ${CL_GREEN}` : "1px solid #2A2A2A",
+                  background: sourceMode === "upload" ? "rgba(13,43,31,0.5)" : "transparent",
+                  color: "#FFF",
+                  cursor: "pointer",
+                  fontSize: 15,
+                  fontWeight: 600,
+                }}
+              >
+                Upload your CV
+              </button>
+              {sourceMode === "upload" && (
+                <div style={{ marginTop: 10 }}>
+                  <label
+                    style={{
+                      display: "block",
+                      padding: "12px 14px",
+                      borderRadius: 10,
+                      border: "1px dashed #3A3A3A",
+                      color: "#A0A0A0",
+                      fontSize: 14,
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                  >
+                    <input type="file" accept="application/pdf" style={{ display: "none" }} onChange={handlePdfPick} />
+                    {uploadName || "PDF only · max 5MB"}
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 18, position: "relative" }}>
+            <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Paste job description</label>
+            <textarea
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste the full job description here…"
+              style={{
+                width: "100%",
+                minHeight: 160,
+                padding: "12px 12px 28px",
+                borderRadius: 12,
+                border: "1px solid #2A2A2A",
+                background: "#141414",
+                color: "#FFF",
+                fontSize: 14,
+                resize: "vertical",
+                boxSizing: "border-box",
+              }}
+            />
+            <span style={{ position: "absolute", right: 12, bottom: 10, fontSize: 12, color: jdLen >= 100 ? "#6EE7B7" : "#A0A0A0" }}>
+              {jdLen} characters
+            </span>
+          </div>
+          {jdLen > 0 && jdLen < 100 ? (
+            <p style={{ fontSize: 13, color: "#A0A0A0", marginTop: 8, marginBottom: 0 }}>Add more detail so we can personalise this for you</p>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+            style={{
+              width: "100%",
+              marginTop: 20,
+              padding: "14px 18px",
+              borderRadius: 12,
+              border: "none",
+              background: canGenerate ? "#FFFFFF" : "#333",
+              color: canGenerate ? "#000000" : "#777",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: canGenerate ? "pointer" : "not-allowed",
+            }}
+          >
+            Generate My Cover Letter
+          </button>
+        </>
+      )}
+
+      {phase === "loading" && (
+        <div style={{ textAlign: "center", paddingTop: 32 }}>
+          <style>{`@keyframes cvpClPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.55;transform:scale(1.15);} }`}</style>
+          <CoverLetterSpinnerArrow size={56} />
+          <div style={{ fontSize: 17, fontWeight: 600, color: "#FFF", marginTop: 20 }}>Crafting your letter</div>
+          <div style={{ display: "grid", gap: 10, marginTop: 28, textAlign: "left" }}>
+            {[
+              { id: 1, label: "CV extracted", sub: "Reading your profile", done: true, pulse: false },
+              { id: 2, label: "Matching to role", sub: "Aligning with job description", done: false, pulse: true },
+              { id: 3, label: "Writing your letter", sub: "Drafting personalised copy", done: false, pulse: false },
+            ].map((step) => (
+              <div
+                key={step.id}
+                style={{
+                  background: "#141414",
+                  border: step.done ? `1px solid ${CL_GREEN}` : step.pulse ? `1px solid ${CL_GREEN}` : "1px solid #2A2A2A",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div style={{ width: 22, height: 22, flexShrink: 0, position: "relative" }}>
+                  {step.done ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <circle cx="12" cy="12" r="10" fill={CL_GREEN} />
+                      <path d="M8 12l2.5 2.5L16 9" stroke="#000" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  ) : step.pulse ? (
+                    <>
+                      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+                        <circle cx="12" cy="12" r="9" stroke={CL_GREEN} strokeWidth="2" fill="none" />
+                      </svg>
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: "50%",
+                          width: 8,
+                          height: 8,
+                          marginLeft: -4,
+                          marginTop: -4,
+                          borderRadius: "50%",
+                          background: CL_GREEN,
+                          animation: "cvpClPulse 1.2s ease-in-out infinite",
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+                      <circle cx="12" cy="12" r="9" stroke="#444" strokeWidth="2" fill="none" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#FFF" }}>{step.label}</div>
+                  <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{step.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {phase === "result" && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Your cover letter</h2>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: "#0D2B1F",
+                color: CL_GREEN,
+              }}
+            >
+              AI Generated
+            </span>
+          </div>
+          <div style={{ position: "relative", background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16, marginBottom: 16, overflow: "hidden" }}>
+            <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>{visibleParas}</div>
+            {restParas ? (
+              <>
+                <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5", filter: "blur(5px)", marginTop: 12 }}>
+                  {restParas}
+                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: "55%",
+                    background: "linear-gradient(to bottom, rgba(20,20,20,0), #141414 55%, #141414)",
+                    pointerEvents: "none",
+                  }}
+                />
+              </>
+            ) : null}
+          </div>
+          <div
+            style={{
+              background: "linear-gradient(135deg, #0D1117, #0D2B1F)",
+              border: "1px solid #1a4a30",
+              borderRadius: 16,
+              padding: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: CL_GREEN,
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 500, color: "#FFF" }}>Download full cover letter</div>
+                <div style={{ fontSize: 12, color: CL_GREEN, marginTop: 4, lineHeight: 1.4 }}>
+                  This is a highly advanced AI feature, personalised for this exact role
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => alert("Payment flow coming soon — AED 10 one-time.")}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: "none",
+                background: CL_GREEN,
+                color: "#000000",
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Download — AED 10 only
+            </button>
+            <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setPhase("entry");
+              setLetterBody("");
+            }}
+            style={{
+              marginTop: 16,
+              width: "100%",
+              padding: 12,
+              borderRadius: 10,
+              border: "1px solid #2A2A2A",
+              background: "transparent",
+              color: "#A0A0A0",
+              fontSize: 14,
+              cursor: "pointer",
+            }}
+          >
+            Start over
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1377,8 +1938,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const handleDownload = async () => {
     setDownloading(true);
-    if (user?.id) await handleSave();
+    const spinMs = 2000 + Math.floor(Math.random() * 1001);
     try {
+      await new Promise((r) => setTimeout(r, spinMs));
+      if (user?.id) await handleSave();
       const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
       const wasMobileEdit = isMobileViewport && mobileView === "edit";
       if (wasMobileEdit) setMobileView("preview");
@@ -1468,8 +2031,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
             {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
           </button>
-          <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}` }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-            {downloading ? "..." : "Download"}
+          <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}`, display: "inline-flex", alignItems: "center", gap: 8 }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+            {downloading ? (
+              <>
+                <span style={{ display: "inline-flex", transform: "scale(0.42)", transformOrigin: "center" }}>
+                  <CoverLetterSpinnerArrow size={44} />
+                </span>
+                Preparing...
+              </>
+            ) : (
+              "Download"
+            )}
           </button>
         </div>
       </header>
@@ -1893,9 +2465,22 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   fontWeight: 700,
                   cursor: downloading ? "not-allowed" : "pointer",
                   transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
                 }}
               >
-                {downloading ? "Preparing..." : "Download CV"}
+                {downloading ? (
+                  <>
+                    <span style={{ display: "inline-flex", transform: "scale(0.42)", transformOrigin: "center" }}>
+                      <CoverLetterSpinnerArrow size={44} />
+                    </span>
+                    Preparing...
+                  </>
+                ) : (
+                  "Download CV"
+                )}
               </button>
             </div>
           </div>
@@ -2415,7 +3000,7 @@ export default function App() {
                 path="/cover-letter"
                 element={
                   user ? (
-                    <CoverLetterHub onBack={() => navigate("/dashboard")} onOpenBuilder={() => navigate("/builder")} />
+                    <CoverLetterPage user={user} onBack={() => navigate("/dashboard")} />
                   ) : (
                     <Navigate to="/" replace />
                   )
