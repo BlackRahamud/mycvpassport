@@ -69,13 +69,73 @@ function TabIconUser() {
     </svg>
   );
 }
+function TabIconCoverLetter() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+      <polyline points="22,6 12,13 2,6" />
+      <path d="M8 13h4" />
+      <path d="M8 17h8" />
+    </svg>
+  );
+}
+function CoverLetterHub({ onBack, onOpenBuilder }) {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#FFFFFF", fontFamily: "'DM Sans',sans-serif", padding: "20px 20px 96px" }}>
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label="Back"
+        style={{
+          width: 36,
+          height: 36,
+          padding: 0,
+          borderRadius: 8,
+          border: "none",
+          background: "transparent",
+          color: "#A0A0A0",
+          cursor: "pointer",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 12, marginBottom: 0 }}>Cover Letter</h1>
+      <p style={{ fontSize: 14, color: "#A0A0A0", lineHeight: 1.55, marginTop: 12, marginBottom: 24 }}>
+        Generate a tailored letter from your CV in the builder — open the Job Match tab and use Get Cover Letter, or start from your latest CV.
+      </p>
+      <button
+        type="button"
+        onClick={onOpenBuilder}
+        style={{
+          width: "100%",
+          maxWidth: 360,
+          padding: "14px 18px",
+          borderRadius: 12,
+          border: "none",
+          background: "#FFFFFF",
+          color: "#000000",
+          fontSize: 15,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        Open builder
+      </button>
+    </div>
+  );
+}
 function MobileTabBar({ currentPath, onNavigate, user }) {
   if (!user) return null;
-  const show = ["/dashboard", "/ats", "/walk-in"].includes(currentPath);
+  const show = ["/dashboard", "/ats", "/cover-letter", "/walk-in"].includes(currentPath);
   if (!show) return null;
   const tabs = [
     { id: "/dashboard", label: "My CVs", icon: <TabIconDoc /> },
     { id: "/ats", label: "ATS", icon: <TabIconTarget /> },
+    { id: "/cover-letter", label: "Cover Letter", icon: <TabIconCoverLetter /> },
     { id: "/walk-in", label: "Walk-In", icon: <TabIconBolt /> },
     { id: "/dashboard", label: "Account", icon: <TabIconUser /> },
   ];
@@ -100,7 +160,7 @@ function MobileTabBar({ currentPath, onNavigate, user }) {
     >
       {tabs.map((t) => (
         <button
-          key={t.id}
+          key={`${t.label}-${t.id}`}
           type="button"
           onClick={() => onNavigate(t.id)}
           style={{
@@ -1559,26 +1619,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             <div style={{ padding: 12, display: "grid", gap: 12 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
               <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score. Add more sections and keywords to improve.</div>
-              <button
-                type="button"
-                onClick={handleOpenCoverLetter}
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: 8,
-                  border: "1px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#FFFFFF",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: `border-color 150ms ${EASE}`,
-                  justifySelf: "start",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
-              >
-                Get Cover Letter
-              </button>
             </div>
           )}
           {builderTab === "jobmatch" && (
@@ -1760,26 +1800,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <div style={{ padding: 12, display: "grid", gap: 12 }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
                 <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div>
-                <button
-                  type="button"
-                  onClick={handleOpenCoverLetter}
-                  style={{
-                    padding: "10px 16px",
-                    borderRadius: 8,
-                    border: "1px solid #2A2A2A",
-                    background: "transparent",
-                    color: "#FFFFFF",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: `border-color 150ms ${EASE}`,
-                    justifySelf: "start",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
-                >
-                  Get Cover Letter
-                </button>
               </div>
             )}
             {builderTab === "jobmatch" && (
@@ -2221,7 +2241,7 @@ export default function App() {
       navigate("/dashboard", { replace: true });
       return;
     }
-    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/dashboard", "/admin"].includes(clean)) {
+    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin"].includes(clean)) {
       navigate("/dashboard", { replace: true });
     }
   }, [authReady, user, location.pathname, navigate]);
@@ -2391,6 +2411,16 @@ export default function App() {
               />
               )} />
               <Route path="/ats" element={<ATSChecker onBack={() => navigate(user ? "/dashboard" : "/")} />} />
+              <Route
+                path="/cover-letter"
+                element={
+                  user ? (
+                    <CoverLetterHub onBack={() => navigate("/dashboard")} onOpenBuilder={() => navigate("/builder")} />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} />
