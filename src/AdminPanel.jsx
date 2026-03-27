@@ -93,13 +93,13 @@ export default function AdminPanel() {
 
     const { data, error } = await supabase.from("profiles").select(`
         id,
+        is_pro,
+        created_at,
         email,
         plan,
         expiry,
         flagged,
-        features,
-        cvs(count),
-        downloads(count)
+        features
       `);
 
     if (!error && data) {
