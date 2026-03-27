@@ -141,30 +141,28 @@ Yours sincerely,
 ${fullName}`;
 }
 
-async function extractTextFromPdfFile(file) {
-  const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
-  const data = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data }).promise;
-  let text = "";
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const tc = await page.getTextContent();
-    text += tc.items.map((it) => it.str).join(" ") + "\n";
-  }
-  return text.trim();
+/**
+ * PDF text is not extracted in-browser here (avoids bundling pdfjs-dist — fixes Vercel/CRA resolve issues).
+ * Upload flow uses the file name + pasted job description for /api/cover-letter.
+ */
+async function extractTextFromPdfFile() {
+  return "";
 }
 
 function resumeFromPdfText(text, nameFallback) {
   const t = text.replace(/\s+/g, " ").trim();
   const emailMatch = t.match(/[\w.+-]+@[\w.-]+\.\w+/);
+  const summary =
+    t.length > 0
+      ? t.slice(0, 4000)
+      : "Uploaded CV file (PDF). Your pasted job description below is used to tailor the letter.";
   return {
     name: nameFallback || "Candidate",
     title: "",
     email: emailMatch ? emailMatch[0] : "",
     phone: "",
     location: "",
-    summary: t.slice(0, 4000),
+    summary,
     experience: [],
     skills: "",
     languages: "",
