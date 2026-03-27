@@ -26,10 +26,9 @@ import { PreviewCreativeSidebar } from "./Template8CreativeSidebar";
 import { PreviewHospitality } from "./Template9Hospitality";
 import { PreviewATSInternational } from "./Template10ATSInternational";
 import { PreviewTechITPro } from "./Template11TechITPro";
-import { PreviewClassic } from "./Template12Classic";
 import { Template12Split } from "./Template12Split";
 import { PreviewFinance } from "./Template13Finance";
-import { PreviewFigmaMirror } from "./Template14FigmaMirror";
+import { Template14 } from "./Template14";
 import Pricing from "./Pricing";
 import LandingPage from './LandingPage';
 import WalkInMode from './WalkInMode';
@@ -521,9 +520,8 @@ function ResumePreview({ cv, template, mobileMode = false }) {
   if (t.layout === "ats-intl")    return <PreviewATSInternational cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "tech-it")     return <PreviewTechITPro       cv={cvT} t={t} mobileMode={mobileMode} />;
   if (t.layout === "flat-split")  return <Template12Split        cv={cvT} mobileMode={mobileMode} />;
-  if (t.layout === "classic")     return <PreviewClassic         cv={cvT} />;
   if (t.layout === "finance")     return <PreviewFinance         cv={cvT} />;
-  if (t.layout === "figma-mirror")return <PreviewFigmaMirror     cv={cvT} t={t} mobileMode={mobileMode} />;
+  if (t.layout === "figma-mirror")return <Template14             cv={cvT} mobileMode={mobileMode} />;
   return <PreviewModernEmerald cv={cvT} mobileMode={mobileMode} />;
 }
 
@@ -894,24 +892,6 @@ function LandingPageLegacy({ onLogin, onSignup, setView, setResume, setSelectedT
           >
             <TemplateThumb>
               <PreviewBankingFinance cv={DUMMY_RESUME} t={TEMPLATES[5]} />
-            </TemplateThumb>
-          </TiltedCard>
-
-          {/* T12 - Classic */}
-          <TiltedCard
-            containerHeight="380px"
-            rotateAmplitude={8}
-            scaleOnHover={1.04}
-            displayOverlayContent={true}
-            overlayContent={
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#fff", fontWeight: 600, fontSize: "14px" }}>Classic</span>
-                <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "rgba(16,185,129,0.2)", color: "#10b981", fontWeight: 600 }}>Free</span>
-              </div>
-            }
-          >
-            <TemplateThumb>
-              <PreviewClassic cv={DUMMY_RESUME} />
             </TemplateThumb>
           </TiltedCard>
 

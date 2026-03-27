@@ -16,6 +16,7 @@ const { buildClassicTemplate12Html } = require("../src/serverLib/classicTemplate
 const { buildTemplate12Html } = require("../src/serverLib/template12Builder");
 const { markPageStarts } = require("../src/serverLib/markPageStarts");
 const { buildFinanceTemplate13Html } = require("../src/serverLib/financeTemplate13Html");
+const { buildTemplate14Html } = require("../src/serverLib/template14Builder");
 const { drawT11SidebarStripeOnPdf } = require("../src/serverLib/pdfDrawT11SidebarStripe");
 
 const BUILDERS = {
@@ -32,6 +33,7 @@ const BUILDERS = {
   11: buildTechITProTemplate11Html,
   12: (cv) => markPageStarts(buildTemplate12Html(cv), { PAGE_HEIGHT: 1027 }),
   13: buildFinanceTemplate13Html,
+  14: (cv) => markPageStarts(buildTemplate14Html(cv), { PAGE_HEIGHT: 1027 }),
 };
 
 module.exports = async (req, res) => {
