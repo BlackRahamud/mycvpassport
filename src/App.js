@@ -2044,6 +2044,20 @@ export default function App() {
   // eslint-disable-next-line no-unused-vars
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
 
+  const ensureProfileRow = async (authUser) => {
+    if (!supabase || !authUser?.id) return;
+    await supabase.from("profiles").upsert(
+      {
+        id: authUser.id,
+        email: authUser.email || "",
+        plan: "FREE",
+        flagged: false,
+        features: {},
+      },
+      { onConflict: "id" },
+    );
+  };
+
   useEffect(() => {
     if (!user?.id) return;
     loadUserResumes(user.id)
@@ -2063,6 +2077,7 @@ export default function App() {
     };
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        ensureProfileRow(session.user).catch(() => {});
         setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
         fetchProStatus(session.user.id);
         const clean = location.pathname.replace(/\/$/, "") || "/";
@@ -2078,6 +2093,7 @@ export default function App() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       if (session?.user) {
+        ensureProfileRow(session.user).catch(() => {});
         setUser(prev => ({ name: prev?.name||extractName(session.user), email: session.user.email, id: session.user.id }));
         fetchProStatus(session.user.id);
       } else {
@@ -2096,11 +2112,18 @@ export default function App() {
       if (authMode === "signup") {
         const { data, error } = await supabase.auth.signUp({ email: userData.email, password: userData.password, options: { data: { name: userData.name } } });
         if (error) throw error;
-        if (data.user) { setUser({ name: userData.name, email: data.user.email, id: data.user.id }); setIsPro(false); navigate("/dashboard"); }
+        if (data.user) {
+          await ensureProfileRow(data.user);
+          setUser({ name: userData.name, email: data.user.email, id: data.user.id });
+          setIsPro(false);
+          navigate("/dashboard");
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email: userData.email, password: userData.password });
         if (error) throw error;
-        setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id }); navigate("/dashboard");
+        await ensureProfileRow(data.user);
+        setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id });
+        navigate("/dashboard");
       }
     } catch(err) { setAuthError(err.message); }
     finally { setAuthLoading(false); }
