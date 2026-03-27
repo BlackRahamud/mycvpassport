@@ -380,7 +380,7 @@ export default function AdminPanel() {
       width: "6px",
       height: "6px",
       borderRadius: "50%",
-      backgroundColor: on ? "#4F46E5" : "#333",
+      backgroundColor: on ? "#88E788" : "#EF4444",
       display: "inline-block",
       marginRight: "4px",
     }),
@@ -545,8 +545,7 @@ export default function AdminPanel() {
               {filtered.map((u) => (
                 <tr key={u.id}>
                   <td style={s.td}>
-                    <div style={{ fontWeight: "500", color: T.text }}>{u.email}</div>
-                    <div style={{ fontSize: "11px", color: T.textSubtle, fontFamily: "monospace" }}>ID: {String(u.id || "").slice(0, 8)}</div>
+                    <div style={{ fontWeight: "500", color: T.text }}>{String(u.email ?? "")}</div>
                   </td>
                   <td style={s.td}>
                     <span style={s.badge(u.flagged ? "FLAGGED" : String(u.plan || "FREE").toUpperCase())}>{u.plan}</span>
@@ -557,10 +556,10 @@ export default function AdminPanel() {
                   </td>
                   <td style={s.td}>
                     <div style={{ display: "flex", gap: "4px" }}>
+                      <div style={s.dot(Boolean(u.features?.download))}></div>
                       <div style={s.dot(Boolean(u.features?.ats))}></div>
-                      <div style={s.dot(Boolean(u.features?.ai))}></div>
-                      <div style={s.dot(Boolean(u.features?.premium))}></div>
-                      <div style={s.dot(Boolean(u.features?.custom))}></div>
+                      <div style={s.dot(Boolean(u.features?.cover_letter))}></div>
+                      <div style={s.dot(Boolean(u.features?.premium_templates))}></div>
                     </div>
                   </td>
                   <td style={s.td}>{u.expiry ? new Date(u.expiry).toLocaleDateString() : "-"}</td>
