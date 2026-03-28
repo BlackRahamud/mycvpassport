@@ -1,0 +1,39 @@
+# CURSOR COMPOSER 2 — CVPASSPORT PROTOCOL
+
+## PROJECT IDENTITY
+- Stack: React CRA (NOT Next.js), Supabase, Vercel Hobby
+- Global CSS: src/index.css ONLY. src/App.css is NOT imported — do not touch it.
+- PDF engine: Puppeteer + @sparticuz/chromium-min, linear-gradient body hack, PAGE_HEIGHT 1027px. Never refactor this.
+- Templates: Template1 to Template14. File pattern: src/Template[N][Name].js + src/serverLib/template[N]Builder.js
+- Deployment: Vercel. Never suggest npm audit fix --force.
+
+## NO-FLY ZONE — DO NOT TOUCH
+- Supabase RLS policies. Never modify .sql files or suggest disabling RLS.
+- api/generate-pdf.js PDF architecture. No coordinate or layout changes without explicit user instruction.
+- api/cover-letter.js payment gate. The Anthropic API must only fire post-payment.
+- Pricing logic in Pricing.jsx and UpgradeModal.jsx.
+- Auth flow in authUtils.js and App.js auth sections.
+- .env variables. Never log, hardcode, or expose keys anywhere.
+- coverLetterDataBank.generated.js — must stay tracked in git, never ignored.
+- STRUCTURE: Never move or rename files in src/ or api/. Keep Template[N][Name].js flat naming exactly as-is.
+- PDF SYNTAX: Never modernize or update Puppeteer syntax. @sparticuz/chromium-min is version-locked. If it works, leave it.
+
+## CODING STANDARDS
+- Functional React components only. No class components.
+- Never delete props without checking all children that consume them.
+- Never upgrade libraries. Use versions already in package.json.
+- No transition: all — use explicit properties with cubic-bezier(0.4,0,0.2,1).
+- No purple anywhere in UI. Ever.
+- Btn-primary: white bg, black text, 12px radius.
+- Design tokens: --bg-page:#0A0A0A, --bg-surface:#141414, --bg-elevated:#1C1C1C, --text-primary:#FFF, --text-secondary:#A0A0A0, --border-default:#2A2A2A.
+- useEffect: never add dependencies to fix a warning without checking for infinite loop risk first.
+
+## AUTOMATION (YOLO MODE)
+- You have permission to run npm run lint and npm run build autonomously.
+- If build fails, read terminal output and fix immediately. Do not commit on failure.
+- Only commit after npm run build passes successfully.
+- Commit format: "feat: [description]" or "fix: [description]". No permission needed if build passes.
+- PS-EXECUTION: If any terminal command returns a non-zero exit code, STOP. Fix the error before running the next command. No skipping.
+
+## POWERSHELL WARNING
+- No && command chaining. Run commands one at a time.
