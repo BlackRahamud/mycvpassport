@@ -8,6 +8,7 @@ import mammoth from "mammoth";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
 import CoverLetterModal from "./CoverLetterModal";
+import { transformRawInput } from "./coverLetterDataBank.generated";
 import UpgradeModal from "./UpgradeModal";
 import TiltedCard from './components/TiltedCard';
 import { PreviewModernEmerald } from "./Template1ModernEmerald";
@@ -258,7 +259,7 @@ function extractCityForIndiaTemplate(location) {
   return part;
 }
 
-function buildCoverLetterTemplateBodyUAE({ jobDescription, summary, resume }) {
+function buildCoverLetterTemplateBodyUAE({ jobDescription, summary, resume, aboutYou }) {
   const roleFromJd = extractRole(jobDescription);
   const jobTitle = (summary?.role || resume?.title || "professional").trim() || "professional";
   const experiencePhrase = experiencePhraseForCL(summary);
@@ -267,12 +268,14 @@ function buildCoverLetterTemplateBodyUAE({ jobDescription, summary, resume }) {
   const k2 = prettifyKeywordPhrase(kw[1] || "measurable results");
   const industryPhrase = industryKeywordsPhrase(kw, jobDescription);
   const p1 = `I am writing to express my strong interest in the ${roleFromJd} position. With my background as a ${jobTitle} and ${experiencePhrase} in the UAE market, I bring a proven track record of ${k1} and ${k2}.`;
-  const p2 = `Having worked in ${industryPhrase}, I understand the expectations of Gulf-based employers and consistently deliver results that align with organisational goals.`;
+  const p2 = aboutYou
+    ? transformRawInput(aboutYou, roleFromJd)
+    : `Having worked in ${industryPhrase}, I understand the expectations of Gulf-based employers and consistently deliver results that align with organisational goals.`;
   const p3 = `I would welcome the opportunity to discuss how my experience can contribute to your team. Thank you for your consideration.`;
   return `${p1}\n\n${p2}\n\n${p3}`;
 }
 
-function buildCoverLetterTemplateBodyIndia({ jobDescription, summary, resume }) {
+function buildCoverLetterTemplateBodyIndia({ jobDescription, summary, resume, aboutYou }) {
   const roleFromJd = extractRole(jobDescription);
   const experiencePhrase = experiencePhraseForCL(summary);
   const kw = extractKeywords(jobDescription);
@@ -281,7 +284,9 @@ function buildCoverLetterTemplateBodyIndia({ jobDescription, summary, resume }) 
   const industryPhrase = industryKeywordsPhrase(kw, jobDescription);
   const city = extractCityForIndiaTemplate(resume?.location || "") || "your organisation";
   const p1 = `I would like to apply for the ${roleFromJd} position at your esteemed organisation. With ${experiencePhrase}, I have developed strong expertise in ${k1} and ${k2}.`;
-  const p2 = `My background in ${industryPhrase} has equipped me with the skills to contribute effectively to your team in ${city}.`;
+  const p2 = aboutYou
+    ? transformRawInput(aboutYou, roleFromJd)
+    : `My background in ${industryPhrase} has equipped me with the skills to contribute effectively to your team in ${city}.`;
   const p3 = `I am eager to bring my dedication and skills to this role and would appreciate the opportunity to discuss my application further.`;
   return `${p1}\n\n${p2}\n\n${p3}`;
 }
@@ -582,11 +587,13 @@ function CoverLetterPage({ user, onBack }) {
                 jobDescription: jobDescription.trim(),
                 summary,
                 resume: resumeForApi,
+                aboutYou: aboutYou.trim(),
               })
             : buildCoverLetterTemplateBodyUAE({
                 jobDescription: jobDescription.trim(),
                 summary,
                 resume: resumeForApi,
+                aboutYou: aboutYou.trim(),
               });
         setLetterBody(templateBody);
         setClTemplateVariant(market === "India" ? "india" : "uae");
