@@ -14,7 +14,7 @@
 - Pricing logic in Pricing.jsx and UpgradeModal.jsx.
 - Auth flow in authUtils.js and App.js auth sections.
 - .env variables. Never log, hardcode, or expose keys anywhere.
-- coverLetterDataBank.generated.js — must stay tracked in git, never ignored.
+- src/coverLetterDataBank.generated.js — must stay tracked in git, never ignored.
 - STRUCTURE: Never move or rename files in src/ or api/. Keep Template[N][Name].js flat naming exactly as-is.
 - PDF SYNTAX: Never modernize or update Puppeteer syntax. @sparticuz/chromium-min is version-locked. If it works, leave it.
 

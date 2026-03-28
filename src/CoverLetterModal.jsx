@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { generateCoverLetterFromTemplate } from "./coverLetterDataBank.generated";
+import UpgradeModal from "./UpgradeModal";
 
 function getTodayDateLabel() {
   return new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -19,6 +21,14 @@ function toExperienceBullets(resume) {
       return `${role}${company}${topPoint}`;
     })
     .filter(Boolean);
+}
+
+function getCoverLetterPricingMarket() {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem("cvp_pricing_currency") === "IN" ? "India" : "UAE";
+  } catch {
+    return "UAE";
+  }
 }
 
 function defaultLetterTemplate({ resume, generatedBody, companyName, jobTitle }) {
@@ -47,6 +57,8 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [letterBody, setLetterBody] = useState("");
+  const [letterFromTemplateEngine, setLetterFromTemplateEngine] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const importedSummary = useMemo(() => {
     const skills = String(resume?.skills || "")
@@ -67,15 +79,10 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
 
   if (!isOpen) return null;
 
-  async function handleGenerate() {
-    if (!jobTitle.trim()) {
-      setError("Job Title is required.");
-      return;
-    }
-    setError("");
+  async function callCoverLetterAPI() {
+    setLetterFromTemplateEngine(false);
     setLoading(true);
     setLetterBody("");
-
     try {
       const response = await fetch("/api/cover-letter", {
         method: "POST",
@@ -108,13 +115,55 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
     }
   }
 
+  async function handleGenerate() {
+    const formData = {
+      jobTitle: jobTitle.trim(),
+      companyName: companyName.trim(),
+      region: getCoverLetterPricingMarket(),
+    };
+    if (!formData.jobTitle || !formData.companyName) {
+      setError("Job title and company name are required.");
+      return;
+    }
+    setError("");
+
+    const isPaid =
+      typeof localStorage !== "undefined" && localStorage.getItem("cvp_cl_full_unlocked") === "1";
+
+    if (!isPaid) {
+      const skillsList = String(resume?.skills || "")
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean);
+      const cvData = {
+        fullName: resume?.name || (resume?.email ? resume.email.split("@")[0] : "") || "",
+        experience: resume?.experience || [],
+        skills: skillsList,
+      };
+      const result = generateCoverLetterFromTemplate(formData, cvData);
+      setLetterFromTemplateEngine(true);
+      setLetterBody(result);
+      setShowPaywall(true);
+      return;
+    }
+
+    await callCoverLetterAPI();
+  }
+
   async function handleDownloadPdf() {
-    const fullText = defaultLetterTemplate({
-      resume,
-      generatedBody: letterBody,
-      companyName,
-      jobTitle,
-    });
+    const fullText = letterFromTemplateEngine
+      ? `${resume?.name || "Candidate Name"} | ${resume?.email || "email@example.com"} | ${resume?.phone || "Phone"} | ${resume?.location || "Location"}
+${getTodayDateLabel()}
+
+${companyName?.trim() || "Company Name"}
+
+${letterBody}`
+      : defaultLetterTemplate({
+          resume,
+          generatedBody: letterBody,
+          companyName,
+          jobTitle,
+        });
 
     const escaped = String(fullText || "")
       .replace(/&/g, "&amp;")
@@ -157,10 +206,18 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
   }
 
   const displayLetter = letterBody
-    ? defaultLetterTemplate({ resume, generatedBody: letterBody, companyName, jobTitle })
+    ? letterFromTemplateEngine
+      ? `${resume?.name || "Candidate Name"} | ${resume?.email || "email@example.com"} | ${resume?.phone || "Phone"} | ${resume?.location || "Location"}
+${getTodayDateLabel()}
+
+${companyName?.trim() || "Company Name"}
+
+${letterBody}`
+      : defaultLetterTemplate({ resume, generatedBody: letterBody, companyName, jobTitle })
     : "";
 
   return (
+    <>
     <div
       role="dialog"
       aria-modal="true"
@@ -291,5 +348,7 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
         ) : null}
       </div>
     </div>
+    <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+    </>
   );
 }

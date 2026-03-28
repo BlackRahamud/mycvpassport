@@ -642,3 +642,80 @@ const professionAliases = {
   "Governance Manager": "Compliance Officer",
   "Compliance Manager": "Compliance Officer",
 };
+
+const JOB_MARKET_DATA = {
+  professions: Object.entries(coverLetterDataBank).map(([profession, data]) => ({
+    profession,
+    category: profession,
+    hookAngle: data.hookAngle,
+    reframe: data.reframe,
+    bridgeSkills: data.bridgeSkills || [],
+    keywords: data.keywords || [],
+  })),
+  aliases: (() => {
+    const byCanonical = {};
+    for (const [alias, canonical] of Object.entries(professionAliases)) {
+      if (!coverLetterDataBank[canonical]) continue;
+      if (!byCanonical[canonical]) byCanonical[canonical] = [];
+      byCanonical[canonical].push(alias);
+    }
+    for (const name of Object.keys(coverLetterDataBank)) {
+      if (!byCanonical[name]) byCanonical[name] = [];
+      if (!byCanonical[name].includes(name)) byCanonical[name].push(name);
+    }
+    return byCanonical;
+  })(),
+};
+
+export function generateCoverLetterFromTemplate(formData, cvData) {
+  const { jobTitle, companyName, region } = formData;
+  const { fullName, experience, skills } = cvData;
+
+  const findProfession = (title) => {
+    const normalizedTitle = title.toLowerCase().trim();
+    const directMatch = JOB_MARKET_DATA.professions.find(
+      (p) => p.profession.toLowerCase() === normalizedTitle
+    );
+    if (directMatch) return directMatch;
+    for (const [category, aliases] of Object.entries(JOB_MARKET_DATA.aliases)) {
+      if (aliases.some((alias) => normalizedTitle.includes(alias.toLowerCase()))) {
+        return JOB_MARKET_DATA.professions.find((p) => p.category === category);
+      }
+    }
+    return JOB_MARKET_DATA.professions[0];
+  };
+
+  const prof = findProfession(jobTitle);
+  const salutation = region === "India" ? "Dear Sir/Madam," : "Dear Hiring Manager,";
+  const opening = prof.hookAngle.replace(/position/gi, jobTitle).replace(/ +/g, " ");
+
+  const matchedSkills = (skills || [])
+    .filter((s) => prof.keywords.some((k) => s.toLowerCase().includes(k.toLowerCase())))
+    .slice(0, 2);
+  const combinedSkills = [...prof.bridgeSkills, ...matchedSkills];
+  const skillPara = `My technical foundation is built upon ${combinedSkills.slice(0, -1).join(", ")} and ${combinedSkills.slice(-1)}. At ${companyName}, I aim to leverage these proficiencies to drive immediate operational value.`;
+
+  let achievementSentence = "";
+  if (experience && experience.length > 0) {
+    const e0 = experience[0];
+    const blob = e0.description != null ? String(e0.description) : String(e0.points || "");
+    const mainTask = blob.split(/[.\n]/)[0].trim();
+    if (mainTask) {
+      achievementSentence = ` Specifically, my work involved ${mainTask.charAt(0).toLowerCase() + mainTask.slice(1)}, which aligns with your current requirements.`;
+    }
+  }
+
+  const reframePara = `${prof.reframe}${achievementSentence}`;
+
+  const letter = [
+    salutation,
+    opening,
+    skillPara,
+    reframePara,
+    "I look forward to the possibility of discussing how my background can support your team's objectives.",
+    "Best regards,",
+    fullName,
+  ].join("\n\n");
+
+  return letter.replace(/\s\s+/g, " ").trim();
+}

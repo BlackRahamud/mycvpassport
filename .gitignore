@@ -26,4 +26,4 @@ yarn-error.log*
 .vercel
 .env*.local
 
-# coverLetterDataBank.generated.js is required at runtime and must stay tracked — do not ignore.
+# src/coverLetterDataBank.generated.js is required at runtime and must stay tracked — do not ignore.

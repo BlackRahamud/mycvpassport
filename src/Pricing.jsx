@@ -259,12 +259,26 @@ const PLANS_IN = [
 
 export default function Pricing({ isLight = false }) {
   const navigate = useNavigate();
-  const [currency, setCurrency] = useState("AE");
+  const [currency, setCurrency] = useState(() => {
+    try {
+      return typeof window !== "undefined" && localStorage.getItem("cvp_pricing_currency") === "IN" ? "IN" : "AE";
+    } catch {
+      return "AE";
+    }
+  });
   const pageBg = isLight ? "#F8FAFC" : "#0A0A0A";
   const textPrimary = isLight ? "#111111" : "#FFFFFF";
   const textSecondary = "#A0A0A0";
 
   const plans = currency === "IN" ? PLANS_IN : PLANS_AE;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("cvp_pricing_currency", currency);
+    } catch {
+      /* ignore */
+    }
+  }, [currency]);
 
   useEffect(() => {
     fetch("https://ipapi.co/json/")

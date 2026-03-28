@@ -6,6 +6,9 @@
     },
     "api/parse-resume.js": {
       "maxDuration": 30
+    },
+    "api/cover-letter.js": {
+      "maxDuration": 45
     }
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
