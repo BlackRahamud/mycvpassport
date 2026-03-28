@@ -5,13 +5,18 @@
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
-function buildPrompt({ cvData, jobTitle, companyName, jobDescription, date }) {
+function buildPrompt({ cvData, jobTitle, companyName, jobDescription, date, market }) {
   const exp = Array.isArray(cvData?.experience) ? cvData.experience.join("\n") : String(cvData?.experience || "");
+  const toneLine =
+    market === "India"
+      ? "Tone: formal, traditional Indian corporate style."
+      : "Tone: confident Gulf corporate style appropriate for UAE/GCC employers.";
   return `
 You are an expert cover letter writer. Write ONLY the body of the cover letter as plain text:
 - Exactly 3 paragraphs, separated by a single blank line.
 - Do NOT include a salutation (no "Dear"), subject line, date, address block, or sign-off (no "Sincerely").
 - Professional tone; align closely with the job description.
+- ${toneLine}
 
 Today's date (reference only; do not repeat in output): ${date || ""}
 
@@ -48,7 +53,7 @@ module.exports = async function handler(req, res) {
   }
 
   const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-  const { cvData, jobTitle, companyName, jobDescription, date } = body;
+  const { cvData, jobTitle, companyName, jobDescription, date, market } = body;
 
   if (!cvData || typeof cvData !== "object") {
     return res.status(400).json({ error: "Missing cvData." });
@@ -58,7 +63,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: "AI Engine is not configured. Please try again later." });
   }
 
-  const prompt = buildPrompt({ cvData, jobTitle, companyName, jobDescription, date });
+  const prompt = buildPrompt({ cvData, jobTitle, companyName, jobDescription, date, market });
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {

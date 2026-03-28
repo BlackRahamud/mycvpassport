@@ -8,7 +8,7 @@ import mammoth from "mammoth";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
 import CoverLetterModal from "./CoverLetterModal";
-import { transformRawInput } from "./coverLetterDataBank.generated";
+import { generateCoverLetterFromTemplate } from "./coverLetterDataBank.generated";
 import UpgradeModal from "./UpgradeModal";
 import TiltedCard from './components/TiltedCard';
 import { PreviewModernEmerald } from "./Template1ModernEmerald";
@@ -83,41 +83,14 @@ function TabIconCoverLetter() {
 }
 const CL_GREEN = "#6EE7B7";
 
-function toExperienceBulletsForCL(resume) {
-  const list = Array.isArray(resume?.experience) ? resume.experience : [];
-  return list
-    .slice(0, 3)
-    .map((e) => {
-      const role = e?.role ? `${e.role}` : "Role";
-      const company = e?.company ? ` at ${e.company}` : "";
-      const points = String(e?.points || "")
-        .split("\n")
-        .map((x) => x.trim())
-        .filter(Boolean);
-      const topPoint = points[0] ? ` — ${points[0]}` : "";
-      return `${role}${company}${topPoint}`;
-    })
-    .filter(Boolean);
-}
+const CL_YEARS_EXPERIENCE_OPTIONS = ["Less than 1 year", "1–2 years", "3–5 years", "5+ years"];
 
-function buildImportedSummaryForCL(resume) {
-  if (!resume || typeof resume !== "object") {
-    return { name: "", role: "", summary: "", skills: "", exp: [] };
-  }
-  const skills = String(resume.skills || "")
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean)
-    .slice(0, 8)
-    .join(", ");
-  const exp = toExperienceBulletsForCL(resume);
-  return {
-    name: resume.name || "",
-    role: resume.title || "",
-    summary: resume.summary || "",
-    skills,
-    exp,
-  };
+function validateCoverLetterStructuredFields({ fullName, currentJobTitle, targetRole }) {
+  const err = {};
+  if (!String(fullName || "").trim()) err.fullName = "Please enter your full name.";
+  if (!String(currentJobTitle || "").trim()) err.currentJobTitle = "Please enter your current or last job title.";
+  if (!String(targetRole || "").trim()) err.targetRole = "Please enter the role you are applying for.";
+  return err;
 }
 
 function getTodayDateLabelCL() {
@@ -141,161 +114,12 @@ function isCoverLetterPaidUnlock() {
   }
 }
 
-const CL_JOB_KEYWORDS = [
-  "customer service",
-  "communication",
-  "leadership",
-  "sales",
-  "banking",
-  "finance",
-  "operations",
-  "compliance",
-  "kyc",
-  "aml",
-  "teamwork",
-  "management",
-  "excel",
-  "reporting",
-  "analysis",
-  "relationship",
-  "client",
-  "target",
-  "revenue",
-  "retail",
-  "branch",
-  "onboarding",
-  "support",
-  "processing",
-  "coordination",
-  "planning",
-  "digital",
-  "mobile",
-  "data",
-  "service",
-];
-
-function clean(str) {
-  return str.replace(/\b(position|role|job|opening|vacancy)\b/gi, "").replace(/\s\s+/g, " ").trim();
-}
-
-function toTitleCase(str) {
-  return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
-}
-
-function extractRole(input) {
-  if (!input) return "this position";
-  const text = input.toLowerCase().trim();
-  let match;
-  match = text.match(/apply (?:for|in|as)\s+(?:a\s+|the\s+)?([a-z][a-z\s]+)/i);
-  if (match?.[1]) return toTitleCase(clean(match[1]));
-  match = text.match(/applying (?:for|as)\s+(?:a\s+|the\s+)?([a-z][a-z\s]+)/i);
-  if (match?.[1]) return toTitleCase(clean(match[1]));
-  match = text.match(/position of\s+([a-z][a-z\s]+)/i);
-  if (match?.[1]) return toTitleCase(clean(match[1]));
-  match = text.match(/role (?:of|as)\s+([a-z][a-z\s]+)/i);
-  if (match?.[1]) return toTitleCase(clean(match[1]));
-  match = text.match(/job (?:in|as)\s+([a-z][a-z\s]+)/i);
-  if (match?.[1]) return toTitleCase(clean(match[1]));
-  if (text.split(" ").length <= 5) return toTitleCase(clean(text));
-  return "this position";
-}
-
-function extractKeywords(jobDescription) {
-  const jd = String(jobDescription || "").toLowerCase();
-  const hits = [];
-  for (const raw of CL_JOB_KEYWORDS) {
-    const phrase = raw.toLowerCase();
-    const idx = jd.indexOf(phrase);
-    if (idx !== -1) hits.push({ raw, idx });
-  }
-  hits.sort((a, b) => a.idx - b.idx);
-  const out = [];
-  const seen = new Set();
-  for (const { raw } of hits) {
-    const key = raw.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(raw);
-  }
-  return out;
-}
-
-function prettifyKeywordPhrase(phrase) {
-  const upper = { kyc: "KYC", aml: "AML", excel: "Excel" };
-  return String(phrase || "")
-    .split(/\s+/)
-    .map((w) => {
-      const key = w.toLowerCase();
-      if (upper[key]) return upper[key];
-      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-    })
-    .join(" ");
-}
-
-function experiencePhraseForCL(summary) {
-  if (summary?.exp?.length) {
-    const first = String(summary.exp[0] || "").trim();
-    if (first) return first.length > 120 ? `${first.slice(0, 117)}…` : first;
-  }
-  return "extensive client-facing experience";
-}
-
-function industryKeywordsPhrase(keywordsOrdered, jobDescription) {
-  const rest = keywordsOrdered.slice(2, 6).map(prettifyKeywordPhrase).filter(Boolean);
-  if (rest.length) return rest.join(", ");
-  const more = keywordsOrdered.slice(0, 4).map(prettifyKeywordPhrase).filter(Boolean);
-  if (more.length) return more.join(", ");
-  const jd = String(jobDescription || "").trim();
-  if (jd.length > 20) return jd.split(/\s+/).slice(0, 8).join(" ");
-  return "demanding professional environments";
-}
-
-function extractCityForIndiaTemplate(location) {
-  const part = String(location || "")
-    .split(",")[0]
-    .trim();
-  if (!part || /^uae|u\.a\.e\.|india$/i.test(part)) return "";
-  return part;
-}
-
-function buildCoverLetterTemplateBodyUAE({ jobDescription, summary, resume, aboutYou }) {
-  const roleFromJd = extractRole(jobDescription);
-  const jobTitle = (summary?.role || resume?.title || "professional").trim() || "professional";
-  const experiencePhrase = experiencePhraseForCL(summary);
-  const kw = extractKeywords(jobDescription);
-  const k1 = prettifyKeywordPhrase(kw[0] || "professional excellence");
-  const k2 = prettifyKeywordPhrase(kw[1] || "measurable results");
-  const industryPhrase = industryKeywordsPhrase(kw, jobDescription);
-  const p1 = `I am writing to express my strong interest in the ${roleFromJd} position. With my background as a ${jobTitle} and ${experiencePhrase} in the UAE market, I bring a proven track record of ${k1} and ${k2}.`;
-  const p2 = aboutYou
-    ? transformRawInput(aboutYou, roleFromJd)
-    : `Having worked in ${industryPhrase}, I understand the expectations of Gulf-based employers and consistently deliver results that align with organisational goals.`;
-  const p3 = `I would welcome the opportunity to discuss how my experience can contribute to your team. Thank you for your consideration.`;
-  return `${p1}\n\n${p2}\n\n${p3}`;
-}
-
-function buildCoverLetterTemplateBodyIndia({ jobDescription, summary, resume, aboutYou }) {
-  const roleFromJd = extractRole(jobDescription);
-  const experiencePhrase = experiencePhraseForCL(summary);
-  const kw = extractKeywords(jobDescription);
-  const k1 = prettifyKeywordPhrase(kw[0] || "professional excellence");
-  const k2 = prettifyKeywordPhrase(kw[1] || "team collaboration");
-  const industryPhrase = industryKeywordsPhrase(kw, jobDescription);
-  const city = extractCityForIndiaTemplate(resume?.location || "") || "your organisation";
-  const p1 = `I would like to apply for the ${roleFromJd} position at your esteemed organisation. With ${experiencePhrase}, I have developed strong expertise in ${k1} and ${k2}.`;
-  const p2 = aboutYou
-    ? transformRawInput(aboutYou, roleFromJd)
-    : `My background in ${industryPhrase} has equipped me with the skills to contribute effectively to your team in ${city}.`;
-  const p3 = `I am eager to bring my dedication and skills to this role and would appreciate the opportunity to discuss my application further.`;
-  return `${p1}\n\n${p2}\n\n${p3}`;
-}
-
 function defaultLetterTemplateForCL({ resume, generatedBody, companyName, jobTitle, salutationLine, closingBlock }) {
   const fullName = resume?.name || "Candidate Name";
   const email = resume?.email || "email@example.com";
   const phone = resume?.phone || "Phone";
   const location = resume?.location || "Location";
-  const companyLine = (companyName || "").trim() || "Company Name";
+  const companyLine = (companyName || "").trim() || "your company";
   const dateLine = getTodayDateLabelCL();
   const salutation = salutationLine != null ? salutationLine : "Dear Hiring Manager,";
   const closing = closingBlock != null ? closingBlock : `Yours sincerely,\n${fullName}`;
@@ -312,7 +136,7 @@ ${closing}`;
 
 /**
  * PDF text is not extracted in-browser here (avoids bundling pdfjs-dist — fixes Vercel/CRA resolve issues).
- * Upload flow uses the file name + pasted job description for /api/cover-letter.
+ * Cover letter API uses the structured six fields plus profile contact details from the chosen CV source.
  */
 
 function resumeFromPdfText(text, nameFallback) {
@@ -378,19 +202,35 @@ function CoverLetterPage({ user, onBack }) {
   const [selectedCvId, setSelectedCvId] = useState("");
   const [uploadName, setUploadName] = useState("");
   const [uploadResume, setUploadResume] = useState(null);
-  const [jobDescription, setJobDescription] = useState("");
-  const [aboutYou, setAboutYou] = useState("");
+  const [clFullName, setClFullName] = useState("");
+  const [clCurrentJobTitle, setClCurrentJobTitle] = useState("");
+  const [clYearsOfExperience, setClYearsOfExperience] = useState("3–5 years");
+  const [clTargetRole, setClTargetRole] = useState("");
+  const [clKeyStrength, setClKeyStrength] = useState("");
+  const [clCompanyName, setClCompanyName] = useState("");
+  const [clFieldErrors, setClFieldErrors] = useState({});
   const [letterBody, setLetterBody] = useState("");
   const [activeResume, setActiveResume] = useState(null);
   const [genError, setGenError] = useState("");
-  const [showDescribeSheet, setShowDescribeSheet] = useState(false);
-  const [describeReady, setDescribeReady] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [clFreePreview, setClFreePreview] = useState(false);
   const [clTemplateVariant, setClTemplateVariant] = useState(null);
   const [clUnlocking, setClUnlocking] = useState(false);
   const uploadInputRef = useRef(null);
   const lastClPayloadRef = useRef(null);
+
+  const clInputStyle = {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 12,
+    border: "1px solid #2A2A2A",
+    background: "#141414",
+    color: "#FFF",
+    fontSize: 15,
+    boxSizing: "border-box",
+    fontFamily: "'DM Sans',sans-serif",
+  };
+  const clLabelStyle = { fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -419,64 +259,107 @@ function CoverLetterPage({ user, onBack }) {
   }, [selectedOption]);
 
   useEffect(() => {
-    if (selectedOption !== "describe") {
-      setDescribeReady(false);
-      setAboutYou("");
-      setShowDescribeSheet(false);
-    }
-  }, [selectedOption]);
+    if (selectedOption !== "saved" || !activeResume) return;
+    setClFullName(activeResume.name || "");
+    setClCurrentJobTitle(activeResume.title || "");
+    setClYearsOfExperience("3–5 years");
+    const firstSkill = String(activeResume.skills || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)[0];
+    setClKeyStrength(firstSkill || "");
+    setClTargetRole("");
+    setClCompanyName("");
+  }, [selectedOption, selectedCvId, activeResume]);
+
+  useEffect(() => {
+    if (selectedOption !== "upload" || !activeResume || !uploadName) return;
+    setClFullName(activeResume.name || "");
+    setClCurrentJobTitle(activeResume.title || "");
+    setClYearsOfExperience("3–5 years");
+    const firstSkill = String(activeResume.skills || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)[0];
+    setClKeyStrength(firstSkill || "");
+    setClTargetRole("");
+    setClCompanyName("");
+  }, [selectedOption, activeResume, uploadName]);
+
+  useEffect(() => {
+    if (selectedOption !== "describe") return;
+    const dn = (user?.user_metadata?.name || user?.email?.split("@")[0] || "").trim();
+    setClFullName(dn);
+    setClCurrentJobTitle("");
+    setClYearsOfExperience("Less than 1 year");
+    setClTargetRole("");
+    setClKeyStrength("");
+    setClCompanyName("");
+  }, [selectedOption, user?.email, user?.user_metadata?.name]);
 
   const resumeForApi = useMemo(() => {
-    if (selectedOption === "describe") {
-      const displayName =
-        (user?.user_metadata?.name || user?.email?.split("@")[0] || "Candidate").trim();
-      return {
-        name: displayName,
-        title: "",
-        email: user?.email || "",
-        phone: "",
-        location: "",
-        summary: aboutYou.trim(),
-        experience: [],
-        skills: "",
-        languages: "",
-        technicalSkills: "",
-      };
-    }
-    return activeResume;
-  }, [selectedOption, aboutYou, user, activeResume]);
+    const base =
+      selectedOption === "describe"
+        ? {
+            name: "",
+            title: "",
+            email: user?.email || "",
+            phone: "",
+            location: "",
+            summary: "",
+            experience: [],
+            skills: "",
+            languages: "",
+            technicalSkills: "",
+          }
+        : activeResume;
+    if (selectedOption !== "describe" && !base) return null;
+    const merged = {
+      ...(base || {}),
+      name:
+        clFullName.trim() ||
+        base?.name ||
+        (user?.user_metadata?.name || "").trim() ||
+        (user?.email?.split("@")[0] || "").trim() ||
+        "Candidate",
+      title: clCurrentJobTitle.trim() || base?.title || "",
+    };
+    return merged;
+  }, [selectedOption, activeResume, user, clFullName, clCurrentJobTitle]);
 
-  const canGenerate =
+  const sourceReady =
     selectedOption !== null &&
     ((selectedOption === "saved" &&
       selectedCvId &&
-      savedList.some((r) => String(r.id) === String(selectedCvId) && r.cv_data) &&
-      jobDescription.trim()) ||
-      (selectedOption === "upload" && uploadResume && jobDescription.trim()) ||
-      (selectedOption === "describe" && describeReady && aboutYou.trim() && jobDescription.trim()));
+      savedList.some((r) => String(r.id) === String(selectedCvId) && r.cv_data)) ||
+      (selectedOption === "upload" && uploadResume) ||
+      selectedOption === "describe");
 
   const fullLetterDisplay = useMemo(() => {
     if (!letterBody || !resumeForApi) return "";
-    const jt = jobDescription.split("\n")[0]?.slice(0, 120) || "Position";
+    const jt = clTargetRole.trim() || "Position";
+    const companyResolved = clCompanyName.trim() || "your company";
     const fullName = resumeForApi?.name || "Candidate Name";
+    const market = getCoverLetterPricingMarket();
+    const variant = clTemplateVariant ?? (market === "India" ? "india" : "uae");
     let salutationLine;
     let closingBlock;
-    if (clTemplateVariant === "uae") {
+    if (variant === "uae") {
       salutationLine = "Dear Hiring Manager,";
       closingBlock = `Sincerely,\n${fullName}`;
-    } else if (clTemplateVariant === "india") {
+    } else {
       salutationLine = "Dear Sir/Madam,";
       closingBlock = `Yours sincerely,\n${fullName}`;
     }
     return defaultLetterTemplateForCL({
       resume: resumeForApi,
       generatedBody: letterBody,
-      companyName: "",
+      companyName: companyResolved,
       jobTitle: jt,
       salutationLine,
       closingBlock,
     });
-  }, [letterBody, resumeForApi, jobDescription, clTemplateVariant]);
+  }, [letterBody, resumeForApi, clTargetRole, clCompanyName, clTemplateVariant]);
 
   const clPreviewParts = useMemo(() => {
     if (!clFreePreview || !letterBody || !resumeForApi) return null;
@@ -485,14 +368,15 @@ function CoverLetterPage({ user, onBack }) {
     const phone = resumeForApi?.phone || "Phone";
     const location = resumeForApi?.location || "Location";
     const dateLine = getTodayDateLabelCL();
-    const header = `${fullName} | ${email} | ${phone} | ${location}\n${dateLine}\n\nCompany Name`;
+    const companyResolved = clCompanyName.trim() || "your company";
+    const header = `${fullName} | ${email} | ${phone} | ${location}\n${dateLine}\n\n${companyResolved}`;
     const salutation = clTemplateVariant === "india" ? "Dear Sir/Madam," : "Dear Hiring Manager,";
     const closing = clTemplateVariant === "india" ? `Yours sincerely,\n${fullName}` : `Sincerely,\n${fullName}`;
     const bodyParts = letterBody.split(/\n\n+/).filter(Boolean);
     const firstPara = bodyParts[0] || "";
     const restBody = bodyParts.slice(1).join("\n\n");
     return { header, salutation, firstPara, restBody, closing };
-  }, [clFreePreview, letterBody, resumeForApi, clTemplateVariant]);
+  }, [clFreePreview, letterBody, resumeForApi, clTemplateVariant, clCompanyName]);
 
   const processUploadFile = async (file) => {
     if (!file) return;
@@ -547,65 +431,73 @@ function CoverLetterPage({ user, onBack }) {
   };
 
   const handleGenerate = async () => {
-    if (!canGenerate) return;
+    if (!sourceReady || !resumeForApi) return;
     setGenError("");
-    setPhase("loading");
-    setLetterBody("");
-    setClFreePreview(false);
-    setClTemplateVariant(null);
-    const minWait = new Promise((r) => setTimeout(r, 5000));
-    const summary = buildImportedSummaryForCL(resumeForApi);
-    const jobTitleGuess = jobDescription.split("\n")[0]?.slice(0, 120) || "Role";
+    const fieldErrs = validateCoverLetterStructuredFields({
+      fullName: clFullName,
+      currentJobTitle: clCurrentJobTitle,
+      targetRole: clTargetRole,
+    });
+    if (Object.keys(fieldErrs).length) {
+      setClFieldErrors(fieldErrs);
+      return;
+    }
+    setClFieldErrors({});
+
+    const market = getCoverLetterPricingMarket();
+    const companyResolved = clCompanyName.trim() || "your company";
+    const fn = clFullName.trim();
+    const ct = clCurrentJobTitle.trim();
+    const tr = clTargetRole.trim();
+    const ks = clKeyStrength.trim();
+    const y = clYearsOfExperience;
+
+    const templateForm = {
+      structuredCoverLetter: true,
+      fullName: fn,
+      currentJobTitle: ct,
+      yearsOfExperience: y,
+      targetRole: tr,
+      keyStrength: ks,
+      companyName: companyResolved,
+      market,
+    };
+    const templateBody = generateCoverLetterFromTemplate(templateForm, {});
+
     const requestPayload = {
       cvData: {
-        name: summary.name,
-        role: summary.role,
-        summary: summary.summary,
-        skills: summary.skills,
-        experience: summary.exp,
+        name: fn,
+        role: ct,
+        summary: `Experience band: ${y}. Applying for: ${tr}. Key strength: ${ks}.`,
+        skills: ks,
+        experience: [ct],
         email: resumeForApi?.email || "",
         phone: resumeForApi?.phone || "",
         location: resumeForApi?.location || "",
       },
-      jobTitle: jobTitleGuess,
-      companyName: "",
-      jobDescription: jobDescription.trim(),
+      jobTitle: tr,
+      companyName: companyResolved,
+      jobDescription: `Target role: ${tr}. Company: ${companyResolved}. Current or last title: ${ct}. Years of experience: ${y}. Key strength: ${ks}.`,
       date: getTodayDateLabelCL(),
+      market,
     };
     lastClPayloadRef.current = requestPayload;
 
     const paid = isCoverLetterPaidUnlock();
 
     if (!paid) {
-      try {
-        await minWait;
-        const market = getCoverLetterPricingMarket();
-        const templateBody =
-          market === "India"
-            ? buildCoverLetterTemplateBodyIndia({
-                jobDescription: jobDescription.trim(),
-                summary,
-                resume: resumeForApi,
-                aboutYou: aboutYou.trim(),
-              })
-            : buildCoverLetterTemplateBodyUAE({
-                jobDescription: jobDescription.trim(),
-                summary,
-                resume: resumeForApi,
-                aboutYou: aboutYou.trim(),
-              });
-        setLetterBody(templateBody);
-        setClTemplateVariant(market === "India" ? "india" : "uae");
-        setClFreePreview(true);
-        setPhase("result");
-      } catch (err) {
-        console.error(err);
-        setGenError(err.message || "Generation failed.");
-        setPhase("entry");
-      }
+      setLetterBody(templateBody);
+      setClTemplateVariant(market === "India" ? "india" : "uae");
+      setClFreePreview(true);
+      setPhase("result");
       return;
     }
 
+    setPhase("loading");
+    setLetterBody("");
+    setClFreePreview(false);
+    setClTemplateVariant(null);
+    const minWait = new Promise((r) => setTimeout(r, 5000));
     const apiCall = fetch("/api/cover-letter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -652,7 +544,7 @@ function CoverLetterPage({ user, onBack }) {
     } catch (e) {
       console.error(e);
       if (typeof localStorage !== "undefined") localStorage.removeItem("cvp_cl_full_unlocked");
-      alert(e.message || "Could not unlock the full letter. Try again.");
+      setGenError(e.message || "Could not unlock the full letter. Try again.");
     } finally {
       setClUnlocking(false);
     }
@@ -730,10 +622,7 @@ function CoverLetterPage({ user, onBack }) {
               <button
                 key={opt.id}
                 type="button"
-                onClick={() => {
-                  setSelectedOption(opt.id);
-                  if (opt.id === "describe" && !describeReady) setShowDescribeSheet(true);
-                }}
+                onClick={() => setSelectedOption(opt.id)}
                 style={{
                   display: "flex",
                   alignItems: "flex-start",
@@ -851,210 +740,113 @@ function CoverLetterPage({ user, onBack }) {
             </div>
           )}
 
-          {selectedOption === "describe" && describeReady && (
-            <div style={{ marginTop: 18, display: "grid", gap: 16 }}>
-              <div style={{ position: "relative" }}>
-                <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>About you</label>
-                <textarea
-                  value={aboutYou}
-                  onChange={(e) => setAboutYou(e.target.value)}
-                  placeholder="Your background, strengths, and what you're looking for…"
-                  style={{
-                    width: "100%",
-                    minHeight: 120,
-                    padding: "12px 12px 28px",
-                    borderRadius: 12,
-                    border: "1px solid #2A2A2A",
-                    background: "#141414",
-                    color: "#FFF",
-                    fontSize: 15,
-                    resize: "vertical",
-                    boxSizing: "border-box",
-                    fontFamily: "Georgia, 'Times New Roman', serif",
+          {selectedOption ? (
+            <div style={{ marginTop: 18, display: "grid", gap: 14 }}>
+              <div>
+                <label style={clLabelStyle}>Full name</label>
+                <input
+                  type="text"
+                  value={clFullName}
+                  onChange={(e) => {
+                    setClFullName(e.target.value);
+                    setClFieldErrors((prev) => ({ ...prev, fullName: undefined }));
                   }}
+                  placeholder="As it should appear on the letter"
+                  style={{ ...clInputStyle, borderColor: clFieldErrors.fullName ? "#f87171" : "#2A2A2A" }}
                 />
-                <span
-                  style={{
-                    position: "absolute",
-                    right: 12,
-                    bottom: 10,
-                    fontSize: 12,
-                    color: aboutYou.trim().length > 50 ? CL_GREEN : "#A0A0A0",
-                  }}
-                >
-                  More detail = better letter
-                </span>
+                {clFieldErrors.fullName ? (
+                  <div style={{ color: "#f87171", fontSize: 12, marginTop: 6 }}>{clFieldErrors.fullName}</div>
+                ) : null}
               </div>
               <div>
-                <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Job description</label>
-                <textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste or summarise the role you're applying for…"
-                  style={{
-                    width: "100%",
-                    minHeight: 120,
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    border: "1px solid #2A2A2A",
-                    background: "#141414",
-                    color: "#FFF",
-                    fontSize: 15,
-                    resize: "vertical",
-                    boxSizing: "border-box",
-                    fontFamily: "Georgia, 'Times New Roman', serif",
+                <label style={clLabelStyle}>Current or last job title</label>
+                <input
+                  type="text"
+                  value={clCurrentJobTitle}
+                  onChange={(e) => {
+                    setClCurrentJobTitle(e.target.value);
+                    setClFieldErrors((prev) => ({ ...prev, currentJobTitle: undefined }));
                   }}
+                  placeholder='e.g. "Cashier", "Sales Associate"'
+                  style={{ ...clInputStyle, borderColor: clFieldErrors.currentJobTitle ? "#f87171" : "#2A2A2A" }}
+                />
+                {clFieldErrors.currentJobTitle ? (
+                  <div style={{ color: "#f87171", fontSize: 12, marginTop: 6 }}>{clFieldErrors.currentJobTitle}</div>
+                ) : null}
+              </div>
+              <div>
+                <label style={clLabelStyle}>Years of experience</label>
+                <select
+                  value={clYearsOfExperience}
+                  onChange={(e) => setClYearsOfExperience(e.target.value)}
+                  style={{ ...clInputStyle, cursor: "pointer" }}
+                >
+                  {CL_YEARS_EXPERIENCE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={clLabelStyle}>Role you are applying for</label>
+                <input
+                  type="text"
+                  value={clTargetRole}
+                  onChange={(e) => {
+                    setClTargetRole(e.target.value);
+                    setClFieldErrors((prev) => ({ ...prev, targetRole: undefined }));
+                  }}
+                  placeholder="Target job title"
+                  style={{ ...clInputStyle, borderColor: clFieldErrors.targetRole ? "#f87171" : "#2A2A2A" }}
+                />
+                {clFieldErrors.targetRole ? (
+                  <div style={{ color: "#f87171", fontSize: 12, marginTop: 6 }}>{clFieldErrors.targetRole}</div>
+                ) : null}
+              </div>
+              <div>
+                <label style={clLabelStyle}>Key strength</label>
+                <input
+                  type="text"
+                  value={clKeyStrength}
+                  onChange={(e) => setClKeyStrength(e.target.value)}
+                  placeholder='e.g. "customer service", "sales", "operations"'
+                  style={clInputStyle}
+                />
+              </div>
+              <div>
+                <label style={clLabelStyle}>Company name (optional)</label>
+                <input
+                  type="text"
+                  value={clCompanyName}
+                  onChange={(e) => setClCompanyName(e.target.value)}
+                  placeholder="Leave blank to use “your company” in the draft"
+                  style={clInputStyle}
                 />
               </div>
             </div>
-          )}
-
-          {selectedOption && selectedOption !== "describe" && (
-            <div style={{ marginTop: 18 }}>
-              <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Job description</label>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste or summarise the role you're applying for…"
-                style={{
-                  width: "100%",
-                  minHeight: 140,
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  border: "1px solid #2A2A2A",
-                  background: "#141414",
-                  color: "#FFF",
-                  fontSize: 15,
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                }}
-              />
-            </div>
-          )}
+          ) : null}
 
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={!canGenerate}
+            disabled={!sourceReady}
             style={{
               width: "100%",
               marginTop: 24,
               padding: "14px 18px",
               borderRadius: 12,
               border: "none",
-              background: canGenerate ? CL_GREEN : "#1C1C1C",
-              color: canGenerate ? "#000000" : "#A0A0A0",
+              background: sourceReady ? CL_GREEN : "#1C1C1C",
+              color: sourceReady ? "#000000" : "#A0A0A0",
               fontSize: 15,
               fontWeight: 700,
-              cursor: canGenerate ? "pointer" : "not-allowed",
-              boxShadow: canGenerate ? "0 0 16px rgba(110,231,183,0.3)" : "none",
+              cursor: sourceReady ? "pointer" : "not-allowed",
+              boxShadow: sourceReady ? "0 0 16px rgba(110,231,183,0.3)" : "none",
             }}
           >
             Generate My Cover Letter
           </button>
-
-          {showDescribeSheet ? (
-            <div
-              role="presentation"
-              style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 2000,
-                background: "rgba(0,0,0,0.55)",
-                display: "flex",
-                alignItems: "flex-end",
-                justifyContent: "center",
-              }}
-              onClick={() => setShowDescribeSheet(false)}
-            >
-              <div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="cl-describe-sheet-title"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  width: "100%",
-                  maxWidth: 520,
-                  maxHeight: "85vh",
-                  overflow: "auto",
-                  background: "#141414",
-                  borderTopLeftRadius: 20,
-                  borderTopRightRadius: 20,
-                  border: "1px solid #2A2A2A",
-                  borderBottom: "none",
-                  padding: "12px 20px 28px",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div style={{ width: 40, height: 4, borderRadius: 2, background: "#3A3A3A", margin: "0 auto 16px" }} />
-                <h2 id="cl-describe-sheet-title" style={{ fontSize: 18, fontWeight: 700, margin: "0 0 16px", color: "#FFF" }}>
-                  How to describe yourself
-                </h2>
-                <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
-                  {[
-                    { n: 1, t: "Your current or last job title", e: 'e.g. "Customer Service Officer"' },
-                    { n: 2, t: "One line of experience", e: 'e.g. "3 years in retail banking, Dubai"' },
-                    { n: 3, t: "Don't overthink it", e: "We personalise the rest using AI" },
-                  ].map((row) => (
-                    <div
-                      key={row.n}
-                      style={{
-                        display: "flex",
-                        gap: 12,
-                        alignItems: "flex-start",
-                        padding: 14,
-                        borderRadius: 12,
-                        border: "1px solid #2A2A2A",
-                        background: "#0A0A0A",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          background: CL_GREEN,
-                          color: "#000",
-                          fontSize: 14,
-                          fontWeight: 700,
-                          display: "grid",
-                          placeItems: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {row.n}
-                      </span>
-                      <span>
-                        <span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#FFF" }}>{row.t}</span>
-                        <span style={{ display: "block", fontSize: 13, color: "#A0A0A0", marginTop: 4 }}>{row.e}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDescribeReady(true);
-                    setShowDescribeSheet(false);
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "14px 18px",
-                    borderRadius: 12,
-                    border: "none",
-                    background: CL_GREEN,
-                    color: "#000000",
-                    fontSize: 15,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Got it, let&apos;s go
-                </button>
-              </div>
-            </div>
-          ) : null}
         </>
       )}
 
@@ -1125,6 +917,9 @@ function CoverLetterPage({ user, onBack }) {
 
       {phase === "result" && (
         <div style={{ marginTop: 8 }}>
+          {genError ? (
+            <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{genError}</div>
+          ) : null}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Your cover letter</h2>
             <span
@@ -1225,7 +1020,7 @@ function CoverLetterPage({ user, onBack }) {
                 {clUnlocking
                   ? "Unlocking…"
                   : getCoverLetterPricingMarket() === "India"
-                    ? "Unlock full letter — from ₹199"
+                    ? "Unlock full letter — ₹49"
                     : "Unlock full letter — AED 10"}
               </button>
               <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
@@ -1238,6 +1033,8 @@ function CoverLetterPage({ user, onBack }) {
               setLetterBody("");
               setClFreePreview(false);
               setClTemplateVariant(null);
+              setGenError("");
+              setClFieldErrors({});
             }}
             style={{
               marginTop: 16,
