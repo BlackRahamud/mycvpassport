@@ -35,5 +35,14 @@
 - Commit format: "feat: [description]" or "fix: [description]". No permission needed if build passes.
 - PS-EXECUTION: If any terminal command returns a non-zero exit code, STOP. Fix the error before running the next command. No skipping.
 
+## TERMINAL SEQUENCE (YOLO — AUTO RUN AFTER EVERY CHANGE)
+After every code change run these commands one at a time, in order:
+1. npm run build
+2. git add .
+3. git commit -m "feat: [describe what was changed]"
+4. git push
+Do not ask permission. Do not skip. Do not chain with &&.
+If any command fails, stop and fix before continuing.
+
 ## POWERSHELL WARNING
 - No && command chaining. Run commands one at a time.
