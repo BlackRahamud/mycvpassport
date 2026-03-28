@@ -668,54 +668,108 @@ const JOB_MARKET_DATA = {
 };
 
 export function generateCoverLetterFromTemplate(formData, cvData) {
-  const { jobTitle, companyName, region } = formData;
-  const { fullName, experience, skills } = cvData;
+  const {
+    jobTitle = "this role",
+    companyName = "your organization",
+    region = "GCC",
+  } = formData;
 
+  const {
+    fullName = "Candidate",
+    experience = [],
+    skills = [],
+  } = cvData;
+
+  // ── Profession Matcher ──────────────────────────────────────────────
   const findProfession = (title) => {
-    const normalizedTitle = title.toLowerCase().trim();
-    const directMatch = JOB_MARKET_DATA.professions.find(
-      (p) => p.profession.toLowerCase() === normalizedTitle
+    const n = (title || "").toLowerCase().trim();
+    const direct = JOB_MARKET_DATA.professions.find(
+      (p) => p.profession.toLowerCase() === n
     );
-    if (directMatch) return directMatch;
-    for (const [category, aliases] of Object.entries(JOB_MARKET_DATA.aliases)) {
-      if (aliases.some((alias) => normalizedTitle.includes(alias.toLowerCase()))) {
-        return JOB_MARKET_DATA.professions.find((p) => p.category === category);
+    if (direct) return direct;
+    for (const [canonical, aliases] of Object.entries(JOB_MARKET_DATA.aliases)) {
+      if (aliases.some((a) => n.includes(a.toLowerCase()))) {
+        return JOB_MARKET_DATA.professions.find((p) => p.profession === canonical);
       }
     }
     return JOB_MARKET_DATA.professions[0];
   };
 
   const prof = findProfession(jobTitle);
-  const salutation = region === "India" ? "Dear Sir/Madam," : "Dear Hiring Manager,";
-  const opening = prof.hookAngle.replace(/position/gi, jobTitle).replace(/ +/g, " ");
+  const isIndia = region === "India";
 
-  const matchedSkills = (skills || [])
-    .filter((s) => prof.keywords.some((k) => s.toLowerCase().includes(k.toLowerCase())))
-    .slice(0, 2);
-  const combinedSkills = [...prof.bridgeSkills, ...matchedSkills];
-  const skillPara = `My technical foundation is built upon ${combinedSkills.slice(0, -1).join(", ")} and ${combinedSkills.slice(-1)}. At ${companyName}, I aim to leverage these proficiencies to drive immediate operational value.`;
-
-  let achievementSentence = "";
-  if (experience && experience.length > 0) {
+  // ── Impact Extractor (never dumps raw text) ──────────────────────────
+  const getImpact = () => {
+    if (!experience || experience.length === 0) return null;
     const e0 = experience[0];
-    const blob = e0.description != null ? String(e0.description) : String(e0.points || "");
-    const mainTask = blob.split(/[.\n]/)[0].trim();
-    if (mainTask) {
-      achievementSentence = ` Specifically, my work involved ${mainTask.charAt(0).toLowerCase() + mainTask.slice(1)}, which aligns with your current requirements.`;
-    }
-  }
+    const blob = e0.description
+      ? String(e0.description)
+      : Array.isArray(e0.points)
+      ? e0.points[0] || ""
+      : String(e0.points || "");
+    const sentence = blob.split(/[.\n]/)[0].trim();
+    if (!sentence || sentence.length < 10) return null;
+    // Strip task language, surface the impact
+    return sentence
+      .replace(/^(responsible for|managed|handled|worked on|assisted with|helped with)\s*/i, "")
+      .replace(/\b(tasks include|duties were|my role was)\b/gi, "")
+      .trim();
+  };
 
-  const reframePara = `${prof.reframe}${achievementSentence}`;
+  const impact = getImpact();
+
+  // ── Skill Bridge (reads naturally, not a list dump) ──────────────────
+  const getSkillBridge = () => {
+    const matched = (skills || [])
+      .filter((s) =>
+        prof.keywords.some((k) => s.toLowerCase().includes(k.toLowerCase()))
+      )
+      .slice(0, 2);
+    const pool = [...new Set([...prof.bridgeSkills.slice(0, 2), ...matched])];
+    if (pool.length === 0) return prof.bridgeSkills[0] || "my core expertise";
+    if (pool.length === 1) return pool[0];
+    return `${pool.slice(0, -1).join(", ")} and ${pool[pool.length - 1]}`;
+  };
+
+  const skillBridge = getSkillBridge();
+
+  // ── Region-Aware Letter Assembly ─────────────────────────────────────
+  const salutation = isIndia ? "Dear Sir/Madam," : "Dear Hiring Manager,";
+  const signOff = isIndia ? "Yours sincerely," : "Warm regards,";
+
+  let para1, para2, para3;
+
+  if (isIndia) {
+    // India: respectful, qualification-led, growth-oriented
+    para1 = `I am writing to apply for the ${jobTitle} position at ${companyName}. With a focused background in ${prof.bridgeSkills[0].toLowerCase()}, I am confident in my ability to contribute meaningfully to your team from day one.`;
+
+    para2 = impact
+      ? `My professional experience has centred on ${skillBridge.toLowerCase()}. Most recently, I was involved in ${impact.charAt(0).toLowerCase() + impact.slice(1)}, an experience that sharpened my ability to deliver results under real organizational constraints.`
+      : `My professional experience has centred on ${skillBridge.toLowerCase()}, with a consistent emphasis on accuracy, accountability, and long-term institutional value. I take pride in approaching each role with a mindset geared toward contributing to the organization's broader objectives.`;
+
+    para3 = `${prof.reframe} I am eager to bring this approach to ${companyName} and support your organization's continued growth. I would welcome the opportunity to discuss how my background aligns with your current requirements.`;
+  } else {
+    // GCC/UAE: direct, performance-led, confident
+    para1 = `I am applying for the ${jobTitle} role at ${companyName}. My background in ${prof.bridgeSkills[0].toLowerCase()} positions me to add immediate value to your team in the UAE market.`;
+
+    para2 = impact
+      ? `I bring hands-on experience in ${skillBridge.toLowerCase()}. In my previous role, I ${impact.charAt(0).toLowerCase() + impact.slice(1)} — work that directly translates to the performance expectations of this position at ${companyName}.`
+      : `I bring hands-on experience in ${skillBridge.toLowerCase()}, with a track record of delivering results in fast-paced, multicultural environments. I understand the standards expected in the UAE's competitive landscape and have consistently aligned my output to meet them.`;
+
+    para3 = `${prof.reframe} I am drawn to ${companyName}'s positioning in the market and am confident my focus on ${prof.keywords[0].toLowerCase()} makes me a strong cultural and technical fit for this team.`;
+  }
 
   const letter = [
     salutation,
-    opening,
-    skillPara,
-    reframePara,
-    "I look forward to the possibility of discussing how my background can support your team's objectives.",
-    "Best regards,",
+    para1,
+    para2,
+    para3,
+    signOff,
     fullName,
   ].join("\n\n");
 
-  return letter.replace(/\s\s+/g, " ").trim();
+  return letter
+    .replace(/\s{2,}/g, " ")
+    .replace(/( ,)/g, ",")
+    .trim();
 }
