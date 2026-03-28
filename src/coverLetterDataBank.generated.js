@@ -667,12 +667,72 @@ const JOB_MARKET_DATA = {
   })(),
 };
 
+function capitalize(str) {
+  return String(str || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function cleanRole(str) {
+  return capitalize(
+    String(str)
+      .replace(/\b(position|role|job|opportunity)\b/gi, "")
+      .trim()
+  );
+}
+
+function extractRole(input = "") {
+  const text = String(input || "").toLowerCase().trim();
+  if (!text) return "this position";
+  let match;
+  match = text.match(/apply (for|in|as)\s+([a-z\s]+)/i);
+  if (match && match[2]) return cleanRole(match[2]);
+  match = text.match(/applying for\s+([a-z\s]+)/i);
+  if (match && match[1]) return cleanRole(match[1]);
+  match = text.match(/position of\s+([a-z\s]+)/i);
+  if (match && match[1]) return cleanRole(match[1]);
+  match = text.match(/role (of|as)\s+([a-z\s]+)/i);
+  if (match && match[2]) return cleanRole(match[2]);
+  match = text.match(/job (in|as)\s+([a-z\s]+)/i);
+  if (match && match[2]) {
+    const cleaned = cleanRole(match[2]);
+    return cleaned === "Finance" ? "Finance Professional" : cleaned;
+  }
+  if (text.split(" ").length <= 5) return cleanRole(text);
+  return "this position";
+}
+
+function transformRawInput(raw = "", jobTitle = "") {
+  const text = String(raw).toLowerCase();
+  let currentRoleMatch = text.match(/(i am|im|i work as)\s+([a-z\s]+)/i);
+  let currentRole = currentRoleMatch?.[2]?.trim() || "professional";
+  let skillMatch = text.match(/(learned|developed|built|worked with)\s+([a-z\s]+)/i);
+  let skill = skillMatch?.[2]?.trim()
+    || "strong transferable skills in communication and client engagement";
+  let motivationMatch = text.match(/(want to|looking to|transition to)\s+([a-z\s]+)/i);
+  let targetField = motivationMatch?.[2]?.trim() || "this field";
+  const cleanRoleTitle = extractRole(jobTitle);
+  return `With several years of experience as a ${capitalize(currentRole)}, I have developed ${skill}. I am now seeking to bring this expertise to ${capitalize(targetField)}, where I can contribute to ${cleanRoleTitle} responsibilities.`;
+}
+
 export function generateCoverLetterFromTemplate(formData, cvData) {
   const {
     jobTitle = "this role",
     companyName = "your organization",
     region = "GCC",
   } = formData;
+
+  const rawInput =
+    formData.selfDescription ||
+    formData.aboutUser ||
+    formData.userInput ||
+    "";
+  const generatedBody = rawInput
+    ? transformRawInput(rawInput, jobTitle)
+    : null;
 
   const {
     fullName = "Candidate",
@@ -743,7 +803,9 @@ export function generateCoverLetterFromTemplate(formData, cvData) {
     // India: respectful, qualification-led, growth-oriented
     para1 = `I am writing to apply for the ${jobTitle} position at ${companyName}. With a focused background in ${prof.bridgeSkills[0].toLowerCase()}, I am confident in my ability to contribute meaningfully to your team from day one.`;
 
-    para2 = impact
+    para2 = generatedBody
+      ? generatedBody
+      : impact
       ? `My professional experience has centred on ${skillBridge.toLowerCase()}. Most recently, I was involved in ${impact.charAt(0).toLowerCase() + impact.slice(1)}, an experience that sharpened my ability to deliver results under real organizational constraints.`
       : `My professional experience has centred on ${skillBridge.toLowerCase()}, with a consistent emphasis on accuracy, accountability, and long-term institutional value. I take pride in approaching each role with a mindset geared toward contributing to the organization's broader objectives.`;
 
@@ -752,7 +814,9 @@ export function generateCoverLetterFromTemplate(formData, cvData) {
     // GCC/UAE: direct, performance-led, confident
     para1 = `I am applying for the ${jobTitle} role at ${companyName}. My background in ${prof.bridgeSkills[0].toLowerCase()} positions me to add immediate value to your team in the UAE market.`;
 
-    para2 = impact
+    para2 = generatedBody
+      ? generatedBody
+      : impact
       ? `I bring hands-on experience in ${skillBridge.toLowerCase()}. In my previous role, I ${impact.charAt(0).toLowerCase() + impact.slice(1)} — work that directly translates to the performance expectations of this position at ${companyName}.`
       : `I bring hands-on experience in ${skillBridge.toLowerCase()}, with a track record of delivering results in fast-paced, multicultural environments. I understand the standards expected in the UAE's competitive landscape and have consistently aligned my output to meet them.`;
 

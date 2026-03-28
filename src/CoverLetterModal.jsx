@@ -54,6 +54,7 @@ ${fullName}`;
 export default function CoverLetterModal({ isOpen, onClose, resume }) {
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [describeYourselfInput, setDescribeYourselfInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [letterBody, setLetterBody] = useState("");
@@ -120,6 +121,7 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
       jobTitle: jobTitle.trim(),
       companyName: companyName.trim(),
       region: getCoverLetterPricingMarket(),
+      selfDescription: describeYourselfInput,
     };
     if (!formData.jobTitle || !formData.companyName) {
       setError("Job title and company name are required.");
@@ -286,6 +288,16 @@ ${letterBody}`
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="e.g. Emirates NBD"
               style={{ width: "100%", boxSizing: "border-box", background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", borderRadius: 8, padding: "10px 12px", outline: "none" }}
+            />
+          </div>
+          <div>
+            <label style={{ color: "#A0A0A0", fontSize: 12, display: "block", marginBottom: 6 }}>About you</label>
+            <textarea
+              value={describeYourselfInput}
+              onChange={(e) => setDescribeYourselfInput(e.target.value)}
+              placeholder="Brief background, career change, or how you fit the role"
+              rows={4}
+              style={{ width: "100%", boxSizing: "border-box", background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF", borderRadius: 8, padding: "10px 12px", outline: "none", resize: "vertical", fontFamily: "inherit", fontSize: 14 }}
             />
           </div>
         </div>
