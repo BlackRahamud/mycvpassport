@@ -174,26 +174,30 @@ const CL_JOB_KEYWORDS = [
   "service",
 ];
 
-function extractRole(jobDescription) {
-  const text = String(jobDescription || "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!text) return "this position";
-  const lower = text.toLowerCase();
-  const needles = ["for a ", "for the ", "position of ", "role of "];
-  let start = -1;
-  for (const n of needles) {
-    const i = lower.indexOf(n);
-    if (i !== -1) {
-      start = i + n.length;
-      break;
-    }
-  }
-  if (start === -1) return "this position";
-  const after = text.slice(start).trim();
-  const words = after.split(/\s+/).filter(Boolean).slice(0, 3);
-  if (!words.length) return "this position";
-  return words.join(" ");
+function clean(str) {
+  return str.replace(/\b(position|role|job|opening|vacancy)\b/gi, "").replace(/\s\s+/g, " ").trim();
+}
+
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function extractRole(input) {
+  if (!input) return "this position";
+  const text = input.toLowerCase().trim();
+  let match;
+  match = text.match(/apply (?:for|in|as)\s+(?:a\s+|the\s+)?([a-z][a-z\s]+)/i);
+  if (match?.[1]) return toTitleCase(clean(match[1]));
+  match = text.match(/applying (?:for|as)\s+(?:a\s+|the\s+)?([a-z][a-z\s]+)/i);
+  if (match?.[1]) return toTitleCase(clean(match[1]));
+  match = text.match(/position of\s+([a-z][a-z\s]+)/i);
+  if (match?.[1]) return toTitleCase(clean(match[1]));
+  match = text.match(/role (?:of|as)\s+([a-z][a-z\s]+)/i);
+  if (match?.[1]) return toTitleCase(clean(match[1]));
+  match = text.match(/job (?:in|as)\s+([a-z][a-z\s]+)/i);
+  if (match?.[1]) return toTitleCase(clean(match[1]));
+  if (text.split(" ").length <= 5) return toTitleCase(clean(text));
+  return "this position";
 }
 
 function extractKeywords(jobDescription) {
@@ -233,12 +237,7 @@ function experiencePhraseForCL(summary) {
     const first = String(summary.exp[0] || "").trim();
     if (first) return first.length > 120 ? `${first.slice(0, 117)}…` : first;
   }
-  if (summary?.summary) {
-    const s = String(summary.summary).trim();
-    const sentence = s.split(/[.!?]/)[0]?.trim() || s;
-    return sentence.length > 120 ? `${sentence.slice(0, 117)}…` : sentence;
-  }
-  return "strong professional experience";
+  return "extensive client-facing experience";
 }
 
 function industryKeywordsPhrase(keywordsOrdered, jobDescription) {
