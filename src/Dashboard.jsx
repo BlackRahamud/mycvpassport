@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { MobileScrollFab } from "./MobileFabGuide";
+import { FAB } from "./components/FAB";
 import { ReactComponent as FalconLogo } from "./logo.svg";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -503,7 +503,7 @@ export default function Dashboard({
               Run ATS Check
             </button>
           </div>
-          <MobileScrollFab tabKey={fabRouteTab} />
+          <FAB tabKey={fabRouteTab} />
         </main>
       </div>
 

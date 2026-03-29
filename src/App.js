@@ -37,13 +37,7 @@ import LandingPage from './LandingPage';
 import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
 import AdminPanel from "./AdminPanel";
-import {
-  MobileScrollFab,
-  FabGuideBottomSheet,
-  readFabSeen,
-  BUILDER_FAB_GUIDES,
-  ATS_HIGH_SCORE_GUIDE,
-} from "./MobileFabGuide";
+import { FAB } from "./components/FAB";
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
 function TabIconDoc({ active }) {
   const stroke = active ? "#FFFFFF" : "#555";
@@ -1064,7 +1058,7 @@ function CoverLetterPage({ user, onBack }) {
           </button>
         </div>
       )}
-      <MobileScrollFab tabKey="cover-letter" />
+      <FAB tabKey="cover-letter" onPreviewCv={() => letterBody && setClFreePreview(true)} />
     </div>
   );
 }
@@ -2634,7 +2628,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [openSection, setOpenSection] = useState(null);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [fabSheet, setFabSheet] = useState(null);
-  const [mobileGuide, setMobileGuide] = useState(null);
   const [previewFadeOut, setPreviewFadeOut] = useState(false);
   const [, setJobHasJd] = useState(false);
   const [experienceEditor, setExperienceEditor] = useState(null);
@@ -2777,14 +2770,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const navigateToProAtsPage = useCallback(() => {
     navigate("/ats");
-    setMobileGuide(null);
     setFabSheet(null);
   }, [navigate]);
 
   const openProAts = () => {
     setUpgradeOpen(true);
     setFabSheet(null);
-    setMobileGuide(null);
   };
 
   const closePreview = useCallback(() => {
@@ -2794,27 +2785,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setPreviewFadeOut(false);
     }, 300);
   }, []);
-
-  const openMobileFabGuide = () => {
-    if (builderTab === "ats" && score >= 71 && !readFabSeen("ats")) {
-      try {
-        if (typeof sessionStorage !== "undefined") sessionStorage.setItem("cvp_ats_fab_opened", "1");
-      } catch {
-        /* ignore */
-      }
-      setMobileGuide("ats_high");
-    } else {
-      setMobileGuide(builderTab);
-    }
-  };
-
-  const atsFabAnimActive =
-    builderTab === "ats" &&
-    score >= 71 &&
-    !readFabSeen("ats") &&
-    (typeof sessionStorage === "undefined" || sessionStorage.getItem("cvp_ats_fab_opened") !== "1");
-
-  const fabDot = !readFabSeen(builderTab);
 
   const handleOpenCoverLetter = () => {
     if (!isPro) {
@@ -3305,87 +3275,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </button>
             </div>
             {fabSheet !== "preview" ? (
-              <div
-                style={{
-                  position: "sticky",
-                  bottom: 80,
-                  zIndex: 55,
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  padding: "0 12px 16px",
-                  pointerEvents: "none",
-                }}
-              >
-                <style>{`
-                  @keyframes cvpFabSpin { to { transform: rotate(360deg); } }
-                  @keyframes fabBounce { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-3px); } }
-                  @keyframes fabBorderFlicker { 0%, 100% { border-color: #1D9E75; } 50% { border-color: #EF9F27; } }
-                `}</style>
-                <button
-                  type="button"
-                  className="cvp-builder-fab"
-                  aria-label="Quick tips"
-                  onClick={openMobileFabGuide}
-                  style={{
-                    pointerEvents: "auto",
-                    width: 44,
-                    height: 44,
-                    minWidth: 44,
-                    minHeight: 44,
-                    borderRadius: "50%",
-                    background: "#0A0A0A",
-                    border: "1.5px solid #333",
-                    padding: 0,
-                    cursor: "pointer",
-                    display: "grid",
-                    placeItems: "center",
-                    zIndex: 55,
-                    boxSizing: "border-box",
-                    ...(atsFabAnimActive
-                      ? { animation: "fabBounce 1.5s ease-in-out infinite, fabBorderFlicker 0.9s ease-in-out infinite" }
-                      : {}),
-                  }}
-                >
-                  <span style={{ position: "relative", width: 28, height: 28, display: "grid", placeItems: "center" }}>
-                    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden style={{ display: "block" }}>
-                      <rect x="6" y="4" width="14" height="18" rx="3" fill="none" stroke="#444" strokeWidth="1" />
-                      <rect
-                        x="6"
-                        y="4"
-                        width="14"
-                        height="18"
-                        rx="3"
-                        fill="none"
-                        stroke="#fff"
-                        strokeWidth="1"
-                        strokeDasharray="11 45"
-                        strokeLinecap="round"
-                        style={{ transformOrigin: "14px 13px", animation: "cvpFabSpin 3s linear infinite" }}
-                      />
-                      <line x1="8" y1="10" x2="20" y2="10" stroke="#fff" strokeWidth="1" />
-                      <line x1="8" y1="13" x2="16" y2="13" stroke="#444" strokeWidth="1" />
-                      <line x1="8" y1="16" x2="15" y2="16" stroke="#444" strokeWidth="1" />
-                      <circle cx="20" cy="20" r="5" fill="#fff" />
-                      <path d="M17.5 20 L19.5 22 L23 18" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    {fabDot ? (
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: -2,
-                          right: -2,
-                          width: 10,
-                          height: 10,
-                          background: "#E24B4A",
-                          borderRadius: "50%",
-                          border: "2px solid #0A0A0A",
-                          boxSizing: "border-box",
-                        }}
-                      />
-                    ) : null}
-                  </span>
-                </button>
-              </div>
+              <FAB
+                variant="builder"
+                tabKey={builderTab}
+                atsScore={score}
+                selectedTemplateId={selectedTemplate?.id}
+                sheetZOverlay={299}
+                sheetZSheet={300}
+                onOpenCvPreview={() => setFabSheet("preview")}
+                onOpenTemplatePreview={() => setFabSheet("preview")}
+                onNavigateToProAts={navigateToProAtsPage}
+              />
             ) : null}
           </div>
 
@@ -3446,28 +3346,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </div>
         ) : null}
 
-        <FabGuideBottomSheet
-          open={
-            mobileGuide != null &&
-            (mobileGuide === "ats_high" || BUILDER_FAB_GUIDES[mobileGuide])
-          }
-          onClose={() => setMobileGuide(null)}
-          title={
-            mobileGuide === "ats_high"
-              ? ATS_HIGH_SCORE_GUIDE.title
-              : BUILDER_FAB_GUIDES[mobileGuide]?.title || ""
-          }
-          points={
-            mobileGuide === "ats_high"
-              ? ATS_HIGH_SCORE_GUIDE.points
-              : BUILDER_FAB_GUIDES[mobileGuide]?.points || []
-          }
-          tabStorageKey={mobileGuide === "ats_high" ? "ats" : mobileGuide}
-          proCtaLabel={mobileGuide === "ats_high" ? "Check Pro ATS →" : undefined}
-          onProCta={mobileGuide === "ats_high" ? navigateToProAtsPage : undefined}
-          zOverlay={299}
-          zSheet={300}
-        />
       </div>
 
       <CoverLetterModal

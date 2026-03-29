@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MobileScrollFab } from "./MobileFabGuide";
+import { FAB } from "./components/FAB";
 import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import UpgradeModal from "./UpgradeModal";
@@ -402,7 +402,7 @@ export default function ATSChecker(props) {
         </div>
       )}
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="ats" />
-      <MobileScrollFab tabKey="ats" />
+      <FAB tabKey="ats" />
     </div>
   );
 }

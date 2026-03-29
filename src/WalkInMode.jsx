@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { MobileScrollFab } from "./MobileFabGuide";
+import { FAB } from "./components/FAB";
 
 /**
  * @typedef {Object} CVData
@@ -914,7 +914,7 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         {formSection}
         {previewSection}
       </div>
-      <MobileScrollFab tabKey="walkin" />
+      <FAB tabKey="walkin" />
     </div>
   );
 }
