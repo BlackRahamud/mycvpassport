@@ -97,6 +97,8 @@ const FAB = forwardRef(function FAB(
     walkInCvBuilt = false,
     walkInOnStart,
     walkInOnDownload,
+    /** Builder: CV completion % block at top of guide sheet (from useCvProgress) */
+    cvCompletionProgress = null,
   },
   ref
 ) {
@@ -647,6 +649,7 @@ const FAB = forwardRef(function FAB(
         walkInOnStart={walkInOnStart}
         walkInOnDownload={walkInOnDownload}
         sheetAtsHigh={sheetAtsHigh}
+        cvCompletionProgress={cvCompletionProgress}
         onNavigateToCoverLetter={
           onNavigateToCoverLetter
             ? () => {

@@ -27,6 +27,7 @@ import {
 import { CB_UI, S } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 import { CoverLetterSpinnerArrow } from "./CoverLetterPage";
+import { useCvProgress } from "../hooks/useCvProgress";
 
 function BuilderAtsPassFailIcon({ pass }) {
   const fill = pass ? "#22C55E" : "#EF4444";
@@ -322,6 +323,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
   const fabRef = useRef(null);
   const prevBuilderTabRef = useRef(null);
+  const cvCompletionProgress = useCvProgress(resume);
 
   useEffect(() => {
     const prev = prevBuilderTabRef.current;
@@ -1019,6 +1021,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   writeFabMemory({ hasVisitedCoverLetter: true });
                   navigate("/cover-letter");
                 }}
+                cvCompletionProgress={cvCompletionProgress}
               />
             ) : null}
           </div>

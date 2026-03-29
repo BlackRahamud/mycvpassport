@@ -458,6 +458,8 @@ export default function FABSheet({
   walkInOnStart,
   walkInOnDownload,
   sheetAtsHigh = false,
+  /** Builder CV completion (thin bar + label + nudge); hides legacy Progress coach when set */
+  cvCompletionProgress = null,
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
@@ -997,6 +999,58 @@ export default function FABSheet({
       >
         <span className="cvp-fab-sheet-drag-handle" aria-hidden />
         <div className={`cvp-fab-sheet-scroll${showGotItButton ? "" : " cvp-fab-sheet-scroll--no-sticky-footer"}`}>
+          {cvCompletionProgress ? (
+            <div style={{ width: "100%", marginBottom: 16 }}>
+              <div
+                style={{
+                  width: "100%",
+                  height: 3,
+                  background: "var(--border-default, #2A2A2A)",
+                  borderRadius: 999,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${Math.min(100, Math.max(0, Number(cvCompletionProgress.percent) || 0))}%`,
+                    background: cvCompletionProgress.percent === 100 ? "#4CAF50" : "#FFFFFF",
+                    borderRadius: 999,
+                    transition: "width 400ms cubic-bezier(0.4,0,0.2,1)",
+                  }}
+                />
+              </div>
+              <p
+                style={{
+                  margin: "8px 0 0",
+                  fontSize: 12,
+                  color: "var(--text-secondary, #A0A0A0)",
+                  textAlign: "center",
+                  lineHeight: 1.35,
+                }}
+              >
+                {cvCompletionProgress.percent === 100
+                  ? `${cvCompletionProgress.percent}% · CV ready to send ✓`
+                  : `${cvCompletionProgress.percent}% · ${cvCompletionProgress.label}`}
+              </p>
+              {cvCompletionProgress.missingSections?.length > 0 &&
+              cvCompletionProgress.percent < 100 &&
+              cvCompletionProgress.topMissingNudge ? (
+                <p
+                  style={{
+                    margin: "6px 0 0",
+                    fontSize: 11,
+                    color: "var(--text-secondary, #A0A0A0)",
+                    textAlign: "center",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {cvCompletionProgress.topMissingNudge}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           {greetingLine ? (
             <div
               style={{
@@ -1090,7 +1144,7 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {showCoachPanels && showProgressCoach && !sheetBodySlot && !dedicatedRoute ? (
+          {showCoachPanels && showProgressCoach && !sheetBodySlot && !dedicatedRoute && !cvCompletionProgress ? (
             <div
               style={{
                 width: "100%",
