@@ -99,6 +99,8 @@ const FAB = forwardRef(function FAB(
     walkInOnDownload,
     /** Builder: CV completion % block at top of guide sheet (from useCvProgress) */
     cvCompletionProgress = null,
+    /** Builder: notify when guide/menu sheet open state changes (for idle timer reschedule) */
+    onBuilderGuideSheetOpenChange = null,
   },
   ref
 ) {
@@ -127,6 +129,7 @@ const FAB = forwardRef(function FAB(
   const [tplExtPulse, setTplExtPulse] = useState(false);
   const [builderIdlePulse, setBuilderIdlePulse] = useState(false);
   const tplTimersRef = useRef([]);
+  const builderGuideSheetNotifySkipRef = useRef(true);
   const atsLandTriggeredRef = useRef(false);
   const tplTabEpochRef = useRef(0);
   const tplIdleEligibleRef = useRef(false);
@@ -346,6 +349,17 @@ const FAB = forwardRef(function FAB(
     return () => document.body.classList.remove("cvp-fab-sheet-open");
   }, [sheetOpen, mobile, config, hidden]);
 
+  useEffect(() => {
+    if (variant !== "builder" || typeof onBuilderGuideSheetOpenChange !== "function") return undefined;
+    const open = menuOpen || sheetOpen;
+    if (builderGuideSheetNotifySkipRef.current) {
+      builderGuideSheetNotifySkipRef.current = false;
+      return undefined;
+    }
+    onBuilderGuideSheetOpenChange(open);
+    return undefined;
+  }, [variant, menuOpen, sheetOpen, onBuilderGuideSheetOpenChange]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -370,14 +384,19 @@ const FAB = forwardRef(function FAB(
       },
       openGuideForCurrentTab() {
         if (variant !== "builder") return;
+        if (sheetOpen || menuOpen) return;
         const useAtsHigh = tabKey === "ats" && atsScore >= 71 && !readFabSeen("ats");
         openGuideSheet(useAtsHigh);
       },
       triggerBuilderIdlePulse() {
+        if (sheetOpen || menuOpen) return;
         setBuilderIdlePulse(true);
       },
+      isGuideSheetOpen() {
+        return sheetOpen || menuOpen;
+      },
     }),
-    [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet]
+    [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet, sheetOpen, menuOpen]
   );
 
   const openTemplatesSmartSheet = useCallback(() => {
@@ -645,7 +664,7 @@ const FAB = forwardRef(function FAB(
     atsAttention ? "cvp-fab-anim-bounce-flicker" : "",
     templatesBounce && tabKey === "templates" ? "cvp-fab-anim-bounce" : "",
     tplIdlePulse || tplExtPulse ? "cvp-fab-pulse-idle" : "",
-    builderIdlePulse ? "cvp-fab-builder-idle-pulse" : "",
+    builderIdlePulse ? "fabBuilderIdlePulse-active" : "",
     fabExtraClass,
   ]
     .filter(Boolean)

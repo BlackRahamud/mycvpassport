@@ -293,6 +293,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const builderRootRef = useRef(null);
   const builderIdleT15Ref = useRef(null);
   const builderIdleT25Ref = useRef(null);
+  const fabSheetRef = useRef(fabSheet);
+  fabSheetRef.current = fabSheet;
+  const scheduleBuilderIdleRef = useRef(() => {});
   const prevBuilderTabRef = useRef(null);
   const cvCompletionProgress = useCvProgress(resume);
 
@@ -341,12 +344,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     writeFabMemory({ lastTabVisited: builderTab });
   }, [builderTab]);
 
+  const onBuilderGuideSheetOpenChange = useCallback((open) => {
+    if (!open) scheduleBuilderIdleRef.current();
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
+
     const mq = window.matchMedia("(max-width: 768px)");
-    if (!mq.matches) return undefined;
-    const root = builderRootRef.current;
-    if (!root) return undefined;
+    const opts = { capture: true };
+    const events = ["input", "change", "click", "focusin"];
 
     const clearBuilderIdleTimers = () => {
       if (builderIdleT15Ref.current != null) {
@@ -359,32 +366,59 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       }
     };
 
+    const isIdleBlocked = () =>
+      fabSheetRef.current === "preview" || fabRef.current?.isGuideSheetOpen?.() === true;
+
     const scheduleBuilderIdleTimers = () => {
       clearBuilderIdleTimers();
       builderIdleT15Ref.current = window.setTimeout(() => {
         builderIdleT15Ref.current = null;
+        if (isIdleBlocked()) return;
         fabRef.current?.triggerBuilderIdlePulse?.();
       }, 15000);
       builderIdleT25Ref.current = window.setTimeout(() => {
         builderIdleT25Ref.current = null;
+        if (isIdleBlocked()) return;
         fabRef.current?.openGuideForCurrentTab?.();
         scheduleBuilderIdleTimers();
       }, 25000);
     };
 
-    const onActivity = () => scheduleBuilderIdleTimers();
-    const opts = { capture: true };
-    for (const ev of ["input", "change", "click", "focusin"]) {
-      root.addEventListener(ev, onActivity, opts);
-    }
-    scheduleBuilderIdleTimers();
-    return () => {
-      for (const ev of ["input", "change", "click", "focusin"]) {
-        root.removeEventListener(ev, onActivity, opts);
-      }
-      clearBuilderIdleTimers();
+    scheduleBuilderIdleRef.current = scheduleBuilderIdleTimers;
+
+    const onActivity = () => {
+      scheduleBuilderIdleTimers();
     };
-  }, []);
+
+    const detach = (root) => {
+      if (!root) return;
+      for (const ev of events) root.removeEventListener(ev, onActivity, opts);
+    };
+
+    const tryAttach = () => {
+      const root = builderRootRef.current;
+      detach(root);
+      clearBuilderIdleTimers();
+      if (!mq.matches || fabSheetRef.current === "preview" || !root) return;
+      for (const ev of events) root.addEventListener(ev, onActivity, opts);
+      scheduleBuilderIdleTimers();
+    };
+
+    const onMqChange = () => {
+      tryAttach();
+    };
+
+    mq.addEventListener("change", onMqChange);
+    tryAttach();
+
+    const rootAtAttach = builderRootRef.current;
+    return () => {
+      mq.removeEventListener("change", onMqChange);
+      detach(rootAtAttach);
+      clearBuilderIdleTimers();
+      scheduleBuilderIdleRef.current = () => {};
+    };
+  }, [fabSheet]);
 
   useEffect(() => {
     const full = fabSheet === "preview" || previewFadeOut;
@@ -1000,6 +1034,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 templatesInteractKey={templatesInteractKey}
                 templateSessionApplyCount={templateSessionApplyCount}
                 templateRecommendNames={templateFabRecommendNames}
+                onBuilderGuideSheetOpenChange={onBuilderGuideSheetOpenChange}
                 onPreviewTemplateDraft={(tpl) => {
                   setPreviewTemplateOverride(tpl);
                   setFabSheet("preview");
