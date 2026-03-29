@@ -1,29 +1,29 @@
 import { motion } from "framer-motion";
-import { Briefcase, CheckCircle2, Sparkles } from "lucide-react";
+import { Briefcase, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 const SKILL_STYLES = {
-  Banking: { background: "#fff", color: "#000" },
+  Strategy: { background: "#fff", color: "#000" },
   CRM: { background: "#2563eb", color: "#fff" },
-  KYC: { background: "#38bdf8", color: "#000" },
-  AML: { background: "#d97706", color: "#fff" },
+  Operations: { background: "#38bdf8", color: "#000" },
+  Analytics: { background: "#d97706", color: "#fff" },
 };
 
 function CVPlayCard() {
   const [isHovered, setIsHovered] = useState(false);
 
-  const skills = ["Banking", "CRM", "KYC", "AML"];
+  const skills = ["Strategy", "Operations", "CRM", "Analytics"];
 
   const experiences = [
     {
-      title: "Senior Banking Associate",
-      company: "Emirates NBD",
+      title: "Product Manager",
+      company: "Noon",
       duration: "2022 - Present",
       accent: "#3b82f6",
     },
     {
-      title: "Banking Associate",
-      company: "Dubai Islamic Bank",
+      title: "Operations Lead",
+      company: "Careem",
       duration: "2020 - 2022",
       accent: "#a855f7",
     },
@@ -157,7 +157,7 @@ function CVPlayCard() {
                   letterSpacing: "0.05em",
                 }}
               >
-                JK
+                AM
               </span>
             </div>
           </motion.div>
@@ -175,7 +175,7 @@ function CVPlayCard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            Junaid Khan
+            Alex Morgan
           </motion.h1>
 
           <motion.p
@@ -188,7 +188,7 @@ function CVPlayCard() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            BANKING ASSOCIATE · DUBAI, UAE
+            PRODUCT MANAGER · DUBAI, UAE
           </motion.p>
         </div>
 
@@ -282,7 +282,6 @@ function CVPlayCard() {
         </motion.div>
 
         <motion.div
-          style={{ marginBottom: "2rem" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9 }}
@@ -334,50 +333,6 @@ function CVPlayCard() {
             ))}
           </div>
         </motion.div>
-
-        <motion.button
-          type="button"
-          style={{
-            width: "100%",
-            position: "relative",
-            overflow: "hidden",
-            color: "#ffffff",
-            padding: "1rem",
-            borderRadius: "1rem",
-            border: "none",
-            cursor: "pointer",
-            background: "linear-gradient(to right, #10b981, #059669)",
-            boxShadow: "0 10px 15px -3px rgba(16, 185, 129, 0.3)",
-          }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <motion.div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent)",
-            }}
-            animate={{ x: ["-100%", "100%"] }}
-            transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-          />
-          <div
-            style={{
-              position: "relative",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.75rem",
-            }}
-          >
-            <CheckCircle2 style={{ width: "1.25rem", height: "1.25rem" }} />
-            <span style={{ fontWeight: 500 }}>Share on WhatsApp — 90 sec</span>
-          </div>
-        </motion.button>
       </motion.div>
 
       <motion.div
