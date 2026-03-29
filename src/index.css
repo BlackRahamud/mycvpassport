@@ -464,7 +464,7 @@ input:focus, textarea:focus {
   color: #ffffff;
 }
 
-/* CV Builder mobile — A4 preview uses BuilderA4PreviewScaled + ResizeObserver in App.js */
+/* CV Builder mobile — A4 preview uses BuilderA4PreviewScaled + ResizeObserver in pages/BuilderPage.jsx */
 
 /* CV Builder mobile — Download below toggle pill (order: toggle, then download) */
 .cvp-builder-mobile-download {
