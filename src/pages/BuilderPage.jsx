@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
@@ -244,6 +244,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId, isPro = false }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloading, setDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -306,6 +307,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setTemplateSessionApplyCount(0);
     }
   }, [builderTab]);
+
+  useEffect(() => {
+    const st = location.state && typeof location.state === "object" ? location.state : null;
+    if (st?.cvpBuilderTab !== "jobmatch") return;
+    setBuilderTab("jobmatch");
+    const next = { ...st };
+    delete next.cvpBuilderTab;
+    navigate(location.pathname, { replace: true, state: Object.keys(next).length ? next : undefined });
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     const el = desktopPreviewFitRef.current;
@@ -1064,6 +1074,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   setFabSheet("preview");
                 }}
                 onNavigateToProAts={navigateToProAtsPage}
+                onNavigateToJobMatch={() => setBuilderTab("jobmatch")}
                 onNavigateToCoverLetter={() => {
                   writeFabMemory({ hasVisitedCoverLetter: true });
                   navigate("/cover-letter");

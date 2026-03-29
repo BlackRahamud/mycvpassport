@@ -73,6 +73,7 @@ const FAB = forwardRef(function FAB(
     onOpenTemplatePreview,
     onPreviewCv,
     onNavigateToProAts,
+    onNavigateToJobMatch,
     onNavigateToCoverLetter,
     /** Templates tab: pending card selection (for highlight + FAB state 2) */
     templatePickPending = null,
@@ -735,6 +736,14 @@ const FAB = forwardRef(function FAB(
         walkInOnDownload={walkInOnDownload}
         sheetAtsHigh={sheetAtsHigh}
         cvCompletionProgress={cvCompletionProgress}
+        onNavigateToJobMatch={
+          onNavigateToJobMatch
+            ? () => {
+                onNavigateToJobMatch();
+                closeSheet();
+              }
+            : undefined
+        }
         onNavigateToCoverLetter={
           onNavigateToCoverLetter
             ? () => {

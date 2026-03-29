@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { FAB } from "./components/FAB";
 import { getFabMemory, writeFabMemory, checkAtsMilestone } from "./components/FAB/FABLogic";
 import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
@@ -161,6 +162,7 @@ function AtsResultPassIcon() {
 }
 
 export default function ATSChecker(props) {
+  const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -486,7 +488,16 @@ export default function ATSChecker(props) {
         </div>
       )}
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="ats" />
-      <FAB ref={fabRef} tabKey="ats" atsScore={result?.total ?? 0} atsChecks={atsChecks} />
+      <FAB
+        ref={fabRef}
+        tabKey="ats"
+        atsScore={result?.total ?? 0}
+        atsChecks={atsChecks}
+        onNavigateToCoverLetter={() => {
+          writeFabMemory({ hasVisitedCoverLetter: true });
+          navigate("/cover-letter");
+        }}
+      />
     </div>
   );
 }

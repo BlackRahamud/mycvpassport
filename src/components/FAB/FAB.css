@@ -324,3 +324,160 @@
 .cvp-fab-completion-ring {
   display: none;
 }
+
+/* --- ATS dedicated route score sheet (FABSheet) --- */
+@keyframes cvpAtsPulseRing {
+  0% {
+    stroke-opacity: 0.6;
+  }
+  60% {
+    stroke-opacity: 0.1;
+  }
+  100% {
+    stroke-opacity: 0.6;
+  }
+}
+
+.cvp-ats-ring-track {
+  animation: cvpAtsPulseRing 2.5s ease-in-out infinite;
+}
+
+@keyframes cvpAtsStepPop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.cvp-ats-step-pop {
+  animation: cvpAtsStepPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes cvpAtsFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cvp-ats-fade-up-delay-0 {
+  animation: cvpAtsFadeUp 0.5s ease both;
+}
+
+.cvp-ats-fade-up-delay-1 {
+  animation: cvpAtsFadeUp 0.5s ease 0.15s both;
+}
+
+.cvp-ats-fade-up-delay-2 {
+  animation: cvpAtsFadeUp 0.5s ease 0.3s both;
+}
+
+@keyframes cvpAtsShimmer {
+  0% {
+    left: -100%;
+  }
+  60% {
+    left: 150%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn {
+  position: relative;
+  overflow: hidden;
+  background: #1c1c1c;
+  border: 1px solid #2a2a2a;
+  border-radius: 11px;
+  padding: 13px 16px;
+  color: #fff;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease !important;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(55, 138, 221, 0.08), transparent);
+  animation: cvpAtsShimmer 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn--shimmer-delay::after {
+  animation-delay: 0.4s;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn > span:first-child {
+  position: relative;
+  z-index: 1;
+  text-align: left;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-arrow {
+  position: relative;
+  z-index: 1;
+  color: #a0a0a0;
+  transition: color 0.15s ease, transform 0.2s ease !important;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover {
+  background: #242424 !important;
+  border-color: #378add !important;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover .cvp-ats-sheet-cta-arrow {
+  color: #378add !important;
+  transform: translateX(3px) !important;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:active {
+  transform: scale(0.98) !important;
+}
+
+.cvp-fab-sheet-gotit-bar--ats-ghost {
+  border-top: 1px solid #2a2a2a;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.cvp-fab-sheet-gotit-bar--ats-ghost .cvp-fab-sheet-gotit-btn--ats-ghost {
+  margin: 0 !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  color: #505050 !important;
+  font-size: 13px !important;
+  padding: 14px !important;
+  min-height: unset !important;
+  border-radius: 0 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: color 0.15s ease !important;
+}
+
+.cvp-fab-sheet-gotit-bar--ats-ghost .cvp-fab-sheet-gotit-btn--ats-ghost:hover {
+  color: #a0a0a0 !important;
+}

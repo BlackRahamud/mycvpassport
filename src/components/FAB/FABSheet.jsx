@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./FAB.css";
 import { FAB_COVER_LETTER_CROSS_SELL, ATS_FAB_CHIP_TO_NAV_KEY } from "./FABContent";
 import {
@@ -105,70 +106,164 @@ export function FabFeatureBullets({ items }) {
   );
 }
 
-function AtsFabScoreRing({ score, failingCount }) {
-  const r = 42;
-  const size = 100;
-  const cx = size / 2;
-  const cy = size / 2;
+function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
+  const size = 54;
+  const cx = 27;
+  const cy = 27;
+  const r = 22;
+  const strokeW = 4;
   const c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
   const offset = c - (p / 100) * c;
-  const strokeCol = getAtsScoreStrokeColor(p);
-  const subLine =
-    failingCount <= 0 ? (
-      <span style={{ color: "#4CAF50" }}>All checks passing</span>
-    ) : (
-      <>
-        <span style={{ color: "var(--text-secondary, #A0A0A0)" }}>
-          {failingCount} {failingCount === 1 ? "thing" : "things"} pulling your score down
-        </span>
-      </>
-    );
+
+  const { headline, sub } =
+    p >= 80
+      ? {
+          headline: "ATS gate: cleared.",
+          sub: "Your CV will be seen. Will it get a response?",
+        }
+      : p >= 50
+        ? {
+            headline: "Good start.",
+            sub: "Fix these gaps and you'll get seen.",
+          }
+        : {
+            headline: "ATS filters may block this CV.",
+            sub: "Let's fix that before you apply.",
+          };
+
+  const nextStepStyle = {
+    width: 30,
+    height: 30,
+    borderRadius: "50%",
+    background: "#1C1C1C",
+    border: "1px solid #2A2A2A",
+    boxSizing: "border-box",
+    display: "grid",
+    placeItems: "center",
+    zIndex: 1,
+  };
+
   return (
-    <div style={{ width: "100%", marginBottom: 16 }}>
+    <div style={{ width: "100%" }}>
       <div
-        style={{
-          fontSize: 11,
-          color: "var(--text-secondary, #A0A0A0)",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          marginBottom: 12,
-          textAlign: "center",
-        }}
+        className="cvp-ats-fade-up-delay-0"
+        style={{ display: "flex", flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 4 }}
       >
-        ATS score
+        <div style={{ width: size, height: size, flexShrink: 0, position: "relative" }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden style={{ display: "block" }}>
+            <circle
+              className="cvp-ats-ring-track"
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke="#1A1A1A"
+              strokeWidth={strokeW}
+            />
+            <circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke="#378ADD"
+              strokeWidth={strokeW}
+              strokeDasharray={c}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${cx} ${cy})`}
+            />
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#fff",
+            }}
+          >
+            {p}
+          </div>
+        </div>
+        <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+          <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", lineHeight: 1.25 }}>{headline}</div>
+          <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 3, lineHeight: 1.35 }}>{sub}</div>
+        </div>
       </div>
-      <div style={{ position: "relative", width: size, height: size, margin: "0 auto 10px" }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden style={{ display: "block" }}>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2A2A2A" strokeWidth={8} />
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill="none"
-            stroke={strokeCol}
-            strokeWidth={8}
-            strokeDasharray={c}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-        </svg>
+
+      <div className="cvp-ats-fade-up-delay-1" style={{ position: "relative", marginTop: 18, width: "100%" }}>
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            display: "grid",
-            placeItems: "center",
-            fontSize: 24,
-            fontWeight: 500,
-            color: strokeCol,
+            left: 0,
+            right: 0,
+            top: 15,
+            height: 1,
+            background: "#2A2A2A",
+            zIndex: 0,
           }}
-        >
-          {p}
+        />
+        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", gap: 8, position: "relative", zIndex: 1 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
+            <div
+              className="cvp-ats-step-pop"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "#378ADD",
+                display: "grid",
+                placeItems: "center",
+                zIndex: 1,
+              }}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M20 6L9 17l-5-5"
+                  stroke="#fff"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#378ADD" }}>ATS scan</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>done</div>
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
+            <div style={nextStepStyle}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#2A2A2A" }} />
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#A0A0A0" }}>Job match</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>next</div>
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
+            <div style={nextStepStyle}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#2A2A2A" }} />
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#A0A0A0" }}>Cover letter</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>next</div>
+          </div>
         </div>
       </div>
-      <p style={{ margin: 0, fontSize: 13, textAlign: "center", lineHeight: 1.45 }}>{subLine}</p>
+
+      <div className="cvp-ats-fade-up-delay-2" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 20, width: "100%" }}>
+        <button type="button" className="cvp-ats-sheet-cta-btn" onClick={onJobMatchCta}>
+          <span>Match to a job description</span>
+          <span className="cvp-ats-sheet-cta-arrow" aria-hidden>
+            →
+          </span>
+        </button>
+        <button type="button" className="cvp-ats-sheet-cta-btn cvp-ats-sheet-cta-btn--shimmer-delay" onClick={onCoverLetterCta}>
+          <span>Generate a cover letter</span>
+          <span className="cvp-ats-sheet-cta-arrow" aria-hidden>
+            →
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -448,6 +543,8 @@ export default function FABSheet({
   coverLetterCrossSell = false,
   atsScore = 0,
   onNavigateToCoverLetter,
+  /** Builder ATS sheet: switch to Job Match tab without leaving /builder */
+  onNavigateToJobMatch,
   /** @type {null | 'ats' | 'cover-letter' | 'walkin' | 'account'} */
   dedicatedRoute = null,
   atsChecks = [],
@@ -471,6 +568,7 @@ export default function FABSheet({
   const [activePostDownload, setActivePostDownload] = useState(false);
   const [postDownloadDays, setPostDownloadDays] = useState(0);
   const celebrationShownThisOpenRef = useRef(false);
+  const navigate = useNavigate();
 
   const currentAts = typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0;
 
@@ -555,6 +653,22 @@ export default function FABSheet({
     if (tabStorageKey === "ats") writeFabSeen("ats");
     onProCta?.();
     onClose();
+  };
+
+  const handleAtsJobMatchCta = () => {
+    if (onNavigateToJobMatch) onNavigateToJobMatch();
+    else {
+      navigate("/builder", { state: { cvpBuilderTab: "jobmatch" } });
+      onClose();
+    }
+  };
+
+  const handleAtsCoverLetterCta = () => {
+    if (onNavigateToCoverLetter) onNavigateToCoverLetter();
+    else {
+      navigate("/cover-letter");
+      onClose();
+    }
   };
 
   const nudgeNavKey = topNudge ? TOP_NUDGE_TO_NAV_KEY[topNudge] : null;
@@ -1163,7 +1277,11 @@ export default function FABSheet({
                 border: "1px solid var(--border-default, #2A2A2A)",
               }}
             >
-              <AtsFabScoreRing score={currentAts} failingCount={failingCount} />
+              <AtsFabScoreSheetBlock
+                score={currentAts}
+                onJobMatchCta={handleAtsJobMatchCta}
+                onCoverLetterCta={handleAtsCoverLetterCta}
+              />
               {renderAtsChips()}
             </div>
           ) : null}
@@ -1350,8 +1468,19 @@ export default function FABSheet({
           ) : null}
         </div>
         {showGotItButton ? (
-          <div className="cvp-fab-sheet-gotit-bar">
-            <button type="button" onClick={handleGotIt} className="cvp-fab-sheet-gotit-btn" style={{ background: "#fff", color: "#000", fontWeight: 500, fontSize: 14, border: "none", cursor: "pointer", minHeight: 44 }}>
+          <div
+            className={`cvp-fab-sheet-gotit-bar${dedicatedRoute === "ats" ? " cvp-fab-sheet-gotit-bar--ats-ghost" : ""}`}
+          >
+            <button
+              type="button"
+              onClick={handleGotIt}
+              className={`cvp-fab-sheet-gotit-btn${dedicatedRoute === "ats" ? " cvp-fab-sheet-gotit-btn--ats-ghost" : ""}`}
+              style={
+                dedicatedRoute === "ats"
+                  ? undefined
+                  : { background: "#fff", color: "#000", fontWeight: 500, fontSize: 14, border: "none", cursor: "pointer", minHeight: 44 }
+              }
+            >
               Got it
             </button>
           </div>
