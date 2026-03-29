@@ -558,7 +558,18 @@ function CoverLetterPage({ user, onBack }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0A0A", color: "#FFFFFF", fontFamily: "'DM Sans',sans-serif", padding: "16px 16px 96px", boxSizing: "border-box" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg-page, #0A0A0A)",
+        color: "var(--text-primary, #FFFFFF)",
+        fontFamily: "'DM Sans',sans-serif",
+        padding: "16px 16px 96px",
+        boxSizing: "border-box",
+        position: "relative",
+        zIndex: 1,
+      }}
+    >
       <button
         type="button"
         onClick={onBack}
@@ -1059,7 +1070,7 @@ function CoverLetterPage({ user, onBack }) {
           </button>
         </div>
       )}
-      <FAB tabKey="cover-letter" onPreviewCv={() => letterBody && setClFreePreview(true)} />
+      <FAB tabKey="cover-letter" />
     </div>
   );
 }
@@ -1608,21 +1619,19 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
     >
       <div
         style={{
-          height: 140,
+          height: 160,
+          width: "100%",
           overflow: "hidden",
+          position: "relative",
           background: "#1C1C1C",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "flex-start",
         }}
       >
         <div
           style={{
             width: A4_PREVIEW_WIDTH_PX,
-            transform: "scale(0.32)",
-            transformOrigin: "top center",
+            transform: "scale(0.18)",
+            transformOrigin: "top left",
             pointerEvents: "none",
-            flexShrink: 0,
           }}
         >
           <ResumePreview cv={resume} template={t} />
@@ -1842,15 +1851,15 @@ function BuilderTemplatesTab({
               left: 0,
               right: 0,
               background: "#141414",
-              borderRadius: "16px 16px 0 0",
-              padding: "24px 20px",
-              paddingBottom: "calc(24px + env(safe-area-inset-bottom, 20px))",
+              borderRadius: "24px 24px 0 0",
+              paddingTop: 24,
+              paddingLeft: 20,
+              paddingRight: 20,
+              paddingBottom: "calc(env(safe-area-inset-bottom, 16px) + 16px)",
               zIndex: 121,
               boxSizing: "border-box",
               maxWidth: "100vw",
-              minHeight: "min(42vh, 360px)",
-              maxHeight: "min(88vh, calc(100dvh - 24px))",
-              overflowY: "auto",
+              width: "100%",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2144,7 +2153,7 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
 // ─── PREVIEW: TEMPLATE THUMB WRAPPER ──────────────────────────────
 const TemplateThumb = ({ children }) => (
   <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#fff", borderRadius: "12px" }}>
-    <div style={{ position: "absolute", top: 0, left: 0, width: "794px", transformOrigin: "top left", transform: "scale(0.27)", pointerEvents: "none" }}>
+    <div style={{ position: "absolute", top: 0, left: 0, width: "794px", transformOrigin: "top left", transform: "scale(0.18)", pointerEvents: "none" }}>
       {children}
     </div>
   </div>
@@ -2610,12 +2619,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const desktopPreviewScale = useMemo(() => {
     if (!desktopPreviewContainerWidth) return 1;
-    return Math.min(1, desktopPreviewContainerWidth / A4_PREVIEW_WIDTH_PX);
+    return desktopPreviewContainerWidth / A4_PREVIEW_WIDTH_PX;
   }, [desktopPreviewContainerWidth]);
 
   const mobilePreviewScale = useMemo(() => {
     if (!mobilePreviewContainerWidth) return 1;
-    return Math.min(1, mobilePreviewContainerWidth / A4_PREVIEW_WIDTH_PX);
+    return mobilePreviewContainerWidth / A4_PREVIEW_WIDTH_PX;
   }, [mobilePreviewContainerWidth]);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -2657,41 +2666,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     return () => ro.disconnect();
   }, []);
 
-  useLayoutEffect(() => {
-    if (fabSheet !== "preview") return;
-    const el = mobilePreviewFitRef.current;
-    if (!el) return;
-    const w = el.getBoundingClientRect().width;
-    if (w >= 1) setMobilePreviewContainerWidth((prev) => (Math.abs(prev - w) < 1 ? prev : w));
-  }, [fabSheet]);
-
   useEffect(() => {
     if (fabSheet !== "preview") return;
     const el = mobilePreviewFitRef.current;
     if (!el) return;
-    const apply = () => {
-      const w = el.getBoundingClientRect().width;
-      if (w < 1) return;
-      setMobilePreviewContainerWidth((prev) => {
-        if (Math.abs(prev - w) < 1) return prev;
-        return w;
-      });
-    };
-    apply();
     const ro = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
       if (width == null || width < 1) return;
-      setMobilePreviewContainerWidth((prev) => {
-        if (Math.abs(prev - width) < 1) return prev;
-        return width;
-      });
+      setMobilePreviewContainerWidth((prev) => (Math.abs(prev - width) < 1 ? prev : width));
     });
     ro.observe(el);
-    window.addEventListener("resize", apply);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", apply);
-    };
+    return () => ro.disconnect();
   }, [fabSheet]);
 
   useEffect(() => {

@@ -103,10 +103,7 @@ const ROUTE_MENU_OPTIONS = {
     { id: "check_pro_ats", label: "Check Pro ATS", icon: "arrow", primary: true },
     { id: "guide", label: "Guide", icon: "spark" },
   ],
-  "cover-letter": [
-    { id: "preview_cv", label: "Preview CV", icon: "eye", primary: true },
-    { id: "guide", label: "Guide", icon: "spark" },
-  ],
+  "cover-letter": [{ id: "guide", label: "Guide", icon: "spark", primary: true }],
   walkin: [{ id: "guide", label: "Guide", icon: "spark", primary: true }],
 };
 

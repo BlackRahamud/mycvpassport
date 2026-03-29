@@ -337,7 +337,6 @@ export default function Dashboard({
                         borderRadius: "var(--radius-md)",
                         overflow: "hidden",
                         border: "1px solid var(--border)",
-                        aspectRatio: "0.707",
                         position: "relative",
                       }}
                     >

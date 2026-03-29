@@ -188,25 +188,28 @@ export default function FABSheet({
         style={{ zIndex: zSheet }}
         onClick={(e) => e.stopPropagation()}
       >
-        <FabSparkIcon size={24} stroke="#fff" />
         <div
-          style={{
-            color: "var(--text-primary, #FFF)",
-            fontSize: 16,
-            fontWeight: 500,
-            marginTop: 12,
-            marginBottom: 16,
-            textAlign: "center",
-          }}
+          className={`cvp-fab-sheet-scroll${showGotItButton ? "" : " cvp-fab-sheet-scroll--no-sticky-footer"}`}
         >
-          {title}
-        </div>
+          <FabSparkIcon size={24} stroke="#fff" />
+          <div
+            style={{
+              color: "var(--text-primary, #FFF)",
+              fontSize: 16,
+              fontWeight: 500,
+              marginTop: 12,
+              marginBottom: 16,
+              textAlign: "center",
+            }}
+          >
+            {title}
+          </div>
 
-        {sheetBodySlot ? (
-          <div style={{ width: "100%", marginBottom: 16 }}>{sheetBodySlot}</div>
-        ) : null}
+          {sheetBodySlot ? (
+            <div style={{ width: "100%", marginBottom: 16 }}>{sheetBodySlot}</div>
+          ) : null}
 
-        {showCoachPanels && showProgressCoach && !sheetBodySlot ? (
+          {showCoachPanels && showProgressCoach && !sheetBodySlot ? (
           <div
             style={{
               width: "100%",
@@ -371,64 +374,67 @@ export default function FABSheet({
           </div>
         ) : null}
 
-        <div>
-          {!sheetBodySlot && points.map((row, i) => (
-            <div
-              key={i}
+          <div>
+            {!sheetBodySlot && points.map((row, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  marginBottom: 10,
+                  alignItems: "flex-start",
+                }}
+              >
+                <PointIcon type={row.icon} />
+                <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 13, lineHeight: 1.45, flex: 1 }}>{row.text}</span>
+              </div>
+            ))}
+          </div>
+          {sheetFooterSlot}
+          {proCtaLabel && onProCta ? (
+            <button
+              type="button"
+              onClick={handlePro}
               style={{
-                display: "flex",
-                gap: 10,
-                marginBottom: 10,
-                alignItems: "flex-start",
+                background: "#fff",
+                color: "#000",
+                borderRadius: 10,
+                padding: 12,
+                width: "100%",
+                fontWeight: 500,
+                fontSize: 14,
+                border: "none",
+                cursor: "pointer",
+                marginTop: 8,
+                minHeight: 44,
               }}
             >
-              <PointIcon type={row.icon} />
-              <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 13, lineHeight: 1.45, flex: 1 }}>{row.text}</span>
-            </div>
-          ))}
+              {proCtaLabel}
+            </button>
+          ) : null}
         </div>
-        {sheetFooterSlot}
-        {proCtaLabel && onProCta ? (
-          <button
-            type="button"
-            onClick={handlePro}
-            style={{
-              background: "#fff",
-              color: "#000",
-              borderRadius: 10,
-              padding: 12,
-              width: "100%",
-              fontWeight: 500,
-              fontSize: 14,
-              border: "none",
-              cursor: "pointer",
-              marginTop: 8,
-              minHeight: 44,
-            }}
-          >
-            {proCtaLabel}
-          </button>
-        ) : null}
         {showGotItButton ? (
-          <button
-            type="button"
-            onClick={handleGotIt}
-            style={{
-              background: "#fff",
-              color: "#000",
-              borderRadius: 10,
-              padding: 12,
-              width: "100%",
-              fontWeight: 500,
-              fontSize: 14,
-              border: "none",
-              cursor: "pointer",
-              marginTop: proCtaLabel ? 10 : 16,
-              minHeight: 44,
-            }}
-          >
-            Got it
-          </button>
+          <div className="cvp-fab-sheet-gotit-bar">
+            <button
+              type="button"
+              onClick={handleGotIt}
+              style={{
+                background: "#fff",
+                color: "#000",
+                borderRadius: 10,
+                padding: 12,
+                width: "100%",
+                fontWeight: 500,
+                fontSize: 14,
+                border: "none",
+                cursor: "pointer",
+                marginTop: 0,
+                minHeight: 44,
+              }}
+            >
+              Got it
+            </button>
+          </div>
         ) : null}
       </div>
     </>
