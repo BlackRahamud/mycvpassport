@@ -351,7 +351,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
-    const mq = window.matchMedia("(max-width: 768px)");
     const opts = { capture: true };
     const events = ["input", "change", "click", "focusin"];
 
@@ -399,21 +398,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       const root = builderRootRef.current;
       detach(root);
       clearBuilderIdleTimers();
-      if (!mq.matches || fabSheetRef.current === "preview" || !root) return;
+      if (fabSheetRef.current === "preview" || !root) return;
       for (const ev of events) root.addEventListener(ev, onActivity, opts);
       scheduleBuilderIdleTimers();
     };
 
-    const onMqChange = () => {
-      tryAttach();
-    };
-
-    mq.addEventListener("change", onMqChange);
     tryAttach();
 
     const rootAtAttach = builderRootRef.current;
     return () => {
-      mq.removeEventListener("change", onMqChange);
       detach(rootAtAttach);
       clearBuilderIdleTimers();
       scheduleBuilderIdleRef.current = () => {};
