@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { MobileScrollFab } from "./MobileFabGuide";
 import { ReactComponent as FalconLogo } from "./logo.svg";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -56,6 +57,8 @@ export default function Dashboard({
   onTemplates = () => {},
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fabRouteTab = location.state?.fabGuideTab === "account" ? "account" : "mycvs";
   const [active, setActive] = useState("mycvs");
   const [menuOpenId, setMenuOpenId] = useState(null);
   const isLight = theme === "light";
@@ -241,12 +244,13 @@ export default function Dashboard({
                 background: "#141414",
                 borderRadius: 16,
                 padding: "20px 24px",
+                paddingBottom: 12,
+                minHeight: "auto",
                 cursor: "pointer",
                 textAlign: "left",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "stretch",
-                maxHeight: 220,
                 transition: `transform 150ms ${EASE}, border-color 150ms ${EASE}`,
               }}
               onMouseEnter={(e) => {
@@ -262,7 +266,7 @@ export default function Dashboard({
                 <IconBolt size={12} /> Walk-In
               </span>
               <span style={{ fontSize: 18, fontWeight: 700, color: "#FFF", marginTop: 10 }}>Walk-In Mode</span>
-              <span style={{ fontSize: 13, color: "#A0A0A0", marginTop: 6, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>60 seconds. No account needed.</span>
+              <span style={{ fontSize: 13, color: "#A0A0A0", marginTop: 6, lineHeight: 1.4 }}>60 seconds. No account needed.</span>
               <span
                 style={{
                   marginTop: "auto",
@@ -499,6 +503,7 @@ export default function Dashboard({
               Run ATS Check
             </button>
           </div>
+          <MobileScrollFab tabKey={fabRouteTab} />
         </main>
       </div>
 

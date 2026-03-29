@@ -37,11 +37,18 @@ import LandingPage from './LandingPage';
 import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
 import AdminPanel from "./AdminPanel";
+import {
+  MobileScrollFab,
+  FabGuideBottomSheet,
+  readFabSeen,
+  BUILDER_FAB_GUIDES,
+  ATS_HIGH_SCORE_GUIDE,
+} from "./MobileFabGuide";
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
 function TabIconDoc({ active }) {
   const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <path d="M14 2v6h6" />
       <path d="M8 13h8" />
@@ -52,7 +59,7 @@ function TabIconDoc({ active }) {
 function TabIconTarget({ active }) {
   const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="8" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -61,7 +68,7 @@ function TabIconTarget({ active }) {
 function TabIconBolt({ active }) {
   const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
     </svg>
   );
@@ -69,7 +76,7 @@ function TabIconBolt({ active }) {
 function TabIconUser({ active }) {
   const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 21a8 8 0 0 0-16 0" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -78,7 +85,7 @@ function TabIconUser({ active }) {
 function TabIconCoverLetter({ active }) {
   const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
       <polyline points="22,6 12,13 2,6" />
       <path d="M8 13h4" />
@@ -1057,10 +1064,11 @@ function CoverLetterPage({ user, onBack }) {
           </button>
         </div>
       )}
+      <MobileScrollFab tabKey="cover-letter" />
     </div>
   );
 }
-function MobileTabBar({ currentPath, onNavigate, user }) {
+function MobileTabBar({ currentPath, onNavigate, user, fabGuideTab }) {
   if (!user) return null;
   const clean = currentPath.replace(/\/$/, "") || "/";
   const show = ["/dashboard", "/ats", "/cover-letter", "/walk-in", "/builder"].includes(clean);
@@ -1085,8 +1093,8 @@ function MobileTabBar({ currentPath, onNavigate, user }) {
         borderTop: "1px solid #1E1E1E",
         display: "none",
         gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
-        alignItems: "center",
-        padding: "4px 4px 10px",
+        alignItems: "stretch",
+        padding: "6px 4px 12px",
         backdropFilter: "blur(10px)",
         zIndex: 50,
         maxWidth: "100vw",
@@ -1094,17 +1102,20 @@ function MobileTabBar({ currentPath, onNavigate, user }) {
       }}
     >
       {tabs.map((t, idx) => {
-        const active =
-          t.label === "My CVs"
-            ? clean === "/dashboard" || clean === "/builder"
-            : t.account
-              ? false
-              : clean === t.id;
+        const active = t.account
+          ? clean === "/dashboard" && fabGuideTab === "account"
+          : t.label === "My CVs"
+            ? (clean === "/dashboard" || clean === "/builder") && fabGuideTab !== "account"
+            : clean === t.id;
         return (
           <button
             key={`${t.label}-${idx}`}
             type="button"
-            onClick={() => onNavigate(t.id)}
+            onClick={() => {
+              if (t.account) onNavigate("/dashboard", { state: { fabGuideTab: "account" } });
+              else if (t.label === "My CVs") onNavigate("/dashboard", { state: {} });
+              else onNavigate(t.id);
+            }}
             className="cvp-mobile-tabbar-btn"
             style={{
               background: "transparent",
@@ -1112,15 +1123,15 @@ function MobileTabBar({ currentPath, onNavigate, user }) {
               color: active ? "#FFFFFF" : "#555",
               display: "grid",
               justifyItems: "center",
-              gap: 3,
+              gap: 4,
               cursor: "pointer",
-              padding: "6px 2px",
-              minHeight: 44,
+              padding: "4px 2px",
+              minHeight: 52,
               alignContent: "center",
             }}
           >
             <t.Icon active={active} />
-            <span style={{ fontSize: 6.5, fontWeight: 600, color: active ? "#FFFFFF" : "#555", lineHeight: 1.15, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: active ? "#FFFFFF" : "#555", lineHeight: 1.15, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>
               {t.label}
             </span>
           </button>
@@ -1673,15 +1684,37 @@ function builderAtsBreakdown(resume) {
   ];
 }
 
-function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
+function isCvDataEmptyForTemplateApply(cv) {
+  const r = normalizeResumeForBuilder(cv);
+  const hasIdentity = String(r.name || "").trim().length > 0 || String(r.email || "").trim().length > 0;
+  const hasExp =
+    Array.isArray(r.experience) &&
+    r.experience.some((e) => String(e?.company || "").trim().length > 0 || String(e?.role || "").trim().length > 0);
+  const hasSum = String(r.summary || "").trim().length > 30;
+  const hasSkills = String(r.skills || "").trim().length > 10;
+  return !hasIdentity && !hasExp && !hasSum && !hasSkills;
+}
+
+function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onApplyTemplateAndGoToContent }) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("popular");
   const [pending, setPending] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [useTplBtnIn, setUseTplBtnIn] = useState(false);
   const prevFilterRef = useRef(null);
   const cardRefs = useRef(new Map());
   const ids = TEMPLATE_FILTER_IDS[filter] || TEMPLATE_FILTER_IDS.popular;
   const list = TEMPLATES.filter((t) => ids.includes(t.id));
+
+  useEffect(() => {
+    if (!pending) {
+      setUseTplBtnIn(false);
+      return;
+    }
+    setUseTplBtnIn(false);
+    const t = setTimeout(() => setUseTplBtnIn(true), 40);
+    return () => clearTimeout(t);
+  }, [pending]);
 
   useEffect(() => {
     const prev = prevFilterRef.current;
@@ -1704,6 +1737,17 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
     { id: "modern", label: "Modern" },
     { id: "creative", label: "Creative" },
   ];
+
+  const handleUseTemplateClick = () => {
+    if (!pending) return;
+    if (isCvDataEmptyForTemplateApply(resume)) {
+      onApplyTemplateAndGoToContent(pending);
+      setPending(null);
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
   return (
     <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box" }}>
       <div
@@ -1768,23 +1812,36 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
         ))}
       </div>
       {pending ? (
-        <div style={{ padding: "12px 10px 0" }}>
+        <div
+          style={{
+            position: "sticky",
+            bottom: 80,
+            zIndex: 10,
+            width: "calc(100% - 20px)",
+            margin: "12px auto 0",
+            padding: 0,
+            boxSizing: "border-box",
+          }}
+        >
           <button
             type="button"
-            onClick={() => setConfirmOpen(true)}
+            onClick={handleUseTemplateClick}
             style={{
-              width: "calc(100% - 20px)",
-              margin: "0 10px",
+              width: "100%",
+              margin: 0,
               boxSizing: "border-box",
               background: "#fff",
               color: "#000",
-              fontSize: 8.5,
-              borderRadius: 8,
+              fontSize: 14,
+              borderRadius: 10,
               border: "none",
-              padding: 7,
-              fontWeight: 600,
+              padding: 12,
+              fontWeight: 500,
               cursor: "pointer",
               minHeight: 44,
+              transform: useTplBtnIn ? "translateY(0)" : "translateY(20px)",
+              opacity: useTplBtnIn ? 1 : 0,
+              transition: "transform 0.3s ease, opacity 0.3s ease",
             }}
           >
             Use this template
@@ -1792,35 +1849,49 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
         </div>
       ) : null}
       {confirmOpen && pending ? (
-        <div
-          role="presentation"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.6)",
-            zIndex: 400,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-          }}
-          onClick={() => setConfirmOpen(false)}
-        >
+        <>
+          <div
+            role="presentation"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              zIndex: 120,
+            }}
+            onClick={() => setConfirmOpen(false)}
+          />
           <div
             role="dialog"
             aria-modal="true"
             style={{
+              position: "fixed",
+              bottom: 0,
+              left: 0,
+              right: 0,
               background: "#141414",
-              borderRadius: "16px 16px 0 0",
-              padding: 20,
-              maxHeight: "50vh",
+              borderRadius: "20px 20px 0 0",
+              padding: "24px 20px",
+              zIndex: 121,
               boxSizing: "border-box",
+              maxWidth: "100vw",
+              transform: "translateY(0)",
+              transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <p style={{ color: "#fff", fontSize: 13, margin: "0 0 16px", lineHeight: 1.4 }}>
+            <div
+              style={{
+                width: 36,
+                height: 4,
+                background: "#333",
+                borderRadius: 2,
+                margin: "0 auto 20px",
+              }}
+            />
+            <p style={{ color: "#fff", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
               Do you want to replace your current design with this template?
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button
                 type="button"
                 onClick={() => setConfirmOpen(false)}
@@ -1830,8 +1901,9 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
                   background: "#1C1C1C",
                   color: "#fff",
                   border: "none",
-                  borderRadius: 8,
-                  fontSize: 13,
+                  borderRadius: 10,
+                  padding: 14,
+                  fontSize: 14,
                   cursor: "pointer",
                 }}
               >
@@ -1840,7 +1912,7 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
               <button
                 type="button"
                 onClick={() => {
-                  onApplyTemplate(pending);
+                  onApplyTemplateAndGoToContent(pending);
                   setConfirmOpen(false);
                   setPending(null);
                 }}
@@ -1850,8 +1922,9 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
                   background: "#fff",
                   color: "#000",
                   border: "none",
-                  borderRadius: 8,
-                  fontSize: 13,
+                  borderRadius: 10,
+                  padding: 14,
+                  fontSize: 14,
                   fontWeight: 500,
                   cursor: "pointer",
                 }}
@@ -1860,7 +1933,7 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
               </button>
             </div>
           </div>
-        </div>
+        </>
       ) : null}
       <div style={{ padding: "16px 10px 8px", textAlign: "center" }}>
         <button
@@ -1882,7 +1955,7 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
   );
 }
 
-function BuilderAtsTabContent({ resume, onProCta, enableDoubtPopup = true }) {
+function BuilderAtsTabContent({ resume, onProCta }) {
   const score = builderAtsScore(resume);
   const breakdown = builderAtsBreakdown(resume);
   const pct = Math.max(0, Math.min(100, score));
@@ -1890,12 +1963,6 @@ function BuilderAtsTabContent({ resume, onProCta, enableDoubtPopup = true }) {
   const c = 2 * Math.PI * r;
   const arcLen = (pct / 100) * c;
   const dashActive = `${arcLen} ${c}`;
-  const [doubtPopup, setDoubtPopup] = useState(false);
-  useEffect(() => {
-    if (!enableDoubtPopup || pct < 71) return undefined;
-    const t = setTimeout(() => setDoubtPopup(true), 2000);
-    return () => clearTimeout(t);
-  }, [pct, enableDoubtPopup]);
   let singleStroke = "#E24B4A";
   if (pct >= 41 && pct < 71) singleStroke = "#EF9F27";
   if (pct >= 71) singleStroke = "#1D9E75";
@@ -2029,47 +2096,6 @@ function BuilderAtsTabContent({ resume, onProCta, enableDoubtPopup = true }) {
           Check Pro ATS →
         </button>
       </div>
-      {doubtPopup ? (
-        <div
-          role="dialog"
-          style={{
-            position: "fixed",
-            left: 16,
-            right: 16,
-            bottom: 88,
-            zIndex: 350,
-            background: "#1C1C1C",
-            border: "0.5px solid #333",
-            borderRadius: 10,
-            padding: 14,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-          }}
-        >
-          <p style={{ color: "#fff", fontSize: 11, margin: "0 0 10px", lineHeight: 1.45 }}>
-            Your score looks good — but are you 100% sure? ATS systems vary. Deep scan with Pro.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setDoubtPopup(false);
-              onProCta();
-            }}
-            style={{
-              width: "100%",
-              minHeight: 40,
-              background: "#fff",
-              color: "#000",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 600,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            Check Pro ATS
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -2608,7 +2634,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [openSection, setOpenSection] = useState(null);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [fabSheet, setFabSheet] = useState(null);
-  const [jobHasJd, setJobHasJd] = useState(false);
+  const [mobileGuide, setMobileGuide] = useState(null);
+  const [previewFadeOut, setPreviewFadeOut] = useState(false);
+  const [, setJobHasJd] = useState(false);
   const [experienceEditor, setExperienceEditor] = useState(null);
   const [educationEditor, setEducationEditor] = useState(null);
   const [certificationEditor, setCertificationEditor] = useState(null);
@@ -2681,13 +2709,27 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     mobilePreviewScrollRef.current?.scrollTo(0, 0);
   }, [selectedTemplate?.id]);
 
+  useEffect(() => {
+    const full = fabSheet === "preview" || previewFadeOut;
+    if (full) document.body.classList.add("cvp-builder-full-preview");
+    else document.body.classList.remove("cvp-builder-full-preview");
+    return () => document.body.classList.remove("cvp-builder-full-preview");
+  }, [fabSheet, previewFadeOut]);
+
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
 
   const score = builderAtsScore(resume);
-  const atsBreakdown = builderAtsBreakdown(resume);
 
   const templatesPanel = (
-    <BuilderTemplatesTab resume={resume} selectedTemplate={selectedTemplate} onApplyTemplate={setSelectedTemplate} />
+    <BuilderTemplatesTab
+      resume={resume}
+      selectedTemplate={selectedTemplate}
+      onApplyTemplate={setSelectedTemplate}
+      onApplyTemplateAndGoToContent={(tpl) => {
+        setSelectedTemplate(tpl);
+        setBuilderTab("content");
+      }}
+    />
   );
 
   const handleSave = useCallback(async () => {
@@ -2733,19 +2775,46 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     }
   };
 
+  const navigateToProAtsPage = useCallback(() => {
+    navigate("/ats");
+    setMobileGuide(null);
+    setFabSheet(null);
+  }, [navigate]);
+
   const openProAts = () => {
     setUpgradeOpen(true);
     setFabSheet(null);
+    setMobileGuide(null);
   };
 
-  const fabDot =
-    builderTab === "ats"
-      ? atsBreakdown.some((x) => !x.pass)
-      : builderTab === "templates"
-        ? !isPro
-        : builderTab === "jobmatch"
-          ? !jobHasJd
-          : builderTab === "content" && score < 71;
+  const closePreview = useCallback(() => {
+    setPreviewFadeOut(true);
+    setTimeout(() => {
+      setFabSheet(null);
+      setPreviewFadeOut(false);
+    }, 300);
+  }, []);
+
+  const openMobileFabGuide = () => {
+    if (builderTab === "ats" && score >= 71 && !readFabSeen("ats")) {
+      try {
+        if (typeof sessionStorage !== "undefined") sessionStorage.setItem("cvp_ats_fab_opened", "1");
+      } catch {
+        /* ignore */
+      }
+      setMobileGuide("ats_high");
+    } else {
+      setMobileGuide(builderTab);
+    }
+  };
+
+  const atsFabAnimActive =
+    builderTab === "ats" &&
+    score >= 71 &&
+    !readFabSeen("ats") &&
+    (typeof sessionStorage === "undefined" || sessionStorage.getItem("cvp_ats_fab_opened") !== "1");
+
+  const fabDot = !readFabSeen(builderTab);
 
   const handleOpenCoverLetter = () => {
     if (!isPro) {
@@ -3043,7 +3112,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       </div>
 
       {/* Mobile: single column */}
-      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", flex: 1, minHeight: 0, position: "relative", maxWidth: "100vw", overflow: "hidden" }}>
+      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", flex: 1, minHeight: 0, position: "relative", maxWidth: "100vw", overflowX: "hidden", overflowY: "visible" }}>
           <div className="cvp-builder-mobile-form">
             {builderTab === "content" && (
               <>
@@ -3235,6 +3304,89 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 {downloading ? "Preparing…" : "Download CV"}
               </button>
             </div>
+            {fabSheet !== "preview" ? (
+              <div
+                style={{
+                  position: "sticky",
+                  bottom: 80,
+                  zIndex: 55,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  padding: "0 12px 16px",
+                  pointerEvents: "none",
+                }}
+              >
+                <style>{`
+                  @keyframes cvpFabSpin { to { transform: rotate(360deg); } }
+                  @keyframes fabBounce { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-3px); } }
+                  @keyframes fabBorderFlicker { 0%, 100% { border-color: #1D9E75; } 50% { border-color: #EF9F27; } }
+                `}</style>
+                <button
+                  type="button"
+                  className="cvp-builder-fab"
+                  aria-label="Quick tips"
+                  onClick={openMobileFabGuide}
+                  style={{
+                    pointerEvents: "auto",
+                    width: 44,
+                    height: 44,
+                    minWidth: 44,
+                    minHeight: 44,
+                    borderRadius: "50%",
+                    background: "#0A0A0A",
+                    border: "1.5px solid #333",
+                    padding: 0,
+                    cursor: "pointer",
+                    display: "grid",
+                    placeItems: "center",
+                    zIndex: 55,
+                    boxSizing: "border-box",
+                    ...(atsFabAnimActive
+                      ? { animation: "fabBounce 1.5s ease-in-out infinite, fabBorderFlicker 0.9s ease-in-out infinite" }
+                      : {}),
+                  }}
+                >
+                  <span style={{ position: "relative", width: 28, height: 28, display: "grid", placeItems: "center" }}>
+                    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden style={{ display: "block" }}>
+                      <rect x="6" y="4" width="14" height="18" rx="3" fill="none" stroke="#444" strokeWidth="1" />
+                      <rect
+                        x="6"
+                        y="4"
+                        width="14"
+                        height="18"
+                        rx="3"
+                        fill="none"
+                        stroke="#fff"
+                        strokeWidth="1"
+                        strokeDasharray="11 45"
+                        strokeLinecap="round"
+                        style={{ transformOrigin: "14px 13px", animation: "cvpFabSpin 3s linear infinite" }}
+                      />
+                      <line x1="8" y1="10" x2="20" y2="10" stroke="#fff" strokeWidth="1" />
+                      <line x1="8" y1="13" x2="16" y2="13" stroke="#444" strokeWidth="1" />
+                      <line x1="8" y1="16" x2="15" y2="16" stroke="#444" strokeWidth="1" />
+                      <circle cx="20" cy="20" r="5" fill="#fff" />
+                      <path d="M17.5 20 L19.5 22 L23 18" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {fabDot ? (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: -2,
+                          right: -2,
+                          width: 10,
+                          height: 10,
+                          background: "#E24B4A",
+                          borderRadius: "50%",
+                          border: "2px solid #0A0A0A",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    ) : null}
+                  </span>
+                </button>
+              </div>
+            ) : null}
           </div>
 
         <div className="cvp-builder-mobile-hidden-capture" aria-hidden style={{ position: "absolute", left: -9999, top: 0, width: 794, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none", zIndex: -1 }}>
@@ -3243,72 +3395,46 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </div>
         </div>
 
-        <button
-          type="button"
-          className="cvp-builder-fab"
-          aria-label="Quick actions"
-          onClick={() => {
-            if (builderTab === "content") setFabSheet("preview");
-            else if (builderTab === "ats") setFabSheet("ats");
-            else if (builderTab === "templates") setFabSheet("templates");
-            else setFabSheet("jobmatch");
-          }}
-          style={{
-            position: "absolute",
-            bottom: 70,
-            left: 12,
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            background: "#0A0A0A",
-            border: "1.5px solid #333",
-            padding: 0,
-            cursor: "pointer",
-            display: "grid",
-            placeItems: "center",
-            zIndex: 60,
-            boxSizing: "border-box",
-          }}
-        >
-          <span style={{ position: "relative", width: 28, height: 28, display: "grid", placeItems: "center" }}>
-            <style>{`
-              @keyframes cvpFabSpin { to { transform: rotate(360deg); } }
-            `}</style>
-            <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden style={{ display: "block" }}>
-              <rect x="6" y="4" width="14" height="18" rx="3" fill="none" stroke="#444" strokeWidth="1" />
-              <rect x="6" y="4" width="14" height="18" rx="3" fill="none" stroke="#fff" strokeWidth="1" strokeDasharray="11 45" strokeLinecap="round" style={{ animation: "cvpFabSpin 3s linear infinite" }} />
-              <line x1="8" y1="10" x2="20" y2="10" stroke="#fff" strokeWidth="1" />
-              <line x1="8" y1="13" x2="16" y2="13" stroke="#444" strokeWidth="1" />
-              <line x1="8" y1="16" x2="15" y2="16" stroke="#444" strokeWidth="1" />
-              <circle cx="20" cy="20" r="5" fill="#fff" />
-              <path d="M17.5 20 L19.5 22 L23 18" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {fabDot ? (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -2,
-                  right: -2,
-                  width: 10,
-                  height: 10,
-                  background: "#E24B4A",
-                  borderRadius: "50%",
-                  border: "2px solid #0A0A0A",
-                  boxSizing: "border-box",
-                }}
-              />
-            ) : null}
-          </span>
-        </button>
-
         {fabSheet === "preview" ? (
-          <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0A0A0A", display: "flex", flexDirection: "column" }}>
-            <div style={{ flexShrink: 0, display: "flex", justifyContent: "flex-end", padding: 12, borderBottom: "0.5px solid #2A2A2A" }}>
-              <button type="button" onClick={() => setFabSheet(null)} aria-label="Close preview" style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 22, cursor: "pointer" }}>
-                ✕
-              </button>
-            </div>
-            <div ref={mobilePreviewScrollRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 16, WebkitOverflowScrolling: "touch" }}>
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 100,
+              background: "#0A0A0A",
+              opacity: previewFadeOut ? 0 : 1,
+              transition: "opacity 0.3s ease",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <button
+              type="button"
+              onClick={closePreview}
+              aria-label="Close preview"
+              style={{
+                position: "fixed",
+                top: 16,
+                right: 16,
+                background: "#141414",
+                border: "1px solid #333",
+                borderRadius: "50%",
+                width: 40,
+                height: 40,
+                minHeight: 44,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#fff",
+                fontSize: 18,
+                zIndex: 100,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              ✕
+            </button>
+            <div ref={mobilePreviewScrollRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 16, paddingTop: 56, WebkitOverflowScrolling: "touch" }}>
               <BuilderA4PreviewScaled
                 cv={resume}
                 template={selectedTemplate}
@@ -3320,93 +3446,28 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </div>
         ) : null}
 
-        {fabSheet === "ats" ? (
-          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)" }} onClick={() => setFabSheet(null)}>
-            <div
-              role="dialog"
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                maxHeight: "72vh",
-                overflowY: "auto",
-                background: "#141414",
-                borderRadius: "16px 16px 0 0",
-                padding: 16,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>ATS breakdown & tips</span>
-                <button type="button" onClick={() => setFabSheet(null)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 18, cursor: "pointer" }}>
-                  ✕
-                </button>
-              </div>
-              <BuilderAtsTabContent resume={resume} onProCta={openProAts} enableDoubtPopup={false} />
-            </div>
-          </div>
-        ) : null}
-
-        {fabSheet === "templates" ? (
-          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)" }} onClick={() => setFabSheet(null)}>
-            <div
-              role="dialog"
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                maxHeight: "55vh",
-                overflowY: "auto",
-                background: "#141414",
-                borderRadius: "16px 16px 0 0",
-                padding: 16,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Choose the right template</span>
-                <button type="button" onClick={() => setFabSheet(null)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 18, cursor: "pointer" }}>
-                  ✕
-                </button>
-              </div>
-              <p style={{ color: "#aaa", fontSize: 11, lineHeight: 1.5, margin: 0 }}>
-                Use <strong style={{ color: "#fff" }}>Simple</strong> for strict ATS portals; <strong style={{ color: "#fff" }}>Modern</strong> for tech and corporate roles; <strong style={{ color: "#fff" }}>Creative</strong> when the employer values design — always check the job post first.
-              </p>
-            </div>
-          </div>
-        ) : null}
-
-        {fabSheet === "jobmatch" ? (
-          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)" }} onClick={() => setFabSheet(null)}>
-            <div
-              role="dialog"
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                maxHeight: "50vh",
-                overflowY: "auto",
-                background: "#141414",
-                borderRadius: "16px 16px 0 0",
-                padding: 16,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Job Match</span>
-                <button type="button" onClick={() => setFabSheet(null)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 18, cursor: "pointer" }}>
-                  ✕
-                </button>
-              </div>
-              <p style={{ color: "#aaa", fontSize: 11, lineHeight: 1.5, margin: 0 }}>
-                Paste the full job description in the text area below, then run Analyse Match. We compare keywords from your CV against the role so you can close gaps before you apply.
-              </p>
-            </div>
-          </div>
-        ) : null}
+        <FabGuideBottomSheet
+          open={
+            mobileGuide != null &&
+            (mobileGuide === "ats_high" || BUILDER_FAB_GUIDES[mobileGuide])
+          }
+          onClose={() => setMobileGuide(null)}
+          title={
+            mobileGuide === "ats_high"
+              ? ATS_HIGH_SCORE_GUIDE.title
+              : BUILDER_FAB_GUIDES[mobileGuide]?.title || ""
+          }
+          points={
+            mobileGuide === "ats_high"
+              ? ATS_HIGH_SCORE_GUIDE.points
+              : BUILDER_FAB_GUIDES[mobileGuide]?.points || []
+          }
+          tabStorageKey={mobileGuide === "ats_high" ? "ats" : mobileGuide}
+          proCtaLabel={mobileGuide === "ats_high" ? "Check Pro ATS →" : undefined}
+          onProCta={mobileGuide === "ats_high" ? navigateToProAtsPage : undefined}
+          zOverlay={299}
+          zSheet={300}
+        />
       </div>
 
       <CoverLetterModal
@@ -4207,7 +4268,7 @@ export default function App() {
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-            <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} />
+            <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} fabGuideTab={location.state?.fabGuideTab} />
             <Analytics />
           </div>
         }

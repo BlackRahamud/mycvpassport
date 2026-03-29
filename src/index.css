@@ -455,12 +455,13 @@ input:focus, textarea:focus {
   }
 }
 
-/* Dashboard — Walk-In card on mobile */
+/* Dashboard — Walk-In card on mobile (natural height, no clipping) */
 @media (max-width: 768px) {
   .cvp-walkin-card {
     padding: 14px !important;
-    max-height: 160px !important;
-    min-height: 160px !important;
+    padding-bottom: 12px !important;
+    min-height: auto !important;
+    max-height: none !important;
   }
 }
 
@@ -487,6 +488,20 @@ input:focus, textarea:focus {
 @media (max-width: 768px) {
   .cvp-mobile-tabbar {
     display: grid !important;
+  }
+}
+
+/* Full-screen CV preview from builder — hide chrome + bottom nav */
+body.cvp-builder-full-preview .cvp-mobile-tabbar {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  body.cvp-builder-full-preview .cvp-builder-topbar {
+    display: none !important;
+  }
+  body.cvp-builder-full-preview .cvp-builder-mobile-download-row {
+    display: none !important;
   }
 }
 
