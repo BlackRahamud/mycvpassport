@@ -3,7 +3,7 @@ import HowItWorks from "./HowItWorks";
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
-import { mapAuthError, trimAuthFields } from "./authUtils";
+import { mapAuthError, trimAuthFields, classifySignInError } from "./authUtils";
 import mammoth from "mammoth";
 import ATSChecker from "./ATSChecker";
 import JobMatch from "./JobMatch";
@@ -2561,54 +2561,482 @@ const authPrimaryBtn = {
 };
 
 // ─── AUTH PAGE ────────────────────────────────────────────────────
-function AuthPage({ mode, onAuth, onToggle, loading, error, success }) {
+const AUTH_ERR_BOX = {
+  background: "rgba(239, 68, 68, 0.1)",
+  border: "1px solid rgba(239, 68, 68, 0.3)",
+  borderRadius: "8px",
+  padding: "12px 16px",
+  fontSize: "13px",
+  color: "#FCA5A5",
+  marginBottom: "16px",
+  fontFamily: AUTH_FONT,
+  lineHeight: 1.45,
+};
+
+function AuthPage({
+  mode,
+  onAuth,
+  onToggle,
+  loading,
+  error,
+  pendingVerificationEmail,
+  onClearAuthError,
+  onDelayedLoginNavigate,
+  onResendVerification,
+  onForgotPassword,
+  onGoToSignUp,
+  onBackToSignIn,
+}) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const submit = () => {
-    if (loading) return;
-    onAuth({ ...form, name: form.name || form.email.split("@")[0] }, mode);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginUiSuccess, setLoginUiSuccess] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [verifyResendLoading, setVerifyResendLoading] = useState(false);
+  const [verifyResendSuccess, setVerifyResendSuccess] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState(null);
+
+  const nameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+
+  const set = (k, v) => {
+    onClearAuthError?.();
+    setForm((f) => ({ ...f, [k]: v }));
   };
+
+  const clearFormError = () => {
+    onClearAuthError?.();
+    setForgotMessage(null);
+  };
+
+  const resolveErrorText = () => {
+    if (!error) return null;
+    if (error === "email_not_verified") {
+      return "Please verify your email first. Check your inbox for a verification link from CVPassport.";
+    }
+    if (error === "wrong_credentials") {
+      return "Incorrect password. Please try again.";
+    }
+    if (error === "no_account") {
+      return "No account found with this email. Want to create one?";
+    }
+    if (error === "rate_limited") {
+      return "Too many attempts. Please wait a few minutes and try again.";
+    }
+    if (error === "generic") {
+      return "Something went wrong. Please try again.";
+    }
+    if (error === "validation_missing") {
+      return "Please enter your email and password.";
+    }
+    if (error === "validation_password_short") {
+      return "Password must be at least 8 characters.";
+    }
+    return error;
+  };
+
+  const doSubmit = async () => {
+    if (loading || loginUiSuccess) return;
+    const email = emailRef.current?.value ?? form.email;
+    const password = passwordRef.current?.value ?? form.password;
+    const name = (nameRef.current?.value ?? form.name).trim();
+    const result = await onAuth(
+      { name: name || (email || "").split("@")[0] || "", email, password },
+      mode,
+    );
+    if (result?.loginShowSuccess && mode === "login") {
+      setLoginUiSuccess(true);
+      setTimeout(() => {
+        onDelayedLoginNavigate?.();
+      }, 800);
+    }
+  };
+
+  useEffect(() => {
+    setLoginUiSuccess(false);
+    setResendSuccess(false);
+    setVerifyResendSuccess(false);
+    setForgotMessage(null);
+  }, [mode]);
+
+  if (pendingVerificationEmail) {
+    const handleVerifyResend = async () => {
+      setVerifyResendLoading(true);
+      setVerifyResendSuccess(false);
+      const { ok } = (await onResendVerification?.(pendingVerificationEmail)) ?? { ok: false };
+      setVerifyResendLoading(false);
+      if (ok) setVerifyResendSuccess(true);
+    };
+    return (
+      <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+        <div style={authCardStyle}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }} aria-hidden>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="1.5">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <path d="M22 6l-10 7L2 6" />
+            </svg>
+          </div>
+          <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "8px", color: "#FFFFFF", fontFamily: AUTH_FONT, textAlign: "center" }}>
+            Check your email
+          </h2>
+          <p style={{ color: "#A0A0A0", marginBottom: "16px", fontSize: "14px", fontFamily: AUTH_FONT, lineHeight: 1.5, textAlign: "center" }}>
+            We sent a verification link to <span style={{ color: "#FFF" }}>{pendingVerificationEmail}</span>. Click it to activate your account — then come back here to sign in.
+          </p>
+          <p style={{ color: "#A0A0A0", marginBottom: "20px", fontSize: "12px", fontFamily: AUTH_FONT, textAlign: "center" }}>
+            Didn&apos;t get it? Check your spam folder.
+          </p>
+          <button
+            type="button"
+            disabled={verifyResendLoading}
+            onClick={handleVerifyResend}
+            style={{
+              width: "100%",
+              border: "1px solid #2A2A2A",
+              background: "transparent",
+              color: "#FFF",
+              fontSize: "13px",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              cursor: verifyResendLoading ? "not-allowed" : "pointer",
+              fontFamily: AUTH_FONT,
+              marginBottom: "8px",
+              opacity: verifyResendLoading ? 0.7 : 1,
+            }}
+          >
+            {verifyResendLoading ? "Sending…" : "Resend email"}
+          </button>
+          {verifyResendSuccess ? (
+            <p style={{ color: "#22C55E", fontSize: "12px", textAlign: "center", marginBottom: "16px", fontFamily: AUTH_FONT }}>
+              Verification email sent! Check your inbox.
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={onBackToSignIn}
+            style={{
+              width: "100%",
+              border: "none",
+              background: "none",
+              color: "#A0A0A0",
+              fontSize: "13px",
+              cursor: "pointer",
+              fontFamily: AUTH_FONT,
+              textDecoration: "underline",
+              padding: "8px 0",
+            }}
+          >
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const errText = resolveErrorText();
+  const pwInputType = showPassword ? "text" : "password";
+
+  const submitBtnStyle =
+    loginUiSuccess
+      ? { ...authPrimaryBtn, background: "#22C55E", color: "#FFFFFF", cursor: "default" }
+      : loading
+        ? { ...authPrimaryBtn, background: "#2A2A2A", color: "#FFFFFF", cursor: "not-allowed" }
+        : authPrimaryBtn;
+
   return (
     <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
       <div style={authCardStyle}>
-        <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF", fontFamily: AUTH_FONT }}>{mode === "login" ? "Welcome back" : "Create account"}</h2>
-        <p style={{ color: "#A0A0A0", marginBottom: "28px", fontSize: "14px", fontFamily: AUTH_FONT }}>{mode === "login" ? "Sign in to your CVPassport account" : "Start building your Gulf resume today"}</p>
-        {success && (
+        <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF", fontFamily: AUTH_FONT }}>
+          {mode === "login" ? "Welcome back" : "Create your account"}
+        </h2>
+        <p style={{ color: "#A0A0A0", marginBottom: "24px", fontSize: "14px", fontFamily: AUTH_FONT }}>
+          {mode === "login" ? "Sign in to your CVPassport account" : "Free to start — no credit card needed"}
+        </p>
+
+        {errText ? (
+          <div role="alert" style={AUTH_ERR_BOX}>
+            {errText}
+            {error === "email_not_verified" ? (
+              <div style={{ marginTop: "10px" }}>
+                <button
+                  type="button"
+                  disabled={resendLoading}
+                  onClick={async () => {
+                    setResendLoading(true);
+                    setResendSuccess(false);
+                    const email = emailRef.current?.value ?? form.email;
+                    const { ok } = (await onResendVerification?.(email)) ?? { ok: false };
+                    setResendLoading(false);
+                    if (ok) setResendSuccess(true);
+                  }}
+                  style={{
+                    border: "1px solid #2A2A2A",
+                    background: "transparent",
+                    color: "#FFF",
+                    fontSize: "13px",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    cursor: resendLoading ? "not-allowed" : "pointer",
+                    fontFamily: AUTH_FONT,
+                    marginTop: "8px",
+                  }}
+                >
+                  {resendLoading ? "Sending…" : "Resend verification email"}
+                </button>
+                {resendSuccess ? (
+                  <p style={{ color: "#22C55E", fontSize: "12px", marginTop: "8px", marginBottom: 0, fontFamily: AUTH_FONT }}>
+                    Verification email sent! Check your inbox.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {error === "wrong_credentials" ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  const email = emailRef.current?.value ?? form.email;
+                  const { ok, reason } = (await onForgotPassword?.(email)) ?? { ok: false };
+                  if (reason === "empty") setForgotMessage("Enter your email address first.");
+                  else if (ok) setForgotMessage("Reset link sent to your email.");
+                  else setForgotMessage("Something went wrong. Please try again.");
+                }}
+                style={{
+                  marginTop: "10px",
+                  border: "none",
+                  background: "none",
+                  color: "#A0A0A0",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  fontFamily: AUTH_FONT,
+                  textDecoration: "underline",
+                  padding: 0,
+                  display: "block",
+                }}
+              >
+                Forgot password?
+              </button>
+            ) : null}
+            {error === "no_account" ? (
+              <button
+                type="button"
+                onClick={() => onGoToSignUp?.()}
+                style={{
+                  marginTop: "10px",
+                  border: "none",
+                  background: "none",
+                  color: "#FFFFFF",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  fontFamily: AUTH_FONT,
+                  textDecoration: "underline",
+                  padding: 0,
+                  display: "block",
+                  fontWeight: 600,
+                }}
+              >
+                Sign up free
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {forgotMessage ? (
           <div
             role="status"
             style={{
-              background: "rgba(34,197,94,0.12)",
-              border: "1px solid rgba(34,197,94,0.45)",
-              borderRadius: "8px",
-              padding: "12px 16px",
-              marginBottom: "20px",
-              fontSize: "13px",
-              color: "#86EFAC",
-              fontFamily: AUTH_FONT,
-              lineHeight: 1.45,
+              ...AUTH_ERR_BOX,
+              background: forgotMessage.includes("Reset") ? "rgba(34, 197, 94, 0.1)" : AUTH_ERR_BOX.background,
+              borderColor: forgotMessage.includes("Reset") ? "rgba(34, 197, 94, 0.35)" : "rgba(239, 68, 68, 0.3)",
+              color: forgotMessage.includes("Reset") ? "#86EFAC" : "#FCA5A5",
+              marginBottom: "16px",
             }}
           >
-            {success}
+            {forgotMessage}
           </div>
-        )}
-        {error && <div style={{ background: "rgba(239,68,68,0.1)", border: `1px solid ${C.danger}`, borderRadius: "8px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: C.danger, fontFamily: AUTH_FONT }}>{error}</div>}
+        ) : null}
+
         <form
+          className="cvp-auth-form-anim"
+          key={mode}
+          autoComplete="on"
           onSubmit={(e) => {
             e.preventDefault();
-            submit();
+            setTimeout(() => void doSubmit(), 50);
           }}
           noValidate
         >
-          {mode === "signup" && <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Full Name</label><input style={authInputStyle} name="name" autoComplete="name" placeholder="Your Name" value={form.name} onChange={e=>set("name",e.target.value)}/></div>}
-          <div style={{ marginBottom: "16px" }}><label style={authLabelStyle}>Email</label><input style={authInputStyle} type="email" name="email" autoComplete="email" placeholder="you@email.com" value={form.email} onChange={e=>set("email",e.target.value)}/></div>
-          <div style={{ marginBottom: "24px" }}><label style={authLabelStyle}>Password</label><input style={authInputStyle} type="password" name="password" autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="••••••••" value={form.password} onChange={e=>set("password",e.target.value)}/></div>
-          <button type="submit" style={{ ...authPrimaryBtn, opacity: loading ? 0.7 : 1, cursor: loading ? "not-allowed" : "pointer" }} disabled={loading}>
-            {loading ? "Please wait..." : mode === "login" ? "Sign In →" : "Create Free Account →"}
+          {mode === "signup" ? (
+            <div style={{ marginBottom: "16px" }}>
+              <label style={authLabelStyle} htmlFor="cvp-auth-name">
+                Full name
+              </label>
+              <input
+                id="cvp-auth-name"
+                ref={nameRef}
+                className="cvp-auth-field"
+                style={authInputStyle}
+                name="name"
+                autoComplete="name"
+                placeholder="Your name"
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                onFocus={clearFormError}
+              />
+            </div>
+          ) : null}
+          <div style={{ marginBottom: "16px" }}>
+            <label style={authLabelStyle} htmlFor="cvp-auth-email">
+              Email
+            </label>
+            <input
+              id="cvp-auth-email"
+              ref={emailRef}
+              className="cvp-auth-field"
+              style={authInputStyle}
+              type="email"
+              name="email"
+              autoComplete="email"
+              placeholder="your@email.com"
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              onFocus={clearFormError}
+            />
+          </div>
+          <div style={{ marginBottom: mode === "signup" ? "8px" : "8px" }}>
+            <label style={authLabelStyle} htmlFor="cvp-auth-password">
+              Password
+            </label>
+            <div style={{ position: "relative", width: "100%" }}>
+              <input
+                id="cvp-auth-password"
+                ref={passwordRef}
+                className="cvp-auth-field"
+                style={{ ...authInputStyle, paddingRight: "44px" }}
+                type={pwInputType}
+                name="password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={mode === "login" ? "Your password" : "Create a password (min 8 characters)"}
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+                onFocus={clearFormError}
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowPassword((s) => !s)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "none",
+                  padding: 4,
+                  cursor: "pointer",
+                  display: "grid",
+                  placeItems: "center",
+                }}
+              >
+                {showPassword ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" strokeWidth="2">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {mode === "signup" ? (
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: form.password.length >= 8 ? "#22C55E" : "#A0A0A0",
+                  marginTop: "6px",
+                  marginBottom: 0,
+                  fontFamily: AUTH_FONT,
+                }}
+              >
+                At least 8 characters
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  clearFormError();
+                  const email = emailRef.current?.value ?? form.email;
+                  const { ok, reason } = (await onForgotPassword?.(email)) ?? { ok: false };
+                  if (reason === "empty") setForgotMessage("Enter your email address first.");
+                  else if (ok) setForgotMessage("Reset link sent to your email.");
+                  else setForgotMessage("Something went wrong. Please try again.");
+                }}
+                style={{
+                  marginTop: "8px",
+                  border: "none",
+                  background: "none",
+                  color: "#A0A0A0",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  fontFamily: AUTH_FONT,
+                  textDecoration: "underline",
+                  padding: 0,
+                }}
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            style={{
+              ...submitBtnStyle,
+              width: "100%",
+              marginTop: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+            }}
+            disabled={loading || loginUiSuccess}
+          >
+            {loginUiSuccess ? (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Welcome back!
+              </>
+            ) : loading ? (
+              <>
+                <span className="cvp-auth-spinner" aria-hidden />
+                {mode === "login" ? "Signing in…" : "Creating account…"}
+              </>
+            ) : mode === "login" ? (
+              "Sign in"
+            ) : (
+              "Create account"
+            )}
           </button>
         </form>
         <p style={{ textAlign: "center", marginTop: "20px", fontSize: "13px", color: "#A0A0A0", fontFamily: AUTH_FONT }}>
-          {mode === "login" ? "No account? " : "Already have one? "}
-          <span role="button" tabIndex={0} style={{ color: "#FFFFFF", cursor: "pointer", fontWeight: 600 }} onClick={onToggle} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onToggle(); }}>{mode === "login" ? "Sign up free" : "Sign in"}</span>
+          {mode === "login" ? "New here? " : "Already have an account? "}
+          <span
+            role="button"
+            tabIndex={0}
+            style={{ color: "#FFFFFF", cursor: "pointer", fontWeight: 600 }}
+            onClick={onToggle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") onToggle();
+            }}
+          >
+            {mode === "login" ? "Create a free account →" : "Sign in →"}
+          </span>
         </p>
       </div>
     </div>
@@ -4119,7 +4547,8 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError]   = useState(null);
-  const [authSuccess, setAuthSuccess] = useState(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState(null);
+  const authLoginSuccessHoldRef = useRef(false);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
   // eslint-disable-next-line no-unused-vars
@@ -4187,6 +4616,7 @@ export default function App() {
   useEffect(() => {
     if (!authReady || !user) return;
     const clean = location.pathname.replace(/\/$/, "") || "/";
+    if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) return;
     if (clean === "/auth" || clean === "/register") {
       navigate("/dashboard", { replace: true });
       return;
@@ -4197,20 +4627,19 @@ export default function App() {
   }, [authReady, user, location.pathname, navigate]);
 
   const handleAuth = async (userData, modeOverride) => {
-    if (!supabase) return;
+    if (!supabase) return { ok: false };
     const isSignup = (modeOverride ?? authMode) === "signup";
     const trimmed = trimAuthFields(userData);
     setAuthError(null);
-    setAuthSuccess(null);
     setAuthLoading(true);
     try {
       if (!trimmed.email || !trimmed.password) {
-        setAuthError("Please enter your email and password.");
-        return;
+        setAuthError("validation_missing");
+        return { ok: false };
       }
-      if (isSignup && trimmed.password.length < 6) {
-        setAuthError("Password must be at least 6 characters.");
-        return;
+      if (isSignup && trimmed.password.length < 8) {
+        setAuthError("validation_password_short");
+        return { ok: false };
       }
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const emailRedirectTo = origin ? `${origin}/auth` : undefined;
@@ -4224,44 +4653,79 @@ export default function App() {
             data: { name: trimmed.name || trimmed.email.split("@")[0] },
           },
         });
-        if (error) throw error;
+        if (error) {
+          setAuthError(mapAuthError(error));
+          return { ok: false };
+        }
         if (data.session && data.user) {
           await ensureProfileRow(data.user);
           setUser({ name: trimmed.name || extractName(data.user), email: data.user.email, id: data.user.id });
           setIsPro(false);
+          setPendingVerificationEmail(null);
           navigate("/dashboard", { replace: true });
-          return;
+          return { ok: true };
         }
         if (data.user && !data.session) {
-          setAuthSuccess(
-            "Account created successfully. Check your email for a verification link, then sign in here.",
-          );
-          return;
+          setPendingVerificationEmail(trimmed.email);
+          return { ok: true };
         }
         setAuthError("Signup could not be completed. Try again or use a different email.");
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: trimmed.email,
-          password: trimmed.password,
-        });
-        if (error) throw error;
-        if (!data.user) {
-          setAuthError("Sign in failed. Please try again.");
-          return;
-        }
-        await ensureProfileRow(data.user);
-        setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id });
-        navigate("/dashboard", { replace: true });
+        return { ok: false };
       }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: trimmed.email,
+        password: trimmed.password,
+      });
+      if (error) {
+        setAuthError(classifySignInError(error));
+        return { ok: false };
+      }
+      if (!data.user) {
+        setAuthError("generic");
+        return { ok: false };
+      }
+      await ensureProfileRow(data.user);
+      setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id });
+      setPendingVerificationEmail(null);
+      authLoginSuccessHoldRef.current = true;
+      return { ok: true, loginShowSuccess: true };
     } catch (err) {
       console.error("handleAuth:", err);
       setAuthError(mapAuthError(err));
+      return { ok: false };
     } finally {
       setAuthLoading(false);
     }
   };
 
-  const handleLogout = async () => { if (supabase) await supabase.auth.signOut(); setUser(null); setIsPro(false); navigate("/"); };
+  const handleResendVerification = useCallback(async (email) => {
+    if (!supabase) return { ok: false };
+    const e = (email || "").trim().toLowerCase();
+    if (!e) return { ok: false };
+    const { error } = await supabase.auth.resend({ type: "signup", email: e });
+    return { ok: !error };
+  }, []);
+
+  const handleForgotPassword = useCallback(async (email) => {
+    if (!supabase) return { ok: false, reason: "generic" };
+    const e = (email || "").trim().toLowerCase();
+    if (!e) return { ok: false, reason: "empty" };
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const { error } = await supabase.auth.resetPasswordForEmail(e, {
+      redirectTo: origin ? `${origin}/auth` : undefined,
+    });
+    if (error) return { ok: false, reason: "generic" };
+    return { ok: true };
+  }, []);
+
+  const handleLogout = async () => {
+    authLoginSuccessHoldRef.current = false;
+    if (supabase) await supabase.auth.signOut();
+    setUser(null);
+    setIsPro(false);
+    navigate("/");
+  };
 
   const handleEditResume  = (record) => { setEditingResume(record); navigate("/builder"); };
   const handleNewResume   = ()       => { setEditingResume(null);   navigate("/builder"); };
@@ -4295,13 +4759,30 @@ export default function App() {
                     mode={authMode}
                     onAuth={handleAuth}
                     onToggle={() => {
+                      setPendingVerificationEmail(null);
                       setAuthMode((m) => (m === "login" ? "signup" : "login"));
                       setAuthError(null);
-                      setAuthSuccess(null);
                     }}
                     loading={authLoading}
                     error={authError}
-                    success={authSuccess}
+                    pendingVerificationEmail={pendingVerificationEmail}
+                    onClearAuthError={() => setAuthError(null)}
+                    onDelayedLoginNavigate={() => {
+                      authLoginSuccessHoldRef.current = false;
+                      navigate("/dashboard", { replace: true });
+                    }}
+                    onResendVerification={handleResendVerification}
+                    onForgotPassword={handleForgotPassword}
+                    onGoToSignUp={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthMode("signup");
+                      navigate("/register");
+                    }}
+                    onBackToSignIn={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthMode("login");
+                      navigate("/auth");
+                    }}
                   />
                 }
               />
@@ -4312,14 +4793,31 @@ export default function App() {
                     mode="signup"
                     onAuth={handleAuth}
                     onToggle={() => {
+                      setPendingVerificationEmail(null);
                       setAuthMode("login");
                       setAuthError(null);
-                      setAuthSuccess(null);
                       navigate("/auth");
                     }}
                     loading={authLoading}
                     error={authError}
-                    success={authSuccess}
+                    pendingVerificationEmail={pendingVerificationEmail}
+                    onClearAuthError={() => setAuthError(null)}
+                    onDelayedLoginNavigate={() => {
+                      authLoginSuccessHoldRef.current = false;
+                      navigate("/dashboard", { replace: true });
+                    }}
+                    onResendVerification={handleResendVerification}
+                    onForgotPassword={handleForgotPassword}
+                    onGoToSignUp={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthMode("signup");
+                      navigate("/register");
+                    }}
+                    onBackToSignIn={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthMode("login");
+                      navigate("/auth");
+                    }}
                   />
                 }
               />

@@ -124,6 +124,49 @@ input:focus, textarea:focus {
   pointer-events: none;
 }
 
+/* Auth — focused field styling (no transition: all) */
+.cvp-auth-page input.cvp-auth-field {
+  transition: border-color 150ms ease;
+}
+
+.cvp-auth-page input.cvp-auth-field:focus,
+.cvp-auth-page input.cvp-auth-field:focus-visible {
+  outline: none;
+  border-color: #ffffff;
+  box-shadow: none;
+}
+
+@keyframes cvp-auth-form-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cvp-auth-form-anim {
+  animation: cvp-auth-form-in 200ms ease-out;
+}
+
+@keyframes cvp-auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cvp-auth-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: cvp-auth-spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
 /* Dashboard CV card grid — responsive columns */
 .cvp-cv-grid {
   display: grid;

@@ -1,5 +1,5 @@
 /**
- * Human-readable Supabase Auth errors for signup/login (rate limits, verification, etc.)
+ * Human-readable Supabase Auth errors for signup (rate limits, verification, etc.)
  */
 export function mapAuthError(error) {
   if (!error) return "Something went wrong. Please try again.";
@@ -28,10 +28,47 @@ export function mapAuthError(error) {
   return raw || "Something went wrong. Please try again.";
 }
 
+/**
+ * Classify sign-in errors for targeted UI (resend verification, forgot password, etc.)
+ */
+export function classifySignInError(error) {
+  if (!error) return "generic";
+  const msg = String(error.message || "").toLowerCase();
+  const status = error.status;
+
+  if (
+    status === 429 ||
+    msg.includes("too many requests") ||
+    msg.includes("rate limit") ||
+    msg.includes("over_request_rate")
+  ) {
+    return "rate_limited";
+  }
+  if (
+    msg.includes("email not confirmed") ||
+    msg.includes("not confirmed") ||
+    msg.includes("email_not_confirmed")
+  ) {
+    return "email_not_verified";
+  }
+  if (
+    msg.includes("invalid login") ||
+    msg.includes("invalid credentials") ||
+    msg.includes("invalid_credentials") ||
+    msg.includes("wrong password")
+  ) {
+    return "wrong_credentials";
+  }
+  if (msg.includes("user not found") || msg.includes("no user")) {
+    return "no_account";
+  }
+  return "generic";
+}
+
 export function trimAuthFields({ name, email, password }) {
   return {
     name: (name || "").trim(),
-    email: (email || "").trim(),
-    password: password || "",
+    email: (email || "").trim().toLowerCase(),
+    password: (password || "").trim(),
   };
 }
