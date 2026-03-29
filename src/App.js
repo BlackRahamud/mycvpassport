@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import HowItWorks from "./HowItWorks";
-import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, memo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import { supabase as supabaseImport } from "./supabaseClient";
 import { mapAuthError, trimAuthFields } from "./authUtils";
@@ -1778,6 +1778,8 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
             width: A4_PREVIEW_WIDTH_PX,
             transform: "scale(0.18)",
             transformOrigin: "top left",
+            willChange: "transform",
+            transition: "none",
             pointerEvents: "none",
           }}
         >
@@ -2300,7 +2302,19 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
 // ─── PREVIEW: TEMPLATE THUMB WRAPPER ──────────────────────────────
 const TemplateThumb = ({ children }) => (
   <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#fff", borderRadius: "12px" }}>
-    <div style={{ position: "absolute", top: 0, left: 0, width: "794px", transformOrigin: "top left", transform: "scale(0.18)", pointerEvents: "none" }}>
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "794px",
+        transformOrigin: "top left",
+        transform: "scale(0.18)",
+        willChange: "transform",
+        transition: "none",
+        pointerEvents: "none",
+      }}
+    >
       {children}
     </div>
   </div>
@@ -2790,13 +2804,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setTemplateSessionApplyCount(0);
     }
   }, [builderTab]);
-
-  useLayoutEffect(() => {
-    const el = desktopPreviewFitRef.current;
-    if (!el) return;
-    const w = el.getBoundingClientRect().width;
-    if (w >= 1) setDesktopPreviewContainerWidth((prev) => (Math.abs(prev - w) < 1 ? prev : w));
-  }, []);
 
   useEffect(() => {
     const el = desktopPreviewFitRef.current;

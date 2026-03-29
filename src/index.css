@@ -119,6 +119,8 @@ input:focus, textarea:focus {
   height: 1123px;
   transform-origin: top left;
   transform: scale(0.18);
+  will-change: transform;
+  transition: none;
   pointer-events: none;
 }
 
