@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FAB } from "./components/FAB";
+import "./components/FAB/FAB.css";
 import { writeFabMemory } from "./components/FAB/FABLogic";
 
 /**
@@ -418,7 +420,13 @@ function WalkInCvPreview({ data }) {
   );
 }
 
+/**
+ * Post-generation progress ladder renders when CV is ready.
+ * Steps: CV built (done) → ATS scan (upgrade) → Full builder (upgrade).
+ * CTAs navigate to ATS tab and builder. Download button below.
+ */
 export default function WalkInMode({ onBack, onComplete, setResume, setSelectedTemplate }) {
+  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 1024 : false,
   );
@@ -589,6 +597,236 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
   const labelStyle = { display: "block", fontSize: 11, fontWeight: 500, color: TOKENS.textSecondary, marginBottom: 6 };
 
   const visibleJobs = jobsExpanded ? ALL_JOBS : JOBS_DEFAULT;
+
+  const walkInNextStepStyle = {
+    width: 30,
+    height: 30,
+    borderRadius: "50%",
+    background: "#1C1C1C",
+    border: "1px solid #2A2A2A",
+    boxSizing: "border-box",
+    display: "grid",
+    placeItems: "center",
+    zIndex: 1,
+  };
+
+  const walkInDoneActions = walkInCvBuilt ? (
+    <div style={{ marginTop: 24, display: "flex", flexDirection: "column", width: "100%" }}>
+      <div className="cvp-ats-fade-up-delay-0">
+        <span
+          style={{
+            background: "#0F2E1A",
+            color: "#4CAF7D",
+            fontSize: 10,
+            padding: "2px 10px",
+            borderRadius: 20,
+            display: "block",
+            textAlign: "center",
+            marginBottom: 10,
+            fontFamily: FONT,
+            fontWeight: 500,
+          }}
+        >
+          CV ready to download
+        </span>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 500,
+            color: "#fff",
+            textAlign: "center",
+            marginBottom: 4,
+            fontFamily: FONT,
+          }}
+        >
+          Walk-in CV done.
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "#A0A0A0",
+            textAlign: "center",
+            marginBottom: 14,
+            fontFamily: FONT,
+          }}
+        >
+          Want to maximise your chances?
+        </div>
+      </div>
+
+      <div className="cvp-ats-fade-up-delay-1" style={{ position: "relative", marginTop: 0, width: "100%" }}>
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 15,
+            height: 1,
+            background: "#2A2A2A",
+            zIndex: 0,
+          }}
+        />
+        <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", gap: 8, position: "relative", zIndex: 1 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
+            <div
+              className="cvp-ats-step-pop"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "#378ADD",
+                display: "grid",
+                placeItems: "center",
+                zIndex: 1,
+              }}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M20 6L9 17l-5-5"
+                  stroke="#fff"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#378ADD", fontFamily: FONT }}>CV built</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0", fontFamily: FONT }}>done</div>
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
+            <div style={walkInNextStepStyle}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#2A2A2A" }} />
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#A0A0A0", fontFamily: FONT }}>ATS scan</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0", fontFamily: FONT }}>upgrade</div>
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
+            <div style={walkInNextStepStyle}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#2A2A2A" }} />
+            </div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#A0A0A0", fontFamily: FONT }}>Full builder</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0", fontFamily: FONT }}>upgrade</div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="cvp-walkin-done-cta-host cvp-ats-fade-up-delay-2"
+        style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 20, width: "100%" }}
+      >
+        <button type="button" className="cvp-ats-sheet-cta-btn" onClick={() => navigate("/ats")}>
+          <span>Run ATS scan</span>
+          <span className="cvp-ats-sheet-cta-arrow" aria-hidden>
+            →
+          </span>
+        </button>
+        <button type="button" className="cvp-ats-sheet-cta-btn cvp-ats-sheet-cta-btn--shimmer-delay" onClick={handleGoBuilder}>
+          <span>Use full CV builder</span>
+          <span className="cvp-ats-sheet-cta-arrow" aria-hidden>
+            →
+          </span>
+        </button>
+      </div>
+
+      <div style={{ borderTop: "1px solid #2A2A2A", width: "100%", marginTop: 0 }} />
+
+      <button
+        type="button"
+        disabled={pdfBusy}
+        onClick={handleDownloadPdf}
+        style={{
+          background: "transparent",
+          border: "none",
+          color: "#A0A0A0",
+          fontSize: 13,
+          padding: 14,
+          width: "100%",
+          textAlign: "center",
+          cursor: pdfBusy ? "wait" : "pointer",
+          fontFamily: FONT,
+        }}
+      >
+        {pdfBusy ? "Preparing PDF…" : "Download & go"}
+      </button>
+
+      <button
+        type="button"
+        onClick={handleWhatsApp}
+        style={{
+          background: TOKENS.whatsapp,
+          color: "#ffffff",
+          border: "none",
+          borderRadius: 12,
+          padding: 14,
+          fontWeight: 700,
+          fontSize: 11,
+          cursor: "pointer",
+          boxShadow: "0 0 20px rgba(37,211,102,0.3), 0 0 40px rgba(37,211,102,0.1)",
+          transition: "box-shadow 300ms ease, opacity 300ms ease",
+          fontFamily: FONT,
+        }}
+      >
+        Share via WhatsApp
+      </button>
+    </div>
+  ) : (
+    <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+      <button
+        type="button"
+        disabled={pdfBusy}
+        onClick={handleDownloadPdf}
+        style={{
+          background: "#FFFFFF",
+          color: "#000000",
+          border: "none",
+          borderRadius: 12,
+          padding: 14,
+          fontWeight: 700,
+          fontSize: 11,
+          cursor: pdfBusy ? "wait" : "pointer",
+          boxShadow: "0 0 20px rgba(255,255,255,0.15), 0 0 40px rgba(255,255,255,0.05)",
+          transition: "box-shadow 300ms ease, opacity 300ms ease",
+          fontFamily: FONT,
+        }}
+      >
+        {pdfBusy ? "Preparing PDF…" : "Download PDF"}
+      </button>
+      <button
+        type="button"
+        onClick={handleWhatsApp}
+        style={{
+          background: TOKENS.whatsapp,
+          color: "#ffffff",
+          border: "none",
+          borderRadius: 12,
+          padding: 14,
+          fontWeight: 700,
+          fontSize: 11,
+          cursor: "pointer",
+          boxShadow: "0 0 20px rgba(37,211,102,0.3), 0 0 40px rgba(37,211,102,0.1)",
+          transition: "box-shadow 300ms ease, opacity 300ms ease",
+          fontFamily: FONT,
+        }}
+      >
+        Share via WhatsApp
+      </button>
+      <button
+        type="button"
+        onClick={handleGoBuilder}
+        style={{
+          background: "transparent",
+          border: "none",
+          color: "#2A2A2A",
+          fontSize: 12,
+          textAlign: "center",
+          cursor: "pointer",
+          fontFamily: FONT,
+        }}
+      >
+        Want a full CV? Build it here →
+      </button>
+    </div>
+  );
 
   const formSection = (
     <div
@@ -824,62 +1062,7 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         </div>
       </div>
 
-      <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-          <button
-            type="button"
-            disabled={pdfBusy}
-            onClick={handleDownloadPdf}
-            style={{
-              background: "#FFFFFF",
-              color: "#000000",
-              border: "none",
-              borderRadius: 12,
-              padding: 14,
-              fontWeight: 700,
-              fontSize: 11,
-              cursor: pdfBusy ? "wait" : "pointer",
-              boxShadow: "0 0 20px rgba(255,255,255,0.15), 0 0 40px rgba(255,255,255,0.05)",
-              transition: "box-shadow 300ms ease, opacity 300ms ease",
-              fontFamily: FONT,
-            }}
-          >
-            {pdfBusy ? "Preparing PDF…" : "Download PDF"}
-          </button>
-          <button
-            type="button"
-            onClick={handleWhatsApp}
-            style={{
-              background: TOKENS.whatsapp,
-              color: "#ffffff",
-              border: "none",
-              borderRadius: 12,
-              padding: 14,
-              fontWeight: 700,
-              fontSize: 11,
-            cursor: "pointer",
-              boxShadow: "0 0 20px rgba(37,211,102,0.3), 0 0 40px rgba(37,211,102,0.1)",
-              transition: "box-shadow 300ms ease, opacity 300ms ease",
-              fontFamily: FONT,
-            }}
-          >
-            Share via WhatsApp
-          </button>
-          <button
-            type="button"
-            onClick={handleGoBuilder}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#2A2A2A",
-              fontSize: 12,
-              textAlign: "center",
-              cursor: "pointer",
-              fontFamily: FONT,
-            }}
-          >
-            Want a full CV? Build it here →
-          </button>
-      </div>
+      {walkInDoneActions}
     </div>
   );
 

@@ -392,7 +392,8 @@
   }
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn {
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn {
   position: relative;
   overflow: hidden;
   background: #1c1c1c;
@@ -413,7 +414,12 @@
     transform 0.1s ease !important;
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn::after {
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn {
+  font-size: 13px;
+}
+
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn::after,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn::after {
   content: "";
   position: absolute;
   top: 0;
@@ -426,34 +432,40 @@
   z-index: 0;
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn--shimmer-delay::after {
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn--shimmer-delay::after,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn--shimmer-delay::after {
   animation-delay: 0.4s;
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn > span:first-child {
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn > span:first-child,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn > span:first-child {
   position: relative;
   z-index: 1;
   text-align: left;
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-arrow {
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-arrow,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-arrow {
   position: relative;
   z-index: 1;
   color: #a0a0a0;
   transition: color 0.15s ease, transform 0.2s ease !important;
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover {
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn:hover {
   background: #242424 !important;
   border-color: #378add !important;
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover .cvp-ats-sheet-cta-arrow {
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover .cvp-ats-sheet-cta-arrow,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn:hover .cvp-ats-sheet-cta-arrow {
   color: #378add !important;
   transform: translateX(3px) !important;
 }
 
-.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:active {
+.cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:active,
+.cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn:active {
   transform: scale(0.98) !important;
 }
 
