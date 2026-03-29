@@ -241,6 +241,13 @@
   flex-shrink: 0;
 }
 
+.cvp-fab-sheet-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .cvp-fab-sheet-scroll {
   flex: 1;
   min-height: 0;
@@ -256,8 +263,7 @@
 
 .cvp-fab-sheet-gotit-bar {
   flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
+  margin-top: auto;
   background: var(--bg-surface, #141414);
   padding: 12px 0;
   padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);

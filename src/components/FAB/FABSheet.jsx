@@ -309,15 +309,15 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
       <div
         style={{
           fontSize: 11,
-          fontWeight: 600,
+          fontWeight: 400,
           color: "var(--text-secondary, #A0A0A0)",
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
+          textTransform: "none",
+          letterSpacing: "normal",
           marginBottom: 10,
           textAlign: "center",
         }}
       >
-        Download gatekeeper
+        Download Status
       </div>
       {downloadGatekeeper == null ? (
         <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>
@@ -999,6 +999,7 @@ export default function FABSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <span className="cvp-fab-sheet-drag-handle" aria-hidden />
+        <div className="cvp-fab-sheet-main">
         <div className={`cvp-fab-sheet-scroll${showGotItButton ? "" : " cvp-fab-sheet-scroll--no-sticky-footer"}`}>
           {cvCompletionProgress ? (
             <div style={{ width: "100%", marginBottom: 16 }}>
@@ -1340,6 +1341,7 @@ export default function FABSheet({
             </button>
           </div>
         ) : null}
+        </div>
       </div>
     </>
   );

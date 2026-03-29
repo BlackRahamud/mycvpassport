@@ -162,7 +162,7 @@ export function getFabTopGreetingLine(memory, coach) {
       const days = Math.floor((Date.now() - new Date(memory.lastActionAt).getTime()) / 86400000);
       return `Back again — your CV was last updated ${days} day(s) ago.`;
     }
-    return "Good to see you back.";
+    return null;
   }
   if (sc >= 5) {
     const miss = coach?.missingSections?.[0];

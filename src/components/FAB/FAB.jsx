@@ -307,8 +307,13 @@ const FAB = forwardRef(function FAB(
   );
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia("(max-width: 768px)").matches) return undefined;
-    if (variant !== "builder" || tabKey !== "ats") return undefined;
+    if (typeof window === "undefined" || window.innerWidth >= 768) return undefined;
+    const isAtsTab =
+      (variant === "builder" && tabKey === "ats") || (variant === "route" && tabKey === "ats");
+    if (!isAtsTab) return undefined;
+    if (process.env.NODE_ENV === "development") {
+      console.log("[FAB ATS land]", { variant, tabKey, innerWidth: window.innerWidth, sheetOpen });
+    }
     if (sheetOpen) {
       atsLandTriggeredRef.current = true;
       return undefined;
@@ -606,8 +611,12 @@ const FAB = forwardRef(function FAB(
       openTemplatesSmartSheet();
       return;
     }
+    if (variant === "route" && tabKey === "cover-letter") {
+      openGuideSheet(false);
+      return;
+    }
     setMenuOpen(true);
-  }, [variant, tabKey, openTemplatesSmartSheet, clearTplTimers]);
+  }, [variant, tabKey, openTemplatesSmartSheet, openGuideSheet, clearTplTimers]);
 
   if (!mobile || !config || hidden) return null;
 

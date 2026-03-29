@@ -41,7 +41,7 @@ const BUILDER_GUIDES = {
     ],
   },
   templates: {
-    title: "Choosing a template",
+    title: "Templates",
     points: [
       { icon: "filter", text: "Browse by category using the filter pills" },
       { icon: "edit", text: "Free templates apply instantly" },
