@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { FAB } from "./components/FAB";
 import { getFabMemory, writeFabMemory, checkAtsMilestone } from "./components/FAB/FABLogic";
 import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
@@ -25,6 +25,31 @@ const FORMATTING_FLAGS = [
   { id: "special", pattern: /[●◆■▶►✦✧★☆]/, msg: "Non-standard bullet symbols — use hyphens." },
   { id: "columns", pattern: /(.{1,40}\s{5,}.{1,40}){3,}/, msg: "Multi-column layout detected." },
 ];
+
+const ATS_SECTION_GAP_LABELS = {
+  experience: "Experience",
+  education: "Education",
+  skills: "Skills",
+  summary: "Summary",
+  certifications: "Certifications",
+};
+
+function buildAtsChecksFromResult(res) {
+  if (!res) return [];
+  const out = [];
+  for (const k of res.sec?.missing || []) {
+    out.push(ATS_SECTION_GAP_LABELS[k] || String(k));
+  }
+  for (const w of res.fmt?.warnings || []) {
+    out.push(w.msg);
+  }
+  const mk = res.kw?.missing || [];
+  const budget = Math.max(0, 8 - out.length);
+  for (let i = 0; i < Math.min(budget, mk.length); i++) {
+    out.push(`Keyword: ${mk[i]}`);
+  }
+  return out;
+}
 
 // --- Circular Gauge Component ---
 function ReadinessGauge({ score }) {
@@ -151,6 +176,8 @@ export default function ATSChecker(props) {
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlistMessage, setWaitlistMessage] = useState({ type: "", text: "" });
   const fabRef = useRef(null);
+
+  const atsChecks = useMemo(() => buildAtsChecksFromResult(result), [result]);
 
   const handleDownloadCv = async () => {
     if (!resumeFile) return;
@@ -459,7 +486,7 @@ export default function ATSChecker(props) {
         </div>
       )}
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="ats" />
-      <FAB ref={fabRef} tabKey="ats" atsScore={result?.total ?? 0} />
+      <FAB ref={fabRef} tabKey="ats" atsScore={result?.total ?? 0} atsChecks={atsChecks} />
     </div>
   );
 }

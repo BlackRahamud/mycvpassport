@@ -1,7 +1,12 @@
-/* FAB suite: no transition-based motion; keyframe animations only */
+/* FAB suite: no transition:all; keyframes + explicit transform transitions only where specified */
 .cvp-fab-layer,
 .cvp-fab-layer * {
   transition: none !important;
+}
+
+.cvp-fab-sticky-wrap.cvp-fab-sheet-open .cvp-builder-fab {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transform: translateY(-20px);
 }
 
 @keyframes cvpFabSpin {
@@ -67,11 +72,19 @@
   }
 }
 
-@keyframes fabSheetSlideUp {
-  from {
+@keyframes fabSheetReveal {
+  0% {
     transform: translateY(100%);
+    opacity: 0;
   }
-  to {
+  60% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(4px);
+  }
+  100% {
     transform: translateY(0);
   }
 }
@@ -167,6 +180,8 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .cvp-fab-sheet-panel {
@@ -183,7 +198,17 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: fabSheetSlideUp 0.28s ease forwards;
+  animation: fabSheetReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.cvp-fab-sheet-drag-handle {
+  width: 40px;
+  height: 4px;
+  background: #3a3a3a;
+  border-radius: 99px;
+  margin: 10px auto 16px auto;
+  display: block;
+  flex-shrink: 0;
 }
 
 .cvp-fab-sheet-scroll {
@@ -191,7 +216,7 @@
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 24px 20px 16px;
+  padding: 0 20px 16px;
   box-sizing: border-box;
 }
 
@@ -204,9 +229,17 @@
   position: sticky;
   bottom: 0;
   background: var(--bg-surface, #141414);
-  padding: 12px 20px;
+  padding: 12px 0;
   padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
   box-sizing: border-box;
+}
+
+.cvp-fab-sheet-gotit-bar .cvp-fab-sheet-gotit-btn {
+  margin: 0 20px 20px 20px;
+  width: calc(100% - 40px);
+  box-sizing: border-box;
+  border-radius: 12px;
+  padding: 14px;
 }
 
 .cvp-fab-sticky-wrap {

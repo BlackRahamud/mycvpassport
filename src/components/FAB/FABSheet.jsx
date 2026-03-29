@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./FAB.css";
-import { FAB_COVER_LETTER_CROSS_SELL } from "./FABContent";
+import { FAB_COVER_LETTER_CROSS_SELL, ATS_FAB_CHIP_TO_NAV_KEY } from "./FABContent";
 import {
   writeFabSeen,
   PROGRESS_COACH_LABEL_TO_NAV_KEY,
@@ -22,6 +22,14 @@ export function getRingColour(percent) {
   return "#22C55E";
 }
 
+export function getAtsScoreStrokeColor(score) {
+  const s = Math.round(Math.max(0, Math.min(100, Number(score) || 0)));
+  if (s <= 40) return "#EF4444";
+  if (s <= 70) return "#F59E0B";
+  if (s < 100) return "#3B82F6";
+  return "#22C55E";
+}
+
 export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
   const s = size;
   return (
@@ -33,6 +41,134 @@ export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+function FabFeatureBulletIcon({ name }) {
+  const stroke = "#A0A0A0";
+  const sw = 1.5;
+  const inner = (() => {
+    switch (name) {
+      case "doc":
+        return (
+          <>
+            <path d="M4 2h8l4 4v14H4V2z" stroke={stroke} strokeWidth={sw} fill="none" strokeLinejoin="round" />
+            <path d="M12 2v4h4" stroke={stroke} strokeWidth={sw} fill="none" strokeLinejoin="round" />
+          </>
+        );
+      case "clock":
+        return (
+          <>
+            <circle cx="12" cy="12" r="9" stroke={stroke} strokeWidth={sw} fill="none" />
+            <path d="M12 7v5l3 2" stroke={stroke} strokeWidth={sw} fill="none" strokeLinecap="round" />
+          </>
+        );
+      case "edit":
+        return <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" stroke={stroke} strokeWidth={sw} fill="none" strokeLinejoin="round" />;
+      case "lightning":
+        return <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke={stroke} strokeWidth={sw} fill="none" strokeLinejoin="round" />;
+      case "phone":
+        return <rect x="7" y="3" width="10" height="18" rx="3" stroke={stroke} strokeWidth={sw} fill="none" />;
+      case "check":
+        return <path d="M20 6L9 17l-5-5" stroke={stroke} strokeWidth={sw} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
+      default:
+        return <circle cx="12" cy="12" r="3" stroke={stroke} strokeWidth={sw} fill="none" />;
+    }
+  })();
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0, marginTop: 2 }}>
+      {inner}
+    </svg>
+  );
+}
+
+export function FabFeatureBullets({ items }) {
+  if (!items?.length) return null;
+  return (
+    <div style={{ width: "100%", marginBottom: 8 }}>
+      {items.map((row, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
+          <FabFeatureBulletIcon name={row.icon} />
+          <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 13, lineHeight: 1.4, flex: 1 }}>{row.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AtsFabScoreRing({ score, failingCount }) {
+  const r = 42;
+  const size = 100;
+  const cx = size / 2;
+  const cy = size / 2;
+  const c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
+  const offset = c - (p / 100) * c;
+  const strokeCol = getAtsScoreStrokeColor(p);
+  const subLine =
+    failingCount <= 0 ? (
+      <span style={{ color: "#22C55E" }}>All checks passing</span>
+    ) : (
+      <>
+        <span style={{ color: "var(--text-secondary, #A0A0A0)" }}>
+          {failingCount} {failingCount === 1 ? "thing" : "things"} pulling your score down
+        </span>
+      </>
+    );
+  return (
+    <div style={{ width: "100%", marginBottom: 16 }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: "var(--text-secondary, #A0A0A0)",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+          marginBottom: 12,
+          textAlign: "center",
+        }}
+      >
+        ATS score
+      </div>
+      <div style={{ position: "relative", width: size, height: size, margin: "0 auto 10px" }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden style={{ display: "block" }}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2A2A2A" strokeWidth={8} />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke={strokeCol}
+            strokeWidth={8}
+            strokeDasharray={c}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${cx} ${cy})`}
+          />
+        </svg>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            fontSize: 24,
+            fontWeight: 500,
+            color: strokeCol,
+          }}
+        >
+          {p}
+        </div>
+      </div>
+      <p style={{ margin: 0, fontSize: 13, textAlign: "center", lineHeight: 1.45 }}>{subLine}</p>
+    </div>
   );
 }
 
@@ -157,8 +293,130 @@ const bannerBase = {
   width: "100%",
 };
 
+function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigatePricing }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        marginBottom: 16,
+        padding: 14,
+        boxSizing: "border-box",
+        borderRadius: 12,
+        background: "var(--bg-elevated, #1C1C1C)",
+        border: "1px solid var(--border-default, #2A2A2A)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: "var(--text-secondary, #A0A0A0)",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          marginBottom: 10,
+          textAlign: "center",
+        }}
+      >
+        Download gatekeeper
+      </div>
+      {downloadGatekeeper == null ? (
+        <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>
+          Checking download status…
+        </p>
+      ) : (
+        <>
+          {downloadGatekeeper.isPaidUser ? (
+            <div style={{ textAlign: "center", marginBottom: 8 }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  background: "var(--bg-surface, #141414)",
+                  border: "1px solid var(--border-default, #2A2A2A)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: "var(--text-primary, #FFF)",
+                }}
+              >
+                {downloadGatekeeper.planName}
+              </span>
+            </div>
+          ) : null}
+          {downloadGatekeeper.canDownload ? (
+            <>
+              <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 500, color: "var(--text-primary, #FFF)", textAlign: "center" }}>
+                You&apos;re clear to download
+              </p>
+              <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary, #A0A0A0)" }}>
+                {Number.isFinite(downloadGatekeeper.downloadsLimit) ? (
+                  <span>
+                    {downloadGatekeeper.downloadsUsed}/{downloadGatekeeper.downloadsLimit} downloads used
+                  </span>
+                ) : (
+                  <span>Unlimited downloads</span>
+                )}
+              </div>
+            </>
+          ) : null}
+          {downloadGatekeeper.blockerReason === "limit_reached" ? (
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+                You&apos;ve used your free downloads. Upgrade for unlimited PDFs.
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigatePricing?.()}
+                style={{
+                  background: "var(--text-primary, #FFF)",
+                  color: "#000",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  width: "100%",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  border: "1px solid var(--border-default, #2A2A2A)",
+                  cursor: "pointer",
+                  minHeight: 44,
+                }}
+              >
+                Upgrade to Active Hunter — AED 29/mo
+              </button>
+            </div>
+          ) : null}
+          {downloadGatekeeper.blockerReason === "not_signed_in" ? (
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+                Sign in to continue downloading
+              </p>
+              <button
+                type="button"
+                onClick={() => onNavigateAuth?.()}
+                style={{
+                  background: "var(--text-primary, #FFF)",
+                  color: "#000",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  width: "100%",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  border: "1px solid var(--border-default, #2A2A2A)",
+                  cursor: "pointer",
+                  minHeight: 44,
+                }}
+              >
+                Sign in
+              </button>
+            </div>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
- * Bottom sheet: overlay + panel (slide-up via keyframes only)
+ * Bottom sheet: overlay + panel (spring reveal via keyframes)
  */
 export default function FABSheet({
   open,
@@ -186,6 +444,20 @@ export default function FABSheet({
   coverLetterCrossSell = false,
   atsScore = 0,
   onNavigateToCoverLetter,
+  /** @type {null | 'ats' | 'cover-letter' | 'walkin' | 'account'} */
+  dedicatedRoute = null,
+  atsChecks = [],
+  /** @type {'empty' | 'partial' | 'ready' | 'generated' | 'paywall'} */
+  coverLetterState = "empty",
+  coverLetterEmptyFieldLabels = [],
+  coverLetterOnFocusFirstEmpty,
+  coverLetterOnGenerate,
+  coverLetterOnDownload,
+  coverLetterOnRegenerate,
+  walkInCvBuilt = false,
+  walkInOnStart,
+  walkInOnDownload,
+  sheetAtsHigh = false,
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
@@ -196,10 +468,12 @@ export default function FABSheet({
 
   const currentAts = typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0;
 
+  const showGreetingLine = Boolean(sheetIntelligence || dedicatedRoute);
+
   const greetingLine = useMemo(() => {
-    if (!sheetIntelligence) return null;
+    if (!showGreetingLine) return null;
     return getFabTopGreetingLine(getFabMemory(), progressCoach);
-  }, [sheetIntelligence, progressCoach]);
+  }, [showGreetingLine, progressCoach]);
 
   const topNudge = useMemo(() => {
     if (!progressCoach?.missingSections?.length) return null;
@@ -207,9 +481,12 @@ export default function FABSheet({
   }, [progressCoach?.missingSections]);
 
   const showCoverNudge = useMemo(() => {
-    if (!coverLetterCrossSell || !open) return false;
+    if (!coverLetterCrossSell || !open || dedicatedRoute === "cover-letter") return false;
     return shouldShowCoverLetterCrossSell(getFabMemory());
-  }, [coverLetterCrossSell, open]);
+  }, [coverLetterCrossSell, dedicatedRoute, open]);
+
+  const checksList = Array.isArray(atsChecks) ? atsChecks.filter(Boolean) : [];
+  const failingCount = checksList.length;
 
   useEffect(() => {
     if (!sheetIntelligence) return;
@@ -220,10 +497,7 @@ export default function FABSheet({
       return;
     }
     const mem = getFabMemory();
-    if (
-      celebrationConsumedSession &&
-      (mem.pendingAtsMilestone === 70 || mem.pendingAtsMilestone === 90)
-    ) {
+    if (celebrationConsumedSession && (mem.pendingAtsMilestone === 70 || mem.pendingAtsMilestone === 90)) {
       writeFabMemory({ pendingAtsMilestone: null });
     }
 
@@ -244,10 +518,7 @@ export default function FABSheet({
       memDl.lastAction === "downloaded" && memDl.lastActionAt
         ? Math.floor((Date.now() - new Date(memDl.lastActionAt).getTime()) / 86400000)
         : 0;
-    const showPost =
-      memDl.lastAction === "downloaded" &&
-      memDl.lastActionAt &&
-      dlDays >= 2;
+    const showPost = memDl.lastAction === "downloaded" && memDl.lastActionAt && dlDays >= 2;
 
     if (showPost && !postDownloadConsumedSession && !celebrationShownThisOpenRef.current) {
       setPostDownloadDays(dlDays);
@@ -259,13 +530,7 @@ export default function FABSheet({
     if (mem2.lastAtsScore == null && Number.isFinite(currentAts) && currentAts > 0 && !m) {
       writeFabMemory({ lastAtsScore: currentAts });
     }
-  }, [
-    open,
-    sheetIntelligence,
-    currentAts,
-    celebrationConsumedSession,
-    postDownloadConsumedSession,
-  ]);
+  }, [open, sheetIntelligence, currentAts, celebrationConsumedSession, postDownloadConsumedSession]);
 
   if (!open) return null;
 
@@ -286,6 +551,435 @@ export default function FABSheet({
 
   const nudgeNavKey = topNudge ? TOP_NUDGE_TO_NAV_KEY[topNudge] : null;
 
+  const hideDefaultGuidePoints =
+    Boolean(dedicatedRoute) && !(dedicatedRoute === "ats" && sheetAtsHigh) && !sheetBodySlot;
+
+  const chipBase = {
+    border: "1px solid #3A3A3A",
+    background: "transparent",
+    color: "#FFF",
+    fontSize: 12,
+    padding: "6px 14px",
+    borderRadius: 99,
+    display: "inline-flex",
+    alignItems: "center",
+    fontWeight: 500,
+    cursor: "default",
+    fontFamily: "inherit",
+  };
+
+  const renderAtsChips = () => {
+    if (failingCount === 0) return null;
+    const shown = checksList.slice(0, 3);
+    const more = checksList.length - shown.length;
+    return (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 12 }}>
+        {shown.map((label) => {
+          const navKey = ATS_FAB_CHIP_TO_NAV_KEY[label];
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => {
+                if (navKey && onProgressCoachNavigate) onProgressCoachNavigate(navKey);
+              }}
+              style={{
+                ...chipBase,
+                cursor: navKey && onProgressCoachNavigate ? "pointer" : "default",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {more > 0 ? (
+          <span style={{ ...chipBase, border: "1px solid #2A2A2A", color: "var(--text-secondary, #A0A0A0)" }}>+{more} more</span>
+        ) : null}
+      </div>
+    );
+  };
+
+  const renderDedicatedCoverLetter = () => {
+    if (coverLetterState === "paywall") {
+      return (
+        <>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+            AED 10 for a personalised cover letter that matches your CV. Most hiring managers expect one.
+          </p>
+          <button
+            type="button"
+            onClick={() => onNavigatePricing?.()}
+            style={{
+              width: "100%",
+              background: "#fff",
+              color: "#000",
+              borderRadius: 12,
+              padding: 14,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            Unlock Cover Letter →
+          </button>
+        </>
+      );
+    }
+    if (coverLetterState === "empty") {
+      return (
+        <>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+            Fill in your target role and key strength — those two make the biggest difference.
+          </p>
+          <FabFeatureBullets
+            items={[
+              { icon: "doc", text: "Custom-written based on your CV + job details" },
+              { icon: "clock", text: "Smart-fill and generate in seconds" },
+              { icon: "edit", text: "Full editing suite before downloading" },
+            ]}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              coverLetterOnFocusFirstEmpty?.();
+              onClose();
+            }}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              background: "transparent",
+              color: "#FFF",
+              borderRadius: 12,
+              padding: 14,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "1px solid #2A2A2A",
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            Start filling in →
+          </button>
+        </>
+      );
+    }
+    if (coverLetterState === "partial") {
+      return (
+        <>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+            Almost there — finish filling the fields to generate.
+          </p>
+          {coverLetterEmptyFieldLabels.length > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", marginBottom: 12 }}>
+              {coverLetterEmptyFieldLabels.map((lab) => (
+                <span
+                  key={lab}
+                  style={{
+                    fontSize: 11,
+                    color: "var(--text-secondary, #A0A0A0)",
+                    padding: "4px 10px",
+                    borderRadius: 99,
+                    border: "1px solid #2A2A2A",
+                    background: "var(--bg-page, #0A0A0A)",
+                  }}
+                >
+                  {lab}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              coverLetterOnFocusFirstEmpty?.();
+              onClose();
+            }}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              background: "transparent",
+              color: "#FFF",
+              borderRadius: 12,
+              padding: 14,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "1px solid #2A2A2A",
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            Continue filling →
+          </button>
+        </>
+      );
+    }
+    if (coverLetterState === "ready") {
+      return (
+        <>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+            All fields complete. Generate your cover letter now.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              coverLetterOnGenerate?.();
+              onClose();
+            }}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              background: "#fff",
+              color: "#000",
+              borderRadius: 12,
+              padding: 14,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            Generate Now
+          </button>
+        </>
+      );
+    }
+    if (coverLetterState === "generated") {
+      return (
+        <>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+            Happy with it? Download before you leave.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              coverLetterOnDownload?.();
+              onClose();
+            }}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              background: "#fff",
+              color: "#000",
+              borderRadius: 12,
+              padding: 14,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            Download →
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              coverLetterOnRegenerate?.();
+              onClose();
+            }}
+            style={{
+              marginTop: 12,
+              width: "100%",
+              background: "none",
+              border: "none",
+              color: "var(--text-secondary, #A0A0A0)",
+              fontSize: 13,
+              cursor: "pointer",
+              padding: 8,
+            }}
+          >
+            Regenerate
+          </button>
+        </>
+      );
+    }
+    return null;
+  };
+
+  const coverLetterTitle =
+    coverLetterState === "ready"
+      ? "You're ready"
+      : coverLetterState === "generated"
+        ? "Cover letter ready"
+        : "Cover Letter";
+
+  const walkInTitle = walkInCvBuilt ? "CV ready" : "Walk-In Mode";
+
+  const renderDedicatedWalkIn = () => {
+    if (walkInCvBuilt) {
+      return (
+        <>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+            Your walk-in CV is built. Download and go.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              walkInOnDownload?.();
+              onClose();
+            }}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              background: "#fff",
+              color: "#000",
+              borderRadius: 12,
+              padding: 14,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            Download CV →
+          </button>
+        </>
+      );
+    }
+    return (
+      <>
+        <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          Build your CV in 90 seconds — perfect for same-day interviews.
+        </p>
+        <FabFeatureBullets
+          items={[
+            { icon: "lightning", text: "Fill 5 fields, download instantly" },
+            { icon: "phone", text: "No account needed" },
+            { icon: "check", text: "ATS-ready for UAE employers" },
+          ]}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            walkInOnStart?.();
+            onClose();
+          }}
+          style={{
+            width: "100%",
+            marginTop: 8,
+            background: "transparent",
+            color: "#FFF",
+            borderRadius: 12,
+            padding: 14,
+            fontWeight: 600,
+            fontSize: 14,
+            border: "1px solid #2A2A2A",
+            cursor: "pointer",
+            minHeight: 44,
+          }}
+        >
+          Start Walk-In CV →
+        </button>
+      </>
+    );
+  };
+
+  const renderDedicatedAccount = () => {
+    const g = downloadGatekeeper;
+    if (g == null) {
+      return <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>Loading plan…</p>;
+    }
+    if (g.isPaidUser) {
+      return (
+        <>
+          <div style={{ textAlign: "center", marginBottom: 10 }}>
+            <span
+              style={{
+                display: "inline-block",
+                padding: "6px 14px",
+                borderRadius: 99,
+                background: "#0F6E56",
+                color: "#9FE1CB",
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              {g.planName}
+            </span>
+          </div>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+            Everything is unlocked. You&apos;re all set.
+          </p>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.5, textAlign: "center" }}>
+            Unlimited downloads · All templates · Full ATS · Cover Letter
+          </p>
+        </>
+      );
+    }
+    const lim = Number.isFinite(g.downloadsLimit) ? g.downloadsLimit : 3;
+    const used = g.downloadsUsed ?? 0;
+    return (
+      <>
+        <div style={{ textAlign: "center", marginBottom: 10 }}>
+          <span
+            style={{
+              display: "inline-block",
+              padding: "6px 14px",
+              borderRadius: 99,
+              background: "#1C1C1C",
+              color: "var(--text-secondary, #A0A0A0)",
+              fontSize: 12,
+              fontWeight: 600,
+              border: "1px solid #2A2A2A",
+            }}
+          >
+            Free
+          </span>
+        </div>
+        <p style={{ margin: "0 0 14px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          You&apos;ve used {used}/{lim} free downloads.
+        </p>
+        <div
+          style={{
+            background: "#1C1C1C",
+            border: "1px solid var(--border-default, #2A2A2A)",
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 12,
+            boxSizing: "border-box",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+            Upgrade to Active Hunter — unlimited downloads, all templates, ATS + Cover Letter.
+          </p>
+          <p style={{ margin: "10px 0 0", fontSize: 14 }}>
+            <span style={{ color: "#FFF", fontWeight: 600 }}>AED 29/mo</span>
+            <span style={{ color: "var(--text-secondary, #A0A0A0)", marginLeft: 8 }}>or ₹199/mo</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigatePricing?.()}
+          style={{
+            width: "100%",
+            background: "#fff",
+            color: "#000",
+            borderRadius: 12,
+            padding: 14,
+            fontWeight: 600,
+            fontSize: 14,
+            border: "none",
+            cursor: "pointer",
+            minHeight: 44,
+          }}
+        >
+          Upgrade now →
+        </button>
+      </>
+    );
+  };
+
+  const resolvedTitle = (() => {
+    if (dedicatedRoute === "cover-letter") return coverLetterTitle;
+    if (dedicatedRoute === "walkin") return walkInTitle;
+    if (dedicatedRoute === "account") return "Your plan";
+    return title;
+  })();
+
   return (
     <>
       <div
@@ -301,27 +995,15 @@ export default function FABSheet({
         style={{ zIndex: zSheet }}
         onClick={(e) => e.stopPropagation()}
       >
+        <span className="cvp-fab-sheet-drag-handle" aria-hidden />
         <div className={`cvp-fab-sheet-scroll${showGotItButton ? "" : " cvp-fab-sheet-scroll--no-sticky-footer"}`}>
-          <FabSparkIcon size={24} stroke="#fff" />
-          <div
-            style={{
-              color: "var(--text-primary, #FFF)",
-              fontSize: 16,
-              fontWeight: 500,
-              marginTop: 12,
-              marginBottom: 16,
-              textAlign: "center",
-            }}
-          >
-            {title}
-          </div>
-
-          {sheetIntelligence && greetingLine ? (
+          {greetingLine ? (
             <div
               style={{
                 fontSize: 13,
                 color: "var(--text-secondary, #A0A0A0)",
                 paddingBottom: 8,
+                paddingTop: 4,
                 textAlign: "center",
                 lineHeight: 1.45,
               }}
@@ -329,6 +1011,18 @@ export default function FABSheet({
               {greetingLine}
             </div>
           ) : null}
+
+          <div
+            style={{
+              color: "var(--text-primary, #FFF)",
+              fontSize: 18,
+              fontWeight: 500,
+              marginBottom: 16,
+              textAlign: "center",
+            }}
+          >
+            {resolvedTitle}
+          </div>
 
           {sheetIntelligence && showCelebrationBanner ? (
             <div
@@ -359,7 +1053,6 @@ export default function FABSheet({
                 type="button"
                 onClick={() => {
                   if (onProgressCoachNavigate) onProgressCoachNavigate("experience");
-                  // else no-op — builder passes onProgressCoachNavigate
                 }}
                 style={{
                   marginTop: 10,
@@ -380,7 +1073,24 @@ export default function FABSheet({
 
           {sheetBodySlot ? <div style={{ width: "100%", marginBottom: 16 }}>{sheetBodySlot}</div> : null}
 
-          {showCoachPanels && showProgressCoach && !sheetBodySlot ? (
+          {dedicatedRoute === "ats" ? (
+            <div
+              style={{
+                width: "100%",
+                marginBottom: 16,
+                padding: 14,
+                boxSizing: "border-box",
+                borderRadius: 12,
+                background: "var(--bg-elevated, #1C1C1C)",
+                border: "1px solid var(--border-default, #2A2A2A)",
+              }}
+            >
+              <AtsFabScoreRing score={currentAts} failingCount={failingCount} />
+              {renderAtsChips()}
+            </div>
+          ) : null}
+
+          {showCoachPanels && showProgressCoach && !sheetBodySlot && !dedicatedRoute ? (
             <div
               style={{
                 width: "100%",
@@ -421,7 +1131,6 @@ export default function FABSheet({
                       type="button"
                       onClick={() => {
                         if (nudgeNavKey && onProgressCoachNavigate) onProgressCoachNavigate(nudgeNavKey);
-                        // TODO: wire optional sections when Progress Coach lists certifications/projects as top nudge
                       }}
                       style={{
                         display: "block",
@@ -477,6 +1186,14 @@ export default function FABSheet({
             </div>
           ) : null}
 
+          {dedicatedRoute === "cover-letter" ? (
+            <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedCoverLetter()}</div>
+          ) : null}
+
+          {dedicatedRoute === "walkin" ? <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedWalkIn()}</div> : null}
+
+          {dedicatedRoute === "account" ? <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedAccount()}</div> : null}
+
           {showCoverNudge ? (
             <div style={{ ...bannerBase, marginBottom: 16 }}>
               <p style={{ margin: 0, lineHeight: 1.45 }}>{FAB_COVER_LETTER_CROSS_SELL.body}</p>
@@ -505,128 +1222,17 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {showDownloadGatekeeper && !sheetBodySlot ? (
-            <div
-              style={{
-                width: "100%",
-                marginBottom: 16,
-                padding: 14,
-                boxSizing: "border-box",
-                borderRadius: 12,
-                background: "var(--bg-elevated, #1C1C1C)",
-                border: "1px solid var(--border-default, #2A2A2A)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "var(--text-secondary, #A0A0A0)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  marginBottom: 10,
-                  textAlign: "center",
-                }}
-              >
-                Download gatekeeper
-              </div>
-              {downloadGatekeeper == null ? (
-                <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>
-                  Checking download status…
-                </p>
-              ) : (
-                <>
-                  {downloadGatekeeper.isPaidUser ? (
-                    <div style={{ textAlign: "center", marginBottom: 8 }}>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          padding: "4px 10px",
-                          borderRadius: 8,
-                          background: "var(--bg-surface, #141414)",
-                          border: "1px solid var(--border-default, #2A2A2A)",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: "var(--text-primary, #FFF)",
-                        }}
-                      >
-                        {downloadGatekeeper.planName}
-                      </span>
-                    </div>
-                  ) : null}
-                  {downloadGatekeeper.canDownload ? (
-                    <>
-                      <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 500, color: "var(--text-primary, #FFF)", textAlign: "center" }}>
-                        You&apos;re clear to download
-                      </p>
-                      <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary, #A0A0A0)" }}>
-                        {Number.isFinite(downloadGatekeeper.downloadsLimit) ? (
-                          <span>
-                            {downloadGatekeeper.downloadsUsed}/{downloadGatekeeper.downloadsLimit} downloads used
-                          </span>
-                        ) : (
-                          <span>Unlimited downloads</span>
-                        )}
-                      </div>
-                    </>
-                  ) : null}
-                  {downloadGatekeeper.blockerReason === "limit_reached" ? (
-                    <div style={{ textAlign: "center" }}>
-                      <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
-                        You&apos;ve used your free downloads. Upgrade for unlimited PDFs.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => onNavigatePricing?.()}
-                        style={{
-                          background: "var(--text-primary, #FFF)",
-                          color: "#000",
-                          borderRadius: 10,
-                          padding: "10px 14px",
-                          width: "100%",
-                          fontWeight: 600,
-                          fontSize: 13,
-                          border: "1px solid var(--border-default, #2A2A2A)",
-                          cursor: "pointer",
-                          minHeight: 44,
-                        }}
-                      >
-                        Upgrade to Active Hunter — AED 29/mo
-                      </button>
-                    </div>
-                  ) : null}
-                  {downloadGatekeeper.blockerReason === "not_signed_in" ? (
-                    <div style={{ textAlign: "center" }}>
-                      <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
-                        Sign in to continue downloading
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateAuth?.()}
-                        style={{
-                          background: "var(--text-primary, #FFF)",
-                          color: "#000",
-                          borderRadius: 10,
-                          padding: "10px 14px",
-                          width: "100%",
-                          fontWeight: 600,
-                          fontSize: 13,
-                          border: "1px solid var(--border-default, #2A2A2A)",
-                          cursor: "pointer",
-                          minHeight: 44,
-                        }}
-                      >
-                        Sign in
-                      </button>
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
+          {showDownloadGatekeeper && !sheetBodySlot && (dedicatedRoute == null || dedicatedRoute === "ats") ? (
+            <DownloadGatekeeperPanel
+              downloadGatekeeper={downloadGatekeeper}
+              onNavigateAuth={onNavigateAuth}
+              onNavigatePricing={onNavigatePricing}
+            />
           ) : null}
 
           <div>
             {!sheetBodySlot &&
+              !hideDefaultGuidePoints &&
               points.map((row, i) => (
                 <div
                   key={i}
@@ -667,23 +1273,7 @@ export default function FABSheet({
         </div>
         {showGotItButton ? (
           <div className="cvp-fab-sheet-gotit-bar">
-            <button
-              type="button"
-              onClick={handleGotIt}
-              style={{
-                background: "#fff",
-                color: "#000",
-                borderRadius: 10,
-                padding: 12,
-                width: "100%",
-                fontWeight: 500,
-                fontSize: 14,
-                border: "none",
-                cursor: "pointer",
-                marginTop: 0,
-                minHeight: 44,
-              }}
-            >
+            <button type="button" onClick={handleGotIt} className="cvp-fab-sheet-gotit-btn" style={{ background: "#fff", color: "#000", fontWeight: 500, fontSize: 14, border: "none", cursor: "pointer", minHeight: 44 }}>
               Got it
             </button>
           </div>

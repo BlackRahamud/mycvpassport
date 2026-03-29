@@ -456,6 +456,7 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
   const [jobsExpanded, setJobsExpanded] = useState(false);
   const [customSkillInput, setCustomSkillInput] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [walkInCvBuilt, setWalkInCvBuilt] = useState(false);
 
   const displayJob = useMemo(
     () => (formData.jobCustom || "").trim() || formData.jobField,
@@ -548,6 +549,7 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
     setPdfBusy(true);
     try {
       await captureWalkInPdf(el, formData.fullName || "Resume");
+      setWalkInCvBuilt(true);
     } finally {
       setPdfBusy(false);
     }
@@ -919,7 +921,14 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
         {formSection}
         {previewSection}
       </div>
-      <FAB tabKey="walkin" />
+      <FAB
+        tabKey="walkin"
+        walkInCvBuilt={walkInCvBuilt}
+        walkInOnStart={() => {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        walkInOnDownload={handleDownloadPdf}
+      />
     </div>
   );
 }

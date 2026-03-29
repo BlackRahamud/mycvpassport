@@ -1,5 +1,14 @@
 import { getFabMemory, reorderFabMenuOptions } from "./FABLogic";
 
+/** ATS FAB chip labels (section gaps) → builder `onNavigateToCvSection` keys */
+export const ATS_FAB_CHIP_TO_NAV_KEY = {
+  Experience: "experience",
+  Education: "education",
+  Skills: "skills",
+  Summary: "summary",
+  Certifications: "certifications",
+};
+
 /** @typedef {{ id: string, label: string, icon: 'info' | 'eye' | 'spark' | 'arrow', primary?: boolean }} FabMenuOption */
 
 /** @typedef {{ title: string, points: { icon: string, text: string }[], menuOptions: FabMenuOption[] }} FabTabConfig */

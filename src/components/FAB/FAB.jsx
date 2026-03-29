@@ -85,6 +85,18 @@ const FAB = forwardRef(function FAB(
     onPreviewTemplateDraft,
     onApplyTemplateDraft,
     onClearTemplatePick,
+    /** Route FAB: failing ATS check labels (ATSChecker → FAB sheet chips) */
+    atsChecks = [],
+    /** @type {'empty' | 'partial' | 'ready' | 'generated' | 'paywall'} */
+    coverLetterState = "empty",
+    coverLetterEmptyFieldLabels = [],
+    coverLetterOnFocusFirstEmpty,
+    coverLetterOnGenerate,
+    coverLetterOnDownload,
+    coverLetterOnRegenerate,
+    walkInCvBuilt = false,
+    walkInOnStart,
+    walkInOnDownload,
   },
   ref
 ) {
@@ -92,6 +104,8 @@ const FAB = forwardRef(function FAB(
   const [mobile, setMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  /** When `download-only`, FAB sheet shows gatekeeper only (ATSChecker download path). */
+  const [sheetLayoutKind, setSheetLayoutKind] = useState("normal");
   const [sheetAtsHigh, setSheetAtsHigh] = useState(false);
   const [sheetTitle, setSheetTitle] = useState("");
   const [sheetPoints, setSheetPoints] = useState([]);
@@ -214,6 +228,7 @@ const FAB = forwardRef(function FAB(
     setSheetAtsHigh(false);
     setSheetCoach(null);
     setSheetGate(null);
+    setSheetLayoutKind("normal");
     resetSheetLayout();
   }, [resetSheetLayout]);
 
@@ -226,27 +241,65 @@ const FAB = forwardRef(function FAB(
     (useAtsHigh) => {
       if (!config) return;
       resetSheetLayout();
+      setSheetLayoutKind("normal");
+      const routeDedicated =
+        variant === "route" && ["ats", "cover-letter", "walkin", "account"].includes(tabKey);
       if (useAtsHigh) {
         markAtsFabGuideOpened();
         setSheetTitle(ATS_HIGH_SCORE_GUIDE.title);
         setSheetPoints(ATS_HIGH_SCORE_GUIDE.points);
         setSheetAtsHigh(true);
         setSheetCoach(null);
-        setSheetGate(null);
+        if (variant === "route" && tabKey === "ats") {
+          setSheetShowProgress(false);
+          setSheetShowGate(true);
+          getDownloadGatekeeperData()
+            .then(setSheetGate)
+            .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
+        } else {
+          setSheetGate(null);
+        }
       } else {
         setSheetTitle(config.title);
         setSheetPoints(config.points);
         setSheetAtsHigh(false);
-        const coach = variant === "builder" && resume ? getProgressCoachData(resume) : getProgressCoachData(null);
-        setSheetCoach(coach);
-        setSheetGate(null);
-        getDownloadGatekeeperData()
-          .then(setSheetGate)
-          .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
+        if (routeDedicated && tabKey === "ats") {
+          setSheetShowProgress(false);
+          setSheetShowGate(true);
+          setSheetCoach(null);
+          setSheetPoints([]);
+          getDownloadGatekeeperData()
+            .then(setSheetGate)
+            .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
+        } else if (routeDedicated && tabKey === "cover-letter") {
+          setSheetShowProgress(false);
+          setSheetShowGate(false);
+          setSheetCoach(null);
+          setSheetGate(null);
+        } else if (routeDedicated && tabKey === "walkin") {
+          setSheetShowProgress(false);
+          setSheetShowGate(false);
+          setSheetCoach(null);
+          setSheetGate(null);
+        } else if (routeDedicated && tabKey === "account") {
+          setSheetShowProgress(false);
+          setSheetShowGate(false);
+          setSheetCoach(null);
+          getDownloadGatekeeperData()
+            .then(setSheetGate)
+            .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
+        } else {
+          const coach = variant === "builder" && resume ? getProgressCoachData(resume) : getProgressCoachData(null);
+          setSheetCoach(coach);
+          setSheetGate(null);
+          getDownloadGatekeeperData()
+            .then(setSheetGate)
+            .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
+        }
       }
       setSheetOpen(true);
     },
-    [config, variant, resume, resetSheetLayout]
+    [config, variant, resume, resetSheetLayout, tabKey]
   );
 
   useImperativeHandle(
@@ -254,6 +307,7 @@ const FAB = forwardRef(function FAB(
     () => ({
       async runAtsDownloadGatekeeper() {
         resetSheetLayout();
+        setSheetLayoutKind("download-only");
         setSheetTitle("Download");
         setSheetPoints([]);
         setSheetAtsHigh(false);
@@ -520,6 +574,13 @@ const FAB = forwardRef(function FAB(
 
   if (!mobile || !config || hidden) return null;
 
+  const dedicatedRoute =
+    sheetLayoutKind === "download-only"
+      ? null
+      : variant === "route" && ["ats", "cover-letter", "walkin", "account"].includes(tabKey)
+        ? tabKey
+        : null;
+
   const atsAttention = variant === "builder" && shouldShowAtsFabAttention(tabKey, atsScore);
   const fabAnimClass = [
     atsAttention ? "cvp-fab-anim-bounce-flicker" : "",
@@ -534,7 +595,10 @@ const FAB = forwardRef(function FAB(
 
   return (
     <>
-      <div ref={anchorRef} className={`cvp-fab-layer cvp-fab-sticky-wrap${variant === "builder" ? " cvp-fab-sticky-wrap--builder" : ""}`}>
+      <div
+        ref={anchorRef}
+        className={`cvp-fab-layer cvp-fab-sticky-wrap${variant === "builder" ? " cvp-fab-sticky-wrap--builder" : ""}${sheetOpen ? " cvp-fab-sheet-open" : ""}`}
+      >
         <FABButton
           onClick={onFabActivate}
           showDot={dotVisible}
@@ -568,9 +632,21 @@ const FAB = forwardRef(function FAB(
         sheetBodySlot={sheetBodySlot}
         sheetFooterSlot={sheetFooterSlot}
         showGotItButton={showSheetGotIt}
-        sheetIntelligence={!sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh}
+        sheetIntelligence={!sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh && dedicatedRoute == null}
         coverLetterCrossSell={variant === "builder" && !sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh}
         atsScore={typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0}
+        dedicatedRoute={dedicatedRoute}
+        atsChecks={Array.isArray(atsChecks) ? atsChecks : []}
+        coverLetterState={coverLetterState}
+        coverLetterEmptyFieldLabels={coverLetterEmptyFieldLabels}
+        coverLetterOnFocusFirstEmpty={coverLetterOnFocusFirstEmpty}
+        coverLetterOnGenerate={coverLetterOnGenerate}
+        coverLetterOnDownload={coverLetterOnDownload}
+        coverLetterOnRegenerate={coverLetterOnRegenerate}
+        walkInCvBuilt={walkInCvBuilt}
+        walkInOnStart={walkInOnStart}
+        walkInOnDownload={walkInOnDownload}
+        sheetAtsHigh={sheetAtsHigh}
         onNavigateToCoverLetter={
           onNavigateToCoverLetter
             ? () => {

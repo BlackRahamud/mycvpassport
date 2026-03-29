@@ -225,6 +225,12 @@ function CoverLetterPage({ user, onBack }) {
   const [clUnlocking, setClUnlocking] = useState(false);
   const uploadInputRef = useRef(null);
   const lastClPayloadRef = useRef(null);
+  const clRefFullName = useRef(null);
+  const clRefCurrentJob = useRef(null);
+  const clRefYears = useRef(null);
+  const clRefTargetRole = useRef(null);
+  const clRefKeyStrength = useRef(null);
+  const clRefCompany = useRef(null);
 
   const clInputStyle = {
     width: "100%",
@@ -346,6 +352,83 @@ function CoverLetterPage({ user, onBack }) {
       (selectedOption === "upload" && uploadResume) ||
       selectedOption === "describe");
 
+  const coverLetterFabState = useMemo(() => {
+    const paid = isCoverLetterPaidUnlock();
+    if (phase === "result" && letterBody && !paid && clFreePreview) return "paywall";
+    if (phase === "result" && letterBody) return "generated";
+    if (!selectedOption || !sourceReady) return "empty";
+    const fn = clFullName.trim();
+    const ct = clCurrentJobTitle.trim();
+    const tr = clTargetRole.trim();
+    const ks = clKeyStrength.trim();
+    const cn = clCompanyName.trim();
+    const anyText = fn || ct || tr || ks || cn;
+    if (!anyText) return "empty";
+    const core = fn && ct && tr && ks;
+    if (!core) return "partial";
+    return "ready";
+  }, [
+    phase,
+    letterBody,
+    clFreePreview,
+    selectedOption,
+    sourceReady,
+    clFullName,
+    clCurrentJobTitle,
+    clTargetRole,
+    clKeyStrength,
+    clCompanyName,
+  ]);
+
+  const coverLetterEmptyFieldLabels = useMemo(() => {
+    if (!sourceReady || !selectedOption) return [];
+    const labels = [];
+    if (!clFullName.trim()) labels.push("Full name");
+    if (!clCurrentJobTitle.trim()) labels.push("Current job title");
+    if (!clTargetRole.trim()) labels.push("Target role");
+    if (!clKeyStrength.trim()) labels.push("Key strength");
+    if (!clCompanyName.trim()) labels.push("Company name");
+    return labels;
+  }, [
+    sourceReady,
+    selectedOption,
+    clFullName,
+    clCurrentJobTitle,
+    clTargetRole,
+    clKeyStrength,
+    clCompanyName,
+  ]);
+
+  const focusFirstEmptyClField = useCallback(() => {
+    if (!selectedOption) return;
+    const fn = clFullName.trim();
+    const ct = clCurrentJobTitle.trim();
+    const tr = clTargetRole.trim();
+    const ks = clKeyStrength.trim();
+    const cn = clCompanyName.trim();
+    if (!fn) {
+      clRefFullName.current?.focus();
+      return;
+    }
+    if (!ct) {
+      clRefCurrentJob.current?.focus();
+      return;
+    }
+    if (!tr) {
+      clRefTargetRole.current?.focus();
+      return;
+    }
+    if (!ks) {
+      clRefKeyStrength.current?.focus();
+      return;
+    }
+    if (!cn) {
+      clRefCompany.current?.focus();
+      return;
+    }
+    clRefYears.current?.focus();
+  }, [selectedOption, clFullName, clCurrentJobTitle, clTargetRole, clKeyStrength, clCompanyName]);
+
   const fullLetterDisplay = useMemo(() => {
     if (!letterBody || !resumeForApi) return "";
     const jt = clTargetRole.trim() || "Position";
@@ -371,6 +454,52 @@ function CoverLetterPage({ user, onBack }) {
       closingBlock,
     });
   }, [letterBody, resumeForApi, clTargetRole, clCompanyName, clTemplateVariant]);
+
+  const handleCoverLetterPdfDownload = useCallback(async () => {
+    const fullText = fullLetterDisplay;
+    if (!String(fullText || "").trim()) return;
+    const escaped = String(fullText)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #fff; }
+    .cvp-root { width: 794px; padding: 48px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="cvp-root">${escaped}</div>
+</body>
+</html>`;
+    try {
+      const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `Server error ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const fileBase = (resumeForApi?.name || "Cover_Letter").replace(/\s+/g, "_");
+      a.download = `${fileBase}_Cover_Letter.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Download failed.");
+    }
+  }, [fullLetterDisplay, resumeForApi]);
 
   const clPreviewParts = useMemo(() => {
     if (!clFreePreview || !letterBody || !resumeForApi) return null;
@@ -767,6 +896,7 @@ function CoverLetterPage({ user, onBack }) {
               <div>
                 <label style={clLabelStyle}>Full name</label>
                 <input
+                  ref={clRefFullName}
                   type="text"
                   value={clFullName}
                   onChange={(e) => {
@@ -783,6 +913,7 @@ function CoverLetterPage({ user, onBack }) {
               <div>
                 <label style={clLabelStyle}>Current or last job title</label>
                 <input
+                  ref={clRefCurrentJob}
                   type="text"
                   value={clCurrentJobTitle}
                   onChange={(e) => {
@@ -799,6 +930,7 @@ function CoverLetterPage({ user, onBack }) {
               <div>
                 <label style={clLabelStyle}>Years of experience</label>
                 <select
+                  ref={clRefYears}
                   value={clYearsOfExperience}
                   onChange={(e) => setClYearsOfExperience(e.target.value)}
                   style={{ ...clInputStyle, cursor: "pointer" }}
@@ -813,6 +945,7 @@ function CoverLetterPage({ user, onBack }) {
               <div>
                 <label style={clLabelStyle}>Role you are applying for</label>
                 <input
+                  ref={clRefTargetRole}
                   type="text"
                   value={clTargetRole}
                   onChange={(e) => {
@@ -829,6 +962,7 @@ function CoverLetterPage({ user, onBack }) {
               <div>
                 <label style={clLabelStyle}>Key strength</label>
                 <input
+                  ref={clRefKeyStrength}
                   type="text"
                   value={clKeyStrength}
                   onChange={(e) => setClKeyStrength(e.target.value)}
@@ -839,6 +973,7 @@ function CoverLetterPage({ user, onBack }) {
               <div>
                 <label style={clLabelStyle}>Company name (optional)</label>
                 <input
+                  ref={clRefCompany}
                   type="text"
                   value={clCompanyName}
                   onChange={(e) => setClCompanyName(e.target.value)}
@@ -1074,7 +1209,15 @@ function CoverLetterPage({ user, onBack }) {
           </button>
         </div>
       )}
-      <FAB tabKey="cover-letter" />
+      <FAB
+        tabKey="cover-letter"
+        coverLetterState={coverLetterFabState}
+        coverLetterEmptyFieldLabels={coverLetterEmptyFieldLabels}
+        coverLetterOnFocusFirstEmpty={focusFirstEmptyClField}
+        coverLetterOnGenerate={handleGenerate}
+        coverLetterOnDownload={handleCoverLetterPdfDownload}
+        coverLetterOnRegenerate={handleGenerate}
+      />
     </div>
   );
 }
