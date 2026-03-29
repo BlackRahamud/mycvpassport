@@ -103,6 +103,15 @@ function BuilderTemplatesTab({
       });
     }
   }, [filter, selectedTemplate?.id]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const sheetOpen = confirmOpen && pendingTemplate != null;
+    if (sheetOpen) document.body.classList.add("cvp-fab-sheet-open");
+    else document.body.classList.remove("cvp-fab-sheet-open");
+    return () => document.body.classList.remove("cvp-fab-sheet-open");
+  }, [confirmOpen, pendingTemplate]);
+
   const pills = [
     { id: "popular", label: "Popular" },
     { id: "simple", label: "Simple" },
