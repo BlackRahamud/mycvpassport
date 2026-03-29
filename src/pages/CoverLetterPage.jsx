@@ -4,6 +4,7 @@ import { generateCoverLetterFromTemplate } from "../coverLetterDataBank.generate
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { loadUserResumes } from "../resumeDb";
+import "../components/FAB/FAB.css";
 
 const CL_GREEN = "#6EE7B7";
 
@@ -1040,14 +1041,93 @@ function CoverLetterPage({ user, onBack }) {
             )}
           </div>
           {clFreePreview ? (
-            <div
-              style={{
-                background: "linear-gradient(135deg, #0D1117, #0D2B1F)",
-                border: "1px solid #1a4a30",
-                borderRadius: 16,
-                padding: 16,
-              }}
-            >
+            <>
+              <div style={{ position: "relative", marginBottom: 12, width: "100%" }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "15%",
+                    right: "15%",
+                    top: 15,
+                    height: 1,
+                    background: "#2A2A2A",
+                    zIndex: 0,
+                  }}
+                />
+                <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", gap: 8, position: "relative", zIndex: 1 }}>
+                  {[
+                    { key: "ats", label: "ATS scan", sub: "done", done: true },
+                    { key: "job", label: "Job match", sub: "done", done: true },
+                    { key: "cl", label: "Cover letter", sub: "locked", locked: true },
+                  ].map((step) => (
+                    <div
+                      key={step.key}
+                      style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}
+                    >
+                      {step.done ? (
+                        <>
+                          <div
+                            className="cvp-ats-step-pop"
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: "50%",
+                              background: "#378ADD",
+                              display: "grid",
+                              placeItems: "center",
+                              zIndex: 1,
+                            }}
+                          >
+                            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden>
+                              <path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                          <div style={{ marginTop: 8, fontSize: 9, fontWeight: 500, color: "#378ADD" }}>{step.label}</div>
+                          <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>{step.sub}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: "50%",
+                              background: "#1C1C1C",
+                              border: "1px solid #2A2A2A",
+                              boxSizing: "border-box",
+                              display: "grid",
+                              placeItems: "center",
+                              zIndex: 1,
+                            }}
+                          >
+                            {step.locked ? (
+                              <svg width={11} height={11} viewBox="0 0 11 11" aria-hidden>
+                                <rect x="2" y="5" width="7" height="5" rx="1" fill="none" stroke="#A0A0A0" strokeWidth="1.2" />
+                                <path d="M3.5 5V3.5a2 2 0 0 1 4 0V5" fill="none" stroke="#A0A0A0" strokeWidth="1.2" />
+                              </svg>
+                            ) : null}
+                          </div>
+                          <div style={{ marginTop: 8, fontSize: 9, fontWeight: 500, color: "#A0A0A0" }}>{step.label}</div>
+                          <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>{step.sub}</div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <p style={{ fontSize: 12, color: "#A0A0A0", margin: "0 0 12px", lineHeight: 1.4 }}>
+                One step from a complete application.
+                <br />
+                ATS cleared — now close it with a letter.
+              </p>
+              <div
+                style={{
+                  background: "linear-gradient(135deg, #0D1117, #0D2B1F)",
+                  border: "1px solid #1a4a30",
+                  borderRadius: 16,
+                  padding: 16,
+                }}
+              >
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
                 <div
                   style={{
@@ -1098,6 +1178,7 @@ function CoverLetterPage({ user, onBack }) {
               </button>
               <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
             </div>
+            </>
           ) : null}
           <button
             type="button"
@@ -1110,15 +1191,21 @@ function CoverLetterPage({ user, onBack }) {
               setClFieldErrors({});
             }}
             style={{
-              marginTop: 16,
+              marginTop: clFreePreview ? 12 : 16,
               width: "100%",
               padding: 12,
-              borderRadius: 10,
-              border: "1px solid #2A2A2A",
+              border: "none",
               background: "transparent",
-              color: "#A0A0A0",
-              fontSize: 14,
+              color: "#505050",
+              fontSize: 12,
+              textAlign: "center",
               cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#A0A0A0";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#505050";
             }}
           >
             Start over
@@ -1137,4 +1224,10 @@ function CoverLetterPage({ user, onBack }) {
     </div>
   );
 }
+
+/**
+ * Progress ladder UI lives above the paywall unlock card.
+ * Steps: ATS (done) → Job match (done) → Cover letter (locked).
+ * Unlock card and AED 10 CTA are unchanged.
+ */
 export default CoverLetterPage;
