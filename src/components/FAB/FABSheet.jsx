@@ -11,6 +11,7 @@ import {
   TOP_NUDGE_TO_NAV_KEY,
   checkAtsMilestone,
   shouldShowCoverLetterCrossSell,
+  getCvpPricingCurrencyCode,
 } from "./FABLogic";
 
 /** Progress coach ring + label colour by completion band */
@@ -421,6 +422,9 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
 export default function FABSheet({
   open,
   onClose,
+  variant = "route",
+  tabKey = "",
+  sheetLayoutKind = "normal",
   title,
   points,
   tabStorageKey,
@@ -915,6 +919,13 @@ export default function FABSheet({
     }
     const lim = Number.isFinite(g.downloadsLimit) ? g.downloadsLimit : 3;
     const used = g.downloadsUsed ?? 0;
+    const currency = getCvpPricingCurrencyCode();
+    const upgradePriceLine =
+      currency === "IN" ? (
+        <span style={{ color: "#FFF", fontWeight: 600 }}>₹199/mo</span>
+      ) : (
+        <span style={{ color: "#FFF", fontWeight: 600 }}>AED 29/mo</span>
+      );
     return (
       <>
         <div style={{ textAlign: "center", marginBottom: 10 }}>
@@ -949,10 +960,7 @@ export default function FABSheet({
           <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
             Upgrade to Active Hunter — unlimited downloads, all templates, ATS + Cover Letter.
           </p>
-          <p style={{ margin: "10px 0 0", fontSize: 14 }}>
-            <span style={{ color: "#FFF", fontWeight: 600 }}>AED 29/mo</span>
-            <span style={{ color: "var(--text-secondary, #A0A0A0)", marginLeft: 8 }}>or ₹199/mo</span>
-          </p>
+          <p style={{ margin: "10px 0 0", fontSize: 14 }}>{upgradePriceLine}</p>
         </div>
         <button
           type="button"
@@ -982,6 +990,11 @@ export default function FABSheet({
     if (dedicatedRoute === "account") return "Your plan";
     return title;
   })();
+
+  const showDownloadGatekeeperPanel =
+    showDownloadGatekeeper &&
+    !sheetBodySlot &&
+    (sheetLayoutKind === "download-only" || (variant === "builder" && tabKey === "content"));
 
   return (
     <>
@@ -1075,17 +1088,19 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          <div
-            style={{
-              color: "var(--text-primary, #FFF)",
-              fontSize: 18,
-              fontWeight: 500,
-              marginBottom: 16,
-              textAlign: "center",
-            }}
-          >
-            {resolvedTitle}
-          </div>
+          {String(resolvedTitle ?? "").trim() ? (
+            <div
+              style={{
+                color: "var(--text-primary, #FFF)",
+                fontSize: 18,
+                fontWeight: 500,
+                marginBottom: 16,
+                textAlign: "center",
+              }}
+            >
+              {resolvedTitle}
+            </div>
+          ) : null}
 
           {sheetIntelligence && showCelebrationBanner ? (
             <div
@@ -1285,7 +1300,7 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {showDownloadGatekeeper && !sheetBodySlot && (dedicatedRoute == null || dedicatedRoute === "ats") ? (
+          {showDownloadGatekeeperPanel ? (
             <DownloadGatekeeperPanel
               downloadGatekeeper={downloadGatekeeper}
               onNavigateAuth={onNavigateAuth}

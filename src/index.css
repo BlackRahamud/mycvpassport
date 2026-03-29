@@ -535,6 +535,13 @@ input:focus, textarea:focus {
   }
 }
 
+/* FAB sheet open — hide bottom tab bar on all routes (mobile) */
+@media (max-width: 768px) {
+  body.cvp-fab-sheet-open .cvp-mobile-tabbar {
+    display: none !important;
+  }
+}
+
 /* Full-screen CV preview from builder — hide chrome + bottom nav */
 body.cvp-builder-full-preview .cvp-mobile-tabbar {
   display: none !important;

@@ -126,6 +126,19 @@ export function getFabMemory() {
   return parseFabMemory(typeof localStorage !== "undefined" ? localStorage.getItem(FAB_MEMORY_KEY) : null);
 }
 
+/**
+ * Same source as Pricing.jsx (localStorage + ipapi on Pricing) and CoverLetterPage tone/pricing.
+ * IN → India pricing; AE / unset → UAE & GCC default.
+ * @returns {"IN" | "AE"}
+ */
+export function getCvpPricingCurrencyCode() {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem("cvp_pricing_currency") === "IN" ? "IN" : "AE";
+  } catch {
+    return "AE";
+  }
+}
+
 /** @returns {"morning" | "afternoon" | "evening" | "latenight"} */
 export function getFabTimeGreeting() {
   const hour = new Date().getHours();
@@ -139,7 +152,6 @@ const FAB_TIME_GREETING_COPY = {
   morning: "Morning! Let's make today count.",
   afternoon: "Good afternoon — your CV is ready to work hard.",
   evening: "Good evening — one quick fix before you rest?",
-  latenight: "Applying late? Make sure your CV is downloaded and ready.",
 };
 
 /**
@@ -167,9 +179,9 @@ export function getFabTopGreetingLine(memory, coach) {
   if (sc >= 5) {
     const miss = coach?.missingSections?.[0];
     if (miss) return `You're a regular. Still missing: ${miss}.`;
-    return FAB_TIME_GREETING_COPY[getFabTimeGreeting()];
+    return FAB_TIME_GREETING_COPY[getFabTimeGreeting()] ?? null;
   }
-  return FAB_TIME_GREETING_COPY[getFabTimeGreeting()];
+  return FAB_TIME_GREETING_COPY[getFabTimeGreeting()] ?? null;
 }
 
 /**

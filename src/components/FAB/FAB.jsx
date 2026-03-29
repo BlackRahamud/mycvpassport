@@ -335,6 +335,17 @@ const FAB = forwardRef(function FAB(
     };
   }, [variant, tabKey, sheetOpen, atsScore, openGuideSheet]);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    if (!mobile || !config || hidden) {
+      document.body.classList.remove("cvp-fab-sheet-open");
+      return undefined;
+    }
+    if (sheetOpen) document.body.classList.add("cvp-fab-sheet-open");
+    else document.body.classList.remove("cvp-fab-sheet-open");
+    return () => document.body.classList.remove("cvp-fab-sheet-open");
+  }, [sheetOpen, mobile, config, hidden]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -669,6 +680,9 @@ const FAB = forwardRef(function FAB(
       <FABSheet
         open={sheetOpen}
         onClose={closeSheet}
+        variant={variant}
+        tabKey={tabKey}
+        sheetLayoutKind={sheetLayoutKind}
         title={sheetTitle}
         points={sheetPoints}
         tabStorageKey={sheetAtsHigh ? "ats" : tabKey}

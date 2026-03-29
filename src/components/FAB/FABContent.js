@@ -33,7 +33,7 @@ export const ATS_HIGH_SCORE_GUIDE = {
 /** Builder tab sheets (content, templates, ats, jobmatch) */
 const BUILDER_GUIDES = {
   content: {
-    title: "Building your content",
+    title: "",
     points: [
       { icon: "edit", text: "Tap Edit on any section to expand and fill it" },
       { icon: "edit", text: "Your CV updates live as you type" },
