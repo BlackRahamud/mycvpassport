@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ReactComponent as FalconLogo } from "./logo.svg";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -31,43 +31,6 @@ function IconDots({ size = 18 }) {
   );
 }
 
-function TabIconDoc({ active }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "var(--text-primary)" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
-      <path d="M8 13h8" />
-      <path d="M8 17h6" />
-    </svg>
-  );
-}
-
-function TabIconTarget({ active }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "var(--text-primary)" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function TabIconBolt({ active }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "var(--text-primary)" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
-    </svg>
-  );
-}
-
-function TabIconUser({ active }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "var(--text-primary)" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 21a8 8 0 0 0-16 0" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
 function timeAgo(iso) {
   if (!iso) return "edited —";
   const ms = Date.now() - new Date(iso).getTime();
@@ -92,6 +55,7 @@ export default function Dashboard({
   onWalkIn = () => {},
   onTemplates = () => {},
 }) {
+  const navigate = useNavigate();
   const [active, setActive] = useState("mycvs");
   const [menuOpenId, setMenuOpenId] = useState(null);
   const isLight = theme === "light";
@@ -208,9 +172,38 @@ export default function Dashboard({
 
         {/* Main */}
         <main style={{ background: "var(--bg-page)", padding: 28, overflow: "auto" }}>
+          <div className="cvp-dashboard-mobile-head">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: 0,
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+                color: "#FFFFFF",
+                fontSize: 11,
+                fontFamily: "inherit",
+              }}
+              aria-label="Back to home"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              CVPassport
+            </button>
+          </div>
           <div style={{ display: "grid", gap: 6, marginBottom: 18 }}>
             <div style={{ fontSize: 20, fontWeight: 700 }}>My CVs</div>
-            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Need more? Upgrade</div>
+            <Link
+              to="/pricing"
+              style={{ fontSize: 11, color: "#555", textDecoration: "underline", width: "fit-content" }}
+            >
+              Need more? Upgrade
+            </Link>
           </div>
 
           <div className="cvp-cv-grid">
@@ -270,7 +263,25 @@ export default function Dashboard({
               </span>
               <span style={{ fontSize: 18, fontWeight: 700, color: "#FFF", marginTop: 10 }}>Walk-In Mode</span>
               <span style={{ fontSize: 13, color: "#A0A0A0", marginTop: 6, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>60 seconds. No account needed.</span>
-              <span style={{ marginTop: 16, height: 40, borderRadius: 8, background: "#FFF", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>Start Walk-In CV</span>
+              <span
+                style={{
+                  marginTop: "auto",
+                  minHeight: 44,
+                  borderRadius: 8,
+                  background: "#FFF",
+                  color: "#000",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  whiteSpace: "nowrap",
+                  padding: "0 10px",
+                  boxSizing: "border-box",
+                }}
+              >
+                Start Walk-In CV
+              </span>
             </button>
 
             {/* CV cards */}
@@ -491,57 +502,6 @@ export default function Dashboard({
         </main>
       </div>
 
-      {/* Mobile bottom tabs */}
-      <div
-        className="cvp-dashboard-tabs"
-        style={{
-          position: "fixed",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 64,
-          background: "rgba(10,10,10,0.96)",
-          borderTop: "1px solid #1E1E1E",
-          display: "none",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          alignItems: "center",
-          padding: "6px 6px 10px",
-          backdropFilter: "blur(10px)",
-          zIndex: 50,
-        }}
-      >
-        {[
-          { id: "mycvs", label: "My CVs", Icon: TabIconDoc, onClick: () => setActive("mycvs") },
-          { id: "ats", label: "ATS", Icon: TabIconTarget, onClick: onRunATS },
-          { id: "walkin", label: "Walk-In", Icon: TabIconBolt, onClick: onWalkIn },
-          { id: "account", label: "Account", Icon: TabIconUser, onClick: () => {} },
-        ].map((t) => {
-          const isActive = active === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => {
-                setActive(t.id);
-                t.onClick();
-              }}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: isActive ? "var(--text-primary)" : "#555",
-                display: "grid",
-                justifyItems: "center",
-                gap: 4,
-                cursor: "pointer",
-                padding: 6,
-              }}
-            >
-              <t.Icon active={isActive} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? "var(--text-primary)" : "#555" }}>{t.label}</span>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

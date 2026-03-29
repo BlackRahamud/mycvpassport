@@ -18,6 +18,7 @@ html {
   --text-primary: #FFF;
   --text-secondary: #A0A0A0;
   --border: #2A2A2A;
+  --border-default: #2A2A2A;
   --radius-lg: 16px;
   --radius-md: 12px;
 }
@@ -159,6 +160,10 @@ input:focus, textarea:focus {
   }
 }
 
+.cvp-dashboard-mobile-head {
+  display: none;
+}
+
 /* Dashboard responsive — sidebar & tabs + wrapper (mobile: block, no black half) */
 @media (max-width: 768px) {
   .cvp-dashboard-wrapper {
@@ -170,8 +175,11 @@ input:focus, textarea:focus {
   .cvp-dashboard-sidebar {
     display: none !important;
   }
-  .cvp-dashboard-tabs {
-    display: grid !important;
+  .cvp-dashboard-mobile-head {
+    display: flex !important;
+    align-items: center;
+    min-height: 44px;
+    margin: -4px 0 8px;
   }
   .cvp-cv-grid {
     grid-template-columns: repeat(2, 1fr) !important;
@@ -287,8 +295,20 @@ input:focus, textarea:focus {
 
 @media (max-width: 767px) {
   .cvp-builder-mobile-form {
-    /* Space so last fields stay above the in-flow bottom bar (toggle + download) */
-    padding-bottom: 140px;
+    padding-bottom: 100px;
+  }
+  .cvp-builder-tab-scroll .cvp-builder-tabchip {
+    font-size: 8.5px !important;
+    padding: 4px 5px !important;
+  }
+  .cvp-builder-menu-btn {
+    display: grid !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .cvp-builder-menu-btn {
+    display: none !important;
   }
 }
 

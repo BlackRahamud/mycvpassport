@@ -38,9 +38,10 @@ import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
 import AdminPanel from "./AdminPanel";
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
-function TabIconDoc() {
+function TabIconDoc({ active }) {
+  const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <path d="M14 2v6h6" />
       <path d="M8 13h8" />
@@ -48,32 +49,36 @@ function TabIconDoc() {
     </svg>
   );
 }
-function TabIconTarget() {
+function TabIconTarget({ active }) {
+  const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="8" />
       <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }
-function TabIconBolt() {
+function TabIconBolt({ active }) {
+  const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
     </svg>
   );
 }
-function TabIconUser() {
+function TabIconUser({ active }) {
+  const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 21a8 8 0 0 0-16 0" />
       <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
-function TabIconCoverLetter() {
+function TabIconCoverLetter({ active }) {
+  const stroke = active ? "#FFFFFF" : "#555";
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
       <polyline points="22,6 12,13 2,6" />
       <path d="M8 13h4" />
@@ -1057,14 +1062,15 @@ function CoverLetterPage({ user, onBack }) {
 }
 function MobileTabBar({ currentPath, onNavigate, user }) {
   if (!user) return null;
-  const show = ["/dashboard", "/ats", "/cover-letter", "/walk-in"].includes(currentPath);
+  const clean = currentPath.replace(/\/$/, "") || "/";
+  const show = ["/dashboard", "/ats", "/cover-letter", "/walk-in", "/builder"].includes(clean);
   if (!show) return null;
   const tabs = [
-    { id: "/dashboard", label: "My CVs", icon: <TabIconDoc /> },
-    { id: "/ats", label: "ATS", icon: <TabIconTarget /> },
-    { id: "/cover-letter", label: "Cover Letter", icon: <TabIconCoverLetter /> },
-    { id: "/walk-in", label: "Walk-In", icon: <TabIconBolt /> },
-    { id: "/dashboard", label: "Account", icon: <TabIconUser /> },
+    { id: "/dashboard", label: "My CVs", Icon: TabIconDoc },
+    { id: "/ats", label: "ATS", Icon: TabIconTarget },
+    { id: "/cover-letter", label: "Cover Letter", Icon: TabIconCoverLetter },
+    { id: "/walk-in", label: "Walk-In", Icon: TabIconBolt },
+    { id: "/dashboard", label: "Account", Icon: TabIconUser, account: true },
   ];
   return (
     <div
@@ -1074,39 +1080,52 @@ function MobileTabBar({ currentPath, onNavigate, user }) {
         left: 0,
         right: 0,
         bottom: 0,
-        height: 64,
+        minHeight: 64,
         background: "rgba(10,10,10,0.96)",
         borderTop: "1px solid #1E1E1E",
         display: "none",
         gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
         alignItems: "center",
-        padding: "6px 6px 10px",
+        padding: "4px 4px 10px",
         backdropFilter: "blur(10px)",
         zIndex: 50,
+        maxWidth: "100vw",
+        boxSizing: "border-box",
       }}
     >
-      {tabs.map((t) => (
-        <button
-          key={`${t.label}-${t.id}`}
-          type="button"
-          onClick={() => onNavigate(t.id)}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: currentPath === t.id ? "#FFFFFF" : "#555",
-            display: "grid",
-            justifyItems: "center",
-            gap: 4,
-            cursor: "pointer",
-            padding: 6,
-          }}
-        >
-          {t.icon}
-          <span style={{ fontSize: 11, fontWeight: 600, color: currentPath === t.id ? "#FFFFFF" : "#555" }}>
-            {t.label}
-          </span>
-        </button>
-      ))}
+      {tabs.map((t, idx) => {
+        const active =
+          t.label === "My CVs"
+            ? clean === "/dashboard" || clean === "/builder"
+            : t.account
+              ? false
+              : clean === t.id;
+        return (
+          <button
+            key={`${t.label}-${idx}`}
+            type="button"
+            onClick={() => onNavigate(t.id)}
+            className="cvp-mobile-tabbar-btn"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: active ? "#FFFFFF" : "#555",
+              display: "grid",
+              justifyItems: "center",
+              gap: 3,
+              cursor: "pointer",
+              padding: "6px 2px",
+              minHeight: 44,
+              alignContent: "center",
+            }}
+          >
+            <t.Icon active={active} />
+            <span style={{ fontSize: 6.5, fontWeight: 600, color: active ? "#FFFFFF" : "#555", lineHeight: 1.15, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {t.label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1132,6 +1151,14 @@ const TEMPLATES = [
   { id: 13, name: "Finance",              tier: "premium", color: "#000000", accent: "#000000", desc: "Dense finance & accounting · UAE banking",    layout: "finance", tags: ["ATS Friendly", "Popular in UAE", "Banking & Finance"] },
   { id: 14, name: "Figma Mirror",         tier: "premium", color: "#1e293b", accent: "#60a5fa", desc: "2-page Figma mirror · 595×842px",           layout: "figma-mirror", tags: ["2 Pages", "Figma Export"] },
 ];
+
+/** Filter keys → TEMPLATES[].id (numeric ids 1–14 are the canonical template IDs in this app). */
+const TEMPLATE_FILTER_IDS = {
+  popular: [1, 2, 3, 4, 5],
+  simple: [1, 2, 3, 6, 7],
+  modern: [4, 5, 8, 9, 10],
+  creative: [11, 12, 13, 14],
+};
 
 const DUMMY_RESUME = {
   name: "Ahmed Al Mansouri",
@@ -1547,43 +1574,42 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
   );
 }
 
-/** Customise tab: template row with scaled live preview thumbnail */
-const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isSelected, resume, onSelect }) {
+const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template: t, isSelected, resume, onPick, cardRef }) {
   const isFree = t.tier === "free";
   return (
     <button
+      ref={cardRef}
       type="button"
-      onClick={() => onSelect(t)}
+      onClick={() => onPick(t)}
       style={{
+        position: "relative",
         width: "100%",
-        height: 120,
         padding: 0,
-        borderRadius: 8,
-        border: isSelected ? "1px solid #FFFFFF" : "1px solid #2A2A2A",
-        background: isSelected ? "#1C1C1C" : "#141414",
+        margin: 0,
+        border: isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A",
+        borderRadius: 10,
+        background: "#141414",
         cursor: "pointer",
         overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
+        display: "block",
         textAlign: "left",
         boxSizing: "border-box",
       }}
     >
       <div
         style={{
-          height: 90,
+          height: 78,
           overflow: "hidden",
           background: "#1C1C1C",
           display: "flex",
           justifyContent: "center",
           alignItems: "flex-start",
-          position: "relative",
         }}
       >
         <div
           style={{
             width: A4_PREVIEW_WIDTH_PX,
-            transform: "scale(0.2)",
+            transform: "scale(0.175)",
             transformOrigin: "top center",
             pointerEvents: "none",
             flexShrink: 0,
@@ -1592,50 +1618,461 @@ const BuilderTemplateCard = memo(function BuilderTemplateCard({ template: t, isS
           <ResumePreview cv={resume} template={t} />
         </div>
       </div>
-      <div
+      <div style={{ padding: "5px 7px 4px" }}>
+        <span style={{ fontSize: 8, fontWeight: 500, color: "#FFFFFF", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+      </div>
+      <span
         style={{
-          height: 30,
-          minHeight: 30,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          padding: "0 10px",
-          boxSizing: "border-box",
-          borderTop: "1px solid #2A2A2A",
+          position: "absolute",
+          top: 5,
+          right: 5,
+          fontSize: 6.5,
+          padding: "2px 5px",
+          borderRadius: 5,
+          fontWeight: 600,
+          background: isFree ? "#1D9E75" : "#EF9F27",
+          color: isFree ? "#fff" : "#412402",
         }}
       >
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#FFFFFF",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          {t.name}
-        </span>
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            padding: "2px 8px",
-            borderRadius: 6,
-            flexShrink: 0,
-            background: isFree ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.2)",
-            color: isFree ? "#10b981" : "#f59e0b",
-          }}
-        >
-          {isFree ? "Free" : "Pro"}
-        </span>
-      </div>
+        {isFree ? "Free" : "⭐ Pro"}
+      </span>
     </button>
   );
 });
+
+function builderAtsScore(resume) {
+  let s = 0;
+  if (resume.name) s += 8;
+  if (resume.email) s += 8;
+  if (resume.phone) s += 8;
+  if (resume.title) s += 10;
+  if (resume.nationality) s += 5;
+  if (resume.visaStatus) s += 5;
+  if (resume.summary?.length > 50) s += 16;
+  if (resume.experience?.some((e) => e?.company)) s += 16;
+  if (resume.skills?.length > 20) s += 12;
+  if (normalizeCertificationsArray(resume.certifications).length > 0) s += 6;
+  if (resume.languages) s += 6;
+  return s;
+}
+
+function builderAtsBreakdown(resume) {
+  const certs = normalizeCertificationsArray(resume.certifications);
+  return [
+    { pass: Boolean(String(resume.name || "").trim()), text: "Full name filled in" },
+    { pass: Boolean(String(resume.email || "").trim()), text: "Email address present" },
+    { pass: Boolean(String(resume.phone || "").trim()), text: "Phone number present" },
+    { pass: Boolean(String(resume.title || "").trim()), text: "Professional title set" },
+    { pass: Boolean(String(resume.nationality || "").trim()), text: "Nationality included" },
+    { pass: Boolean(String(resume.visaStatus || "").trim()), text: "Visa status included" },
+    { pass: Boolean(resume.summary && resume.summary.length > 50), text: "Professional summary (50+ characters)" },
+    { pass: Boolean(resume.experience?.some((e) => e?.company)), text: "At least one work experience entry" },
+    { pass: Boolean(resume.skills && resume.skills.length > 20), text: "Core skills list filled out" },
+    { pass: certs.length > 0, text: "Certifications added" },
+    { pass: Boolean(String(resume.languages || "").trim()), text: "Languages listed" },
+  ];
+}
+
+function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate }) {
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState("popular");
+  const [pending, setPending] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const prevFilterRef = useRef(null);
+  const cardRefs = useRef(new Map());
+  const ids = TEMPLATE_FILTER_IDS[filter] || TEMPLATE_FILTER_IDS.popular;
+  const list = TEMPLATES.filter((t) => ids.includes(t.id));
+
+  useEffect(() => {
+    const prev = prevFilterRef.current;
+    prevFilterRef.current = filter;
+    if (prev === null) return;
+    if (prev === filter) return;
+    const activeIds = TEMPLATE_FILTER_IDS[filter] || TEMPLATE_FILTER_IDS.popular;
+    const sid = selectedTemplate?.id;
+    if (sid == null || !activeIds.includes(sid)) return;
+    const el = cardRefs.current.get(sid);
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+      });
+    }
+  }, [filter, selectedTemplate?.id]);
+  const pills = [
+    { id: "popular", label: "Popular" },
+    { id: "simple", label: "Simple" },
+    { id: "modern", label: "Modern" },
+    { id: "creative", label: "Creative" },
+  ];
+  return (
+    <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box" }}>
+      <div
+        className="cvp-templates-pills"
+        style={{
+          display: "flex",
+          gap: 6,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          padding: "0 10px 10px",
+          margin: 0,
+          flexWrap: "nowrap",
+          maxWidth: "100%",
+        }}
+      >
+        {pills.map((p) => {
+          const on = filter === p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setFilter(p.id)}
+              style={{
+                flex: "0 0 auto",
+                background: on ? "#fff" : "#1C1C1C",
+                color: on ? "#000" : "#666",
+                fontSize: 8,
+                padding: "4px 9px",
+                borderRadius: 12,
+                border: on ? "0.5px solid #fff" : "0.5px solid #2A2A2A",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                minHeight: 28,
+              }}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 7,
+          padding: "0 10px",
+          boxSizing: "border-box",
+        }}
+      >
+        {list.map((t) => (
+          <BuilderTemplateGridCard
+            key={t.id}
+            template={t}
+            isSelected={selectedTemplate?.id === t.id}
+            resume={resume}
+            onPick={(tpl) => setPending(tpl)}
+            cardRef={(el) => {
+              if (el) cardRefs.current.set(t.id, el);
+              else cardRefs.current.delete(t.id);
+            }}
+          />
+        ))}
+      </div>
+      {pending ? (
+        <div style={{ padding: "12px 10px 0" }}>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            style={{
+              width: "calc(100% - 20px)",
+              margin: "0 10px",
+              boxSizing: "border-box",
+              background: "#fff",
+              color: "#000",
+              fontSize: 8.5,
+              borderRadius: 8,
+              border: "none",
+              padding: 7,
+              fontWeight: 600,
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            Use this template
+          </button>
+        </div>
+      ) : null}
+      {confirmOpen && pending ? (
+        <div
+          role="presentation"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 400,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+          }}
+          onClick={() => setConfirmOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              background: "#141414",
+              borderRadius: "16px 16px 0 0",
+              padding: 20,
+              maxHeight: "50vh",
+              boxSizing: "border-box",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ color: "#fff", fontSize: 13, margin: "0 0 16px", lineHeight: 1.4 }}>
+              Do you want to replace your current design with this template?
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                style={{
+                  flex: 1,
+                  minHeight: 44,
+                  background: "#1C1C1C",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onApplyTemplate(pending);
+                  setConfirmOpen(false);
+                  setPending(null);
+                }}
+                style={{
+                  flex: 1,
+                  minHeight: 44,
+                  background: "#fff",
+                  color: "#000",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Apply Template
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div style={{ padding: "16px 10px 8px", textAlign: "center" }}>
+        <button
+          type="button"
+          onClick={() => navigate("/pricing")}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#666",
+            fontSize: 10,
+            textDecoration: "underline",
+            cursor: "pointer",
+          }}
+        >
+          Remove watermark — upgrade to Pro
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BuilderAtsTabContent({ resume, onProCta, enableDoubtPopup = true }) {
+  const score = builderAtsScore(resume);
+  const breakdown = builderAtsBreakdown(resume);
+  const pct = Math.max(0, Math.min(100, score));
+  const r = 40.5;
+  const c = 2 * Math.PI * r;
+  const arcLen = (pct / 100) * c;
+  const dashActive = `${arcLen} ${c}`;
+  const [doubtPopup, setDoubtPopup] = useState(false);
+  useEffect(() => {
+    if (!enableDoubtPopup || pct < 71) return undefined;
+    const t = setTimeout(() => setDoubtPopup(true), 2000);
+    return () => clearTimeout(t);
+  }, [pct, enableDoubtPopup]);
+  let singleStroke = "#E24B4A";
+  if (pct >= 41 && pct < 71) singleStroke = "#EF9F27";
+  if (pct >= 71) singleStroke = "#1D9E75";
+  return (
+    <div style={{ padding: "0 12px 16px", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box" }}>
+      <style>{`
+        @keyframes cvpAtsFlicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+      `}</style>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 16 }}>
+        <div style={{ position: "relative", width: 88, height: 88 }}>
+          <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden>
+            <circle cx="44" cy="44" r={r} fill="none" stroke="#1C1C1C" strokeWidth="7" />
+            {pct >= 71 ? (
+              <>
+                <circle
+                  cx="44"
+                  cy="44"
+                  r={r}
+                  fill="none"
+                  stroke="#1D9E75"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeDasharray={dashActive}
+                  transform="rotate(-90 44 44)"
+                />
+                <circle
+                  cx="44"
+                  cy="44"
+                  r={r}
+                  fill="none"
+                  stroke="#EF9F27"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeDasharray={dashActive}
+                  transform="rotate(-90 44 44)"
+                  style={{ animation: "cvpAtsFlicker 0.9s ease-in-out infinite" }}
+                />
+              </>
+            ) : (
+              <circle
+                cx="44"
+                cy="44"
+                r={r}
+                fill="none"
+                stroke={singleStroke}
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray={dashActive}
+                transform="rotate(-90 44 44)"
+              />
+            )}
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+            }}
+          >
+            <span style={{ fontSize: 20, fontWeight: 500, color: "#fff", lineHeight: 1 }}>{pct}</span>
+            <span style={{ fontSize: 7, color: "#666", marginTop: 2 }}>ATS Score</span>
+          </div>
+        </div>
+        <div style={{ color: "#666", fontSize: 8.5, marginTop: 5, textAlign: "center" }}>ATS Readiness Score</div>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        {breakdown.map((row, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "6px 0",
+              borderBottom: "0.5px solid #1A1A1A",
+            }}
+          >
+            <span
+              style={{
+                width: 13,
+                height: 13,
+                borderRadius: "50%",
+                flexShrink: 0,
+                display: "grid",
+                placeItems: "center",
+                fontSize: 8,
+                fontWeight: 700,
+                background: row.pass ? "#1D9E75" : "#E24B4A",
+                color: "#fff",
+              }}
+            >
+              {row.pass ? "✓" : "✕"}
+            </span>
+            <span style={{ color: "#aaa", fontSize: 8, lineHeight: 1.35 }}>{row.text}</span>
+          </div>
+        ))}
+      </div>
+      <div
+        style={{
+          background: "#1C1C1C",
+          border: "0.5px solid #444",
+          borderRadius: 9,
+          padding: 9,
+          textAlign: "center",
+          marginTop: 9,
+        }}
+      >
+        <div style={{ color: "#fff", fontSize: 8.5, fontWeight: 500, marginBottom: 6 }}>Are you 100% sure?</div>
+        <div style={{ color: "#666", fontSize: 7, lineHeight: 1.4, marginBottom: 10 }}>
+          ATS systems vary — get a deep scan with Pro to be certain
+        </div>
+        <button
+          type="button"
+          onClick={onProCta}
+          style={{
+            background: "#fff",
+            color: "#000",
+            fontSize: 8,
+            padding: "5px 12px",
+            borderRadius: 7,
+            border: "none",
+            fontWeight: 600,
+            cursor: "pointer",
+            minHeight: 36,
+          }}
+        >
+          Check Pro ATS →
+        </button>
+      </div>
+      {doubtPopup ? (
+        <div
+          role="dialog"
+          style={{
+            position: "fixed",
+            left: 16,
+            right: 16,
+            bottom: 88,
+            zIndex: 350,
+            background: "#1C1C1C",
+            border: "0.5px solid #333",
+            borderRadius: 10,
+            padding: 14,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+          }}
+        >
+          <p style={{ color: "#fff", fontSize: 11, margin: "0 0 10px", lineHeight: 1.45 }}>
+            Your score looks good — but are you 100% sure? ATS systems vary. Deep scan with Pro.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setDoubtPopup(false);
+              onProCta();
+            }}
+            style={{
+              width: "100%",
+              minHeight: 40,
+              background: "#fff",
+              color: "#000",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            Check Pro ATS
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /** Full HTML document for iLovePDF (fonts + A4 preview shell; mirrors index.css .cvp-builder-a4-fit desktop rules). */
 function buildCvPdfHtmlDocument(cvFragmentHtml) {
@@ -2158,6 +2595,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
 // ─── RESUME BUILDER ───────────────────────────────────────────────
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId, isPro = false }) {
+  const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloading, setDownloading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2168,7 +2606,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   );
   const [builderTab, setBuilderTab] = useState("content");
   const [openSection, setOpenSection] = useState(null);
-  const [mobileView, setMobileView] = useState("edit");
+  const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
+  const [fabSheet, setFabSheet] = useState(null);
+  const [jobHasJd, setJobHasJd] = useState(false);
   const [experienceEditor, setExperienceEditor] = useState(null);
   const [educationEditor, setEducationEditor] = useState(null);
   const [certificationEditor, setCertificationEditor] = useState(null);
@@ -2199,14 +2639,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     if (s != null) setDesktopPreviewScale(s);
   }, []);
 
-  useLayoutEffect(() => {
-    if (mobileView !== "preview") return;
-    const el = mobilePreviewFitRef.current;
-    if (!el) return;
-    const s = measureFitWidth(el);
-    if (s != null) setMobilePreviewScale(s);
-  }, [mobileView]);
-
   useEffect(() => {
     const el = desktopPreviewFitRef.current;
     if (!el) return;
@@ -2221,8 +2653,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     return () => ro.disconnect();
   }, []);
 
+  useLayoutEffect(() => {
+    if (fabSheet !== "preview") return;
+    const el = mobilePreviewFitRef.current;
+    if (!el) return;
+    const s = measureFitWidth(el);
+    if (s != null) setMobilePreviewScale(s);
+  }, [fabSheet]);
+
   useEffect(() => {
-    if (mobileView !== "preview") return;
+    if (fabSheet !== "preview") return;
     const el = mobilePreviewFitRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
@@ -2234,7 +2674,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [mobileView]);
+  }, [fabSheet]);
 
   useEffect(() => {
     previewScrollRef.current?.scrollTo(0, 0);
@@ -2243,38 +2683,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
 
-  const score = (() => {
-    let s = 0;
-    if (resume.name) s += 8;
-    if (resume.email) s += 8;
-    if (resume.phone) s += 8;
-    if (resume.title) s += 10;
-    if (resume.nationality) s += 5;
-    if (resume.visaStatus) s += 5;
-    if (resume.summary?.length > 50) s += 16;
-    if (resume.experience?.some((e) => e?.company)) s += 16;
-    if (resume.skills?.length > 20) s += 12;
-    if (normalizeCertificationsArray(resume.certifications).length > 0) s += 6;
-    if (resume.languages) s += 6;
-    return s;
-  })();
-  const scoreColor = score >= 80 ? C.success : score >= 50 ? C.gold : C.danger;
+  const score = builderAtsScore(resume);
+  const atsBreakdown = builderAtsBreakdown(resume);
 
-  const customizePanel = (
-    <div style={{ padding: 12 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Template</div>
-      <div style={{ display: "grid", gap: 8 }}>
-        {TEMPLATES.map((t) => (
-          <BuilderTemplateCard
-            key={t.id}
-            template={t}
-            isSelected={selectedTemplate?.id === t.id}
-            resume={resume}
-            onSelect={setSelectedTemplate}
-          />
-        ))}
-      </div>
-    </div>
+  const templatesPanel = (
+    <BuilderTemplatesTab resume={resume} selectedTemplate={selectedTemplate} onApplyTemplate={setSelectedTemplate} />
   );
 
   const handleSave = useCallback(async () => {
@@ -2308,24 +2721,31 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     try {
       await new Promise((r) => setTimeout(r, spinMs));
       if (user?.id) await handleSave();
-      const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
-      const wasMobileEdit = isMobileViewport && mobileView === "edit";
-      if (wasMobileEdit) setMobileView("preview");
-      if (isMobileViewport) setMobilePreviewScale(1);
       await new Promise((r) => setTimeout(r, 500));
-
+      const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
       if (!el) throw new Error("Preview not ready");
       await downloadResumeFromPreview(resume, el);
-
-      if (wasMobileEdit) setMobileView("edit");
-      if (isMobileViewport) setMobilePreviewScale(Math.min(1, window.innerWidth / 794));
     } catch (e) {
       alert("PDF error: " + e.message);
     } finally {
       setDownloading(false);
     }
   };
+
+  const openProAts = () => {
+    setUpgradeOpen(true);
+    setFabSheet(null);
+  };
+
+  const fabDot =
+    builderTab === "ats"
+      ? atsBreakdown.some((x) => !x.pass)
+      : builderTab === "templates"
+        ? !isPro
+        : builderTab === "jobmatch"
+          ? !jobHasJd
+          : builderTab === "content" && score < 71;
 
   const handleOpenCoverLetter = () => {
     if (!isPro) {
@@ -2362,16 +2782,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 16, overflowX: "auto", flex: "1 1 auto", minWidth: 0 }}>
-          <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
+          <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {["content", "customize", "ats", "jobmatch"].map((tab) => (
+          <div className="cvp-builder-tab-scroll" style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            {["content", "templates", "ats", "jobmatch"].map((tab) => (
               <button
                 key={tab}
                 type="button"
-                onClick={() => { setBuilderTab(tab); setMobileView("edit"); }}
+                className="cvp-builder-tabchip"
+                onClick={() => setBuilderTab(tab)}
                 style={{
                   padding: "6px 12px",
                   borderRadius: 8,
@@ -2382,13 +2803,40 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   fontSize: 14,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
+                  flex: "0 0 auto",
                   transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
                 }}
               >
-                {tab === "content" ? "Content" : tab === "customize" ? "Customise" : tab === "ats" ? "ATS Check" : "Job Match"}
+                {tab === "content" ? "Content" : tab === "templates" ? "Templates" : tab === "ats" ? "ATS Check" : "Job Match"}
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            className="cvp-builder-menu-btn"
+            aria-label="Open menu"
+            onClick={() => setMenuDrawerOpen(true)}
+            style={{
+              width: 44,
+              height: 44,
+              minWidth: 44,
+              minHeight: 44,
+              padding: 0,
+              border: "none",
+              background: "transparent",
+              color: "#A0A0A0",
+              cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
+              flexShrink: 0,
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 140 }}>
@@ -2552,13 +3000,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               )}
             </>
           )}
-          {builderTab === "customize" && customizePanel}
-          {builderTab === "ats" && (
-            <div style={{ padding: 12, display: "grid", gap: 12 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
-              <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score. Add more sections and keywords to improve.</div>
-            </div>
-          )}
+          {builderTab === "templates" && templatesPanel}
+          {builderTab === "ats" && <BuilderAtsTabContent resume={resume} onProCta={openProAts} />}
           {builderTab === "jobmatch" && (
             <div style={{ display: "grid", gap: 12 }}>
               <button
@@ -2581,7 +3024,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               >
                 Get Cover Letter
               </button>
-              <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />
+              <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} onJobDescriptionChange={setJobHasJd} />
             </div>
           )}
         </aside>
@@ -2599,9 +3042,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </div>
       </div>
 
-      {/* Mobile: single column + Edit | Preview pill */}
-      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", flex: 1, minHeight: 0 }}>
-        {mobileView === "edit" ? (
+      {/* Mobile: single column */}
+      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", flex: 1, minHeight: 0, position: "relative", maxWidth: "100vw", overflow: "hidden" }}>
           <div className="cvp-builder-mobile-form">
             {builderTab === "content" && (
               <>
@@ -2614,14 +3056,14 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                   </div>
                 </div>
-                <div className="cvp-sections-list">
-              <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
+                <div className="cvp-mobile-section-rows" style={{ display: "flex", flexDirection: "column", maxWidth: "100%" }}>
+              <AccordionSection variant="mobileRow" id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
                 <div>
                   <textarea style={{ ...CB_UI.input, height: 100, resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
                 </div>
               </AccordionSection>
 
-              <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
+              <AccordionSection variant="mobileRow" id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
                 <div style={{ display: "grid", gap: 10 }}>
                   {resume.experience.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
@@ -2642,7 +3084,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
+              <AccordionSection variant="mobileRow" id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
                 <div style={{ display: "grid", gap: 10 }}>
                   {resume.education.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
@@ -2664,7 +3106,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              <AccordionSection id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+              <AccordionSection variant="mobileRow" id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.skills).map((sk, si) => (
@@ -2685,7 +3127,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
+              <AccordionSection variant="mobileRow" id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.languages).map((lg, li) => (
@@ -2703,7 +3145,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
-                <AccordionSection key={opt.id} id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
+                <AccordionSection key={opt.id} variant="mobileRow" id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
                   {opt.id === "certifications" ? (
                     <CertificationsBuilderSection
                       resume={resume}
@@ -2733,13 +3175,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 )}
               </>
             )}
-            {builderTab === "customize" && customizePanel}
-            {builderTab === "ats" && (
-              <div style={{ padding: 12, display: "grid", gap: 12 }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor, marginBottom: 8 }}>{score}%</div>
-                <div style={{ fontSize: 13, color: "#A0A0A0" }}>ATS readiness score.</div>
-              </div>
-            )}
+            {builderTab === "templates" && templatesPanel}
+            {builderTab === "ats" && <BuilderAtsTabContent resume={resume} onProCta={openProAts} />}
             {builderTab === "jobmatch" && (
               <div style={{ display: "grid", gap: 12, padding: "0 12px 12px" }}>
                 <button
@@ -2762,95 +3199,214 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 >
                   Get Cover Letter
                 </button>
-                <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} />
+                <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} onJobDescriptionChange={setJobHasJd} />
               </div>
             )}
-          </div>
-        ) : (
-          ["banner", "twocol", "sidebar", "timeline", "gulf-exec", "banking", "compact-pro", "creative", "hospitality", "ats-intl", "tech-it"].includes(selectedTemplate?.layout) ? (
-            <div
-              ref={mobilePreviewScrollRef}
-              style={{
-                flex: 1,
-                width: "100%",
-                overflowY: "auto",
-                overflowX: "hidden",
-                background: "#111111",
-                padding: "16px 16px 160px",
-                boxSizing: "border-box",
-              }}
-            >
-              <div ref={mobileCvPreviewRef} className="cvp-builder-a4-fit" style={{ width: "100%" }}>
-                <ResumePreview cv={resume} template={selectedTemplate} mobileMode />
-              </div>
+            <div className="cvp-builder-mobile-download-row" style={{ padding: "12px 10px 88px", marginTop: "auto" }}>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                style={{
+                  width: "calc(100% - 20px)",
+                  margin: "0 10px",
+                  boxSizing: "border-box",
+                  minHeight: 44,
+                  padding: "10px 12px",
+                  borderRadius: 9,
+                  border: "none",
+                  background: "#FFFFFF",
+                  color: "#000000",
+                  fontSize: 8.5,
+                  fontWeight: 600,
+                  cursor: downloading ? "not-allowed" : "pointer",
+                  opacity: downloading ? 0.7 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {downloading ? "Preparing…" : "Download CV"}
+              </button>
             </div>
-          ) : (
-            <div
-              ref={mobilePreviewScrollRef}
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                overflowX: "hidden",
-                background: "#111111",
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "center",
-                padding: "16px 0",
-              }}
-            >
+          </div>
+
+        <div className="cvp-builder-mobile-hidden-capture" aria-hidden style={{ position: "absolute", left: -9999, top: 0, width: 794, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none", zIndex: -1 }}>
+          <div ref={mobileCvPreviewRef} className="cvp-builder-a4-fit" style={{ width: 794 }}>
+            <ResumePreview cv={resume} template={selectedTemplate} mobileMode />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="cvp-builder-fab"
+          aria-label="Quick actions"
+          onClick={() => {
+            if (builderTab === "content") setFabSheet("preview");
+            else if (builderTab === "ats") setFabSheet("ats");
+            else if (builderTab === "templates") setFabSheet("templates");
+            else setFabSheet("jobmatch");
+          }}
+          style={{
+            position: "absolute",
+            bottom: 70,
+            left: 12,
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            background: "#0A0A0A",
+            border: "1.5px solid #333",
+            padding: 0,
+            cursor: "pointer",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 60,
+            boxSizing: "border-box",
+          }}
+        >
+          <span style={{ position: "relative", width: 28, height: 28, display: "grid", placeItems: "center" }}>
+            <style>{`
+              @keyframes cvpFabSpin { to { transform: rotate(360deg); } }
+            `}</style>
+            <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden style={{ display: "block" }}>
+              <rect x="6" y="4" width="14" height="18" rx="3" fill="none" stroke="#444" strokeWidth="1" />
+              <rect x="6" y="4" width="14" height="18" rx="3" fill="none" stroke="#fff" strokeWidth="1" strokeDasharray="11 45" strokeLinecap="round" style={{ animation: "cvpFabSpin 3s linear infinite" }} />
+              <line x1="8" y1="10" x2="20" y2="10" stroke="#fff" strokeWidth="1" />
+              <line x1="8" y1="13" x2="16" y2="13" stroke="#444" strokeWidth="1" />
+              <line x1="8" y1="16" x2="15" y2="16" stroke="#444" strokeWidth="1" />
+              <circle cx="20" cy="20" r="5" fill="#fff" />
+              <path d="M17.5 20 L19.5 22 L23 18" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {fabDot ? (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -2,
+                  right: -2,
+                  width: 10,
+                  height: 10,
+                  background: "#E24B4A",
+                  borderRadius: "50%",
+                  border: "2px solid #0A0A0A",
+                  boxSizing: "border-box",
+                }}
+              />
+            ) : null}
+          </span>
+        </button>
+
+        {fabSheet === "preview" ? (
+          <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0A0A0A", display: "flex", flexDirection: "column" }}>
+            <div style={{ flexShrink: 0, display: "flex", justifyContent: "flex-end", padding: 12, borderBottom: "0.5px solid #2A2A2A" }}>
+              <button type="button" onClick={() => setFabSheet(null)} aria-label="Close preview" style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 22, cursor: "pointer" }}>
+                ✕
+              </button>
+            </div>
+            <div ref={mobilePreviewScrollRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 16, WebkitOverflowScrolling: "touch" }}>
               <BuilderA4PreviewScaled
                 cv={resume}
                 template={selectedTemplate}
                 scale={mobilePreviewScale}
                 fitRef={mobilePreviewFitRef}
                 padded
-                previewCardRef={mobileCvPreviewRef}
               />
             </div>
-          )
-        )}
-        {builderTab === "content" && (
-          <div className="cvp-builder-bottom-bar">
-            <div className="cvp-builder-toggle-pill">
-              <button type="button" onClick={() => setMobileView("edit")} className={mobileView === "edit" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Edit</button>
-              <button type="button" onClick={() => setMobileView("preview")} className={mobileView === "preview" ? "cvp-toggle-active" : "cvp-toggle-inactive"}>Preview</button>
-            </div>
-            <div className="cvp-builder-mobile-download">
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={downloading}
-                style={{
-                  width: "100%",
-                  padding: "14px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: "#FFFFFF",
-                  color: "#000000",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: downloading ? "not-allowed" : "pointer",
-                  transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                }}
-              >
-                {downloading ? (
-                  <>
-                    <span style={{ display: "inline-flex", transform: "scale(0.42)", transformOrigin: "center" }}>
-                      <CoverLetterSpinnerArrow size={44} />
-                    </span>
-                    Preparing...
-                  </>
-                ) : (
-                  "Download CV"
-                )}
-              </button>
+          </div>
+        ) : null}
+
+        {fabSheet === "ats" ? (
+          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)" }} onClick={() => setFabSheet(null)}>
+            <div
+              role="dialog"
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                maxHeight: "72vh",
+                overflowY: "auto",
+                background: "#141414",
+                borderRadius: "16px 16px 0 0",
+                padding: 16,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>ATS breakdown & tips</span>
+                <button type="button" onClick={() => setFabSheet(null)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 18, cursor: "pointer" }}>
+                  ✕
+                </button>
+              </div>
+              <BuilderAtsTabContent resume={resume} onProCta={openProAts} enableDoubtPopup={false} />
             </div>
           </div>
-        )}
+        ) : null}
+
+        {fabSheet === "templates" ? (
+          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)" }} onClick={() => setFabSheet(null)}>
+            <div
+              role="dialog"
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                maxHeight: "55vh",
+                overflowY: "auto",
+                background: "#141414",
+                borderRadius: "16px 16px 0 0",
+                padding: 16,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Choose the right template</span>
+                <button type="button" onClick={() => setFabSheet(null)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 18, cursor: "pointer" }}>
+                  ✕
+                </button>
+              </div>
+              <p style={{ color: "#aaa", fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+                Use <strong style={{ color: "#fff" }}>Simple</strong> for strict ATS portals; <strong style={{ color: "#fff" }}>Modern</strong> for tech and corporate roles; <strong style={{ color: "#fff" }}>Creative</strong> when the employer values design — always check the job post first.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {fabSheet === "jobmatch" ? (
+          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)" }} onClick={() => setFabSheet(null)}>
+            <div
+              role="dialog"
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                maxHeight: "50vh",
+                overflowY: "auto",
+                background: "#141414",
+                borderRadius: "16px 16px 0 0",
+                padding: 16,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>Job Match</span>
+                <button type="button" onClick={() => setFabSheet(null)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 18, cursor: "pointer" }}>
+                  ✕
+                </button>
+              </div>
+              <p style={{ color: "#aaa", fontSize: 11, lineHeight: 1.5, margin: 0 }}>
+                Paste the full job description in the text area below, then run Analyse Match. We compare keywords from your CV against the role so you can close gaps before you apply.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <CoverLetterModal
@@ -2859,6 +3415,201 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         resume={resume}
       />
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+
+      {menuDrawerOpen ? (
+        <div className="cvp-builder-drawer-root" style={{ position: "fixed", inset: 0, zIndex: 360 }}>
+          <div role="presentation" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)" }} onClick={() => setMenuDrawerOpen(false)} />
+          <aside
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              width: "78%",
+              height: "100%",
+              maxWidth: "100%",
+              background: "#141414",
+              display: "flex",
+              flexDirection: "column",
+              boxSizing: "border-box",
+              padding: "10px 10px 12px",
+              boxShadow: "-8px 0 32px rgba(0,0,0,0.35)",
+              minHeight: 0,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, marginBottom: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuDrawerOpen(false);
+                  navigate(user ? "/dashboard" : "/");
+                }}
+                style={{
+                  border: "none",
+                  background: "none",
+                  color: "#fff",
+                  fontSize: 11,
+                  cursor: "pointer",
+                  padding: "8px 0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                ← Dashboard
+              </button>
+              <button type="button" aria-label="Close" onClick={() => setMenuDrawerOpen(false)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 20, cursor: "pointer" }}>
+                ✕
+              </button>
+            </div>
+            {[
+              { id: "content", label: "Content" },
+              { id: "templates", label: "Templates" },
+              { id: "ats", label: "ATS Check" },
+              { id: "jobmatch", label: "Job Match" },
+            ].map((row) => {
+              const act = builderTab === row.id;
+              return (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => {
+                    setBuilderTab(row.id);
+                    setMenuDrawerOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    width: "100%",
+                    minHeight: 44,
+                    marginBottom: 6,
+                    padding: "7px 9px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: "#1C1C1C",
+                    color: act ? "#fff" : "#A0A0A0",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={act ? "#fff" : "#555"} strokeWidth="2" aria-hidden>
+                    {row.id === "content" ? (
+                      <>
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <path d="M14 2v6h6" />
+                      </>
+                    ) : row.id === "templates" ? (
+                      <path d="M4 4h16v16H4z M9 4v16 M4 9h16" />
+                    ) : row.id === "ats" ? (
+                      <>
+                        <circle cx="12" cy="12" r="8" />
+                        <circle cx="12" cy="12" r="3" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                      </>
+                    )}
+                  </svg>
+                  {row.label}
+                </button>
+              );
+            })}
+            <div style={{ height: 1, background: "#2A2A2A", margin: "10px 0 12px" }} />
+            <button
+              type="button"
+              onClick={() => {
+                setMenuDrawerOpen(false);
+                setFabSheet("preview");
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                width: "100%",
+                minHeight: 44,
+                marginBottom: 8,
+                padding: "10px 9px",
+                borderRadius: 8,
+                border: "0.5px solid #2A2A2A",
+                background: "#1C1C1C",
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" aria-hidden>
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              Preview CV
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuDrawerOpen(false);
+                handleDownload();
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                width: "100%",
+                minHeight: 44,
+                marginBottom: 8,
+                padding: "10px 9px",
+                borderRadius: 8,
+                border: "none",
+                background: "#fff",
+                color: "#000",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download CV
+            </button>
+            <div style={{ flex: 1, minHeight: 8 }} aria-hidden />
+            <div style={{ paddingTop: 4 }}>
+              <div style={{ background: "#1C1C1C", border: "0.5px solid #333", borderRadius: 8, padding: 8 }}>
+                <div style={{ color: "#ccc", fontSize: 8, fontWeight: 500, marginBottom: 4 }}>Remove watermark</div>
+                <div style={{ color: "#555", fontSize: 7, marginBottom: 8, lineHeight: 1.35 }}>Download HD PDF — upgrade to Pro</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuDrawerOpen(false);
+                    navigate("/pricing");
+                  }}
+                  style={{
+                    width: "100%",
+                    minHeight: 36,
+                    background: "#fff",
+                    color: "#000",
+                    fontSize: 7.5,
+                    fontWeight: 600,
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                  }}
+                >
+                  Upgrade →
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       {experienceEditor && (
         <div
@@ -3027,9 +3778,99 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   );
 }
 
+function AccordionSectionIcon({ icon, size = 16, stroke = "currentColor" }) {
+  const sw = size >= 14 ? 2 : 1.5;
+  const s = size;
+  return (
+    <span style={{ width: s, height: s, display: "grid", placeItems: "center", flexShrink: 0 }}>
+      {icon === "summary" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>}
+      {icon === "experience" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>}
+      {icon === "education" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>}
+      {icon === "skills" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
+      {icon === "languages" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>}
+      {icon === "certifications" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M12 15l-2 2 2 2 2-2-2-2z" /><path d="M4 4h16v16H4z" /></svg>}
+      {icon === "projects" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>}
+      {icon === "volunteer" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}
+      {icon === "publications" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>}
+    </span>
+  );
+}
+
 // Accordion row inside .cvp-sections-list — unified list style
-function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
+function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant = "default" }) {
   const ease = "cubic-bezier(0.4,0,0.2,1)";
+  if (variant === "mobileRow") {
+    return (
+      <div style={{ marginBottom: 5, maxWidth: "100%" }}>
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onToggle();
+            }
+          }}
+          onClick={onToggle}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            background: "#141414",
+            border: "0.5px solid #2A2A2A",
+            borderRadius: 9,
+            padding: "8px 10px",
+            cursor: "pointer",
+            minHeight: 44,
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ width: 22, height: 22, background: "#1C1C1C", borderRadius: 6, display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <AccordionSectionIcon icon={icon} size={12} stroke="#888" />
+          </div>
+          <span style={{ flex: 1, color: "#fff", fontSize: 10, fontWeight: 500, textAlign: "left", minWidth: 0 }}>{title}</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            style={{
+              background: "#1C1C1C",
+              color: "#777",
+              fontSize: 7,
+              padding: "3px 6px",
+              border: "0.5px solid #2A2A2A",
+              borderRadius: 5,
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            Edit
+          </button>
+          <span style={{ color: "#444", fontSize: 14, flexShrink: 0, lineHeight: 1 }} aria-hidden>›</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: `grid-template-rows 300ms ${ease}` }}>
+          <div style={{ overflow: isOpen ? "visible" : "hidden" }}>
+            <div
+              style={{
+                opacity: isOpen ? 1 : 0,
+                transition: `opacity 300ms ${ease}`,
+                padding: 12,
+                background: "#0A0A0A",
+                border: "0.5px solid #2A2A2A",
+                borderTop: "none",
+                borderRadius: "0 0 9px 9px",
+              }}
+            >
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`cvp-section-row${isOpen ? " is-open" : ""}`}>
       <button
@@ -3053,15 +3894,7 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
           <span style={{ width: 16, height: 16, display: "grid", placeItems: "center", color: "#A0A0A0", flexShrink: 0 }}>
-            {icon === "summary" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>}
-            {icon === "experience" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>}
-            {icon === "education" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>}
-            {icon === "skills" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
-            {icon === "languages" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>}
-            {icon === "certifications" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15l-2 2 2 2 2-2-2-2z" /><path d="M4 4h16v16H4z" /></svg>}
-            {icon === "projects" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>}
-            {icon === "volunteer" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}
-            {icon === "publications" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>}
+            <AccordionSectionIcon icon={icon} size={16} stroke="currentColor" />
           </span>
           <span style={{ fontSize: 15, fontWeight: 500, color: "#FFFFFF", letterSpacing: "0.02em" }}>{title}</span>
         </div>

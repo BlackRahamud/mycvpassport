@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import UpgradeModal from "./UpgradeModal";
 
 const BANK_FILE = "/cvpassport_keywords.json";
@@ -155,13 +155,17 @@ function SkeletonBlock({ height, width = "100%", radius = 10 }) {
   );
 }
 
-export default function JobMatch({ resume, selectedTemplate, isPro = false }) {
+export default function JobMatch({ resume, selectedTemplate, isPro = false, onJobDescriptionChange }) {
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const templateKey = useMemo(() => detectTemplateKey(selectedTemplate), [selectedTemplate]);
+
+  useEffect(() => {
+    onJobDescriptionChange?.(jobDescription.trim().length >= 40);
+  }, [jobDescription, onJobDescriptionChange]);
 
   async function handleAnalyse() {
     if (!isPro) {
