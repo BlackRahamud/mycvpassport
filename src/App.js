@@ -240,6 +240,10 @@ function CoverLetterPage({ user, onBack }) {
   const clLabelStyle = { fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 };
 
   useEffect(() => {
+    writeFabMemory({ hasVisitedCoverLetter: true });
+  }, []);
+
+  useEffect(() => {
     if (!user?.id) return;
     loadUserResumes(user.id)
       .then((rows) => {
@@ -3335,6 +3339,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   setFabSheet("preview");
                 }}
                 onNavigateToProAts={navigateToProAtsPage}
+                onNavigateToCoverLetter={() => {
+                  writeFabMemory({ hasVisitedCoverLetter: true });
+                  navigate("/cover-letter");
+                }}
               />
             ) : null}
           </div>

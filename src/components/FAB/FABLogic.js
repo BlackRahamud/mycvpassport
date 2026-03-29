@@ -5,13 +5,16 @@ export const ANON_DOWNLOADS_KEY = "cvp_anon_downloads";
 
 const FREE_DOWNLOAD_LIMIT = 3;
 
-/** @type {{ lastAction: string | null, lastActionAt: string | null, lastTemplateId: string | null, lastTabVisited: string | null, sessionCount: number }} */
+/** @type {{ lastAction: string | null, lastActionAt: string | null, lastTemplateId: string | null, lastTabVisited: string | null, sessionCount: number, lastAtsScore: number | null, hasVisitedCoverLetter: boolean, pendingAtsMilestone: 70 | 90 | null }} */
 const DEFAULT_FAB_MEMORY = {
   lastAction: null,
   lastActionAt: null,
   lastTemplateId: null,
   lastTabVisited: null,
   sessionCount: 0,
+  lastAtsScore: null,
+  hasVisitedCoverLetter: false,
+  pendingAtsMilestone: null,
 };
 
 /** Maps Progress Coach chip labels → builder section keys (or "personal" for the always-visible card). */
@@ -61,6 +64,15 @@ function parseFabMemory(raw) {
     if (!raw || typeof raw !== "string") return { ...DEFAULT_FAB_MEMORY };
     const o = JSON.parse(raw);
     if (!o || typeof o !== "object") return { ...DEFAULT_FAB_MEMORY };
+    const pending = o.pendingAtsMilestone;
+    const pendingOk = pending === 70 || pending === 90 ? pending : null;
+    const lastAtsRaw = o.lastAtsScore;
+    const lastAtsNum =
+      lastAtsRaw == null
+        ? null
+        : Number.isFinite(Number(lastAtsRaw))
+          ? Number(lastAtsRaw)
+          : DEFAULT_FAB_MEMORY.lastAtsScore;
     return {
       ...DEFAULT_FAB_MEMORY,
       lastAction: typeof o.lastAction === "string" ? o.lastAction : o.lastAction === null ? null : DEFAULT_FAB_MEMORY.lastAction,
@@ -68,6 +80,9 @@ function parseFabMemory(raw) {
       lastTemplateId: typeof o.lastTemplateId === "string" ? o.lastTemplateId : o.lastTemplateId === null ? null : DEFAULT_FAB_MEMORY.lastTemplateId,
       lastTabVisited: typeof o.lastTabVisited === "string" ? o.lastTabVisited : o.lastTabVisited === null ? null : DEFAULT_FAB_MEMORY.lastTabVisited,
       sessionCount: Number.isFinite(Number(o.sessionCount)) ? Math.max(0, Math.floor(Number(o.sessionCount))) : DEFAULT_FAB_MEMORY.sessionCount,
+      lastAtsScore: lastAtsNum,
+      hasVisitedCoverLetter: o.hasVisitedCoverLetter === true,
+      pendingAtsMilestone: pendingOk,
     };
   } catch {
     return { ...DEFAULT_FAB_MEMORY };
@@ -109,6 +124,105 @@ export function bumpFabSessionOpen() {
  */
 export function getFabMemory() {
   return parseFabMemory(typeof localStorage !== "undefined" ? localStorage.getItem(FAB_MEMORY_KEY) : null);
+}
+
+/** @returns {"morning" | "afternoon" | "evening" | "latenight"} */
+export function getFabTimeGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 18) return "afternoon";
+  if (hour >= 18 && hour < 22) return "evening";
+  return "latenight";
+}
+
+const FAB_TIME_GREETING_COPY = {
+  morning: "Morning! Let's make today count.",
+  afternoon: "Good afternoon — your CV is ready to work hard.",
+  evening: "Good evening — one quick fix before you rest?",
+  latenight: "Applying late? Make sure your CV is downloaded and ready.",
+};
+
+/**
+ * Single top line for the FAB sheet (idle > session streak > time of day).
+ * @param {ReturnType<typeof getFabMemory>} memory
+ * @param {typeof PROGRESS_COACH_FALLBACK | null} coach
+ */
+export function getFabTopGreetingLine(memory, coach) {
+  const lastAt = memory?.lastActionAt;
+  if (lastAt) {
+    const daysIdle = Math.floor((Date.now() - new Date(lastAt).getTime()) / 86400000);
+    if (daysIdle >= 7) {
+      return "Welcome back! The job market moves fast — let's make sure your CV is still sharp.";
+    }
+  }
+  const sc = memory?.sessionCount ?? 0;
+  if (sc === 1) return "Welcome! Let's build something strong.";
+  if (sc >= 2 && sc <= 4) {
+    if (memory?.lastActionAt) {
+      const days = Math.floor((Date.now() - new Date(memory.lastActionAt).getTime()) / 86400000);
+      return `Back again — your CV was last updated ${days} day(s) ago.`;
+    }
+    return "Good to see you back.";
+  }
+  if (sc >= 5) {
+    const miss = coach?.missingSections?.[0];
+    if (miss) return `You're a regular. Still missing: ${miss}.`;
+    return "You're a regular — CV is looking strong.";
+  }
+  return FAB_TIME_GREETING_COPY[getFabTimeGreeting()];
+}
+
+/**
+ * @param {string[]} missingSections
+ * @returns {"Summary" | "Experience" | "Skills" | "Education" | "Languages" | null}
+ */
+export function getTopNudge(missingSections) {
+  if (!Array.isArray(missingSections) || missingSections.length === 0) return null;
+  const priority = ["Summary", "Experience", "Skills", "Education", "Languages"];
+  for (const p of priority) {
+    if (missingSections.some((s) => String(s).toLowerCase().includes(p.toLowerCase()))) {
+      return p;
+    }
+  }
+  return null;
+}
+
+/** Maps getTopNudge labels → onNavigateToCvSection keys */
+export const TOP_NUDGE_TO_NAV_KEY = {
+  Summary: "summary",
+  Experience: "experience",
+  Skills: "skills",
+  Education: "education",
+  Languages: "languages",
+};
+
+/**
+ * @param {number} currentScore
+ * @param {number | null | undefined} previousScore
+ * @returns {70 | 90 | null}
+ */
+export function checkAtsMilestone(currentScore, previousScore) {
+  const c = Number(currentScore);
+  if (!Number.isFinite(c) || c <= 0) return null;
+  if (previousScore == null || !Number.isFinite(Number(previousScore))) return null;
+  const p = Number(previousScore);
+  const milestones = [70, 90];
+  for (const m of milestones) {
+    if (p < m && c >= m) return m;
+  }
+  return null;
+}
+
+/**
+ * Whether to show cover-letter cross-sell (builder FAB).
+ * @param {ReturnType<typeof getFabMemory>} memory
+ */
+export function shouldShowCoverLetterCrossSell(memory) {
+  if (!memory || memory.lastAction !== "downloaded") return false;
+  if (memory.hasVisitedCoverLetter === true) return false;
+  if (memory.lastTabVisited === "cover-letter") return false;
+  const sc = memory.sessionCount ?? 0;
+  return sc >= 3;
 }
 
 /**

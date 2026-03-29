@@ -73,6 +73,7 @@ const FAB = forwardRef(function FAB(
     onOpenTemplatePreview,
     onPreviewCv,
     onNavigateToProAts,
+    onNavigateToCoverLetter,
     /** Templates tab: pending card selection (for highlight + FAB state 2) */
     templatePickPending = null,
     /** Increment when user taps filter or template card (clears idle timer) */
@@ -567,6 +568,17 @@ const FAB = forwardRef(function FAB(
         sheetBodySlot={sheetBodySlot}
         sheetFooterSlot={sheetFooterSlot}
         showGotItButton={showSheetGotIt}
+        sheetIntelligence={!sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh}
+        coverLetterCrossSell={variant === "builder" && !sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh}
+        atsScore={typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0}
+        onNavigateToCoverLetter={
+          onNavigateToCoverLetter
+            ? () => {
+                onNavigateToCoverLetter();
+                closeSheet();
+              }
+            : undefined
+        }
         onProgressCoachNavigate={(key) => {
           onNavigateToCvSection?.(key);
           closeSheet();

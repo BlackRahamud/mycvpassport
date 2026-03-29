@@ -6,6 +6,12 @@ import { getFabMemory, reorderFabMenuOptions } from "./FABLogic";
 
 /** Live FAB data layer: ./FABLogic.js (also `export *` from ./index.js). */
 
+/** Builder FAB cross-sell (paired with FABLogic.shouldShowCoverLetterCrossSell) */
+export const FAB_COVER_LETTER_CROSS_SELL = {
+  body: "Your CV is strong. Pair it with a cover letter — takes 2 minutes.",
+  cta: "Write one now →",
+};
+
 export const ATS_HIGH_SCORE_GUIDE = {
   title: "Your score looks good — but are you 100% sure?",
   points: [

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { FAB } from "./components/FAB";
-import { writeFabMemory } from "./components/FAB/FABLogic";
+import { getFabMemory, writeFabMemory, checkAtsMilestone } from "./components/FAB/FABLogic";
 import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import UpgradeModal from "./UpgradeModal";
@@ -229,16 +229,21 @@ export default function ATSChecker(props) {
             .eq("id", profileId);
           if (!updateError) setAtsScansUsed(nextScans);
         }
+        const total = kw.score + sec.score + fmt.score;
         setResult({
           kw, sec, fmt,
-          total: kw.score + sec.score + fmt.score,
+          total,
           resumeText: normalized,
           rawResumeText: resumeText,
           pdfPreviewUrl: URL.createObjectURL(resumeFile)
         });
+        const mem = getFabMemory();
+        const pending = checkAtsMilestone(total, mem.lastAtsScore);
         writeFabMemory({
           lastAction: "ats_checked",
           lastActionAt: new Date().toISOString(),
+          lastAtsScore: total,
+          pendingAtsMilestone: pending,
         });
         setLoading(false);
       }, 3000);
@@ -454,7 +459,7 @@ export default function ATSChecker(props) {
         </div>
       )}
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="ats" />
-      <FAB ref={fabRef} tabKey="ats" />
+      <FAB ref={fabRef} tabKey="ats" atsScore={result?.total ?? 0} />
     </div>
   );
 }
