@@ -1556,7 +1556,8 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
       ref={fitRef}
       style={{
         width: "100%",
-        overflowX: "hidden",
+        overflow: "hidden",
+        position: "relative",
         display: "flex",
         justifyContent: "center",
         boxSizing: "border-box",
@@ -1569,6 +1570,8 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
           width: A4_PREVIEW_WIDTH_PX,
           transformOrigin: "top center",
           transform: `scale(${scale})`,
+          willChange: "transform",
+          transition: "none",
           marginBottom: `${(scale - 1) * A4_PREVIEW_HEIGHT_PX}px`,
         }}
       >
@@ -2602,8 +2605,18 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const mobilePreviewFitRef = useRef(null);
   const desktopCvPreviewRef = useRef(null);
   const mobileCvPreviewRef = useRef(null);
-  const [desktopPreviewScale, setDesktopPreviewScale] = useState(1);
-  const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
+  const [desktopPreviewContainerWidth, setDesktopPreviewContainerWidth] = useState(0);
+  const [mobilePreviewContainerWidth, setMobilePreviewContainerWidth] = useState(0);
+
+  const desktopPreviewScale = useMemo(() => {
+    if (!desktopPreviewContainerWidth) return 1;
+    return Math.min(1, desktopPreviewContainerWidth / A4_PREVIEW_WIDTH_PX);
+  }, [desktopPreviewContainerWidth]);
+
+  const mobilePreviewScale = useMemo(() => {
+    if (!mobilePreviewContainerWidth) return 1;
+    return Math.min(1, mobilePreviewContainerWidth / A4_PREVIEW_WIDTH_PX);
+  }, [mobilePreviewContainerWidth]);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [templatePickPending, setTemplatePickPending] = useState(null);
@@ -2622,28 +2635,23 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     }
   }, [builderTab]);
 
-  const measureFitWidth = (el) => {
-    const w = el.getBoundingClientRect().width;
-    if (w < 1) return null;
-    return Math.min(1, w / A4_PREVIEW_WIDTH_PX);
-  };
-
   useLayoutEffect(() => {
     const el = desktopPreviewFitRef.current;
     if (!el) return;
-    const s = measureFitWidth(el);
-    if (s != null) setDesktopPreviewScale(s);
+    const w = el.getBoundingClientRect().width;
+    if (w >= 1) setDesktopPreviewContainerWidth((prev) => (Math.abs(prev - w) < 1 ? prev : w));
   }, []);
 
   useEffect(() => {
     const el = desktopPreviewFitRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const w = entry.contentRect.width;
-        if (w < 1) continue;
-        setDesktopPreviewScale(Math.min(1, w / A4_PREVIEW_WIDTH_PX));
-      }
+      const width = entries[0]?.contentRect.width;
+      if (width == null || width < 1) return;
+      setDesktopPreviewContainerWidth((prev) => {
+        if (Math.abs(prev - width) < 1) return prev;
+        return width;
+      });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -2651,23 +2659,33 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   useLayoutEffect(() => {
     if (fabSheet !== "preview") return;
-    const el = mobilePreviewScrollRef.current;
+    const el = mobilePreviewFitRef.current;
     if (!el) return;
-    const s = measureFitWidth(el);
-    if (s != null) setMobilePreviewScale(s);
+    const w = el.getBoundingClientRect().width;
+    if (w >= 1) setMobilePreviewContainerWidth((prev) => (Math.abs(prev - w) < 1 ? prev : w));
   }, [fabSheet]);
 
   useEffect(() => {
     if (fabSheet !== "preview") return;
-    const el = mobilePreviewScrollRef.current;
+    const el = mobilePreviewFitRef.current;
     if (!el) return;
     const apply = () => {
-      const w = el.clientWidth;
+      const w = el.getBoundingClientRect().width;
       if (w < 1) return;
-      setMobilePreviewScale(Math.min(1, w / A4_PREVIEW_WIDTH_PX));
+      setMobilePreviewContainerWidth((prev) => {
+        if (Math.abs(prev - w) < 1) return prev;
+        return w;
+      });
     };
     apply();
-    const ro = new ResizeObserver(apply);
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width == null || width < 1) return;
+      setMobilePreviewContainerWidth((prev) => {
+        if (Math.abs(prev - width) < 1) return prev;
+        return width;
+      });
+    });
     ro.observe(el);
     window.addEventListener("resize", apply);
     return () => {
