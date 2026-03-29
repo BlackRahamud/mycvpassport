@@ -1,6 +1,15 @@
 import "./FAB.css";
 import { writeFabSeen, PROGRESS_COACH_LABEL_TO_NAV_KEY } from "./FABLogic";
 
+/** Progress coach ring + label colour by completion band */
+export function getRingColour(percent) {
+  const p = Math.max(0, Math.min(100, percent));
+  if (p <= 40) return "#EF4444";
+  if (p <= 70) return "#F59E0B";
+  if (p < 100) return "#3B82F6";
+  return "#22C55E";
+}
+
 export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
   const s = size;
   return (
@@ -89,16 +98,17 @@ function ProgressCoachRing({ percent }) {
   const c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, percent));
   const offset = c - (p / 100) * c;
+  const strokeCol = getRingColour(p);
   return (
     <div style={{ position: "relative", width: 88, height: 88, margin: "0 auto 12px" }}>
       <svg width={88} height={88} viewBox="0 0 88 88" aria-hidden style={{ display: "block" }}>
-        <circle cx={44} cy={44} r={r} fill="none" stroke="var(--border-default, #2A2A2A)" strokeWidth={8} />
+        <circle cx={44} cy={44} r={r} fill="none" stroke="#2A2A2A" strokeWidth={8} />
         <circle
           cx={44}
           cy={44}
           r={r}
           fill="none"
-          stroke="var(--text-primary, #FFF)"
+          stroke={strokeCol}
           strokeWidth={8}
           strokeDasharray={c}
           strokeDashoffset={offset}
@@ -114,7 +124,7 @@ function ProgressCoachRing({ percent }) {
           placeItems: "center",
           fontSize: 18,
           fontWeight: 600,
-          color: "var(--text-primary, #FFF)",
+          color: strokeCol,
         }}
       >
         {p}%
@@ -138,11 +148,16 @@ export default function FABSheet({
   zOverlay = 200,
   zSheet = 201,
   showCoachPanels = true,
+  showProgressCoach = true,
+  showDownloadGatekeeper = true,
   progressCoach = null,
   downloadGatekeeper = null,
   onProgressCoachNavigate,
   onNavigateAuth,
   onNavigatePricing,
+  sheetBodySlot = null,
+  sheetFooterSlot = null,
+  showGotItButton = true,
 }) {
   if (!open) return null;
 
@@ -187,7 +202,11 @@ export default function FABSheet({
           {title}
         </div>
 
-        {showCoachPanels ? (
+        {sheetBodySlot ? (
+          <div style={{ width: "100%", marginBottom: 16 }}>{sheetBodySlot}</div>
+        ) : null}
+
+        {showCoachPanels && showProgressCoach && !sheetBodySlot ? (
           <div
             style={{
               width: "100%",
@@ -246,7 +265,7 @@ export default function FABSheet({
           </div>
         ) : null}
 
-        {showCoachPanels ? (
+        {showDownloadGatekeeper && !sheetBodySlot ? (
           <div
             style={{
               width: "100%",
@@ -353,7 +372,7 @@ export default function FABSheet({
         ) : null}
 
         <div>
-          {points.map((row, i) => (
+          {!sheetBodySlot && points.map((row, i) => (
             <div
               key={i}
               style={{
@@ -368,6 +387,7 @@ export default function FABSheet({
             </div>
           ))}
         </div>
+        {sheetFooterSlot}
         {proCtaLabel && onProCta ? (
           <button
             type="button"
@@ -389,25 +409,27 @@ export default function FABSheet({
             {proCtaLabel}
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={handleGotIt}
-          style={{
-            background: "#fff",
-            color: "#000",
-            borderRadius: 10,
-            padding: 12,
-            width: "100%",
-            fontWeight: 500,
-            fontSize: 14,
-            border: "none",
-            cursor: "pointer",
-            marginTop: proCtaLabel ? 10 : 16,
-            minHeight: 44,
-          }}
-        >
-          Got it
-        </button>
+        {showGotItButton ? (
+          <button
+            type="button"
+            onClick={handleGotIt}
+            style={{
+              background: "#fff",
+              color: "#000",
+              borderRadius: 10,
+              padding: 12,
+              width: "100%",
+              fontWeight: 500,
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+              marginTop: proCtaLabel ? 10 : 16,
+              minHeight: 44,
+            }}
+          >
+            Got it
+          </button>
+        ) : null}
       </div>
     </>
   );

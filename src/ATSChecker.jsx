@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FAB } from "./components/FAB";
 import { writeFabMemory } from "./components/FAB/FABLogic";
 import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import UpgradeModal from "./UpgradeModal";
-import { Target, Eye, CheckCircle2 } from "lucide-react";
+import { Target, Eye } from "lucide-react";
 
 const AT_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
@@ -126,6 +126,15 @@ function analyzeFormatting(resumeText) {
 }
 
 // --- Main Component ---
+function AtsResultPassIcon() {
+  return (
+    <svg width={22} height={22} viewBox="0 0 22 22" aria-hidden style={{ flexShrink: 0 }}>
+      <circle cx={11} cy={11} r={11} fill="#22C55E" />
+      <path d="M5 11 L9 15 L17 7" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function ATSChecker(props) {
   const [jobDesc, setJobDesc] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
@@ -141,6 +150,23 @@ export default function ATSChecker(props) {
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlistMessage, setWaitlistMessage] = useState({ type: "", text: "" });
+  const fabRef = useRef(null);
+
+  const handleDownloadCv = async () => {
+    if (!resumeFile) return;
+    if (fabRef.current?.runAtsDownloadGatekeeper) {
+      const gate = await fabRef.current.runAtsDownloadGatekeeper();
+      if (!gate?.canDownload) return;
+    }
+    const url = URL.createObjectURL(resumeFile);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = resumeFile.name || "resume.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const loadingMessages = [
     "🔍 Parsing structural data...",
@@ -308,7 +334,7 @@ export default function ATSChecker(props) {
 
             <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <CheckCircle2 size={18} color="#FFFFFF" />
+                <AtsResultPassIcon />
                 <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT }}>Professional Readiness</h3>
               </div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{result.sec.score}/30</div>
@@ -341,6 +367,27 @@ export default function ATSChecker(props) {
               </div>
             </div>
           )}
+
+          <div style={{ marginTop: 32 }}>
+            <button
+              type="button"
+              onClick={handleDownloadCv}
+              style={{
+                width: "100%",
+                padding: 16,
+                borderRadius: 8,
+                background: "#FFFFFF",
+                color: "#000000",
+                fontWeight: 600,
+                fontSize: 16,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: AT_FONT,
+              }}
+            >
+              Download CV
+            </button>
+          </div>
 
           {/* Pricing Wall */}
           <div style={{ marginTop: 40, padding: 32, borderRadius: 24, background: "#141414", textAlign: "center", border: "1px solid #2A2A2A" }}>
@@ -407,7 +454,7 @@ export default function ATSChecker(props) {
         </div>
       )}
       <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="ats" />
-      <FAB tabKey="ats" />
+      <FAB ref={fabRef} tabKey="ats" />
     </div>
   );
 }

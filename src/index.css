@@ -294,6 +294,11 @@ input:focus, textarea:focus {
 }
 
 @media (max-width: 767px) {
+  .cvp-builder-mobile-form--templates {
+    display: flex;
+    flex-direction: column;
+  }
+
   .cvp-builder-mobile-form {
     padding-bottom: 100px;
   }

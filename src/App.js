@@ -1580,8 +1580,9 @@ function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCa
   );
 }
 
-const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template: t, isSelected, resume, onPick, cardRef }) {
+const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template: t, isSelected, sheetHighlight, resume, onPick, cardRef }) {
   const isFree = t.tier === "free";
+  const borderStyle = sheetHighlight ? "2px solid rgba(255,255,255,0.8)" : isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A";
   return (
     <button
       ref={cardRef}
@@ -1592,7 +1593,7 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
         width: "100%",
         padding: 0,
         margin: 0,
-        border: isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A",
+        border: borderStyle,
         borderRadius: 10,
         background: "#141414",
         cursor: "pointer",
@@ -1604,7 +1605,7 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
     >
       <div
         style={{
-          height: 78,
+          height: 140,
           overflow: "hidden",
           background: "#1C1C1C",
           display: "flex",
@@ -1615,7 +1616,7 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
         <div
           style={{
             width: A4_PREVIEW_WIDTH_PX,
-            transform: "scale(0.175)",
+            transform: "scale(0.32)",
             transformOrigin: "top center",
             pointerEvents: "none",
             flexShrink: 0,
@@ -1624,8 +1625,8 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
           <ResumePreview cv={resume} template={t} />
         </div>
       </div>
-      <div style={{ padding: "5px 7px 4px" }}>
-        <span style={{ fontSize: 8, fontWeight: 500, color: "#FFFFFF", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+      <div style={{ padding: "6px 8px 8px" }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "#FFFFFF", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
       </div>
       <span
         style={{
@@ -1690,26 +1691,23 @@ function isCvDataEmptyForTemplateApply(cv) {
   return !hasIdentity && !hasExp && !hasSum && !hasSkills;
 }
 
-function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onApplyTemplateAndGoToContent }) {
+function BuilderTemplatesTab({
+  resume,
+  selectedTemplate,
+  onApplyTemplate,
+  onApplyTemplateAndGoToContent,
+  pendingTemplate,
+  confirmOpen,
+  onPendingTemplateChange,
+  onConfirmOpenChange,
+  onTemplatesFabInteract,
+}) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("popular");
-  const [pending, setPending] = useState(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [useTplBtnIn, setUseTplBtnIn] = useState(false);
   const prevFilterRef = useRef(null);
   const cardRefs = useRef(new Map());
   const ids = TEMPLATE_FILTER_IDS[filter] || TEMPLATE_FILTER_IDS.popular;
   const list = TEMPLATES.filter((t) => ids.includes(t.id));
-
-  useEffect(() => {
-    if (!pending) {
-      setUseTplBtnIn(false);
-      return;
-    }
-    setUseTplBtnIn(false);
-    const t = setTimeout(() => setUseTplBtnIn(true), 40);
-    return () => clearTimeout(t);
-  }, [pending]);
 
   useEffect(() => {
     const prev = prevFilterRef.current;
@@ -1733,18 +1731,11 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
     { id: "creative", label: "Creative" },
   ];
 
-  const handleUseTemplateClick = () => {
-    if (!pending) return;
-    if (isCvDataEmptyForTemplateApply(resume)) {
-      onApplyTemplateAndGoToContent(pending);
-      setPending(null);
-      return;
-    }
-    setConfirmOpen(true);
-  };
-
   return (
-    <div style={{ width: "100%", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box" }}>
+    <div
+      className="cvp-builder-templates-tab-root"
+      style={{ width: "100%", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+    >
       <div
         className="cvp-templates-pills"
         style={{
@@ -1752,10 +1743,11 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
           gap: 6,
           overflowX: "auto",
           WebkitOverflowScrolling: "touch",
-          padding: "0 10px 10px",
+          padding: "0 12px 12px",
           margin: 0,
           flexWrap: "nowrap",
           maxWidth: "100%",
+          flexShrink: 0,
         }}
       >
         {pills.map((p) => {
@@ -1764,7 +1756,10 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
             <button
               key={p.id}
               type="button"
-              onClick={() => setFilter(p.id)}
+              onClick={() => {
+                onTemplatesFabInteract?.();
+                setFilter(p.id);
+              }}
               style={{
                 flex: "0 0 auto",
                 background: on ? "#fff" : "#1C1C1C",
@@ -1787,9 +1782,14 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 7,
-          padding: "0 10px",
+          gap: 12,
+          padding: "0 12px",
           boxSizing: "border-box",
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          alignContent: "start",
         }}
       >
         {list.map((t) => (
@@ -1797,8 +1797,17 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
             key={t.id}
             template={t}
             isSelected={selectedTemplate?.id === t.id}
+            sheetHighlight={confirmOpen && pendingTemplate?.id === t.id}
             resume={resume}
-            onPick={(tpl) => setPending(tpl)}
+            onPick={(tpl) => {
+              onTemplatesFabInteract?.();
+              if (isCvDataEmptyForTemplateApply(resume)) {
+                onApplyTemplateAndGoToContent(tpl);
+                return;
+              }
+              onPendingTemplateChange(tpl);
+              onConfirmOpenChange(true);
+            }}
             cardRef={(el) => {
               if (el) cardRefs.current.set(t.id, el);
               else cardRefs.current.delete(t.id);
@@ -1806,44 +1815,7 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
           />
         ))}
       </div>
-      {pending ? (
-        <div
-          style={{
-            position: "sticky",
-            bottom: 80,
-            zIndex: 10,
-            width: "calc(100% - 20px)",
-            margin: "12px auto 0",
-            padding: 0,
-            boxSizing: "border-box",
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleUseTemplateClick}
-            style={{
-              width: "100%",
-              margin: 0,
-              boxSizing: "border-box",
-              background: "#fff",
-              color: "#000",
-              fontSize: 14,
-              borderRadius: 10,
-              border: "none",
-              padding: 12,
-              fontWeight: 500,
-              cursor: "pointer",
-              minHeight: 44,
-              transform: useTplBtnIn ? "translateY(0)" : "translateY(20px)",
-              opacity: useTplBtnIn ? 1 : 0,
-              transition: "transform 0.3s ease, opacity 0.3s ease",
-            }}
-          >
-            Use this template
-          </button>
-        </div>
-      ) : null}
-      {confirmOpen && pending ? (
+      {confirmOpen && pendingTemplate ? (
         <>
           <div
             role="presentation"
@@ -1853,7 +1825,10 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
               background: "rgba(0,0,0,0.6)",
               zIndex: 120,
             }}
-            onClick={() => setConfirmOpen(false)}
+            onClick={() => {
+              onConfirmOpenChange(false);
+              onPendingTemplateChange(null);
+            }}
           />
           <div
             role="dialog"
@@ -1864,13 +1839,15 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
               left: 0,
               right: 0,
               background: "#141414",
-              borderRadius: "20px 20px 0 0",
+              borderRadius: "16px 16px 0 0",
               padding: "24px 20px",
+              paddingBottom: "calc(24px + env(safe-area-inset-bottom, 20px))",
               zIndex: 121,
               boxSizing: "border-box",
               maxWidth: "100vw",
-              transform: "translateY(0)",
-              transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
+              minHeight: "min(42vh, 360px)",
+              maxHeight: "min(88vh, calc(100dvh - 24px))",
+              overflowY: "auto",
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1889,7 +1866,10 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
             <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
               <button
                 type="button"
-                onClick={() => setConfirmOpen(false)}
+                onClick={() => {
+                  onConfirmOpenChange(false);
+                  onPendingTemplateChange(null);
+                }}
                 style={{
                   flex: 1,
                   minHeight: 44,
@@ -1907,9 +1887,9 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
               <button
                 type="button"
                 onClick={() => {
-                  onApplyTemplateAndGoToContent(pending);
-                  setConfirmOpen(false);
-                  setPending(null);
+                  onApplyTemplateAndGoToContent(pendingTemplate);
+                  onConfirmOpenChange(false);
+                  onPendingTemplateChange(null);
                 }}
                 style={{
                   flex: 1,
@@ -1950,7 +1930,24 @@ function BuilderTemplatesTab({ resume, selectedTemplate, onApplyTemplate, onAppl
   );
 }
 
-function BuilderAtsTabContent({ resume, onProCta }) {
+function BuilderAtsPassFailIcon({ pass }) {
+  const fill = pass ? "#22C55E" : "#EF4444";
+  return (
+    <svg width={22} height={22} viewBox="0 0 22 22" aria-hidden style={{ flexShrink: 0 }}>
+      <circle cx={11} cy={11} r={11} fill={fill} />
+      {pass ? (
+        <path d="M5 11 L9 15 L17 7" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      ) : (
+        <>
+          <path d="M6 6 L16 16" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
+          <path d="M16 6 L6 16" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function BuilderAtsTabContent({ resume }) {
   const score = builderAtsScore(resume);
   const breakdown = builderAtsBreakdown(resume);
   const pct = Math.max(0, Math.min(100, score));
@@ -2039,57 +2036,10 @@ function BuilderAtsTabContent({ resume, onProCta }) {
               borderBottom: "0.5px solid #1A1A1A",
             }}
           >
-            <span
-              style={{
-                width: 13,
-                height: 13,
-                borderRadius: "50%",
-                flexShrink: 0,
-                display: "grid",
-                placeItems: "center",
-                fontSize: 8,
-                fontWeight: 700,
-                background: row.pass ? "#1D9E75" : "#E24B4A",
-                color: "#fff",
-              }}
-            >
-              {row.pass ? "✓" : "✕"}
-            </span>
+            <BuilderAtsPassFailIcon pass={row.pass} />
             <span style={{ color: "#aaa", fontSize: 8, lineHeight: 1.35 }}>{row.text}</span>
           </div>
         ))}
-      </div>
-      <div
-        style={{
-          background: "#1C1C1C",
-          border: "0.5px solid #444",
-          borderRadius: 9,
-          padding: 9,
-          textAlign: "center",
-          marginTop: 9,
-        }}
-      >
-        <div style={{ color: "#fff", fontSize: 8.5, fontWeight: 500, marginBottom: 6 }}>Are you 100% sure?</div>
-        <div style={{ color: "#666", fontSize: 7, lineHeight: 1.4, marginBottom: 10 }}>
-          ATS systems vary — get a deep scan with Pro to be certain
-        </div>
-        <button
-          type="button"
-          onClick={onProCta}
-          style={{
-            background: "#fff",
-            color: "#000",
-            fontSize: 8,
-            padding: "5px 12px",
-            borderRadius: 7,
-            border: "none",
-            fontWeight: 600,
-            cursor: "pointer",
-            minHeight: 36,
-          }}
-        >
-          Check Pro ATS →
-        </button>
       </div>
     </div>
   );
@@ -2656,6 +2606,21 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [mobilePreviewScale, setMobilePreviewScale] = useState(1);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [templatePickPending, setTemplatePickPending] = useState(null);
+  const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
+  const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
+  const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
+  const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
+  const fabRef = useRef(null);
+  const prevBuilderTabRef = useRef(null);
+
+  useEffect(() => {
+    const prev = prevBuilderTabRef.current;
+    prevBuilderTabRef.current = builderTab;
+    if (builderTab === "templates" && prev != null && prev !== "templates") {
+      setTemplateSessionApplyCount(0);
+    }
+  }, [builderTab]);
 
   const measureFitWidth = (el) => {
     const w = el.getBoundingClientRect().width;
@@ -2686,7 +2651,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   useLayoutEffect(() => {
     if (fabSheet !== "preview") return;
-    const el = mobilePreviewFitRef.current;
+    const el = mobilePreviewScrollRef.current;
     if (!el) return;
     const s = measureFitWidth(el);
     if (s != null) setMobilePreviewScale(s);
@@ -2694,17 +2659,21 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   useEffect(() => {
     if (fabSheet !== "preview") return;
-    const el = mobilePreviewFitRef.current;
+    const el = mobilePreviewScrollRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const w = entry.contentRect.width;
-        if (w < 1) continue;
-        setMobilePreviewScale(Math.min(1, w / A4_PREVIEW_WIDTH_PX));
-      }
-    });
+    const apply = () => {
+      const w = el.clientWidth;
+      if (w < 1) return;
+      setMobilePreviewScale(Math.min(1, w / A4_PREVIEW_WIDTH_PX));
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+    };
   }, [fabSheet]);
 
   useEffect(() => {
@@ -2727,6 +2696,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const score = builderAtsScore(resume);
 
+  const templateFabRecommendNames = useMemo(() => {
+    if (score >= 70) return TEMPLATES.filter((t) => t.tier === "premium").slice(0, 2).map((t) => t.name);
+    return TEMPLATES.filter((t) => t.tier === "free").slice(0, 2).map((t) => t.name);
+  }, [score]);
+
   const templatesPanel = (
     <BuilderTemplatesTab
       resume={resume}
@@ -2735,7 +2709,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       onApplyTemplateAndGoToContent={(tpl) => {
         setSelectedTemplate(tpl);
         setBuilderTab("content");
+        setTemplatePickPending(null);
+        setTemplateConfirmOpen(false);
+        setTemplateSessionApplyCount((c) => c + 1);
       }}
+      pendingTemplate={templatePickPending}
+      confirmOpen={templateConfirmOpen}
+      onPendingTemplateChange={setTemplatePickPending}
+      onConfirmOpenChange={setTemplateConfirmOpen}
+      onTemplatesFabInteract={() => setTemplatesInteractKey((k) => k + 1)}
     />
   );
 
@@ -2766,13 +2748,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, [user, resume, selectedTemplate, resumeId]);
 
   const handleDownload = async () => {
+    const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
+    if (isMobileViewport && builderTab === "ats" && fabRef.current?.runAtsDownloadGatekeeper) {
+      const gate = await fabRef.current.runAtsDownloadGatekeeper();
+      if (!gate?.canDownload) return;
+    }
     setDownloading(true);
     const spinMs = 2000 + Math.floor(Math.random() * 1001);
     try {
       await new Promise((r) => setTimeout(r, spinMs));
       if (user?.id) await handleSave();
       await new Promise((r) => setTimeout(r, 500));
-      const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
       if (!el) throw new Error("Preview not ready");
       await downloadResumeFromPreview(resume, el);
@@ -2793,16 +2779,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     setFabSheet(null);
   }, [navigate]);
 
-  const openProAts = () => {
-    setUpgradeOpen(true);
-    setFabSheet(null);
-  };
-
   const closePreview = useCallback(() => {
     setPreviewFadeOut(true);
     setTimeout(() => {
       setFabSheet(null);
       setPreviewFadeOut(false);
+      setPreviewTemplateOverride(null);
     }, 300);
   }, []);
 
@@ -3059,8 +3041,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               )}
             </>
           )}
-          {builderTab === "templates" && templatesPanel}
-          {builderTab === "ats" && <BuilderAtsTabContent resume={resume} onProCta={openProAts} />}
+          {builderTab === "templates" ? (
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", width: "100%" }}>
+              {templatesPanel}
+            </div>
+          ) : null}
+          {builderTab === "ats" && <BuilderAtsTabContent resume={resume} />}
           {builderTab === "jobmatch" && (
             <div style={{ display: "grid", gap: 12 }}>
               <button
@@ -3103,7 +3089,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
       {/* Mobile: single column */}
       <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", flex: 1, minHeight: 0, position: "relative", maxWidth: "100vw", overflowX: "hidden", overflowY: "visible" }}>
-          <div className="cvp-builder-mobile-form">
+          <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
             {builderTab === "content" && (
               <>
                 <div className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
@@ -3234,8 +3220,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 )}
               </>
             )}
-            {builderTab === "templates" && templatesPanel}
-            {builderTab === "ats" && <BuilderAtsTabContent resume={resume} onProCta={openProAts} />}
+            {builderTab === "templates" ? (
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden", width: "100%" }}>
+              {templatesPanel}
+            </div>
+          ) : null}
+            {builderTab === "ats" && <BuilderAtsTabContent resume={resume} />}
             {builderTab === "jobmatch" && (
               <div style={{ display: "grid", gap: 12, padding: "0 12px 12px" }}>
                 <button
@@ -3296,11 +3286,31 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </div>
             {fabSheet !== "preview" ? (
               <FAB
+                ref={fabRef}
                 variant="builder"
                 tabKey={builderTab}
                 atsScore={score}
                 selectedTemplateId={selectedTemplate?.id}
                 resume={resume}
+                templatePickPending={templatePickPending}
+                templatesInteractKey={templatesInteractKey}
+                templateSessionApplyCount={templateSessionApplyCount}
+                templateRecommendNames={templateFabRecommendNames}
+                onPreviewTemplateDraft={(tpl) => {
+                  setPreviewTemplateOverride(tpl);
+                  setFabSheet("preview");
+                }}
+                onApplyTemplateDraft={(tpl) => {
+                  setSelectedTemplate(tpl);
+                  setBuilderTab("content");
+                  setTemplatePickPending(null);
+                  setTemplateConfirmOpen(false);
+                  setTemplateSessionApplyCount((c) => c + 1);
+                }}
+                onClearTemplatePick={() => {
+                  setTemplatePickPending(null);
+                  setTemplateConfirmOpen(false);
+                }}
                 onNavigateToCvSection={(navKey) => {
                   setBuilderTab("content");
                   if (navKey === "personal") {
@@ -3313,8 +3323,14 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 }}
                 sheetZOverlay={299}
                 sheetZSheet={300}
-                onOpenCvPreview={() => setFabSheet("preview")}
-                onOpenTemplatePreview={() => setFabSheet("preview")}
+                onOpenCvPreview={() => {
+                  setPreviewTemplateOverride(null);
+                  setFabSheet("preview");
+                }}
+                onOpenTemplatePreview={() => {
+                  setPreviewTemplateOverride(null);
+                  setFabSheet("preview");
+                }}
                 onNavigateToProAts={navigateToProAtsPage}
               />
             ) : null}
@@ -3332,11 +3348,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               position: "fixed",
               inset: 0,
               zIndex: 100,
-              background: "#0A0A0A",
+              width: "100%",
+              height: "100dvh",
+              maxHeight: "100dvh",
+              background: "#111111",
               opacity: previewFadeOut ? 0 : 1,
               transition: "opacity 0.3s ease",
               display: "flex",
               flexDirection: "column",
+              boxSizing: "border-box",
             }}
           >
             <button
@@ -3358,20 +3378,35 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 justifyContent: "center",
                 color: "#fff",
                 fontSize: 18,
-                zIndex: 100,
+                zIndex: 101,
                 cursor: "pointer",
                 padding: 0,
               }}
             >
               ✕
             </button>
-            <div ref={mobilePreviewScrollRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: 16, paddingTop: 56, WebkitOverflowScrolling: "touch" }}>
+            <div
+              ref={mobilePreviewScrollRef}
+              style={{
+                flex: 1,
+                width: "100%",
+                minHeight: 0,
+                overflowY: "auto",
+                overflowX: "hidden",
+                paddingTop: 56,
+                paddingLeft: 0,
+                paddingRight: 0,
+                paddingBottom: 16,
+                WebkitOverflowScrolling: "touch",
+                boxSizing: "border-box",
+              }}
+            >
               <BuilderA4PreviewScaled
                 cv={resume}
-                template={selectedTemplate}
+                template={previewTemplateOverride ?? selectedTemplate}
                 scale={mobilePreviewScale}
                 fitRef={mobilePreviewFitRef}
-                padded
+                padded={false}
               />
             </div>
           </div>
