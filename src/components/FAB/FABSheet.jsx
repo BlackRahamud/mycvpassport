@@ -27,7 +27,7 @@ export function getAtsScoreStrokeColor(score) {
   if (s <= 40) return "#EF4444";
   if (s <= 70) return "#F59E0B";
   if (s < 100) return "#3B82F6";
-  return "#22C55E";
+  return "#4CAF50";
 }
 
 export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
@@ -115,7 +115,7 @@ function AtsFabScoreRing({ score, failingCount }) {
   const strokeCol = getAtsScoreStrokeColor(p);
   const subLine =
     failingCount <= 0 ? (
-      <span style={{ color: "#22C55E" }}>All checks passing</span>
+      <span style={{ color: "#4CAF50" }}>All checks passing</span>
     ) : (
       <>
         <span style={{ color: "var(--text-secondary, #A0A0A0)" }}>
@@ -470,7 +470,9 @@ export default function FABSheet({
 
   const currentAts = typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0;
 
-  const showGreetingLine = Boolean(sheetIntelligence || dedicatedRoute);
+  const showGreetingLine = Boolean(
+    sheetIntelligence || (dedicatedRoute && dedicatedRoute !== "cover-letter" && dedicatedRoute !== "walkin")
+  );
 
   const greetingLine = useMemo(() => {
     if (!showGreetingLine) return null;
@@ -637,9 +639,8 @@ export default function FABSheet({
           </p>
           <FabFeatureBullets
             items={[
-              { icon: "doc", text: "Custom-written based on your CV + job details" },
-              { icon: "clock", text: "Smart-fill and generate in seconds" },
-              { icon: "edit", text: "Full editing suite before downloading" },
+              { icon: "doc", text: "Custom-written for your CV" },
+              { icon: "clock", text: "Done in seconds" },
             ]}
           />
           <button
@@ -1036,17 +1037,24 @@ export default function FABSheet({
               {cvCompletionProgress.missingSections?.length > 0 &&
               cvCompletionProgress.percent < 100 &&
               cvCompletionProgress.topMissingNudge ? (
-                <p
-                  style={{
-                    margin: "6px 0 0",
-                    fontSize: 11,
-                    color: "var(--text-secondary, #A0A0A0)",
-                    textAlign: "center",
-                    lineHeight: 1.35,
-                  }}
-                >
-                  {cvCompletionProgress.topMissingNudge}
-                </p>
+                <div style={{ textAlign: "center", width: "100%", marginTop: 8 }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "4px 12px",
+                      borderRadius: 999,
+                      border: "1px solid #F59E0B",
+                      background: "transparent",
+                      color: "#F59E0B",
+                      fontSize: 12,
+                      lineHeight: 1.35,
+                      boxSizing: "border-box",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    {cvCompletionProgress.topMissingNudge}
+                  </span>
+                </div>
               ) : null}
             </div>
           ) : null}

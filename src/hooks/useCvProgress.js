@@ -104,7 +104,31 @@ export function computeCvProgress(cvData) {
 
   missingMeta.sort((a, b) => b.weight - a.weight);
   const topMissingNudge =
-    percent >= 100 || missingMeta.length === 0 ? null : `Add ${missingMeta[0].nudgePhrase} to strengthen your CV`;
+    percent >= 100 || missingMeta.length === 0
+      ? null
+      : (() => {
+          const top = missingMeta[0];
+          const sec = SECTIONS.find((s) => s.completedLabel === top.missingLabel);
+          if (!sec) return `· Add ${top.nudgePhrase} and your CV gets stronger`;
+          switch (sec.id) {
+            case "skills":
+              return "· Add 3 skills and your CV gets stronger";
+            case "summary":
+              return "· Add a summary and your CV gets stronger";
+            case "experience":
+              return "· Add work experience and your CV gets stronger";
+            case "education":
+              return "· Add education and your CV gets stronger";
+            case "email":
+              return "· Add an email address and your CV gets stronger";
+            case "phone":
+              return "· Add a phone number and your CV gets stronger";
+            case "fullName":
+              return "· Add your name and your CV gets stronger";
+            default:
+              return `· Add ${top.nudgePhrase} and your CV gets stronger`;
+          }
+        })();
 
   return {
     percent,

@@ -125,7 +125,9 @@ const FAB = forwardRef(function FAB(
   const [fabExtraClass, setFabExtraClass] = useState("");
   const [tplIdlePulse, setTplIdlePulse] = useState(false);
   const [tplExtPulse, setTplExtPulse] = useState(false);
+  const [builderIdlePulse, setBuilderIdlePulse] = useState(false);
   const tplTimersRef = useRef([]);
+  const atsLandTriggeredRef = useRef(false);
   const tplTabEpochRef = useRef(0);
   const tplIdleEligibleRef = useRef(false);
   const tplExtendedEligibleRef = useRef(false);
@@ -252,7 +254,7 @@ const FAB = forwardRef(function FAB(
         setSheetPoints(ATS_HIGH_SCORE_GUIDE.points);
         setSheetAtsHigh(true);
         setSheetCoach(null);
-        if (variant === "route" && tabKey === "ats") {
+        if ((variant === "route" && tabKey === "ats") || (variant === "builder" && tabKey === "ats")) {
           setSheetShowProgress(false);
           setSheetShowGate(true);
           getDownloadGatekeeperData()
@@ -265,7 +267,7 @@ const FAB = forwardRef(function FAB(
         setSheetTitle(config.title);
         setSheetPoints(config.points);
         setSheetAtsHigh(false);
-        if (routeDedicated && tabKey === "ats") {
+        if ((routeDedicated && tabKey === "ats") || (variant === "builder" && tabKey === "ats")) {
           setSheetShowProgress(false);
           setSheetShowGate(true);
           setSheetCoach(null);
@@ -304,6 +306,30 @@ const FAB = forwardRef(function FAB(
     [config, variant, resume, resetSheetLayout, tabKey]
   );
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 768px)").matches) return undefined;
+    if (variant !== "builder" || tabKey !== "ats") return undefined;
+    if (sheetOpen) {
+      atsLandTriggeredRef.current = true;
+      return undefined;
+    }
+    if (atsLandTriggeredRef.current) return undefined;
+    let t2;
+    const t1 = setTimeout(() => {
+      atsLandTriggeredRef.current = true;
+      setFabExtraClass("cvp-fab-ats-land-bounce");
+      t2 = setTimeout(() => {
+        setFabExtraClass("");
+        const useAtsHigh = atsScore >= 71 && !readFabSeen("ats");
+        openGuideSheet(useAtsHigh);
+      }, 300);
+    }, 1500);
+    return () => {
+      clearTimeout(t1);
+      if (t2) clearTimeout(t2);
+    };
+  }, [variant, tabKey, sheetOpen, atsScore, openGuideSheet]);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -326,8 +352,16 @@ const FAB = forwardRef(function FAB(
         setFabExtraClass("");
         return gate;
       },
+      openGuideForCurrentTab() {
+        if (variant !== "builder") return;
+        const useAtsHigh = tabKey === "ats" && atsScore >= 71 && !readFabSeen("ats");
+        openGuideSheet(useAtsHigh);
+      },
+      triggerBuilderIdlePulse() {
+        setBuilderIdlePulse(true);
+      },
     }),
-    [resetSheetLayout]
+    [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet]
   );
 
   const openTemplatesSmartSheet = useCallback(() => {
@@ -566,6 +600,7 @@ const FAB = forwardRef(function FAB(
     setTemplatesBounce(false);
     tplIdleEligibleRef.current = false;
     setTplIdlePulse(false);
+    setBuilderIdlePulse(false);
     clearTplTimers();
     if (variant === "builder" && tabKey === "templates") {
       openTemplatesSmartSheet();
@@ -581,13 +616,16 @@ const FAB = forwardRef(function FAB(
       ? null
       : variant === "route" && ["ats", "cover-letter", "walkin", "account"].includes(tabKey)
         ? tabKey
-        : null;
+        : variant === "builder" && tabKey === "ats"
+          ? "ats"
+          : null;
 
   const atsAttention = variant === "builder" && shouldShowAtsFabAttention(tabKey, atsScore);
   const fabAnimClass = [
     atsAttention ? "cvp-fab-anim-bounce-flicker" : "",
     templatesBounce && tabKey === "templates" ? "cvp-fab-anim-bounce" : "",
     tplIdlePulse || tplExtPulse ? "cvp-fab-pulse-idle" : "",
+    builderIdlePulse ? "cvp-fab-builder-idle-pulse" : "",
     fabExtraClass,
   ]
     .filter(Boolean)
@@ -609,6 +647,9 @@ const FAB = forwardRef(function FAB(
             if (e.animationName === "fabPulse") {
               setTplIdlePulse(false);
               setTplExtPulse(false);
+            }
+            if (e.animationName === "fabBuilderIdlePulse") {
+              setBuilderIdlePulse(false);
             }
           }}
         />
@@ -635,7 +676,9 @@ const FAB = forwardRef(function FAB(
         sheetFooterSlot={sheetFooterSlot}
         showGotItButton={showSheetGotIt}
         sheetIntelligence={!sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh && dedicatedRoute == null}
-        coverLetterCrossSell={variant === "builder" && !sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh}
+        coverLetterCrossSell={
+          variant === "builder" && !sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh && dedicatedRoute == null
+        }
         atsScore={typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0}
         dedicatedRoute={dedicatedRoute}
         atsChecks={Array.isArray(atsChecks) ? atsChecks : []}

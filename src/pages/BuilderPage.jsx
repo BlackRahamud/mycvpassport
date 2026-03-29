@@ -4,6 +4,7 @@ import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { FAB } from "../components/FAB";
+import { getAtsScoreStrokeColor } from "../components/FAB/FABSheet";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { supabase } from "../appSupabaseClient";
 import { saveResume } from "../resumeDb";
@@ -54,57 +55,24 @@ function BuilderAtsTabContent({ resume }) {
   const c = 2 * Math.PI * r;
   const arcLen = (pct / 100) * c;
   const dashActive = `${arcLen} ${c}`;
-  let singleStroke = "#E24B4A";
-  if (pct >= 41 && pct < 71) singleStroke = "#EF9F27";
-  if (pct >= 71) singleStroke = "#1D9E75";
+  const ringStroke = getAtsScoreStrokeColor(pct);
   return (
     <div style={{ padding: "0 12px 16px", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box" }}>
-      <style>{`
-        @keyframes cvpAtsFlicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-      `}</style>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 16 }}>
         <div style={{ position: "relative", width: 88, height: 88 }}>
           <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden>
             <circle cx="44" cy="44" r={r} fill="none" stroke="#1C1C1C" strokeWidth="7" />
-            {pct >= 71 ? (
-              <>
-                <circle
-                  cx="44"
-                  cy="44"
-                  r={r}
-                  fill="none"
-                  stroke="#1D9E75"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={dashActive}
-                  transform="rotate(-90 44 44)"
-                />
-                <circle
-                  cx="44"
-                  cy="44"
-                  r={r}
-                  fill="none"
-                  stroke="#EF9F27"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={dashActive}
-                  transform="rotate(-90 44 44)"
-                  style={{ animation: "cvpAtsFlicker 0.9s ease-in-out infinite" }}
-                />
-              </>
-            ) : (
-              <circle
-                cx="44"
-                cy="44"
-                r={r}
-                fill="none"
-                stroke={singleStroke}
-                strokeWidth="7"
-                strokeLinecap="round"
-                strokeDasharray={dashActive}
-                transform="rotate(-90 44 44)"
-              />
-            )}
+            <circle
+              cx="44"
+              cy="44"
+              r={r}
+              fill="none"
+              stroke={ringStroke}
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeDasharray={dashActive}
+              transform="rotate(-90 44 44)"
+            />
           </svg>
           <div
             style={{
@@ -117,7 +85,7 @@ function BuilderAtsTabContent({ resume }) {
               pointerEvents: "none",
             }}
           >
-            <span style={{ fontSize: 20, fontWeight: 500, color: "#fff", lineHeight: 1 }}>{pct}</span>
+            <span style={{ fontSize: 20, fontWeight: 500, color: ringStroke, lineHeight: 1 }}>{pct}</span>
             <span style={{ fontSize: 7, color: "#666", marginTop: 2 }}>ATS Score</span>
           </div>
         </div>
@@ -322,6 +290,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
   const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
   const fabRef = useRef(null);
+  const builderRootRef = useRef(null);
+  const builderIdleT15Ref = useRef(null);
+  const builderIdleT25Ref = useRef(null);
   const prevBuilderTabRef = useRef(null);
   const cvCompletionProgress = useCvProgress(resume);
 
@@ -369,6 +340,51 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   useEffect(() => {
     writeFabMemory({ lastTabVisited: builderTab });
   }, [builderTab]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia("(max-width: 768px)");
+    if (!mq.matches) return undefined;
+    const root = builderRootRef.current;
+    if (!root) return undefined;
+
+    const clearBuilderIdleTimers = () => {
+      if (builderIdleT15Ref.current != null) {
+        clearTimeout(builderIdleT15Ref.current);
+        builderIdleT15Ref.current = null;
+      }
+      if (builderIdleT25Ref.current != null) {
+        clearTimeout(builderIdleT25Ref.current);
+        builderIdleT25Ref.current = null;
+      }
+    };
+
+    const scheduleBuilderIdleTimers = () => {
+      clearBuilderIdleTimers();
+      builderIdleT15Ref.current = window.setTimeout(() => {
+        builderIdleT15Ref.current = null;
+        fabRef.current?.triggerBuilderIdlePulse?.();
+      }, 15000);
+      builderIdleT25Ref.current = window.setTimeout(() => {
+        builderIdleT25Ref.current = null;
+        fabRef.current?.openGuideForCurrentTab?.();
+        scheduleBuilderIdleTimers();
+      }, 25000);
+    };
+
+    const onActivity = () => scheduleBuilderIdleTimers();
+    const opts = { capture: true };
+    for (const ev of ["input", "change", "click", "focusin"]) {
+      root.addEventListener(ev, onActivity, opts);
+    }
+    scheduleBuilderIdleTimers();
+    return () => {
+      for (const ev of ["input", "change", "click", "focusin"]) {
+        root.removeEventListener(ev, onActivity, opts);
+      }
+      clearBuilderIdleTimers();
+    };
+  }, []);
 
   useEffect(() => {
     const full = fabSheet === "preview" || previewFadeOut;
@@ -489,7 +505,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const allOptionalSectionsAdded = OPTIONAL_BUILDER_SECTIONS.every((s) => builderExtraSectionIds.includes(s.id));
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}>
+    <div
+      ref={builderRootRef}
+      style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}
+    >
       {/* Top nav bar — 56px, Download = only primary */}
       <header
         className="cvp-builder-topbar"

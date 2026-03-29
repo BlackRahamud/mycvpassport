@@ -167,7 +167,7 @@ export function getFabTopGreetingLine(memory, coach) {
   if (sc >= 5) {
     const miss = coach?.missingSections?.[0];
     if (miss) return `You're a regular. Still missing: ${miss}.`;
-    return "You're a regular — CV is looking strong.";
+    return FAB_TIME_GREETING_COPY[getFabTimeGreeting()];
   }
   return FAB_TIME_GREETING_COPY[getFabTimeGreeting()];
 }

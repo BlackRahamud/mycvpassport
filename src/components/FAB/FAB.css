@@ -106,6 +106,36 @@
   animation: fabPulse 0.6s ease-in-out 2;
 }
 
+@keyframes fabBuilderIdlePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
+  }
+}
+
+.cvp-fab-builder-idle-pulse {
+  animation: fabBuilderIdlePulse 600ms ease-out 1 forwards;
+}
+
+@keyframes fabAtsLandBounce {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.cvp-fab-ats-land-bounce {
+  animation: fabAtsLandBounce 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 .cvp-fab-bounce-once {
   animation: fabBounce 0.4s ease-out 1 forwards;
 }
