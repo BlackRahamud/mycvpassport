@@ -1,6 +1,10 @@
+import { getFabMemory, reorderFabMenuOptions } from "./FABLogic";
+
 /** @typedef {{ id: string, label: string, icon: 'info' | 'eye' | 'spark' | 'arrow', primary?: boolean }} FabMenuOption */
 
 /** @typedef {{ title: string, points: { icon: string, text: string }[], menuOptions: FabMenuOption[] }} FabTabConfig */
+
+/** Live FAB data layer: ./FABLogic.js (also `export *` from ./index.js). */
 
 export const ATS_HIGH_SCORE_GUIDE = {
   title: "Your score looks good — but are you 100% sure?",
@@ -140,7 +144,7 @@ export function getFabTabConfig(tabKey, variant) {
   return {
     title: base.title,
     points: base.points,
-    menuOptions,
+    menuOptions: reorderFabMenuOptions(menuOptions, getFabMemory()),
   };
 }
 

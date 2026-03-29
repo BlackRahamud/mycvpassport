@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { FAB } from "./components/FAB";
+import { writeFabMemory } from "./components/FAB/FABLogic";
 
 /**
  * @typedef {Object} CVData
@@ -427,6 +428,10 @@ export default function WalkInMode({ onBack, onComplete, setResume, setSelectedT
     const fn = () => setIsMobile(mq.matches);
     mq.addEventListener("change", fn);
     return () => mq.removeEventListener("change", fn);
+  }, []);
+
+  useEffect(() => {
+    writeFabMemory({ lastTabVisited: "walkin" });
   }, []);
 
   /** @type {[CVData, function]} */

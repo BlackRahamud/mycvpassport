@@ -9,6 +9,10 @@ import {
   shouldShowAtsFabAttention,
   markAtsFabGuideOpened,
   shouldShowFabDot,
+  bumpFabSessionOpen,
+  getProgressCoachData,
+  getDownloadGatekeeperData,
+  GATEKEEPER_FALLBACK,
 } from "./FABLogic";
 
 /** Physical floating button: ring, dot, bounce/flicker, completion ring stub */
@@ -58,6 +62,8 @@ export default function FAB({
   hidden = false,
   atsScore = 0,
   selectedTemplateId,
+  resume = null,
+  onNavigateToCvSection,
   sheetZOverlay = 200,
   sheetZSheet = 201,
   onOpenCvPreview,
@@ -72,6 +78,8 @@ export default function FAB({
   const [sheetAtsHigh, setSheetAtsHigh] = useState(false);
   const [sheetTitle, setSheetTitle] = useState("");
   const [sheetPoints, setSheetPoints] = useState([]);
+  const [sheetCoach, setSheetCoach] = useState(null);
+  const [sheetGate, setSheetGate] = useState(null);
   const anchorRef = useRef(null);
   const prevTemplateIdRef = useRef(undefined);
   const [templatesBounce, setTemplatesBounce] = useState(false);
@@ -102,6 +110,8 @@ export default function FAB({
   const closeSheet = useCallback(() => {
     setSheetOpen(false);
     setSheetAtsHigh(false);
+    setSheetCoach(null);
+    setSheetGate(null);
   }, []);
 
   const runProAtsNav = useCallback(() => {
@@ -117,14 +127,22 @@ export default function FAB({
         setSheetTitle(ATS_HIGH_SCORE_GUIDE.title);
         setSheetPoints(ATS_HIGH_SCORE_GUIDE.points);
         setSheetAtsHigh(true);
+        setSheetCoach(null);
+        setSheetGate(null);
       } else {
         setSheetTitle(config.title);
         setSheetPoints(config.points);
         setSheetAtsHigh(false);
+        const coach = variant === "builder" && resume ? getProgressCoachData(resume) : getProgressCoachData(null);
+        setSheetCoach(coach);
+        setSheetGate(null);
+        getDownloadGatekeeperData()
+          .then(setSheetGate)
+          .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
       }
       setSheetOpen(true);
     },
-    [config]
+    [config, variant, resume]
   );
 
   const handleMenuPick = useCallback(
@@ -155,6 +173,10 @@ export default function FAB({
   );
 
   const onFabActivate = useCallback(() => {
+    const m = bumpFabSessionOpen();
+    if (process.env.NODE_ENV === "development") {
+      console.log("[FAB] sessionCount", m.sessionCount);
+    }
     setTemplatesBounce(false);
     setMenuOpen(true);
   }, []);
@@ -187,6 +209,21 @@ export default function FAB({
         onProCta={sheetAtsHigh ? runProAtsNav : undefined}
         zOverlay={sheetZOverlay}
         zSheet={sheetZSheet}
+        showCoachPanels={!sheetAtsHigh}
+        progressCoach={sheetCoach}
+        downloadGatekeeper={sheetGate}
+        onProgressCoachNavigate={(key) => {
+          onNavigateToCvSection?.(key);
+          closeSheet();
+        }}
+        onNavigateAuth={() => {
+          navigate("/auth");
+          closeSheet();
+        }}
+        onNavigatePricing={() => {
+          navigate("/pricing");
+          closeSheet();
+        }}
       />
     </>
   );

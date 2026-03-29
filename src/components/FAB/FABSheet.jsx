@@ -1,5 +1,5 @@
 import "./FAB.css";
-import { writeFabSeen } from "./FABLogic";
+import { writeFabSeen, PROGRESS_COACH_LABEL_TO_NAV_KEY } from "./FABLogic";
 
 export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
   const s = size;
@@ -84,6 +84,45 @@ function PointIcon({ type }) {
   );
 }
 
+function ProgressCoachRing({ percent }) {
+  const r = 36;
+  const c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(100, percent));
+  const offset = c - (p / 100) * c;
+  return (
+    <div style={{ position: "relative", width: 88, height: 88, margin: "0 auto 12px" }}>
+      <svg width={88} height={88} viewBox="0 0 88 88" aria-hidden style={{ display: "block" }}>
+        <circle cx={44} cy={44} r={r} fill="none" stroke="var(--border-default, #2A2A2A)" strokeWidth={8} />
+        <circle
+          cx={44}
+          cy={44}
+          r={r}
+          fill="none"
+          stroke="var(--text-primary, #FFF)"
+          strokeWidth={8}
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform="rotate(-90 44 44)"
+        />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          fontSize: 18,
+          fontWeight: 600,
+          color: "var(--text-primary, #FFF)",
+        }}
+      >
+        {p}%
+      </div>
+    </div>
+  );
+}
+
 /**
  * Bottom sheet: overlay + panel (slide-up via keyframes only)
  */
@@ -98,6 +137,12 @@ export default function FABSheet({
   onProCta,
   zOverlay = 200,
   zSheet = 201,
+  showCoachPanels = true,
+  progressCoach = null,
+  downloadGatekeeper = null,
+  onProgressCoachNavigate,
+  onNavigateAuth,
+  onNavigatePricing,
 }) {
   if (!open) return null;
 
@@ -131,7 +176,7 @@ export default function FABSheet({
         <FabSparkIcon size={24} stroke="#fff" />
         <div
           style={{
-            color: "#fff",
+            color: "var(--text-primary, #FFF)",
             fontSize: 16,
             fontWeight: 500,
             marginTop: 12,
@@ -141,6 +186,172 @@ export default function FABSheet({
         >
           {title}
         </div>
+
+        {showCoachPanels ? (
+          <div
+            style={{
+              width: "100%",
+              marginBottom: 16,
+              padding: 14,
+              boxSizing: "border-box",
+              borderRadius: 12,
+              background: "var(--bg-elevated, #1C1C1C)",
+              border: "1px solid var(--border-default, #2A2A2A)",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary, #A0A0A0)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, textAlign: "center" }}>
+              Progress coach
+            </div>
+            {progressCoach && !progressCoach.hasCV ? (
+              <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center", lineHeight: 1.45 }}>
+                Start your CV to see progress
+              </p>
+            ) : progressCoach ? (
+              <>
+                <ProgressCoachRing percent={progressCoach.completionPercent} />
+                <div style={{ fontSize: 12, color: "var(--text-secondary, #A0A0A0)", textAlign: "center", marginBottom: 10 }}>
+                  {progressCoach.completedSections}/{progressCoach.totalSections} sections complete
+                </div>
+                {progressCoach.missingSections.length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+                    {progressCoach.missingSections.map((label) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          const key = PROGRESS_COACH_LABEL_TO_NAV_KEY[label];
+                          if (key) onProgressCoachNavigate?.(key);
+                          // TODO: deep-link optional sections (certifications, projects) when Progress Coach lists them
+                        }}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 999,
+                          border: "1px solid var(--border-default, #2A2A2A)",
+                          background: "var(--bg-surface, #141414)",
+                          color: "var(--text-primary, #FFF)",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          cursor: onProgressCoachNavigate ? "pointer" : "default",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>All tracked sections look good.</p>
+                )}
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showCoachPanels ? (
+          <div
+            style={{
+              width: "100%",
+              marginBottom: 16,
+              padding: 14,
+              boxSizing: "border-box",
+              borderRadius: 12,
+              background: "var(--bg-elevated, #1C1C1C)",
+              border: "1px solid var(--border-default, #2A2A2A)",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary, #A0A0A0)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10, textAlign: "center" }}>
+              Download gatekeeper
+            </div>
+            {downloadGatekeeper == null ? (
+              <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>Checking download status…</p>
+            ) : (
+              <>
+                {downloadGatekeeper.isPaidUser ? (
+                  <div style={{ textAlign: "center", marginBottom: 8 }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "4px 10px",
+                        borderRadius: 8,
+                        background: "var(--bg-surface, #141414)",
+                        border: "1px solid var(--border-default, #2A2A2A)",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "var(--text-primary, #FFF)",
+                      }}
+                    >
+                      {downloadGatekeeper.planName}
+                    </span>
+                  </div>
+                ) : null}
+                {downloadGatekeeper.canDownload ? (
+                  <>
+                    <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 500, color: "var(--text-primary, #FFF)", textAlign: "center" }}>You&apos;re clear to download</p>
+                    <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary, #A0A0A0)" }}>
+                      {Number.isFinite(downloadGatekeeper.downloadsLimit) ? (
+                        <span>
+                          {downloadGatekeeper.downloadsUsed}/{downloadGatekeeper.downloadsLimit} downloads used
+                        </span>
+                      ) : (
+                        <span>Unlimited downloads</span>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+                {downloadGatekeeper.blockerReason === "limit_reached" ? (
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+                      You&apos;ve used your free downloads. Upgrade for unlimited PDFs.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onNavigatePricing?.()}
+                      style={{
+                        background: "var(--text-primary, #FFF)",
+                        color: "#000",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        width: "100%",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        border: "1px solid var(--border-default, #2A2A2A)",
+                        cursor: "pointer",
+                        minHeight: 44,
+                      }}
+                    >
+                      Upgrade to Active Hunter — AED 29/mo
+                    </button>
+                  </div>
+                ) : null}
+                {downloadGatekeeper.blockerReason === "not_signed_in" ? (
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+                      Sign in to continue downloading
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onNavigateAuth?.()}
+                      style={{
+                        background: "var(--text-primary, #FFF)",
+                        color: "#000",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        width: "100%",
+                        fontWeight: 600,
+                        fontSize: 13,
+                        border: "1px solid var(--border-default, #2A2A2A)",
+                        cursor: "pointer",
+                        minHeight: 44,
+                      }}
+                    >
+                      Sign in
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : null}
+
         <div>
           {points.map((row, i) => (
             <div
@@ -153,7 +364,7 @@ export default function FABSheet({
               }}
             >
               <PointIcon type={row.icon} />
-              <span style={{ color: "#aaa", fontSize: 13, lineHeight: 1.45, flex: 1 }}>{row.text}</span>
+              <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 13, lineHeight: 1.45, flex: 1 }}>{row.text}</span>
             </div>
           ))}
         </div>

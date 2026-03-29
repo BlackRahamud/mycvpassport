@@ -38,6 +38,7 @@ import WalkInMode from './WalkInMode';
 import Dashboard from './Dashboard';
 import AdminPanel from "./AdminPanel";
 import { FAB } from "./components/FAB";
+import { writeFabMemory, ANON_DOWNLOADS_KEY } from "./components/FAB/FABLogic";
 // Mobile bottom tab bar icons (used when on ATS / Walk-In so nav is always visible)
 function TabIconDoc({ active }) {
   const stroke = active ? "#FFFFFF" : "#555";
@@ -2174,6 +2175,15 @@ async function downloadResumeFromPreview(cvInput, captureElement) {
         .from('downloads')
         .insert([{ user_id: user.id }]);
       if (error) console.error('Error tracking download:', error);
+    } else {
+      try {
+        if (typeof localStorage !== "undefined") {
+          const cur = parseInt(localStorage.getItem(ANON_DOWNLOADS_KEY) || "0", 10) || 0;
+          localStorage.setItem(ANON_DOWNLOADS_KEY, String(cur + 1));
+        }
+      } catch {
+        /* ignore */
+      }
     }
   }
 }
@@ -2703,6 +2713,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, [selectedTemplate?.id]);
 
   useEffect(() => {
+    writeFabMemory({ lastTabVisited: builderTab });
+  }, [builderTab]);
+
+  useEffect(() => {
     const full = fabSheet === "preview" || previewFadeOut;
     if (full) document.body.classList.add("cvp-builder-full-preview");
     else document.body.classList.remove("cvp-builder-full-preview");
@@ -2742,6 +2756,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setResumeId(saved.id);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus(null), 3000);
+      // TODO: wire cv_edited on section save — writeFabMemory({ lastAction: "cv_edited", lastActionAt: new Date().toISOString() })
     } catch(e) {
       setSaveStatus("error");
       setTimeout(() => setSaveStatus(null), 3000);
@@ -2761,6 +2776,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
       if (!el) throw new Error("Preview not ready");
       await downloadResumeFromPreview(resume, el);
+      writeFabMemory({
+        lastAction: "downloaded",
+        lastActionAt: new Date().toISOString(),
+        lastTemplateId: selectedTemplate?.id != null ? `T${selectedTemplate.id}` : null,
+      });
     } catch (e) {
       alert("PDF error: " + e.message);
     } finally {
@@ -2906,7 +2926,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           {builderTab === "content" && (
             <>
               {/* Personal info card — always visible */}
-              <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+              <div className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                 <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
@@ -3086,7 +3106,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           <div className="cvp-builder-mobile-form">
             {builderTab === "content" && (
               <>
-                <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+                <div className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
@@ -3280,6 +3300,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 tabKey={builderTab}
                 atsScore={score}
                 selectedTemplateId={selectedTemplate?.id}
+                resume={resume}
+                onNavigateToCvSection={(navKey) => {
+                  setBuilderTab("content");
+                  if (navKey === "personal") {
+                    requestAnimationFrame(() => {
+                      document.querySelector(".cvp-builder-personal-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    });
+                  } else {
+                    setOpenSection(navKey);
+                  }
+                }}
                 sheetZOverlay={299}
                 sheetZSheet={300}
                 onOpenCvPreview={() => setFabSheet("preview")}

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FAB } from "./components/FAB";
+import { writeFabMemory } from "./components/FAB/FABLogic";
 import { ReactComponent as FalconLogo } from "./logo.svg";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -62,6 +63,10 @@ export default function Dashboard({
   const [active, setActive] = useState("mycvs");
   const [menuOpenId, setMenuOpenId] = useState(null);
   const isLight = theme === "light";
+
+  useEffect(() => {
+    writeFabMemory({ lastTabVisited: active });
+  }, [active]);
   const themeClass = isLight ? "cvp-theme-light" : "cvp-theme-dark";
 
   const initials = useMemo(() => {

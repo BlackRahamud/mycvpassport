@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { FAB } from "./components/FAB";
+import { writeFabMemory } from "./components/FAB/FABLogic";
 import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import UpgradeModal from "./UpgradeModal";
@@ -208,6 +209,10 @@ export default function ATSChecker(props) {
           resumeText: normalized,
           rawResumeText: resumeText,
           pdfPreviewUrl: URL.createObjectURL(resumeFile)
+        });
+        writeFabMemory({
+          lastAction: "ats_checked",
+          lastActionAt: new Date().toISOString(),
         });
         setLoading(false);
       }, 3000);
