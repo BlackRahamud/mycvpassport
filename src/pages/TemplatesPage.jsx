@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useRef, memo, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { TEMPLATES, TEMPLATE_FILTER_IDS, isCvDataEmptyForTemplateApply } from "../cvShared";
@@ -22,54 +22,68 @@ function templateAtsBadgeText(t) {
 }
 
 const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template: t, isSelected, sheetHighlight, resume, onPick, cardRef }) {
+  const thumbScaleOuterRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   const tierLabel = templateTierMarketingLabel(t);
   const tierPill = templateTierPillColors(tierLabel);
   const atsBadge = templateAtsBadgeText(t);
   const borderStyle = sheetHighlight ? "2px solid rgba(255,255,255,0.8)" : isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A";
+
+  useEffect(() => {
+    const el = thumbScaleOuterRef.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect?.width;
+      if (w == null || w < 1) return;
+      setContainerWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale = useMemo(() => {
+    const w = containerWidth > 0 ? containerWidth : A4_PREVIEW_WIDTH_PX;
+    return w / A4_PREVIEW_WIDTH_PX;
+  }, [containerWidth]);
+
   return (
     <button
       ref={cardRef}
       type="button"
       onClick={() => onPick(t)}
+      className="cvp-templates-card"
       style={{
         position: "relative",
         width: "100%",
+        height: "auto",
         padding: 0,
         margin: 0,
         border: borderStyle,
-        borderRadius: 10,
+        borderRadius: 12,
         background: "#141414",
         cursor: "pointer",
-        overflow: "hidden",
+        overflow: "visible",
         display: "block",
         textAlign: "left",
         boxSizing: "border-box",
       }}
     >
-      <div
-        style={{
-          height: 160,
-          width: "100%",
-          overflow: "hidden",
-          position: "relative",
-          background: "#1C1C1C",
-        }}
-      >
-        <div
-          style={{
-            width: A4_PREVIEW_WIDTH_PX,
-            transform: "scale(0.18)",
-            transformOrigin: "top left",
-            willChange: "transform",
-            transition: "none",
-            pointerEvents: "none",
-          }}
-        >
-          <ResumePreview cv={resume} template={t} />
+      <div className="cvp-templates-card-thumb">
+        <div className="cvp-templates-card-thumb-inner">
+          <div ref={thumbScaleOuterRef} className="cvp-templates-card-thumb-scale-outer">
+            <div
+              className="cvp-templates-card-thumb-scale-inner"
+              style={{
+                transform: `scale(${scale})`,
+              }}
+            >
+              <ResumePreview cv={resume} template={t} />
+            </div>
+          </div>
         </div>
       </div>
-      <div style={{ padding: "6px 8px 8px" }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: "#FFFFFF", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
+      <div className="cvp-templates-card-label">
+        <span className="cvp-templates-card-name">{t.name}</span>
       </div>
       <div
         style={{
@@ -126,6 +140,7 @@ function BuilderTemplatesTab({
 }) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("popular");
+  const [atsBannerExpanded, setAtsBannerExpanded] = useState(false);
   const prevFilterRef = useRef(null);
   const cardRefs = useRef(new Map());
   const ids = TEMPLATE_FILTER_IDS[filter] || TEMPLATE_FILTER_IDS.popular;
@@ -155,6 +170,10 @@ function BuilderTemplatesTab({
     return () => document.body.classList.remove("cvp-fab-sheet-open");
   }, [confirmOpen, pendingTemplate]);
 
+  useEffect(() => {
+    if (filter !== "popular") setAtsBannerExpanded(false);
+  }, [filter]);
+
   const pills = [
     { id: "popular", label: "Popular" },
     { id: "simple", label: "Simple" },
@@ -165,7 +184,7 @@ function BuilderTemplatesTab({
   return (
     <div
       className="cvp-builder-templates-tab-root"
-      style={{ width: "100%", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+      style={{ width: "100%", maxWidth: "100%", overflow: "visible", boxSizing: "border-box", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
     >
       <div
         className="cvp-templates-pills"
@@ -209,60 +228,70 @@ function BuilderTemplatesTab({
           );
         })}
       </div>
-      <div className="cvp-templates-ats-banner">
-        <svg
-          width={22}
-          height={22}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden
-          className="cvp-templates-ats-banner-shield"
-        >
-          <path
-            d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"
-            stroke="#14B8A6"
-            strokeWidth={1.8}
-          />
-          <path d="M9 12l2 2 4-4" stroke="#14B8A6" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <div className="cvp-templates-ats-banner-text">
-          <p className="cvp-templates-ats-banner-headline">Engineered for the Shortlist.</p>
-          <p className="cvp-templates-ats-banner-body">
-            A great-looking CV means nothing if a recruiter&apos;s system can&apos;t read it. Every template is precision-coded for maximum ATS
-            readability — recruiter-approved layouts that clear filters with zero errors. That&apos;s the format sorted. Next, run your CV through our{" "}
-            <span
-              role="button"
-              tabIndex={0}
-              className="cvp-templates-ats-banner-link"
-              onClick={() => navigate("/ats")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  navigate("/ats");
-                }
-              }}
+      {filter === "popular" ? (
+        <div className="cvp-templates-ats-banner">
+          <svg
+            width={22}
+            height={22}
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden
+            className="cvp-templates-ats-banner-shield"
+          >
+            <path
+              d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"
+              stroke="#14B8A6"
+              strokeWidth={1.8}
+            />
+            <path d="M9 12l2 2 4-4" stroke="#14B8A6" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div className="cvp-templates-ats-banner-text">
+            <p className="cvp-templates-ats-banner-headline">Engineered for the Shortlist.</p>
+            <div
+              className={
+                atsBannerExpanded
+                  ? "cvp-templates-ats-banner-expand-wrap cvp-templates-ats-banner-expand-wrap--expanded"
+                  : "cvp-templates-ats-banner-expand-wrap cvp-templates-ats-banner-expand-wrap--collapsed"
+              }
             >
-              ATS Checker
-            </span>{" "}
-            — it scores your content against the actual job description, flags what&apos;s missing, and tells you exactly what to fix before you apply.
-          </p>
+              {atsBannerExpanded ? (
+                <p className="cvp-templates-ats-banner-body">
+                  A great-looking CV means nothing if a recruiter&apos;s system can&apos;t read it. Every template is precision-coded for maximum ATS
+                  readability — recruiter-approved layouts that clear filters with zero errors. That&apos;s the format sorted. Next, run your CV through our{" "}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="cvp-templates-ats-banner-link"
+                    onClick={() => navigate("/ats")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate("/ats");
+                      }
+                    }}
+                  >
+                    ATS Checker
+                  </span>{" "}
+                  — it scores your content against the actual job description, flags what&apos;s missing, and tells you exactly what to fix before you apply.{" "}
+                  <button type="button" className="cvp-templates-ats-banner-read-toggle" onClick={() => setAtsBannerExpanded(false)}>
+                    Show less ↑
+                  </button>
+                </p>
+              ) : (
+                <p className="cvp-templates-ats-banner-body cvp-templates-ats-banner-body--collapsed-preview">
+                  A great-looking CV means nothing if a recruiter&apos;s system can&apos;t read it. Every template is precision-coded for maximum ATS
+                  readability —{" "}
+                  <button type="button" className="cvp-templates-ats-banner-read-toggle" onClick={() => setAtsBannerExpanded(true)}>
+                    Read more →
+                  </button>
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-          padding: "0 12px",
-          boxSizing: "border-box",
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-          WebkitOverflowScrolling: "touch",
-          alignContent: "start",
-        }}
-      >
+      ) : null}
+      <div className="cvp-templates-grid">
         {list.map((t) => (
           <BuilderTemplateGridCard
             key={t.id}

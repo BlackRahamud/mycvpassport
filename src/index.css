@@ -620,6 +620,67 @@ input:focus, textarea:focus {
   background: #0a0a0a;
 }
 
+/* Templates tab — grid (no clipping; scroll vertical only) */
+.cvp-templates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  overflow-x: visible;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-content: start;
+}
+
+.cvp-templates-card-thumb {
+  position: relative;
+  width: 100%;
+  padding-bottom: 141%;
+  background: #1c1c1c;
+}
+
+.cvp-templates-card-thumb-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.cvp-templates-card-thumb-scale-outer {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.cvp-templates-card-thumb-scale-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 794px;
+  height: 1123px;
+  transform-origin: top left;
+  will-change: transform;
+  transition: none;
+  pointer-events: none;
+}
+
+.cvp-templates-card-label {
+  padding: 6px 8px 8px;
+}
+
+.cvp-templates-card-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Templates tab — ATS positioning banner (builder desktop/mobile + /templates browse) */
 .cvp-templates-ats-banner {
   background: #141414;
@@ -650,22 +711,59 @@ input:focus, textarea:focus {
   font-size: 15px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: -0.2px;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: inherit;
+}
+
+.cvp-templates-ats-banner-expand-wrap {
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cvp-templates-ats-banner-expand-wrap--collapsed {
+  max-height: 44px;
+  overflow: hidden;
+}
+
+.cvp-templates-ats-banner-expand-wrap--expanded {
+  max-height: 300px;
+  overflow: visible;
 }
 
 .cvp-templates-ats-banner-body {
   font-size: 13px;
+  font-weight: 400;
   line-height: 1.7;
   color: #a0a0a0;
   max-width: 640px;
   margin: 0;
+  font-family: inherit;
+}
+
+.cvp-templates-ats-banner-body--collapsed-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.cvp-templates-ats-banner-read-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: #14b8a6;
+  cursor: pointer;
+  display: inline;
+  vertical-align: baseline;
 }
 
 .cvp-templates-ats-banner-link {
   color: #14b8a6;
   font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
 }
 
