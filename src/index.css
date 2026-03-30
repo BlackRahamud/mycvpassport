@@ -124,6 +124,30 @@ input:focus, textarea:focus {
   pointer-events: none;
 }
 
+/* Landing S3 — scaled CV preview (scale set in JS via ResizeObserver; no fixed transform here) */
+.lp-cv-thumb-scale-outer {
+  width: 120px;
+  height: 160px;
+  overflow: hidden;
+  position: relative;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.lp-cv-thumb-scale-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 794px;
+  height: 1123px;
+  transform-origin: top left;
+  will-change: transform;
+  transition: none;
+  pointer-events: none;
+}
+
 /* Auth — focused field styling (no transition: all) */
 .cvp-auth-page input.cvp-auth-field {
   transition: border-color 150ms ease;

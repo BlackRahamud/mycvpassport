@@ -12,7 +12,8 @@ export const useGeoContent = () => {
     if (isIndia) {
       return {
         pill: "India's Dual-Market CV Builder",
-        headline: "Built for India. Engineered for the Gulf.",
+        heroHeadlineBefore: "Built for India. Engineered to get you ",
+        heroHeadlineAfter: " in the Gulf.",
         subheadline: "ATS-friendly layouts for Indian corporates and GCC employer portals — UAE Banks, Saudi Tech, and Dubai Hospitality.",
         cta: "Get my ATS-ready CV →",
         ctaSecondary: "or browse 14 professional templates",
@@ -30,7 +31,8 @@ export const useGeoContent = () => {
 
     return {
       pill: "Built for Gulf Job Seekers",
-      headline: "Your Gulf CV, ready before tomorrow.",
+      heroHeadlineBefore: "Your Gulf CV, ready to get you ",
+      heroHeadlineAfter: ".",
       subheadline: "ATS-friendly layouts built for UAE, Saudi & GCC markets. Free to start, free to try.",
       cta: "Build my CV free →",
       ctaSecondary: "or browse 14 Gulf-ready templates",

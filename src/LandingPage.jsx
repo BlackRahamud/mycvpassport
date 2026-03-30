@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import React from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ReactComponent as FalconLogo } from './logo.svg';
 import CVPlayCard from './components/CVPlayCard';
 import { useGeoContent } from './hooks/useGeoContent';
+import { ResumePreview, A4_PREVIEW_WIDTH_PX } from './ResumePreview';
+import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
 
 // ── SVG Icons (line style, 20×20 viewBox unless noted) ─────────────
 function SunIcon() {
@@ -152,10 +153,88 @@ function scrollToLandingSection(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/** Hero headline cycle — natural job search journey (order fixed). */
+const HERO_CYCLE_WORDS = ['shortlisted', 'called', 'hired'];
+
+const LANDING_THUMB_CV = {
+  ...EMPTY_RESUME,
+  name: 'Ahmed Al Mansouri',
+  title: 'Senior Operations Manager',
+  summary: 'Operations leader with a track record of scaling teams and improving service delivery across GCC markets.',
+  experience: [
+    {
+      ...EMPTY_EXP,
+      company: 'Emirates NBD',
+      role: 'Assistant Manager',
+      location: 'Dubai',
+      period: '2020 — Present',
+      points: 'Led a team of 12; improved SLA metrics by 18%.',
+    },
+  ],
+  education: [
+    {
+      school: 'American University of Sharjah',
+      degree: 'BBA',
+      year: '2015',
+      fieldOfStudy: '',
+      startDate: '',
+      endDate: '',
+      location: '',
+    },
+  ],
+  skills: 'Stakeholder Management, SAP, Lean Six Sigma',
+};
+
+const LP_TEMPLATE_STRIP = [
+  { name: 'Classic', tier: 'FREE', template: TEMPLATES[0] },
+  { name: 'Gulf Pro', tier: 'POPULAR', template: TEMPLATES[4] },
+  { name: 'Tech Pro', tier: 'PREMIUM', template: TEMPLATES[10] },
+  { name: 'Executive', tier: 'PREMIUM', template: TEMPLATES[3] },
+];
+
+function LandingTemplateThumb({ template }) {
+  const wrapRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect?.width;
+      if (w == null || w < 1) return;
+      setContainerWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale = useMemo(() => {
+    const w = containerWidth > 0 ? containerWidth : 120;
+    return w / A4_PREVIEW_WIDTH_PX;
+  }, [containerWidth]);
+
+  return (
+    <div ref={wrapRef} className="lp-cv-thumb-scale-outer">
+      <div
+        className="lp-cv-thumb-scale-inner"
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          willChange: 'transform',
+          transition: 'none',
+        }}
+      >
+        <ResumePreview cv={LANDING_THUMB_CV} template={template} />
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────────
 export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalkIn }) {
   const geo = useGeoContent();
   const navigate = useNavigate();
+  const [heroWordIndex, setHeroWordIndex] = useState(0);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('cvp-theme') || 'dark'; } catch { return 'dark'; }
   });
@@ -199,6 +278,13 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
     try { localStorage.setItem('cvp-theme', theme); } catch {}
     document.documentElement.className = theme;
   }, [theme]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setHeroWordIndex((i) => (i + 1) % HERO_CYCLE_WORDS.length);
+    }, 2500);
+    return () => clearInterval(id);
+  }, []);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
@@ -336,12 +422,46 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           gap: 8px;
           cursor: pointer;
         }
-        .lp-template-preview {
-          width: 120px;
-          height: 160px;
-          background: var(--bg-surface);
-          border: 1px solid var(--border-default);
-          border-radius: 8px;
+        .lp-hero-cycle-word {
+          display: inline-block;
+          margin: 0 0.12em;
+          min-width: 2.4em;
+          text-align: center;
+          transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .lp-feature-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+        }
+        @media (min-width: 769px) {
+          .lp-feature-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        .lp-feature-section-bleed {
+          padding: 80px 60px;
+        }
+        @media (max-width: 768px) {
+          .lp-feature-section-bleed {
+            padding: 60px 20px;
+          }
+        }
+        .lp-template-card-link {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          text-decoration: none;
+          color: inherit;
+        }
+        .lp-feature-cta {
+          transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .lp-feature-cta:hover {
+          opacity: 0.85;
         }
         .lp-template-name { font-size: 12px; color: var(--text-primary); font-weight: 500; }
         .lp-template-tier { font-size: 11px; font-weight: 600; }
@@ -714,7 +834,15 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               color:        T.textPrimary,
               fontFamily:   "'DM Sans', sans-serif",
             }}>
-              {geo.headline}
+              {geo.heroHeadlineBefore}
+              <span
+                className="lp-hero-cycle-word"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {HERO_CYCLE_WORDS[heroWordIndex]}
+              </span>
+              {geo.heroHeadlineAfter}
             </h1>
 
             {/* Subtext */}
@@ -825,6 +953,257 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </h2>
         </section>
 
+        <section
+          id="lp-features"
+          className="lp-feature-section-bleed"
+          style={{
+            background: '#0A0A0A',
+            color: '#FFFFFF',
+            maxWidth: 'none',
+            margin: 0,
+          }}
+        >
+          <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+            <p style={{ fontSize: '11px', letterSpacing: '3px', color: '#A0A0A0', fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center' }}>
+              Everything in one place
+            </p>
+            <h2 style={{
+              fontSize: 'clamp(22px, 4vw, 32px)',
+              fontWeight: '800',
+              letterSpacing: '-0.5px',
+              marginBottom: '28px',
+              color: '#FFFFFF',
+              fontFamily: "'DM Sans', sans-serif",
+              textAlign: 'center',
+            }}>
+              Built for Gulf job seekers
+            </h2>
+            <div className="lp-feature-grid">
+              {/* Card 1 — ATS */}
+              <div
+                className="lp-card"
+                style={{
+                  background: isDark ? '#141414' : '#F5F5F0',
+                  border: isDark ? '1px solid #2A2A2A' : '1px solid #E0E0E0',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  textAlign: 'left',
+                }}
+              >
+                <p style={{ fontSize: '10px', letterSpacing: '0.5px', color: '#A0A0A0', textTransform: 'uppercase', margin: '0 0 16px', fontWeight: '600' }}>
+                  ATS CHECKER
+                </p>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                  <div style={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
+                    <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+                      <circle cx="28" cy="28" r="22" fill="none" stroke="#2A2A2A" strokeWidth="6" />
+                      <circle
+                        cx="28"
+                        cy="28"
+                        r="22"
+                        fill="none"
+                        stroke="#14B8A6"
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray="138.23 138.23"
+                        strokeDashoffset={138.23 * (1 - 0.84)}
+                        transform="rotate(-90 28 28)"
+                      />
+                    </svg>
+                    <span style={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      fontWeight: 500,
+                      color: '#14B8A6',
+                    }}
+                    >
+                      84
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
+                    {[
+                      { label: 'Keywords', pct: 80, fill: '#22C55E' },
+                      { label: 'Format', pct: 65, fill: '#F59E0B' },
+                      { label: 'Sections', pct: 90, fill: '#EAB308' },
+                    ].map((row) => (
+                      <div key={row.label}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, color: '#A0A0A0' }}>
+                          <span>{row.label}</span>
+                          <span>{row.pct}%</span>
+                        </div>
+                        <div style={{ height: 4, borderRadius: 99, background: '#2A2A2A', overflow: 'hidden' }}>
+                          <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: 99, background: row.fill }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="lp-feature-cta"
+                  onClick={() => navigate('/ats')}
+                  style={{
+                    marginTop: '18px',
+                    padding: 0,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#14B8A6',
+                  }}
+                >
+                  Start for free →
+                </button>
+              </div>
+
+              {/* Card 2 — Cover letter (always dark) */}
+              <div
+                className="lp-card"
+                style={{
+                  background: '#0F1F1A',
+                  border: '1px solid #2A2A2A',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  textAlign: 'left',
+                }}
+              >
+                <p style={{ fontSize: '10px', color: '#A0A0A0', textTransform: 'uppercase', margin: '0 0 14px', fontWeight: '600' }}>
+                  COVER LETTER
+                </p>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF', margin: '0 0 8px', lineHeight: 1.45 }}>
+                  Dear Hiring Manager,
+                </p>
+                <p style={{ fontSize: '12px', color: '#A0A0A0', margin: '0 0 6px', lineHeight: 1.5 }}>
+                  I am writing to express my strong interest in
+                </p>
+                <p style={{ fontSize: '12px', color: '#A0A0A0', margin: '0 0 14px', lineHeight: 1.5 }}>
+                  the Customer Service role at Emirates NBD...
+                </p>
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: '10px',
+                  background: '#1A3A30',
+                  color: '#4ADE80',
+                  borderRadius: 99,
+                  padding: '4px 10px',
+                  marginBottom: '12px',
+                }}
+                >
+                  Gulf tone · Arabic-aware
+                </span>
+                <p style={{ fontSize: '12px', color: '#A0A0A0', margin: 0 }}>
+                  AED 10 / ₹49
+                </p>
+              </div>
+
+              {/* Card 3 — Walk-in (always dark) */}
+              <div
+                className="lp-card"
+                style={{
+                  background: '#0A1A0A',
+                  border: '1px solid #2A2A2A',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  textAlign: 'left',
+                }}
+              >
+                <p style={{ fontSize: '10px', color: '#A0A0A0', textTransform: 'uppercase', margin: '0 0 14px', fontWeight: '600' }}>
+                  WALK-IN MODE
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: '14px' }}>
+                  {['Ahmed Al Mansouri', 'Driver', '+971 50 123 4567', '10 yrs experience'].map((text) => (
+                    <div
+                      key={text}
+                      style={{
+                        background: '#0F2A0F',
+                        border: '1px solid #1A4A1A',
+                        borderRadius: 6,
+                        padding: '6px 10px',
+                        fontSize: 11,
+                        color: '#4ADE80',
+                      }}
+                    >
+                      {text}
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: '11px', color: '#4ADE80', margin: 0 }}>
+                  60 seconds · WhatsApp ready
+                </p>
+              </div>
+
+              {/* Card 4 — Job match */}
+              <div
+                className="lp-card"
+                style={{
+                  background: isDark ? '#141414' : '#F5F5F0',
+                  border: isDark ? '1px solid #2A2A2A' : '1px solid #E0E0E0',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: '14px', flexWrap: 'wrap' }}>
+                  <p style={{ fontSize: '10px', letterSpacing: '0.5px', color: '#A0A0A0', textTransform: 'uppercase', margin: 0, fontWeight: '600' }}>
+                    JOB MATCH
+                  </p>
+                  <span style={{
+                    fontSize: '10px',
+                    background: '#2A2A2A',
+                    color: '#A0A0A0',
+                    borderRadius: 99,
+                    padding: '3px 8px',
+                  }}
+                  >
+                    Coming Soon
+                  </span>
+                </div>
+                {[
+                  { label: 'LinkedIn UAE', pct: 70, fill: '#14B8A6' },
+                  { label: 'Bayt.com', pct: 55, fill: '#F59E0B' },
+                ].map((row) => (
+                  <div key={row.label} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, color: '#A0A0A0' }}>
+                      <span>{row.label}</span>
+                      <span>{row.pct}%</span>
+                    </div>
+                    <div style={{ height: 4, borderRadius: 99, background: '#2A2A2A', overflow: 'hidden' }}>
+                      <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: 99, background: row.fill }} />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="lp-feature-cta"
+                  onClick={() => onSignup && onSignup()}
+                  style={{
+                    marginTop: '6px',
+                    padding: 0,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#14B8A6',
+                  }}
+                >
+                  Start for free →
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="lp-templates" className="lp-sec lp-templates">
           <h2 className="lp-section-title">
             See what your CV will look like
@@ -833,24 +1212,30 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             14 ATS-friendly designs. Tap to preview.
           </p>
           <div className="lp-templates-scroll">
-            {[
-              { name: 'Classic', tier: 'FREE' },
-              { name: 'Gulf Pro', tier: 'POPULAR' },
-              { name: 'Tech Pro', tier: 'PREMIUM' },
-              { name: 'Executive', tier: 'PREMIUM' },
-              { name: 'Minimal', tier: 'FREE' },
-            ].map((t) => (
-              <div key={t.name} className="lp-template-card">
-                <div className="lp-template-preview" />
+            {LP_TEMPLATE_STRIP.map((t) => (
+              <Link key={t.name} to="/templates" className="lp-template-card lp-template-card-link">
+                <LandingTemplateThumb template={t.template} />
                 <span className="lp-template-name">{t.name}</span>
                 <span className={`lp-template-tier lp-tier-${t.tier.toLowerCase()}`}>
                   {t.tier}
                 </span>
-              </div>
+              </Link>
             ))}
-            <div className="lp-template-card lp-template-more">
-              <span>+9 more</span>
-            </div>
+          </div>
+          <div style={{ paddingLeft: 24, paddingRight: 24, marginTop: 16 }}>
+            <Link
+              to="/templates"
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: T.textPrimary,
+                textDecoration: 'none',
+                borderBottom: `1px solid ${T.border}`,
+                transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              Browse all templates →
+            </Link>
           </div>
         </section>
 
