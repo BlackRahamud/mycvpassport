@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const PRIMARY = "#1E3A5F"; // Deep Navy
@@ -13,6 +14,10 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
   const pt = (n) => `${n * s}pt`;
 
   const isEmpty = !cv.name || cv.name.trim() === "";
+
+  const summaryDisplay =
+    cv.summary ||
+    "Write a brief overview of your professional background, key achievements, and career goals here. This section helps recruiters understand your value proposition at a glance.";
 
   // Data parsing
   const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
@@ -91,9 +96,16 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
       {(cv.summary || isEmpty) && (
         <section>
           <SectionTitle first>Professional Summary</SectionTitle>
-          <p style={{ fontSize: pt(10.5), lineHeight: 1.6, margin: 0 }}>
-            {cv.summary ||
-              "Write a brief overview of your professional background, key achievements, and career goals here. This section helps recruiters understand your value proposition at a glance."}
+          <p
+            style={{
+              fontSize: pt(10.5),
+              lineHeight: 1.6,
+              margin: 0,
+              position: "relative",
+            }}
+          >
+            <GhostChip>{summaryDisplay}</GhostChip>
+            {summaryDisplay}
           </p>
         </section>
       )}
@@ -102,7 +114,12 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
       {(allSkills.length > 0 || isEmpty) && (
         <section>
           <SectionTitle>Technical Expertise</SectionTitle>
-          <div style={{ fontSize: pt(10.5), lineHeight: 1.5 }}>
+          <div style={{ fontSize: pt(10.5), lineHeight: 1.5, position: "relative" }}>
+            <GhostChip>
+              {isEmpty
+                ? "Skill One, Skill Two, Skill Three, Tool Name, Software Expertise"
+                : allSkills.join(", ")}
+            </GhostChip>
             <span style={{ fontWeight: "bold", color: PRIMARY }}>Core Competencies: </span>
             {isEmpty ? (
               <span style={{ color: SKELETON }}>Skill One, Skill Two, Skill Three, Tool Name, Software Expertise</span>
@@ -119,30 +136,38 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
           <SectionTitle>Professional Experience</SectionTitle>
           {isEmpty ? (
             <EntryWrap>
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
-                <span style={{ color: SKELETON }}>Job Role / Position</span>
-                <span style={{ color: SKELETON }}>2020 — Present</span>
+              <div style={{ position: "relative" }}>
+                <GhostChip>Job Role / Position Company Name | Location</GhostChip>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
+                  <span style={{ color: SKELETON }}>Job Role / Position</span>
+                  <span style={{ color: SKELETON }}>2020 — Present</span>
+                </div>
+                <div style={{ color: SKELETON, fontStyle: "italic", marginBottom: "2mm" }}>Company Name | Location</div>
+                <p style={{ margin: 0, color: SKELETON }}>• Accomplishment or responsibility placeholder line</p>
+                <p style={{ margin: 0, color: SKELETON }}>• Key metric or project success indicator</p>
               </div>
-              <div style={{ color: SKELETON, fontStyle: "italic", marginBottom: "2mm" }}>Company Name | Location</div>
-              <p style={{ margin: 0, color: SKELETON }}>• Accomplishment or responsibility placeholder line</p>
-              <p style={{ margin: 0, color: SKELETON }}>• Key metric or project success indicator</p>
             </EntryWrap>
           ) : (
             cv.experience.map((e, i) => (
               <EntryWrap key={i}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontSize: pt(11), fontWeight: "bold", color: PRIMARY }}>{e.role}</span>
-                  <span style={{ fontSize: pt(10), fontWeight: "bold", color: ACCENT }}>{e.period}</span>
+                <div style={{ position: "relative" }}>
+                  <GhostChip>
+                    {e.role} {e.company}
+                  </GhostChip>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <span style={{ fontSize: pt(11), fontWeight: "bold", color: PRIMARY }}>{e.role}</span>
+                    <span style={{ fontSize: pt(10), fontWeight: "bold", color: ACCENT }}>{e.period}</span>
+                  </div>
+                  <div style={{ fontSize: pt(10.5), fontWeight: "bold", color: TEXT_MUTED, marginBottom: "2mm" }}>
+                    {e.company} {e.location && `| ${e.location}`}
+                  </div>
+                  {e.points &&
+                    splitExperiencePointsForPreview(e.points).map((p, j) => (
+                      <p key={j} style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>
+                        • {p}
+                      </p>
+                    ))}
                 </div>
-                <div style={{ fontSize: pt(10.5), fontWeight: "bold", color: TEXT_MUTED, marginBottom: "2mm" }}>
-                  {e.company} {e.location && `| ${e.location}`}
-                </div>
-                {e.points &&
-                  splitExperiencePointsForPreview(e.points).map((p, j) => (
-                    <p key={j} style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>
-                      • {p}
-                    </p>
-                  ))}
               </EntryWrap>
             ))
           )}
