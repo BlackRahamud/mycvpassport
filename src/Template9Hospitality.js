@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const PURPLE_BAR = "#EEF2FF";
@@ -86,7 +87,10 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isPlaceholder) && (
-        <section style={{ pageBreakInside: "avoid" }}>
+        <section style={{ pageBreakInside: "avoid", position: "relative" }}>
+          <GhostChip>
+            {cv.summary || "Enter your professional summary here..."}
+          </GhostChip>
           <SectionTitle>Profile</SectionTitle>
           <p style={{ fontSize: pt(10.5), margin: 0, textAlign: "justify", color: textColor }}>
             {cv.summary || "Enter your professional summary here..."}
@@ -99,7 +103,8 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
         <section>
           <SectionTitle>Experience</SectionTitle>
           {experience.map((exp, i) => (
-            <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid" }}>
+            <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid", position: "relative" }}>
+              <GhostChip>{`${exp.role || ""} ${exp.company || ""}`.trim()}</GhostChip>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <div style={{ fontSize: pt(11) }}>
                   <span style={{ fontWeight: "bold" }}>{exp.role || "Role"}</span>
@@ -132,7 +137,8 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Skills: Full width, plain text bullets */}
       {(skills.length > 0 || isPlaceholder) && (
-        <section style={{ pageBreakInside: "avoid" }}>
+        <section style={{ pageBreakInside: "avoid", position: "relative" }}>
+          <GhostChip>{Array.isArray(skills) ? skills.join(" ") : skills}</GhostChip>
           <SectionTitle>Skills</SectionTitle>
           <div style={{ fontSize: pt(10), color: textColor, lineHeight: 1.8 }}>
             {skills.map((s, i) => (
