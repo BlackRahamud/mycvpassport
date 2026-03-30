@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const GREEN = "#064E3B"; // Deep Forest Green
@@ -43,7 +44,11 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
   );
 
   const EntryWrap = ({ children }) => (
-    <div style={{ marginBottom: "5mm", breakInside: "avoid", pageBreakInside: "avoid" }}>{children}</div>
+    <div
+      style={{ marginBottom: "5mm", breakInside: "avoid", pageBreakInside: "avoid", position: "relative" }}
+    >
+      {children}
+    </div>
   );
 
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
@@ -104,8 +109,12 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       </header>
 
       {/* Summary */}
-      <section>
+      <section style={{ position: "relative" }}>
         <SectionTitle first>Executive Summary</SectionTitle>
+        <GhostChip>
+          {cv.summary ||
+            "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
+        </GhostChip>
         <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
           {cv.summary ||
             "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
@@ -126,6 +135,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
             .filter((e) => e.company)
             .map((e, i) => (
               <EntryWrap key={i}>
+                <GhostChip>{`${e.role} ${e.company}`}</GhostChip>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <span style={{ fontSize: pt(11), fontWeight: "bold", color: GREEN }}>{e.role}</span>
                   <span style={{ fontSize: pt(9.5), fontWeight: "bold", color: GOLD }}>{e.period}</span>
@@ -145,8 +155,9 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       </section>
 
       {/* Skills */}
-      <section>
+      <section style={{ position: "relative" }}>
         <SectionTitle>Expertise</SectionTitle>
+        <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
         <div
           style={{
             fontSize: pt(10),
