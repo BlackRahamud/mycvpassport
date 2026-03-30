@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const ACCENT = "#0369A1"; // Rich Teal-Blue
@@ -80,7 +81,11 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isPlaceholder) && (
-        <section>
+        <section style={{ position: "relative" }}>
+          <GhostChip>
+            {cv.summary ||
+              "Strategically-minded professional with 10+ years of experience..."}
+          </GhostChip>
           <SectionTitle>Professional Profile</SectionTitle>
           <p style={{ fontSize: pt(10), margin: 0, textAlign: "justify", color: isPlaceholder ? "#D1D5DB" : "#333" }}>
             {cv.summary || "Strategically-minded professional with 10+ years of experience..."}
@@ -107,7 +112,17 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
             </div>
           ) : (
             experience.map((exp, i) => (
-              <div key={i} style={{ display: "flex", marginBottom: "6mm", pageBreakInside: "avoid", gap: "10mm" }}>
+              <div
+                key={i}
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  marginBottom: "6mm",
+                  pageBreakInside: "avoid",
+                  gap: "10mm",
+                }}
+              >
+                <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
                 {/* Left Column: Date and Location Stacked */}
                 <div style={{ width: "35mm", flexShrink: 0, fontSize: pt(9), color: subTextColor, textAlign: "left" }}>
                   <div style={{ fontWeight: "bold" }}>{exp.period}</div>
@@ -143,7 +158,10 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isPlaceholder) && (
-        <section style={{ pageBreakInside: "avoid" }}>
+        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+          <GhostChip>
+            {Array.isArray(skills) ? skills.join(" ") : cv.skills}
+          </GhostChip>
           <SectionTitle>Expertise & Skills</SectionTitle>
           <p style={{ fontSize: pt(10), margin: 0, color: isPlaceholder ? "#D1D5DB" : "#333" }}>
             {isPlaceholder ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")}
