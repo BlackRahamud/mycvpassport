@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 
 /**
  * TEMPLATE 14 — Single Column Timeline (Based on T11 Logic)
@@ -72,7 +73,8 @@ export function Template14({ cv, mobileMode = false }) {
 
       <div style={{ padding: "40px 50px" }}>
         {/* SUMMARY */}
-        <section style={{ marginBottom: "35px" }}>
+        <section style={{ marginBottom: "35px", position: "relative" }}>
+          <GhostChip>{cv.summary}</GhostChip>
           <h2
             style={{
               fontSize: "12pt",
@@ -113,6 +115,7 @@ export function Template14({ cv, mobileMode = false }) {
             {cv.experience &&
               cv.experience.map((exp, idx) => (
                 <div key={idx} style={{ marginBottom: "30px", position: "relative" }}>
+                  <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
                   {/* Timeline Dot */}
                   <div
                     style={{
@@ -197,7 +200,10 @@ export function Template14({ cv, mobileMode = false }) {
                 </div>
               ))}
           </section>
-          <section>
+          <section style={{ position: "relative" }}>
+            <GhostChip>
+              {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
+            </GhostChip>
             <h2
               style={{
                 fontSize: "12pt",
