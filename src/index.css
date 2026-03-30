@@ -751,20 +751,6 @@ input:focus, textarea:focus {
   font-family: inherit;
 }
 
-.cvp-templates-ats-banner-read-toggle {
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  color: #14b8a6;
-  cursor: pointer;
-  display: inline;
-  vertical-align: baseline;
-}
-
 .cvp-templates-ats-banner-read-inline {
   font-size: 13px;
   font-weight: 500;
@@ -774,6 +760,12 @@ input:focus, textarea:focus {
   align-self: flex-start;
   line-height: 1.7;
   font-family: inherit;
+  display: inline;
+  vertical-align: baseline;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 
 .cvp-templates-ats-banner-link {
