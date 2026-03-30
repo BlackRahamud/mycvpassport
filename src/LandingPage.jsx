@@ -654,10 +654,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               </button>
             </div>
 
-            <p style={{ fontSize: '13px', color: T.textSecondary, marginBottom: '20px', lineHeight: 1.6 }}>
-              {geo.anxietyKiller}
-            </p>
-
             {/* Trust + industry */}
             <div className="lp-trust-bar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '16px', fontSize: '13px', color: T.textSecondary }}>
               <span>{geo.proof}</span>
