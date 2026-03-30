@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ReactComponent as FalconLogo } from './logo.svg';
 import CVPlayCard from './components/CVPlayCard';
+import { useGeoContent } from './hooks/useGeoContent';
 
 // ── SVG Icons (line style, 20×20 viewBox unless noted) ─────────────
 function SunIcon() {
@@ -144,14 +145,6 @@ function WhatsAppIcon({ size = 16 }) {
   );
 }
 
-function StarSmallIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  );
-}
-
 // ── Static data ─────────────────────────────────────────────────────
 const PROBLEM_CARDS = [
   { icon: <XCircleIcon />,       title: 'Missing keywords',  desc: 'Your CV doesn\'t match the job description. ATS rejects it before a human ever sees it.' },
@@ -173,6 +166,7 @@ function scrollToLandingSection(id) {
 
 // ── Main component ──────────────────────────────────────────────────
 export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalkIn }) {
+  const geo = useGeoContent();
   const navigate = useNavigate();
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('cvp-theme') || 'dark'; } catch { return 'dark'; }
@@ -250,6 +244,25 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
       </Helmet>
 
       <style>{`
+        @keyframes cvp-walkin-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        .cvp-walkin-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 20px;
+          border: 1px solid #EF9F27;
+          background: rgba(239, 159, 39, 0.08);
+          color: #EF9F27;
+          font-size: 13px;
+          cursor: pointer;
+          animation: cvp-walkin-pulse 2s ease-in-out infinite;
+          font-family: inherit;
+        }
+
         @keyframes lp-arcflow { to { stroke-dashoffset: -20; } }
         @keyframes lp-globe-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         path[stroke="rgba(255,255,255,0.5)"] { stroke-dashoffset: 0; }
@@ -553,6 +566,17 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         >
           {/* Left */}
           <div className="lp-hero-content" style={{ flex: 1, maxWidth: '560px' }}>
+            {geo.showWalkIn && (
+              <button
+                type="button"
+                className="cvp-walkin-chip"
+                onClick={() => scrollToLandingSection('lp-walkin')}
+                style={{ marginBottom: '16px' }}
+              >
+                ⚡ Walk-in tomorrow? Start building now
+              </button>
+            )}
+
             {/* Badge pill */}
             <div style={{
               display:      'inline-flex',
@@ -566,7 +590,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: T.textPrimary, flexShrink: 0 }} />
               <span style={{ fontSize: '12px', fontWeight: '600', color: T.textPrimary, letterSpacing: '0.3px' }}>
-                Built for Gulf Job Seekers
+                {geo.pill}
               </span>
             </div>
 
@@ -580,15 +604,12 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               color:        T.textPrimary,
               fontFamily:   "'DM Sans', sans-serif",
             }}>
-              Your Resume is your{' '}
-              <span style={{ borderBottom: `3px solid ${T.textPrimary}`, paddingBottom: '2px' }}>passport</span>
-              {' '}to the Gulf
+              {geo.headline}
             </h1>
 
             {/* Subtext */}
             <p style={{ fontSize: '17px', color: T.textSecondary, marginBottom: '36px', lineHeight: 1.7 }}>
-              ATS-optimised resumes built for UAE, Saudi &amp; GCC markets.{' '}
-              Free to build, free to download.
+              {geo.subheadline}
             </p>
 
             {/* CTAs */}
@@ -610,7 +631,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   whiteSpace:   'nowrap',
                 }}
               >
-                Build my CV free →
+                {geo.cta}
               </button>
               <button
                 type="button"
@@ -629,20 +650,46 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   whiteSpace:   'nowrap',
                 }}
               >
-                Browse templates
+                {geo.ctaSecondary}
               </button>
             </div>
 
-            {/* Trust bar */}
-            <div className="lp-trust-bar" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '13px', color: T.textSecondary }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#F59E0B' }}>
-                <StarSmallIcon />
-                <span style={{ color: T.textSecondary }}>4.8 / 5</span>
-              </span>
-              <span className="lp-trust-sep" style={{ color: T.border }}>|</span>
-              <span>Used by <strong style={{ color: T.textPrimary }}>2,400+</strong> Gulf job seekers</span>
-              <span className="lp-trust-sep" style={{ color: T.border }}>|</span>
-              <span>ATS-tested for <strong style={{ color: T.textPrimary }}>UAE banks</strong></span>
+            <p style={{ fontSize: '13px', color: T.textSecondary, marginBottom: '20px', lineHeight: 1.6 }}>
+              {geo.anxietyKiller}
+            </p>
+
+            {/* Trust + industry */}
+            <div className="lp-trust-bar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '16px', fontSize: '13px', color: T.textSecondary }}>
+              <span>{geo.proof}</span>
+              <div style={{ width: '100%' }}>
+                <p style={{ fontSize: '15px', fontWeight: '700', color: T.textPrimary, marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" }}>
+                  {geo.industryHeadline}
+                </p>
+                <p style={{ marginBottom: '10px', lineHeight: 1.5 }}>
+                  {geo.industrySub}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                  {geo.badges.map((b) => (
+                    <span
+                      key={b}
+                      style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        borderRadius: '100px',
+                        border: `1px solid ${T.border}`,
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: T.textPrimary,
+                      }}
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+                <p style={{ fontSize: '11px', color: T.textSecondary, lineHeight: 1.5, maxWidth: '520px' }}>
+                  {geo.microDisclaimer}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -953,7 +1000,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             Start building your Gulf CV today
           </h2>
           <p style={{ fontSize: '17px', color: T.textSecondary, marginBottom: '36px', lineHeight: 1.7 }}>
-            Join 2,400+ Gulf job seekers who built their CV with CVPassport.
+            {geo.proof}
           </p>
           <button
             type="button"
@@ -973,10 +1020,10 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               fontFamily:   'inherit',
             }}
           >
-            Build my CV free →
+            {geo.cta}
           </button>
           <p style={{ fontSize: '13px', color: T.textSecondary }}>
-            Free forever. No credit card. No hidden fees.
+            {geo.anxietyKiller}
           </p>
         </section>
       </div>
