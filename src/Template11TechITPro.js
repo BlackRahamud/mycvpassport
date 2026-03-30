@@ -4,6 +4,7 @@
 //  align on timeline + typography; jsPDF path unchanged below.
 // ─────────────────────────────────────────────────────────────────
 
+import GhostChip from "./components/GhostChip";
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 import {
@@ -261,18 +262,21 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
       {cv.summary && (
         <section>
           <SectionTitle first>Professional Summary</SectionTitle>
-          <p
-            style={{
-              fontSize: pt(10),
-              lineHeight: 1.5,
-              color: BODY,
-              margin: 0,
-              marginTop: "-4mm",
-              marginBottom: 0,
-            }}
-          >
-            {cv.summary}
-          </p>
+          <div style={{ position: "relative" }}>
+            <GhostChip>{cv.summary}</GhostChip>
+            <p
+              style={{
+                fontSize: pt(10),
+                lineHeight: 1.5,
+                color: BODY,
+                margin: 0,
+                marginTop: "-4mm",
+                marginBottom: 0,
+              }}
+            >
+              {cv.summary}
+            </p>
+          </div>
         </section>
       )}
 
@@ -283,24 +287,8 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
           <div style={{ marginTop: "-4mm" }}>
             {skillCore.length > 0 && (
               <EntryWrap>
-                <div
-                  style={{
-                    fontSize: pt(10),
-                    fontWeight: 700,
-                    color: NAVY,
-                    marginBottom: "2mm",
-                  }}
-                >
-                  Core skills
-                </div>
-                <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY }}>
-                  {skillCore.join(" · ")}
-                </p>
-              </EntryWrap>
-            )}
-            {techGroups.map((g, gi) =>
-              g.items.length ? (
-                <EntryWrap key={`tg-${gi}`}>
+                <div style={{ position: "relative" }}>
+                  <GhostChip>{skillCore.join(" · ")}</GhostChip>
                   <div
                     style={{
                       fontSize: pt(10),
@@ -309,11 +297,35 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
                       marginBottom: "2mm",
                     }}
                   >
-                    {g.category}
+                    Core skills
                   </div>
                   <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY }}>
-                    {g.items.join(" · ")}
+                    {skillCore.join(" · ")}
                   </p>
+                </div>
+              </EntryWrap>
+            )}
+            {techGroups.map((g, gi) =>
+              g.items.length ? (
+                <EntryWrap key={`tg-${gi}`}>
+                  <div style={{ position: "relative" }}>
+                    <GhostChip>
+                      {g.category} {g.items.join(" · ")}
+                    </GhostChip>
+                    <div
+                      style={{
+                        fontSize: pt(10),
+                        fontWeight: 700,
+                        color: NAVY,
+                        marginBottom: "2mm",
+                      }}
+                    >
+                      {g.category}
+                    </div>
+                    <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY }}>
+                      {g.items.join(" · ")}
+                    </p>
+                  </div>
                 </EntryWrap>
               ) : null,
             )}
@@ -334,44 +346,49 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
               .filter((e) => e.company)
               .map((e, i) => (
                 <EntryWrap key={i}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: "10px",
-                    }}
-                  >
-                    <span
+                  <div style={{ position: "relative" }}>
+                    <GhostChip>
+                      {e.role} at {e.company} {e.period}
+                    </GhostChip>
+                    <div
                       style={{
-                        fontSize: pt(10),
-                        fontWeight: 700,
-                        color: NAVY,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: "10px",
                       }}
                     >
-                      {e.role}
-                    </span>
-                    <span
+                      <span
+                        style={{
+                          fontSize: pt(10),
+                          fontWeight: 700,
+                          color: NAVY,
+                        }}
+                      >
+                        {e.role}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: pt(10),
+                          color: DATE,
+                          flexShrink: 0,
+                          textAlign: "right",
+                        }}
+                      >
+                        {e.period}
+                      </span>
+                    </div>
+                    <div
                       style={{
                         fontSize: pt(10),
-                        color: DATE,
-                        flexShrink: 0,
-                        textAlign: "right",
+                        fontStyle: "italic",
+                        color: BODY,
+                        margin: "2px 0 6px",
                       }}
                     >
-                      {e.period}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: pt(10),
-                      fontStyle: "italic",
-                      color: BODY,
-                      margin: "2px 0 6px",
-                    }}
-                  >
-                    {e.company}
-                    {e.location ? ` — ${e.location}` : ""}
+                      {e.company}
+                      {e.location ? ` — ${e.location}` : ""}
+                    </div>
                   </div>
                   {e.points && (
                     <div className="cvp-preview-exp-t11-wrap">
