@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const NAVY_DARK = "#0F172A"; // Deep navy/black
@@ -110,7 +111,8 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
       <div style={{ padding: "0 15mm" }}>
         {/* Profile */}
         {cv.summary && (
-          <section>
+          <section style={{ position: "relative" }}>
+            <GhostChip>{cv.summary}</GhostChip>
             <SectionTitle>Profile</SectionTitle>
             <p
               style={{
@@ -131,7 +133,11 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
           {experience
             .filter((e) => e.company)
             .map((e, i) => (
-              <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid", pageBreakInside: "avoid" }}>
+              <div
+                key={i}
+                style={{ marginBottom: "6mm", breakInside: "avoid", pageBreakInside: "avoid", position: "relative" }}
+              >
+                <GhostChip>{`${e.role} ${e.company}`}</GhostChip>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <div style={{ fontWeight: "800", fontSize: pt(11), color: NAVY_DARK }}>{e.company}</div>
                   <div style={{ fontSize: pt(9), fontWeight: "600", color: TEXT_SECONDARY }}>{e.period}</div>
@@ -162,8 +168,11 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
         </section>
 
         {/* Skills - Pill/Chip Style */}
-        <section>
+        <section style={{ position: "relative" }}>
           <SectionTitle>Expertise</SectionTitle>
+          <GhostChip>
+            {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
+          </GhostChip>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "2px" }}>
             {(cv.skills || "")
               .split(",")
