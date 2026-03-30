@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const BAND_BG = "#F3F4F6"; // Light grey for header and section bars
@@ -113,7 +114,11 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
       <div style={{ padding: "0 15mm" }}>
         {/* Profile */}
-        <section>
+        <section style={{ position: "relative" }}>
+          <GhostChip>
+            {cv.summary ||
+              "Strategically-minded professional with 10+ years of experience..."}
+          </GhostChip>
           <SectionBand>Professional Profile</SectionBand>
           <p
             style={{
@@ -132,7 +137,16 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
         <section>
           <SectionBand>Work History</SectionBand>
           {cv.experience.filter((e) => e.company).map((e, i) => (
-            <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid", pageBreakInside: "avoid" }}>
+            <div
+              key={i}
+              style={{
+                position: "relative",
+                marginBottom: "6mm",
+                breakInside: "avoid",
+                pageBreakInside: "avoid",
+              }}
+            >
+              <GhostChip>{`${e.role} ${e.company}`}</GhostChip>
               <div style={{ display: "flex", marginBottom: "2px" }}>
                 {/* Left side: Date/Location */}
                 <div style={{ width: "30%", fontSize: pt(9), fontWeight: "700", color: TEXT_SECONDARY }}>
@@ -170,8 +184,11 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
         </section>
 
         {/* Skills - 3 Column Grid */}
-        <section>
+        <section style={{ position: "relative" }}>
           <SectionBand>Core Competencies</SectionBand>
+          <GhostChip>
+            {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
+          </GhostChip>
           <div
             style={{
               display: "grid",
