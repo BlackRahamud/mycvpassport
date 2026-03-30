@@ -356,6 +356,106 @@ input:focus, textarea:focus {
   background: #0a0a0a;
 }
 
+/* Templates tab — ATS positioning banner (builder desktop/mobile + /templates browse) */
+.cvp-templates-ats-banner {
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 0 12px 28px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.cvp-templates-ats-banner-shield {
+  flex-shrink: 0;
+}
+
+.cvp-templates-ats-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cvp-templates-ats-banner-headline {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.cvp-templates-ats-banner-body {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #a0a0a0;
+  max-width: 640px;
+  margin: 0;
+}
+
+.cvp-templates-ats-banner-link {
+  color: #14b8a6;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Template pick confirm — above FAB / mobile tab bar (portaled to body) */
+.cvp-templates-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.cvp-templates-confirm-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 24px 24px 0 0;
+  background: #1c1c1c;
+  border-top: 1px solid #2a2a2a;
+  padding: 24px 20px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 1101;
+  box-sizing: border-box;
+  max-width: 100vw;
+  width: 100%;
+}
+
+.cvp-templates-confirm-primary {
+  width: 100%;
+  padding: 16px;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  letter-spacing: -0.2px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cvp-templates-confirm-cancel {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  color: #a0a0a0;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 @media (max-width: 767px) {
   .cvp-builder-mobile-form--templates {
     display: flex;

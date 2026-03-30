@@ -1,10 +1,30 @@
 import { useState, useEffect, useRef, memo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { TEMPLATES, TEMPLATE_FILTER_IDS, isCvDataEmptyForTemplateApply } from "../cvShared";
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 
+function templateTierMarketingLabel(t) {
+  if (t.tier === "free") return "FREE";
+  if (t.id === 4 || t.id === 5) return "POPULAR";
+  return "PREMIUM";
+}
+
+function templateTierPillColors(label) {
+  if (label === "FREE") return { background: "#1D9E75", color: "#fff" };
+  if (label === "POPULAR") return { background: "#EF9F27", color: "#412402" };
+  return { background: "#2A2A2A", color: "#FFFFFF" };
+}
+
+function templateAtsBadgeText(t) {
+  if (t.id >= 1 && t.id <= 3) return "ATS 70+";
+  return "ATS 85+";
+}
+
 const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template: t, isSelected, sheetHighlight, resume, onPick, cardRef }) {
-  const isFree = t.tier === "free";
+  const tierLabel = templateTierMarketingLabel(t);
+  const tierPill = templateTierPillColors(tierLabel);
+  const atsBadge = templateAtsBadgeText(t);
   const borderStyle = sheetHighlight ? "2px solid rgba(255,255,255,0.8)" : isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A";
   return (
     <button
@@ -51,21 +71,44 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
       <div style={{ padding: "6px 8px 8px" }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: "#FFFFFF", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</span>
       </div>
-      <span
+      <div
         style={{
           position: "absolute",
           top: 5,
-          right: 5,
-          fontSize: 6.5,
-          padding: "2px 5px",
-          borderRadius: 5,
-          fontWeight: 600,
-          background: isFree ? "#1D9E75" : "#EF9F27",
-          color: isFree ? "#fff" : "#412402",
+          left: 5,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          flexWrap: "wrap",
+          maxWidth: "calc(100% - 10px)",
+          pointerEvents: "none",
         }}
       >
-        {isFree ? "Free" : "⭐ Pro"}
-      </span>
+        <span
+          style={{
+            fontSize: 6.5,
+            padding: "2px 5px",
+            borderRadius: 5,
+            fontWeight: 600,
+            ...tierPill,
+          }}
+        >
+          {tierLabel}
+        </span>
+        <span
+          style={{
+            background: "#0F2A1A",
+            color: "#4ADE80",
+            borderRadius: 99,
+            padding: "3px 8px",
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.3px",
+          }}
+        >
+          {atsBadge}
+        </span>
+      </div>
     </button>
   );
 });
@@ -166,6 +209,46 @@ function BuilderTemplatesTab({
           );
         })}
       </div>
+      <div className="cvp-templates-ats-banner">
+        <svg
+          width={22}
+          height={22}
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden
+          className="cvp-templates-ats-banner-shield"
+        >
+          <path
+            d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"
+            stroke="#14B8A6"
+            strokeWidth={1.8}
+          />
+          <path d="M9 12l2 2 4-4" stroke="#14B8A6" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <div className="cvp-templates-ats-banner-text">
+          <p className="cvp-templates-ats-banner-headline">Engineered for the Shortlist.</p>
+          <p className="cvp-templates-ats-banner-body">
+            A great-looking CV means nothing if a recruiter&apos;s system can&apos;t read it. Every template is precision-coded for maximum ATS
+            readability — recruiter-approved layouts that clear filters with zero errors. That&apos;s the format sorted. Next, run your CV through our{" "}
+            <span
+              role="button"
+              tabIndex={0}
+              className="cvp-templates-ats-banner-link"
+              onClick={() => navigate("/ats")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate("/ats");
+                }
+              }}
+            >
+              ATS Checker
+            </span>{" "}
+            — it scores your content against the actual job description, flags what&apos;s missing, and tells you exactly what to fix before you apply.
+          </p>
+        </div>
+      </div>
       <div
         style={{
           display: "grid",
@@ -203,101 +286,64 @@ function BuilderTemplatesTab({
           />
         ))}
       </div>
-      {confirmOpen && pendingTemplate ? (
-        <>
-          <div
-            role="presentation"
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.6)",
-              zIndex: 120,
-            }}
-            onClick={() => {
-              onConfirmOpenChange(false);
-              onPendingTemplateChange(null);
-            }}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: "#141414",
-              borderRadius: "24px 24px 0 0",
-              paddingTop: 24,
-              paddingLeft: 20,
-              paddingRight: 20,
-              paddingBottom: "calc(env(safe-area-inset-bottom, 16px) + 16px)",
-              zIndex: 121,
-              boxSizing: "border-box",
-              maxWidth: "100vw",
-              width: "100%",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 4,
-                background: "#333",
-                borderRadius: 2,
-                margin: "0 auto 20px",
-              }}
-            />
-            <p style={{ color: "#fff", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-              Do you want to replace your current design with this template?
-            </p>
-            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-              <button
-                type="button"
+      {confirmOpen && pendingTemplate && typeof document !== "undefined"
+        ? createPortal(
+            <>
+              <div
+                role="presentation"
+                className="cvp-templates-confirm-backdrop"
                 onClick={() => {
                   onConfirmOpenChange(false);
                   onPendingTemplateChange(null);
                 }}
-                style={{
-                  flex: 1,
-                  minHeight: 44,
-                  background: "#1C1C1C",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: 14,
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cvp-templates-confirm-title"
+                className="cvp-templates-confirm-sheet"
+                onClick={(e) => e.stopPropagation()}
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onApplyTemplateAndGoToContent(pendingTemplate);
-                  onConfirmOpenChange(false);
-                  onPendingTemplateChange(null);
-                }}
-                style={{
-                  flex: 1,
-                  minHeight: 44,
-                  background: "#fff",
-                  color: "#000",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: 14,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
-              >
-                Apply Template
-              </button>
-            </div>
-          </div>
-        </>
-      ) : null}
+                <div
+                  style={{
+                    width: 36,
+                    height: 4,
+                    background: "#333",
+                    borderRadius: 2,
+                    margin: "0 auto 20px",
+                  }}
+                />
+                <p id="cvp-templates-confirm-title" style={{ color: "#fff", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+                  Do you want to replace your current design with this template?
+                </p>
+                <div style={{ marginTop: 20 }}>
+                  <button
+                    type="button"
+                    className="cvp-templates-confirm-primary"
+                    onClick={() => {
+                      onApplyTemplateAndGoToContent(pendingTemplate);
+                      onConfirmOpenChange(false);
+                      onPendingTemplateChange(null);
+                    }}
+                  >
+                    Use This Template
+                  </button>
+                  <button
+                    type="button"
+                    className="cvp-templates-confirm-cancel"
+                    onClick={() => {
+                      onConfirmOpenChange(false);
+                      onPendingTemplateChange(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
       <div style={{ padding: "16px 10px 8px", textAlign: "center" }}>
         <button
           type="button"
