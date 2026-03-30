@@ -80,36 +80,6 @@ function StarAchieveIcon() {
   );
 }
 
-function PlusCircleIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="12" y1="8" x2="12" y2="16"/>
-      <line x1="8"  y1="12" x2="16" y2="12"/>
-    </svg>
-  );
-}
-
-function TemplateIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2"/>
-      <line x1="3"  y1="9"  x2="21" y2="9"/>
-      <line x1="9"  y1="9"  x2="9"  y2="21"/>
-    </svg>
-  );
-}
-
-function DownloadArrowIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="7 10 12 15 17 10"/>
-      <line x1="12" y1="15" x2="12" y2="3"/>
-    </svg>
-  );
-}
-
 function ClockIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -142,11 +112,8 @@ const PROBLEM_CARDS = [
   { icon: <StarAchieveIcon />,   title: 'Weak achievements', desc: 'Generic job duties instead of quantified results. You look identical to every other applicant.' },
 ];
 
-const STEPS = [
-  { icon: <TemplateIcon />,     title: 'Pick a template',    desc: 'Choose from 11 ATS-optimised templates built for UAE banks, hospitality, tech, and more.' },
-  { icon: <PlusCircleIcon />,   title: 'Fill your details',   desc: 'Fill in your name, experience, skills, and Gulf-specific fields like visa status and nationality.' },
-  { icon: <DownloadArrowIcon />,title: 'Download your CV',   desc: 'Export a perfect PDF in seconds. Share on WhatsApp or email it directly to recruiters.' },
-];
+const HOW_IT_WORKS_ATS_RING_R = 22;
+const HOW_IT_WORKS_ATS_CIRC = 2 * Math.PI * HOW_IT_WORKS_ATS_RING_R;
 
 function scrollToLandingSection(id) {
   const el = document.getElementById(id);
@@ -225,6 +192,53 @@ function LandingTemplateThumb({ template }) {
         }}
       >
         <ResumePreview cv={LANDING_THUMB_CV} template={template} />
+      </div>
+    </div>
+  );
+}
+
+function LandingPhoneMockup({ children }) {
+  return (
+    <div className="lp-phone-mockup">
+      <div className="lp-phone-notch" aria-hidden>
+        <div className="lp-phone-notch-dot" />
+      </div>
+      <div className="lp-phone-screen">{children}</div>
+    </div>
+  );
+}
+
+/** S5 Step 1 — ResizeObserver on outer only; scale from useMemo([phoneInnerWidth]). */
+function LandingHowItWorksPhoneCv() {
+  const wrapRef = useRef(null);
+  const [phoneInnerWidth, setPhoneInnerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect?.width;
+      if (w == null || w < 1) return;
+      setPhoneInnerWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale = useMemo(() => {
+    const w = phoneInnerWidth > 0 ? phoneInnerWidth : A4_PREVIEW_WIDTH_PX;
+    return w / A4_PREVIEW_WIDTH_PX;
+  }, [phoneInnerWidth]);
+
+  return (
+    <div ref={wrapRef} className="lp-howitworks-phone-cv-outer">
+      <div
+        className="lp-howitworks-phone-cv-inner"
+        style={{
+          transform: `scale(${scale})`,
+        }}
+      >
+        <ResumePreview cv={LANDING_THUMB_CV} template={TEMPLATES[0]} />
       </div>
     </div>
   );
@@ -356,7 +370,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         .lp-ghost-btn:hover{ opacity: 0.75; }
         .lp-nav-link:hover { color: #fff !important; }
         .lp-card:hover     { border-color: ${isDark ? 'rgba(255,255,255,0.14)' : '#BBBBBB'} !important; transform: translateY(-2px); }
-        .lp-step-card:hover{ border-color: ${isDark ? 'rgba(255,255,255,0.14)' : '#BBBBBB'} !important; }
         .lp-theme-btn:hover{ opacity: 0.8; }
 
         /* Transitions */
@@ -364,7 +377,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         .lp-ghost-btn { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-nav-link  { transition: color 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-card      { transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
-        .lp-step-card { transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-theme-btn { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-wrapper   { transition: background-color 0.25s cubic-bezier(0.4,0,0.2,1), color 0.25s cubic-bezier(0.4,0,0.2,1); }
 
@@ -380,7 +392,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           .lp-hero-right   { display: none !important; }
           .lp-hero-content { max-width: 100% !important; }
           .lp-problem-grid { grid-template-columns: 1fr !important; }
-          .lp-steps-grid   { grid-template-columns: 1fr !important; }
           .lp-walkin-right { display: none !important; }
           .lp-walkin-inner { flex-direction: column !important; gap: 32px !important; }
           .lp-trust-bar    { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
@@ -1289,63 +1300,104 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </section>
 
-        {/* ── HOW IT WORKS ────────────────────────────────────────── */}
-        <section className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '11px', letterSpacing: '3px', color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px' }}>
-            How it works
-          </p>
-          <h2 style={{
-            fontSize:     'clamp(26px, 4vw, 44px)',
-            fontWeight:   '800',
-            letterSpacing:'-1px',
-            marginBottom: '52px',
-            color:        T.textPrimary,
-            fontFamily:   "'DM Sans', sans-serif",
-          }}>
-            Three steps to your Gulf CV
-          </h2>
-          <div
-            className="lp-steps-grid"
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}
-          >
-            {STEPS.map((step, i) => (
-              <div
-                key={i}
-                className="lp-step-card"
-                style={{
-                  background:   T.bgSurface,
-                  border:       `1px solid ${T.border}`,
-                  borderRadius: '16px',
-                  padding:      '32px 28px',
-                  textAlign:    'left',
-                }}
-              >
-                <div style={{
-                  width:          '44px',
-                  height:         '44px',
-                  background:     T.bgElevated,
-                  borderRadius:   '10px',
-                  display:        'flex',
-                  alignItems:     'center',
-                  justifyContent: 'center',
-                  marginBottom:   '20px',
-                  color:          T.textPrimary,
-                  flexShrink:     0,
-                }}>
-                  {step.icon}
+        {/* ── HOW IT WORKS (S5) ───────────────────────────────────── */}
+        <section className="lp-howitworks" aria-labelledby="lp-howitworks-heading">
+          <div className="lp-howitworks-inner">
+            <p className="lp-howitworks-label">HOW IT WORKS</p>
+            <h2 id="lp-howitworks-heading" className="lp-howitworks-title">
+              Three steps to your next job
+            </h2>
+
+            <div className="lp-howitworks-steps">
+              <div className="lp-howitworks-row">
+                <LandingPhoneMockup>
+                  <LandingHowItWorksPhoneCv />
+                </LandingPhoneMockup>
+                <div className="lp-howitworks-copy">
+                  <p className="lp-howitworks-step-num">01</p>
+                  <h3 className="lp-howitworks-step-head">Choose from 14 Gulf-ready templates</h3>
+                  <p className="lp-howitworks-step-body">
+                    Built for UAE, Saudi, Qatar — not generic Western CVs. Every template ATS-tested before it shipped.
+                  </p>
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: T.textSecondary, marginBottom: '8px', letterSpacing: '0.5px' }}>
-                  Step {i + 1}
-                </div>
-                <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '10px', color: T.textPrimary, fontFamily: "'DM Sans', sans-serif" }}>{step.title}</h3>
-                <p  style={{ color: T.textSecondary, fontSize: '14px', lineHeight: 1.65 }}>{step.desc}</p>
               </div>
-            ))}
-          </div>
-          <div className="lp-feature-pills">
-            {['ATS score included', 'PDF in one click', 'No account to start'].map((p) => (
-              <span key={p} className="lp-feature-pill">{p}</span>
-            ))}
+
+              <div className="lp-howitworks-row lp-howitworks-row--flip">
+                <div className="lp-howitworks-form-card">
+                  <div className="lp-howitworks-form-field">Ahmed Al Mansouri</div>
+                  <div className="lp-howitworks-form-field">Customer Service Officer</div>
+                  <div className="lp-howitworks-form-field">Emirates NBD</div>
+                  <button type="button" className="lp-howitworks-form-btn">Continue →</button>
+                </div>
+                <div className="lp-howitworks-copy">
+                  <p className="lp-howitworks-step-num">02</p>
+                  <h3 className="lp-howitworks-step-head">Fill in 5 minutes</h3>
+                  <p className="lp-howitworks-step-body">
+                    Smart fields, auto-formatting, Gulf-standard sections. No blank page anxiety.
+                  </p>
+                </div>
+              </div>
+
+              <div className="lp-howitworks-row">
+                <LandingPhoneMockup>
+                  <div className="lp-howitworks-ats-sheet">
+                    <div className="lp-howitworks-ats-handle" aria-hidden />
+                    <div className="lp-howitworks-ats-ring-wrap">
+                      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden>
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r={HOW_IT_WORKS_ATS_RING_R}
+                          fill="none"
+                          stroke="#2A2A2A"
+                          strokeWidth="5"
+                        />
+                        <circle
+                          cx="32"
+                          cy="32"
+                          r={HOW_IT_WORKS_ATS_RING_R}
+                          fill="none"
+                          stroke="#22C55E"
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                          strokeDasharray={`${0.84 * HOW_IT_WORKS_ATS_CIRC} ${HOW_IT_WORKS_ATS_CIRC}`}
+                          transform="rotate(-90 32 32)"
+                        />
+                      </svg>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          color: '#22C55E',
+                        }}
+                      >
+                        84
+                      </span>
+                    </div>
+                    <p className="lp-howitworks-ats-score-label">Your CV is ATS ready</p>
+                    <div className="lp-howitworks-ats-chips">
+                      <span className="lp-howitworks-ats-chip">Keywords matched ✓</span>
+                      <span className="lp-howitworks-ats-chip">Format clean ✓</span>
+                    </div>
+                  </div>
+                </LandingPhoneMockup>
+                <div className="lp-howitworks-copy">
+                  <p className="lp-howitworks-step-num">03</p>
+                  <h3 className="lp-howitworks-step-head">Download. Apply. Get hired.</h3>
+                  <p className="lp-howitworks-step-body">
+                    PDF ready in seconds. ATS-optimised for Gulf job portals. Built to land on a human desk.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
