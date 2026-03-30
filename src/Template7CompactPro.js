@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const NAVY = "#1E3A5F";
@@ -92,9 +93,10 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
       <div style={{ padding: "0 15mm" }}>
         {/* Summary */}
         {cv.summary && (
-          <section>
+          <section style={{ position: "relative" }}>
             <SectionTitle>Professional Profile</SectionTitle>
             <p style={{ fontSize: pt(10), margin: 0, textAlign: "justify", color: BODY_TEXT }}>{cv.summary}</p>
+            <GhostChip>{cv.summary}</GhostChip>
           </section>
         )}
 
@@ -103,7 +105,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
           <section>
             <SectionTitle>Experience</SectionTitle>
             {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid" }}>
+              <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid", position: "relative" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <span style={{ fontSize: pt(11), fontWeight: "bold", color: navyColor }}>
                     {exp.role} <span style={{ fontWeight: "bold", color: "#000" }}>— {exp.company}</span>
@@ -118,6 +120,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
                       <span>{point}</span>
                     </div>
                   ))}
+                <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
               </div>
             ))}
           </section>
@@ -126,7 +129,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
         {/* Skills & Languages - Parallel Columns */}
         <div style={{ display: "flex", gap: "15mm", marginTop: "4mm", pageBreakInside: "avoid" }}>
           {skills.length > 0 && (
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, position: "relative" }}>
               <SectionTitle>Skills</SectionTitle>
               <div style={{ fontSize: pt(10), color: BODY_TEXT }}>
                 {skills.map((s, i) => (
@@ -135,6 +138,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
                   </div>
                 ))}
               </div>
+              <GhostChip>{Array.isArray(skills) ? skills.join(" ") : skills}</GhostChip>
             </div>
           )}
           {languages.length > 0 && (
