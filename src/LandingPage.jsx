@@ -79,17 +79,6 @@ function StarAchieveIcon() {
   );
 }
 
-function DocumentArrowIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="12" y1="18" x2="12" y2="12"/>
-      <polyline points="9 15 12 18 15 15"/>
-    </svg>
-  );
-}
-
 function PlusCircleIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -150,13 +139,12 @@ const PROBLEM_CARDS = [
   { icon: <XCircleIcon />,       title: 'Missing keywords',  desc: 'Your CV doesn\'t match the job description. ATS rejects it before a human ever sees it.' },
   { icon: <GridIcon />,          title: 'Poor formatting',   desc: 'Tables, columns, and graphics confuse ATS systems and lose your data entirely.' },
   { icon: <StarAchieveIcon />,   title: 'Weak achievements', desc: 'Generic job duties instead of quantified results. You look identical to every other applicant.' },
-  { icon: <DocumentArrowIcon />, title: 'Wrong template',    desc: 'Using a template not built for Gulf employers kills your chances before the interview.' },
 ];
 
 const STEPS = [
-  { icon: <PlusCircleIcon />,   title: 'Add your details',   desc: 'Fill in your name, experience, skills, and Gulf-specific fields like visa status and nationality.' },
   { icon: <TemplateIcon />,     title: 'Pick a template',    desc: 'Choose from 11 ATS-optimised templates built for UAE banks, hospitality, tech, and more.' },
-  { icon: <DownloadArrowIcon />,title: 'Download & apply',   desc: 'Export a perfect PDF in seconds. Share on WhatsApp or email it directly to recruiters.' },
+  { icon: <PlusCircleIcon />,   title: 'Fill your details',   desc: 'Fill in your name, experience, skills, and Gulf-specific fields like visa status and nationality.' },
+  { icon: <DownloadArrowIcon />,title: 'Download your CV',   desc: 'Export a perfect PDF in seconds. Share on WhatsApp or email it directly to recruiters.' },
 ];
 
 function scrollToLandingSection(id) {
@@ -317,6 +305,128 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         @media (min-width: 769px) {
           .lp-hamburger    { display: none !important; }
           .lp-mobile-menu  { display: none !important; }
+        }
+
+        .lp-sec.lp-proof { text-align: center; padding: 48px 24px; }
+        .lp-proof-statement {
+          font-size: clamp(24px, 5vw, 42px);
+          font-weight: 800;
+          letter-spacing: -1px;
+          color: var(--text-primary);
+          margin: 0;
+        }
+
+        .lp-sec.lp-templates { padding: 48px 0 48px 24px; }
+        .lp-section-title { font-size: clamp(22px, 4vw, 36px); font-weight: 800; margin-bottom: 8px; }
+        .lp-section-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
+        .lp-templates-scroll {
+          display: flex;
+          overflow-x: auto;
+          gap: 16px;
+          padding-bottom: 16px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .lp-templates-scroll::-webkit-scrollbar { display: none; }
+        .lp-template-card {
+          flex: 0 0 120px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+        }
+        .lp-template-preview {
+          width: 120px;
+          height: 160px;
+          background: var(--bg-surface);
+          border: 1px solid var(--border-default);
+          border-radius: 8px;
+        }
+        .lp-template-name { font-size: 12px; color: var(--text-primary); font-weight: 500; }
+        .lp-template-tier { font-size: 11px; font-weight: 600; }
+        .lp-tier-free { color: #3B8BD4; }
+        .lp-tier-popular { color: #EF9F27; }
+        .lp-tier-premium { color: var(--text-secondary); }
+        .lp-template-more {
+          justify-content: center;
+          opacity: 0.5;
+          font-size: 14px;
+          color: var(--text-secondary);
+        }
+
+        .lp-problem-card-header {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          gap: 12px;
+        }
+        .lp-problem-card-icon {
+          width: 20px;
+          height: 20px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: inherit;
+        }
+        .lp-problem-card-icon svg { width: 20px; height: 20px; }
+        .lp-problem-card-title {
+          font-weight: 600;
+          font-size: 14px;
+          margin: 0;
+          color: var(--text-primary);
+          font-family: inherit;
+        }
+        .lp-problem-card-desc {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin-top: 4px;
+          margin-bottom: 0;
+          line-height: 1.65;
+        }
+
+        .lp-feature-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; justify-content: center; }
+        .lp-feature-pill {
+          padding: 6px 14px;
+          border-radius: 20px;
+          border: 1px solid var(--border-default);
+          font-size: 12px;
+          color: var(--text-secondary);
+        }
+
+        .lp-sec.lp-industry { text-align: center; padding: 48px 24px; }
+        .lp-badges { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0; }
+        .lp-badge {
+          padding: 8px 18px;
+          border-radius: 20px;
+          border: 1px solid var(--border-default);
+          font-size: 13px;
+          color: var(--text-primary);
+          background: var(--bg-surface);
+        }
+        .lp-micro-disclaimer {
+          font-size: 11px;
+          color: var(--text-secondary);
+          opacity: 0.5;
+          margin-top: 12px;
+          max-width: 480px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .lp-footer-disclaimer {
+          text-align: center;
+          padding: 24px;
+          border-top: 1px solid var(--border-default);
+        }
+        .lp-footer-disclaimer p {
+          font-size: 11px;
+          color: var(--text-secondary);
+          opacity: 0.4;
+          max-width: 560px;
+          margin: 0 auto;
+          line-height: 1.6;
         }
       `}</style>
 
@@ -654,39 +764,16 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               </button>
             </div>
 
-            {/* Trust + industry */}
-            <div className="lp-trust-bar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '16px', fontSize: '13px', color: T.textSecondary }}>
-              <span>{geo.proof}</span>
-              <div style={{ width: '100%' }}>
-                <p style={{ fontSize: '15px', fontWeight: '700', color: T.textPrimary, marginBottom: '6px', fontFamily: "'DM Sans', sans-serif" }}>
-                  {geo.industryHeadline}
-                </p>
-                <p style={{ marginBottom: '10px', lineHeight: 1.5 }}>
-                  {geo.industrySub}
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                  {geo.badges.map((b) => (
-                    <span
-                      key={b}
-                      style={{
-                        display: 'inline-block',
-                        padding: '4px 12px',
-                        borderRadius: '100px',
-                        border: `1px solid ${T.border}`,
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        color: T.textPrimary,
-                      }}
-                    >
-                      {b}
-                    </span>
-                  ))}
-                </div>
-                <p style={{ fontSize: '11px', color: T.textSecondary, lineHeight: 1.5, maxWidth: '520px' }}>
-                  {geo.microDisclaimer}
-                </p>
-              </div>
-            </div>
+            <p
+              style={{
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                textAlign: 'center',
+                marginTop: '8px',
+              }}
+            >
+              {geo.anxietyKiller}
+            </p>
           </div>
 
           {/* Right — CV card left of globe, side-by-side with gap (no overlap) */}
@@ -732,6 +819,41 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </section>
 
+        <section className="lp-sec lp-proof">
+          <h2 className="lp-proof-statement">
+            {geo.proof}
+          </h2>
+        </section>
+
+        <section id="lp-templates" className="lp-sec lp-templates">
+          <h2 className="lp-section-title">
+            See what your CV will look like
+          </h2>
+          <p className="lp-section-sub">
+            14 ATS-friendly designs. Tap to preview.
+          </p>
+          <div className="lp-templates-scroll">
+            {[
+              { name: 'Classic', tier: 'FREE' },
+              { name: 'Gulf Pro', tier: 'POPULAR' },
+              { name: 'Tech Pro', tier: 'PREMIUM' },
+              { name: 'Executive', tier: 'PREMIUM' },
+              { name: 'Minimal', tier: 'FREE' },
+            ].map((t) => (
+              <div key={t.name} className="lp-template-card">
+                <div className="lp-template-preview" />
+                <span className="lp-template-name">{t.name}</span>
+                <span className={`lp-template-tier lp-tier-${t.tier.toLowerCase()}`}>
+                  {t.tier}
+                </span>
+              </div>
+            ))}
+            <div className="lp-template-card lp-template-more">
+              <span>+9 more</span>
+            </div>
+          </div>
+        </section>
+
         {/* ── PROBLEM SECTION ─────────────────────────────────────── */}
         <section className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: '11px', letterSpacing: '3px', color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px' }}>
@@ -752,7 +874,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </p>
           <div
             className="lp-problem-grid"
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', maxWidth: '860px', margin: '0 auto' }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}
           >
             {PROBLEM_CARDS.map((card, i) => (
               <div
@@ -762,20 +884,22 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   background:   T.bgSurface,
                   border:       `1px solid ${T.border}`,
                   borderRadius: '16px',
-                  padding:      '32px',
+                  padding:      '16px',
                   textAlign:    'left',
                 }}
               >
-                <div style={{ color: T.textPrimary, marginBottom: '16px' }}>{card.icon}</div>
-                <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '10px', color: T.textPrimary, fontFamily: "'DM Sans', sans-serif" }}>{card.title}</h3>
-                <p  style={{ color: T.textSecondary, fontSize: '14px', lineHeight: 1.65 }}>{card.desc}</p>
+                <div className="lp-problem-card-header" style={{ color: T.textPrimary }}>
+                  <div className="lp-problem-card-icon">{card.icon}</div>
+                  <h3 className="lp-problem-card-title">{card.title}</h3>
+                </div>
+                <p className="lp-problem-card-desc">{card.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* ── HOW IT WORKS (templates step — anchor for Browse templates / nav) ── */}
-        <section id="lp-templates" className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+        {/* ── HOW IT WORKS ────────────────────────────────────────── */}
+        <section className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: '11px', letterSpacing: '3px', color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px' }}>
             How it works
           </p>
@@ -825,6 +949,11 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <h3 style={{ fontSize: '17px', fontWeight: '700', marginBottom: '10px', color: T.textPrimary, fontFamily: "'DM Sans', sans-serif" }}>{step.title}</h3>
                 <p  style={{ color: T.textSecondary, fontSize: '14px', lineHeight: 1.65 }}>{step.desc}</p>
               </div>
+            ))}
+          </div>
+          <div className="lp-feature-pills">
+            {['ATS score included', 'PDF in one click', 'No account to start'].map((p) => (
+              <span key={p} className="lp-feature-pill">{p}</span>
             ))}
           </div>
         </section>
@@ -983,6 +1112,17 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </section>
 
+        <section className="lp-sec lp-industry">
+          <h2 className="lp-section-title">{geo.industryHeadline}</h2>
+          <p className="lp-section-sub">{geo.industrySub}</p>
+          <div className="lp-badges">
+            {geo.badges.map((b) => (
+              <span key={b} className="lp-badge">{b}</span>
+            ))}
+          </div>
+          <p className="lp-micro-disclaimer">{geo.microDisclaimer}</p>
+        </section>
+
         {/* ── FINAL CTA (pricing / signup anchor) ─────────────────── */}
         <section id="lp-pricing" className="lp-sec" style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
           <h2 style={{
@@ -1022,6 +1162,14 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             {geo.anxietyKiller}
           </p>
         </section>
+
+        <footer className="lp-footer-disclaimer">
+          <p>
+            Brand names referenced are property of their respective owners.
+            CVPassport is a document preparation tool and has no affiliation
+            with, or endorsement from, any company listed.
+          </p>
+        </footer>
       </div>
     </>
   );
