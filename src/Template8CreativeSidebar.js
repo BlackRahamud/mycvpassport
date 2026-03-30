@@ -1,5 +1,6 @@
 import React from "react";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
+import GhostChip from "./components/GhostChip";
 
 const PURPLE_BAR = "#EEF2FF";
 const DEEP_PURPLE = "#3730A3";
@@ -85,7 +86,10 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isPlaceholder) && (
-        <section style={{ pageBreakInside: "avoid" }}>
+        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+          <GhostChip>
+            {cv.summary || "A dedicated professional with extensive experience..."}
+          </GhostChip>
           <SectionTitle>Professional Profile</SectionTitle>
           <p style={{ fontSize: pt(10), margin: 0, textAlign: "justify", color: textColor }}>
             {cv.summary || "A dedicated professional with extensive experience..."}
@@ -98,7 +102,8 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
         <section>
           <SectionTitle>Experience</SectionTitle>
           {experience.map((exp, i) => (
-            <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid" }}>
+            <div key={i} style={{ position: "relative", marginBottom: "6mm", pageBreakInside: "avoid" }}>
+              <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <div style={{ fontSize: pt(11) }}>
                   <span style={{ fontWeight: "bold" }}>{exp.role}</span>
@@ -131,7 +136,8 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isPlaceholder) && (
-        <section style={{ pageBreakInside: "avoid" }}>
+        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+          <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
           <SectionTitle>Skills</SectionTitle>
           <div style={{ fontSize: pt(10), color: textColor, display: "flex", flexWrap: "wrap", gap: "8px" }}>
             {skills.map((s, i) => (
