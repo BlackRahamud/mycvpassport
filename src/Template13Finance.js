@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 /**
@@ -123,7 +124,8 @@ export function PreviewFinance({ cv, mobileMode = false }) {
           <div style={{ flex: "0 0 62%" }}>
             <SectionHeading>Experience</SectionHeading>
             {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid" }}>
+              <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid", position: "relative" }}>
+                <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
                 <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "14px" }}>{exp.role}</div>
                 <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px", marginBottom: "6px" }}>
                   {exp.company} • {exp.period}
@@ -152,7 +154,8 @@ export function PreviewFinance({ cv, mobileMode = false }) {
             ))}
 
             <SectionHeading>Skills</SectionHeading>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
+              <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
               {skills.map((skill, i) => (
                 <span key={i} style={{ padding: "5px 12px", backgroundColor: "#e6eef7", color: COLORS.TEXT_PRIMARY, borderRadius: "6px", fontSize: "12px" }}>
                   {skill}
@@ -163,7 +166,10 @@ export function PreviewFinance({ cv, mobileMode = false }) {
 
           <div style={{ flex: "1" }}>
             <SectionHeading>Professional Summary</SectionHeading>
-            <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: "0 0 24px 0" }}>{cv.summary}</p>
+            <div style={{ position: "relative", margin: "0 0 24px 0" }}>
+              <GhostChip>{cv.summary}</GhostChip>
+              <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: 0 }}>{cv.summary}</p>
+            </div>
 
             <SectionHeading>Key Metrics</SectionHeading>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px" }}>
