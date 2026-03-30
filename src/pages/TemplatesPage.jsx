@@ -319,9 +319,20 @@ function BuilderTemplatesTab({
                   {bannerExpanded ? (
                     <>
                       {" "}
-                      <button type="button" className="cvp-templates-ats-banner-read-toggle" onClick={() => setBannerExpanded(false)}>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="cvp-templates-ats-banner-read-inline"
+                        onClick={() => setBannerExpanded(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setBannerExpanded(false);
+                          }
+                        }}
+                      >
                         Show less ↑
-                      </button>
+                      </span>
                     </>
                   ) : null}
                 </p>
