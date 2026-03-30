@@ -46,6 +46,25 @@
   }
 }
 
+@keyframes pulse-ghost {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pulse-ghost {
+  animation: pulse-ghost 2s ease-in-out infinite;
+}
+
 @keyframes fabBounce {
   0% {
     transform: translateY(0);

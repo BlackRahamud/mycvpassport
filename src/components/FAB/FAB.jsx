@@ -138,7 +138,33 @@ const FAB = forwardRef(function FAB(
   const templateSessionApplyRef = useRef(0);
   templateSessionApplyRef.current = templateSessionApplyCount;
 
+  const idleTimer = useRef(null);
+  const [isGhostPulsing, setIsGhostPulsing] = useState(false);
+
   const config = getFabTabConfig(tabKey, variant);
+
+  const resetTimer = useCallback(() => {
+    clearTimeout(idleTimer.current);
+    setIsGhostPulsing(false);
+    idleTimer.current = setTimeout(() => {
+      setIsGhostPulsing(true);
+    }, 15000);
+  }, []);
+
+  useEffect(() => {
+    resetTimer();
+    window.addEventListener("mousedown", resetTimer);
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("touchstart", resetTimer, { passive: true });
+    window.addEventListener("scroll", resetTimer, { passive: true });
+    return () => {
+      clearTimeout(idleTimer.current);
+      window.removeEventListener("mousedown", resetTimer);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("touchstart", resetTimer);
+      window.removeEventListener("scroll", resetTimer);
+    };
+  }, [resetTimer]);
 
   const clearTplTimers = useCallback(() => {
     tplTimersRef.current.forEach(clearTimeout);
@@ -677,7 +703,8 @@ const FAB = forwardRef(function FAB(
     <>
       <div
         ref={anchorRef}
-        className={`cvp-fab-layer cvp-fab-sticky-wrap${variant === "builder" ? " cvp-fab-sticky-wrap--builder" : ""}${sheetOpen ? " cvp-fab-sheet-open" : ""}`}
+        className={`cvp-fab-layer cvp-fab-sticky-wrap${variant === "builder" ? " cvp-fab-sticky-wrap--builder" : ""}${sheetOpen ? " cvp-fab-sheet-open" : ""}${isGhostPulsing ? " pulse-ghost" : ""}`}
+        style={{ willChange: "transform, opacity" }}
       >
         <FABButton
           onClick={onFabActivate}
