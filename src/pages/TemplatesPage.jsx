@@ -1,8 +1,38 @@
 import { useState, useEffect, useRef, memo, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { TEMPLATES, TEMPLATE_FILTER_IDS, isCvDataEmptyForTemplateApply } from "../cvShared";
+import { TEMPLATES, TEMPLATE_FILTER_IDS, isCvDataEmptyForTemplateApply, EMPTY_RESUME, EMPTY_EXP } from "../cvShared";
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
+
+/** Preview when user has no saved CV data (standalone /templates + empty builder). */
+const TEMPLATE_PREVIEW_DUMMY_CV = {
+  ...EMPTY_RESUME,
+  name: "Ahmed Al Mansouri",
+  title: "Customer Service Officer",
+  summary: "Customer-focused professional with experience in retail banking and client service excellence across the UAE.",
+  experience: [
+    {
+      ...EMPTY_EXP,
+      company: "Emirates NBD",
+      role: "Customer Service Officer",
+      location: "Dubai",
+      period: "2020 — Present",
+      points: "Handled daily client inquiries; maintained high satisfaction scores and accurate transaction records.",
+    },
+  ],
+  education: [
+    {
+      school: "American University of Sharjah",
+      degree: "BBA",
+      year: "2015",
+      fieldOfStudy: "",
+      startDate: "",
+      endDate: "",
+      location: "",
+    },
+  ],
+  skills: "Customer Service, CRM, MS Office, Stakeholder Communication",
+};
 
 function templateTierMarketingLabel(t) {
   if (t.tier === "free") return "FREE";
@@ -130,7 +160,7 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
 function BuilderTemplatesTab({
   resume,
   selectedTemplate,
-  onApplyTemplate,
+  onApplyTemplate: _onApplyTemplate,
   onApplyTemplateAndGoToContent,
   pendingTemplate,
   confirmOpen,
@@ -140,7 +170,8 @@ function BuilderTemplatesTab({
 }) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("popular");
-  const [atsBannerExpanded, setAtsBannerExpanded] = useState(false);
+  const [bannerExpanded, setBannerExpanded] = useState(false);
+  const [previewBounceKey, setPreviewBounceKey] = useState(0);
   const prevFilterRef = useRef(null);
   const cardRefs = useRef(new Map());
   const ids = TEMPLATE_FILTER_IDS[filter] || TEMPLATE_FILTER_IDS.popular;
@@ -164,15 +195,26 @@ function BuilderTemplatesTab({
 
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
-    const sheetOpen = confirmOpen && pendingTemplate != null;
-    if (sheetOpen) document.body.classList.add("cvp-fab-sheet-open");
-    else document.body.classList.remove("cvp-fab-sheet-open");
-    return () => document.body.classList.remove("cvp-fab-sheet-open");
+    const open = confirmOpen && pendingTemplate != null;
+    if (open) document.body.classList.add("cvp-templates-preview-modal-open");
+    else document.body.classList.remove("cvp-templates-preview-modal-open");
+    return () => document.body.classList.remove("cvp-templates-preview-modal-open");
   }, [confirmOpen, pendingTemplate]);
 
   useEffect(() => {
-    if (filter !== "popular") setAtsBannerExpanded(false);
+    if (confirmOpen && pendingTemplate != null) setPreviewBounceKey((k) => k + 1);
+  }, [confirmOpen, pendingTemplate]);
+
+  useEffect(() => {
+    if (filter !== "popular") setBannerExpanded(false);
   }, [filter]);
+
+  const closePreviewModal = () => {
+    onConfirmOpenChange(false);
+    onPendingTemplateChange(null);
+  };
+
+  const previewCv = isCvDataEmptyForTemplateApply(resume) ? TEMPLATE_PREVIEW_DUMMY_CV : resume;
 
   const pills = [
     { id: "popular", label: "Popular" },
@@ -250,12 +292,12 @@ function BuilderTemplatesTab({
             <p className="cvp-templates-ats-banner-headline">Engineered for the Shortlist.</p>
             <div
               className={
-                atsBannerExpanded
+                bannerExpanded
                   ? "cvp-templates-ats-banner-expand-wrap cvp-templates-ats-banner-expand-wrap--expanded"
                   : "cvp-templates-ats-banner-expand-wrap cvp-templates-ats-banner-expand-wrap--collapsed"
               }
             >
-              {atsBannerExpanded ? (
+              <div className="cvp-templates-ats-banner-body-clip">
                 <p className="cvp-templates-ats-banner-body">
                   A great-looking CV means nothing if a recruiter&apos;s system can&apos;t read it. Every template is precision-coded for maximum ATS
                   readability — recruiter-approved layouts that clear filters with zero errors. That&apos;s the format sorted. Next, run your CV through our{" "}
@@ -273,20 +315,33 @@ function BuilderTemplatesTab({
                   >
                     ATS Checker
                   </span>{" "}
-                  — it scores your content against the actual job description, flags what&apos;s missing, and tells you exactly what to fix before you apply.{" "}
-                  <button type="button" className="cvp-templates-ats-banner-read-toggle" onClick={() => setAtsBannerExpanded(false)}>
-                    Show less ↑
-                  </button>
+                  — it scores your content against the actual job description, flags what&apos;s missing, and tells you exactly what to fix before you apply.
+                  {bannerExpanded ? (
+                    <>
+                      {" "}
+                      <button type="button" className="cvp-templates-ats-banner-read-toggle" onClick={() => setBannerExpanded(false)}>
+                        Show less ↑
+                      </button>
+                    </>
+                  ) : null}
                 </p>
-              ) : (
-                <p className="cvp-templates-ats-banner-body cvp-templates-ats-banner-body--collapsed-preview">
-                  A great-looking CV means nothing if a recruiter&apos;s system can&apos;t read it. Every template is precision-coded for maximum ATS
-                  readability —{" "}
-                  <button type="button" className="cvp-templates-ats-banner-read-toggle" onClick={() => setAtsBannerExpanded(true)}>
-                    Read more →
-                  </button>
-                </p>
-              )}
+              </div>
+              {!bannerExpanded ? (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="cvp-templates-ats-banner-read-inline"
+                  onClick={() => setBannerExpanded(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setBannerExpanded(true);
+                    }
+                  }}
+                >
+                  Read more →
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -301,10 +356,6 @@ function BuilderTemplatesTab({
             resume={resume}
             onPick={(tpl) => {
               onTemplatesFabInteract?.();
-              if (isCvDataEmptyForTemplateApply(resume)) {
-                onApplyTemplateAndGoToContent(tpl);
-                return;
-              }
               onPendingTemplateChange(tpl);
               onConfirmOpenChange(true);
             }}
@@ -318,54 +369,44 @@ function BuilderTemplatesTab({
       {confirmOpen && pendingTemplate && typeof document !== "undefined"
         ? createPortal(
             <>
-              <div
-                role="presentation"
-                className="cvp-templates-confirm-backdrop"
-                onClick={() => {
-                  onConfirmOpenChange(false);
-                  onPendingTemplateChange(null);
-                }}
-              />
+              <div role="presentation" className="cvp-templates-preview-backdrop" onClick={closePreviewModal} />
               <div
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="cvp-templates-confirm-title"
-                className="cvp-templates-confirm-sheet"
-                onClick={(e) => e.stopPropagation()}
+                aria-labelledby="cvp-templates-preview-title"
+                className="cvp-templates-preview-root"
               >
+                <div className="cvp-templates-preview-header">
+                  <h2 id="cvp-templates-preview-title" className="cvp-templates-preview-title">
+                    {pendingTemplate.name}
+                  </h2>
+                  <button type="button" className="cvp-templates-preview-close" onClick={closePreviewModal} aria-label="Close">
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M18 6L6 18M6 6l12 12" stroke="#FFF" strokeWidth={2} strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
                 <div
-                  style={{
-                    width: 36,
-                    height: 4,
-                    background: "#333",
-                    borderRadius: 2,
-                    margin: "0 auto 20px",
+                  className="cvp-templates-preview-scroll"
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) closePreviewModal();
                   }}
-                />
-                <p id="cvp-templates-confirm-title" style={{ color: "#fff", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-                  Do you want to replace your current design with this template?
-                </p>
-                <div style={{ marginTop: 20 }}>
+                >
+                  <div className="cvp-templates-preview-cv-wrap" onClick={(e) => e.stopPropagation()}>
+                    <ResumePreview cv={previewCv} template={pendingTemplate} />
+                  </div>
+                </div>
+                <div className="cvp-templates-preview-cta">
                   <button
                     type="button"
-                    className="cvp-templates-confirm-primary"
+                    key={previewBounceKey}
+                    className="cvp-templates-preview-use-btn"
                     onClick={() => {
                       onApplyTemplateAndGoToContent(pendingTemplate);
-                      onConfirmOpenChange(false);
-                      onPendingTemplateChange(null);
+                      closePreviewModal();
                     }}
                   >
                     Use This Template
-                  </button>
-                  <button
-                    type="button"
-                    className="cvp-templates-confirm-cancel"
-                    onClick={() => {
-                      onConfirmOpenChange(false);
-                      onPendingTemplateChange(null);
-                    }}
-                  >
-                    Cancel
                   </button>
                 </div>
               </div>
