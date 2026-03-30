@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 const PRIMARY = "#1F2937"; // Deep Charcoal
@@ -104,8 +105,12 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
       </header>
 
       {/* Profile */}
-      <section>
+      <section style={{ position: "relative" }}>
         <SectionHeader>Professional Profile</SectionHeader>
+        <GhostChip>
+          {cv.summary ||
+            "Strategically-minded professional with an MBA and extensive experience in strategy and relationship building..."}
+        </GhostChip>
         <p
           style={{
             fontSize: pt(10),
@@ -133,7 +138,8 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
           (cv.experience || [])
             .filter((e) => e.company)
             .map((e, i) => (
-              <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid" }}>
+              <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid", position: "relative" }}>
+                <GhostChip>{`${e.role} ${e.company}`}</GhostChip>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "2px" }}>
                   <span style={{ fontWeight: "bold", fontSize: pt(11), color: PRIMARY }}>{e.company}</span>
                   <span style={{ fontSize: pt(9), fontWeight: "bold", color: ACCENT }}>{e.period}</span>
@@ -200,8 +206,12 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
               fontSize: pt(9.5),
               color: TEXT_BODY,
               textAlign: "center",
+              position: "relative",
             }}
           >
+            <GhostChip>
+              {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
+            </GhostChip>
             {(cv.skills || "")
               .split(",")
               .map((s, i) => (
