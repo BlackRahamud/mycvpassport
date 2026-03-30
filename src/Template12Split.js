@@ -1,4 +1,5 @@
 import React from "react";
+import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
 /**
@@ -102,25 +103,35 @@ export function Template12Split({ cv, mobileMode = false }) {
             boxSizing: "border-box",
           }}
         >
-          <h3
-            style={{
-              fontSize: "11pt",
-              fontWeight: "bold",
-              textTransform: "uppercase",
-              borderBottom: "1.5px solid #000000",
-              paddingBottom: "5px",
-              marginBottom: "15px",
-              marginTop: 0,
-            }}
-          >
-            Summary
-          </h3>
-          <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
-            {cv.summary || "Add your professional summary here."}
-          </p>
+          <div style={{ position: "relative" }}>
+            <GhostChip>
+              {cv.summary || "Add your professional summary here."}
+            </GhostChip>
+            <h3
+              style={{
+                fontSize: "11pt",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                borderBottom: "1.5px solid #000000",
+                paddingBottom: "5px",
+                marginBottom: "15px",
+                marginTop: 0,
+              }}
+            >
+              Summary
+            </h3>
+            <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
+              {cv.summary || "Add your professional summary here."}
+            </p>
+          </div>
 
           {cv.skills && (
-            <div style={{ marginTop: "40px" }}>
+            <div style={{ marginTop: "40px", position: "relative" }}>
+              <GhostChip>
+                {Array.isArray(cv.skills)
+                  ? cv.skills.join(" ")
+                  : cv.skills}
+              </GhostChip>
               <h3
                 style={{
                   fontSize: "11pt",
@@ -164,8 +175,10 @@ export function Template12Split({ cv, mobileMode = false }) {
                   marginBottom: "30px",
                   pageBreakInside: "avoid",
                   display: "block",
+                  position: "relative",
                 }}
               >
+                <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
                 <div
                   style={{
                     display: "flex",
