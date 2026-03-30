@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
 import Pricing from "./Pricing";
@@ -12,12 +13,58 @@ import DashboardPage from "./pages/DashboardPage";
 import ATSPage from "./pages/ATSPage";
 import WalkInPage from "./pages/WalkInPage";
 import AccountPage from "./pages/AccountPage";
+import TemplatesPage from "./pages/TemplatesPage";
 import MobileTabBar from "./components/MobileTabBar";
 import { C } from "./builderStyles";
+import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 
 const S = {
   app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
 };
+
+function TemplatesBrowseLayout() {
+  const navigate = useNavigate();
+  const [resume] = useState(() => ({ ...EMPTY_RESUME }));
+  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
+  const [pending, setPending] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  return (
+    <div style={{ ...S.app, display: "flex", flexDirection: "column" }}>
+      <div style={{ flexShrink: 0, padding: "12px 16px 0" }}>
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: C.text,
+            fontSize: 14,
+            cursor: "pointer",
+            padding: "8px 0",
+            fontFamily: "inherit",
+          }}
+        >
+          ← Back
+        </button>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <TemplatesPage
+          resume={resume}
+          selectedTemplate={selectedTemplate}
+          onApplyTemplate={setSelectedTemplate}
+          onApplyTemplateAndGoToContent={(tpl) => {
+            setSelectedTemplate(tpl);
+            navigate("/builder", { state: { cvpInitialTemplateId: tpl.id } });
+          }}
+          pendingTemplate={pending}
+          confirmOpen={confirmOpen}
+          onPendingTemplateChange={setPending}
+          onConfirmOpenChange={setConfirmOpen}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const {
@@ -150,6 +197,7 @@ export default function App() {
               />
               <Route path="/ats" element={<ATSPage onBack={() => navigate(user ? "/dashboard" : "/")} />} />
               <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
+              <Route path="/templates" element={<TemplatesBrowseLayout />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} fabGuideTab={location.state?.fabGuideTab} />

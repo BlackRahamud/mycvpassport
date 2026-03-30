@@ -310,10 +310,21 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   useEffect(() => {
     const st = location.state && typeof location.state === "object" ? location.state : null;
-    if (st?.cvpBuilderTab !== "jobmatch") return;
-    setBuilderTab("jobmatch");
+    if (!st) return;
     const next = { ...st };
-    delete next.cvpBuilderTab;
+    let dirty = false;
+    if (st.cvpBuilderTab === "jobmatch") {
+      setBuilderTab("jobmatch");
+      delete next.cvpBuilderTab;
+      dirty = true;
+    }
+    if (st.cvpInitialTemplateId != null) {
+      const t = TEMPLATES.find((x) => x.id === st.cvpInitialTemplateId);
+      if (t) setSelectedTemplate(t);
+      delete next.cvpInitialTemplateId;
+      dirty = true;
+    }
+    if (!dirty) return;
     navigate(location.pathname, { replace: true, state: Object.keys(next).length ? next : undefined });
   }, [location.state, location.pathname, navigate]);
 

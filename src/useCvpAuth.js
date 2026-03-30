@@ -90,7 +90,7 @@ export function useCvpAuth() {
       navigate("/dashboard", { replace: true });
       return;
     }
-    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account"].includes(clean)) {
+    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates"].includes(clean)) {
       navigate("/dashboard", { replace: true });
     }
   }, [authReady, user, location.pathname, navigate]);

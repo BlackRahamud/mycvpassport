@@ -1213,7 +1213,12 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </p>
           <div className="lp-templates-scroll">
             {LP_TEMPLATE_STRIP.map((t) => (
-              <Link key={t.name} to="/templates" className="lp-template-card lp-template-card-link">
+              <Link
+                key={t.name}
+                to="/templates"
+                className="lp-template-card lp-template-card-link"
+                onClick={() => window.scrollTo(0, 0)}
+              >
                 <LandingTemplateThumb template={t.template} />
                 <span className="lp-template-name">{t.name}</span>
                 <span className={`lp-template-tier lp-tier-${t.tier.toLowerCase()}`}>
@@ -1225,6 +1230,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <div style={{ paddingLeft: 24, paddingRight: 24, marginTop: 16 }}>
             <Link
               to="/templates"
+              onClick={() => window.scrollTo(0, 0)}
               style={{
                 fontSize: 14,
                 fontWeight: 600,
