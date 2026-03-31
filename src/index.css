@@ -427,16 +427,37 @@ input:focus, textarea:focus {
     overflow: hidden !important;
   }
 
+  .cvp-templates-card {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .cvp-templates-card-thumb {
+    isolation: isolate;
+  }
+
+  .cvp-templates-card-thumb,
+  .cvp-templates-card-thumb-inner,
+  .cvp-templates-card-thumb-scale-outer {
+    width: 100%;
+    position: relative;
+  }
+
   /* Thumb height = width × (1123/794), matching JS scale(containerWidth/794) + 1123px inner */
   .cvp-templates-card-thumb {
     padding-bottom: 0;
     aspect-ratio: 794 / 1123;
     height: auto;
+    overflow: hidden;
   }
 
   .cvp-templates-card-thumb-inner,
   .cvp-templates-card-thumb-scale-outer {
-    overflow: visible;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
   }
 }
 

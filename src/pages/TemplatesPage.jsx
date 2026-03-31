@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, useMemo } from "react";
+import { useState, useEffect, useRef, memo, useMemo, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { TEMPLATES, TEMPLATE_FILTER_IDS, isCvDataEmptyForTemplateApply, EMPTY_RESUME, EMPTY_EXP } from "../cvShared";
@@ -379,7 +379,7 @@ function BuilderTemplatesTab({
       </div>
       {confirmOpen && pendingTemplate && typeof document !== "undefined"
         ? createPortal(
-            <>
+            <Fragment key={pendingTemplate?.id}>
               <div role="presentation" className="cvp-templates-preview-backdrop" onClick={closePreviewModal} />
               <div
                 role="dialog"
@@ -421,7 +421,7 @@ function BuilderTemplatesTab({
                   </button>
                 </div>
               </div>
-            </>,
+            </Fragment>,
             document.body,
           )
         : null}
