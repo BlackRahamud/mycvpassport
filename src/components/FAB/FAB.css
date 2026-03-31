@@ -309,6 +309,7 @@
 
 .cvp-fab-sticky-wrap--builder {
   padding: 0;
+  position: relative;
 }
 
 .cvp-fab-physical {
@@ -342,6 +343,206 @@
 /* Completion ring stub — ready to wire to progress coach */
 .cvp-fab-completion-ring {
   display: none;
+}
+
+.cvp-fab-sticky-wrap--builder .cvp-fab-physical {
+  position: relative;
+  z-index: 1;
+}
+
+/* Allow progress ring stroke transition despite .cvp-fab-layer * { transition: none } */
+.cvp-fab-sticky-wrap--builder .cvp-fab-progress-svg .cvp-fab-progress-ring {
+  transition:
+    stroke-dashoffset 600ms cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 600ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.cvp-fab-bouncing .cvp-fab-physical {
+  animation: cvpFabBounce 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes cvpFabBounce {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.cvp-fab-status-bubble {
+  background: #1c1c1c;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  padding: 12px 14px;
+  min-width: 200px;
+  max-width: 220px;
+  animation: cvpBubbleIn 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: auto;
+  z-index: 9998;
+}
+
+@keyframes cvpBubbleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+}
+
+.cvp-fab-bubble-title {
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+}
+
+.cvp-fab-bubble-sub {
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #a0a0a0;
+  margin: 0;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+
+.cvp-fab-bubble-divider {
+  height: 0.5px;
+  background: #2a2a2a;
+  margin: 8px 0;
+}
+
+.cvp-fab-bubble-tip-link {
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: #f59e0b;
+  margin: 0;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+}
+
+.cvp-fab-bulb {
+  position: fixed;
+  bottom: 88px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1c1c1c;
+  border: 1px solid #3a3a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.35);
+  z-index: 9999;
+  padding: 0;
+  transition:
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cvp-fab-bulb--lit {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: radial-gradient(circle at 50% 60%, rgba(245, 158, 11, 0.18) 0%, #1c1c1c 70%);
+}
+
+@keyframes cvpBulbFlicker {
+  0% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 0.15;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  30% {
+    opacity: 0.1;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes cvpBulbDimOut {
+  0% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  40% {
+    opacity: 0.95;
+  }
+  65% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.cvp-fab-bulb--flicker {
+  animation: cvpBulbFlicker 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.cvp-fab-tip-bubble {
+  position: fixed;
+  bottom: 130px;
+  right: 12px;
+  background: #1c1c1c;
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 180px;
+  max-width: 210px;
+  z-index: 9999;
+  animation: cvpBubbleIn 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+.cvp-fab-tip-header {
+  margin: 0;
+}
+
+.cvp-fab-tip-label {
+  font-family: "Inter", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #f59e0b;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cvp-fab-tip-text {
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  color: #ffffff;
+  margin: 6px 0 0 0;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+.cvp-fab-bulb-rays {
+  pointer-events: none;
 }
 
 /* --- ATS dedicated route score sheet (FABSheet) --- */

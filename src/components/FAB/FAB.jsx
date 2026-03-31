@@ -16,6 +16,70 @@ import {
   getFabMemory,
 } from "./FABLogic";
 
+const FAB_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * 24;
+
+const SECTION_TIPS = {
+  summary: [
+    "Start with your job title and years of experience. Recruiters read the first line first.",
+    "Keep it to 3 lines maximum. Brevity signals confidence.",
+    "Avoid 'I am' — start with your title directly. 'Customer service professional with 4 years...'",
+  ],
+  experience: [
+    "Add numbers wherever you can. '30 clients managed' beats 'managed clients' every time.",
+    "Start each bullet with an action verb. Led, Built, Managed, Grew, Delivered.",
+    "Include the company's industry if it's relevant. Context helps recruiters.",
+  ],
+  education: [
+    "If you graduated recently, put education before experience.",
+    "Include your GPA only if it's above 3.5 or equivalent.",
+    "Certifications count. Add any relevant courses you've completed.",
+  ],
+  competencies: [
+    "Copy keywords directly from the job description. ATS systems match exact words.",
+    "Group skills by type — Technical, Soft Skills, Tools. Easier to scan.",
+    "Don't list more than 10 skills. Quality over quantity.",
+  ],
+  languages: [
+    "Fluent means you can work in it. Conversational means you can survive a meeting.",
+    "Arabic proficiency is a strong differentiator in UAE roles — include it if applicable.",
+    "Never list a language you can't hold a basic conversation in.",
+  ],
+};
+
+const MILESTONE_BUBBLE_COPY = {
+  25: {
+    title: "Great start.",
+    sub: "Your summary is looking strong — now tell us where you've worked.",
+  },
+  50: {
+    title: "Halfway there.",
+    sub: "The hard part is done. Keep going.",
+  },
+  75: {
+    title: "Almost ready.",
+    sub: "A few more details and your CV will stand out.",
+  },
+  100: {
+    title: "That's your CV done.",
+    sub: "Now let's make sure it gets seen — run your ATS scan.",
+  },
+};
+
+function fabRingColor(p) {
+  const n = p ?? 0;
+  if (n >= 100) return "#22C55E";
+  if (n >= 71) return "#3B82F6";
+  if (n >= 31) return "#F59E0B";
+  return "#A0A0A0";
+}
+
+function fabNormalizeSection(activeSection) {
+  if (!activeSection || typeof activeSection !== "string") return "summary";
+  const k = activeSection.toLowerCase().trim();
+  if (["summary", "experience", "education", "competencies", "languages"].includes(k)) return k;
+  return "summary";
+}
+
 /** Physical floating button: ring, dot, bounce/flicker, completion ring stub */
 export function FABButton({ onClick, showDot, className = "", ariaLabel = "Quick tips", onAnimationEnd }) {
   return (
@@ -100,6 +164,8 @@ const FAB = forwardRef(function FAB(
     walkInOnDownload,
     /** Builder: CV completion % block at top of guide sheet (from useCvProgress) */
     cvCompletionProgress = null,
+    /** Builder: active CV section key for timed bulb / tips (e.g. summary, experience) */
+    activeSection = null,
     /** Builder: notify when guide/menu sheet open state changes (for idle timer reschedule) */
     onBuilderGuideSheetOpenChange = null,
   },
@@ -141,6 +207,29 @@ const FAB = forwardRef(function FAB(
   const idleTimer = useRef(null);
   const [isGhostPulsing, setIsGhostPulsing] = useState(false);
 
+  const progressRingRef = useRef(null);
+  const prevProgressRef = useRef(null);
+  const shownMilestonesRef = useRef(new Set());
+  const bounceTimeoutRef = useRef(null);
+  const bubbleDismissTimeoutRef = useRef(null);
+  const bulbSectionTimerRef = useRef(null);
+  const bulbVisibleTimerRef = useRef(null);
+  const tipDismissTimerRef = useRef(null);
+  const bulbPostFlickerTimerRef = useRef(null);
+  const bulbDimTimerRef = useRef(null);
+  const bulbAppearCountRef = useRef(0);
+  const tipIndexRef = useRef({});
+
+  const [fabBouncing, setFabBouncing] = useState(false);
+  const [isBubbleVisible, setIsBubbleVisible] = useState(false);
+  const [bubbleTitle, setBubbleTitle] = useState("");
+  const [bubbleSub, setBubbleSub] = useState("");
+  const [isBulbVisible, setIsBulbVisible] = useState(false);
+  const [isBulbLit, setIsBulbLit] = useState(false);
+  const [isBulbFlickering, setIsBulbFlickering] = useState(false);
+  const [isTipVisible, setIsTipVisible] = useState(false);
+  const [currentTip, setCurrentTip] = useState("");
+
   const config = getFabTabConfig(tabKey, variant);
 
   const resetTimer = useCallback(() => {
@@ -165,6 +254,99 @@ const FAB = forwardRef(function FAB(
       window.removeEventListener("scroll", resetTimer);
     };
   }, [resetTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(bounceTimeoutRef.current);
+      clearTimeout(bubbleDismissTimeoutRef.current);
+      clearTimeout(bulbSectionTimerRef.current);
+      clearTimeout(bulbVisibleTimerRef.current);
+      clearTimeout(tipDismissTimerRef.current);
+      clearTimeout(bulbPostFlickerTimerRef.current);
+      clearTimeout(bulbDimTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (variant !== "builder") {
+      prevProgressRef.current = null;
+    }
+  }, [variant]);
+
+  useEffect(() => {
+    if (variant !== "builder") return undefined;
+    const p = cvCompletionProgress ?? 0;
+
+    if (prevProgressRef.current === null) {
+      prevProgressRef.current = p;
+      return undefined;
+    }
+
+    const prev = prevProgressRef.current;
+
+    if (!(prev === 0 && p === 0) && p > prev) {
+      const prevThreshold = Math.floor(prev / 10);
+      const nextThreshold = Math.floor(p / 10);
+      if (nextThreshold > prevThreshold) {
+        setFabBouncing(true);
+        clearTimeout(bounceTimeoutRef.current);
+        bounceTimeoutRef.current = setTimeout(() => {
+          setFabBouncing(false);
+        }, 400);
+      }
+    }
+
+    let crossedMilestone = null;
+    for (const m of [25, 50, 75, 100]) {
+      if (prev < m && p >= m && !shownMilestonesRef.current.has(m)) {
+        shownMilestonesRef.current.add(m);
+        crossedMilestone = m;
+      }
+    }
+    if (crossedMilestone != null) {
+      const copy = MILESTONE_BUBBLE_COPY[crossedMilestone];
+      if (copy) {
+        setBubbleTitle(copy.title);
+        setBubbleSub(copy.sub);
+        setIsBubbleVisible(true);
+        clearTimeout(bubbleDismissTimeoutRef.current);
+        bubbleDismissTimeoutRef.current = setTimeout(() => {
+          setIsBubbleVisible(false);
+        }, 5000);
+      }
+    }
+
+    prevProgressRef.current = p;
+    return undefined;
+  }, [cvCompletionProgress, variant]);
+
+  useEffect(() => {
+    if (variant !== "builder") return undefined;
+
+    clearTimeout(bulbSectionTimerRef.current);
+    clearTimeout(bulbVisibleTimerRef.current);
+    setIsBulbVisible(false);
+    setIsBulbLit(false);
+    setIsBulbFlickering(false);
+
+    if (bulbAppearCountRef.current >= 3) {
+      return undefined;
+    }
+
+    bulbSectionTimerRef.current = setTimeout(() => {
+      if (bulbAppearCountRef.current >= 3) return;
+      bulbAppearCountRef.current += 1;
+      setIsBulbVisible(true);
+      bulbVisibleTimerRef.current = setTimeout(() => {
+        setIsBulbVisible(false);
+      }, 8000);
+    }, 8000);
+
+    return () => {
+      clearTimeout(bulbSectionTimerRef.current);
+      clearTimeout(bulbVisibleTimerRef.current);
+    };
+  }, [activeSection, variant]);
 
   const clearTplTimers = useCallback(() => {
     tplTimersRef.current.forEach(clearTimeout);
@@ -675,6 +857,51 @@ const FAB = forwardRef(function FAB(
     setMenuOpen(true);
   }, [variant, tabKey, openTemplatesSmartSheet, openGuideSheet, clearTplTimers]);
 
+  const triggerTipManually = useCallback(() => {
+    const section = fabNormalizeSection(activeSection);
+    const tips = SECTION_TIPS[section] ?? SECTION_TIPS.summary;
+    const idx = tipIndexRef.current[section] ?? 0;
+    setCurrentTip(tips[idx % tips.length]);
+    tipIndexRef.current = { ...tipIndexRef.current, [section]: idx + 1 };
+    setIsTipVisible(true);
+    clearTimeout(tipDismissTimerRef.current);
+    tipDismissTimerRef.current = setTimeout(() => {
+      setIsTipVisible(false);
+    }, 6000);
+  }, [activeSection]);
+
+  const handleBulbTap = useCallback(() => {
+    clearTimeout(bulbVisibleTimerRef.current);
+    clearTimeout(tipDismissTimerRef.current);
+    clearTimeout(bulbDimTimerRef.current);
+    clearTimeout(bulbPostFlickerTimerRef.current);
+
+    setIsBulbFlickering(true);
+    bulbPostFlickerTimerRef.current = setTimeout(() => {
+      setIsBulbFlickering(false);
+      setIsBulbLit(true);
+
+      const section = fabNormalizeSection(activeSection);
+      const tips = SECTION_TIPS[section] ?? SECTION_TIPS.summary;
+      const idx = tipIndexRef.current[section] ?? 0;
+      setCurrentTip(tips[idx % tips.length]);
+      tipIndexRef.current = { ...tipIndexRef.current, [section]: idx + 1 };
+
+      setIsTipVisible(true);
+      clearTimeout(tipDismissTimerRef.current);
+      tipDismissTimerRef.current = setTimeout(() => {
+        setIsBulbFlickering(true);
+        clearTimeout(bulbDimTimerRef.current);
+        bulbDimTimerRef.current = setTimeout(() => {
+          setIsBulbFlickering(false);
+          setIsBulbLit(false);
+          setIsBulbVisible(false);
+          setIsTipVisible(false);
+        }, 550);
+      }, 6000);
+    }, 450);
+  }, [activeSection]);
+
   if (!mobile || !config || hidden) return null;
 
   const dedicatedRoute =
@@ -699,13 +926,50 @@ const FAB = forwardRef(function FAB(
 
   const dotVisible = shouldShowFabDot(tabKey, false);
 
+  const progress = cvCompletionProgress ?? 0;
+  const ringColor = fabRingColor(cvCompletionProgress);
+  const ringOffset = FAB_PROGRESS_CIRCUMFERENCE - (progress / 100) * FAB_PROGRESS_CIRCUMFERENCE;
+
   return (
     <>
       <div
         ref={anchorRef}
-        className={`cvp-fab-layer cvp-fab-sticky-wrap${variant === "builder" ? " cvp-fab-sticky-wrap--builder" : ""}${sheetOpen ? " cvp-fab-sheet-open" : ""}${isGhostPulsing ? " pulse-ghost" : ""}`}
+        className={`cvp-fab-layer cvp-fab-sticky-wrap${variant === "builder" ? " cvp-fab-sticky-wrap--builder" : ""}${sheetOpen ? " cvp-fab-sheet-open" : ""}${isGhostPulsing ? " pulse-ghost" : ""}${variant === "builder" && fabBouncing ? " cvp-fab-bouncing" : ""}`}
         style={{ willChange: "transform, opacity" }}
       >
+        {variant === "builder" ? (
+          <svg
+            className="cvp-fab-progress-svg"
+            viewBox="0 0 56 56"
+            aria-hidden
+            style={{
+              position: "absolute",
+              width: "56px",
+              height: "56px",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              pointerEvents: "none",
+              zIndex: 0,
+            }}
+          >
+            <circle cx="28" cy="28" r="24" fill="none" stroke="#2A2A2A" strokeWidth="2" />
+            <circle
+              ref={progressRingRef}
+              className="cvp-fab-progress-ring"
+              cx="28"
+              cy="28"
+              r="24"
+              fill="none"
+              stroke={ringColor}
+              strokeWidth="2"
+              strokeDasharray={FAB_PROGRESS_CIRCUMFERENCE}
+              strokeDashoffset={ringOffset}
+              strokeLinecap="round"
+              transform="rotate(-90 28 28)"
+            />
+          </svg>
+        ) : null}
         <FABButton
           onClick={onFabActivate}
           showDot={dotVisible}
@@ -721,6 +985,77 @@ const FAB = forwardRef(function FAB(
           }}
         />
       </div>
+
+      {variant === "builder" && isBubbleVisible ? (
+        <div
+          className="cvp-fab-status-bubble"
+          style={{
+            position: "fixed",
+            bottom: "98px",
+            right: "84px",
+          }}
+        >
+          <p className="cvp-fab-bubble-title">{bubbleTitle}</p>
+          <p className="cvp-fab-bubble-sub">{bubbleSub}</p>
+          <div className="cvp-fab-bubble-divider" />
+          <p className="cvp-fab-bubble-tip-link" onClick={() => triggerTipManually()}>
+            Feeling stuck? Get a tip →
+          </p>
+        </div>
+      ) : null}
+
+      {variant === "builder" ? (
+        <button
+          type="button"
+          className={`cvp-fab-bulb${isBulbLit ? " cvp-fab-bulb--lit" : ""}${isBulbFlickering ? " cvp-fab-bulb--flicker" : ""}`}
+          onClick={handleBulbTap}
+          style={{
+            opacity: isBulbVisible ? 1 : 0,
+            pointerEvents: isBulbVisible ? "auto" : "none",
+            transition: "opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+            <circle cx="10" cy="8.5" r="4" stroke="currentColor" strokeWidth="1.4" />
+            <path
+              d="M8 12.5 Q8 14 10 14 Q12 14 12 12.5"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <line x1="8.5" y1="15" x2="11.5" y2="15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <line x1="9" y1="16.5" x2="11" y2="16.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+          <svg
+            className="cvp-fab-bulb-rays"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              opacity: isBulbLit ? 1 : 0,
+              transition: "opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          >
+            <line x1="10" y1="3" x2="10" y2="1.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+            <line x1="14.5" y1="4.5" x2="15.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+            <line x1="5.5" y1="4.5" x2="4.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+          </svg>
+        </button>
+      ) : null}
+
+      {variant === "builder" && isTipVisible ? (
+        <div className="cvp-fab-tip-bubble">
+          <div className="cvp-fab-tip-header">
+            <span className="cvp-fab-tip-label">TIP</span>
+          </div>
+          <p className="cvp-fab-tip-text">{currentTip}</p>
+        </div>
+      ) : null}
 
       <FABMenu open={menuOpen} onClose={() => setMenuOpen(false)} options={config.menuOptions} anchorRef={anchorRef} onSelect={handleMenuPick} />
 
