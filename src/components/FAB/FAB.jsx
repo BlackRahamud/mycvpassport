@@ -16,7 +16,7 @@ import {
   getFabMemory,
 } from "./FABLogic";
 
-const FAB_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * 24;
+const FAB_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * 30;
 
 const SECTION_TIPS = {
   summary: [
@@ -934,128 +934,150 @@ const FAB = forwardRef(function FAB(
     <>
       <div
         ref={anchorRef}
-        className={`cvp-fab-layer cvp-fab-sticky-wrap${variant === "builder" ? " cvp-fab-sticky-wrap--builder" : ""}${sheetOpen ? " cvp-fab-sheet-open" : ""}${isGhostPulsing ? " pulse-ghost" : ""}${variant === "builder" && fabBouncing ? " cvp-fab-bouncing" : ""}`}
+        className={`cvp-fab-layer cvp-fab-sticky-wrap${sheetOpen ? " cvp-fab-sheet-open" : ""}${isGhostPulsing ? " pulse-ghost" : ""}${variant === "builder" && fabBouncing ? " cvp-fab-bouncing" : ""}`}
         style={{ willChange: "transform, opacity" }}
       >
         {variant === "builder" ? (
-          <svg
-            className="cvp-fab-progress-svg"
-            viewBox="0 0 56 56"
-            aria-hidden
-            style={{
-              position: "absolute",
-              width: "56px",
-              height: "56px",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          >
-            <circle cx="28" cy="28" r="24" fill="none" stroke="#2A2A2A" strokeWidth="2" />
-            <circle
-              ref={progressRingRef}
-              className="cvp-fab-progress-ring"
-              cx="28"
-              cy="28"
-              r="24"
-              fill="none"
-              stroke={ringColor}
-              strokeWidth="2"
-              strokeDasharray={FAB_PROGRESS_CIRCUMFERENCE}
-              strokeDashoffset={ringOffset}
-              strokeLinecap="round"
-              transform="rotate(-90 28 28)"
+          <div className="cvp-fab-sticky-wrap--builder">
+            <svg
+              className="cvp-fab-progress-svg"
+              viewBox="0 0 68 68"
+              aria-hidden
+              style={{
+                position: "absolute",
+                width: "68px",
+                height: "68px",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                pointerEvents: "none",
+                zIndex: 0,
+                overflow: "visible",
+              }}
+            >
+              <circle cx="34" cy="34" r="30" fill="none" stroke="#2A2A2A" strokeWidth="2" />
+              <circle
+                ref={progressRingRef}
+                className="cvp-fab-progress-ring"
+                cx="34"
+                cy="34"
+                r="30"
+                fill="none"
+                stroke={ringColor}
+                strokeWidth="2"
+                strokeDasharray={FAB_PROGRESS_CIRCUMFERENCE}
+                strokeDashoffset={ringOffset}
+                strokeLinecap="round"
+                transform="rotate(-90 34 34)"
+              />
+            </svg>
+            <FABButton
+              onClick={onFabActivate}
+              showDot={dotVisible}
+              className={fabAnimClass}
+              onAnimationEnd={(e) => {
+                if (e.animationName === "fabPulse") {
+                  setTplIdlePulse(false);
+                  setTplExtPulse(false);
+                }
+                if (e.animationName === "fabBuilderIdlePulse") {
+                  setBuilderIdlePulse(false);
+                }
+              }}
             />
-          </svg>
-        ) : null}
-        <FABButton
-          onClick={onFabActivate}
-          showDot={dotVisible}
-          className={fabAnimClass}
-          onAnimationEnd={(e) => {
-            if (e.animationName === "fabPulse") {
-              setTplIdlePulse(false);
-              setTplExtPulse(false);
-            }
-            if (e.animationName === "fabBuilderIdlePulse") {
-              setBuilderIdlePulse(false);
-            }
-          }}
-        />
-      </div>
-
-      {variant === "builder" && isBubbleVisible ? (
-        <div
-          className="cvp-fab-status-bubble"
-          style={{
-            position: "fixed",
-            bottom: "98px",
-            right: "84px",
-          }}
-        >
-          <p className="cvp-fab-bubble-title">{bubbleTitle}</p>
-          <p className="cvp-fab-bubble-sub">{bubbleSub}</p>
-          <div className="cvp-fab-bubble-divider" />
-          <p className="cvp-fab-bubble-tip-link" onClick={() => triggerTipManually()}>
-            Feeling stuck? Get a tip →
-          </p>
-        </div>
-      ) : null}
-
-      {variant === "builder" ? (
-        <button
-          type="button"
-          className={`cvp-fab-bulb${isBulbLit ? " cvp-fab-bulb--lit" : ""}${isBulbFlickering ? " cvp-fab-bulb--flicker" : ""}`}
-          onClick={handleBulbTap}
-          style={{
-            opacity: isBulbVisible ? 1 : 0,
-            pointerEvents: isBulbVisible ? "auto" : "none",
-            transition: "opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-            <circle cx="10" cy="8.5" r="4" stroke="currentColor" strokeWidth="1.4" />
-            <path
-              d="M8 12.5 Q8 14 10 14 Q12 14 12 12.5"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              fill="none"
-              strokeLinecap="round"
-            />
-            <line x1="8.5" y1="15" x2="11.5" y2="15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            <line x1="9" y1="16.5" x2="11" y2="16.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-          <svg
-            className="cvp-fab-bulb-rays"
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden
-            style={{
-              position: "absolute",
-              inset: 0,
-              opacity: isBulbLit ? 1 : 0,
-              transition: "opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          >
-            <line x1="10" y1="3" x2="10" y2="1.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
-            <line x1="14.5" y1="4.5" x2="15.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
-            <line x1="5.5" y1="4.5" x2="4.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
-          </svg>
-        </button>
-      ) : null}
-
-      {variant === "builder" && isTipVisible ? (
-        <div className="cvp-fab-tip-bubble">
-          <div className="cvp-fab-tip-header">
-            <span className="cvp-fab-tip-label">TIP</span>
+            {isBubbleVisible ? (
+              <div
+                className="cvp-fab-status-bubble"
+                style={{
+                  position: "absolute",
+                  bottom: "68px",
+                  right: 0,
+                  zIndex: 9998,
+                }}
+              >
+                <p className="cvp-fab-bubble-title">{bubbleTitle}</p>
+                <p className="cvp-fab-bubble-sub">{bubbleSub}</p>
+                <div className="cvp-fab-bubble-divider" />
+                <p className="cvp-fab-bubble-tip-link" onClick={() => triggerTipManually()}>
+                  Feeling stuck? Get a tip →
+                </p>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className={`cvp-fab-bulb${isBulbLit ? " cvp-fab-bulb--lit" : ""}${isBulbFlickering ? " cvp-fab-bulb--flicker" : ""}`}
+              onClick={handleBulbTap}
+              style={{
+                opacity: isBulbVisible ? 1 : 0,
+                pointerEvents: isBulbVisible ? "auto" : "none",
+                transition: "opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+                <circle cx="10" cy="8.5" r="4" stroke="currentColor" strokeWidth="1.4" />
+                <path
+                  d="M8 12.5 Q8 14 10 14 Q12 14 12 12.5"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <line x1="8.5" y1="15" x2="11.5" y2="15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                <line x1="9" y1="16.5" x2="11" y2="16.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+              <svg
+                className="cvp-fab-bulb-rays"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: isBulbLit ? 1 : 0,
+                  transition: "opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+              >
+                <line x1="10" y1="3" x2="10" y2="1.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+                <line x1="14.5" y1="4.5" x2="15.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+                <line x1="5.5" y1="4.5" x2="4.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+              </svg>
+            </button>
+            {isTipVisible ? (
+              <div
+                className="cvp-fab-tip-bubble"
+                style={{
+                  position: "absolute",
+                  bottom: "68px",
+                  right: "-10px",
+                  zIndex: 9999,
+                }}
+              >
+                <div className="cvp-fab-tip-header">
+                  <span className="cvp-fab-tip-label">TIP</span>
+                </div>
+                <p className="cvp-fab-tip-text">{currentTip}</p>
+              </div>
+            ) : null}
           </div>
-          <p className="cvp-fab-tip-text">{currentTip}</p>
-        </div>
-      ) : null}
+        ) : (
+          <FABButton
+            onClick={onFabActivate}
+            showDot={dotVisible}
+            className={fabAnimClass}
+            onAnimationEnd={(e) => {
+              if (e.animationName === "fabPulse") {
+                setTplIdlePulse(false);
+                setTplExtPulse(false);
+              }
+              if (e.animationName === "fabBuilderIdlePulse") {
+                setBuilderIdlePulse(false);
+              }
+            }}
+          />
+        )}
+      </div>
 
       <FABMenu open={menuOpen} onClose={() => setMenuOpen(false)} options={config.menuOptions} anchorRef={anchorRef} onSelect={handleMenuPick} />
 
