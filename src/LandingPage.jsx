@@ -6,6 +6,7 @@ import CVPlayCard from './components/CVPlayCard';
 import { useGeoContent } from './hooks/useGeoContent';
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from './ResumePreview';
 import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
+import HowItWorks from './HowItWorks';
 
 // ── SVG Icons (line style, 20×20 viewBox unless noted) ─────────────
 function SunIcon() {
@@ -1301,105 +1302,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         </section>
 
         {/* ── HOW IT WORKS (S5) ───────────────────────────────────── */}
-        <section className="lp-howitworks" aria-labelledby="lp-howitworks-heading">
-          <div className="lp-howitworks-inner">
-            <p className="lp-howitworks-label">HOW IT WORKS</p>
-            <h2 id="lp-howitworks-heading" className="lp-howitworks-title">
-              Three steps to your next job
-            </h2>
-
-            <div className="lp-howitworks-steps">
-              <div className="lp-howitworks-row">
-                <LandingPhoneMockup>
-                  <LandingHowItWorksPhoneCv />
-                </LandingPhoneMockup>
-                <div className="lp-howitworks-copy">
-                  <p className="lp-howitworks-step-num">01</p>
-                  <h3 className="lp-howitworks-step-head">Choose from 14 Gulf-ready templates</h3>
-                  <p className="lp-howitworks-step-body">
-                    Built for UAE, Saudi, Qatar — not generic Western CVs. Every template ATS-tested before it shipped.
-                  </p>
-                </div>
-              </div>
-
-              <div className="lp-howitworks-row lp-howitworks-row--flip">
-                <div className="lp-howitworks-form-card">
-                  <div className="lp-howitworks-form-field">Ahmed Al Mansouri</div>
-                  <div className="lp-howitworks-form-field">Customer Service Officer</div>
-                  <div className="lp-howitworks-form-field">Emirates NBD</div>
-                  <button type="button" className="lp-howitworks-form-btn">Continue →</button>
-                </div>
-                <div className="lp-howitworks-copy">
-                  <p className="lp-howitworks-step-num">02</p>
-                  <h3 className="lp-howitworks-step-head">Fill in 5 minutes</h3>
-                  <p className="lp-howitworks-step-body">
-                    Smart fields, auto-formatting, Gulf-standard sections. No blank page anxiety.
-                  </p>
-                </div>
-              </div>
-
-              <div className="lp-howitworks-row">
-                <LandingPhoneMockup>
-                  <div className="lp-howitworks-ats-sheet">
-                    <div className="lp-howitworks-ats-handle" aria-hidden />
-                    <div className="lp-howitworks-ats-ring-wrap">
-                      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden>
-                        <circle
-                          cx="32"
-                          cy="32"
-                          r={HOW_IT_WORKS_ATS_RING_R}
-                          fill="none"
-                          stroke="#2A2A2A"
-                          strokeWidth="5"
-                        />
-                        <circle
-                          cx="32"
-                          cy="32"
-                          r={HOW_IT_WORKS_ATS_RING_R}
-                          fill="none"
-                          stroke="#22C55E"
-                          strokeWidth="5"
-                          strokeLinecap="round"
-                          strokeDasharray={`${0.84 * HOW_IT_WORKS_ATS_CIRC} ${HOW_IT_WORKS_ATS_CIRC}`}
-                          transform="rotate(-90 32 32)"
-                        />
-                      </svg>
-                      <span
-                        style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          top: 0,
-                          bottom: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          color: '#22C55E',
-                        }}
-                      >
-                        84
-                      </span>
-                    </div>
-                    <p className="lp-howitworks-ats-score-label">Your CV is ATS ready</p>
-                    <div className="lp-howitworks-ats-chips">
-                      <span className="lp-howitworks-ats-chip">Keywords matched ✓</span>
-                      <span className="lp-howitworks-ats-chip">Format clean ✓</span>
-                    </div>
-                  </div>
-                </LandingPhoneMockup>
-                <div className="lp-howitworks-copy">
-                  <p className="lp-howitworks-step-num">03</p>
-                  <h3 className="lp-howitworks-step-head">Download. Apply. Get hired.</h3>
-                  <p className="lp-howitworks-step-body">
-                    PDF ready in seconds. ATS-optimised for Gulf job portals. Built to land on a human desk.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <HowItWorks />
 
         {/* ── WALK-IN BAND ────────────────────────────────────────── */}
         <section
