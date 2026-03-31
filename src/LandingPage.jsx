@@ -7,6 +7,7 @@ import { useGeoContent } from './hooks/useGeoContent';
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from './ResumePreview';
 import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
 import HowItWorks from './HowItWorks';
+import CookieBanner from './components/CookieBanner';
 
 // ── SVG Icons (line style, 20×20 viewBox unless noted) ─────────────
 function SunIcon() {
@@ -1466,6 +1467,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             with, or endorsement from, any company listed.
           </p>
         </footer>
+        <CookieBanner />
       </div>
     </>
   );
