@@ -945,13 +945,13 @@ const FAB = forwardRef(function FAB(
               aria-hidden
               style={{
                 position: "absolute",
-                width: "68px",
-                height: "68px",
+                width: "72px",
+                height: "72px",
                 top: "50%",
                 left: "50%",
                 transform: "translate(-50%, -50%)",
                 pointerEvents: "none",
-                zIndex: 0,
+                zIndex: 1,
                 overflow: "visible",
               }}
             >
@@ -990,8 +990,8 @@ const FAB = forwardRef(function FAB(
                 className="cvp-fab-status-bubble"
                 style={{
                   position: "absolute",
-                  bottom: "68px",
-                  right: 0,
+                  bottom: "60px",
+                  right: "56px",
                   zIndex: 9998,
                 }}
               >
@@ -1049,8 +1049,8 @@ const FAB = forwardRef(function FAB(
                 className="cvp-fab-tip-bubble"
                 style={{
                   position: "absolute",
-                  bottom: "68px",
-                  right: "-10px",
+                  bottom: "60px",
+                  right: "0px",
                   zIndex: 9999,
                 }}
               >

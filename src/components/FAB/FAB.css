@@ -313,10 +313,21 @@
 }
 
 .cvp-fab-sticky-wrap--builder {
-  padding: 0;
+  /* SOLAR SYSTEM BOUNDARY — invisible 120x120 orbit container */
+  /* All FAB elements position:absolute inside this box */
+  /* Bulb = 3 o'clock, Bubble = 9 o'clock, Ring = centre */
+  /* To add new elements: position:absolute + coordinates below */
+  /* right:0 top:50% = 3 o'clock */
+  /* left:0 top:50% = 9 o'clock */
+  /* top:0 left:50% = 12 o'clock */
+  /* bottom:0 left:50% = 6 o'clock */
   position: relative;
-  width: fit-content;
-  max-width: 100%;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 .cvp-fab-physical {
@@ -354,11 +365,12 @@
 
 .cvp-fab-sticky-wrap--builder .cvp-fab-physical {
   position: relative;
-  z-index: 1;
   width: 56px;
   height: 56px;
   min-width: 56px;
   min-height: 56px;
+  pointer-events: auto;
+  z-index: 2;
 }
 
 /* Allow progress ring stroke transition despite .cvp-fab-layer * { transition: none } */
@@ -444,7 +456,7 @@
 
 .cvp-fab-bulb {
   position: absolute;
-  right: -18px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
   width: 24px;
@@ -458,6 +470,7 @@
   cursor: pointer;
   color: rgba(255, 255, 255, 0.35);
   z-index: 10;
+  pointer-events: auto;
   padding: 0;
   transition:
     border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
