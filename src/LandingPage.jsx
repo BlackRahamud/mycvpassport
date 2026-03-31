@@ -113,9 +113,6 @@ const PROBLEM_CARDS = [
   { icon: <StarAchieveIcon />,   title: 'Weak achievements', desc: 'Generic job duties instead of quantified results. You look identical to every other applicant.' },
 ];
 
-const HOW_IT_WORKS_ATS_RING_R = 22;
-const HOW_IT_WORKS_ATS_CIRC = 2 * Math.PI * HOW_IT_WORKS_ATS_RING_R;
-
 function scrollToLandingSection(id) {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -193,53 +190,6 @@ function LandingTemplateThumb({ template }) {
         }}
       >
         <ResumePreview cv={LANDING_THUMB_CV} template={template} />
-      </div>
-    </div>
-  );
-}
-
-function LandingPhoneMockup({ children }) {
-  return (
-    <div className="lp-phone-mockup">
-      <div className="lp-phone-notch" aria-hidden>
-        <div className="lp-phone-notch-dot" />
-      </div>
-      <div className="lp-phone-screen">{children}</div>
-    </div>
-  );
-}
-
-/** S5 Step 1 — ResizeObserver on outer only; scale from useMemo([phoneInnerWidth]). */
-function LandingHowItWorksPhoneCv() {
-  const wrapRef = useRef(null);
-  const [phoneInnerWidth, setPhoneInnerWidth] = useState(0);
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return undefined;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect?.width;
-      if (w == null || w < 1) return;
-      setPhoneInnerWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const scale = useMemo(() => {
-    const w = phoneInnerWidth > 0 ? phoneInnerWidth : A4_PREVIEW_WIDTH_PX;
-    return w / A4_PREVIEW_WIDTH_PX;
-  }, [phoneInnerWidth]);
-
-  return (
-    <div ref={wrapRef} className="lp-howitworks-phone-cv-outer">
-      <div
-        className="lp-howitworks-phone-cv-inner"
-        style={{
-          transform: `scale(${scale})`,
-        }}
-      >
-        <ResumePreview cv={LANDING_THUMB_CV} template={TEMPLATES[0]} />
       </div>
     </div>
   );
