@@ -255,6 +255,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   );
   const [builderTab, setBuilderTab] = useState("content");
   const [openSection, setOpenSection] = useState(null);
+  const [activeSection, setActiveSection] = useState(null);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [fabSheet, setFabSheet] = useState(null);
   const [previewFadeOut, setPreviewFadeOut] = useState(false);
@@ -307,6 +308,22 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setTemplateSessionApplyCount(0);
     }
   }, [builderTab]);
+
+  useEffect(() => {
+    if (openSection == null) {
+      setActiveSection(null);
+      return;
+    }
+    if (openSection === "skills") {
+      setActiveSection("competencies");
+      return;
+    }
+    if (openSection === "summary" || openSection === "experience" || openSection === "education" || openSection === "languages") {
+      setActiveSection(openSection);
+      return;
+    }
+    setActiveSection(null);
+  }, [openSection]);
 
   useEffect(() => {
     const st = location.state && typeof location.state === "object" ? location.state : null;
@@ -1040,6 +1057,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <FAB
                 ref={fabRef}
                 variant="builder"
+                activeSection={activeSection}
                 tabKey={builderTab}
                 atsScore={score}
                 selectedTemplateId={selectedTemplate?.id}
