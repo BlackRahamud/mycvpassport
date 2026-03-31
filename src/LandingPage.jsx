@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ReactComponent as FalconLogo } from './logo.svg';
+import CVPassportLogo from './components/CVPassportLogo';
 import CVPlayCard from './components/CVPlayCard';
 import { useGeoContent } from './hooks/useGeoContent';
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from './ResumePreview';
@@ -734,20 +734,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}
             aria-label="CVPassport home"
           >
-            <FalconLogo
-              width={28}
-              height={28}
-              aria-hidden="true"
-              style={{
-                display: 'block',
-                flexShrink: 0,
-                color: T.textPrimary,
-                background: 'none',
-                border: 'none',
-                boxShadow: 'none',
-              }}
-            />
-            <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.5px', color: T.textPrimary }}>CVPassport</span>
+            <CVPassportLogo height={40} />
           </Link>
 
           {/* Center nav — desktop only */}
