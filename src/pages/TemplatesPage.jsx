@@ -196,9 +196,20 @@ function BuilderTemplatesTab({
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
     const open = confirmOpen && pendingTemplate != null;
-    if (open) document.body.classList.add("cvp-templates-preview-modal-open");
-    else document.body.classList.remove("cvp-templates-preview-modal-open");
-    return () => document.body.classList.remove("cvp-templates-preview-modal-open");
+    if (open) {
+      document.body.classList.add("cvp-templates-preview-modal-open");
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    } else {
+      document.body.classList.remove("cvp-templates-preview-modal-open");
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    }
+    return () => {
+      document.body.classList.remove("cvp-templates-preview-modal-open");
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    };
   }, [confirmOpen, pendingTemplate]);
 
   useEffect(() => {
@@ -212,6 +223,8 @@ function BuilderTemplatesTab({
   const closePreviewModal = () => {
     onConfirmOpenChange(false);
     onPendingTemplateChange(null);
+    document.body.style.overflow = "";
+    document.body.style.touchAction = "";
   };
 
   const previewCv = isCvDataEmptyForTemplateApply(resume) ? TEMPLATE_PREVIEW_DUMMY_CV : resume;

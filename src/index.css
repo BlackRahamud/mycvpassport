@@ -459,6 +459,11 @@ input:focus, textarea:focus {
     inset: 0;
     overflow: hidden;
   }
+
+  .cvp-templates-preview-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }
 
 /* Templates tab — ATS positioning banner (builder desktop/mobile + /templates browse) */
@@ -630,6 +635,17 @@ input:focus, textarea:focus {
   z-index: 1200;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(6px);
+  visibility: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), visibility 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cvp-templates-preview-backdrop.cvp-templates-preview-modal-open,
+body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
+  visibility: visible;
+  pointer-events: all;
+  opacity: 1;
 }
 
 .cvp-templates-preview-root {
