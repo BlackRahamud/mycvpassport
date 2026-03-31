@@ -14,6 +14,8 @@ import ATSPage from "./pages/ATSPage";
 import WalkInPage from "./pages/WalkInPage";
 import AccountPage from "./pages/AccountPage";
 import TemplatesPage from "./pages/TemplatesPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import MobileTabBar from "./components/MobileTabBar";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
@@ -198,6 +200,8 @@ export default function App() {
               <Route path="/ats" element={<ATSPage onBack={() => navigate(user ? "/dashboard" : "/")} />} />
               <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
               <Route path="/templates" element={<TemplatesBrowseLayout />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} fabGuideTab={location.state?.fabGuideTab} />
