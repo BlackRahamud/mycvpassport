@@ -1,6 +1,11 @@
 /* FAB suite: no transition:all; keyframes + explicit transform transitions only where specified */
-.cvp-fab-layer,
-.cvp-fab-layer * {
+/* FLICKER SHIELD — protects CV preview from transition artifacts */
+/* TO EXTEND EXCLUSIONS: add :not(.your-class) to selector below */
+/* DO NOT remove this rule — CV preview rendering depends on it */
+.cvp-fab-layer {
+  transition: none !important;
+}
+.cvp-fab-layer *:not(.cvp-fab-bulb):not(.cvp-fab-progress-svg):not(.cvp-fab-status-bubble):not(.cvp-fab-tip-bubble):not(.cvp-fab-bulb--lit):not(.cvp-fab-bulb--flicker) {
   transition: none !important;
 }
 
