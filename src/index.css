@@ -417,6 +417,29 @@ input:focus, textarea:focus {
   white-space: nowrap;
 }
 
+/* MOBILE TEMPLATE FIX - DO NOT MODIFY WITHOUT READING THIS BLOCK */
+/* This fix is intentionally isolated. Desktop styles are untouched. */
+/* Changing card width, overflow, or scale formula will break thumbnails */
+@media (max-width: 768px) {
+  .cvp-templates-grid .cvp-templates-card {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden !important;
+  }
+
+  /* Thumb height = width × (1123/794), matching JS scale(containerWidth/794) + 1123px inner */
+  .cvp-templates-card-thumb {
+    padding-bottom: 0;
+    aspect-ratio: 794 / 1123;
+    height: auto;
+  }
+
+  .cvp-templates-card-thumb-inner,
+  .cvp-templates-card-thumb-scale-outer {
+    overflow: visible;
+  }
+}
+
 /* Templates tab — ATS positioning banner (builder desktop/mobile + /templates browse) */
 .cvp-templates-ats-banner {
   background: #141414;
