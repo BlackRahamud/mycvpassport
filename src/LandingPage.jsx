@@ -99,6 +99,30 @@ function CheckIcon() {
   );
 }
 
+function FaqChevronIcon({ open }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      style={{
+        flexShrink: 0,
+        color: 'var(--text-secondary)',
+        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+        transition: 'transform 200ms cubic-bezier(0.4,0,0.2,1)',
+      }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
 function WhatsAppIcon({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -158,6 +182,45 @@ const LP_TEMPLATE_STRIP = [
   { name: 'Executive', tier: 'PREMIUM', template: TEMPLATES[3] },
 ];
 
+const FAQ_ITEMS = [
+  {
+    q: 'Is CVPassport really free?',
+    a: 'Yes — Templates 1, 2, and 3 are completely free. No credit card, no trial period. You can build and download a clean, professional CV right now at no cost. Premium templates and tools like ATS scoring and the Cover Letter Generator are available as affordable one-time or monthly options.',
+  },
+  {
+    q: "I'm not based in the UAE. Can I still use it?",
+    a: 'Absolutely. CVPassport works for job seekers across the GCC and India. The platform automatically detects your region and adjusts the currency, tone guidance, and formatting to match local hiring norms.',
+  },
+  {
+    q: 'What format does my CV download in?',
+    a: 'Your CV downloads as a PDF — the format accepted by every ATS, recruiter portal, and email attachment. The file is cleanly formatted and ready to send without any editing.',
+  },
+  {
+    q: 'Will my CV pass ATS screening?',
+    a: "CVPassport's ATS Score tool checks your CV against common screening criteria — keyword density, section labelling, formatting flags — and gives you a score with specific suggestions. No tool can guarantee ATS success, but ours gives you a clear picture of where you stand before you apply.",
+  },
+  {
+    q: 'What is the Cover Letter Generator?',
+    a: "It's a structured tool that builds a tailored cover letter based on your role, company, and location. UAE output follows Gulf professional tone. India output follows a formal subcontinent style. Available as a small one-time unlock.",
+  },
+  {
+    q: 'What is Walk-In Mode?',
+    a: 'A rapid 6-field CV builder designed for walk-in interviews — common in UAE hospitality, retail, and logistics. You fill in the basics, download instantly, and walk in ready.',
+  },
+  {
+    q: 'Is my data safe?',
+    a: 'Your data is stored securely via Supabase infrastructure hosted in Singapore (AWS ap-southeast-1). We do not sell your data. We do not share it with recruiters or third parties. You can request deletion at any time by emailing support@mycvpassport.com.',
+  },
+  {
+    q: 'What happens if I pay and something goes wrong?',
+    a: "Email support@mycvpassport.com with your LemonSqueezy order ID and we'll sort it. All payments are processed securely through LemonSqueezy — we never see your card details.",
+  },
+  {
+    q: 'Can I use CVPassport on my phone?',
+    a: 'Yes. CVPassport is built mobile-first. The full builder, templates, and download flow work on any smartphone browser — no app install needed.',
+  },
+];
+
 function LandingTemplateThumb({ template }) {
   const wrapRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -205,6 +268,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
     try { return localStorage.getItem('cvp-theme') || 'dark'; } catch { return 'dark'; }
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [faqOpenIndex, setFaqOpenIndex] = useState(null);
 
   const isDark = theme === 'dark';
 
@@ -258,7 +322,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
   /** Nav items: Templates = in-page anchor; ATS/Pricing via React Router. */
   const handleLandingNav = (item) => {
-    if (item === 'Templates') scrollToLandingSection('lp-templates');
+    if (item === 'Templates') scrollToLandingSection('templates');
     else if (item === 'ATS Check') navigate('/ats');
     else if (item === 'Pricing') navigate('/pricing');
   };
@@ -496,6 +560,131 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           max-width: 480px;
           margin-left: auto;
           margin-right: auto;
+        }
+
+        .lp-faq-section {
+          max-width: 720px;
+          margin: 0 auto;
+          padding: 80px 24px;
+        }
+        .lp-faq-heading {
+          font-size: 28px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin: 0 0 40px;
+        }
+        .lp-faq-item {
+          border-bottom: 1px solid var(--border-default);
+        }
+        .lp-faq-q {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          padding: 20px 0;
+          margin: 0;
+          background: none;
+          border: none;
+          font-family: inherit;
+          text-align: left;
+        }
+        .lp-faq-q-text {
+          font-size: 15px;
+          color: var(--text-primary);
+          font-weight: 500;
+          padding-right: 16px;
+        }
+        .lp-faq-a {
+          font-size: 14px;
+          color: var(--text-secondary);
+          line-height: 1.6;
+          padding-bottom: 20px;
+          margin: 0;
+        }
+
+        .lp-site-footer {
+          background: #0A0A0A;
+          border-top: 1px solid #2A2A2A;
+          padding: 48px 24px 32px;
+          --text-secondary: #A0A0A0;
+          --border-default: #2A2A2A;
+        }
+        .lp-site-footer-inner {
+          max-width: 1100px;
+          margin: 0 auto;
+        }
+        .lp-site-footer-row1 {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 40px;
+          flex-wrap: wrap;
+        }
+        .lp-site-footer-brand-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #FFF;
+          margin: 0;
+        }
+        .lp-site-footer-brand-tag {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin: 8px 0 0;
+        }
+        .lp-site-footer-cols {
+          display: flex;
+          flex-direction: row;
+          gap: 40px;
+          flex-wrap: wrap;
+        }
+        .lp-site-footer-col-h {
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-secondary);
+          opacity: 0.5;
+          margin: 0 0 12px;
+          font-weight: 500;
+        }
+        .lp-site-footer-link {
+          font-size: 13px;
+          color: var(--text-secondary);
+          text-decoration: none;
+          display: block;
+          line-height: 2;
+          transition: color 150ms ease;
+        }
+        .lp-site-footer-link:hover {
+          color: #FFF;
+        }
+        .lp-site-footer-row2 {
+          margin-top: 40px;
+          padding-top: 24px;
+          border-top: 1px solid #2A2A2A;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .lp-site-footer-row2 p {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin: 0;
+        }
+        @media (max-width: 768px) {
+          .lp-site-footer-row1 {
+            flex-direction: column;
+          }
+          .lp-site-footer-cols {
+            flex-direction: column;
+            gap: 24px;
+          }
+          .lp-site-footer-row2 {
+            flex-direction: column;
+            text-align: center;
+          }
         }
 
         .lp-footer-disclaimer {
@@ -763,7 +952,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <button
                 type="button"
                 className="cvp-walkin-chip"
-                onClick={() => scrollToLandingSection('lp-walkin')}
+                onClick={() => scrollToLandingSection('walkin')}
                 style={{ marginBottom: '16px' }}
               >
                 ⚡ Walk-in tomorrow? Start building now
@@ -837,7 +1026,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <button
                 type="button"
                 className="lp-ghost-btn"
-                onClick={() => scrollToLandingSection('lp-templates')}
+                onClick={() => scrollToLandingSection('templates')}
                 style={{
                   background:   'transparent',
                   color:        T.textPrimary,
@@ -944,6 +1133,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             <div className="lp-feature-grid">
               {/* Card 1 — ATS */}
               <div
+                id="ats"
                 className="lp-card"
                 style={{
                   background: isDark ? '#141414' : '#F5F5F0',
@@ -1030,6 +1220,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
               {/* Card 2 — Cover letter (always dark) */}
               <div
+                id="cover-letter"
                 className="lp-card"
                 style={{
                   background: '#0F1F1A',
@@ -1167,7 +1358,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </section>
 
-        <section id="lp-templates" className="lp-sec lp-templates">
+        <section id="templates" className="lp-sec lp-templates">
           <h2 className="lp-section-title">
             See what your CV will look like
           </h2>
@@ -1257,7 +1448,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
         {/* ── WALK-IN BAND ────────────────────────────────────────── */}
         <section
-          id="lp-walkin"
+          id="walkin"
           className="lp-walkin-sec"
           style={{
             background:   T.walkInBg,
@@ -1467,6 +1658,78 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             with, or endorsement from, any company listed.
           </p>
         </footer>
+
+        <section id="faq" className="lp-faq-section" aria-labelledby="lp-faq-heading">
+          <h2 id="lp-faq-heading" className="lp-faq-heading">
+            Questions people actually ask
+          </h2>
+          {FAQ_ITEMS.map((item, i) => {
+            const open = faqOpenIndex === i;
+            return (
+              <div key={item.q} className="lp-faq-item">
+                <button
+                  type="button"
+                  className="lp-faq-q"
+                  aria-expanded={open}
+                  onClick={() => setFaqOpenIndex((prev) => (prev === i ? null : i))}
+                >
+                  <span className="lp-faq-q-text">{item.q}</span>
+                  <FaqChevronIcon open={open} />
+                </button>
+                <div
+                  style={{
+                    maxHeight: open ? '400px' : '0',
+                    overflow: 'hidden',
+                    opacity: open ? 1 : 0,
+                    transition: 'max-height 300ms cubic-bezier(0.4,0,0.2,1), opacity 300ms cubic-bezier(0.4,0,0.2,1)',
+                  }}
+                >
+                  <p className="lp-faq-a">{item.a}</p>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
+        <footer className="lp-site-footer" role="contentinfo">
+          <div className="lp-site-footer-inner">
+            <div className="lp-site-footer-row1">
+              <div>
+                <p className="lp-site-footer-brand-title">CVPassport</p>
+                <p className="lp-site-footer-brand-tag">Built for South Asian job seekers in the Gulf.</p>
+              </div>
+              <nav className="lp-site-footer-cols" aria-label="Footer">
+                <div>
+                  <p className="lp-site-footer-col-h">Product</p>
+                  <a className="lp-site-footer-link" href="#templates">Templates</a>
+                  <a className="lp-site-footer-link" href="#ats">ATS Score</a>
+                  <a className="lp-site-footer-link" href="#cover-letter">Cover Letter</a>
+                  <a className="lp-site-footer-link" href="#walkin">Walk-In Mode</a>
+                </div>
+                <div>
+                  <p className="lp-site-footer-col-h">Legal</p>
+                  <a className="lp-site-footer-link" href="/terms">Terms of Service</a>
+                  <a className="lp-site-footer-link" href="/privacy">Privacy Policy</a>
+                  <a className="lp-site-footer-link" href="/privacy#cookies">Cookie Policy</a>
+                </div>
+                <div>
+                  <p className="lp-site-footer-col-h">Support</p>
+                  <a className="lp-site-footer-link" href="mailto:support@mycvpassport.com">support@mycvpassport.com</a>
+                  <a className="lp-site-footer-link" href="#faq">FAQ</a>
+                </div>
+              </nav>
+            </div>
+            <div className="lp-site-footer-row2">
+              <p>
+                © 2026 CVPassport. All rights reserved.
+                <br />
+                Operated by Junaid Mujtaba Khan, Dubai, UAE.
+              </p>
+              <p>Payments by LemonSqueezy · Infrastructure by Supabase</p>
+            </div>
+          </div>
+        </footer>
+
         <CookieBanner />
       </div>
     </>
