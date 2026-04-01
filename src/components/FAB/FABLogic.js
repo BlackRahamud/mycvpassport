@@ -5,7 +5,7 @@ export const ANON_DOWNLOADS_KEY = "cvp_anon_downloads";
 
 const FREE_DOWNLOAD_LIMIT = 3;
 
-/** @type {{ lastAction: string | null, lastActionAt: string | null, lastTemplateId: string | null, lastTabVisited: string | null, sessionCount: number, lastAtsScore: number | null, hasVisitedCoverLetter: boolean, pendingAtsMilestone: 70 | 90 | null }} */
+/** @type {{ lastAction: string | null, lastActionAt: string | null, lastTemplateId: string | null, lastTabVisited: string | null, sessionCount: number, lastAtsScore: number | null, hasVisitedCoverLetter: boolean, pendingAtsMilestone: 70 | 90 | null, firstVisitDone: boolean }} */
 const DEFAULT_FAB_MEMORY = {
   lastAction: null,
   lastActionAt: null,
@@ -15,6 +15,7 @@ const DEFAULT_FAB_MEMORY = {
   lastAtsScore: null,
   hasVisitedCoverLetter: false,
   pendingAtsMilestone: null,
+  firstVisitDone: false,
 };
 
 /** Maps Progress Coach chip labels → builder section keys (or "personal" for the always-visible card). */
@@ -83,6 +84,7 @@ function parseFabMemory(raw) {
       lastAtsScore: lastAtsNum,
       hasVisitedCoverLetter: o.hasVisitedCoverLetter === true,
       pendingAtsMilestone: pendingOk,
+      firstVisitDone: o.firstVisitDone === true,
     };
   } catch {
     return { ...DEFAULT_FAB_MEMORY };
@@ -107,6 +109,9 @@ export function writeFabMemory(update) {
   const cur = parseFabMemory(typeof localStorage !== "undefined" ? localStorage.getItem(FAB_MEMORY_KEY) : null);
   const next = { ...cur, ...update };
   writeFabMemoryRaw(next);
+  if (typeof window !== "undefined" && update.lastAction === "downloaded") {
+    window.dispatchEvent(new CustomEvent("cvp-fab-cv-downloaded"));
+  }
 }
 
 /**

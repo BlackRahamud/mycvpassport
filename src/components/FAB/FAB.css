@@ -373,9 +373,26 @@
 
 /* Allow progress ring stroke transition despite .cvp-fab-layer * { transition: none } */
 .cvp-fab-sticky-wrap--builder .cvp-fab-progress-svg .cvp-fab-progress-ring {
+  will-change: transform;
   transition:
     stroke-dashoffset 600ms cubic-bezier(0.4, 0, 0.2, 1),
     stroke 600ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.fab-ring--click {
+  animation: fabRingClick 120ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes fabRingClick {
+  0% {
+    transform: scale(1);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .cvp-fab-bouncing .cvp-fab-physical {
@@ -526,6 +543,29 @@
 
 .cvp-fab-bulb--flicker {
   animation: cvpBulbFlicker 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes bulbEntrance {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  75% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.cvp-fab-bulb--entrance {
+  animation: bulbEntrance 300ms ease-in-out forwards;
 }
 
 @keyframes cvpBulbDimOut {
@@ -751,4 +791,75 @@
 
 .cvp-fab-sheet-gotit-bar--ats-ghost .cvp-fab-sheet-gotit-btn--ats-ghost:hover {
   color: #a0a0a0 !important;
+}
+
+/* Milestone toast (Apple Watch style, fixed left of FAB) */
+.fab-milestone-popup {
+  position: fixed;
+  bottom: 28px;
+  /* FAB sticky right: 20px + 72px ring + 16px gap */
+  right: calc(20px + 72px + 16px);
+  z-index: 70;
+  max-width: 220px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  background: #141414;
+  border: 1px solid var(--border-default, #2a2a2a);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 13px;
+  will-change: transform;
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+  transition:
+    opacity 400ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fab-milestone-popup__label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f59e0b;
+  margin-bottom: 6px;
+}
+
+.fab-milestone-popup__text {
+  margin: 0;
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+.fab-milestone-popup--in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.fab-milestone-popup--out {
+  opacity: 0;
+  transform: translateY(8px) scale(1);
+  transition:
+    opacity 200ms ease-in,
+    transform 200ms ease-in;
+}
+
+.fab--victory {
+  animation: fabVictory 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes fabVictory {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0px #22c55e);
+  }
+  40% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 16px #22c55e);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0px #22c55e);
+  }
 }

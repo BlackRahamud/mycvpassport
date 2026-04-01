@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./FAB.css";
 import FABMenu from "./FABMenu";
 import FABSheet from "./FABSheet";
+import FABMilestonePopup from "./FABMilestonePopup";
 import { getFabTabConfig, ATS_HIGH_SCORE_GUIDE } from "./FABContent";
 import {
   readFabSeen,
@@ -14,6 +15,7 @@ import {
   getDownloadGatekeeperData,
   GATEKEEPER_FALLBACK,
   getFabMemory,
+  writeFabMemory,
 } from "./FABLogic";
 
 const FAB_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * 30;
@@ -46,23 +48,14 @@ const SECTION_TIPS = {
   ],
 };
 
-const MILESTONE_BUBBLE_COPY = {
-  25: {
-    title: "Great start.",
-    sub: "Your summary is looking strong — now tell us where you've worked.",
-  },
-  50: {
-    title: "Halfway there.",
-    sub: "The hard part is done. Keep going.",
-  },
-  75: {
-    title: "Almost ready.",
-    sub: "A few more details and your CV will stand out.",
-  },
-  100: {
-    title: "That's your CV done.",
-    sub: "Now let's make sure it gets seen — run your ATS scan.",
-  },
+const MILESTONE_COPY = {
+  0: "Welcome. Let's build your standout CV. Start with your Summary.",
+  20: "Good start. Fill in your experience next.",
+  40: "Halfway there. Add your skills.",
+  60: "Looking strong. Education next.",
+  80: "Almost done. One section left.",
+  90: "So close. Final push.",
+  100: "CV complete. Download it now. ✓",
 };
 
 function fabRingColor(p) {
@@ -179,7 +172,6 @@ const FAB = forwardRef(function FAB(
   ref
 ) {
   const navigate = useNavigate();
-  const tipTriggerRef = useRef(null);
   const [mobile, setMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -214,12 +206,17 @@ const FAB = forwardRef(function FAB(
 
   const idleTimer = useRef(null);
   const [isGhostPulsing, setIsGhostPulsing] = useState(false);
+  const ghostPulseKillArmedRef = useRef(false);
 
   const progressRingRef = useRef(null);
   const prevProgressRef = useRef(null);
-  const shownMilestonesRef = useRef(new Set());
+  const prevRingColorRef = useRef(null);
+  const [fabRingClickClass, setFabRingClickClass] = useState("");
+  const [fabVictoryClass, setFabVictoryClass] = useState("");
+  const [milestoneMessage, setMilestoneMessage] = useState(null);
+  const [milestoneVisible, setMilestoneVisible] = useState(false);
+  const [bulbEntrance, setBulbEntrance] = useState(false);
   const bounceTimeoutRef = useRef(null);
-  const bubbleDismissTimeoutRef = useRef(null);
   const bulbSectionTimerRef = useRef(null);
   const bulbVisibleTimerRef = useRef(null);
   const tipDismissTimerRef = useRef(null);
@@ -230,9 +227,6 @@ const FAB = forwardRef(function FAB(
   const tipIndexRef = useRef({});
 
   const [fabBouncing, setFabBouncing] = useState(false);
-  const [isBubbleVisible, setIsBubbleVisible] = useState(false);
-  const [bubbleTitle, setBubbleTitle] = useState("");
-  const [bubbleSub, setBubbleSub] = useState("");
   const [isBulbVisible, setIsBulbVisible] = useState(false);
   const [isBulbLit, setIsBulbLit] = useState(false);
   const [isBulbFlickering, setIsBulbFlickering] = useState(false);
@@ -243,6 +237,7 @@ const FAB = forwardRef(function FAB(
 
   const resetTimer = useCallback(() => {
     clearTimeout(idleTimer.current);
+    ghostPulseKillArmedRef.current = false;
     setIsGhostPulsing(false);
     idleTimer.current = setTimeout(() => {
       setIsGhostPulsing(true);
@@ -265,9 +260,37 @@ const FAB = forwardRef(function FAB(
   }, [resetTimer]);
 
   useEffect(() => {
+    if (isGhostPulsing) ghostPulseKillArmedRef.current = true;
+  }, [isGhostPulsing]);
+
+  useEffect(() => {
+    const killGhostOnce = () => {
+      if (!ghostPulseKillArmedRef.current) return;
+      ghostPulseKillArmedRef.current = false;
+      setIsGhostPulsing(false);
+    };
+    document.addEventListener("mousedown", killGhostOnce, { passive: true });
+    document.addEventListener("touchstart", killGhostOnce, { passive: true });
+    document.addEventListener("keydown", killGhostOnce, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", killGhostOnce);
+      document.removeEventListener("touchstart", killGhostOnce);
+      document.removeEventListener("keydown", killGhostOnce);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onCvDownloaded = () => {
+      setFabVictoryClass("fab--victory");
+      window.setTimeout(() => setFabVictoryClass(""), 600);
+    };
+    window.addEventListener("cvp-fab-cv-downloaded", onCvDownloaded);
+    return () => window.removeEventListener("cvp-fab-cv-downloaded", onCvDownloaded);
+  }, []);
+
+  useEffect(() => {
     return () => {
       clearTimeout(bounceTimeoutRef.current);
-      clearTimeout(bubbleDismissTimeoutRef.current);
       clearTimeout(bulbSectionTimerRef.current);
       clearTimeout(bulbVisibleTimerRef.current);
       /* Unmount: clear latest timer ids from refs */
@@ -283,6 +306,7 @@ const FAB = forwardRef(function FAB(
   useEffect(() => {
     if (variant !== "builder") {
       prevProgressRef.current = null;
+      prevRingColorRef.current = null;
     }
   }, [variant]);
 
@@ -292,6 +316,14 @@ const FAB = forwardRef(function FAB(
 
     if (prevProgressRef.current === null) {
       prevProgressRef.current = p;
+      if (p === 0) {
+        const mem = getFabMemory();
+        if (!mem.firstVisitDone) {
+          setMilestoneMessage(MILESTONE_COPY[0]);
+          setMilestoneVisible(true);
+          writeFabMemory({ firstVisitDone: true });
+        }
+      }
       return undefined;
     }
 
@@ -309,27 +341,31 @@ const FAB = forwardRef(function FAB(
       }
     }
 
-    let crossedMilestone = null;
-    for (const m of [25, 50, 75, 100]) {
-      if (prev < m && p >= m && !shownMilestonesRef.current.has(m)) {
-        shownMilestonesRef.current.add(m);
-        crossedMilestone = m;
-      }
-    }
-    if (crossedMilestone != null) {
-      const copy = MILESTONE_BUBBLE_COPY[crossedMilestone];
-      if (copy) {
-        setBubbleTitle(copy.title);
-        setBubbleSub(copy.sub);
-        setIsBubbleVisible(true);
-        clearTimeout(bubbleDismissTimeoutRef.current);
-        bubbleDismissTimeoutRef.current = setTimeout(() => {
-          setIsBubbleVisible(false);
-        }, 5000);
+    for (const m of [20, 40, 60, 80, 90, 100]) {
+      if (prev < m && p >= m) {
+        setMilestoneMessage(MILESTONE_COPY[m]);
+        setMilestoneVisible(true);
       }
     }
 
     prevProgressRef.current = p;
+    return undefined;
+  }, [cvCompletionProgress, variant]);
+
+  useEffect(() => {
+    if (variant !== "builder") return undefined;
+    const p = cvCompletionProgress?.percent ?? 0;
+    const c = fabRingColor(p);
+    if (prevRingColorRef.current === null) {
+      prevRingColorRef.current = c;
+      return undefined;
+    }
+    if (c !== prevRingColorRef.current) {
+      prevRingColorRef.current = c;
+      setFabRingClickClass("fab-ring--click");
+      const t = window.setTimeout(() => setFabRingClickClass(""), 120);
+      return () => clearTimeout(t);
+    }
     return undefined;
   }, [cvCompletionProgress, variant]);
 
@@ -352,6 +388,8 @@ const FAB = forwardRef(function FAB(
       setIsBulbLit(true);
       setIsBulbFlickering(false);
       setIsBulbVisible(true);
+      setBulbEntrance(true);
+      window.setTimeout(() => setBulbEntrance(false), 300);
       bulbVisibleTimerRef.current = setTimeout(() => {
         setIsBulbVisible(false);
       }, 8000);
@@ -427,7 +465,7 @@ const FAB = forwardRef(function FAB(
     const onOutside = (e) => {
       if (
         (bulbRef.current && bulbRef.current.contains(e.target)) ||
-        (tipTriggerRef.current && tipTriggerRef.current.contains(e.target))
+        (anchorRef.current && anchorRef.current.contains(e.target))
       ) return;
       setIsTipVisible(false);
     };
@@ -868,6 +906,9 @@ const FAB = forwardRef(function FAB(
     [atsScore, onOpenCvPreview, onOpenTemplatePreview, onPreviewCv, openGuideSheet, runProAtsNav, tabKey, variant]
   );
 
+  const dismissMilestonePopup = useCallback(() => setMilestoneVisible(false), []);
+  const clearMilestoneMessageAfterExit = useCallback(() => setMilestoneMessage(null), []);
+
   const onFabActivate = useCallback(() => {
     const m = bumpFabSessionOpen();
     if (process.env.NODE_ENV === "development") {
@@ -888,16 +929,6 @@ const FAB = forwardRef(function FAB(
     }
     setMenuOpen(true);
   }, [variant, tabKey, openTemplatesSmartSheet, openGuideSheet, clearTplTimers]);
-
-  const triggerTipManually = useCallback(() => {
-    const section = fabNormalizeSection(activeSection);
-    const tips = SECTION_TIPS[section] ?? SECTION_TIPS.summary;
-    const idx = tipIndexRef.current[section] ?? 0;
-    setCurrentTip(tips[idx % tips.length]);
-    tipIndexRef.current = { ...tipIndexRef.current, [section]: idx + 1 };
-    setIsTipVisible(true);
-    clearTimeout(tipDismissTimerRef.current);
-  }, [activeSection]);
 
   const handleBulbTap = useCallback(() => {
     clearTimeout(bulbVisibleTimerRef.current);
@@ -949,8 +980,17 @@ const FAB = forwardRef(function FAB(
     <>
       <div
         ref={anchorRef}
-        className={`cvp-fab-layer cvp-fab-sticky-wrap${sheetOpen ? " cvp-fab-sheet-open" : ""}${isGhostPulsing ? " pulse-ghost" : ""}${variant === "builder" && fabBouncing ? " cvp-fab-bouncing" : ""}`}
-        style={{ willChange: "transform, opacity" }}
+        className={[
+          "cvp-fab-layer",
+          "cvp-fab-sticky-wrap",
+          sheetOpen ? "cvp-fab-sheet-open" : "",
+          isGhostPulsing ? "pulse-ghost" : "",
+          variant === "builder" && fabBouncing ? "cvp-fab-bouncing" : "",
+          fabVictoryClass,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={{ willChange: "transform" }}
       >
         {variant === "builder" ? (
           <div className="cvp-fab-sticky-wrap--builder">
@@ -971,20 +1011,22 @@ const FAB = forwardRef(function FAB(
               }}
             >
               <circle cx="34" cy="34" r="30" fill="none" stroke="#2A2A2A" strokeWidth="2" />
-              <circle
-                ref={progressRingRef}
-                className="cvp-fab-progress-ring"
-                cx="34"
-                cy="34"
-                r="30"
-                fill="none"
-                stroke={ringColor}
-                strokeWidth="2"
-                strokeDasharray={FAB_PROGRESS_CIRCUMFERENCE}
-                strokeDashoffset={ringOffset}
-                strokeLinecap="round"
-                transform="rotate(-90 34 34)"
-              />
+              <g transform="rotate(-90 34 34)">
+                <circle
+                  ref={progressRingRef}
+                  className={`cvp-fab-progress-ring${fabRingClickClass ? ` ${fabRingClickClass}` : ""}`.trim()}
+                  cx="34"
+                  cy="34"
+                  r="30"
+                  fill="none"
+                  stroke={ringColor}
+                  strokeWidth="2"
+                  strokeDasharray={FAB_PROGRESS_CIRCUMFERENCE}
+                  strokeDashoffset={ringOffset}
+                  strokeLinecap="round"
+                  style={{ transformOrigin: "34px 34px" }}
+                />
+              </g>
             </svg>
             <FABButton
               onClick={onFabActivate}
@@ -1000,24 +1042,6 @@ const FAB = forwardRef(function FAB(
                 }
               }}
             />
-            {isBubbleVisible ? (
-              <div
-                className="cvp-fab-status-bubble"
-                style={{
-                  position: "absolute",
-                  bottom: "60px",
-                  right: "56px",
-                  zIndex: 9998,
-                }}
-              >
-                <p className="cvp-fab-bubble-title">{bubbleTitle}</p>
-                <p className="cvp-fab-bubble-sub">{bubbleSub}</p>
-                <div className="cvp-fab-bubble-divider" />
-                <p className="cvp-fab-bubble-tip-link" ref={tipTriggerRef} onClick={() => triggerTipManually()}>
-                  Feeling stuck? Get a tip →
-                </p>
-              </div>
-            ) : null}
             <div
               ref={bulbRef}
               className="cvp-fab-bulb-cluster"
@@ -1029,7 +1053,7 @@ const FAB = forwardRef(function FAB(
             >
               <button
                 type="button"
-                className={`cvp-fab-bulb${isBulbLit ? " cvp-fab-bulb--lit" : ""}${isBulbFlickering ? " cvp-fab-bulb--flicker" : ""}`}
+                className={`cvp-fab-bulb${isBulbLit ? " cvp-fab-bulb--lit" : ""}${isBulbFlickering ? " cvp-fab-bulb--flicker" : ""}${bulbEntrance ? " cvp-fab-bulb--entrance" : ""}`.trim()}
                 onClick={handleBulbTap}
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
@@ -1090,6 +1114,15 @@ const FAB = forwardRef(function FAB(
           />
         )}
       </div>
+
+      {variant === "builder" ? (
+        <FABMilestonePopup
+          message={milestoneMessage}
+          visible={milestoneVisible}
+          onDismiss={dismissMilestonePopup}
+          onExitComplete={clearMilestoneMessageAfterExit}
+        />
+      ) : null}
 
       <FABMenu open={menuOpen} onClose={() => setMenuOpen(false)} options={config.menuOptions} anchorRef={anchorRef} onSelect={handleMenuPick} />
 
