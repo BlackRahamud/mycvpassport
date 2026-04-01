@@ -24,56 +24,6 @@ const BG = "#FFFFFF";
 const FONT =
   'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
-/** @param {string} [raw] */
-function parseTechnicalSkillsGrouped(raw) {
-  if (!raw || typeof raw !== "string") return [];
-  const t = raw.trim();
-  if (!t) return [];
-
-  const out = [];
-  const pushGroup = (category, items) => {
-    const clean = items.map((s) => s.trim()).filter(Boolean);
-    if (!clean.length) return;
-    out.push({
-      category: category || "Technical Skills",
-      items: clean,
-    });
-  };
-
-  if (t.includes("|")) {
-    t.split("|").forEach((block) => {
-      const b = block.trim();
-      const colon = b.indexOf(":");
-      if (colon > -1) {
-        const cat = b.slice(0, colon).trim();
-        const rest = b.slice(colon + 1);
-        pushGroup(cat, rest.split(","));
-      } else {
-        pushGroup("Technical Skills", b.split(","));
-      }
-    });
-    return out.filter((g) => g.items.length);
-  }
-
-  const lines = t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  let curCat = "Technical Skills";
-  let curItems = [];
-  lines.forEach((line) => {
-    const m = line.match(/^([^:]+):\s*(.+)$/);
-    if (m) {
-      if (curItems.length) pushGroup(curCat, curItems);
-      curCat = m[1].trim();
-      curItems = m[2].split(",").map((s) => s.trim()).filter(Boolean);
-    } else {
-      curItems.push(...line.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  });
-  if (curItems.length) pushGroup(curCat, curItems);
-  if (out.length) return out;
-
-  return [{ category: "Technical Skills", items: t.split(",").map((s) => s.trim()).filter(Boolean) }];
-}
-
 /** @param {unknown} points */
 function experienceBulletItems(points) {
   if (points == null) return [];
@@ -135,7 +85,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
   const skillCore = cv.skills
     ? cv.skills.split(",").map((x) => x.trim()).filter(Boolean)
     : [];
-  const techGroups = parseTechnicalSkillsGrouped(cv.technicalSkills || "");
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
   const certList = certificationLines(cv);
   const langList = cv.languages
     ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean)
@@ -190,8 +140,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
     contactBits.push({ label: "LinkedIn", href: url });
   }
 
-  const hasTechGroups = techGroups.some((g) => g.items && g.items.length);
-  const hasAnySkillsBlock = skillCore.length > 0 || hasTechGroups;
+  const hasAnySkillsBlock = skillCore.length > 0 || technicalSkillsTrim.length > 0;
   const projectsText = (cv.projects && String(cv.projects).trim()) || "";
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
@@ -327,34 +276,25 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
       )}
 
       {/* Technical Skills */}
-      {hasTechGroups && (
+      {technicalSkillsTrim && (
         <section>
           <SectionTitle first={!cv.summary && skillCore.length === 0}>Technical Skills</SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
-            {techGroups.map((g, gi) =>
-              g.items.length ? (
-                <EntryWrap key={`tg-${gi}`}>
-                  <div style={{ position: "relative" }}>
-                    <GhostChip>
-                      {g.category} {g.items.join(" · ")}
-                    </GhostChip>
-                    <div
-                      style={{
-                        fontSize: pt(10),
-                        fontWeight: 700,
-                        color: NAVY,
-                        marginBottom: "2mm",
-                      }}
-                    >
-                      {g.category}
-                    </div>
-                    <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY }}>
-                      {g.items.join(" · ")}
-                    </p>
-                  </div>
-                </EntryWrap>
-              ) : null,
-            )}
+            <div className="t11-technical-skills-body">
+              {cv.technicalSkills.split("|").map((line, i) => (
+                <p
+                  key={i}
+                  style={{
+                    margin: "2px 0",
+                    fontSize: "9pt",
+                    color: "#333",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {line.trim()}
+                </p>
+              ))}
+            </div>
           </div>
         </section>
       )}
