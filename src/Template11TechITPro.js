@@ -787,15 +787,10 @@ export function pdfTechITPro(doc, cv, W, M) {
     mainSection("Professional Experience");
     cv.experience.filter(e => e.company).forEach(e => {
       y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
-      // Role
+      // Title
       doc.setFont("helvetica", "bold"); doc.setFontSize(10);
       doc.setTextColor(...dark);
       doc.text(e.role || "", rx, y);
-
-      // Period — plain text, right-aligned (no pill)
-      doc.setFont("helvetica", "normal"); doc.setFontSize(7);
-      doc.setTextColor(136, 136, 136);
-      doc.text(e.period || "", W - M, y, { align: "right" });
       y += 5;
 
       // Company — plain body colour (no accent/link styling)
@@ -803,7 +798,15 @@ export function pdfTechITPro(doc, cv, W, M) {
       doc.setFont("helvetica", "italic"); doc.setFontSize(8.5);
       doc.setTextColor(...mid);
       const compStr = (e.company || "") + (e.location ? ` — ${e.location}` : "");
-      doc.text(compStr, rx, y); y += 5;
+      doc.text(compStr, rx, y);
+      y += 5;
+
+      // Period — plain text, right-aligned (no pill)
+      y = pdfEnsureY(doc, y, 5, pdfBottomY, pdfTopY, newPageOpts);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7);
+      doc.setTextColor(136, 136, 136);
+      doc.text(e.period || "", W - M, y, { align: "right" });
+      y += 5;
 
       // Points
       if (e.points) {
