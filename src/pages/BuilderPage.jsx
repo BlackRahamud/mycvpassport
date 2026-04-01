@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, Fragment } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import JobMatch from "../JobMatch";
@@ -47,7 +47,7 @@ function BuilderAtsPassFailIcon({ pass }) {
   );
 }
 
-function BuilderAtsTabContent({ resume }) {
+function BuilderAtsTabContent({ resume, showCoverLetterJourneyPrompt, onCoverLetterJourneyCta, onSkipToDownload, coverLetterJourneyIsPro }) {
   const score = builderAtsScore(resume);
   const breakdown = builderAtsBreakdown(resume);
   const pct = Math.max(0, Math.min(100, score));
@@ -108,6 +108,62 @@ function BuilderAtsTabContent({ resume }) {
           </div>
         ))}
       </div>
+      {showCoverLetterJourneyPrompt ? (
+        <div
+          style={{
+            marginTop: 20,
+            padding: 14,
+            borderRadius: 12,
+            border: "1px solid #2A2A2A",
+            background: "#141414",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 13, color: "#E5E5E5", lineHeight: 1.4 }}>
+            {coverLetterJourneyIsPro ? "ATS done. Stand out with a Cover Letter." : "ATS done. Stand out with a Cover Letter — Pro unlocks tailored cover letters."}
+          </p>
+          <button
+            type="button"
+            onClick={onCoverLetterJourneyCta}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "#FFFFFF",
+              color: "#000000",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
+            }}
+            onMouseEnter={(ev) => {
+              ev.currentTarget.style.opacity = "0.92";
+            }}
+            onMouseLeave={(ev) => {
+              ev.currentTarget.style.opacity = "1";
+            }}
+          >
+            Create Cover Letter →
+          </button>
+          <button
+            type="button"
+            onClick={onSkipToDownload}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#666666",
+              fontSize: 11,
+              textDecoration: "underline",
+              cursor: "pointer",
+              padding: 0,
+              justifySelf: "center",
+            }}
+          >
+            Skip to download
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -852,6 +908,103 @@ function sanitizeTechnicalSkillsForPersist(ts) {
     }));
 }
 
+function technicalSkillsHasAnyChip(resume) {
+  return normalizeTechnicalSkillsState(resume.technicalSkills).some((g) => g.chips.length > 0);
+}
+
+function moveExperienceInArray(list, from, to) {
+  const exp = Array.isArray(list) ? list : [];
+  if (from === to || from < 0 || to < 0 || from >= exp.length || to >= exp.length) return exp;
+  const next = [...exp];
+  const [row] = next.splice(from, 1);
+  next.splice(to, 0, row);
+  return next;
+}
+
+function CvReorderGripIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <circle cx="9" cy="7" r="1.35" />
+      <circle cx="15" cy="7" r="1.35" />
+      <circle cx="9" cy="12" r="1.35" />
+      <circle cx="15" cy="12" r="1.35" />
+      <circle cx="9" cy="17" r="1.35" />
+      <circle cx="15" cy="17" r="1.35" />
+    </svg>
+  );
+}
+
+function useExperienceReorder(setResume) {
+  const [drag, setDrag] = useState({ active: null, over: null });
+
+  const onHandlePointerDown = useCallback(
+    (e, index) => {
+      e.stopPropagation();
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+
+      const onMove = (ev) => {
+        ev.preventDefault();
+        const hit = document.elementFromPoint(ev.clientX, ev.clientY);
+        const row = hit && hit.closest ? hit.closest("[data-cvp-exp-row]") : null;
+        if (!row) return;
+        const ni = parseInt(row.getAttribute("data-cvp-exp-index"), 10);
+        if (Number.isFinite(ni)) setDrag((d) => ({ ...d, over: ni }));
+      };
+
+      const endDrag = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", endDrag);
+        window.removeEventListener("pointercancel", endDrag);
+        setDrag((d) => {
+          if (d.active != null && d.over != null && d.active !== d.over) {
+            setResume((r) => ({ ...r, experience: moveExperienceInArray(r.experience, d.active, d.over) }));
+          }
+          return { active: null, over: null };
+        });
+      };
+
+      const armDragListeners = () => {
+        window.addEventListener("pointermove", onMove, { passive: false });
+        window.addEventListener("pointerup", endDrag);
+        window.addEventListener("pointercancel", endDrag);
+      };
+
+      let tid = null;
+
+      const cancelHold = () => {
+        if (tid != null) {
+          clearTimeout(tid);
+          tid = null;
+        }
+        window.removeEventListener("pointerup", cancelHold);
+        window.removeEventListener("pointercancel", cancelHold);
+      };
+
+      const startDrag = () => {
+        cancelHold();
+        setDrag({ active: index, over: index });
+        armDragListeners();
+      };
+
+      if (e.pointerType === "mouse") {
+        startDrag();
+        return;
+      }
+
+      tid = window.setTimeout(() => {
+        tid = null;
+        startDrag();
+      }, 400);
+
+      window.addEventListener("pointerup", cancelHold);
+      window.addEventListener("pointercancel", cancelHold);
+    },
+    [setResume]
+  );
+
+  return { drag, onHandlePointerDown };
+}
+
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -1336,7 +1489,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
   const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
   const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
+  const [cvJourney, setCvJourney] = useState({ templateChosen: false, atsChecked: false, coverLetterSeen: false });
+  const [technicalSkillsFromPrompt, setTechnicalSkillsFromPrompt] = useState(false);
   const fabRef = useRef(null);
+  const expReorder = useExperienceReorder(setResume);
   const builderRootRef = useRef(null);
   const builderIdleT15Ref = useRef(null);
   const builderIdleT25Ref = useRef(null);
@@ -1353,6 +1509,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setTemplateSessionApplyCount(0);
     }
   }, [builderTab]);
+
+  useEffect(() => {
+    if (builderTab === "ats") {
+      setCvJourney((j) => (j.atsChecked ? j : { ...j, atsChecked: true }));
+    }
+  }, [builderTab]);
+
+  useEffect(() => {
+    if (technicalSkillsHasAnyChip({ technicalSkills: resume.technicalSkills })) setTechnicalSkillsFromPrompt(false);
+  }, [resume.technicalSkills]);
 
   useEffect(() => {
     if (experienceEditor == null) {
@@ -1616,25 +1782,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     return TEMPLATES.filter((t) => t.tier === "free").slice(0, 2).map((t) => t.name);
   }, [score]);
 
-  const templatesPanel = (
-    <BuilderTemplatesTab
-      resume={resume}
-      selectedTemplate={selectedTemplate}
-      onApplyTemplate={setSelectedTemplate}
-      onApplyTemplateAndGoToContent={(tpl) => {
-        setSelectedTemplate(tpl);
-        setBuilderTab("content");
-        setTemplatePickPending(null);
-        setTemplateConfirmOpen(false);
-        setTemplateSessionApplyCount((c) => c + 1);
-      }}
-      pendingTemplate={templatePickPending}
-      confirmOpen={templateConfirmOpen}
-      onPendingTemplateChange={setTemplatePickPending}
-      onConfirmOpenChange={setTemplateConfirmOpen}
-      onTemplatesFabInteract={() => setTemplatesInteractKey((k) => k + 1)}
-    />
-  );
+  const cvJourneyChrome = cvCompletionProgress.percent >= 100;
+  const journeyStepActive = !cvJourney.templateChosen ? 1 : !cvJourney.atsChecked ? 2 : !cvJourney.coverLetterSeen ? 3 : 4;
+  const showCoverLetterJourneyBlock =
+    cvJourneyChrome && cvJourney.templateChosen && cvJourney.atsChecked && !cvJourney.coverLetterSeen;
 
   const handleSave = useCallback(async () => {
     if (!user?.id) return;
@@ -1709,6 +1860,30 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     }
   };
 
+  const templatesPanel = (
+    <BuilderTemplatesTab
+      resume={resume}
+      selectedTemplate={selectedTemplate}
+      onApplyTemplate={setSelectedTemplate}
+      onApplyTemplateAndGoToContent={(tpl) => {
+        setSelectedTemplate(tpl);
+        setBuilderTab("content");
+        setTemplatePickPending(null);
+        setTemplateConfirmOpen(false);
+        setTemplateSessionApplyCount((c) => c + 1);
+        setCvJourney((j) => ({ ...j, templateChosen: true }));
+      }}
+      pendingTemplate={templatePickPending}
+      confirmOpen={templateConfirmOpen}
+      onPendingTemplateChange={setTemplatePickPending}
+      onConfirmOpenChange={setTemplateConfirmOpen}
+      onTemplatesFabInteract={() => setTemplatesInteractKey((k) => k + 1)}
+      showAtsJourneyPrompt={cvJourneyChrome && cvJourney.templateChosen && !cvJourney.atsChecked}
+      onAtsJourneyNavigate={() => setBuilderTab("ats")}
+      onAtsJourneySkipDownload={handleDownload}
+    />
+  );
+
   const navigateToProAtsPage = useCallback(() => {
     navigate("/ats");
     setFabSheet(null);
@@ -1730,6 +1905,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     }
     setCoverLetterOpen(true);
   };
+
+  const runCoverLetterJourneyStep = useCallback(() => {
+    setCvJourney((j) => ({ ...j, coverLetterSeen: true }));
+    setBuilderTab("jobmatch");
+    if (isPro) setCoverLetterOpen(true);
+    else setUpgradeOpen(true);
+  }, [isPro]);
 
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
@@ -1936,6 +2118,36 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </button>
           </div>
         </div>
+        {cvJourneyChrome ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: 6,
+              padding: "8px 16px 10px",
+              borderTop: "1px solid #1A1A1A",
+              boxSizing: "border-box",
+            }}
+            aria-label="CV completion steps"
+          >
+            {["Template", "ATS", "Cover Letter", "Download"].map((label, i) => {
+              const n = i + 1;
+              const on = n === journeyStepActive;
+              return (
+                <Fragment key={label}>
+                  {i > 0 ? (
+                    <span style={{ color: "#3A3A3A", fontSize: 10, userSelect: "none" }} aria-hidden>
+                      →
+                    </span>
+                  ) : null}
+                  <span style={{ fontSize: 10, fontWeight: on ? 700 : 500, color: on ? "#FFFFFF" : "#666666" }}>{label}</span>
+                </Fragment>
+              );
+            })}
+          </div>
+        ) : null}
         <div
           ref={cvFinderPanelRef}
           style={{
@@ -2028,6 +2240,74 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </div>
 
+              {cvJourneyChrome && !cvJourney.templateChosen ? (
+                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
+                  <p style={{ margin: 0, fontSize: 14, color: "#E5E5E5", lineHeight: 1.45 }}>Your CV is ready. Now let&apos;s make it shine.</p>
+                  <button
+                    type="button"
+                    onClick={() => setBuilderTab("templates")}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: "#FFFFFF",
+                      color: "#000000",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: `opacity 150ms ${EASE}`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "0.92";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                    }}
+                  >
+                    Choose a Template →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#666666",
+                      fontSize: 11,
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                      padding: 0,
+                      justifySelf: "center",
+                    }}
+                  >
+                    Skip to download
+                  </button>
+                </div>
+              ) : null}
+              {cvJourneyChrome && cvJourney.coverLetterSeen ? (
+                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
+                  <p style={{ margin: 0, fontSize: 13, color: "#A0A0A0", lineHeight: 1.4 }}>Export your CV as PDF when you&apos;re ready.</p>
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={downloadLoading}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
+                      color: downloadLoading ? "#FFFFFF" : "#000000",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: downloadLoading ? "not-allowed" : "pointer",
+                      transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
+                    }}
+                  >
+                    Download Your CV
+                  </button>
+                </div>
+              ) : null}
+
               <div className="cvp-sections-list">
               <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
@@ -2040,18 +2320,60 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   {resume.experience.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
                   )}
-                  {resume.experience.map((exp, i) => (
-                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                      <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
-                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
-                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
-                      </button>
-                      <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-                      </button>
-                    </div>
-                  ))}
+                  {resume.experience.map((exp, i) => {
+                    const expDragging = expReorder.drag.active === i;
+                    const expOver =
+                      expReorder.drag.active != null &&
+                      expReorder.drag.over === i &&
+                      expReorder.drag.active !== i;
+                    return (
+                      <div
+                        key={i}
+                        data-cvp-exp-row
+                        data-cvp-exp-index={i}
+                        style={{
+                          ...CB_UI.card,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 12,
+                          boxShadow: expDragging ? "0 10px 28px rgba(0,0,0,0.45)" : undefined,
+                          transform: expDragging ? "scale(1.02)" : "none",
+                          transition: expDragging ? "none" : `box-shadow 200ms ${EASE}, transform 200ms ${EASE}`,
+                          borderTop: expOver ? "3px solid #5A5A5A" : undefined,
+                          position: "relative",
+                          zIndex: expDragging ? 2 : 0,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          aria-label="Drag to reorder experience"
+                          onPointerDown={(e) => expReorder.onHandlePointerDown(e, i)}
+                          style={{
+                            color: "#A0A0A0",
+                            cursor: "grab",
+                            flexShrink: 0,
+                            padding: "4px 0",
+                            touchAction: "none",
+                            background: "none",
+                            border: "none",
+                            margin: 0,
+                            alignSelf: "flex-start",
+                          }}
+                        >
+                          <CvReorderGripIcon />
+                        </button>
+                        <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
+                          <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
+                          <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
+                        </button>
+                        <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                        </button>
+                      </div>
+                    );
+                  })}
                   <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
                 </div>
               </AccordionSection>
@@ -2099,13 +2421,59 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   skillsPasteDraft={skillsPasteDraft}
                   setSkillsPasteDraft={setSkillsPasteDraft}
                 />
+                {!technicalSkillsHasAnyChip(resume) ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: "12px 14px",
+                      marginTop: 10,
+                      borderRadius: 12,
+                      border: "1px dashed #333333",
+                      background: "#0A0A0A",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: 12, color: "#A0A0A0", lineHeight: 1.35, flex: 1, minWidth: 0 }}>Have technical or IT skills? Add a Technical Skills section</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTechnicalSkillsFromPrompt(true);
+                        setOpenSection("technicalSkills");
+                      }}
+                      style={{
+                        flexShrink: 0,
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #2A2A2A",
+                        background: "#1C1C1C",
+                        color: "#FFFFFF",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: `border-color 150ms ${EASE}, background-color 150ms ${EASE}`,
+                      }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                ) : null}
+                {technicalSkillsFromPrompt && !technicalSkillsHasAnyChip(resume) ? (
+                  <div style={{ marginTop: 12, borderRadius: 8, padding: 2, marginLeft: -2, marginRight: -2 }}>
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                  </div>
+                ) : null}
               </AccordionSection>
 
-              <AccordionSection id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
-                <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <TechnicalSkillsEditor resume={resume} setResume={setResume} />
-                </div>
-              </AccordionSection>
+              {technicalSkillsHasAnyChip(resume) ? (
+                <AccordionSection id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
+                  <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                  </div>
+                </AccordionSection>
+              ) : null}
 
               <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
@@ -2145,7 +2513,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {templatesPanel}
             </div>
           ) : null}
-          {builderTab === "ats" && <BuilderAtsTabContent resume={resume} />}
+          {builderTab === "ats" ? (
+            <BuilderAtsTabContent
+              resume={resume}
+              showCoverLetterJourneyPrompt={showCoverLetterJourneyBlock}
+              onCoverLetterJourneyCta={runCoverLetterJourneyStep}
+              onSkipToDownload={handleDownload}
+              coverLetterJourneyIsPro={isPro}
+            />
+          ) : null}
           {builderTab === "jobmatch" && (
             <div style={{ display: "grid", gap: 12 }}>
               <button
@@ -2200,6 +2576,73 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                   </div>
                 </div>
+                {cvJourneyChrome && !cvJourney.templateChosen ? (
+                  <div style={{ margin: "0 12px 12px", padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
+                    <p style={{ margin: 0, fontSize: 14, color: "#E5E5E5", lineHeight: 1.45 }}>Your CV is ready. Now let&apos;s make it shine.</p>
+                    <button
+                      type="button"
+                      onClick={() => setBuilderTab("templates")}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: "#FFFFFF",
+                        color: "#000000",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: `opacity 150ms ${EASE}`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.opacity = "0.92";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = "1";
+                      }}
+                    >
+                      Choose a Template →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownload}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#666666",
+                        fontSize: 11,
+                        textDecoration: "underline",
+                        cursor: "pointer",
+                        padding: 0,
+                        justifySelf: "center",
+                      }}
+                    >
+                      Skip to download
+                    </button>
+                  </div>
+                ) : null}
+                {cvJourneyChrome && cvJourney.coverLetterSeen ? (
+                  <div style={{ margin: "0 12px 12px", padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: "#A0A0A0", lineHeight: 1.4 }}>Export your CV as PDF when you&apos;re ready.</p>
+                    <button
+                      type="button"
+                      onClick={handleDownload}
+                      disabled={downloadLoading}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
+                        color: downloadLoading ? "#FFFFFF" : "#000000",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: downloadLoading ? "not-allowed" : "pointer",
+                        transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
+                      }}
+                    >
+                      Download Your CV
+                    </button>
+                  </div>
+                ) : null}
                 <div className="cvp-mobile-section-rows" style={{ display: "flex", flexDirection: "column", maxWidth: "100%" }}>
               <AccordionSection variant="mobileRow" id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
@@ -2212,18 +2655,60 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   {resume.experience.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
                   )}
-                  {resume.experience.map((exp, i) => (
-                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                      <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
-                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
-                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
-                      </button>
-                      <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-                      </button>
-                    </div>
-                  ))}
+                  {resume.experience.map((exp, i) => {
+                    const expDragging = expReorder.drag.active === i;
+                    const expOver =
+                      expReorder.drag.active != null &&
+                      expReorder.drag.over === i &&
+                      expReorder.drag.active !== i;
+                    return (
+                      <div
+                        key={i}
+                        data-cvp-exp-row
+                        data-cvp-exp-index={i}
+                        style={{
+                          ...CB_UI.card,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 12,
+                          boxShadow: expDragging ? "0 10px 28px rgba(0,0,0,0.45)" : undefined,
+                          transform: expDragging ? "scale(1.02)" : "none",
+                          transition: expDragging ? "none" : `box-shadow 200ms ${EASE}, transform 200ms ${EASE}`,
+                          borderTop: expOver ? "3px solid #5A5A5A" : undefined,
+                          position: "relative",
+                          zIndex: expDragging ? 2 : 0,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          aria-label="Drag to reorder experience"
+                          onPointerDown={(e) => expReorder.onHandlePointerDown(e, i)}
+                          style={{
+                            color: "#A0A0A0",
+                            cursor: "grab",
+                            flexShrink: 0,
+                            padding: "4px 0",
+                            touchAction: "none",
+                            background: "none",
+                            border: "none",
+                            margin: 0,
+                            alignSelf: "flex-start",
+                          }}
+                        >
+                          <CvReorderGripIcon />
+                        </button>
+                        <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
+                          <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
+                          <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
+                        </button>
+                        <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
+                        </button>
+                      </div>
+                    );
+                  })}
                   <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
                 </div>
               </AccordionSection>
@@ -2272,13 +2757,59 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   skillsPasteDraft={skillsPasteDraft}
                   setSkillsPasteDraft={setSkillsPasteDraft}
                 />
+                {!technicalSkillsHasAnyChip(resume) ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: "12px 14px",
+                      marginTop: 10,
+                      borderRadius: 12,
+                      border: "1px dashed #333333",
+                      background: "#0A0A0A",
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: 12, color: "#A0A0A0", lineHeight: 1.35, flex: 1, minWidth: 0 }}>Have technical or IT skills? Add a Technical Skills section</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTechnicalSkillsFromPrompt(true);
+                        setOpenSection("technicalSkills");
+                      }}
+                      style={{
+                        flexShrink: 0,
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        border: "1px solid #2A2A2A",
+                        background: "#1C1C1C",
+                        color: "#FFFFFF",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: `border-color 150ms ${EASE}, background-color 150ms ${EASE}`,
+                      }}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                ) : null}
+                {technicalSkillsFromPrompt && !technicalSkillsHasAnyChip(resume) ? (
+                  <div style={{ marginTop: 12, borderRadius: 8, padding: 2, marginLeft: -2, marginRight: -2 }}>
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                  </div>
+                ) : null}
               </AccordionSection>
 
-              <AccordionSection variant="mobileRow" id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
-                <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <TechnicalSkillsEditor resume={resume} setResume={setResume} />
-                </div>
-              </AccordionSection>
+              {technicalSkillsHasAnyChip(resume) ? (
+                <AccordionSection variant="mobileRow" id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
+                  <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                  </div>
+                </AccordionSection>
+              ) : null}
 
               <AccordionSection variant="mobileRow" id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
@@ -2318,7 +2849,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {templatesPanel}
             </div>
           ) : null}
-            {builderTab === "ats" && <BuilderAtsTabContent resume={resume} />}
+            {builderTab === "ats" ? (
+              <BuilderAtsTabContent
+                resume={resume}
+                showCoverLetterJourneyPrompt={showCoverLetterJourneyBlock}
+                onCoverLetterJourneyCta={runCoverLetterJourneyStep}
+                onSkipToDownload={handleDownload}
+                coverLetterJourneyIsPro={isPro}
+              />
+            ) : null}
             {builderTab === "jobmatch" && (
               <div style={{ display: "grid", gap: 12, padding: "0 12px 12px" }}>
                 <button
@@ -2427,6 +2966,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   setTemplatePickPending(null);
                   setTemplateConfirmOpen(false);
                   setTemplateSessionApplyCount((c) => c + 1);
+                  setCvJourney((j) => ({ ...j, templateChosen: true }));
                 }}
                 onClearTemplatePick={() => {
                   setTemplatePickPending(null);
@@ -2456,7 +2996,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 onNavigateToJobMatch={() => setBuilderTab("jobmatch")}
                 onNavigateToCoverLetter={() => {
                   writeFabMemory({ hasVisitedCoverLetter: true });
-                  navigate("/cover-letter");
+                  runCoverLetterJourneyStep();
                 }}
                 cvCompletionProgress={cvCompletionProgress}
               />

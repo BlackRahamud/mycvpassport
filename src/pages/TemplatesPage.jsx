@@ -167,6 +167,9 @@ function BuilderTemplatesTab({
   onPendingTemplateChange,
   onConfirmOpenChange,
   onTemplatesFabInteract,
+  showAtsJourneyPrompt = false,
+  onAtsJourneyNavigate,
+  onAtsJourneySkipDownload,
 }) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("popular");
@@ -438,6 +441,63 @@ function BuilderTemplatesTab({
             document.body,
           )
         : null}
+      {showAtsJourneyPrompt ? (
+        <div
+          style={{
+            marginTop: 12,
+            marginLeft: 10,
+            marginRight: 10,
+            padding: 14,
+            borderRadius: 12,
+            border: "1px solid #2A2A2A",
+            background: "#141414",
+            display: "grid",
+            gap: 10,
+            flexShrink: 0,
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 13, color: "#E5E5E5", lineHeight: 1.4 }}>Template locked. Now check your ATS score.</p>
+          <button
+            type="button"
+            onClick={() => onAtsJourneyNavigate?.()}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "#FFFFFF",
+              color: "#000000",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1)",
+            }}
+            onMouseEnter={(ev) => {
+              ev.currentTarget.style.opacity = "0.92";
+            }}
+            onMouseLeave={(ev) => {
+              ev.currentTarget.style.opacity = "1";
+            }}
+          >
+            Check ATS Score →
+          </button>
+          <button
+            type="button"
+            onClick={() => onAtsJourneySkipDownload?.()}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#666666",
+              fontSize: 11,
+              textDecoration: "underline",
+              cursor: "pointer",
+              padding: 0,
+              justifySelf: "center",
+            }}
+          >
+            Skip to download
+          </button>
+        </div>
+      ) : null}
       <div style={{ padding: "16px 10px 8px", textAlign: "center" }}>
         <button
           type="button"
