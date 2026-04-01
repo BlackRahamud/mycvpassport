@@ -559,6 +559,8 @@ export default function FABSheet({
   walkInOnStart,
   walkInOnDownload,
   sheetAtsHigh = false,
+  /** Builder Content tab: hide download gatekeeper / upgrade until user taps Download CV */
+  isOnContentTab = false,
   /** Builder CV completion (thin bar + label + nudge); hides legacy Progress coach when set */
   cvCompletionProgress = null,
 }) {
@@ -1108,7 +1110,8 @@ export default function FABSheet({
   const showDownloadGatekeeperPanel =
     showDownloadGatekeeper &&
     !sheetBodySlot &&
-    (sheetLayoutKind === "download-only" || (variant === "builder" && tabKey === "content"));
+    (sheetLayoutKind === "download-only" ||
+      (variant === "builder" && tabKey === "content" && !isOnContentTab));
 
   return (
     <>

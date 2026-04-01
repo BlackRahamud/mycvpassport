@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
@@ -114,10 +115,28 @@ function BuilderAtsTabContent({ resume }) {
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection }) {
   const list = normalizeCertificationsArray(resume.certifications);
   const [inlineNameEdit, setInlineNameEdit] = useState(null);
+  const [certYearError, setCertYearError] = useState(null);
+  const certYearCursorRef = useRef(null);
+  const certYearInputRef = useRef(null);
 
   useEffect(() => {
     if (certificationEditor) setInlineNameEdit(null);
   }, [certificationEditor]);
+
+  useEffect(() => {
+    if (!certificationEditor) setCertYearError(null);
+  }, [certificationEditor]);
+
+  useLayoutEffect(() => {
+    if (!certificationEditor) return;
+    const pos = certYearCursorRef.current;
+    if (pos == null) return;
+    certYearCursorRef.current = null;
+    const el = certYearInputRef.current;
+    if (!el) return;
+    const p = Math.min(pos, el.value.length);
+    el.setSelectionRange(p, p);
+  }, [certificationEditor?.draft.year, certificationEditor]);
 
   const iconRowBtn = {
     background: "none",
@@ -267,13 +286,31 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Year</label>
+            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Date issued (MM/YYYY)</label>
             <input
-              style={{ ...CB_UI.input, marginTop: 0, minHeight: undefined }}
-              placeholder="Year (optional)"
+              ref={certYearInputRef}
+              style={{
+                ...CB_UI.input,
+                marginTop: 0,
+                minHeight: undefined,
+                borderColor: certYearError ? "#EF4444" : undefined,
+                transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+              }}
+              placeholder="08/2023 (optional)"
               value={certificationEditor.draft.year}
-              onChange={(e) => setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, year: e.target.value } } : null))}
+              onChange={(e) => {
+                const next = processMmYyyyInput(e.target.value, { allowPresent: false });
+                certYearCursorRef.current = next.cursor;
+                flushSync(() => {
+                  setCertYearError(next.error);
+                  setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, year: next.value } } : null));
+                });
+              }}
+              aria-invalid={certYearError ? true : undefined}
             />
+            {certYearError ? (
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: "#EF4444", lineHeight: 1.35 }}>{certYearError}</p>
+            ) : null}
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
             <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setCertificationEditor(null)}>Cancel</button>
@@ -319,6 +356,173 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
 }
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
+
+const MM_YYYY_MONTH_ERR = "Enter a valid month (01–12)";
+
+const MONTH_NAMES_LOWER = [
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+];
+const MONTH_ABBR_LOWER = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+function isPresentLiteralTyping(s) {
+  const t = String(s ?? "");
+  const trim = t.trimEnd();
+  if (!trim) return false;
+  const a = trim.toLowerCase();
+  const p = "present";
+  if (a === p) return true;
+  if (a.length < p.length && p.slice(0, a.length) === a) return true;
+  return false;
+}
+
+function monthMmFromLetters(lettersLower) {
+  if (!lettersLower || lettersLower.length < 3) return null;
+  const hits = [];
+  for (let i = 0; i < 12; i++) {
+    const full = MONTH_NAMES_LOWER[i];
+    const abbr = MONTH_ABBR_LOWER[i];
+    if (full.startsWith(lettersLower) || abbr.startsWith(lettersLower) || lettersLower.startsWith(abbr)) {
+      hits.push(String(i + 1).padStart(2, "0"));
+    }
+  }
+  const uniq = [...new Set(hits)];
+  if (uniq.length === 1) return uniq[0];
+  return null;
+}
+
+function mmYyyyErrorForDisplay(display) {
+  const t = String(display ?? "").trim();
+  if (!t) return null;
+  if (isPresentLiteralTyping(t)) return null;
+  const m = t.match(/^(\d{2})(?:\/(\d{0,4}))?$/);
+  if (!m) return null;
+  const mm = parseInt(m[1], 10);
+  if (!Number.isFinite(mm) || mm < 1 || mm > 12) return MM_YYYY_MONTH_ERR;
+  return null;
+}
+
+function formatMmYyyyFromDigits(raw) {
+  const clean = String(raw ?? "").replace(/\D/g, "").slice(0, 6);
+  if (clean.length === 0) return { value: "", error: null };
+  const mm = clean.slice(0, 2);
+  const yy = clean.slice(2, 6);
+  if (mm.length < 2) {
+    return { value: mm, error: null };
+  }
+  const mmn = parseInt(mm, 10);
+  const error = mmn < 1 || mmn > 12 ? MM_YYYY_MONTH_ERR : null;
+  if (yy.length === 0) {
+    return { value: `${mm}/`, error };
+  }
+  return { value: `${mm}/${yy}`, error };
+}
+
+/**
+ * Smart MM/YYYY input: digits auto-slash; 3+ letter month names → MM/; "Present" passthrough when allowPresent.
+ * Returns { value, error, cursor }.
+ */
+function processMmYyyyInput(rawInput, { allowPresent }) {
+  const raw = String(rawInput ?? "");
+  if (allowPresent && isPresentLiteralTyping(raw)) {
+    return { value: raw, error: null, cursor: raw.length };
+  }
+
+  const letterMatch = raw.match(/^([a-zA-Z]+)([\s\S]*)$/);
+  if (letterMatch) {
+    const letters = letterMatch[1].toLowerCase();
+    const tail = letterMatch[2] || "";
+    const mm = monthMmFromLetters(letters);
+    if (mm) {
+      const restDigits = tail.replace(/\D/g, "").slice(0, 4);
+      const value = restDigits.length ? `${mm}/${restDigits}` : `${mm}/`;
+      return { value, error: mmYyyyErrorForDisplay(value), cursor: value.length };
+    }
+    if (letters.length < 3) {
+      return { value: raw, error: null, cursor: raw.length };
+    }
+  }
+
+  const digitLed = raw.match(/^[\d/]/);
+  if (digitLed || raw === "") {
+    const { value, error } = formatMmYyyyFromDigits(raw);
+    return { value, error, cursor: value.length };
+  }
+
+  return { value: raw, error: mmYyyyErrorForDisplay(raw), cursor: raw.length };
+}
+
+function OptionalBuilderAccordionSections({
+  resume,
+  setResume,
+  filter,
+  certificationEditor,
+  setCertificationEditor,
+  isOpen,
+  toggleSection,
+  variant = "default",
+}) {
+  return OPTIONAL_BUILDER_SECTIONS.filter(filter).map((opt) => (
+    <AccordionSection
+      key={opt.id}
+      variant={variant}
+      id={opt.id}
+      title={opt.label}
+      isOpen={isOpen(opt.id)}
+      onToggle={() => toggleSection(opt.id)}
+      icon={opt.id}
+    >
+      {opt.id === "certifications" ? (
+        <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+          <CertificationsBuilderSection
+            resume={resume}
+            setResume={setResume}
+            certificationEditor={certificationEditor}
+            setCertificationEditor={setCertificationEditor}
+            onRemoveSection={() => {
+              setCertificationEditor(null);
+              setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
+            }}
+          />
+        </div>
+      ) : (
+        <div data-cvp-highlight={opt.id} style={{ display: "grid", gap: 8, borderRadius: 8, padding: 2, margin: -2 }}>
+          {opt.multiline ? (
+            <textarea
+              style={{ ...CB_UI.input, resize: "vertical" }}
+              placeholder={opt.label}
+              value={resume[opt.field] || ""}
+              onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))}
+            />
+          ) : (
+            <input
+              style={{ ...CB_UI.input, minHeight: undefined }}
+              value={resume[opt.field] || ""}
+              onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))}
+            />
+          )}
+          <button
+            type="button"
+            style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+            onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}
+          >
+            Remove section
+          </button>
+        </div>
+      )}
+    </AccordionSection>
+  ));
+}
 
 const PASTE_IMPORT_BTN = {
   display: "inline-flex",
@@ -1091,6 +1295,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [experienceEditor, setExperienceEditor] = useState(null);
   const [educationEditor, setEducationEditor] = useState(null);
   const [certificationEditor, setCertificationEditor] = useState(null);
+  const [experienceDateErrors, setExperienceDateErrors] = useState({ start: null, end: null });
+  const [educationDateErrors, setEducationDateErrors] = useState({ start: null, end: null });
+  const mmYyyyCursorRef = useRef(null);
+  const experienceEditorSessionRef = useRef(null);
+  const educationEditorSessionRef = useRef(null);
   const [skillInput, setSkillInput] = useState("");
   const [skillsPasteOpen, setSkillsPasteOpen] = useState(false);
   const [skillsPasteDraft, setSkillsPasteDraft] = useState("");
@@ -1144,6 +1353,49 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setTemplateSessionApplyCount(0);
     }
   }, [builderTab]);
+
+  useEffect(() => {
+    if (experienceEditor == null) {
+      experienceEditorSessionRef.current = null;
+      setExperienceDateErrors({ start: null, end: null });
+      return;
+    }
+    const key = `${experienceEditor.mode}-${experienceEditor.index}`;
+    if (experienceEditorSessionRef.current !== key) {
+      experienceEditorSessionRef.current = key;
+      setExperienceDateErrors({ start: null, end: null });
+    }
+  }, [experienceEditor]);
+
+  useEffect(() => {
+    if (educationEditor == null) {
+      educationEditorSessionRef.current = null;
+      setEducationDateErrors({ start: null, end: null });
+      return;
+    }
+    const key = `${educationEditor.mode}-${educationEditor.index}`;
+    if (educationEditorSessionRef.current !== key) {
+      educationEditorSessionRef.current = key;
+      setEducationDateErrors({ start: null, end: null });
+    }
+  }, [educationEditor]);
+
+  useLayoutEffect(() => {
+    const job = mmYyyyCursorRef.current;
+    if (!job) return;
+    mmYyyyCursorRef.current = null;
+    const el = document.getElementById(job.id);
+    if (!el) return;
+    const p = Math.min(job.cursor, el.value.length);
+    el.setSelectionRange(p, p);
+  }, [
+    experienceEditor?.draft?.startDate,
+    experienceEditor?.draft?.endDate,
+    educationEditor?.draft?.startDate,
+    educationEditor?.draft?.endDate,
+    experienceEditor,
+    educationEditor,
+  ]);
 
   useEffect(() => {
     if (openSection == null) {
@@ -1288,19 +1540,34 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     const isIdleBlocked = () =>
       fabSheetRef.current === "preview" || fabRef.current?.isGuideSheetOpen?.() === true;
 
+    const isTypingInTextField = () => {
+      if (typeof document === "undefined") return false;
+      const el = document.activeElement;
+      const tag = el?.tagName?.toUpperCase();
+      return tag === "INPUT" || tag === "TEXTAREA";
+    };
+
     const scheduleBuilderIdleTimers = () => {
       clearBuilderIdleTimers();
       builderIdleT15Ref.current = window.setTimeout(() => {
         builderIdleT15Ref.current = null;
         if (isIdleBlocked()) return;
+        if (isTypingInTextField()) {
+          scheduleBuilderIdleTimers();
+          return;
+        }
         fabRef.current?.triggerBuilderIdlePulse?.();
-      }, 15000);
+      }, 45000);
       builderIdleT25Ref.current = window.setTimeout(() => {
         builderIdleT25Ref.current = null;
         if (isIdleBlocked()) return;
+        if (isTypingInTextField()) {
+          scheduleBuilderIdleTimers();
+          return;
+        }
         fabRef.current?.openGuideForCurrentTab?.();
         scheduleBuilderIdleTimers();
-      }, 25000);
+      }, 70000);
     };
 
     scheduleBuilderIdleRef.current = scheduleBuilderIdleTimers;
@@ -1403,7 +1670,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const handleDownload = async () => {
     if (downloadPhase === "loading") return;
     const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
-    if (isMobileViewport && builderTab === "ats" && fabRef.current?.runAtsDownloadGatekeeper) {
+    if (isMobileViewport && fabRef.current?.runAtsDownloadGatekeeper) {
       const gate = await fabRef.current.runAtsDownloadGatekeeper();
       if (!gate?.canDownload) return;
     }
@@ -1470,8 +1737,27 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const downloadLoading = downloadPhase === "loading";
 
   const builderExtraSectionIds = resume.builderExtraSectionIds || [];
-  const availableOptionalSections = OPTIONAL_BUILDER_SECTIONS.filter((s) => !builderExtraSectionIds.includes(s.id));
   const allOptionalSectionsAdded = OPTIONAL_BUILDER_SECTIONS.every((s) => builderExtraSectionIds.includes(s.id));
+  const addSectionPickerRows = useMemo(() => {
+    const ids = resume.builderExtraSectionIds ?? [];
+    const nav = (id, label) => ({ kind: "nav", id, label });
+    const optionalNotAdded = OPTIONAL_BUILDER_SECTIONS.filter((s) => !ids.includes(s.id));
+    const certRow = optionalNotAdded.find((s) => s.id === "certifications");
+    const restOpt = optionalNotAdded.filter((s) => s.id !== "certifications");
+    const rows = [
+      nav("summary", "Professional Summary"),
+      nav("experience", "Professional Experience"),
+      nav("education", "Education"),
+    ];
+    if (certRow) rows.push({ kind: "optional", ...certRow });
+    rows.push(
+      nav("skills", "Skills"),
+      nav("languages", "Languages"),
+      nav("technicalSkills", "Technical Skills"),
+    );
+    restOpt.forEach((s) => rows.push({ kind: "optional", ...s }));
+    return rows;
+  }, [resume.builderExtraSectionIds]);
 
   return (
     <div
@@ -1792,6 +2078,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
+              <OptionalBuilderAccordionSections
+                resume={resume}
+                setResume={setResume}
+                filter={(opt) => opt.id === "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id))}
+                certificationEditor={certificationEditor}
+                setCertificationEditor={setCertificationEditor}
+                isOpen={isOpen}
+                toggleSection={toggleSection}
+              />
+
               <AccordionSection id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
                 <SkillsEditorSection
                   resume={resume}
@@ -1828,33 +2124,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
-                <AccordionSection key={opt.id} id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
-                  {opt.id === "certifications" ? (
-                    <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                      <CertificationsBuilderSection
-                        resume={resume}
-                        setResume={setResume}
-                        certificationEditor={certificationEditor}
-                        setCertificationEditor={setCertificationEditor}
-                        onRemoveSection={() => {
-                          setCertificationEditor(null);
-                          setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div data-cvp-highlight={opt.id} style={{ display: "grid", gap: 8, borderRadius: 8, padding: 2, margin: -2 }}>
-                      {opt.multiline ? (
-                        <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                      ) : (
-                        <input style={{ ...CB_UI.input, minHeight: undefined }} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                      )}
-                      <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
-                    </div>
-                  )}
-                </AccordionSection>
-              ))}
+              <OptionalBuilderAccordionSections
+                resume={resume}
+                setResume={setResume}
+                filter={(opt) => opt.id !== "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id))}
+                certificationEditor={certificationEditor}
+                setCertificationEditor={setCertificationEditor}
+                isOpen={isOpen}
+                toggleSection={toggleSection}
+              />
               </div>
 
               {builderTab === "content" && (
@@ -1972,6 +2250,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
+              <OptionalBuilderAccordionSections
+                resume={resume}
+                setResume={setResume}
+                filter={(opt) => opt.id === "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id))}
+                certificationEditor={certificationEditor}
+                setCertificationEditor={setCertificationEditor}
+                isOpen={isOpen}
+                toggleSection={toggleSection}
+                variant="mobileRow"
+              />
+
               <AccordionSection variant="mobileRow" id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
                 <SkillsEditorSection
                   resume={resume}
@@ -2008,33 +2297,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
-                <AccordionSection key={opt.id} variant="mobileRow" id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
-                  {opt.id === "certifications" ? (
-                    <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                      <CertificationsBuilderSection
-                        resume={resume}
-                        setResume={setResume}
-                        certificationEditor={certificationEditor}
-                        setCertificationEditor={setCertificationEditor}
-                        onRemoveSection={() => {
-                          setCertificationEditor(null);
-                          setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div data-cvp-highlight={opt.id} style={{ display: "grid", gap: 8, borderRadius: 8, padding: 2, margin: -2 }}>
-                      {opt.multiline ? (
-                        <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                      ) : (
-                        <input style={{ ...CB_UI.input, minHeight: undefined }} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
-                      )}
-                      <button type="button" style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}>Remove section</button>
-                    </div>
-                  )}
-                </AccordionSection>
-              ))}
+              <OptionalBuilderAccordionSections
+                resume={resume}
+                setResume={setResume}
+                filter={(opt) => opt.id !== "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id))}
+                certificationEditor={certificationEditor}
+                setCertificationEditor={setCertificationEditor}
+                isOpen={isOpen}
+                toggleSection={toggleSection}
+                variant="mobileRow"
+              />
                 </div>
                 {builderTab === "content" && (
                   <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
@@ -2501,8 +2773,61 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Company name</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.company} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, company: e.target.value } } : null))} /></div>
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Job title</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.role} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, role: e.target.value } } : null))} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} placeholder="01/2020" value={experienceEditor.draft.startDate} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: e.target.value } } : null))} /></div>
-                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} placeholder="12/2023" disabled={experienceEditor.draft.present} value={experienceEditor.draft.endDate} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: e.target.value } } : null))} /></div>
+                <div>
+                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label>
+                  <input
+                    id="cvp-exp-start-date"
+                    style={{
+                      ...CB_UI.input,
+                      marginTop: 4,
+                      minHeight: undefined,
+                      borderColor: experienceDateErrors.start ? "#EF4444" : undefined,
+                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                    placeholder="01/2020"
+                    value={experienceEditor.draft.startDate}
+                    onChange={(e) => {
+                      const next = processMmYyyyInput(e.target.value, { allowPresent: false });
+                      mmYyyyCursorRef.current = { id: "cvp-exp-start-date", cursor: next.cursor };
+                      flushSync(() => {
+                        setExperienceDateErrors((er) => ({ ...er, start: next.error }));
+                        setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: next.value } } : null));
+                      });
+                    }}
+                    aria-invalid={experienceDateErrors.start ? true : undefined}
+                  />
+                  {experienceDateErrors.start ? (
+                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.start}</p>
+                  ) : null}
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label>
+                  <input
+                    id="cvp-exp-end-date"
+                    style={{
+                      ...CB_UI.input,
+                      marginTop: 4,
+                      minHeight: undefined,
+                      borderColor: experienceDateErrors.end ? "#EF4444" : undefined,
+                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                    placeholder="12/2023 or Present"
+                    disabled={experienceEditor.draft.present}
+                    value={experienceEditor.draft.endDate}
+                    onChange={(e) => {
+                      const next = processMmYyyyInput(e.target.value, { allowPresent: true });
+                      mmYyyyCursorRef.current = { id: "cvp-exp-end-date", cursor: next.cursor };
+                      flushSync(() => {
+                        setExperienceDateErrors((er) => ({ ...er, end: next.error }));
+                        setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: next.value } } : null));
+                      });
+                    }}
+                    aria-invalid={experienceDateErrors.end ? true : undefined}
+                  />
+                  {experienceDateErrors.end ? (
+                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.end}</p>
+                  ) : null}
+                </div>
               </div>
               <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#FFF", cursor: "pointer" }}>
                 <input type="checkbox" checked={experienceEditor.draft.present} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, present: e.target.checked, endDate: e.target.checked ? "" : ev.draft.endDate } } : null))} />
@@ -2561,8 +2886,60 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Degree / qualification</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Field of study</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.startDate || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: e.target.value } } : null))} /></div>
-                <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.endDate || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: e.target.value } } : null))} /></div>
+                <div>
+                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label>
+                  <input
+                    id="cvp-edu-start-date"
+                    style={{
+                      ...CB_UI.input,
+                      marginTop: 4,
+                      minHeight: undefined,
+                      borderColor: educationDateErrors.start ? "#EF4444" : undefined,
+                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                    placeholder="09/2018"
+                    value={educationEditor.draft.startDate || ""}
+                    onChange={(e) => {
+                      const next = processMmYyyyInput(e.target.value, { allowPresent: false });
+                      mmYyyyCursorRef.current = { id: "cvp-edu-start-date", cursor: next.cursor };
+                      flushSync(() => {
+                        setEducationDateErrors((er) => ({ ...er, start: next.error }));
+                        setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: next.value } } : null));
+                      });
+                    }}
+                    aria-invalid={educationDateErrors.start ? true : undefined}
+                  />
+                  {educationDateErrors.start ? (
+                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{educationDateErrors.start}</p>
+                  ) : null}
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label>
+                  <input
+                    id="cvp-edu-end-date"
+                    style={{
+                      ...CB_UI.input,
+                      marginTop: 4,
+                      minHeight: undefined,
+                      borderColor: educationDateErrors.end ? "#EF4444" : undefined,
+                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                    placeholder="06/2022"
+                    value={educationEditor.draft.endDate || ""}
+                    onChange={(e) => {
+                      const next = processMmYyyyInput(e.target.value, { allowPresent: false });
+                      mmYyyyCursorRef.current = { id: "cvp-edu-end-date", cursor: next.cursor };
+                      flushSync(() => {
+                        setEducationDateErrors((er) => ({ ...er, end: next.error }));
+                        setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: next.value } } : null));
+                      });
+                    }}
+                    aria-invalid={educationDateErrors.end ? true : undefined}
+                  />
+                  {educationDateErrors.end ? (
+                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{educationDateErrors.end}</p>
+                  ) : null}
+                </div>
               </div>
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (optional)</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
             </div>
@@ -2613,27 +2990,33 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>Add optional section</h3>
             <p style={{ fontSize: 13, color: "#A0A0A0", margin: "0 0 16px" }}>Choose a section to add to your CV.</p>
             <div style={{ display: "grid", gap: 8, maxHeight: "55vh", overflowY: "auto" }}>
-              {availableOptionalSections.map((opt) => (
+              {addSectionPickerRows.map((row) => (
                 <button
-                  key={opt.id}
+                  key={row.kind === "nav" ? `nav-${row.id}` : row.id}
                   type="button"
                   style={{ ...CB_UI.btn, width: "100%", textAlign: "left" }}
                   onClick={() => {
+                    if (row.kind === "nav") {
+                      setOpenSection(row.id);
+                      setAddSectionPickerOpen(false);
+                      return;
+                    }
                     setResume((r) => ({
                       ...r,
-                      builderExtraSectionIds: [...new Set([...(r.builderExtraSectionIds || []), opt.id])],
+                      builderExtraSectionIds: [...new Set([...(r.builderExtraSectionIds || []), row.id])],
                     }));
-                    setOpenSection(opt.id);
+                    setOpenSection(row.id);
+                    setAddSectionPickerOpen(false);
                   }}
                 >
-                  + {opt.label}
+                  {row.kind === "nav" ? row.label : `+ ${row.label}`}
                 </button>
               ))}
-              {availableOptionalSections.length === 0 && (
+              {addSectionPickerRows.length === 0 ? (
                 <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>
                   {allOptionalSectionsAdded ? "All optional sections have been added." : "No sections available."}
                 </p>
-              )}
+              ) : null}
             </div>
             <button type="button" style={{ ...CB_UI.btn, marginTop: 16, width: "100%", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setAddSectionPickerOpen(false)}>Close</button>
           </div>

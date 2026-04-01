@@ -239,10 +239,19 @@ const FAB = forwardRef(function FAB(
     clearTimeout(idleTimer.current);
     ghostPulseKillArmedRef.current = false;
     setIsGhostPulsing(false);
+    const delayMs = variant === "builder" ? 45000 : 15000;
     idleTimer.current = setTimeout(() => {
+      if (typeof document !== "undefined") {
+        const el = document.activeElement;
+        const tag = el?.tagName?.toUpperCase();
+        if (tag === "INPUT" || tag === "TEXTAREA") {
+          resetTimer();
+          return;
+        }
+      }
       setIsGhostPulsing(true);
-    }, 15000);
-  }, []);
+    }, delayMs);
+  }, [variant]);
 
   useEffect(() => {
     resetTimer();
@@ -578,9 +587,12 @@ const FAB = forwardRef(function FAB(
           const coach = variant === "builder" && resume ? getProgressCoachData(resume) : getProgressCoachData(null);
           setSheetCoach(coach);
           setSheetGate(null);
-          getDownloadGatekeeperData()
-            .then(setSheetGate)
-            .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
+          const skipGateFetch = variant === "builder" && tabKey === "content";
+          if (!skipGateFetch) {
+            getDownloadGatekeeperData()
+              .then(setSheetGate)
+              .catch(() => setSheetGate({ ...GATEKEEPER_FALLBACK }));
+          }
         }
       }
       setSheetOpen(true);
@@ -1167,8 +1179,14 @@ const FAB = forwardRef(function FAB(
         sheetFooterSlot={sheetFooterSlot}
         showGotItButton={showSheetGotIt}
         sheetIntelligence={!sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh && dedicatedRoute == null}
+        isOnContentTab={variant === "builder" && tabKey === "content"}
         coverLetterCrossSell={
-          variant === "builder" && !sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh && dedicatedRoute == null
+          variant === "builder" &&
+          tabKey !== "content" &&
+          !sheetBodySlot &&
+          sheetCoachPanelsFlag &&
+          !sheetAtsHigh &&
+          dedicatedRoute == null
         }
         atsScore={typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0}
         dedicatedRoute={dedicatedRoute}
