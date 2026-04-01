@@ -26,6 +26,7 @@ import {
   builderAtsScore,
   builderAtsBreakdown,
 } from "../cvShared";
+import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI, S } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 import { useCvProgress } from "../hooks/useCvProgress";
@@ -168,8 +169,9 @@ function BuilderAtsTabContent({ resume, showCoverLetterJourneyPrompt, onCoverLet
   );
 }
 
-function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection }) {
+function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
   const list = normalizeCertificationsArray(resume.certifications);
+  const certRolePack = useMemo(() => getRoleSuggestions(jobTitle), [jobTitle]);
   const [inlineNameEdit, setInlineNameEdit] = useState(null);
   const [certYearError, setCertYearError] = useState(null);
   const certYearCursorRef = useRef(null);
@@ -204,8 +206,48 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
     display: "grid",
     placeItems: "center",
   };
+  const certNameTaken = (name) =>
+    list.some((c) => String(c.name || "").trim().toLowerCase() === String(name).trim().toLowerCase());
+
   return (
     <div style={{ display: "grid", gap: 8 }}>
+      {certRolePack?.certifications?.length ? (
+        <div style={{ display: "grid", gap: 8 }}>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.35 }}>Common certifications for this role:</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+            {certRolePack.certifications.map((cert) => {
+              const taken = certNameTaken(cert);
+              return (
+                <button
+                  key={cert}
+                  type="button"
+                  disabled={taken}
+                  onClick={() => {
+                    if (taken) return;
+                    setResume((r) => ({
+                      ...r,
+                      certifications: [...normalizeCertificationsArray(r.certifications), { ...EMPTY_CERT, name: cert, issuer: "", year: "" }],
+                    }));
+                  }}
+                  style={{
+                    background: taken ? "#141414" : "#1C1C1C",
+                    border: "1px solid #2A2A2A",
+                    color: taken ? "#666666" : "#FFFFFF",
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontSize: 13,
+                    cursor: taken ? "not-allowed" : "pointer",
+                    opacity: taken ? 0.55 : 1,
+                    transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}`,
+                  }}
+                >
+                  {cert}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
       {list.length === 0 && !certificationEditor && (
         <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No certifications yet. Add one below.</p>
       )}
@@ -545,6 +587,7 @@ function OptionalBuilderAccordionSections({
             setResume={setResume}
             certificationEditor={certificationEditor}
             setCertificationEditor={setCertificationEditor}
+            jobTitle={resume.title}
             onRemoveSection={() => {
               setCertificationEditor(null);
               setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
@@ -734,9 +777,13 @@ function SkillsEditorSection({
   setSkillsPasteOpen,
   skillsPasteDraft,
   setSkillsPasteDraft,
+  jobTitle,
 }) {
+  const skillsRolePack = useMemo(() => getRoleSuggestions(jobTitle), [jobTitle]);
   const chipRowStyle = { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", alignContent: "flex-start", minHeight: 36, width: "100%" };
   const chipStyle = { ...CB_UI.chip, flexShrink: 0 };
+  const skillTaken = (sk) =>
+    splitCommaItems(resume.skills).some((x) => x.toLowerCase() === String(sk).trim().toLowerCase());
 
   const runSkillsPasteImport = () => {
     const parts = String(skillsPasteDraft || "")
@@ -877,6 +924,44 @@ function SkillsEditorSection({
             + Add
           </button>
         </div>
+        {skillsRolePack?.softSkills?.length ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.35 }}>
+              Suggested for {skillsRolePack.jobTitles?.[0] || "this role"}:
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+              {skillsRolePack.softSkills.map((sk) => {
+                const taken = skillTaken(sk);
+                return (
+                  <button
+                    key={sk}
+                    type="button"
+                    disabled={taken}
+                    onClick={() => {
+                      if (taken) return;
+                      const cur = splitCommaItems(resume.skills);
+                      if (cur.some((x) => x.toLowerCase() === sk.toLowerCase())) return;
+                      setResume((r) => ({ ...r, skills: [...cur, sk].join(", ") }));
+                    }}
+                    style={{
+                      background: taken ? "#141414" : "#1C1C1C",
+                      border: "1px solid #2A2A2A",
+                      color: taken ? "#666666" : "#FFFFFF",
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 13,
+                      cursor: taken ? "not-allowed" : "pointer",
+                      opacity: taken ? 0.55 : 1,
+                      transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)`,
+                    }}
+                  >
+                    {sk}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
     </>
   );
@@ -1109,13 +1194,15 @@ function pulseCvpHighlight(el) {
   }, 320);
 }
 
-function TechnicalSkillsEditor({ resume, setResume }) {
+function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [chipDraftByIndex, setChipDraftByIndex] = useState({});
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [pastePreview, setPastePreview] = useState(null);
+  const [suggestedTechOpen, setSuggestedTechOpen] = useState(true);
   const groups = normalizeTechnicalSkillsState(resume.technicalSkills);
+  const techRolePack = useMemo(() => getRoleSuggestions(jobTitle), [jobTitle]);
 
   const updateGroups = (next) => {
     setResume((r) => ({
@@ -1167,6 +1254,25 @@ function TechnicalSkillsEditor({ resume, setResume }) {
     }
     updateGroups((g) => [...g, ...pastePreview.rows.map((row) => ({ category: row.category, chips: [...row.chips] }))]);
     closePaste();
+  };
+
+  const categoryNameTaken = (name) =>
+    groups.some((g) => g.category.trim().toLowerCase() === String(name).trim().toLowerCase());
+
+  const addSuggestedCategory = (cat) => {
+    const catName = String(cat.category || "").trim();
+    if (!catName) return;
+    updateGroups((g) => {
+      const idx = g.findIndex((x) => x.category.trim().toLowerCase() === catName.toLowerCase());
+      if (idx >= 0) {
+        const next = [...g];
+        const merged = new Set([...next[idx].chips, ...(Array.isArray(cat.chips) ? cat.chips : [])]);
+        next[idx] = { ...next[idx], chips: [...merged] };
+        return next;
+      }
+      if (g.length >= 20) return g;
+      return [...g, { category: catName, chips: [...(Array.isArray(cat.chips) ? cat.chips : [])] }];
+    });
   };
 
   const chipRowStyle = {
@@ -1253,6 +1359,89 @@ function TechnicalSkillsEditor({ resume, setResume }) {
           <ClipboardIconThin size={16} />
           Paste &amp; Import
         </button>
+        {techRolePack?.technicalSkillCategories?.length ? (
+          <div
+            style={{
+              border: "1px solid #2A2A2A",
+              borderRadius: 8,
+              background: "#141414",
+              overflow: "hidden",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setSuggestedTechOpen((o) => !o)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                padding: "12px 14px",
+                background: "transparent",
+                border: "none",
+                color: "#FFFFFF",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 600,
+                textAlign: "left",
+                transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
+              }}
+            >
+              <span>
+                Suggested categories for {techRolePack.jobTitles?.[0] || "this role"}
+              </span>
+              <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 12, fontWeight: 600 }}>{suggestedTechOpen ? "▾" : "▸"}</span>
+            </button>
+            {suggestedTechOpen ? (
+              <div style={{ padding: "0 14px 14px", display: "grid", gap: 10 }}>
+                {techRolePack.technicalSkillCategories.map((cat) => {
+                  const taken = categoryNameTaken(cat.category);
+                  const preview = (cat.chips || []).slice(0, 3).join(", ");
+                  return (
+                    <div
+                      key={cat.category}
+                      style={{
+                        background: taken ? "#101010" : "#1C1C1C",
+                        border: "1px solid #2A2A2A",
+                        borderRadius: 8,
+                        padding: "12px 14px",
+                        display: "grid",
+                        gap: 8,
+                        opacity: taken ? 0.55 : 1,
+                      }}
+                    >
+                      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: taken ? "#666666" : "#FFFFFF" }}>{cat.category}</div>
+                        <button
+                          type="button"
+                          disabled={taken || groups.length >= 20}
+                          onClick={() => addSuggestedCategory(cat)}
+                          style={{
+                            ...CB_UI.btn,
+                            padding: "6px 12px",
+                            fontSize: 12,
+                            opacity: taken || groups.length >= 20 ? 0.45 : 1,
+                            cursor: taken || groups.length >= 20 ? "not-allowed" : "pointer",
+                            transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
+                          }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                      {preview ? (
+                        <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.4 }}>
+                          {preview}
+                          {(cat.chips || []).length > 3 ? "…" : ""}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <input
             style={{ ...CB_UI.input, minHeight: undefined, flex: "1 1 160px" }}
@@ -2420,6 +2609,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   setSkillsPasteOpen={setSkillsPasteOpen}
                   skillsPasteDraft={skillsPasteDraft}
                   setSkillsPasteDraft={setSkillsPasteDraft}
+                  jobTitle={resume.title}
                 />
                 {!technicalSkillsHasAnyChip(resume) ? (
                   <div
@@ -2462,7 +2652,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 ) : null}
                 {technicalSkillsFromPrompt && !technicalSkillsHasAnyChip(resume) ? (
                   <div style={{ marginTop: 12, borderRadius: 8, padding: 2, marginLeft: -2, marginRight: -2 }}>
-                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
                   </div>
                 ) : null}
               </AccordionSection>
@@ -2470,7 +2660,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {technicalSkillsHasAnyChip(resume) ? (
                 <AccordionSection id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
                   </div>
                 </AccordionSection>
               ) : null}
@@ -2756,6 +2946,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   setSkillsPasteOpen={setSkillsPasteOpen}
                   skillsPasteDraft={skillsPasteDraft}
                   setSkillsPasteDraft={setSkillsPasteDraft}
+                  jobTitle={resume.title}
                 />
                 {!technicalSkillsHasAnyChip(resume) ? (
                   <div
@@ -2798,7 +2989,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 ) : null}
                 {technicalSkillsFromPrompt && !technicalSkillsHasAnyChip(resume) ? (
                   <div style={{ marginTop: 12, borderRadius: 8, padding: 2, marginLeft: -2, marginRight: -2 }}>
-                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
                   </div>
                 ) : null}
               </AccordionSection>
@@ -2806,7 +2997,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {technicalSkillsHasAnyChip(resume) ? (
                 <AccordionSection variant="mobileRow" id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                    <TechnicalSkillsEditor resume={resume} setResume={setResume} />
+                    <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
                   </div>
                 </AccordionSection>
               ) : null}

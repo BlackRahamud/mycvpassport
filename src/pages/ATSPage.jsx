@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ATSChecker from "../ATSChecker";
+import { detectRole } from "../utils/detectRole";
 import { getFabMemory } from "../components/FAB/FABLogic";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -25,7 +26,7 @@ export default function ATSPage({ onBack }) {
 
   return (
     <div style={{ position: "relative", background: "#0A0A0A", minHeight: "100vh" }}>
-      <ATSChecker onBack={onBack} />
+      <ATSChecker onBack={onBack} detectRole={detectRole} />
       {showCoverLetterJourney ? (
         <div
           style={{

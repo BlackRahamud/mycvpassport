@@ -5,7 +5,9 @@ import { getFabMemory, writeFabMemory, checkAtsMilestone } from "./components/FA
 import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import UpgradeModal from "./UpgradeModal";
-import { Target, Eye } from "lucide-react";
+import { Target, Eye, Lock } from "lucide-react";
+import skillSuggestions from "./data/skillSuggestions";
+import { detectRole as detectRoleDefault, guessRoleFromResumeRaw } from "./utils/detectRole";
 
 const AT_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
@@ -140,6 +142,42 @@ function analyzeKeywords(resumeText, jobDesc) {
   return { score: Math.round((matched.length / jobWords.length) * 50), matched, missing: missing.slice(0, 30), total: jobWords.length };
 }
 
+function scoreAgainstRoleKeywords(cvText, role) {
+  if (!role || !skillSuggestions[role]) return null;
+
+  const keywords = skillSuggestions[role].atsKeywords;
+  const cvLower = cvText.toLowerCase();
+
+  const found = [];
+  const missing = [];
+
+  keywords.forEach(({ keyword, frequency }) => {
+    if (cvLower.includes(keyword.toLowerCase())) {
+      found.push({ keyword, frequency });
+    } else {
+      missing.push({ keyword, frequency });
+    }
+  });
+
+  const totalWeight = keywords.reduce(
+    (sum, k) => sum + (k.frequency === "High" ? 3 : k.frequency === "Medium" ? 2 : 1),
+    0
+  );
+  const foundWeight = found.reduce(
+    (sum, k) => sum + (k.frequency === "High" ? 3 : k.frequency === "Medium" ? 2 : 1),
+    0
+  );
+
+  const freqRank = { High: 3, Medium: 2, Low: 1 };
+  missing.sort((a, b) => (freqRank[b.frequency] || 0) - (freqRank[a.frequency] || 0));
+
+  return {
+    score: Math.round((foundWeight / totalWeight) * 100),
+    found,
+    missing,
+  };
+}
+
 function analyzeSections(resumeText) {
   const lower = resumeText.toLowerCase();
   const found = EXPECTED_SECTIONS.filter(s => s.labels.some(l => lower.includes(l))).map(s => s.key);
@@ -151,17 +189,195 @@ function analyzeFormatting(resumeText) {
   return { score: Math.max(20 - warnings.length * 4, 0), warnings };
 }
 
-// --- Main Component ---
-function AtsResultPassIcon() {
+const ATS_EASE = "cubic-bezier(0.4,0,0.2,1)";
+
+function freqBadgeLabel(frequency) {
+  if (frequency === "High") return "HIGH";
+  if (frequency === "Medium") return "MED";
+  return "LOW";
+}
+
+function AtsResultBody({ result, roleKwTab, setRoleKwTab }) {
+  const gaugeScore = result.hasJobDesc ? result.total : Math.round((result.total / 50) * 100);
+  const cvHealthPct = Math.round(((result.sec.score + result.fmt.score) / 50) * 100);
+  const hasRoleKw = Boolean(result.hasJobDesc && result.roleFromCv && result.roleKeywordScore);
+  const missingHigh = hasRoleKw && result.roleKeywordScore.missing.some((m) => m.frequency === "High");
+
+  const foundChip = {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 10px",
+    borderRadius: 8,
+    background: "#14532D",
+    border: "1px solid #22C55E",
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: 500,
+    fontFamily: AT_FONT,
+  };
+
+  const missingChip = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 10px",
+    borderRadius: 8,
+    background: "#450A0A",
+    border: "1px solid #EF4444",
+    color: "#FECACA",
+    fontSize: 12,
+    fontWeight: 500,
+    fontFamily: AT_FONT,
+  };
+
+  const badgeStyle = {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+    color: "#FFFFFF",
+    background: "#7F1D1D",
+    border: "1px solid #B91C1C",
+    borderRadius: 4,
+    padding: "2px 6px",
+    fontFamily: AT_FONT,
+  };
+
   return (
-    <svg width={22} height={22} viewBox="0 0 22 22" aria-hidden style={{ flexShrink: 0 }}>
-      <circle cx={11} cy={11} r={11} fill="#22C55E" />
-      <path d="M5 11 L9 15 L17 7" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div style={{ marginTop: 40 }}>
+      <ReadinessGauge score={gaugeScore} />
+
+      <div
+        className="cvp-ats-score-pair"
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginTop: 40 }}
+      >
+        <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <Eye size={18} color="#FFFFFF" />
+            <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT, margin: 0 }}>CV Health</h3>
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 900, fontFamily: AT_FONT }}>{cvHealthPct}%</div>
+          <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8, lineHeight: 1.45, fontFamily: AT_FONT }}>
+            Sections, structure, and formatting ({result.sec.score + result.fmt.score}/50).
+          </p>
+        </div>
+
+        <div
+          style={{
+            background: result.hasJobDesc ? "#141414" : "#0F0F0F",
+            border: result.hasJobDesc ? "1px solid #2A2A2A" : "1px dashed #444444",
+            borderRadius: 16,
+            padding: 24,
+          }}
+        >
+          {!result.hasJobDesc ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <Lock size={20} color="#888888" aria-hidden />
+                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT, margin: 0, color: "#E5E5E5" }}>Keyword Match</h3>
+              </div>
+              <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0, lineHeight: 1.45, fontFamily: AT_FONT }}>
+                Paste a job description for full score
+              </p>
+            </>
+          ) : !result.roleFromCv ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <Target size={18} color="#FFFFFF" />
+                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT, margin: 0 }}>Keyword Match</h3>
+              </div>
+              <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0, lineHeight: 1.45, fontFamily: AT_FONT }}>
+                Add your job title in the builder for role-specific scoring
+              </p>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <Target size={18} color="#FFFFFF" />
+                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT, margin: 0 }}>Keyword Match</h3>
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, fontFamily: AT_FONT }}>{result.roleKeywordScore.score}%</div>
+              <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8, lineHeight: 1.45, fontFamily: AT_FONT }}>
+                CV text vs role keyword databank (UAE market).
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {hasRoleKw ? (
+        <div style={{ marginTop: 28 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => setRoleKwTab("found")}
+              style={{
+                padding: "10px 16px",
+                borderRadius: 8,
+                border: roleKwTab === "found" ? "1px solid #22C55E" : "1px solid #2A2A2A",
+                background: roleKwTab === "found" ? "#14532D" : "#1C1C1C",
+                color: "#FFFFFF",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                fontFamily: AT_FONT,
+                transition: `background-color 150ms ${ATS_EASE}, border-color 150ms ${ATS_EASE}`,
+              }}
+            >
+              Found Keywords
+            </button>
+            <button
+              type="button"
+              onClick={() => setRoleKwTab("missing")}
+              style={{
+                padding: "10px 16px",
+                borderRadius: 8,
+                border: roleKwTab === "missing" ? "1px solid #EF4444" : "1px solid #2A2A2A",
+                background: roleKwTab === "missing" ? "#450A0A" : "#1C1C1C",
+                color: "#FFFFFF",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                fontFamily: AT_FONT,
+                transition: `background-color 150ms ${ATS_EASE}, border-color 150ms ${ATS_EASE}`,
+              }}
+            >
+              Missing Keywords
+            </button>
+          </div>
+          {roleKwTab === "found" ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {result.roleKeywordScore.found.map((k) => (
+                <span key={k.keyword} style={foundChip}>
+                  {k.keyword}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              {missingHigh ? (
+                <p style={{ margin: 0, fontSize: 12, color: "#F87171", fontWeight: 600, fontFamily: AT_FONT, lineHeight: 1.45 }}>
+                  Critical — appears in 70%+ of UAE job descriptions
+                </p>
+              ) : null}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {result.roleKeywordScore.missing.map((k) => (
+                  <span key={k.keyword} style={missingChip}>
+                    <span>{k.keyword}</span>
+                    <span style={badgeStyle}>{freqBadgeLabel(k.frequency)}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
+// --- Main Component ---
 export default function ATSChecker(props) {
+  const detectRoleFn = typeof props.detectRole === "function" ? props.detectRole : detectRoleDefault;
   const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
   const [resumeFile, setResumeFile] = useState(null);
@@ -177,9 +393,14 @@ export default function ATSChecker(props) {
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistLoading, setWaitlistLoading] = useState(false);
   const [waitlistMessage, setWaitlistMessage] = useState({ type: "", text: "" });
+  const [roleKwTab, setRoleKwTab] = useState("found");
   const fabRef = useRef(null);
 
   const atsChecks = useMemo(() => buildAtsChecksFromResult(result), [result]);
+
+  useEffect(() => {
+    setRoleKwTab("found");
+  }, [result]);
 
   const handleDownloadCv = async () => {
     if (!resumeFile) return;
@@ -216,8 +437,8 @@ export default function ATSChecker(props) {
   }, []);
 
   async function handleCheck() {
-    if (!resumeFile || !jobDesc.trim()) {
-      setError("Please provide both a resume and a job description.");
+    if (!resumeFile) {
+      setError("Please upload a resume.");
       return;
     }
     if (!isPro && atsScansUsed >= 1) {
@@ -245,9 +466,12 @@ export default function ATSChecker(props) {
       }
 
       const normalized = normalizeResumeText(resumeText);
-      const kw = analyzeKeywords(normalized, jobDesc);
+      const jd = jobDesc.trim();
+      const kw = jd ? analyzeKeywords(normalized, jobDesc) : { score: 0, matched: [], missing: [], total: 0 };
       const sec = analyzeSections(normalized);
       const fmt = analyzeFormatting(normalized);
+      const roleFromCv = guessRoleFromResumeRaw(resumeText, detectRoleFn);
+      const roleKeywordScore = jd && roleFromCv ? scoreAgainstRoleKeywords(normalized, roleFromCv) : null;
 
       setTimeout(async () => {
         if (!isPro && profileId) {
@@ -260,11 +484,16 @@ export default function ATSChecker(props) {
         }
         const total = kw.score + sec.score + fmt.score;
         setResult({
-          kw, sec, fmt,
+          kw,
+          sec,
+          fmt,
           total,
+          hasJobDesc: !!jd,
+          roleFromCv,
+          roleKeywordScore,
           resumeText: normalized,
           rawResumeText: resumeText,
-          pdfPreviewUrl: URL.createObjectURL(resumeFile)
+          pdfPreviewUrl: URL.createObjectURL(resumeFile),
         });
         const mem = getFabMemory();
         const pending = checkAtsMilestone(total, mem.lastAtsScore);
@@ -352,38 +581,8 @@ export default function ATSChecker(props) {
 
       {/* Dashboard Results */}
       {result && !loading && (
-        <div style={{ marginTop: 40 }}>
-          <ReadinessGauge score={result.total} />
-
-          {/* Score cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20, marginTop: 40 }}>
-            <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <Target size={18} color="#FFFFFF" />
-                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT }}>Keyword Optimization</h3>
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 900 }}>{result.kw.score}/50</div>
-              <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Analysis of essential industry terminology matched.</p>
-            </div>
-
-            <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <AtsResultPassIcon />
-                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT }}>Professional Readiness</h3>
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 900 }}>{result.sec.score}/30</div>
-              <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Validation of core structural pillars and headings.</p>
-            </div>
-
-            <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <Eye size={18} color="#FFFFFF" />
-                <h3 style={{ fontSize: 14, fontWeight: 700, fontFamily: AT_FONT }}>Readability Insight</h3>
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 900 }}>{result.fmt.score}/20</div>
-              <p style={{ fontSize: 12, color: "#A0A0A0", marginTop: 8 }}>Detection of layout interference and parsing risks.</p>
-            </div>
-          </div>
+        <div>
+          <AtsResultBody result={result} roleKwTab={roleKwTab} setRoleKwTab={setRoleKwTab} />
 
           {/* Visual Proof Hook (Free Users Only) */}
           {!isPro && (
