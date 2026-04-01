@@ -179,6 +179,7 @@ const FAB = forwardRef(function FAB(
   ref
 ) {
   const navigate = useNavigate();
+  const tipTriggerRef = useRef(null);
   const [mobile, setMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -424,8 +425,10 @@ const FAB = forwardRef(function FAB(
   useEffect(() => {
     if (!isTipVisible) return undefined;
     const onOutside = (e) => {
-      const el = bulbRef.current;
-      if (!el || (e.target instanceof Node && el.contains(e.target))) return;
+      if (
+        (bulbRef.current && bulbRef.current.contains(e.target)) ||
+        (tipTriggerRef.current && tipTriggerRef.current.contains(e.target))
+      ) return;
       setIsTipVisible(false);
     };
     document.addEventListener("mousedown", onOutside);
@@ -1010,7 +1013,7 @@ const FAB = forwardRef(function FAB(
                 <p className="cvp-fab-bubble-title">{bubbleTitle}</p>
                 <p className="cvp-fab-bubble-sub">{bubbleSub}</p>
                 <div className="cvp-fab-bubble-divider" />
-                <p className="cvp-fab-bubble-tip-link" onClick={() => triggerTipManually()}>
+                <p className="cvp-fab-bubble-tip-link" ref={tipTriggerRef} onClick={() => triggerTipManually()}>
                   Feeling stuck? Get a tip →
                 </p>
               </div>
