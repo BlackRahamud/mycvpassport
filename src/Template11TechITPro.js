@@ -6,7 +6,6 @@
 
 import GhostChip from "./components/GhostChip";
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
-import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
@@ -73,6 +72,37 @@ function parseTechnicalSkillsGrouped(raw) {
   if (out.length) return out;
 
   return [{ category: "Technical Skills", items: t.split(",").map((s) => s.trim()).filter(Boolean) }];
+}
+
+/** @param {unknown} points */
+function experienceBulletItems(points) {
+  if (points == null) return [];
+  if (Array.isArray(points)) {
+    return points.flatMap((p) =>
+      experienceBulletItems(typeof p === "string" ? p : p == null ? "" : String(p)),
+    );
+  }
+  const raw = String(points).trim();
+  if (!raw) return [];
+  const byNl = raw.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  if (byNl.length > 1) {
+    return byNl.flatMap((line) =>
+      line.includes("•")
+        ? line
+            .split("•")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [line],
+    );
+  }
+  const one = byNl[0] ?? raw;
+  if (one.includes("•")) {
+    return one
+      .split("•")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [one];
 }
 
 function certificationLines(cv) {
@@ -392,19 +422,22 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
                   </div>
                   {e.points && (
                     <div className="cvp-preview-exp-t11-wrap">
-                      {splitExperiencePointsForPreview(e.points).map((line, j) => (
-                        <p
+                      {experienceBulletItems(e.points).map((line, j) => (
+                        <div
                           key={j}
                           className="cvp-preview-exp-t11-line"
                           style={{
-                            fontSize: pt(10),
+                            display: "block",
+                            marginBottom: "4px",
+                            paddingLeft: 12,
+                            textIndent: -12,
                             lineHeight: 1.5,
+                            fontSize: pt(10),
                             color: BODY,
-                            margin: "0 0 4px",
                           }}
                         >
                           • {line}
-                        </p>
+                        </div>
                       ))}
                     </div>
                   )}
