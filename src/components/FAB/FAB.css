@@ -5,7 +5,7 @@
 .cvp-fab-layer {
   transition: none !important;
 }
-.cvp-fab-layer *:not(.cvp-fab-bulb):not(.cvp-fab-bulb *):not(.cvp-fab-progress-svg):not(.cvp-fab-progress-svg *):not(.cvp-fab-status-bubble):not(.cvp-fab-tip-bubble):not(.cvp-fab-bulb--lit):not(.cvp-fab-bulb--flicker) {
+.cvp-fab-layer *:not(.cvp-fab-bulb-cluster):not(.cvp-fab-bulb):not(.cvp-fab-bulb *):not(.cvp-fab-progress-svg):not(.cvp-fab-progress-svg *):not(.cvp-fab-status-bubble):not(.cvp-fab-tip-bubble):not(.cvp-fab-bulb--lit):not(.cvp-fab-bulb--flicker) {
   transition: none !important;
 }
 
@@ -233,8 +233,6 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .cvp-fab-sheet-panel {
@@ -315,7 +313,7 @@
 .cvp-fab-sticky-wrap--builder {
   /* SOLAR SYSTEM BOUNDARY — invisible 120x120 orbit container */
   /* All FAB elements position:absolute inside this box */
-  /* Bulb = 3 o'clock, Bubble = 9 o'clock, Ring = centre */
+  /* Bulb ≈ 2:00–2:30 (-52° orbit), Bubble = 9 o'clock, Ring = centre */
   /* To add new elements: position:absolute + coordinates below */
   /* right:0 top:50% = 3 o'clock */
   /* left:0 top:50% = 9 o'clock */
@@ -454,11 +452,22 @@
   letter-spacing: 0.01em;
 }
 
-.cvp-fab-bulb {
+/* Satellite host: orbit at -52° (2:00–2:30), gap from ring via translateX */
+.cvp-fab-bulb-cluster {
   position: absolute;
-  right: 6px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%) rotate(-52deg) translateX(46px) rotate(52deg);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cvp-fab-bulb {
+  position: relative;
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -469,13 +478,22 @@
   justify-content: center;
   cursor: pointer;
   color: rgba(255, 255, 255, 0.35);
-  z-index: 10;
+  z-index: 1;
   pointer-events: auto;
   padding: 0;
   transition:
     border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
     color 300ms cubic-bezier(0.4, 0, 0.2, 1),
     background 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cvp-fab-tip-bubble--bulb-cluster {
+  position: absolute;
+  right: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(50%);
+  min-width: 180px;
+  max-width: 210px;
 }
 
 .cvp-fab-bulb--lit {

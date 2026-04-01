@@ -68,8 +68,15 @@ const MILESTONE_BUBBLE_COPY = {
 function fabRingColor(p) {
   const n = p ?? 0;
   if (n >= 100) return "#22C55E";
-  if (n >= 71) return "#3B82F6";
-  if (n >= 31) return "#F59E0B";
+  if (n >= 90) return "#16A34A";
+  if (n >= 80) return "#3B82F6";
+  if (n >= 70) return "#60A5FA";
+  if (n >= 60) return "#F59E0B";
+  if (n >= 50) return "#FBBF24";
+  if (n >= 40) return "#F97316";
+  if (n >= 30) return "#EF4444";
+  if (n >= 20) return "#DC2626";
+  if (n >= 10) return "#B91C1C";
   return "#A0A0A0";
 }
 
@@ -217,6 +224,7 @@ const FAB = forwardRef(function FAB(
   const tipDismissTimerRef = useRef(null);
   const bulbPostFlickerTimerRef = useRef(null);
   const bulbDimTimerRef = useRef(null);
+  const bulbRef = useRef(null);
   const bulbAppearCountRef = useRef(0);
   const tipIndexRef = useRef({});
 
@@ -261,8 +269,12 @@ const FAB = forwardRef(function FAB(
       clearTimeout(bubbleDismissTimeoutRef.current);
       clearTimeout(bulbSectionTimerRef.current);
       clearTimeout(bulbVisibleTimerRef.current);
+      /* Unmount: clear latest timer ids from refs */
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- refs hold timer ids, not DOM nodes
       clearTimeout(tipDismissTimerRef.current);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       clearTimeout(bulbPostFlickerTimerRef.current);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       clearTimeout(bulbDimTimerRef.current);
     };
   }, []);
@@ -275,7 +287,7 @@ const FAB = forwardRef(function FAB(
 
   useEffect(() => {
     if (variant !== "builder") return undefined;
-    const p = cvCompletionProgress ?? 0;
+    const p = cvCompletionProgress?.percent ?? 0;
 
     if (prevProgressRef.current === null) {
       prevProgressRef.current = p;
@@ -336,6 +348,8 @@ const FAB = forwardRef(function FAB(
     bulbSectionTimerRef.current = setTimeout(() => {
       if (bulbAppearCountRef.current >= 3) return;
       bulbAppearCountRef.current += 1;
+      setIsBulbLit(true);
+      setIsBulbFlickering(false);
       setIsBulbVisible(true);
       bulbVisibleTimerRef.current = setTimeout(() => {
         setIsBulbVisible(false);
@@ -406,6 +420,21 @@ const FAB = forwardRef(function FAB(
     tplTimersRef.current.push(tIdle);
     return clearTplTimers;
   }, [templatesInteractKey, variant, tabKey, clearTplTimers]);
+
+  useEffect(() => {
+    if (!isTipVisible) return undefined;
+    const onOutside = (e) => {
+      const el = bulbRef.current;
+      if (!el || (e.target instanceof Node && el.contains(e.target))) return;
+      setIsTipVisible(false);
+    };
+    document.addEventListener("mousedown", onOutside);
+    document.addEventListener("touchstart", onOutside, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("touchstart", onOutside);
+    };
+  }, [isTipVisible]);
 
   useEffect(() => {
     if (variant !== "builder" || tabKey !== "templates") return;
@@ -865,9 +894,6 @@ const FAB = forwardRef(function FAB(
     tipIndexRef.current = { ...tipIndexRef.current, [section]: idx + 1 };
     setIsTipVisible(true);
     clearTimeout(tipDismissTimerRef.current);
-    tipDismissTimerRef.current = setTimeout(() => {
-      setIsTipVisible(false);
-    }, 6000);
   }, [activeSection]);
 
   const handleBulbTap = useCallback(() => {
@@ -876,30 +902,16 @@ const FAB = forwardRef(function FAB(
     clearTimeout(bulbDimTimerRef.current);
     clearTimeout(bulbPostFlickerTimerRef.current);
 
-    setIsBulbFlickering(true);
-    bulbPostFlickerTimerRef.current = setTimeout(() => {
-      setIsBulbFlickering(false);
-      setIsBulbLit(true);
+    setIsBulbFlickering(false);
+    setIsBulbLit(true);
 
-      const section = fabNormalizeSection(activeSection);
-      const tips = SECTION_TIPS[section] ?? SECTION_TIPS.summary;
-      const idx = tipIndexRef.current[section] ?? 0;
-      setCurrentTip(tips[idx % tips.length]);
-      tipIndexRef.current = { ...tipIndexRef.current, [section]: idx + 1 };
+    const section = fabNormalizeSection(activeSection);
+    const tips = SECTION_TIPS[section] ?? SECTION_TIPS.summary;
+    const idx = tipIndexRef.current[section] ?? 0;
+    setCurrentTip(tips[idx % tips.length]);
+    tipIndexRef.current = { ...tipIndexRef.current, [section]: idx + 1 };
 
-      setIsTipVisible(true);
-      clearTimeout(tipDismissTimerRef.current);
-      tipDismissTimerRef.current = setTimeout(() => {
-        setIsBulbFlickering(true);
-        clearTimeout(bulbDimTimerRef.current);
-        bulbDimTimerRef.current = setTimeout(() => {
-          setIsBulbFlickering(false);
-          setIsBulbLit(false);
-          setIsBulbVisible(false);
-          setIsTipVisible(false);
-        }, 550);
-      }, 6000);
-    }, 450);
+    setIsTipVisible(true);
   }, [activeSection]);
 
   if (!mobile || !config || hidden) return null;
@@ -927,7 +939,7 @@ const FAB = forwardRef(function FAB(
   const dotVisible = shouldShowFabDot(tabKey, false);
 
   const progress = cvCompletionProgress?.percent ?? 0;
-  const ringColor = fabRingColor(cvCompletionProgress);
+  const ringColor = fabRingColor(cvCompletionProgress?.percent ?? 0);
   const ringOffset = FAB_PROGRESS_CIRCUMFERENCE - (progress / 100) * FAB_PROGRESS_CIRCUMFERENCE;
 
   return (
@@ -1003,63 +1015,60 @@ const FAB = forwardRef(function FAB(
                 </p>
               </div>
             ) : null}
-            <button
-              type="button"
-              className={`cvp-fab-bulb${isBulbLit ? " cvp-fab-bulb--lit" : ""}${isBulbFlickering ? " cvp-fab-bulb--flicker" : ""}`}
-              onClick={handleBulbTap}
+            <div
+              ref={bulbRef}
+              className="cvp-fab-bulb-cluster"
               style={{
                 opacity: isBulbVisible ? 1 : 0,
                 pointerEvents: isBulbVisible ? "auto" : "none",
                 transition: "opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
-                <circle cx="10" cy="8.5" r="4" stroke="currentColor" strokeWidth="1.4" />
-                <path
-                  d="M8 12.5 Q8 14 10 14 Q12 14 12 12.5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
+              <button
+                type="button"
+                className={`cvp-fab-bulb${isBulbLit ? " cvp-fab-bulb--lit" : ""}${isBulbFlickering ? " cvp-fab-bulb--flicker" : ""}`}
+                onClick={handleBulbTap}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+                  <circle cx="10" cy="8.5" r="4" stroke="currentColor" strokeWidth="1.4" />
+                  <path
+                    d="M8 12.5 Q8 14 10 14 Q12 14 12 12.5"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                  <line x1="8.5" y1="15" x2="11.5" y2="15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                  <line x1="9" y1="16.5" x2="11" y2="16.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+                <svg
+                  className="cvp-fab-bulb-rays"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
                   fill="none"
-                  strokeLinecap="round"
-                />
-                <line x1="8.5" y1="15" x2="11.5" y2="15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                <line x1="9" y1="16.5" x2="11" y2="16.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
-              <svg
-                className="cvp-fab-bulb-rays"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  opacity: isBulbLit ? 1 : 0,
-                  transition: "opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              >
-                <line x1="10" y1="3" x2="10" y2="1.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
-                <line x1="14.5" y1="4.5" x2="15.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
-                <line x1="5.5" y1="4.5" x2="4.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
-              </svg>
-            </button>
-            {isTipVisible ? (
-              <div
-                className="cvp-fab-tip-bubble"
-                style={{
-                  position: "absolute",
-                  bottom: "60px",
-                  right: "0px",
-                  zIndex: 9999,
-                }}
-              >
-                <div className="cvp-fab-tip-header">
-                  <span className="cvp-fab-tip-label">TIP</span>
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    opacity: isBulbLit ? 1 : 0,
+                    transition: "opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+                  }}
+                >
+                  <line x1="10" y1="3" x2="10" y2="1.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+                  <line x1="14.5" y1="4.5" x2="15.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+                  <line x1="5.5" y1="4.5" x2="4.5" y2="3.5" stroke="#F59E0B" strokeWidth="1" strokeLinecap="round" opacity="0.6" />
+                </svg>
+              </button>
+              {isTipVisible ? (
+                <div className="cvp-fab-tip-bubble cvp-fab-tip-bubble--bulb-cluster" style={{ zIndex: 9999 }}>
+                  <div className="cvp-fab-tip-header">
+                    <span className="cvp-fab-tip-label">TIP</span>
+                  </div>
+                  <p className="cvp-fab-tip-text">{currentTip}</p>
                 </div>
-                <p className="cvp-fab-tip-text">{currentTip}</p>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
         ) : (
           <FABButton
