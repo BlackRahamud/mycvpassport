@@ -926,7 +926,7 @@ const FAB = forwardRef(function FAB(
 
   const dotVisible = shouldShowFabDot(tabKey, false);
 
-  const progress = cvCompletionProgress ?? 0;
+  const progress = cvCompletionProgress?.percent ?? 0;
   const ringColor = fabRingColor(cvCompletionProgress);
   const ringOffset = FAB_PROGRESS_CIRCUMFERENCE - (progress / 100) * FAB_PROGRESS_CIRCUMFERENCE;
 
