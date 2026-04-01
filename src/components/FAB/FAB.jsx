@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./FAB.css";
 import FABMenu from "./FABMenu";
-import FABSheet from "./FABSheet";
+import FABSheet, { FabSparkIcon } from "./FABSheet";
 import FABMilestonePopup from "./FABMilestonePopup";
 import { getFabTabConfig, ATS_HIGH_SCORE_GUIDE } from "./FABContent";
+import { computeCvProgress } from "../../hooks/useCvProgress";
+import { splitCommaItems } from "../../cvShared";
 import {
   readFabSeen,
   shouldShowAtsFabAttention,
@@ -78,6 +80,237 @@ function fabNormalizeSection(activeSection) {
   const k = activeSection.toLowerCase().trim();
   if (["summary", "experience", "education", "competencies", "languages"].includes(k)) return k;
   return "summary";
+}
+
+const IDLE_NUDGE_COOLDOWN_MS = 5 * 60 * 1000;
+const MAX_IDLE_AUTO_POP_PER_SESSION = 3;
+
+/** Insert into builder summary textarea (controlled input — native setter + input event). */
+function insertSummaryIntoBuilder(text) {
+  if (typeof document === "undefined") return;
+  const ta = document.querySelector('[data-cvp-highlight="summary"] textarea');
+  if (!ta || !(ta instanceof HTMLTextAreaElement)) return;
+  const desc = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+  if (desc?.set) desc.set.call(ta, text);
+  else ta.value = text;
+  ta.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function skillsCountFromResume(resume) {
+  const skills = resume?.skills;
+  return Array.isArray(skills) ? skills.length : splitCommaItems(typeof skills === "string" ? skills : "").length;
+}
+
+function hasExperienceForSummaryHelper(resume) {
+  const ex = resume?.experience;
+  if (!Array.isArray(ex) || ex.length === 0) return false;
+  return ex.some((e) => String(e?.role ?? e?.company ?? "").trim().length > 0);
+}
+
+function hasSkillsForSummaryHelper(resume) {
+  return skillsCountFromResume(resume) >= 3;
+}
+
+function inferYearsFromExperience(experience) {
+  if (!Array.isArray(experience) || experience.length === 0) return 2;
+  return Math.max(1, Math.min(30, experience.length * 2));
+}
+
+function buildTemplateSummaryLines(resume) {
+  const ex = Array.isArray(resume?.experience) ? resume.experience : [];
+  const first = ex[0] || {};
+  const jobTitle = String(resume?.title || first.role || "Professional").trim() || "Professional";
+  const yearsExp = inferYearsFromExperience(ex);
+  const skillsList = splitCommaItems(String(resume?.skills || ""));
+  const top = skillsList.slice(0, 3);
+  const topSkills =
+    top.length >= 2
+      ? `${top.slice(0, -1).join(", ")} and ${top[top.length - 1]}`
+      : top[0] || "your field";
+  const skills = skillsList.length ? skillsList.join(", ") : topSkills;
+  const targetRole = String(resume?.title || first.role || "new").trim() || "new";
+  const location = String(resume?.location || "Dubai, UAE").trim() || "Dubai, UAE";
+  const line1 = `${jobTitle} with ${yearsExp} years of experience in ${topSkills}.`;
+  const line2 = `Skilled in ${skills}.`;
+  const line3 = `Currently seeking a ${targetRole} role in ${location}.`;
+  return `${line1}\n${line2}\n${line3}`;
+}
+
+/**
+ * @returns {{ kind: string, message: string, ctaLabel: string, navKey: string | null, atsCta?: boolean } | null}
+ */
+function pickContentIdleNudge(resume) {
+  if (resume == null || typeof resume !== "object") return null;
+  const progress = computeCvProgress(resume);
+  const summaryEmpty = String(resume.summary ?? "").trim().length === 0;
+  const noExp = !Array.isArray(resume.experience) || resume.experience.length === 0;
+  const skillsWeak = skillsCountFromResume(resume) < 3;
+
+  if (summaryEmpty) {
+    return {
+      kind: "nudge-summary",
+      message: "Your summary is missing — it's the first thing recruiters read",
+      ctaLabel: "Add summary",
+      navKey: "summary",
+    };
+  }
+  if (noExp) {
+    return {
+      kind: "nudge-experience",
+      message: "Add your work experience to strengthen your CV",
+      ctaLabel: "Add experience",
+      navKey: "experience",
+    };
+  }
+  if (skillsWeak) {
+    return {
+      kind: "nudge-skills",
+      message: "Add skills to pass ATS filters",
+      ctaLabel: "Add skills",
+      navKey: "skills",
+    };
+  }
+  if (progress.percent >= 80) {
+    return {
+      kind: "nudge-ats",
+      message: "Almost done! Check your ATS score",
+      ctaLabel: "View ATS score",
+      navKey: null,
+      atsCta: true,
+    };
+  }
+  return null;
+}
+
+function cvHasSomeFilledContent(resume) {
+  if (resume == null || typeof resume !== "object") return false;
+  const p = computeCvProgress(resume);
+  if (p.percent > 0) return true;
+  const s = String(resume.summary ?? "").trim();
+  if (s.length > 0) return true;
+  if (Array.isArray(resume.experience) && resume.experience.length > 0) return true;
+  if (skillsCountFromResume(resume) > 0) return true;
+  return false;
+}
+
+const SUMMARY_TIP_CHIPS = [
+  "Start with your job title + years of experience",
+  "Add your top 2-3 skills",
+  "End with what you're looking for",
+];
+
+function FabSummaryHelperBody({
+  onInsertTip,
+  onWriteForMe,
+  writeForMeMessage,
+  previewText,
+  onUseThis,
+  onEditFirst,
+}) {
+  const chipStyle = {
+    border: "1px solid #3A3A3A",
+    background: "transparent",
+    color: "#FFF",
+    fontSize: 12,
+    padding: "8px 12px",
+    borderRadius: 99,
+    display: "block",
+    width: "100%",
+    textAlign: "left",
+    fontWeight: 500,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    lineHeight: 1.35,
+    transition: "border-color 200ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms cubic-bezier(0.4, 0, 0.2, 1)",
+  };
+
+  return (
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {SUMMARY_TIP_CHIPS.map((tip) => (
+          <button key={tip} type="button" onClick={() => onInsertTip(tip)} style={chipStyle}>
+            {tip}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onWriteForMe}
+        style={{
+          background: "#fff",
+          color: "#000",
+          borderRadius: 10,
+          padding: 12,
+          width: "100%",
+          fontWeight: 600,
+          fontSize: 14,
+          border: "none",
+          cursor: "pointer",
+          minHeight: 44,
+        }}
+      >
+        Write for me
+      </button>
+      {writeForMeMessage ? (
+        <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          {writeForMeMessage}
+        </p>
+      ) : null}
+      {previewText ? (
+        <div
+          style={{
+            background: "#1C1C1C",
+            border: "1px solid var(--border-default, #2A2A2A)",
+            borderRadius: 12,
+            padding: 12,
+            boxSizing: "border-box",
+          }}
+        >
+          <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-primary, #FFF)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+            {previewText}
+          </p>
+          <div style={{ display: "grid", gap: 8 }}>
+            <button
+              type="button"
+              onClick={onUseThis}
+              style={{
+                background: "#fff",
+                color: "#000",
+                borderRadius: 10,
+                padding: 12,
+                width: "100%",
+                fontWeight: 600,
+                fontSize: 14,
+                border: "none",
+                cursor: "pointer",
+                minHeight: 44,
+              }}
+            >
+              Use this
+            </button>
+            <button
+              type="button"
+              onClick={onEditFirst}
+              style={{
+                background: "transparent",
+                color: "#FFF",
+                borderRadius: 10,
+                padding: 12,
+                width: "100%",
+                fontWeight: 600,
+                fontSize: 14,
+                border: "1px solid #2A2A2A",
+                cursor: "pointer",
+                minHeight: 44,
+              }}
+            >
+              Edit first
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 /** Physical floating button: ring, dot, bounce/flicker, completion ring stub */
@@ -188,6 +421,14 @@ const FAB = forwardRef(function FAB(
   const [sheetShowProgress, setSheetShowProgress] = useState(true);
   const [sheetShowGate, setSheetShowGate] = useState(true);
   const [sheetCoachPanelsFlag, setSheetCoachPanelsFlag] = useState(true);
+  const [summaryWriteMsg, setSummaryWriteMsg] = useState(null);
+  const [summaryPreview, setSummaryPreview] = useState(null);
+  const [idleNudgePayload, setIdleNudgePayload] = useState(null);
+  const idleAutoPopCountRef = useRef(0);
+  const lastIdlePopDismissAtRef = useRef({});
+  const idleNudgeKindRef = useRef(null);
+  const summaryOpenedFromAutoRef = useRef(false);
+  const sheetLayoutKindRef = useRef("normal");
   const anchorRef = useRef(null);
   const prevTemplateIdRef = useRef(undefined);
   const [templatesBounce, setTemplatesBounce] = useState(false);
@@ -235,6 +476,10 @@ const FAB = forwardRef(function FAB(
 
   const config = getFabTabConfig(tabKey, variant);
 
+  useEffect(() => {
+    sheetLayoutKindRef.current = sheetLayoutKind;
+  }, [sheetLayoutKind]);
+
   const resetTimer = useCallback(() => {
     clearTimeout(idleTimer.current);
     ghostPulseKillArmedRef.current = false;
@@ -249,9 +494,13 @@ const FAB = forwardRef(function FAB(
           return;
         }
       }
+      if (variant === "builder" && tabKey === "content") {
+        resetTimer();
+        return;
+      }
       setIsGhostPulsing(true);
     }, delayMs);
-  }, [variant]);
+  }, [variant, tabKey]);
 
   useEffect(() => {
     resetTimer();
@@ -516,9 +765,21 @@ const FAB = forwardRef(function FAB(
     setSheetShowProgress(true);
     setSheetShowGate(true);
     setSheetCoachPanelsFlag(true);
+    setSummaryWriteMsg(null);
+    setSummaryPreview(null);
+    setIdleNudgePayload(null);
   }, []);
 
   const closeSheet = useCallback(() => {
+    const layout = sheetLayoutKindRef.current;
+    if (layout === "idle-nudge" && idleNudgeKindRef.current) {
+      lastIdlePopDismissAtRef.current[idleNudgeKindRef.current] = Date.now();
+    }
+    if (layout === "summary-helper" && summaryOpenedFromAutoRef.current) {
+      lastIdlePopDismissAtRef.current["summary-helper-idle"] = Date.now();
+    }
+    idleNudgeKindRef.current = null;
+    summaryOpenedFromAutoRef.current = false;
     setSheetOpen(false);
     setSheetAtsHigh(false);
     setSheetCoach(null);
@@ -531,6 +792,117 @@ const FAB = forwardRef(function FAB(
     if (onNavigateToProAts) onNavigateToProAts();
     else navigate("/ats");
   }, [navigate, onNavigateToProAts]);
+
+  const sheetOpenRef = useRef(false);
+  const menuOpenRef = useRef(false);
+  useEffect(() => {
+    sheetOpenRef.current = sheetOpen;
+  }, [sheetOpen]);
+  useEffect(() => {
+    menuOpenRef.current = menuOpen;
+  }, [menuOpen]);
+
+  const isIdleCooldownClear = useCallback((kind) => {
+    const t = lastIdlePopDismissAtRef.current[kind];
+    if (t == null) return true;
+    return Date.now() - t >= IDLE_NUDGE_COOLDOWN_MS;
+  }, []);
+
+  const openSummaryHelperSheet = useCallback(
+    (opts = {}) => {
+      const fromAutoIdle = opts.fromAutoIdle === true;
+      if (sheetOpenRef.current || menuOpenRef.current) return false;
+      if (fromAutoIdle) {
+        if (idleAutoPopCountRef.current >= MAX_IDLE_AUTO_POP_PER_SESSION) return false;
+        if (!isIdleCooldownClear("summary-helper-idle")) return false;
+        idleAutoPopCountRef.current += 1;
+      }
+      summaryOpenedFromAutoRef.current = fromAutoIdle;
+      resetSheetLayout();
+      setSheetLayoutKind("summary-helper");
+      setSheetTitle("Writing your summary?");
+      setSheetPoints([]);
+      setSheetAtsHigh(false);
+      setSheetCoach(null);
+      setSheetCoachPanelsFlag(false);
+      setSheetShowProgress(false);
+      setSheetShowGate(false);
+      setSheetGate(null);
+      setShowSheetGotIt(true);
+      setSheetOpen(true);
+      return true;
+    },
+    [resetSheetLayout, isIdleCooldownClear]
+  );
+
+  const tryOpenBuilderContentIdleAutoSheet = useCallback(() => {
+    if (variant !== "builder" || tabKey !== "content") return false;
+    if (sheetOpenRef.current || menuOpenRef.current) return false;
+    if (typeof document !== "undefined") {
+      const el = document.activeElement;
+      const tag = el?.tagName?.toUpperCase();
+      if (tag === "INPUT" || tag === "TEXTAREA") return false;
+    }
+    if (!cvHasSomeFilledContent(resume)) return false;
+
+    const section = fabNormalizeSection(activeSection);
+    if (section === "summary") {
+      return openSummaryHelperSheet({ fromAutoIdle: true });
+    }
+
+    if (idleAutoPopCountRef.current >= MAX_IDLE_AUTO_POP_PER_SESSION) return false;
+
+    const nudge = pickContentIdleNudge(resume);
+    if (!nudge) return false;
+    if (!isIdleCooldownClear(nudge.kind)) return false;
+
+    idleAutoPopCountRef.current += 1;
+    idleNudgeKindRef.current = nudge.kind;
+    resetSheetLayout();
+    setSheetLayoutKind("idle-nudge");
+    setSheetTitle("");
+    setSheetPoints([]);
+    setSheetAtsHigh(false);
+    setSheetCoach(null);
+    setSheetCoachPanelsFlag(false);
+    setSheetShowProgress(false);
+    setSheetShowGate(false);
+    setSheetGate(null);
+    setIdleNudgePayload(nudge);
+    setShowSheetGotIt(true);
+    setSheetOpen(true);
+    return true;
+  }, [variant, tabKey, resume, activeSection, resetSheetLayout, isIdleCooldownClear, openSummaryHelperSheet]);
+
+  const onSummaryInsertTip = useCallback((tip) => {
+    if (typeof document === "undefined") return;
+    const ta = document.querySelector('[data-cvp-highlight="summary"] textarea');
+    const cur = ta && ta instanceof HTMLTextAreaElement ? String(ta.value || "").trim() : "";
+    insertSummaryIntoBuilder(cur ? `${cur}\n\n${tip}` : tip);
+  }, []);
+
+  const onSummaryWriteForMe = useCallback(() => {
+    if (!hasExperienceForSummaryHelper(resume) || !hasSkillsForSummaryHelper(resume)) {
+      setSummaryWriteMsg("Fill in your experience and skills first for a better summary");
+      setSummaryPreview(null);
+      return;
+    }
+    setSummaryWriteMsg(null);
+    setSummaryPreview(buildTemplateSummaryLines(resume));
+  }, [resume]);
+
+  const onSummaryUseThis = useCallback(() => {
+    if (!summaryPreview) return;
+    insertSummaryIntoBuilder(summaryPreview);
+    closeSheet();
+  }, [summaryPreview, closeSheet]);
+
+  const onSummaryEditFirst = useCallback(() => {
+    if (!summaryPreview) return;
+    insertSummaryIntoBuilder(summaryPreview);
+    onNavigateToCvSection?.("summary");
+    closeSheet();
+  }, [summaryPreview, onNavigateToCvSection, closeSheet]);
 
   const openGuideSheet = useCallback(
     (useAtsHigh) => {
@@ -680,14 +1052,18 @@ const FAB = forwardRef(function FAB(
         openGuideSheet(useAtsHigh);
       },
       triggerBuilderIdlePulse() {
-        if (sheetOpen || menuOpen) return;
+        if (sheetOpenRef.current || menuOpenRef.current) return;
+        if (variant === "builder" && tabKey === "content") {
+          tryOpenBuilderContentIdleAutoSheet();
+          return;
+        }
         setBuilderIdlePulse(true);
       },
       isGuideSheetOpen() {
         return sheetOpen || menuOpen;
       },
     }),
-    [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet, sheetOpen, menuOpen]
+    [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet, sheetOpen, menuOpen, tryOpenBuilderContentIdleAutoSheet]
   );
 
   const openTemplatesSmartSheet = useCallback(() => {
@@ -931,6 +1307,10 @@ const FAB = forwardRef(function FAB(
     setTplIdlePulse(false);
     setBuilderIdlePulse(false);
     clearTplTimers();
+    if (variant === "builder" && tabKey === "content" && fabNormalizeSection(activeSection) === "summary") {
+      openSummaryHelperSheet({ fromAutoIdle: false });
+      return;
+    }
     if (variant === "builder" && tabKey === "templates") {
       openTemplatesSmartSheet();
       return;
@@ -940,7 +1320,71 @@ const FAB = forwardRef(function FAB(
       return;
     }
     setMenuOpen(true);
-  }, [variant, tabKey, openTemplatesSmartSheet, openGuideSheet, clearTplTimers]);
+  }, [variant, tabKey, activeSection, openTemplatesSmartSheet, openGuideSheet, openSummaryHelperSheet, clearTplTimers]);
+
+  const effectiveSheetBodySlot = useMemo(() => {
+    if (sheetLayoutKind === "summary-helper") {
+      return (
+        <FabSummaryHelperBody
+          onInsertTip={onSummaryInsertTip}
+          onWriteForMe={onSummaryWriteForMe}
+          writeForMeMessage={summaryWriteMsg}
+          previewText={summaryPreview}
+          onUseThis={onSummaryUseThis}
+          onEditFirst={onSummaryEditFirst}
+        />
+      );
+    }
+    if (sheetLayoutKind === "idle-nudge" && idleNudgePayload) {
+      const nudge = idleNudgePayload;
+      return (
+        <div style={{ textAlign: "center", width: "100%" }}>
+          <FabSparkIcon size={28} stroke="#fff" />
+          <p style={{ margin: "12px 0 16px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+            {nudge.message}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              closeSheet();
+              if (nudge.atsCta) runProAtsNav();
+              else if (nudge.navKey) onNavigateToCvSection?.(nudge.navKey);
+            }}
+            style={{
+              background: "#fff",
+              color: "#000",
+              borderRadius: 10,
+              padding: 12,
+              width: "100%",
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+              minHeight: 44,
+            }}
+          >
+            {nudge.ctaLabel}
+          </button>
+        </div>
+      );
+    }
+    return sheetBodySlot;
+  }, [
+    sheetLayoutKind,
+    summaryWriteMsg,
+    summaryPreview,
+    sheetBodySlot,
+    idleNudgePayload,
+    onSummaryInsertTip,
+    onSummaryWriteForMe,
+    onSummaryUseThis,
+    onSummaryEditFirst,
+    runProAtsNav,
+    onNavigateToCvSection,
+    closeSheet,
+  ]);
+
+  const compactCoachHide = sheetLayoutKind === "summary-helper" || sheetLayoutKind === "idle-nudge";
 
   const handleBulbTap = useCallback(() => {
     clearTimeout(bulbVisibleTimerRef.current);
@@ -1175,10 +1619,12 @@ const FAB = forwardRef(function FAB(
         showDownloadGatekeeper={sheetShowGate}
         progressCoach={sheetCoach}
         downloadGatekeeper={sheetGate}
-        sheetBodySlot={sheetBodySlot}
+        sheetBodySlot={effectiveSheetBodySlot}
         sheetFooterSlot={sheetFooterSlot}
         showGotItButton={showSheetGotIt}
-        sheetIntelligence={!sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh && dedicatedRoute == null}
+        sheetIntelligence={
+          !compactCoachHide && !sheetBodySlot && sheetCoachPanelsFlag && !sheetAtsHigh && dedicatedRoute == null
+        }
         isOnContentTab={variant === "builder" && tabKey === "content"}
         coverLetterCrossSell={
           variant === "builder" &&

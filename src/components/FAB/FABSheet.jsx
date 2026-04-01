@@ -642,6 +642,8 @@ export default function FABSheet({
 
   if (!open) return null;
 
+  const hideHeavyChrome = sheetLayoutKind === "summary-helper" || sheetLayoutKind === "idle-nudge";
+
   const showCelebrationBanner = Boolean(activeCelebration);
   const showPostDownloadBanner = Boolean(activePostDownload) && !showCelebrationBanner;
 
@@ -1131,7 +1133,7 @@ export default function FABSheet({
         <span className="cvp-fab-sheet-drag-handle" aria-hidden />
         <div className="cvp-fab-sheet-main">
         <div className={`cvp-fab-sheet-scroll${showGotItButton ? "" : " cvp-fab-sheet-scroll--no-sticky-footer"}`}>
-          {cvCompletionProgress ? (
+          {!hideHeavyChrome && cvCompletionProgress ? (
             <div style={{ width: "100%", marginBottom: 16 }}>
               <div
                 style={{
@@ -1190,7 +1192,7 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {greetingLine ? (
+          {!hideHeavyChrome && greetingLine ? (
             <div
               style={{
                 fontSize: 13,
@@ -1219,7 +1221,7 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {sheetIntelligence && showCelebrationBanner ? (
+          {!hideHeavyChrome && sheetIntelligence && showCelebrationBanner ? (
             <div
               style={{
                 ...bannerBase,
@@ -1238,7 +1240,7 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {sheetIntelligence && showPostDownloadBanner ? (
+          {!hideHeavyChrome && sheetIntelligence && showPostDownloadBanner ? (
             <div style={bannerBase}>
               <p style={{ margin: 0, lineHeight: 1.45 }}>
                 You downloaded your CV {postDownloadDays} days ago — did you apply? Update your experience if anything
@@ -1430,7 +1432,8 @@ export default function FABSheet({
           ) : null}
 
           <div>
-            {!sheetBodySlot &&
+            {!hideHeavyChrome &&
+              !sheetBodySlot &&
               !hideDefaultGuidePoints &&
               points.map((row, i) => (
                 <div
