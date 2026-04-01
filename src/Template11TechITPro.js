@@ -78,6 +78,25 @@ function certificationLines(cv) {
     .filter(Boolean);
 }
 
+/** Structured categories + chips, or legacy pipe-separated / plain string. */
+function technicalSkillsGroupsForTemplate(cv) {
+  const ts = cv?.technicalSkills;
+  if (Array.isArray(ts) && ts.length > 0) {
+    const first = ts[0];
+    if (first != null && typeof first === "object" && !Array.isArray(first) && ("chips" in first || "category" in first)) {
+      return ts
+        .map((g) => ({
+          category: String(g?.category ?? "").trim(),
+          chips: Array.isArray(g?.chips) ? g.chips.map((c) => String(c).trim()).filter(Boolean) : [],
+        }))
+        .filter((g) => g.chips.length > 0);
+    }
+  }
+  const s = typeof ts === "string" ? ts.trim() : String(ts || "").trim();
+  if (!s) return [];
+  return [{ category: "Technical Skills", chips: s.split("|").map((x) => x.trim()).filter(Boolean) }];
+}
+
 export function PreviewTechITPro({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
@@ -85,7 +104,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
   const skillCore = cv.skills
     ? cv.skills.split(",").map((x) => x.trim()).filter(Boolean)
     : [];
-  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
+  const technicalSkillsGroups = technicalSkillsGroupsForTemplate(cv);
   const certList = certificationLines(cv);
   const langList = cv.languages
     ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean)
@@ -140,7 +159,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
     contactBits.push({ label: "LinkedIn", href: url });
   }
 
-  const hasAnySkillsBlock = skillCore.length > 0 || technicalSkillsTrim.length > 0;
+  const hasAnySkillsBlock = skillCore.length > 0 || technicalSkillsGroups.length > 0;
   const projectsText = (cv.projects && String(cv.projects).trim()) || "";
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
@@ -276,12 +295,12 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
       )}
 
       {/* Technical Skills */}
-      {technicalSkillsTrim && (
+      {technicalSkillsGroups.length > 0 && (
         <section>
           <SectionTitle first={!cv.summary && skillCore.length === 0}>Technical Skills</SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
             <div className="t11-technical-skills-body">
-              {cv.technicalSkills.split("|").map((line, i) => (
+              {technicalSkillsGroups.map((group, i) => (
                 <p
                   key={i}
                   style={{
@@ -291,7 +310,8 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
                     lineHeight: "1.4",
                   }}
                 >
-                  {line.trim()}
+                  <strong>{group.category ? `${group.category}:` : "Technical Skills:"}</strong>{" "}
+                  {group.chips.join(", ")}
                 </p>
               ))}
             </div>
@@ -648,18 +668,22 @@ export function pdfTechITPro(doc, cv, W, M) {
     sy += 2;
   }
 
-  if (cv.technicalSkills) {
-    sideSection("Technical Skills");
-    cv.technicalSkills.split(",").forEach(s => {
-      if (!s.trim()) return;
-      sy = ensureSy(sy, 5);
-      doc.setTextColor(ar, ag, ab); doc.text("—", 6, sy);
-      doc.setTextColor(176, 190, 197);
-      doc.setFont("helvetica", "normal");
-      const sl = pdfSplitText(doc, s.trim(), sideSkillW, 7.5);
-      sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 1.5;
-    });
-    sy += 2;
+  {
+    const pdfTechGroups = technicalSkillsGroupsForTemplate(cv);
+    if (pdfTechGroups.length > 0) {
+      sideSection("Technical Skills");
+      pdfTechGroups.forEach((g) => {
+        const head = g.category ? `${g.category}: ` : "Technical Skills: ";
+        const line = `${head}${g.chips.join(", ")}`;
+        sy = ensureSy(sy, 5);
+        doc.setTextColor(ar, ag, ab); doc.text("—", 6, sy);
+        doc.setTextColor(176, 190, 197);
+        doc.setFont("helvetica", "normal");
+        const sl = pdfSplitText(doc, line, sideSkillW, 7.5);
+        sy = drawSideWrapped(sl, 11, sy, 3.5); sy += 1.5;
+      });
+      sy += 2;
+    }
   }
 
   if (cv.languages) {

@@ -242,6 +242,341 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
 }
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
+
+function normalizeTechnicalSkillsState(ts) {
+  if (Array.isArray(ts) && ts.length > 0) {
+    const first = ts[0];
+    if (first != null && typeof first === "object" && !Array.isArray(first) && ("chips" in first || "category" in first)) {
+      return ts.map((g) => ({
+        category: String(g?.category ?? "").trim(),
+        chips: Array.isArray(g?.chips) ? g.chips.map((c) => String(c).trim()).filter(Boolean) : [],
+      }));
+    }
+  }
+  if (typeof ts === "string" && ts.trim()) {
+    return [{ category: "Technical Skills", chips: ts.split("|").map((s) => s.trim()).filter(Boolean) }];
+  }
+  return [];
+}
+
+function sanitizeTechnicalSkillsForPersist(ts) {
+  return normalizeTechnicalSkillsState(ts)
+    .filter((g) => g.chips.length > 0)
+    .slice(0, 20)
+    .map((g) => ({
+      category: g.category.trim() || "Technical Skills",
+      chips: [...g.chips],
+    }));
+}
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildCvFinderMatchList(resume, queryRaw) {
+  const query = queryRaw.trim();
+  if (query.length < 1) return [];
+  const ql = query.toLowerCase();
+  const matches = [];
+  const push = (sectionId, sectionLabel, text) => {
+    if (text == null) return;
+    const t = typeof text === "string" ? text : String(text);
+    if (!t.trim()) return;
+    if (!t.toLowerCase().includes(ql)) return;
+    matches.push({ sectionId, sectionLabel, text: t.trim() });
+  };
+
+  push("summary", "Professional Summary", resume.summary || "");
+
+  (resume.experience || []).forEach((exp) => {
+    push("experience", "Professional Experience", exp.company);
+    push("experience", "Professional Experience", exp.role);
+    push("experience", "Professional Experience", exp.location);
+    push("experience", "Professional Experience", exp.period);
+    String(exp.points || "")
+      .split(/\n/)
+      .forEach((line) => push("experience", "Professional Experience", line));
+  });
+
+  (resume.education || []).forEach((edu) => {
+    push("education", "Education", edu.school);
+    push("education", "Education", edu.degree);
+    push("education", "Education", edu.fieldOfStudy);
+    push("education", "Education", edu.year);
+    push("education", "Education", edu.location);
+    push("education", "Education", buildEducationYearLine(edu));
+  });
+
+  splitCommaItems(resume.skills).forEach((sk) => push("skills", "Skills", sk));
+
+  normalizeTechnicalSkillsState(resume.technicalSkills).forEach((g) => {
+    push("technicalSkills", "Technical Skills", g.category);
+    g.chips.forEach((c) => push("technicalSkills", "Technical Skills", c));
+  });
+
+  normalizeCertificationsArray(resume.certifications).forEach((c) => {
+    push("certifications", "Certifications", c.name);
+    push("certifications", "Certifications", c.issuer);
+    push("certifications", "Certifications", c.year);
+  });
+
+  splitCommaItems(resume.languages).forEach((lg) => push("languages", "Languages", lg));
+
+  OPTIONAL_BUILDER_SECTIONS.forEach((opt) => {
+    if (!(resume.builderExtraSectionIds || []).includes(opt.id)) return;
+    if (opt.id === "certifications") return;
+    const val = resume[opt.field];
+    if (typeof val !== "string" || !val.trim()) return;
+    if (opt.multiline) {
+      val.split(/\n/).forEach((line) => push(opt.id, opt.label, line));
+    } else {
+      push(opt.id, opt.label, val);
+    }
+  });
+
+  return matches.map((m, i) => ({ ...m, key: `${m.sectionId}-${i}-${m.text.slice(0, 24)}` }));
+}
+
+function HighlightedSnippet({ text, query }) {
+  const q = query.trim();
+  if (!q) return text;
+  const parts = text.split(new RegExp(`(${escapeRegExp(q)})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === q.toLowerCase() ? (
+          <strong key={i} style={{ color: "#FFFFFF", fontWeight: 700 }}>
+            {part}
+          </strong>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
+function pulseCvpHighlight(el) {
+  if (!el || typeof window === "undefined") return;
+  const prevBg = el.style.backgroundColor;
+  const prevTrans = el.style.transition;
+  el.style.transition = "background-color 150ms cubic-bezier(0.4,0,0.2,1)";
+  el.style.backgroundColor = "#2A2A2A";
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      el.style.backgroundColor = "#1C1C1C";
+    });
+  });
+  window.setTimeout(() => {
+    el.style.backgroundColor = prevBg || "";
+    el.style.transition = prevTrans || "";
+  }, 320);
+}
+
+function TechnicalSkillsEditor({ resume, setResume }) {
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [chipDraftByIndex, setChipDraftByIndex] = useState({});
+  const groups = normalizeTechnicalSkillsState(resume.technicalSkills);
+
+  const updateGroups = (next) => {
+    setResume((r) => ({
+      ...r,
+      technicalSkills: typeof next === "function" ? next(normalizeTechnicalSkillsState(r.technicalSkills)) : next,
+    }));
+  };
+
+  const onAddCategory = () => {
+    const name = newCategoryName.trim();
+    if (!name || groups.length >= 20) return;
+    updateGroups((g) => [...g, { category: name, chips: [] }]);
+    setNewCategoryName("");
+  };
+
+  const moveGroup = (from, to) => {
+    if (from === to || from < 0 || to < 0 || from >= groups.length || to >= groups.length) return;
+    updateGroups((g) => {
+      const next = [...g];
+      const [row] = next.splice(from, 1);
+      next.splice(to, 0, row);
+      return next;
+    });
+    setChipDraftByIndex({});
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <input
+          style={{ ...CB_UI.input, minHeight: undefined, flex: "1 1 160px" }}
+          placeholder="Category name (e.g. IT Support Tools)"
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onAddCategory();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="cvp-builder-add-entry-btn"
+          style={{ ...CB_UI.btn }}
+          disabled={!newCategoryName.trim() || groups.length >= 20}
+          onClick={onAddCategory}
+        >
+          + Add Category
+        </button>
+      </div>
+      {groups.length >= 20 ? <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>Maximum 20 categories.</p> : null}
+
+      {groups.map((g, i) => (
+        <div
+          key={i}
+          style={{ ...CB_UI.card, cursor: "default", marginBottom: 0 }}
+          onDragOver={(e) => {
+            e.preventDefault();
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const from = Number(e.dataTransfer.getData("application/x-cvp-tech-cat"));
+            if (Number.isNaN(from)) return;
+            moveGroup(from, i);
+          }}
+        >
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <div
+              role="button"
+              tabIndex={0}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("application/x-cvp-tech-cat", String(i));
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              aria-label="Drag to reorder category"
+              onKeyDown={(e) => {
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  moveGroup(i, i - 1);
+                }
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  moveGroup(i, i + 1);
+                }
+              }}
+              style={{ color: "#A0A0A0", cursor: "grab", flexShrink: 0, padding: "4px 0", touchAction: "none" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <circle cx="9" cy="7" r="1.35" />
+                <circle cx="15" cy="7" r="1.35" />
+                <circle cx="9" cy="12" r="1.35" />
+                <circle cx="15" cy="12" r="1.35" />
+                <circle cx="9" cy="17" r="1.35" />
+                <circle cx="15" cy="17" r="1.35" />
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 600, fontSize: 14, color: "#FFFFFF" }}>{g.category || "Untitled category"}</span>
+                <button
+                  type="button"
+                  aria-label="Remove category"
+                  onClick={() => updateGroups((arr) => arr.filter((_, j) => j !== i))}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#FFFFFF";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#A0A0A0";
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                  </svg>
+                </button>
+              </div>
+              {g.chips.length === 0 ? (
+                <p style={{ fontSize: 12, color: "#F87171", margin: 0 }}>
+                  Add at least one skill to this category, or remove it — empty categories cannot be saved.
+                </p>
+              ) : null}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {g.chips.map((chip, ci) => (
+                  <span key={`${chip}-${ci}`} style={CB_UI.chip}>
+                    {chip}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${chip}`}
+                      onClick={() =>
+                        updateGroups((arr) => {
+                          const ng = [...arr];
+                          ng[i] = { ...ng[i], chips: ng[i].chips.filter((_, k) => k !== ci) };
+                          return ng;
+                        })
+                      }
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "#FFFFFF";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "#A0A0A0";
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <input
+                  style={{ ...CB_UI.input, flex: "1 1 140px", minHeight: undefined }}
+                  placeholder="Skill or tool name"
+                  value={chipDraftByIndex[i] ?? ""}
+                  onChange={(e) => setChipDraftByIndex((d) => ({ ...d, [i]: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const t = (chipDraftByIndex[i] ?? "").trim();
+                      if (!t) return;
+                      updateGroups((arr) => {
+                        const ng = [...arr];
+                        if (ng[i].chips.includes(t)) return ng;
+                        ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
+                        return ng;
+                      });
+                      setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="cvp-builder-add-entry-btn"
+                  style={{ ...CB_UI.btn }}
+                  onClick={() => {
+                    const t = (chipDraftByIndex[i] ?? "").trim();
+                    if (!t) return;
+                    updateGroups((arr) => {
+                      const ng = [...arr];
+                      if (ng[i].chips.includes(t)) return ng;
+                      ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
+                      return ng;
+                    });
+                    setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
+                  }}
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {groups.length === 0 ? <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>Add a category, then add skills as chips.</p> : null}
+    </div>
+  );
+}
+
 function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId, isPro = false }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -250,9 +585,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
-  const [resume, setResume] = useState(() =>
-    normalizeResumeForBuilder(initialResume || { ...EMPTY_RESUME, name: user?.name || "", email: user?.email || "" })
-  );
+  const [resume, setResume] = useState(() => {
+    const base = normalizeResumeForBuilder(initialResume || { ...EMPTY_RESUME, name: user?.name || "", email: user?.email || "" });
+    return { ...base, technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills) };
+  });
   const [builderTab, setBuilderTab] = useState("content");
   const [openSection, setOpenSection] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
@@ -265,7 +601,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [certificationEditor, setCertificationEditor] = useState(null);
   const [skillInput, setSkillInput] = useState("");
   const [langInput, setLangInput] = useState("");
+  const [cvFinderOpen, setCvFinderOpen] = useState(false);
+  const [cvFinderQuery, setCvFinderQuery] = useState("");
   const [addSectionPickerOpen, setAddSectionPickerOpen] = useState(false);
+  const cvFinderPanelRef = useRef(null);
+  const cvFinderToggleRef = useRef(null);
+  const cvFinderInputRef = useRef(null);
   const previewScrollRef = useRef(null);
   const mobilePreviewScrollRef = useRef(null);
   const desktopPreviewFitRef = useRef(null);
@@ -382,6 +723,42 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     writeFabMemory({ lastTabVisited: builderTab });
   }, [builderTab]);
 
+  const cvFinderMatches = useMemo(() => buildCvFinderMatchList(resume, cvFinderQuery), [resume, cvFinderQuery]);
+
+  useEffect(() => {
+    if (!cvFinderOpen) return undefined;
+    cvFinderInputRef.current?.focus();
+    const onDown = (e) => {
+      const p = cvFinderPanelRef.current;
+      const t = cvFinderToggleRef.current;
+      const tgt = e.target;
+      if (p && typeof p.contains === "function" && p.contains(tgt)) return;
+      if (t && typeof t.contains === "function" && t.contains(tgt)) return;
+      setCvFinderOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [cvFinderOpen]);
+
+  const onCvFinderResultActivate = useCallback((sectionId) => {
+    setCvFinderOpen(false);
+    setCvFinderQuery("");
+    setBuilderTab("content");
+    setOpenSection(sectionId);
+    window.requestAnimationFrame(() => {
+      const visibleEl = (sel) =>
+        Array.from(document.querySelectorAll(sel)).find((el) => el.offsetParent !== null);
+      visibleEl(`[data-cvp-accordion="${sectionId}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => {
+        pulseCvpHighlight(visibleEl(`[data-cvp-highlight="${sectionId}"]`));
+      }, 280);
+    });
+  }, []);
+
   const onBuilderGuideSheetOpenChange = useCallback((open) => {
     if (!open) scheduleBuilderIdleRef.current();
   }, []);
@@ -491,7 +868,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     if (!user?.id) return;
     setSaving(true);
     try {
-      const saved = await saveResume(user.id, resume, selectedTemplate.id, resumeId);
+      const saved = await saveResume(
+        user.id,
+        { ...resume, technicalSkills: sanitizeTechnicalSkillsForPersist(resume.technicalSkills) },
+        selectedTemplate.id,
+        resumeId
+      );
       if (supabase) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -574,99 +956,210 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       ref={builderRootRef}
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}
     >
-      {/* Top nav bar — 56px, Download = only primary */}
+      {/* Top nav bar — tabs row + optional CV finder */}
       <header
         className="cvp-builder-topbar"
         style={{
           flexShrink: 0,
-          height: 56,
           position: "sticky",
           top: 0,
           zIndex: 100,
           background: "#0A0A0A",
           borderBottom: "1px solid #2A2A2A",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 24px",
-          flexWrap: "wrap",
+          flexDirection: "column",
+          alignItems: "stretch",
+          padding: 0,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
-          <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-          </button>
-          <div className="cvp-builder-tab-scroll" style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-            {["content", "templates", "ats", "jobmatch"].map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                className="cvp-builder-tabchip"
-                onClick={() => setBuilderTab(tab)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  border: "none",
-                  background: builderTab === tab ? "#1C1C1C" : "transparent",
-                  color: builderTab === tab ? "#FFFFFF" : "#A0A0A0",
-                  fontWeight: builderTab === tab ? 600 : 500,
-                  fontSize: 14,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  flex: "0 0 auto",
-                  transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
-                }}
-              >
-                {tab === "content" ? "Content" : tab === "templates" ? "Templates" : tab === "ats" ? "ATS Check" : "Job Match"}
-              </button>
-            ))}
+        <style dangerouslySetInnerHTML={{ __html: ".cvp-cv-finder-input::placeholder{color:rgba(255,255,255,.55)}" }} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            flexWrap: "wrap",
+            minHeight: 56,
+            padding: "0 24px",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
+            <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+            </button>
+            <div className="cvp-builder-tab-scroll" style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              {["content", "templates", "ats", "jobmatch"].map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className="cvp-builder-tabchip"
+                  onClick={() => setBuilderTab(tab)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: builderTab === tab ? "#1C1C1C" : "transparent",
+                    color: builderTab === tab ? "#FFFFFF" : "#A0A0A0",
+                    fontWeight: builderTab === tab ? 600 : 500,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    flex: "0 0 auto",
+                    transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
+                  }}
+                >
+                  {tab === "content" ? "Content" : tab === "templates" ? "Templates" : tab === "ats" ? "ATS Check" : "Job Match"}
+                </button>
+              ))}
+            </div>
+            <button
+              ref={cvFinderToggleRef}
+              type="button"
+              className="cvp-builder-cv-finder-toggle"
+              aria-label={cvFinderOpen ? "Close CV search" : "Search CV"}
+              aria-pressed={cvFinderOpen}
+              onClick={() => {
+                setCvFinderOpen((v) => !v);
+              }}
+              style={{
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                minHeight: 44,
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                color: "#FFFFFF",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="10.5" cy="10.5" r="6.75" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M15.5 15.5L19 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="cvp-builder-menu-btn"
+              aria-label="Open menu"
+              onClick={() => setMenuDrawerOpen(true)}
+              style={{
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                minHeight: 44,
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                color: "#A0A0A0",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+              </svg>
+            </button>
           </div>
-          <button
-            type="button"
-            className="cvp-builder-menu-btn"
-            aria-label="Open menu"
-            onClick={() => setMenuDrawerOpen(true)}
-            style={{
-              width: 44,
-              height: 44,
-              minWidth: 44,
-              minHeight: 44,
-              padding: 0,
-              border: "none",
-              background: "transparent",
-              color: "#A0A0A0",
-              cursor: "pointer",
-              display: "grid",
-              placeItems: "center",
-              flexShrink: 0,
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-              <line x1="4" y1="6" x2="20" y2="6" />
-              <line x1="4" y1="12" x2="20" y2="12" />
-              <line x1="4" y1="18" x2="20" y2="18" />
-            </svg>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 140 }}>
+              {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
+              {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
+            </button>
+            <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}`, display: "inline-flex", alignItems: "center", gap: 8 }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
+              {downloading ? (
+                <>
+                  <span style={{ display: "inline-flex", transform: "scale(0.42)", transformOrigin: "center" }}>
+                    <CoverLetterSpinnerArrow size={44} />
+                  </span>
+                  Preparing...
+                </>
+              ) : (
+                "Download"
+              )}
+            </button>
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 140 }}>
-            {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
-            {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
-          </button>
-          <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}`, display: "inline-flex", alignItems: "center", gap: 8 }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-            {downloading ? (
+        <div
+          ref={cvFinderPanelRef}
+          style={{
+            overflow: "hidden",
+            maxHeight: cvFinderOpen ? 320 : 0,
+            opacity: cvFinderOpen ? 1 : 0,
+            pointerEvents: cvFinderOpen ? "auto" : "none",
+            transition: `max-height 200ms ${EASE}, opacity 200ms ${EASE}`,
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ padding: "10px 24px 14px", display: "grid", gap: 8 }}>
+            <input
+              ref={cvFinderInputRef}
+              className="cvp-cv-finder-input"
+              value={cvFinderQuery}
+              onChange={(e) => setCvFinderQuery(e.target.value)}
+              placeholder="Find in your CV..."
+              aria-label="Find in your CV"
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #2A2A2A",
+                background: "#1C1C1C",
+                color: "#FFFFFF",
+                fontSize: 14,
+                outline: "none",
+              }}
+            />
+            {cvFinderQuery.trim() ? (
               <>
-                <span style={{ display: "inline-flex", transform: "scale(0.42)", transformOrigin: "center" }}>
-                  <CoverLetterSpinnerArrow size={44} />
-                </span>
-                Preparing...
+                <div style={{ fontSize: 11, color: "#888888" }}>
+                  {cvFinderMatches.length} match{cvFinderMatches.length === 1 ? "" : "es"} found
+                </div>
+                <div
+                  style={{
+                    maxHeight: 240,
+                    overflowY: "auto",
+                    WebkitOverflowScrolling: "touch",
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  {cvFinderMatches.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => onCvFinderResultActivate(m.sectionId)}
+                      style={{
+                        textAlign: "left",
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        border: "1px solid #2A2A2A",
+                        background: "#141414",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ fontSize: 10, color: "#888888", marginBottom: 4 }}>{m.sectionLabel}</div>
+                      <div style={{ fontSize: 13, color: "#A0A0A0", lineHeight: 1.35 }}>
+                        <HighlightedSnippet text={m.text} query={cvFinderQuery} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </>
-            ) : (
-              "Download"
-            )}
-          </button>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -692,13 +1185,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
               <div className="cvp-sections-list">
               <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
-                <div>
+                <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
                 </div>
               </AccordionSection>
 
               <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
-                <div style={{ display: "grid", gap: 10 }}>
+                <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
                   )}
@@ -719,7 +1212,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
-                <div style={{ display: "grid", gap: 10 }}>
+                <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
                   )}
@@ -741,7 +1234,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
-                <div style={{ display: "grid", gap: 12 }}>
+                <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.skills).map((sk, si) => (
                       <span key={`${sk}-${si}`} style={CB_UI.chip}>
@@ -758,13 +1251,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
-                <div>
-                  <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
+                <div data-cvp-highlight="technicalSkills" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                  <TechnicalSkillsEditor resume={resume} setResume={setResume} />
                 </div>
               </AccordionSection>
 
               <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
-                <div style={{ display: "grid", gap: 12 }}>
+                <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.languages).map((lg, li) => (
                       <span key={`${lg}-${li}`} style={CB_UI.chip}>
@@ -783,18 +1276,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
                 <AccordionSection key={opt.id} id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
                   {opt.id === "certifications" ? (
-                    <CertificationsBuilderSection
-                      resume={resume}
-                      setResume={setResume}
-                      certificationEditor={certificationEditor}
-                      setCertificationEditor={setCertificationEditor}
-                      onRemoveSection={() => {
-                        setCertificationEditor(null);
-                        setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
-                      }}
-                    />
+                    <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                      <CertificationsBuilderSection
+                        resume={resume}
+                        setResume={setResume}
+                        certificationEditor={certificationEditor}
+                        setCertificationEditor={setCertificationEditor}
+                        onRemoveSection={() => {
+                          setCertificationEditor(null);
+                          setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
+                        }}
+                      />
+                    </div>
                   ) : (
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div data-cvp-highlight={opt.id} style={{ display: "grid", gap: 8, borderRadius: 8, padding: 2, margin: -2 }}>
                       {opt.multiline ? (
                         <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
                       ) : (
@@ -874,13 +1369,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
                 <div className="cvp-mobile-section-rows" style={{ display: "flex", flexDirection: "column", maxWidth: "100%" }}>
               <AccordionSection variant="mobileRow" id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
-                <div>
+                <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
                 </div>
               </AccordionSection>
 
               <AccordionSection variant="mobileRow" id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
-                <div style={{ display: "grid", gap: 10 }}>
+                <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
                   )}
@@ -901,7 +1396,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection variant="mobileRow" id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
-                <div style={{ display: "grid", gap: 10 }}>
+                <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
                   )}
@@ -923,7 +1418,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection variant="mobileRow" id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
-                <div style={{ display: "grid", gap: 12 }}>
+                <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.skills).map((sk, si) => (
                       <span key={`${sk}-${si}`} style={CB_UI.chip}>
@@ -940,13 +1435,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection variant="mobileRow" id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
-                <div>
-                  <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
+                <div data-cvp-highlight="technicalSkills" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                  <TechnicalSkillsEditor resume={resume} setResume={setResume} />
                 </div>
               </AccordionSection>
 
               <AccordionSection variant="mobileRow" id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
-                <div style={{ display: "grid", gap: 12 }}>
+                <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.languages).map((lg, li) => (
                       <span key={`${lg}-${li}`} style={CB_UI.chip}>
@@ -965,18 +1460,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {OPTIONAL_BUILDER_SECTIONS.filter((opt) => resume.builderExtraSectionIds?.includes(opt.id)).map((opt) => (
                 <AccordionSection key={opt.id} variant="mobileRow" id={opt.id} title={opt.label} isOpen={isOpen(opt.id)} onToggle={() => toggleSection(opt.id)} icon={opt.id}>
                   {opt.id === "certifications" ? (
-                    <CertificationsBuilderSection
-                      resume={resume}
-                      setResume={setResume}
-                      certificationEditor={certificationEditor}
-                      setCertificationEditor={setCertificationEditor}
-                      onRemoveSection={() => {
-                        setCertificationEditor(null);
-                        setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
-                      }}
-                    />
+                    <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                      <CertificationsBuilderSection
+                        resume={resume}
+                        setResume={setResume}
+                        certificationEditor={certificationEditor}
+                        setCertificationEditor={setCertificationEditor}
+                        onRemoveSection={() => {
+                          setCertificationEditor(null);
+                          setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
+                        }}
+                      />
+                    </div>
                   ) : (
-                    <div style={{ display: "grid", gap: 8 }}>
+                    <div data-cvp-highlight={opt.id} style={{ display: "grid", gap: 8, borderRadius: 8, padding: 2, margin: -2 }}>
                       {opt.multiline ? (
                         <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder={opt.label} value={resume[opt.field] || ""} onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))} />
                       ) : (
@@ -1587,7 +2084,7 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant
   const ease = "cubic-bezier(0.4,0,0.2,1)";
   if (variant === "mobileRow") {
     return (
-      <div style={{ marginBottom: 5, maxWidth: "100%" }}>
+      <div data-cvp-accordion={id} style={{ marginBottom: 5, maxWidth: "100%" }}>
         <div
           role="button"
           tabIndex={0}
@@ -1672,7 +2169,7 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant
     );
   }
   return (
-    <div className={`cvp-section-row${isOpen ? " is-open" : ""}`}>
+    <div data-cvp-accordion={id} className={`cvp-section-row${isOpen ? " is-open" : ""}`}>
       <button
         type="button"
         onClick={onToggle}
