@@ -314,7 +314,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setActiveSection(null);
       return;
     }
-    if (openSection === "skills") {
+    if (openSection === "skills" || openSection === "technicalSkills") {
       setActiveSection("competencies");
       return;
     }
@@ -740,7 +740,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              <AccordionSection id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+              <AccordionSection id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.skills).map((sk, si) => (
@@ -754,10 +754,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
                     <button type="button" className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 6 }}>Technical skills</label>
-                    <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
-                  </div>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
+                <div>
+                  <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
                 </div>
               </AccordionSection>
 
@@ -920,7 +922,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              <AccordionSection variant="mobileRow" id="skills" title="Core Competencies" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+              <AccordionSection variant="mobileRow" id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.skills).map((sk, si) => (
@@ -934,10 +936,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
                     <button type="button" className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 6 }}>Technical skills</label>
-                    <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
-                  </div>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection variant="mobileRow" id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
+                <div>
+                  <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="e.g. Python, SQL" value={resume.technicalSkills} onChange={e=>set("technicalSkills",e.target.value)} />
                 </div>
               </AccordionSection>
 

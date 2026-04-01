@@ -22,6 +22,10 @@ export function Template12Split({ cv, mobileMode = false }) {
   // Empty State Logic
   const isPlaceholder = !cv.name;
   const currentHeaderBg = isPlaceholder ? SKELETON : HEADER_BG;
+  const skillItems = cv.skills
+    ? (Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean))
+    : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const containerStyle = {
     width: mobileMode ? "100%" : "210mm",
@@ -125,12 +129,10 @@ export function Template12Split({ cv, mobileMode = false }) {
             </p>
           </div>
 
-          {cv.skills && (
+          {skillItems.length > 0 && (
             <div style={{ marginTop: "40px", position: "relative" }}>
               <GhostChip>
-                {Array.isArray(cv.skills)
-                  ? cv.skills.join(" ")
-                  : cv.skills}
+                {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
               </GhostChip>
               <h3
                 style={{
@@ -145,8 +147,26 @@ export function Template12Split({ cv, mobileMode = false }) {
                 Skills
               </h3>
               <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
-                {cv.skills}
+                {Array.isArray(cv.skills) ? cv.skills.join(", ") : cv.skills}
               </p>
+            </div>
+          )}
+
+          {technicalSkillsTrim && (
+            <div style={{ marginTop: "40px", position: "relative" }}>
+              <h3
+                style={{
+                  fontSize: "11pt",
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  borderBottom: "1.5px solid #000000",
+                  paddingBottom: "5px",
+                  marginBottom: "15px",
+                }}
+              >
+                Technical Skills
+              </h3>
+              <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>{cv.technicalSkills}</p>
             </div>
           )}
         </aside>

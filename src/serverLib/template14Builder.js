@@ -30,6 +30,26 @@ function buildTemplate14Html(cv) {
     )
     .join("");
 
+  const hasSkills =
+    Array.isArray(safeCv.skills)
+      ? safeCv.skills.length > 0
+      : String(safeCv.skills || "")
+          .split(",")
+          .some((s) => s.trim());
+  const skillsDisplay = Array.isArray(safeCv.skills)
+    ? safeCv.skills.join(", ")
+    : safeCv.skills || "";
+  const technicalTrim =
+    safeCv.technicalSkills != null ? String(safeCv.technicalSkills).trim() : "";
+
+  const skillsColHtml = `${hasSkills ? `<div class="section-label" data-block="section">Skills</div>
+             <div data-block="text" style="font-size: 10pt; line-height: 1.6;">${skillsDisplay}</div>` : ""}${
+    technicalTrim
+      ? `<div class="section-label" data-block="section" style="margin-top: ${hasSkills ? "24px" : "0"};">Technical Skills</div>
+             <p data-block="text" style="font-size: 10pt; line-height: 1.6; margin: 0;">${safeCv.technicalSkills}</p>`
+      : ""
+  }`;
+
   return `
   <!DOCTYPE html>
   <html>
@@ -82,8 +102,7 @@ function buildTemplate14Html(cv) {
                .join("")}
           </div>
           <div class="col">
-             <div class="section-label" data-block="section">Skills</div>
-             <div data-block="text" style="font-size: 10pt; line-height: 1.6;">${safeCv.skills || ""}</div>
+             ${skillsColHtml}
           </div>
         </div>
       </div>

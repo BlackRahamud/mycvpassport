@@ -46,6 +46,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const SectionHeading = ({ children }) => (
     <h2
@@ -176,24 +177,35 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
               </div>
             ))}
 
-            <SectionHeading>Skills</SectionHeading>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
-              <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
-              {skills.map((skill, i) => (
-                <span
-                  key={i}
-                  style={{
-                    padding: "5px 12px",
-                    backgroundColor: COLORS.PILL_BG,
-                    color: COLORS.TEXT_MAIN,
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                  }}
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
+            {skills.length > 0 && (
+              <>
+                <SectionHeading>Skills</SectionHeading>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
+                  <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
+                  {skills.map((skill, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        padding: "5px 12px",
+                        backgroundColor: COLORS.PILL_BG,
+                        color: COLORS.TEXT_MAIN,
+                        borderRadius: "6px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {technicalSkillsTrim && (
+              <>
+                <SectionHeading>Technical Skills</SectionHeading>
+                <p style={{ fontSize: "13px", color: COLORS.TEXT_BODY, lineHeight: "1.6", margin: "0 0 0 0" }}>{cv.technicalSkills}</p>
+              </>
+            )}
           </div>
 
           {/* RIGHT COLUMN (40%) */}

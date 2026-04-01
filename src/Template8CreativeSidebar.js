@@ -23,6 +23,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const SectionTitle = ({ children }) => (
     <div
@@ -140,10 +141,20 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
           <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
           <SectionTitle>Skills</SectionTitle>
           <div style={{ fontSize: pt(10), color: textColor, display: "flex", flexWrap: "wrap", gap: "8px" }}>
-            {skills.map((s, i) => (
+            {(isPlaceholder ? ["Skill One", "Skill Two"] : skills).map((s, i) => (
               <span key={i}>• {s} </span>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Technical Skills */}
+      {(technicalSkillsTrim || isPlaceholder) && (
+        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+          <SectionTitle>Technical Skills</SectionTitle>
+          <p style={{ fontSize: pt(10), color: textColor, margin: 0, lineHeight: 1.5 }}>
+            {isPlaceholder ? "Tools, platforms, stack" : cv.technicalSkills}
+          </p>
         </section>
       )}
 

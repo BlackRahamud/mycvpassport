@@ -43,6 +43,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const certifications = cv.certifications ? cv.certifications.split(",").map((c) => c.trim()).filter(Boolean) : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const SectionHeading = ({ children }) => (
     <div style={{ marginBottom: "12px", breakAfter: "avoid" }}>
@@ -153,15 +154,26 @@ export function PreviewFinance({ cv, mobileMode = false }) {
               </div>
             ))}
 
-            <SectionHeading>Skills</SectionHeading>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
-              <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
-              {skills.map((skill, i) => (
-                <span key={i} style={{ padding: "5px 12px", backgroundColor: "#e6eef7", color: COLORS.TEXT_PRIMARY, borderRadius: "6px", fontSize: "12px" }}>
-                  {skill}
-                </span>
-              ))}
-            </div>
+            {skills.length > 0 && (
+              <>
+                <SectionHeading>Skills</SectionHeading>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
+                  <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
+                  {skills.map((skill, i) => (
+                    <span key={i} style={{ padding: "5px 12px", backgroundColor: "#e6eef7", color: COLORS.TEXT_PRIMARY, borderRadius: "6px", fontSize: "12px" }}>
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {technicalSkillsTrim && (
+              <>
+                <SectionHeading>Technical Skills</SectionHeading>
+                <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: "0 0 24px 0" }}>{cv.technicalSkills}</p>
+              </>
+            )}
           </div>
 
           <div style={{ flex: "1" }}>
@@ -681,6 +693,7 @@ function certItems(cv) {
 function PreviewFinanceLegacy({ cv }) {
   const skills = skillItems(cv);
   const certs = certItems(cv);
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const contactRow = [cv.email, cv.phone, cv.location, cv.nationality, cv.visaStatus].filter(Boolean);
   const extraRow = [];
@@ -924,6 +937,23 @@ function PreviewFinanceLegacy({ cv }) {
               </div>
             ))}
           </div>
+        </>
+      )}
+
+      {technicalSkillsTrim && (
+        <>
+          <SectionTitle>Technical Skills</SectionTitle>
+          <p
+            style={{
+              fontSize: "13px",
+              lineHeight: 1.5,
+              color: "#000000",
+              margin: 0,
+              fontFamily: "Arial, Helvetica, sans-serif",
+            }}
+          >
+            {cv.technicalSkills}
+          </p>
         </>
       )}
 

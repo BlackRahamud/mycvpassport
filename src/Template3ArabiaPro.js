@@ -14,6 +14,11 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const skillsCells = (cv.skills || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const SectionHeader = ({ children }) => (
     <div
@@ -188,40 +193,58 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
         )}
       </section>
 
-      {/* Skills - Grid layout for stability */}
-      <section>
-        <SectionHeader>Core Competencies</SectionHeader>
-        {isEmpty ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px 20px" }}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ height: "12px", backgroundColor: SKELETON, borderRadius: "2px" }} />
-            ))}
-          </div>
-        ) : (
-          <div
+      {/* Skills */}
+      {(skillsCells.length > 0 || isEmpty) && (
+        <section>
+          <SectionHeader>Skills</SectionHeader>
+          {isEmpty ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px 20px" }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ height: "12px", backgroundColor: SKELETON, borderRadius: "2px" }} />
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "10px 20px",
+                fontSize: pt(9.5),
+                color: TEXT_BODY,
+                textAlign: "center",
+                position: "relative",
+              }}
+            >
+              <GhostChip>
+                {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
+              </GhostChip>
+              {skillsCells.map((s, i) => (
+                <div key={i} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: "2px" }}>
+                  {s}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Technical Skills */}
+      {(technicalSkillsTrim || isEmpty) && (
+        <section>
+          <SectionHeader>Technical Skills</SectionHeader>
+          <p
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "10px 20px",
               fontSize: pt(9.5),
               color: TEXT_BODY,
               textAlign: "center",
-              position: "relative",
+              margin: 0,
+              lineHeight: 1.6,
             }}
           >
-            <GhostChip>
-              {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
-            </GhostChip>
-            {(cv.skills || "")
-              .split(",")
-              .map((s, i) => (
-                <div key={i} style={{ borderBottom: `1px solid ${BORDER}`, paddingBottom: "2px" }}>
-                  {s.trim()}
-                </div>
-              ))}
-          </div>
-        )}
-      </section>
+            {isEmpty ? "Tools, platforms, and stack details" : cv.technicalSkills}
+          </p>
+        </section>
+      )}
     </div>
   );
 }

@@ -13,6 +13,11 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const skillsCells = (cv.skills || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const SectionBand = ({ children }) => (
     <div
@@ -183,30 +188,48 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
           ))}
         </section>
 
-        {/* Skills - 3 Column Grid */}
-        <section style={{ position: "relative" }}>
-          <SectionBand>Core Competencies</SectionBand>
-          <GhostChip>
-            {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
-          </GhostChip>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "8px 20px",
-              fontSize: pt(9.5),
-              color: TEXT_PRIMARY,
-            }}
-          >
-            {(cv.skills || "")
-              .split(",")
-              .map((s, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ color: SKELETON }}>•</span> {s.trim()}
-                </div>
-              ))}
-          </div>
-        </section>
+        {/* Skills */}
+        {(skillsCells.length > 0 || isEmpty) && (
+          <section style={{ position: "relative" }}>
+            <SectionBand>Skills</SectionBand>
+            <GhostChip>
+              {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
+            </GhostChip>
+            {isEmpty ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px 20px" }}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} style={{ height: "12px", backgroundColor: SKELETON }} />
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "8px 20px",
+                  fontSize: pt(9.5),
+                  color: TEXT_PRIMARY,
+                }}
+              >
+                {skillsCells.map((s, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ color: SKELETON }}>•</span> {s}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Technical Skills */}
+        {(technicalSkillsTrim || isEmpty) && (
+          <section style={{ position: "relative" }}>
+            <SectionBand>Technical Skills</SectionBand>
+            <p style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
+              {isEmpty ? "Tools, platforms, and stack" : cv.technicalSkills}
+            </p>
+          </section>
+        )}
       </div>
     </div>
   );

@@ -52,6 +52,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
   );
 
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   return (
     <div
@@ -155,20 +156,32 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       </section>
 
       {/* Skills */}
-      <section style={{ position: "relative" }}>
-        <SectionTitle>Expertise</SectionTitle>
-        <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
-        <div
-          style={{
-            fontSize: pt(10),
-            lineHeight: 1.8,
-            color: isEmpty ? SKELETON : TEXT_BODY,
-            fontWeight: "bold",
-          }}
-        >
-          {isEmpty ? "Core Competencies: Skill One • Skill Two • Skill Three" : `Core Competencies: ${skills.join(" • ")}`}
-        </div>
-      </section>
+      {(skills.length > 0 || isEmpty) && (
+        <section style={{ position: "relative" }}>
+          <SectionTitle>Skills</SectionTitle>
+          <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
+          <div
+            style={{
+              fontSize: pt(10),
+              lineHeight: 1.8,
+              color: isEmpty ? SKELETON : TEXT_BODY,
+              fontWeight: "bold",
+            }}
+          >
+            {isEmpty ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")}
+          </div>
+        </section>
+      )}
+
+      {/* Technical Skills */}
+      {(technicalSkillsTrim || isEmpty) && (
+        <section style={{ position: "relative" }}>
+          <SectionTitle>Technical Skills</SectionTitle>
+          <p style={{ fontSize: pt(10), lineHeight: 1.8, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
+            {isEmpty ? "Python, SQL, cloud platforms" : cv.technicalSkills}
+          </p>
+        </section>
+      )}
 
       {/* Education */}
       <section>

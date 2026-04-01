@@ -35,6 +35,11 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
   );
 
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
+  const skillsCells = (cv.skills || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   return (
     <div
@@ -167,16 +172,15 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
             ))}
         </section>
 
-        {/* Skills - Pill/Chip Style */}
-        <section style={{ position: "relative" }}>
-          <SectionTitle>Expertise</SectionTitle>
-          <GhostChip>
-            {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
-          </GhostChip>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "2px" }}>
-            {(cv.skills || "")
-              .split(",")
-              .map((s, i) => (
+        {/* Skills */}
+        {(skillsCells.length > 0 || isEmpty) && (
+          <section style={{ position: "relative" }}>
+            <SectionTitle>Skills</SectionTitle>
+            <GhostChip>
+              {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
+            </GhostChip>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "2px" }}>
+              {(isEmpty ? ["Skill One", "Skill Two", "Skill Three"] : skillsCells).map((s, i) => (
                 <span
                   key={i}
                   style={{
@@ -189,11 +193,22 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
                     letterSpacing: "0.3px",
                   }}
                 >
-                  {s.trim()}
+                  {s}
                 </span>
               ))}
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
+
+        {/* Technical Skills */}
+        {(technicalSkillsTrim || isEmpty) && (
+          <section style={{ position: "relative" }}>
+            <SectionTitle>Technical Skills</SectionTitle>
+            <p style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
+              {isEmpty ? "Stack, tools, and platforms" : cv.technicalSkills}
+            </p>
+          </section>
+        )}
 
         {/* Education */}
         {cv.education && cv.education.length > 0 && (

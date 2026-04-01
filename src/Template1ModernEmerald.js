@@ -21,8 +21,6 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
 
   // Data parsing
   const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const techList = cv.technicalSkills ? cv.technicalSkills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const allSkills = [...skillList, ...techList];
 
   const SectionTitle = ({ children, first }) => (
     <div
@@ -110,23 +108,35 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
         </section>
       )}
 
-      {/* Skills - Plain Text Comma Separated */}
-      {(allSkills.length > 0 || isEmpty) && (
+      {/* Skills */}
+      {(skillList.length > 0 || isEmpty) && (
         <section>
-          <SectionTitle>Technical Expertise</SectionTitle>
+          <SectionTitle>Skills</SectionTitle>
           <div style={{ fontSize: pt(10.5), lineHeight: 1.5, position: "relative" }}>
             <GhostChip>
-              {isEmpty
-                ? "Skill One, Skill Two, Skill Three, Tool Name, Software Expertise"
-                : allSkills.join(", ")}
+              {isEmpty ? "Skill One, Skill Two, Skill Three" : skillList.join(", ")}
             </GhostChip>
-            <span style={{ fontWeight: "bold", color: PRIMARY }}>Core Competencies: </span>
             {isEmpty ? (
-              <span style={{ color: SKELETON }}>Skill One, Skill Two, Skill Three, Tool Name, Software Expertise</span>
+              <span style={{ color: SKELETON }}>Skill One, Skill Two, Skill Three</span>
             ) : (
-              allSkills.join(", ")
+              skillList.join(", ")
             )}
           </div>
+        </section>
+      )}
+
+      {/* Technical Skills */}
+      {(String(cv.technicalSkills || "").trim() || isEmpty) && (
+        <section>
+          <SectionTitle>Technical Skills</SectionTitle>
+          <p style={{ fontSize: pt(10.5), lineHeight: 1.6, margin: 0, position: "relative" }}>
+            <GhostChip>{isEmpty ? "Tool Name, Software Expertise" : cv.technicalSkills}</GhostChip>
+            {isEmpty ? (
+              <span style={{ color: SKELETON }}>Tool Name, Software Expertise</span>
+            ) : (
+              cv.technicalSkills
+            )}
+          </p>
         </section>
       )}
 

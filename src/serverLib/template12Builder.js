@@ -123,6 +123,14 @@ function buildTemplate12Html(cv) {
           `
               : ""
           }
+          ${
+            safeCv.technicalSkills && String(safeCv.technicalSkills).trim()
+              ? `
+            <div class="section-label sidebar-label" style="margin-top: 40px;" data-block="section">Technical Skills</div>
+            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${safeCv.technicalSkills}</div>
+          `
+              : ""
+          }
         </div>
 
         <div class="main-content">

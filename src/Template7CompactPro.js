@@ -23,6 +23,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const SectionTitle = ({ children }) => (
     <div
@@ -139,6 +140,12 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
                 ))}
               </div>
               <GhostChip>{Array.isArray(skills) ? skills.join(" ") : skills}</GhostChip>
+            </div>
+          )}
+          {technicalSkillsTrim && (
+            <div style={{ flex: 1, position: "relative" }}>
+              <SectionTitle>Technical Skills</SectionTitle>
+              <p style={{ fontSize: pt(10), color: BODY_TEXT, margin: 0, lineHeight: 1.5 }}>{cv.technicalSkills}</p>
             </div>
           )}
           {languages.length > 0 && (

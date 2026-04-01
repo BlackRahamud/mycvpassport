@@ -190,9 +190,8 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
     contactBits.push({ label: "LinkedIn", href: url });
   }
 
-  const hasTechSection =
-    skillCore.length > 0 ||
-    techGroups.some((g) => g.items && g.items.length);
+  const hasTechGroups = techGroups.some((g) => g.items && g.items.length);
+  const hasAnySkillsBlock = skillCore.length > 0 || hasTechGroups;
   const projectsText = (cv.projects && String(cv.projects).trim()) || "";
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
@@ -310,31 +309,28 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
         </section>
       )}
 
-      {/* Technical Skills (grouped) */}
-      {hasTechSection && (
+      {/* Skills */}
+      {skillCore.length > 0 && (
         <section>
-          <SectionTitle first={!cv.summary}>Technical Skills</SectionTitle>
+          <SectionTitle first={!cv.summary}>Skills</SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
-            {skillCore.length > 0 && (
-              <EntryWrap>
-                <div style={{ position: "relative" }}>
-                  <GhostChip>{skillCore.join(" · ")}</GhostChip>
-                  <div
-                    style={{
-                      fontSize: pt(10),
-                      fontWeight: 700,
-                      color: NAVY,
-                      marginBottom: "2mm",
-                    }}
-                  >
-                    Core skills
-                  </div>
-                  <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY }}>
-                    {skillCore.join(" · ")}
-                  </p>
-                </div>
-              </EntryWrap>
-            )}
+            <EntryWrap>
+              <div style={{ position: "relative" }}>
+                <GhostChip>{skillCore.join(" · ")}</GhostChip>
+                <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY }}>
+                  {skillCore.join(" · ")}
+                </p>
+              </div>
+            </EntryWrap>
+          </div>
+        </section>
+      )}
+
+      {/* Technical Skills */}
+      {hasTechGroups && (
+        <section>
+          <SectionTitle first={!cv.summary && skillCore.length === 0}>Technical Skills</SectionTitle>
+          <div style={{ marginTop: "-4mm" }}>
             {techGroups.map((g, gi) =>
               g.items.length ? (
                 <EntryWrap key={`tg-${gi}`}>
@@ -367,7 +363,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
       {experience.some((e) => e.company) && (
         <section>
           <SectionTitle
-            first={!cv.summary && !hasTechSection}
+            first={!cv.summary && !hasAnySkillsBlock}
           >
             Professional Experience
           </SectionTitle>
@@ -453,7 +449,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
           <SectionTitle
             first={
               !cv.summary &&
-              !hasTechSection &&
+              !hasAnySkillsBlock &&
               !experience.some((e) => e.company)
             }
           >
@@ -486,7 +482,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
           <SectionTitle
             first={
               !cv.summary &&
-              !hasTechSection &&
+              !hasAnySkillsBlock &&
               !experience.some((e) => e.company) &&
               !projectsText
             }
@@ -548,7 +544,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
           <SectionTitle
             first={
               !cv.summary &&
-              !hasTechSection &&
+              !hasAnySkillsBlock &&
               !experience.some((e) => e.company) &&
               !projectsText &&
               !education.some((e) => e.school)
@@ -574,7 +570,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
           <SectionTitle
             first={
               !cv.summary &&
-              !hasTechSection &&
+              !hasAnySkillsBlock &&
               !experience.some((e) => e.company) &&
               !projectsText &&
               !education.some((e) => e.school) &&
@@ -698,7 +694,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   }
 
   if (cv.skills) {
-    sideSection("Core Skills");
+    sideSection("Skills");
     cv.skills.split(",").forEach(s => {
       if (!s.trim()) return;
       sy = ensureSy(sy, 5);
@@ -713,7 +709,7 @@ export function pdfTechITPro(doc, cv, W, M) {
   }
 
   if (cv.technicalSkills) {
-    sideSection("Tech Stack");
+    sideSection("Technical Skills");
     cv.technicalSkills.split(",").forEach(s => {
       if (!s.trim()) return;
       sy = ensureSy(sy, 5);

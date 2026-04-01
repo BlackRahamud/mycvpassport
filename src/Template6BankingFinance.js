@@ -20,6 +20,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   const SectionTitle = ({ children }) => (
     <div style={{ marginTop: "8mm", marginBottom: "5mm", pageBreakAfter: "avoid" }}>
@@ -162,9 +163,19 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
           <GhostChip>
             {Array.isArray(skills) ? skills.join(" ") : cv.skills}
           </GhostChip>
-          <SectionTitle>Expertise & Skills</SectionTitle>
+          <SectionTitle>Skills</SectionTitle>
           <p style={{ fontSize: pt(10), margin: 0, color: isPlaceholder ? "#D1D5DB" : "#333" }}>
             {isPlaceholder ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")}
+          </p>
+        </section>
+      )}
+
+      {/* Technical Skills */}
+      {(technicalSkillsTrim || isPlaceholder) && (
+        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+          <SectionTitle>Technical Skills</SectionTitle>
+          <p style={{ fontSize: pt(10), margin: 0, color: isPlaceholder ? "#D1D5DB" : "#333" }}>
+            {isPlaceholder ? "Tools, platforms, and stack" : cv.technicalSkills}
           </p>
         </section>
       )}

@@ -11,6 +11,10 @@ export function Template14({ cv, mobileMode = false }) {
   const TEXT_MAIN = "#1F2937";
 
   const splitPoints = (pts) => (pts ? pts.split("\n").filter((p) => p.trim()) : []);
+  const skillsItems = cv.skills
+    ? (Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean))
+    : [];
+  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
 
   return (
     <div
@@ -200,23 +204,44 @@ export function Template14({ cv, mobileMode = false }) {
                 </div>
               ))}
           </section>
-          <section style={{ position: "relative" }}>
-            <GhostChip>
-              {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
-            </GhostChip>
-            <h2
-              style={{
-                fontSize: "12pt",
-                color: ACCENT_BLUE,
-                fontWeight: "bold",
-                textTransform: "uppercase",
-                marginBottom: "15px",
-              }}
-            >
-              Skills
-            </h2>
-            <p style={{ fontSize: "10pt", lineHeight: "1.6" }}>{cv.skills}</p>
-          </section>
+          <div>
+            {skillsItems.length > 0 && (
+              <section style={{ position: "relative" }}>
+                <GhostChip>
+                  {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
+                </GhostChip>
+                <h2
+                  style={{
+                    fontSize: "12pt",
+                    color: ACCENT_BLUE,
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    marginBottom: "15px",
+                  }}
+                >
+                  Skills
+                </h2>
+                <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>{Array.isArray(cv.skills) ? cv.skills.join(", ") : cv.skills}</p>
+              </section>
+            )}
+
+            {technicalSkillsTrim && (
+              <section style={{ position: "relative", marginTop: skillsItems.length > 0 ? "24px" : 0 }}>
+                <h2
+                  style={{
+                    fontSize: "12pt",
+                    color: ACCENT_BLUE,
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    marginBottom: "15px",
+                  }}
+                >
+                  Technical Skills
+                </h2>
+                <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>{cv.technicalSkills}</p>
+              </section>
+            )}
+          </div>
         </div>
       </div>
     </div>
