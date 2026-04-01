@@ -5,7 +5,7 @@
 .cvp-fab-layer {
   transition: none !important;
 }
-.cvp-fab-layer *:not(.cvp-fab-bulb-cluster):not(.cvp-fab-bulb):not(.cvp-fab-bulb *):not(.cvp-fab-progress-svg):not(.cvp-fab-progress-svg *):not(.cvp-fab-status-bubble):not(.cvp-fab-tip-bubble):not(.cvp-fab-bulb--lit):not(.cvp-fab-bulb--flicker) {
+.cvp-fab-layer *:not(.cvp-fab-bulb-cluster):not(.cvp-fab-bulb):not(.cvp-fab-bulb *):not(.cvp-fab-progress-svg):not(.cvp-fab-progress-svg *):not(.cvp-fab-progress-pct):not(.cvp-fab-status-bubble):not(.cvp-fab-tip-bubble):not(.cvp-fab-bulb--lit):not(.cvp-fab-bulb--flicker) {
   transition: none !important;
 }
 

@@ -27,7 +27,6 @@ import {
 } from "../cvShared";
 import { CB_UI, S } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
-import { CoverLetterSpinnerArrow } from "./CoverLetterPage";
 import { useCvProgress } from "../hooks/useCvProgress";
 
 function BuilderAtsPassFailIcon({ pass }) {
@@ -114,6 +113,22 @@ function BuilderAtsTabContent({ resume }) {
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection }) {
   const list = normalizeCertificationsArray(resume.certifications);
+  const [inlineNameEdit, setInlineNameEdit] = useState(null);
+
+  useEffect(() => {
+    if (certificationEditor) setInlineNameEdit(null);
+  }, [certificationEditor]);
+
+  const iconRowBtn = {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#FFFFFF",
+    padding: 4,
+    flexShrink: 0,
+    display: "grid",
+    placeItems: "center",
+  };
   return (
     <div style={{ display: "grid", gap: 8 }}>
       {list.length === 0 && !certificationEditor && (
@@ -134,39 +149,101 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             gap: 12,
           }}
         >
-          <button
-            type="button"
-            onClick={() => setCertificationEditor({ mode: "edit", index: i, draft: { ...EMPTY_CERT, ...c } })}
-            style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#FFFFFF" }}>{c.name || "Certification"}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {inlineNameEdit && inlineNameEdit.index === i ? (
+              <div style={{ display: "grid", gap: 8 }}>
+                <input
+                  style={{ ...CB_UI.input, marginTop: 0, minHeight: undefined }}
+                  value={inlineNameEdit.draft}
+                  onChange={(e) => setInlineNameEdit({ index: i, draft: e.target.value })}
+                  aria-label="Certification name"
+                />
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  <button
+                    type="button"
+                    style={CB_UI.btn}
+                    onClick={() => {
+                      const t = String(inlineNameEdit.draft || "").trim();
+                      if (!t) return;
+                      setResume((r) => {
+                        const cur = normalizeCertificationsArray(r.certifications);
+                        const u = [...cur];
+                        u[i] = { ...u[i], name: t };
+                        return { ...r, certifications: u };
+                      });
+                      setInlineNameEdit(null);
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+                    onClick={() => setInlineNameEdit(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
                 {c.issuer ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.issuer}</div> : null}
+                {c.year ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.year}</div> : null}
               </div>
-              {c.year ? (
-                <span style={{ fontSize: 12, color: "#A0A0A0", flexShrink: 0, textAlign: "right" }}>{c.year}</span>
-              ) : (
-                <span style={{ width: 0, flexShrink: 0 }} />
-              )}
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setInlineNameEdit(null);
+                  setCertificationEditor({ mode: "edit", index: i, draft: { ...EMPTY_CERT, ...c } });
+                }}
+                style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#FFFFFF" }}>{c.name || "Certification"}</div>
+                    {c.issuer ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.issuer}</div> : null}
+                  </div>
+                  {c.year ? (
+                    <span style={{ fontSize: 12, color: "#A0A0A0", flexShrink: 0, textAlign: "right" }}>{c.year}</span>
+                  ) : (
+                    <span style={{ width: 0, flexShrink: 0 }} />
+                  )}
+                </div>
+              </button>
+            )}
+          </div>
+          {inlineNameEdit && inlineNameEdit.index === i ? null : (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 2, flexShrink: 0 }}>
+              <button
+                type="button"
+                aria-label="Edit certification name"
+                onClick={() => {
+                  setCertificationEditor(null);
+                  setInlineNameEdit({ index: i, draft: c.name || "" });
+                }}
+                style={iconRowBtn}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                aria-label="Delete certification"
+                onClick={() => {
+                  setResume((r) => ({
+                    ...r,
+                    certifications: normalizeCertificationsArray(r.certifications).filter((_, j) => j !== i),
+                  }));
+                  setInlineNameEdit((prev) => (prev && prev.index === i ? null : prev));
+                }}
+                style={iconRowBtn}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                </svg>
+              </button>
             </div>
-          </button>
-          <button
-            type="button"
-            aria-label="Delete certification"
-            onClick={(e) => {
-              e.stopPropagation();
-              setResume((r) => ({
-                ...r,
-                certifications: normalizeCertificationsArray(r.certifications).filter((_, j) => j !== i),
-              }));
-            }}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4, flexShrink: 0 }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-          </button>
+          )}
         </div>
       ))}
       {certificationEditor && (
@@ -242,6 +319,308 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
 }
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
+
+const PASTE_IMPORT_BTN = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "8px 12px",
+  borderRadius: 8,
+  border: "1px solid #2A2A2A",
+  background: "#1C1C1C",
+  color: "#FFFFFF",
+  fontSize: 13,
+  fontWeight: 500,
+  cursor: "pointer",
+  fontFamily: "inherit",
+};
+
+const BUILDER_SHEET_SURFACE = {
+  background: "#141414",
+  border: "1px solid #2A2A2A",
+  borderRadius: 16,
+};
+
+function BuilderCvPdfSpinner20() {
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: "@keyframes cvpBuilderPdfSpin{to{transform:rotate(360deg)}}" }} />
+      <svg
+        width={20}
+        height={20}
+        viewBox="0 0 20 20"
+        aria-hidden
+        style={{ flexShrink: 0, animation: "cvpBuilderPdfSpin 0.85s linear infinite" }}
+      >
+        <circle
+          cx="10"
+          cy="10"
+          r="8"
+          fill="none"
+          stroke="rgba(255,255,255,0.9)"
+          strokeWidth="2"
+          strokeDasharray="12 40"
+          strokeLinecap="round"
+        />
+      </svg>
+    </>
+  );
+}
+
+function ClipboardIconThin({ size = 16, color = "#FFFFFF" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <path d="M9 12h6M9 16h6" />
+    </svg>
+  );
+}
+
+function parseTechnicalSkillsPasteBlock(text) {
+  const lines = String(text || "").split(/\r?\n/);
+  const rows = [];
+  for (const line of lines) {
+    const colon = line.indexOf(":");
+    if (colon < 0) continue;
+    const category = line.slice(0, colon).trim();
+    const rest = line.slice(colon + 1);
+    const chips = rest
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!category) continue;
+    rows.push({ category, chips });
+  }
+  return rows;
+}
+
+function ProfessionalSummaryField({ summary, onChange }) {
+  const [clearAsk, setClearAsk] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder="2–3 lines summary..." value={summary} onChange={(e) => onChange(e.target.value)} />
+      {clearAsk ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            zIndex: 2,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 8,
+            maxWidth: "calc(100% - 20px)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <span style={{ fontSize: 12, color: "#FFFFFF", fontWeight: 500 }}>Clear summary?</span>
+          <button
+            type="button"
+            style={{ background: "none", border: "none", padding: 0, color: "#FFFFFF", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            onClick={() => {
+              onChange("");
+              setClearAsk(false);
+            }}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            style={{ background: "none", border: "none", padding: 0, color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}
+            onClick={() => setClearAsk(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          aria-label="Clear summary"
+          onClick={() => setClearAsk(true)}
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            zIndex: 2,
+            width: 28,
+            height: 28,
+            padding: 0,
+            border: "none",
+            borderRadius: 6,
+            background: "rgba(28,28,28,0.92)",
+            color: "#FFFFFF",
+            cursor: "pointer",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 18,
+            lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SkillsEditorSection({
+  resume,
+  setResume,
+  skillInput,
+  setSkillInput,
+  skillsPasteOpen,
+  setSkillsPasteOpen,
+  skillsPasteDraft,
+  setSkillsPasteDraft,
+}) {
+  const chipRowStyle = { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", alignContent: "flex-start", minHeight: 36, width: "100%" };
+  const chipStyle = { ...CB_UI.chip, flexShrink: 0 };
+
+  const runSkillsPasteImport = () => {
+    const parts = String(skillsPasteDraft || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length === 0) {
+      setSkillsPasteOpen(false);
+      setSkillsPasteDraft("");
+      return;
+    }
+    setResume((r) => {
+      const cur = splitCommaItems(r.skills);
+      const next = [...cur];
+      for (const p of parts) {
+        if (!next.includes(p)) next.push(p);
+      }
+      return { ...r, skills: next.join(", ") };
+    });
+    setSkillsPasteOpen(false);
+    setSkillsPasteDraft("");
+  };
+
+  return (
+    <>
+      {skillsPasteOpen ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 450,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            padding: 16,
+            boxSizing: "border-box",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSkillsPasteOpen(false);
+              setSkillsPasteDraft("");
+            }
+          }}
+        >
+          <div
+            style={{ ...BUILDER_SHEET_SURFACE, width: "100%", maxWidth: 480, padding: 16, display: "grid", gap: 12 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <textarea
+              style={{
+                ...CB_UI.input,
+                minHeight: 120,
+                resize: "vertical",
+                fontSize: 14,
+              }}
+              placeholder="Paste skills separated by commas e.g. Problem-Solving, Communication, Teamwork"
+              value={skillsPasteDraft}
+              onChange={(e) => setSkillsPasteDraft(e.target.value)}
+            />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                style={{ background: "none", border: "none", color: "#A0A0A0", fontSize: 14, cursor: "pointer", padding: "8px 4px" }}
+                onClick={() => {
+                  setSkillsPasteOpen(false);
+                  setSkillsPasteDraft("");
+                }}
+              >
+                Cancel
+              </button>
+              <button type="button" style={{ ...CB_UI.btn, padding: "10px 18px" }} onClick={runSkillsPasteImport}>
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
+        <button type="button" style={PASTE_IMPORT_BTN} onClick={() => setSkillsPasteOpen(true)}>
+          <ClipboardIconThin size={16} />
+          Paste &amp; Import
+        </button>
+        <div style={chipRowStyle}>
+          {splitCommaItems(resume.skills).map((sk, si) => (
+            <span key={`${sk}-${si}`} style={chipStyle}>
+              {sk}
+              <button
+                type="button"
+                aria-label={`Remove ${sk}`}
+                onClick={() =>
+                  setResume((r) => ({ ...r, skills: splitCommaItems(r.skills).filter((x) => x !== sk).join(", ") }))
+                }
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#FFFFFF";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#A0A0A0";
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <input
+            style={{ ...CB_UI.input, minHeight: undefined }}
+            placeholder="Add a skill"
+            value={skillInput}
+            onChange={(e) => setSkillInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const t = skillInput.trim();
+                if (!t) return;
+                const cur = splitCommaItems(resume.skills);
+                if (cur.includes(t)) return;
+                setResume((r) => ({ ...r, skills: [...cur, t].join(", ") }));
+                setSkillInput("");
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="cvp-builder-add-entry-btn"
+            style={{ ...CB_UI.btn }}
+            onClick={() => {
+              const t = skillInput.trim();
+              if (!t) return;
+              const cur = splitCommaItems(resume.skills);
+              if (cur.includes(t)) return;
+              setResume((r) => ({ ...r, skills: [...cur, t].join(", ") }));
+              setSkillInput("");
+            }}
+          >
+            + Add
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 function normalizeTechnicalSkillsState(ts) {
   if (Array.isArray(ts) && ts.length > 0) {
@@ -376,6 +755,9 @@ function pulseCvpHighlight(el) {
 function TechnicalSkillsEditor({ resume, setResume }) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [chipDraftByIndex, setChipDraftByIndex] = useState({});
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [pastePreview, setPastePreview] = useState(null);
   const groups = normalizeTechnicalSkillsState(resume.technicalSkills);
 
   const updateGroups = (next) => {
@@ -403,32 +785,141 @@ function TechnicalSkillsEditor({ resume, setResume }) {
     setChipDraftByIndex({});
   };
 
+  const closePaste = () => {
+    setPasteOpen(false);
+    setPasteText("");
+    setPastePreview(null);
+  };
+
+  const runPasteImport = () => {
+    const parsed = parseTechnicalSkillsPasteBlock(pasteText);
+    const room = Math.max(0, 20 - groups.length);
+    let warn = null;
+    let rows = parsed;
+    if (parsed.length > room) {
+      rows = parsed.slice(0, room);
+      warn = "Maximum 20 categories reached";
+    }
+    setPastePreview({ rows, warn });
+  };
+
+  const commitPaste = () => {
+    if (!pastePreview || pastePreview.rows.length === 0) {
+      closePaste();
+      return;
+    }
+    updateGroups((g) => [...g, ...pastePreview.rows.map((row) => ({ category: row.category, chips: [...row.chips] }))]);
+    closePaste();
+  };
+
+  const chipRowStyle = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    alignItems: "flex-start",
+    alignContent: "flex-start",
+    minHeight: 36,
+    width: "100%",
+  };
+
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-        <input
-          style={{ ...CB_UI.input, minHeight: undefined, flex: "1 1 160px" }}
-          placeholder="Category name (e.g. IT Support Tools)"
-          value={newCategoryName}
-          onChange={(e) => setNewCategoryName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onAddCategory();
-            }
+    <>
+      {pasteOpen ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 450,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            padding: 16,
+            boxSizing: "border-box",
           }}
-        />
-        <button
-          type="button"
-          className="cvp-builder-add-entry-btn"
-          style={{ ...CB_UI.btn }}
-          disabled={!newCategoryName.trim() || groups.length >= 20}
-          onClick={onAddCategory}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePaste();
+          }}
         >
-          + Add Category
+          <div
+            style={{ ...BUILDER_SHEET_SURFACE, width: "100%", maxWidth: 520, padding: 16, display: "grid", gap: 12, maxHeight: "85vh", overflow: "hidden" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <textarea
+              style={{
+                ...CB_UI.input,
+                minHeight: 140,
+                resize: "vertical",
+                fontSize: 14,
+              }}
+              readOnly={pastePreview != null}
+              placeholder='Paste your skills here, one category per line e.g. IT Support Tools: ManageEngine, RDP'
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+            />
+            {pastePreview && pastePreview.warn ? (
+              <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>{pastePreview.warn}</p>
+            ) : null}
+            {pastePreview && pastePreview.rows.length > 0 ? (
+              <div style={{ overflowY: "auto", maxHeight: 200, display: "grid", gap: 8 }}>
+                {pastePreview.rows.map((row, ri) => (
+                  <div key={`${row.category}-${ri}`} style={{ fontSize: 12, color: "#A0A0A0", lineHeight: 1.4 }}>
+                    <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{row.category}</span>
+                    {row.chips.length > 0 ? `: ${row.chips.join(", ")}` : ""}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                style={{ background: "none", border: "none", color: "#A0A0A0", fontSize: 14, cursor: "pointer", padding: "8px 4px" }}
+                onClick={closePaste}
+              >
+                Cancel
+              </button>
+              {pastePreview == null ? (
+                <button type="button" style={{ ...CB_UI.btn, padding: "10px 18px" }} onClick={runPasteImport}>
+                  Import
+                </button>
+              ) : (
+                <button type="button" style={{ ...CB_UI.btn, padding: "10px 18px" }} onClick={commitPaste}>
+                  Save
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div data-cvp-highlight="technicalSkills" style={{ display: "grid", gap: 12 }}>
+        <button type="button" style={PASTE_IMPORT_BTN} onClick={() => setPasteOpen(true)}>
+          <ClipboardIconThin size={16} />
+          Paste &amp; Import
         </button>
-      </div>
-      {groups.length >= 20 ? <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>Maximum 20 categories.</p> : null}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <input
+            style={{ ...CB_UI.input, minHeight: undefined, flex: "1 1 160px" }}
+            placeholder="Category name (e.g. IT Support Tools)"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onAddCategory();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="cvp-builder-add-entry-btn"
+            style={{ ...CB_UI.btn }}
+            disabled={!newCategoryName.trim() || groups.length >= 20}
+            onClick={onAddCategory}
+          >
+            + Add Category
+          </button>
+        </div>
+        {groups.length >= 20 ? <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>Maximum 20 categories.</p> : null}
 
       {groups.map((g, i) => (
         <div
@@ -500,9 +991,9 @@ function TechnicalSkillsEditor({ resume, setResume }) {
                   Add at least one skill to this category, or remove it — empty categories cannot be saved.
                 </p>
               ) : null}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <div style={chipRowStyle}>
                 {g.chips.map((chip, ci) => (
-                  <span key={`${chip}-${ci}`} style={CB_UI.chip}>
+                  <span key={`${chip}-${ci}`} style={{ ...CB_UI.chip, flexShrink: 0 }}>
                     {chip}
                     <button
                       type="button"
@@ -572,8 +1063,9 @@ function TechnicalSkillsEditor({ resume, setResume }) {
         </div>
       ))}
 
-      {groups.length === 0 ? <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>Add a category, then add skills as chips.</p> : null}
-    </div>
+        {groups.length === 0 ? <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>Add a category, then add skills as chips.</p> : null}
+      </div>
+    </>
   );
 }
 
@@ -581,7 +1073,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadPhase, setDownloadPhase] = useState("idle");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
@@ -600,7 +1092,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [educationEditor, setEducationEditor] = useState(null);
   const [certificationEditor, setCertificationEditor] = useState(null);
   const [skillInput, setSkillInput] = useState("");
+  const [skillsPasteOpen, setSkillsPasteOpen] = useState(false);
+  const [skillsPasteDraft, setSkillsPasteDraft] = useState("");
   const [langInput, setLangInput] = useState("");
+  const downloadUiTimerRef = useRef(null);
   const [cvFinderOpen, setCvFinderOpen] = useState(false);
   const [cvFinderQuery, setCvFinderQuery] = useState("");
   const [addSectionPickerOpen, setAddSectionPickerOpen] = useState(false);
@@ -722,6 +1217,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   useEffect(() => {
     writeFabMemory({ lastTabVisited: builderTab });
   }, [builderTab]);
+
+  useEffect(
+    () => () => {
+      if (downloadUiTimerRef.current != null) {
+        clearTimeout(downloadUiTimerRef.current);
+        downloadUiTimerRef.current = null;
+      }
+    },
+    []
+  );
 
   const cvFinderMatches = useMemo(() => buildCvFinderMatchList(resume, cvFinderQuery), [resume, cvFinderQuery]);
 
@@ -896,12 +1401,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, [user, resume, selectedTemplate, resumeId]);
 
   const handleDownload = async () => {
+    if (downloadPhase === "loading") return;
     const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
     if (isMobileViewport && builderTab === "ats" && fabRef.current?.runAtsDownloadGatekeeper) {
       const gate = await fabRef.current.runAtsDownloadGatekeeper();
       if (!gate?.canDownload) return;
     }
-    setDownloading(true);
+    if (downloadUiTimerRef.current != null) {
+      clearTimeout(downloadUiTimerRef.current);
+      downloadUiTimerRef.current = null;
+    }
+    setDownloadPhase("loading");
     const spinMs = 2000 + Math.floor(Math.random() * 1001);
     try {
       await new Promise((r) => setTimeout(r, spinMs));
@@ -915,10 +1425,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         lastActionAt: new Date().toISOString(),
         lastTemplateId: selectedTemplate?.id != null ? `T${selectedTemplate.id}` : null,
       });
+      setDownloadPhase("success");
+      if (downloadUiTimerRef.current != null) clearTimeout(downloadUiTimerRef.current);
+      downloadUiTimerRef.current = window.setTimeout(() => {
+        downloadUiTimerRef.current = null;
+        setDownloadPhase("idle");
+      }, 2000);
     } catch (e) {
-      alert("PDF error: " + e.message);
-    } finally {
-      setDownloading(false);
+      console.error(e);
+      setDownloadPhase("error");
+      if (downloadUiTimerRef.current != null) clearTimeout(downloadUiTimerRef.current);
+      downloadUiTimerRef.current = window.setTimeout(() => {
+        downloadUiTimerRef.current = null;
+        setDownloadPhase("idle");
+      }, 3000);
     }
   };
 
@@ -946,6 +1466,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
+
+  const downloadLoading = downloadPhase === "loading";
 
   const builderExtraSectionIds = resume.builderExtraSectionIds || [];
   const availableOptionalSections = OPTIONAL_BUILDER_SECTIONS.filter((s) => !builderExtraSectionIds.includes(s.id));
@@ -1077,17 +1599,54 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
               {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
             </button>
-            <button type="button" onClick={handleDownload} disabled={downloading} className="cvp-builder-topbar-download" style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#FFFFFF", color: "#000000", fontSize: 14, fontWeight: 600, cursor: downloading ? "not-allowed" : "pointer", transition: `opacity 150ms ${EASE}`, display: "inline-flex", alignItems: "center", gap: 8 }} onMouseEnter={(e) => { if (!downloading) e.currentTarget.style.opacity = "0.9"; }} onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}>
-              {downloading ? (
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={downloadLoading}
+              className="cvp-builder-topbar-download"
+              style={{
+                padding: "10px 16px",
+                borderRadius: 8,
+                border: downloadLoading ? "1px solid #2A2A2A" : "none",
+                background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
+                color: downloadLoading ? "#FFFFFF" : "#000000",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: downloadLoading ? "not-allowed" : "pointer",
+                transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                minWidth: 200,
+              }}
+              onMouseEnter={(e) => {
+                if (!downloadLoading) e.currentTarget.style.opacity = "0.9";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+              }}
+            >
+              {downloadLoading ? (
                 <>
-                  <span style={{ display: "inline-flex", transform: "scale(0.42)", transformOrigin: "center" }}>
-                    <CoverLetterSpinnerArrow size={44} />
-                  </span>
-                  Preparing...
+                  <BuilderCvPdfSpinner20 />
+                  <span>Generating your CV...</span>
                 </>
-              ) : (
-                "Download"
-              )}
+              ) : null}
+              {downloadPhase === "idle" ? <span>Download CV</span> : null}
+              {downloadPhase === "success" ? (
+                <>
+                  <span style={{ color: "#22C55E", fontSize: 16, lineHeight: 1 }} aria-hidden>
+                    ✓
+                  </span>
+                  <span>Download CV</span>
+                </>
+              ) : null}
+              {downloadPhase === "error" ? (
+                <>
+                  <span>Download CV</span>
+                  <span style={{ color: "#EF4444", fontSize: 12, fontWeight: 600 }}>Failed, try again</span>
+                </>
+              ) : null}
             </button>
           </div>
         </div>
@@ -1186,7 +1745,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <div className="cvp-sections-list">
               <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
+                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} />
                 </div>
               </AccordionSection>
 
@@ -1234,24 +1793,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
-                <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {splitCommaItems(resume.skills).map((sk, si) => (
-                      <span key={`${sk}-${si}`} style={CB_UI.chip}>
-                        {sk}
-                        <button type="button" aria-label={`Remove ${sk}`} onClick={() => setResume(r => ({ ...r, skills: splitCommaItems(r.skills).filter((x) => x !== sk).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
-                    <button type="button" className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
-                  </div>
-                </div>
+                <SkillsEditorSection
+                  resume={resume}
+                  setResume={setResume}
+                  skillInput={skillInput}
+                  setSkillInput={setSkillInput}
+                  skillsPasteOpen={skillsPasteOpen}
+                  setSkillsPasteOpen={setSkillsPasteOpen}
+                  skillsPasteDraft={skillsPasteDraft}
+                  setSkillsPasteDraft={setSkillsPasteDraft}
+                />
               </AccordionSection>
 
               <AccordionSection id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
-                <div data-cvp-highlight="technicalSkills" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <TechnicalSkillsEditor resume={resume} setResume={setResume} />
                 </div>
               </AccordionSection>
@@ -1370,7 +1925,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 <div className="cvp-mobile-section-rows" style={{ display: "flex", flexDirection: "column", maxWidth: "100%" }}>
               <AccordionSection variant="mobileRow" id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder="2–3 lines summary..." value={resume.summary} onChange={e=>set("summary",e.target.value)} />
+                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} />
                 </div>
               </AccordionSection>
 
@@ -1418,24 +1973,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               <AccordionSection variant="mobileRow" id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
-                <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {splitCommaItems(resume.skills).map((sk, si) => (
-                      <span key={`${sk}-${si}`} style={CB_UI.chip}>
-                        {sk}
-                        <button type="button" aria-label={`Remove ${sk}`} onClick={() => setResume(r => ({ ...r, skills: splitCommaItems(r.skills).filter((x) => x !== sk).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <input style={{ ...CB_UI.input, minHeight: undefined }} placeholder="Add a skill" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); } }} />
-                    <button type="button" className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }} onClick={() => { const t = skillInput.trim(); if (!t) return; const cur = splitCommaItems(resume.skills); if (cur.includes(t)) return; setResume(r => ({ ...r, skills: [...cur, t].join(", ") })); setSkillInput(""); }}>+ Add</button>
-                  </div>
-                </div>
+                <SkillsEditorSection
+                  resume={resume}
+                  setResume={setResume}
+                  skillInput={skillInput}
+                  setSkillInput={setSkillInput}
+                  skillsPasteOpen={skillsPasteOpen}
+                  setSkillsPasteOpen={setSkillsPasteOpen}
+                  skillsPasteDraft={skillsPasteDraft}
+                  setSkillsPasteDraft={setSkillsPasteDraft}
+                />
               </AccordionSection>
 
               <AccordionSection variant="mobileRow" id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
-                <div data-cvp-highlight="technicalSkills" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+                <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <TechnicalSkillsEditor resume={resume} setResume={setResume} />
                 </div>
               </AccordionSection>
@@ -1525,7 +2076,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               <button
                 type="button"
                 onClick={handleDownload}
-                disabled={downloading}
+                disabled={downloadLoading}
                 style={{
                   width: "calc(100% - 20px)",
                   margin: "0 10px",
@@ -1533,25 +2084,51 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   minHeight: 44,
                   padding: "10px 12px",
                   borderRadius: 9,
-                  border: "none",
-                  background: "#FFFFFF",
-                  color: "#000000",
-                  fontSize: 8.5,
+                  border: downloadLoading ? "1px solid #2A2A2A" : "none",
+                  background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
+                  color: downloadLoading ? "#FFFFFF" : "#000000",
+                  fontSize: downloadLoading ? 10 : 8.5,
                   fontWeight: 600,
-                  cursor: downloading ? "not-allowed" : "pointer",
-                  opacity: downloading ? 0.7 : 1,
+                  cursor: downloadLoading ? "not-allowed" : "pointer",
+                  opacity: 1,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
+                  flexWrap: "wrap",
+                  transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                {downloading ? "Preparing…" : "Download CV"}
+                {downloadLoading ? (
+                  <>
+                    <BuilderCvPdfSpinner20 />
+                    <span>Generating your CV...</span>
+                  </>
+                ) : null}
+                {downloadPhase === "idle" ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Download CV</span>
+                  </>
+                ) : null}
+                {downloadPhase === "success" ? (
+                  <>
+                    <span style={{ color: "#22C55E", fontSize: 14, lineHeight: 1 }} aria-hidden>
+                      ✓
+                    </span>
+                    <span>Download CV</span>
+                  </>
+                ) : null}
+                {downloadPhase === "error" ? (
+                  <>
+                    <span>Download CV</span>
+                    <span style={{ color: "#EF4444", fontSize: 9, fontWeight: 600 }}>Failed, try again</span>
+                  </>
+                ) : null}
               </button>
             </div>
             {fabSheet !== "preview" ? (
@@ -1834,6 +2411,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </button>
             <button
               type="button"
+              disabled={downloadLoading}
               onClick={() => {
                 setMenuDrawerOpen(false);
                 handleDownload();
@@ -1848,20 +2426,24 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 marginBottom: 8,
                 padding: "10px 9px",
                 borderRadius: 8,
-                border: "none",
-                background: "#fff",
-                color: "#000",
+                border: downloadLoading ? "1px solid #2A2A2A" : "none",
+                background: downloadLoading ? "#1C1C1C" : "#fff",
+                color: downloadLoading ? "#fff" : "#000",
                 fontSize: 12,
                 fontWeight: 500,
-                cursor: "pointer",
+                cursor: downloadLoading ? "not-allowed" : "pointer",
+                transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Download CV
+              {downloadLoading ? <BuilderCvPdfSpinner20 /> : null}
+              {downloadLoading ? null : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              )}
+              {downloadLoading ? "Generating your CV..." : "Download CV"}
             </button>
             <div style={{ flex: 1, minHeight: 8 }} aria-hidden />
             <div style={{ paddingTop: 4 }}>

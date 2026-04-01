@@ -1043,6 +1043,25 @@ const FAB = forwardRef(function FAB(
               }}
             />
             <div
+              className="cvp-fab-progress-pct"
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 3,
+                pointerEvents: "none",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#FFFFFF",
+                lineHeight: 1,
+                textShadow: "0 0 3px #000000, 0 0 5px #000000",
+              }}
+            >
+              {Math.min(100, Math.max(0, Math.round(Number(progress) || 0)))}%
+            </div>
+            <div
               ref={bulbRef}
               className="cvp-fab-bulb-cluster"
               style={{
