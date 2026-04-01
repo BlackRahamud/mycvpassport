@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FAB } from "./components/FAB";
 import { getFabMemory, writeFabMemory, checkAtsMilestone } from "./components/FAB/FABLogic";
-import { getCurrentUserProfile, joinWaitlist, supabase } from "./supabaseClient";
+import { getCurrentUserProfile, joinWaitlist } from "./supabaseClient";
 import { normalizeResumeText } from "./normalizeResumeText";
 import UpgradeModal from "./UpgradeModal";
 import skillSuggestions from "./data/skillSuggestions";
@@ -173,8 +173,6 @@ export default function ATSChecker(props) {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [isPro, setIsPro] = useState(false);
-  const [atsScansUsed, setAtsScansUsed] = useState(0);
-  const [profileId, setProfileId] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState("");
@@ -233,10 +231,8 @@ export default function ATSChecker(props) {
   useEffect(() => {
     async function checkPro() {
       try {
-        const { profile, isPro: pro } = await getCurrentUserProfile();
+        const { isPro: pro } = await getCurrentUserProfile();
         setIsPro(!!pro);
-        setAtsScansUsed(Number(profile?.ats_scans_used || 0));
-        setProfileId(profile?.id || null);
       } catch (e) { console.error("Profile check failed", e); }
     }
     checkPro();
@@ -245,10 +241,6 @@ export default function ATSChecker(props) {
   async function handleCheck() {
     if (!resumeFile) {
       setError("Please upload a resume.");
-      return;
-    }
-    if (!isPro && atsScansUsed >= 1) {
-      setShowUpgradeModal(true);
       return;
     }
     setError("");
@@ -279,15 +271,7 @@ export default function ATSChecker(props) {
       const roleFromCv = guessRoleFromResumeRaw(resumeText, detectRoleFn);
       const roleKeywordScore = jd && roleFromCv ? scoreAgainstRoleKeywords(normalized, roleFromCv) : null;
 
-      setTimeout(async () => {
-        if (!isPro && profileId) {
-          const nextScans = atsScansUsed + 1;
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ ats_scans_used: nextScans })
-            .eq("id", profileId);
-          if (!updateError) setAtsScansUsed(nextScans);
-        }
+      setTimeout(() => {
         const total = kw.score + sec.score + fmt.score;
         setResult({
           kw,
@@ -379,11 +363,6 @@ export default function ATSChecker(props) {
       </button>
 
       {error && <div style={{ color: "#ef4444", marginTop: 20, textAlign: "center", fontWeight: 600, fontFamily: AT_FONT }}>{error}</div>}
-      {!isPro ? (
-        <div style={{ color: "#A0A0A0", marginTop: 12, textAlign: "center", fontSize: 12, fontFamily: AT_FONT }}>
-          Free plan usage: {Math.min(atsScansUsed, 1)}/1 scan used
-        </div>
-      ) : null}
 
       {/* Dashboard Results */}
       {result && !loading && (
@@ -395,6 +374,7 @@ export default function ATSChecker(props) {
             keywords={keywords}
             isPaidUser={isPro}
             onUnlock={() => navigate("/upgrade")}
+            autoStartScanOnMount
           />
 
           {/* Visual Proof Hook (Free Users Only) */}

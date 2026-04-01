@@ -316,107 +316,142 @@ function StatCard({ label, value, valueColor }) {
   );
 }
 
-function KeywordPill({ found }) {
+function KeywordChip({ keyword, found }) {
   return (
-    <span style={{
-      fontFamily: "monospace",
-      fontSize: "9px",
-      fontWeight: "600",
-      padding: "3px 9px",
-      borderRadius: "3px",
-      letterSpacing: "0.06em",
-      textTransform: "uppercase",
-      background: found ? "#2563EB" : "#DC2626",
-      color: "#FFFFFF",
-      flexShrink: 0,
-    }}>
-      {found ? "FOUND" : "MISSING"}
+    <span
+      style={{
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSize: "11px",
+        fontWeight: 500,
+        padding: "5px 10px",
+        borderRadius: "6px",
+        letterSpacing: "0.02em",
+        background: found ? "#166534" : "#991B1B",
+        color: "#FFFFFF",
+        flexShrink: 0,
+        maxWidth: "100%",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+      title={keyword}
+    >
+      {keyword}
     </span>
   );
 }
 
-function KeywordRow({ keyword, found }) {
+function LockIcon({ size = 18 }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center",
-      justifyContent: "space-between",
-      padding: "8px 14px",
-      borderBottom: "1px solid #161616",
-    }}>
-      <span style={{ fontSize: "12px", color: "#D1D5DB" }}>{keyword}</span>
-      <KeywordPill found={found} />
-    </div>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
   );
 }
 
+const FREE_MISSING_VISIBLE = 7;
+
 function ResultsRight({ atsScore, keywords, isPaidUser, onUnlock }) {
   const level = matchLevel(atsScore);
-  const foundCount = keywords.filter(k => k.found).length;
-  const visible = isPaidUser ? keywords : keywords.slice(0, 3);
-  const locked = isPaidUser ? [] : keywords.slice(3);
+  const foundList = keywords.filter((k) => k.found);
+  const missingAll = keywords.filter((k) => !k.found);
+  const foundCount = foundList.length;
+  const totalKw = keywords.length;
+  const missingShown = isPaidUser ? missingAll : missingAll.slice(0, FREE_MISSING_VISIBLE);
+  const missingHiddenCount = isPaidUser ? 0 : Math.max(0, missingAll.length - FREE_MISSING_VISIBLE);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "12px" }}>
       <div style={{ ...S.surface, padding: "18px 18px 16px" }}>
-        <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "14px" }}>
+        <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "10px" }}>
           <ScoreRing score={atsScore} />
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "8px" }}>
             <StatCard label="Match Level" value={level.label} valueColor={level.color} />
-            <StatCard label="Keywords Found" value={`${foundCount} of ${keywords.length}`} />
+            <StatCard label="Keywords Found" value={`${foundCount} of ${totalKw || 0}`} />
           </div>
         </div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "12px",
+            lineHeight: 1.45,
+            color: "#A0A0A0",
+            fontWeight: 400,
+          }}
+        >
+          Results reflect GCC &amp; India market requirements
+        </p>
       </div>
 
-      <div style={{ ...S.surface, overflow: "hidden" }}>
+      <div style={{ ...S.surface, overflow: "hidden", padding: "12px 14px 14px" }}>
         <div style={{
-          padding: "10px 14px 9px",
-          borderBottom: "1px solid #1E1E1E",
+          paddingBottom: "10px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <span style={{ fontSize: "10px", color: "#525252", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: "500" }}>
             Keyword Match
           </span>
           <span style={{ fontFamily: "monospace", fontSize: "10px", color: "#383838" }}>
-            {keywords.length} keywords
+            {totalKw} keywords
           </span>
         </div>
 
-        {visible.map((k, i) => (
-          <KeywordRow key={i} keyword={k.keyword} found={k.found} />
-        ))}
+        {foundList.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+            {foundList.map((k, i) => (
+              <KeywordChip key={`f-${i}`} keyword={k.keyword} found />
+            ))}
+          </div>
+        )}
 
-        {locked.length > 0 && (
-          <div style={{ position: "relative" }}>
-            <div style={{ filter: "blur(4px)", pointerEvents: "none", userSelect: "none" }}>
-              {locked.map((k, i) => (
-                <KeywordRow key={i} keyword={k.keyword} found={k.found} />
-              ))}
-            </div>
-            <div style={{
-              position: "absolute", inset: 0,
-              background: "linear-gradient(to bottom, rgba(20,20,20,0) 0%, rgba(20,20,20,0.92) 30%)",
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "flex-end",
-              padding: "0 14px 14px",
-              gap: "8px",
-            }}>
-              <span style={{ fontSize: "11px", color: "#525252", letterSpacing: "0.03em" }}>
-                +{locked.length} more keywords hidden
-              </span>
-              <button
-                onClick={onUnlock}
-                style={{
-                  width: "100%", padding: "9px 16px",
-                  background: "#2563EB", color: "#FFFFFF",
-                  border: "1px solid #2563EB", borderRadius: "6px",
-                  fontSize: "12px", fontWeight: "600",
-                  cursor: "pointer", letterSpacing: "0.01em",
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                }}
-              >
-                Unlock Full Report
-              </button>
-            </div>
+        {missingShown.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: !isPaidUser ? "12px" : 0 }}>
+            {missingShown.map((k, i) => (
+              <KeywordChip key={`m-${i}`} keyword={k.keyword} found={false} />
+            ))}
+          </div>
+        )}
+
+        {!isPaidUser && (
+          <div
+            style={{
+              padding: "16px 14px",
+              borderRadius: "12px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(28,28,28,0.65)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "12px",
+              textAlign: "center",
+            }}
+          >
+            <LockIcon />
+            <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.45, color: "#D1D5DB", fontWeight: 400 }}>
+              See your full keyword gap + AI-powered rewrite suggestions
+              {missingHiddenCount > 0 ? (
+                <span style={{ display: "block", marginTop: "6px", fontSize: "11px", color: "#737373" }}>
+                  +{missingHiddenCount} more missing keywords on Pro
+                </span>
+              ) : null}
+            </p>
+            <button
+              type="button"
+              onClick={onUnlock}
+              style={{
+                width: "100%", padding: "10px 16px",
+                background: "#2563EB", color: "#FFFFFF",
+                border: "1px solid #2563EB", borderRadius: "8px",
+                fontSize: "13px", fontWeight: 600,
+                cursor: "pointer", letterSpacing: "0.01em",
+                fontFamily: "system-ui, -apple-system, sans-serif",
+              }}
+            >
+              Upgrade
+            </button>
           </div>
         )}
       </div>
@@ -444,8 +479,16 @@ export default function ATSScanner({
   ],
   isPaidUser = false,
   onUnlock = () => {},
+  autoStartScanOnMount = false,
 }) {
   const [phase, setPhase] = useState("idle");
+  const didAutoStart = useRef(false);
+
+  useEffect(() => {
+    if (!autoStartScanOnMount || didAutoStart.current) return;
+    didAutoStart.current = true;
+    setPhase("scanning");
+  }, [autoStartScanOnMount]);
 
   function handleScan() {
     if (phase !== "idle") return;

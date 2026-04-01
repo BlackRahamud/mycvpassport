@@ -5,7 +5,6 @@ import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { FAB } from "../components/FAB";
-import { getAtsScoreStrokeColor } from "../components/FAB/FABSheet";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { supabase } from "../appSupabaseClient";
 import { saveResume } from "../resumeDb";
@@ -24,150 +23,11 @@ import {
   buildExperiencePeriod,
   buildEducationYearLine,
   builderAtsScore,
-  builderAtsBreakdown,
 } from "../cvShared";
 import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI, S } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 import { useCvProgress } from "../hooks/useCvProgress";
-
-function BuilderAtsPassFailIcon({ pass }) {
-  const fill = pass ? "#22C55E" : "#EF4444";
-  return (
-    <svg width={22} height={22} viewBox="0 0 22 22" aria-hidden style={{ flexShrink: 0 }}>
-      <circle cx={11} cy={11} r={11} fill={fill} />
-      {pass ? (
-        <path d="M5 11 L9 15 L17 7" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      ) : (
-        <>
-          <path d="M6 6 L16 16" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
-          <path d="M16 6 L6 16" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" />
-        </>
-      )}
-    </svg>
-  );
-}
-
-function BuilderAtsTabContent({ resume, showCoverLetterJourneyPrompt, onCoverLetterJourneyCta, onSkipToDownload, coverLetterJourneyIsPro }) {
-  const score = builderAtsScore(resume);
-  const breakdown = builderAtsBreakdown(resume);
-  const pct = Math.max(0, Math.min(100, score));
-  const r = 40.5;
-  const c = 2 * Math.PI * r;
-  const arcLen = (pct / 100) * c;
-  const dashActive = `${arcLen} ${c}`;
-  const ringStroke = getAtsScoreStrokeColor(pct);
-  return (
-    <div style={{ padding: "0 12px 16px", maxWidth: "100%", overflow: "hidden", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 16 }}>
-        <div style={{ position: "relative", width: 88, height: 88 }}>
-          <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden>
-            <circle cx="44" cy="44" r={r} fill="none" stroke="#1C1C1C" strokeWidth="7" />
-            <circle
-              cx="44"
-              cy="44"
-              r={r}
-              fill="none"
-              stroke={ringStroke}
-              strokeWidth="7"
-              strokeLinecap="round"
-              strokeDasharray={dashActive}
-              transform="rotate(-90 44 44)"
-            />
-          </svg>
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              pointerEvents: "none",
-            }}
-          >
-            <span style={{ fontSize: 20, fontWeight: 500, color: ringStroke, lineHeight: 1 }}>{pct}</span>
-            <span style={{ fontSize: 7, color: "#666", marginTop: 2 }}>ATS Score</span>
-          </div>
-        </div>
-        <div style={{ color: "#666", fontSize: 8.5, marginTop: 5, textAlign: "center" }}>ATS Readiness Score</div>
-      </div>
-      <div style={{ marginTop: 12 }}>
-        {breakdown.map((row, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "6px 0",
-              borderBottom: "0.5px solid #1A1A1A",
-            }}
-          >
-            <BuilderAtsPassFailIcon pass={row.pass} />
-            <span style={{ color: "#aaa", fontSize: 8, lineHeight: 1.35 }}>{row.text}</span>
-          </div>
-        ))}
-      </div>
-      {showCoverLetterJourneyPrompt ? (
-        <div
-          style={{
-            marginTop: 20,
-            padding: 14,
-            borderRadius: 12,
-            border: "1px solid #2A2A2A",
-            background: "#141414",
-            display: "grid",
-            gap: 10,
-          }}
-        >
-          <p style={{ margin: 0, fontSize: 13, color: "#E5E5E5", lineHeight: 1.4 }}>
-            {coverLetterJourneyIsPro ? "ATS done. Stand out with a Cover Letter." : "ATS done. Stand out with a Cover Letter — Pro unlocks tailored cover letters."}
-          </p>
-          <button
-            type="button"
-            onClick={onCoverLetterJourneyCta}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 8,
-              border: "none",
-              background: "#FFFFFF",
-              color: "#000000",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
-            }}
-            onMouseEnter={(ev) => {
-              ev.currentTarget.style.opacity = "0.92";
-            }}
-            onMouseLeave={(ev) => {
-              ev.currentTarget.style.opacity = "1";
-            }}
-          >
-            Create Cover Letter →
-          </button>
-          <button
-            type="button"
-            onClick={onSkipToDownload}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#666666",
-              fontSize: 11,
-              textDecoration: "underline",
-              cursor: "pointer",
-              padding: 0,
-              justifySelf: "center",
-            }}
-          >
-            Skip to download
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
   const list = normalizeCertificationsArray(resume.certifications);
@@ -1679,6 +1539,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
   const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
   const [cvJourney, setCvJourney] = useState({ templateChosen: false, atsChecked: false, coverLetterSeen: false });
+  const openAtsChecker = useCallback(() => {
+    setCvJourney((j) => (j.atsChecked ? j : { ...j, atsChecked: true }));
+    navigate("/ats");
+  }, [navigate]);
   const [technicalSkillsFromPrompt, setTechnicalSkillsFromPrompt] = useState(false);
   const fabRef = useRef(null);
   const expReorder = useExperienceReorder(setResume);
@@ -1696,12 +1560,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     prevBuilderTabRef.current = builderTab;
     if (builderTab === "templates" && prev != null && prev !== "templates") {
       setTemplateSessionApplyCount(0);
-    }
-  }, [builderTab]);
-
-  useEffect(() => {
-    if (builderTab === "ats") {
-      setCvJourney((j) => (j.atsChecked ? j : { ...j, atsChecked: true }));
     }
   }, [builderTab]);
 
@@ -1973,8 +1831,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const cvJourneyChrome = cvCompletionProgress.percent >= 100;
   const journeyStepActive = !cvJourney.templateChosen ? 1 : !cvJourney.atsChecked ? 2 : !cvJourney.coverLetterSeen ? 3 : 4;
-  const showCoverLetterJourneyBlock =
-    cvJourneyChrome && cvJourney.templateChosen && cvJourney.atsChecked && !cvJourney.coverLetterSeen;
 
   const handleSave = useCallback(async () => {
     if (!user?.id) return;
@@ -2068,15 +1924,15 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       onConfirmOpenChange={setTemplateConfirmOpen}
       onTemplatesFabInteract={() => setTemplatesInteractKey((k) => k + 1)}
       showAtsJourneyPrompt={cvJourneyChrome && cvJourney.templateChosen && !cvJourney.atsChecked}
-      onAtsJourneyNavigate={() => setBuilderTab("ats")}
+      onAtsJourneyNavigate={openAtsChecker}
       onAtsJourneySkipDownload={handleDownload}
     />
   );
 
   const navigateToProAtsPage = useCallback(() => {
-    navigate("/ats");
+    openAtsChecker();
     setFabSheet(null);
-  }, [navigate]);
+  }, [openAtsChecker]);
 
   const closePreview = useCallback(() => {
     setPreviewFadeOut(true);
@@ -2174,7 +2030,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   key={tab}
                   type="button"
                   className="cvp-builder-tabchip"
-                  onClick={() => setBuilderTab(tab)}
+                  onClick={() => {
+                    if (tab === "ats") {
+                      openAtsChecker();
+                      return;
+                    }
+                    setBuilderTab(tab);
+                  }}
                   style={{
                     padding: "6px 12px",
                     borderRadius: 8,
@@ -2703,15 +2565,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {templatesPanel}
             </div>
           ) : null}
-          {builderTab === "ats" ? (
-            <BuilderAtsTabContent
-              resume={resume}
-              showCoverLetterJourneyPrompt={showCoverLetterJourneyBlock}
-              onCoverLetterJourneyCta={runCoverLetterJourneyStep}
-              onSkipToDownload={handleDownload}
-              coverLetterJourneyIsPro={isPro}
-            />
-          ) : null}
           {builderTab === "jobmatch" && (
             <div style={{ display: "grid", gap: 12 }}>
               <button
@@ -3040,15 +2893,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               {templatesPanel}
             </div>
           ) : null}
-            {builderTab === "ats" ? (
-              <BuilderAtsTabContent
-                resume={resume}
-                showCoverLetterJourneyPrompt={showCoverLetterJourneyBlock}
-                onCoverLetterJourneyCta={runCoverLetterJourneyStep}
-                onSkipToDownload={handleDownload}
-                coverLetterJourneyIsPro={isPro}
-              />
-            ) : null}
             {builderTab === "jobmatch" && (
               <div style={{ display: "grid", gap: 12, padding: "0 12px 12px" }}>
                 <button
@@ -3336,6 +3180,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   key={row.id}
                   type="button"
                   onClick={() => {
+                    if (row.id === "ats") {
+                      openAtsChecker();
+                      setMenuDrawerOpen(false);
+                      return;
+                    }
                     setBuilderTab(row.id);
                     setMenuDrawerOpen(false);
                   }}
