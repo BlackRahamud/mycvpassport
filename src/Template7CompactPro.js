@@ -2,6 +2,15 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 const NAVY = "#1E3A5F";
 const ACCENT_BG = "#DBEAFE"; // Soft blue-grey band
 const BODY_TEXT = "#3D3D3D";
@@ -23,7 +32,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
-  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
+  const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   const SectionTitle = ({ children }) => (
     <div
@@ -142,10 +151,24 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
               <GhostChip>{Array.isArray(skills) ? skills.join(" ") : skills}</GhostChip>
             </div>
           )}
-          {technicalSkillsTrim && (
+          {hasTechnicalSkills && (
             <div style={{ flex: 1, position: "relative" }}>
               <SectionTitle>Technical Skills</SectionTitle>
-              <p style={{ fontSize: pt(10), color: BODY_TEXT, margin: 0, lineHeight: 1.5 }}>{cv.technicalSkills}</p>
+              <div style={{ fontSize: pt(10), color: BODY_TEXT, margin: 0, lineHeight: 1.5 }}>
+                {(() => {
+                  const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
+                  if (!groups.length) return null;
+                  return (
+                    <div>
+                      {groups.map((g, i) => (
+                        <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
+                          <strong>{g.category}:</strong> {g.chips.join(", ")}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
           {languages.length > 0 && (

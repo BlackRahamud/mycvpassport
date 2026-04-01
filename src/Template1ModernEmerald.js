@@ -2,6 +2,15 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 const PRIMARY = "#1E3A5F"; // Deep Navy
 const ACCENT = "#C8A96E"; // Warm Gold
 const TEXT_MAIN = "#374151"; // Gray 700
@@ -126,17 +135,35 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
       )}
 
       {/* Technical Skills */}
-      {(String(cv.technicalSkills || "").trim() || isEmpty) && (
+      {(technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0 || isEmpty) && (
         <section>
           <SectionTitle>Technical Skills</SectionTitle>
-          <p style={{ fontSize: pt(10.5), lineHeight: 1.6, margin: 0, position: "relative" }}>
-            <GhostChip>{isEmpty ? "Tool Name, Software Expertise" : cv.technicalSkills}</GhostChip>
+          <div style={{ fontSize: pt(10.5), lineHeight: 1.6, margin: 0, position: "relative" }}>
+            <GhostChip>
+              {isEmpty
+                ? "Tool Name, Software Expertise"
+                : technicalSkillsGroupsForTemplate(cv.technicalSkills)
+                    .map((g) => `${g.category} ${g.chips.join(" ")}`)
+                    .join(" ")}
+            </GhostChip>
             {isEmpty ? (
               <span style={{ color: SKELETON }}>Tool Name, Software Expertise</span>
             ) : (
-              cv.technicalSkills
+              (() => {
+                const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
+                if (!groups.length) return null;
+                return (
+                  <div>
+                    {groups.map((g, i) => (
+                      <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
+                        <strong>{g.category}:</strong> {g.chips.join(", ")}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })()
             )}
-          </p>
+          </div>
         </section>
       )}
 

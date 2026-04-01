@@ -2,6 +2,15 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 const PURPLE_BAR = "#EEF2FF";
 const DEEP_PURPLE = "#3730A3";
 const MAIN_TEXT = "#111827";
@@ -23,7 +32,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
-  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
+  const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   const SectionTitle = ({ children }) => (
     <div
@@ -153,12 +162,28 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
       )}
 
       {/* Technical Skills */}
-      {(technicalSkillsTrim || isPlaceholder) && (
+      {(hasTechnicalSkills || isPlaceholder) && (
         <section style={{ pageBreakInside: "avoid", position: "relative" }}>
           <SectionTitle>Technical Skills</SectionTitle>
-          <p style={{ fontSize: pt(10), color: textColor, margin: 0, lineHeight: 1.8 }}>
-            {isPlaceholder ? "Tools, platforms, stack" : cv.technicalSkills}
-          </p>
+          <div style={{ fontSize: pt(10), color: textColor, margin: 0, lineHeight: 1.8 }}>
+            {isPlaceholder ? (
+              "Tools, platforms, stack"
+            ) : (
+              (() => {
+                const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
+                if (!groups.length) return null;
+                return (
+                  <div>
+                    {groups.map((g, i) => (
+                      <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
+                        <strong>{g.category}:</strong> {g.chips.join(", ")}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })()
+            )}
+          </div>
         </section>
       )}
 

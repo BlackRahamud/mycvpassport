@@ -2,6 +2,15 @@
  * Generates the HTML string for Template 12 — Flat Split
  * Designed for Puppeteer on Vercel with strict flat aesthetics.
  */
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 function buildTemplate12Html(cv) {
   const safeCv = cv || {};
   const HEADER_BG = safeCv.name ? "#D6D3D1" : "#D1D5DB";
@@ -124,12 +133,20 @@ function buildTemplate12Html(cv) {
               : ""
           }
           ${
-            safeCv.technicalSkills && String(safeCv.technicalSkills).trim()
-              ? `
+            (() => {
+              const techGroups = technicalSkillsGroupsForTemplate(safeCv.technicalSkills);
+              if (!techGroups.length) return "";
+              const inner = techGroups
+                .map(
+                  (g) =>
+                    `<p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>`,
+                )
+                .join("");
+              return `
             <div class="section-label sidebar-label" style="margin-top: 40px;" data-block="section">Technical Skills</div>
-            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${safeCv.technicalSkills}</div>
-          `
-              : ""
+            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${inner}</div>
+          `;
+            })()
           }
         </div>
 

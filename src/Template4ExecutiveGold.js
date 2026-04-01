@@ -2,6 +2,15 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 const BAND_BG = "#F3F4F6"; // Light grey for header and section bars
 const TEXT_PRIMARY = "#1F2937"; // Dark charcoal
 const TEXT_SECONDARY = "#4B5563"; // Subtle accent/body
@@ -17,7 +26,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
+  const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   const SectionBand = ({ children }) => (
     <div
@@ -222,12 +231,28 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
         )}
 
         {/* Technical Skills */}
-        {(technicalSkillsTrim || isEmpty) && (
+        {(hasTechnicalSkills || isEmpty) && (
           <section style={{ position: "relative" }}>
             <SectionBand>Technical Skills</SectionBand>
-            <p style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
-              {isEmpty ? "Tools, platforms, and stack" : cv.technicalSkills}
-            </p>
+            <div style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
+              {isEmpty ? (
+                "Tools, platforms, and stack"
+              ) : (
+                (() => {
+                  const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
+                  if (!groups.length) return null;
+                  return (
+                    <div>
+                      {groups.map((g, i) => (
+                        <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
+                          <strong>{g.category}:</strong> {g.chips.join(", ")}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                })()
+              )}
+            </div>
           </section>
         )}
       </div>

@@ -1,6 +1,15 @@
 import { useMemo, useState, useEffect } from "react";
 import UpgradeModal from "./UpgradeModal";
 
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 const BANK_FILE = "/cvpassport_keywords.json";
 
 const TEMPLATE_KEY_MAP = {
@@ -44,6 +53,8 @@ function detectTemplateKey(template) {
 }
 
 function buildCvText(resume) {
+  const techGroups = technicalSkillsGroupsForTemplate(resume?.technicalSkills);
+  const technicalSkillsText = techGroups.map((g) => g.chips.join(" ")).join(" ");
   const exp = Array.isArray(resume?.experience)
     ? resume.experience
         .map((e) => [e?.role, e?.company, e?.location, e?.points, e?.period].filter(Boolean).join(" "))
@@ -64,7 +75,7 @@ function buildCvText(resume) {
       resume?.title,
       resume?.summary,
       resume?.skills,
-      resume?.technicalSkills,
+      technicalSkillsText,
       resume?.languages,
       resume?.projects,
       resume?.volunteerWork,

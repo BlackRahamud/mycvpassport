@@ -2,6 +2,15 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 /**
  * TEMPLATE 12 — Flat Split
  * Non-negotiable: No shadows, no gradients, no border-radius.
@@ -25,7 +34,7 @@ export function Template12Split({ cv, mobileMode = false }) {
   const skillItems = cv.skills
     ? (Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean))
     : [];
-  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
+  const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   const containerStyle = {
     width: mobileMode ? "100%" : "210mm",
@@ -152,7 +161,7 @@ export function Template12Split({ cv, mobileMode = false }) {
             </div>
           )}
 
-          {technicalSkillsTrim && (
+          {hasTechnicalSkills && (
             <div style={{ marginTop: "40px", position: "relative" }}>
               <h3
                 style={{
@@ -166,7 +175,21 @@ export function Template12Split({ cv, mobileMode = false }) {
               >
                 Technical Skills
               </h3>
-              <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>{cv.technicalSkills}</p>
+              <div style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
+                {(() => {
+                  const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
+                  if (!groups.length) return null;
+                  return (
+                    <div>
+                      {groups.map((g, i) => (
+                        <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
+                          <strong>{g.category}:</strong> {g.chips.join(", ")}
+                        </p>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
         </aside>

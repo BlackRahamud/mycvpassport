@@ -2,6 +2,15 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
 
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 /**
  * TEMPLATE 13 — Finance & Corporate
  * Design: Single-sheet continuous surface, Finance-grade, No Cards.
@@ -43,7 +52,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const certifications = cv.certifications ? cv.certifications.split(",").map((c) => c.trim()).filter(Boolean) : [];
-  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
+  const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   const SectionHeading = ({ children }) => (
     <div style={{ marginBottom: "12px", breakAfter: "avoid" }}>
@@ -168,10 +177,24 @@ export function PreviewFinance({ cv, mobileMode = false }) {
               </>
             )}
 
-            {technicalSkillsTrim && (
+            {hasTechnicalSkills && (
               <>
                 <SectionHeading>Technical Skills</SectionHeading>
-                <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: "0 0 24px 0" }}>{cv.technicalSkills}</p>
+                <div style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: "0 0 24px 0" }}>
+                  {(() => {
+                    const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
+                    if (!groups.length) return null;
+                    return (
+                      <div>
+                        {groups.map((g, i) => (
+                          <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
+                            <strong>{g.category}:</strong> {g.chips.join(", ")}
+                          </p>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
               </>
             )}
           </div>
@@ -693,7 +716,7 @@ function certItems(cv) {
 function PreviewFinanceLegacy({ cv }) {
   const skills = skillItems(cv);
   const certs = certItems(cv);
-  const technicalSkillsTrim = String(cv.technicalSkills || "").trim();
+  const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   const contactRow = [cv.email, cv.phone, cv.location, cv.nationality, cv.visaStatus].filter(Boolean);
   const extraRow = [];
@@ -940,10 +963,10 @@ function PreviewFinanceLegacy({ cv }) {
         </>
       )}
 
-      {technicalSkillsTrim && (
+      {hasTechnicalSkills && (
         <>
           <SectionTitle>Technical Skills</SectionTitle>
-          <p
+          <div
             style={{
               fontSize: "13px",
               lineHeight: 1.5,
@@ -952,8 +975,20 @@ function PreviewFinanceLegacy({ cv }) {
               fontFamily: "Arial, Helvetica, sans-serif",
             }}
           >
-            {cv.technicalSkills}
-          </p>
+            {(() => {
+              const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
+              if (!groups.length) return null;
+              return (
+                <div>
+                  {groups.map((g, i) => (
+                    <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
+                      <strong>{g.category}:</strong> {g.chips.join(", ")}
+                    </p>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
         </>
       )}
 

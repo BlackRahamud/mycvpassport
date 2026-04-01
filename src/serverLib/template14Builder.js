@@ -1,3 +1,12 @@
+function technicalSkillsGroupsForTemplate(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: 'Technical Skills', chips }];
+}
+
 function buildTemplate14Html(cv) {
   const safeCv = cv || {};
   const ACCENT_BLUE = "#1E40AF";
@@ -39,14 +48,19 @@ function buildTemplate14Html(cv) {
   const skillsDisplay = Array.isArray(safeCv.skills)
     ? safeCv.skills.join(", ")
     : safeCv.skills || "";
-  const technicalTrim =
-    safeCv.technicalSkills != null ? String(safeCv.technicalSkills).trim() : "";
+  const techGroups = technicalSkillsGroupsForTemplate(safeCv.technicalSkills);
+  const technicalSkillsInner = techGroups
+    .map(
+      (g) =>
+        `<p data-block="text" style="font-size: 10pt; line-height: 1.4; margin: 2px 0;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>`,
+    )
+    .join("");
 
   const skillsColHtml = `${hasSkills ? `<div class="section-label" data-block="section">Skills</div>
              <div data-block="text" style="font-size: 10pt; line-height: 1.6;">${skillsDisplay}</div>` : ""}${
-    technicalTrim
+    techGroups.length
       ? `<div class="section-label" data-block="section" style="margin-top: ${hasSkills ? "24px" : "0"};">Technical Skills</div>
-             <p data-block="text" style="font-size: 10pt; line-height: 1.6; margin: 0;">${safeCv.technicalSkills}</p>`
+             <div style="font-size: 10pt; line-height: 1.6; margin: 0;">${technicalSkillsInner}</div>`
       : ""
   }`;
 
