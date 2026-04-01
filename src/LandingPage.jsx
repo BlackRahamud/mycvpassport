@@ -259,6 +259,95 @@ function LandingTemplateThumb({ template }) {
   );
 }
 
+const LandingTemplateMarquee = React.memo(function LandingTemplateMarquee() {
+  const scrollRef = useRef(null);
+  const rafRef = useRef(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+  const isPaused = useRef(false);
+
+  const tripleStrip = [...LP_TEMPLATE_STRIP, ...LP_TEMPLATE_STRIP, ...LP_TEMPLATE_STRIP];
+
+  const normalize = () => {
+    const c = scrollRef.current;
+    if (!c) return;
+    const third = c.scrollWidth / 3;
+    if (c.scrollLeft <= 0 || c.scrollLeft >= third * 2) c.scrollLeft = third;
+  };
+
+  useEffect(() => {
+    const c = scrollRef.current;
+    if (!c) return;
+    const init = () => {
+      c.scrollLeft = c.scrollWidth / 3;
+    };
+    init();
+
+    const tick = () => {
+      if (!isPaused.current && !isDragging.current) {
+        c.scrollLeft += 0.5;
+        normalize();
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  const onPointerDown = (e) => {
+    isDragging.current = true;
+    startX.current = e.pageX;
+    scrollLeftStart.current = scrollRef.current.scrollLeft;
+    scrollRef.current.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (!isDragging.current) return;
+    e.preventDefault();
+    const c = scrollRef.current;
+    if (!c) return;
+    const walk = (e.pageX - startX.current) * 1.5;
+    c.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const onPointerUp = () => {
+    isDragging.current = false;
+    normalize();
+  };
+
+  return (
+    <div
+      className="lp-templates-carousel"
+      onMouseEnter={() => {
+        isPaused.current = true;
+      }}
+      onMouseLeave={() => {
+        isPaused.current = false;
+        isDragging.current = false;
+      }}
+    >
+      <div
+        ref={scrollRef}
+        className="lp-templates-viewport"
+        style={{ overflowX: 'hidden', touchAction: 'none', cursor: 'grab' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+      >
+        <div className="lp-templates-track" style={{ display: 'flex' }}>
+          {tripleStrip.map((t, i) => (
+            <div key={`${t.name}-${i}`} style={{ flexShrink: 0 }}>
+              <LandingTemplateThumb template={t.template} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+});
+
 // ── Main component ──────────────────────────────────────────────────
 export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalkIn }) {
   const geo = useGeoContent();
@@ -432,15 +521,25 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         .lp-sec.lp-templates { padding: 48px 0 48px 24px; }
         .lp-section-title { font-size: clamp(22px, 4vw, 36px); font-weight: 800; margin-bottom: 8px; }
         .lp-section-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
-        .lp-templates-scroll {
-          display: flex;
-          overflow-x: auto;
-          gap: 16px;
-          padding-bottom: 16px;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
+        .lp-templates-carousel {
+          width: 100%;
         }
-        .lp-templates-scroll::-webkit-scrollbar { display: none; }
+        .lp-templates-viewport {
+          overflow: hidden;
+          width: 100%;
+          cursor: grab;
+          -webkit-user-select: none;
+          user-select: none;
+        }
+        .lp-templates-viewport:active {
+          cursor: grabbing;
+        }
+        .lp-templates-track {
+          display: flex;
+          gap: 16px;
+          width: max-content;
+          padding-bottom: 16px;
+        }
         .lp-template-card {
           flex: 0 0 120px;
           display: flex;
@@ -1352,22 +1451,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <p className="lp-section-sub">
             14 ATS-friendly designs. Tap to preview.
           </p>
-          <div className="lp-templates-scroll">
-            {LP_TEMPLATE_STRIP.map((t) => (
-              <Link
-                key={t.name}
-                to="/templates"
-                className="lp-template-card lp-template-card-link"
-                onClick={() => window.scrollTo(0, 0)}
-              >
-                <LandingTemplateThumb template={t.template} />
-                <span className="lp-template-name">{t.name}</span>
-                <span className={`lp-template-tier lp-tier-${t.tier.toLowerCase()}`}>
-                  {t.tier}
-                </span>
-              </Link>
-            ))}
-          </div>
+          <LandingTemplateMarquee />
           <div style={{ paddingLeft: 24, paddingRight: 24, marginTop: 16 }}>
             <Link
               to="/templates"
