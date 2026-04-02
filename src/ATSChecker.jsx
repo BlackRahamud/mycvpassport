@@ -481,7 +481,7 @@ export default function ATSChecker() {
           {/* Conversion card — unchanged */}
           <div style={{ background: T.elevated, border: `1px solid ${T.border}`, borderRadius: 20, padding: "32px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}>
             <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent)" }} />
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, fontWeight: 700, lineHeight: 1.4, marginBottom: 12 }}>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, fontWeight: 800, lineHeight: 1.4, marginBottom: 12 }}>
               You&apos;re missing {missingCount} Rank Triggers for this role
             </div>
             <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, marginBottom: 22, maxWidth: 340, marginLeft: "auto", marginRight: "auto" }}>
