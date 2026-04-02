@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, Fra
 import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
+  AlertCircle,
+  AlertTriangle,
   Award,
   Briefcase,
   ChevronDown,
@@ -10,7 +12,13 @@ import {
   FileText,
   Globe,
   GraduationCap,
+  GripVertical,
+  Lightbulb,
+  List,
+  Pencil,
   Star,
+  Trash2,
+  X,
 } from "lucide-react";
 import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
@@ -38,7 +46,7 @@ import {
 import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI, S } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
-import { useCvProgress } from "../hooks/useCvProgress";
+import { useCvProgress, SECTIONS as CV_PROGRESS_SECTIONS } from "../hooks/useCvProgress";
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
   const list = normalizeCertificationsArray(resume.certifications);
@@ -67,16 +75,6 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
     el.setSelectionRange(p, p);
   }, [certificationEditor?.draft.year, certificationEditor]);
 
-  const iconRowBtn = {
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    color: "#FFFFFF",
-    padding: 4,
-    flexShrink: 0,
-    display: "grid",
-    placeItems: "center",
-  };
   const certNameTaken = (name) =>
     list.some((c) => String(c.name || "").trim().toLowerCase() === String(name).trim().toLowerCase());
 
@@ -122,118 +120,93 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
       {list.length === 0 && !certificationEditor && (
         <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No certifications yet. Add one below.</p>
       )}
-      {list.map((c, i) => (
-        <div
-          key={i}
-          style={{
-            background: "#1C1C1C",
-            border: "1px solid #2A2A2A",
-            borderRadius: 8,
-            padding: "12px 16px",
-            marginBottom: 8,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: 12,
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {inlineNameEdit && inlineNameEdit.index === i ? (
-              <div style={{ display: "grid", gap: 8 }}>
-                <input
-                  style={{ ...CB_UI.input, marginTop: 0, minHeight: undefined }}
-                  value={inlineNameEdit.draft}
-                  onChange={(e) => setInlineNameEdit({ index: i, draft: e.target.value })}
-                  aria-label="Certification name"
-                />
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                  <button
-                    type="button"
-                    style={CB_UI.btn}
-                    onClick={() => {
-                      const t = String(inlineNameEdit.draft || "").trim();
-                      if (!t) return;
-                      setResume((r) => {
-                        const cur = normalizeCertificationsArray(r.certifications);
-                        const u = [...cur];
-                        u[i] = { ...u[i], name: t };
-                        return { ...r, certifications: u };
-                      });
-                      setInlineNameEdit(null);
-                    }}
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
-                    onClick={() => setInlineNameEdit(null)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-                {c.issuer ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.issuer}</div> : null}
-                {c.year ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.year}</div> : null}
+      {list.map((c, i) =>
+        inlineNameEdit && inlineNameEdit.index === i ? (
+          <div
+            key={i}
+            style={{
+              background: "#1C1C1C",
+              border: "1px solid #2A2A2A",
+              borderRadius: 10,
+              padding: "12px 16px",
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <input
+                style={{ ...CB_UI.input, marginTop: 0, minHeight: undefined }}
+                value={inlineNameEdit.draft}
+                onChange={(e) => setInlineNameEdit({ index: i, draft: e.target.value })}
+                aria-label="Certification name"
+              />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <button
+                  type="button"
+                  style={CB_UI.btn}
+                  onClick={() => {
+                    const t = String(inlineNameEdit.draft || "").trim();
+                    if (!t) return;
+                    setResume((r) => {
+                      const cur = normalizeCertificationsArray(r.certifications);
+                      const u = [...cur];
+                      u[i] = { ...u[i], name: t };
+                      return { ...r, certifications: u };
+                    });
+                    setInlineNameEdit(null);
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+                  onClick={() => setInlineNameEdit(null)}
+                >
+                  Cancel
+                </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setInlineNameEdit(null);
-                  setCertificationEditor({ mode: "edit", index: i, draft: { ...EMPTY_CERT, ...c } });
-                }}
-                style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#FFFFFF" }}>{c.name || "Certification"}</div>
-                    {c.issuer ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.issuer}</div> : null}
-                  </div>
-                  {c.year ? (
-                    <span style={{ fontSize: 12, color: "#A0A0A0", flexShrink: 0, textAlign: "right" }}>{c.year}</span>
-                  ) : (
-                    <span style={{ width: 0, flexShrink: 0 }} />
-                  )}
-                </div>
-              </button>
-            )}
-          </div>
-          {inlineNameEdit && inlineNameEdit.index === i ? null : (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 2, flexShrink: 0 }}>
-              <button
-                type="button"
-                aria-label="Edit certification name"
-                onClick={() => {
-                  setCertificationEditor(null);
-                  setInlineNameEdit({ index: i, draft: c.name || "" });
-                }}
-                style={iconRowBtn}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                aria-label="Delete certification"
-                onClick={() => {
-                  setResume((r) => ({
-                    ...r,
-                    certifications: normalizeCertificationsArray(r.certifications).filter((_, j) => j !== i),
-                  }));
-                  setInlineNameEdit((prev) => (prev && prev.index === i ? null : prev));
-                }}
-                style={iconRowBtn}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2">
-                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                </svg>
-              </button>
+              {c.issuer ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.issuer}</div> : null}
+              {c.year ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.year}</div> : null}
             </div>
-          )}
-        </div>
-      ))}
+          </div>
+        ) : (
+          <div key={i} style={{ marginBottom: 6 }}>
+            <BuilderEntryRow
+              title={c.name || "Certification"}
+              subtitle={[c.issuer, c.year].filter(Boolean).join(" · ") || "—"}
+              onRowClick={() => {
+                setInlineNameEdit(null);
+                setCertificationEditor({ mode: "edit", index: i, draft: { ...EMPTY_CERT, ...c } });
+              }}
+              onMoveUp={() =>
+                setResume((r) => ({
+                  ...r,
+                  certifications: moveArrayItem(normalizeCertificationsArray(r.certifications), i, i - 1),
+                }))
+              }
+              onMoveDown={() =>
+                setResume((r) => ({
+                  ...r,
+                  certifications: moveArrayItem(normalizeCertificationsArray(r.certifications), i, i + 1),
+                }))
+              }
+              disableUp={i === 0}
+              disableDown={i >= list.length - 1}
+              onEdit={() => {
+                setCertificationEditor(null);
+                setInlineNameEdit({ index: i, draft: c.name || "" });
+              }}
+              onDelete={() => {
+                setResume((r) => ({
+                  ...r,
+                  certifications: normalizeCertificationsArray(r.certifications).filter((_, j) => j !== i),
+                }));
+                setInlineNameEdit((prev) => (prev && prev.index === i ? null : prev));
+              }}
+            />
+          </div>
+        )
+      )}
       {certificationEditor && (
         <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 8, padding: 16, display: "grid", gap: 10 }}>
           <div>
@@ -656,16 +629,35 @@ function SkillsEditorSection({
   jobTitle,
 }) {
   const skillsRolePack = useMemo(() => getRoleSuggestions(jobTitle), [jobTitle]);
-  const chipRowStyle = { display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start", alignContent: "flex-start", minHeight: 36, width: "100%" };
-  const chipStyle = { ...CB_UI.chip, flexShrink: 0 };
-  const skillTaken = (sk) =>
-    splitCommaItems(resume.skills).some((x) => x.toLowerCase() === String(sk).trim().toLowerCase());
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
+  const [pickedSuggestions, setPickedSuggestions] = useState(() => new Set());
+
+  const chipRowStyle = { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "flex-start", marginBottom: 10, width: "100%" };
+  const realChip = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: 500,
+    padding: "4px 10px",
+    borderRadius: 999,
+    flexShrink: 0,
+  };
+
+  const skillsList = splitCommaItems(resume.skills);
+  const lowerSet = useMemo(() => new Set(skillsList.map((x) => x.toLowerCase())), [skillsList]);
+
+  const duplicateInput = useMemo(() => {
+    const segments = splitSkillInputSegments(skillInput);
+    if (segments.length === 0) return false;
+    return segments.some((s) => lowerSet.has(s.toLowerCase()));
+  }, [skillInput, lowerSet]);
 
   const runSkillsPasteImport = () => {
-    const parts = String(skillsPasteDraft || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const parts = splitSkillInputSegments(skillsPasteDraft);
     if (parts.length === 0) {
       setSkillsPasteOpen(false);
       setSkillsPasteDraft("");
@@ -675,13 +667,39 @@ function SkillsEditorSection({
       const cur = splitCommaItems(r.skills);
       const next = [...cur];
       for (const p of parts) {
-        if (!next.includes(p)) next.push(p);
+        if (!next.some((x) => x.toLowerCase() === p.toLowerCase())) next.push(p);
       }
       return { ...r, skills: next.join(", ") };
     });
     setSkillsPasteOpen(false);
     setSkillsPasteDraft("");
   };
+
+  const addSkillsFromInput = () => {
+    const parts = splitSkillInputSegments(skillInput);
+    if (parts.length === 0) return;
+    setResume((r) => {
+      const cur = splitCommaItems(r.skills);
+      const next = [...cur];
+      for (const p of parts) {
+        if (!next.some((x) => x.toLowerCase() === p.toLowerCase())) next.push(p);
+      }
+      return { ...r, skills: next.join(", ") };
+    });
+    setSkillInput("");
+  };
+
+  const addSuggested = (name) => {
+    if (lowerSet.has(name.toLowerCase())) return;
+    setResume((r) => {
+      const cur = splitCommaItems(r.skills);
+      if (cur.some((x) => x.toLowerCase() === name.toLowerCase())) return r;
+      return { ...r, skills: [...cur, name].join(", ") };
+    });
+    setPickedSuggestions((prev) => new Set(prev).add(name));
+  };
+
+  const softSuggestions = skillsRolePack?.softSkills?.length && !suggestionsDismissed ? skillsRolePack.softSkills : null;
 
   return (
     <>
@@ -739,13 +757,58 @@ function SkillsEditorSection({
         </div>
       ) : null}
       <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
-        <button type="button" style={PASTE_IMPORT_BTN} onClick={() => setSkillsPasteOpen(true)}>
-          <ClipboardIconThin size={16} />
-          Paste &amp; Import
-        </button>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <input
+            style={{
+              flex: 1,
+              background: "#1C1C1C",
+              border: "1px solid #2A2A2A",
+              borderRadius: 10,
+              color: "#FFFFFF",
+              fontSize: 12,
+              padding: "9px 12px",
+              outline: "none",
+              fontFamily: "inherit",
+            }}
+            placeholder="Add a skill…"
+            value={skillInput}
+            onChange={(e) => setSkillInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addSkillsFromInput();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="cvp-builder-add-entry-btn"
+            style={{
+              background: "#fff",
+              border: "none",
+              color: "#000",
+              fontSize: 12,
+              fontWeight: 600,
+              padding: "9px 14px",
+              borderRadius: 12,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              fontFamily: "inherit",
+            }}
+            onClick={addSkillsFromInput}
+          >
+            + Add
+          </button>
+        </div>
+        {duplicateInput ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6, fontSize: 11, color: "#60A5FA" }}>
+            <AlertCircle size={11} strokeWidth={1.8} aria-hidden />
+            This skill is already added
+          </div>
+        ) : null}
         <div style={chipRowStyle}>
-          {splitCommaItems(resume.skills).map((sk, si) => (
-            <span key={`${sk}-${si}`} style={chipStyle}>
+          {skillsList.map((sk, si) => (
+            <span key={`${sk}-${si}`} style={realChip}>
               {sk}
               <button
                 type="button"
@@ -753,12 +816,12 @@ function SkillsEditorSection({
                 onClick={() =>
                   setResume((r) => ({ ...r, skills: splitCommaItems(r.skills).filter((x) => x !== sk).join(", ") }))
                 }
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#FFFFFF", padding: 0, lineHeight: 1, opacity: 0.5, fontSize: 13 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#FFFFFF";
+                  e.currentTarget.style.opacity = "1";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#A0A0A0";
+                  e.currentTarget.style.opacity = "0.5";
                 }}
               >
                 ×
@@ -766,78 +829,92 @@ function SkillsEditorSection({
             </span>
           ))}
         </div>
-        <div style={{ display: "grid", gap: 8 }}>
-          <input
-            style={{ ...CB_UI.input, minHeight: undefined }}
-            placeholder="Add a skill"
-            value={skillInput}
-            onChange={(e) => setSkillInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                const t = skillInput.trim();
-                if (!t) return;
-                const cur = splitCommaItems(resume.skills);
-                if (cur.includes(t)) return;
-                setResume((r) => ({ ...r, skills: [...cur, t].join(", ") }));
-                setSkillInput("");
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="cvp-builder-add-entry-btn"
-            style={{ ...CB_UI.btn }}
-            onClick={() => {
-              const t = skillInput.trim();
-              if (!t) return;
-              const cur = splitCommaItems(resume.skills);
-              if (cur.includes(t)) return;
-              setResume((r) => ({ ...r, skills: [...cur, t].join(", ") }));
-              setSkillInput("");
+        {softSuggestions ? (
+          <div
+            style={{
+              background: "rgba(59,130,246,0.06)",
+              border: "1px dashed rgba(59,130,246,0.45)",
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 10,
             }}
           >
-            + Add
-          </button>
-        </div>
-        {skillsRolePack?.softSkills?.length ? (
-          <div style={{ display: "grid", gap: 8 }}>
-            <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.35 }}>
-              Suggested for {skillsRolePack.jobTitles?.[0] || "this role"}:
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
-              {skillsRolePack.softSkills.map((sk) => {
-                const taken = skillTaken(sk);
+            <div
+              style={{
+                fontSize: 11,
+                color: "#60A5FA",
+                fontWeight: 600,
+                marginBottom: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
+                Suggestions — not on your CV yet
+              </span>
+              <button
+                type="button"
+                title="Dismiss suggestions"
+                onClick={() => setSuggestionsDismissed(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#A0A0A0",
+                  cursor: "pointer",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <X size={13} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {softSuggestions.map((sk) => {
+                const picked = pickedSuggestions.has(sk) || lowerSet.has(sk.toLowerCase());
                 return (
                   <button
                     key={sk}
                     type="button"
-                    disabled={taken}
-                    onClick={() => {
-                      if (taken) return;
-                      const cur = splitCommaItems(resume.skills);
-                      if (cur.some((x) => x.toLowerCase() === sk.toLowerCase())) return;
-                      setResume((r) => ({ ...r, skills: [...cur, sk].join(", ") }));
-                    }}
+                    onClick={() => addSuggested(sk)}
+                    disabled={picked}
                     style={{
-                      background: taken ? "#141414" : "#1C1C1C",
-                      border: "1px solid #2A2A2A",
-                      color: taken ? "#666666" : "#FFFFFF",
-                      borderRadius: 8,
-                      padding: "6px 12px",
-                      fontSize: 13,
-                      cursor: taken ? "not-allowed" : "pointer",
-                      opacity: taken ? 0.55 : 1,
-                      transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)`,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      background: "transparent",
+                      border: "1px dashed rgba(59,130,246,0.4)",
+                      color: "#60A5FA",
+                      fontSize: 11,
+                      fontWeight: 500,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      cursor: picked ? "default" : "pointer",
+                      opacity: picked ? 0.4 : 1,
+                      pointerEvents: picked ? "none" : "auto",
+                      fontFamily: "inherit",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!picked) e.currentTarget.style.background = "rgba(59,130,246,0.12)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    {sk}
+                    + {sk}
                   </button>
                 );
               })}
             </div>
           </div>
         ) : null}
+        <button type="button" style={PASTE_IMPORT_BTN} onClick={() => setSkillsPasteOpen(true)}>
+          <ClipboardIconThin size={16} />
+          Paste &amp; Import from old CV
+        </button>
       </div>
     </>
   );
@@ -981,97 +1058,189 @@ function builderSectionMeta(resume, sectionId) {
   }
 }
 
-function moveExperienceInArray(list, from, to) {
-  const exp = Array.isArray(list) ? list : [];
-  if (from === to || from < 0 || to < 0 || from >= exp.length || to >= exp.length) return exp;
-  const next = [...exp];
+function moveArrayItem(list, from, to) {
+  const arr = Array.isArray(list) ? list : [];
+  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
+  const next = [...arr];
   const [row] = next.splice(from, 1);
   next.splice(to, 0, row);
   return next;
 }
 
-function CvReorderGripIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <circle cx="9" cy="7" r="1.35" />
-      <circle cx="15" cy="7" r="1.35" />
-      <circle cx="9" cy="12" r="1.35" />
-      <circle cx="15" cy="12" r="1.35" />
-      <circle cx="9" cy="17" r="1.35" />
-      <circle cx="15" cy="17" r="1.35" />
-    </svg>
-  );
+function splitSkillInputSegments(raw) {
+  return String(raw || "")
+    .split(/[,;\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
-function useExperienceReorder(setResume) {
-  const [drag, setDrag] = useState({ active: null, over: null });
+/** @returns {number | null} sortable month index */
+function parseMmYyyyComparable(display) {
+  const t = String(display || "").trim();
+  if (!t || isPresentLiteralTyping(t)) return null;
+  const m = t.match(/^(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const mm = parseInt(m[1], 10);
+  const yy = parseInt(m[2], 10);
+  if (!Number.isFinite(mm) || !Number.isFinite(yy)) return null;
+  return yy * 12 + mm;
+}
 
-  const onHandlePointerDown = useCallback(
-    (e, index) => {
-      e.stopPropagation();
-      if (e.pointerType === "mouse" && e.button !== 0) return;
+function isExperienceEndBeforeStart(startDisplay, endDisplay, present) {
+  if (present) return false;
+  const a = parseMmYyyyComparable(startDisplay);
+  const b = parseMmYyyyComparable(endDisplay);
+  if (a == null || b == null) return false;
+  return b < a;
+}
 
-      const onMove = (ev) => {
-        ev.preventDefault();
-        const hit = document.elementFromPoint(ev.clientX, ev.clientY);
-        const row = hit && hit.closest ? hit.closest("[data-cvp-exp-row]") : null;
-        if (!row) return;
-        const ni = parseInt(row.getAttribute("data-cvp-exp-index"), 10);
-        if (Number.isFinite(ni)) setDrag((d) => ({ ...d, over: ni }));
-      };
+function snapshotResumeForDiscard(r) {
+  try {
+    return JSON.parse(JSON.stringify(r));
+  } catch {
+    return { ...r };
+  }
+}
 
-      const endDrag = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", endDrag);
-        window.removeEventListener("pointercancel", endDrag);
-        setDrag((d) => {
-          if (d.active != null && d.over != null && d.active !== d.over) {
-            setResume((r) => ({ ...r, experience: moveExperienceInArray(r.experience, d.active, d.over) }));
-          }
-          return { active: null, over: null };
-        });
-      };
-
-      const armDragListeners = () => {
-        window.addEventListener("pointermove", onMove, { passive: false });
-        window.addEventListener("pointerup", endDrag);
-        window.addEventListener("pointercancel", endDrag);
-      };
-
-      let tid = null;
-
-      const cancelHold = () => {
-        if (tid != null) {
-          clearTimeout(tid);
-          tid = null;
+/** @param {{ title: string, subtitle: string, onRowClick: () => void, onMoveUp: () => void, onMoveDown: () => void, disableUp: boolean, disableDown: boolean, onEdit: () => void, onDelete: () => void }} props */
+function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {
+  const iconBtn = {
+    background: "none",
+    border: "none",
+    color: "#A0A0A0",
+    cursor: "pointer",
+    padding: 4,
+    borderRadius: 6,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 32,
+    minHeight: 32,
+  };
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onRowClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onRowClick();
         }
-        window.removeEventListener("pointerup", cancelHold);
-        window.removeEventListener("pointercancel", cancelHold);
-      };
-
-      const startDrag = () => {
-        cancelHold();
-        setDrag({ active: index, over: index });
-        armDragListeners();
-      };
-
-      if (e.pointerType === "mouse") {
-        startDrag();
-        return;
-      }
-
-      tid = window.setTimeout(() => {
-        tid = null;
-        startDrag();
-      }, 400);
-
-      window.addEventListener("pointerup", cancelHold);
-      window.addEventListener("pointercancel", cancelHold);
-    },
-    [setResume]
+      }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        background: "#1C1C1C",
+        border: "1px solid #2A2A2A",
+        borderRadius: 10,
+        padding: "10px 12px",
+        cursor: "pointer",
+        minHeight: 44,
+        boxSizing: "border-box",
+      }}
+    >
+      <span style={{ color: "#A0A0A0", flexShrink: 0, display: "flex", pointerEvents: "none" }} aria-hidden>
+        <GripVertical size={14} strokeWidth={1.8} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0, pointerEvents: "none" }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#FFFFFF",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: "#A0A0A0",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {subtitle}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <button
+            type="button"
+            title="Move up"
+            disabled={disableUp}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveUp();
+            }}
+            style={{
+              ...iconBtn,
+              opacity: disableUp ? 0.35 : 1,
+              cursor: disableUp ? "not-allowed" : "pointer",
+              padding: "1px 3px",
+              minWidth: 24,
+              minHeight: 20,
+            }}
+          >
+            <ChevronUp size={10} strokeWidth={2.5} aria-hidden />
+          </button>
+          <button
+            type="button"
+            title="Move down"
+            disabled={disableDown}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveDown();
+            }}
+            style={{
+              ...iconBtn,
+              opacity: disableDown ? 0.35 : 1,
+              cursor: disableDown ? "not-allowed" : "pointer",
+              padding: "1px 3px",
+              minWidth: 24,
+              minHeight: 20,
+            }}
+          >
+            <ChevronDown size={10} strokeWidth={2.5} aria-hidden />
+          </button>
+        </div>
+        <button
+          type="button"
+          title="Edit"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          style={iconBtn}
+        >
+          <Pencil size={13} strokeWidth={1.8} aria-hidden />
+        </button>
+        <button
+          type="button"
+          title="Delete"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          style={iconBtn}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#F87171";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#A0A0A0";
+          }}
+        >
+          <Trash2 size={14} strokeWidth={1.8} aria-hidden />
+        </button>
+      </div>
+    </div>
   );
-
-  return { drag, onHandlePointerDown };
 }
 
 function escapeRegExp(s) {
@@ -1184,7 +1353,10 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [pastePreview, setPastePreview] = useState(null);
-  const [suggestedTechOpen, setSuggestedTechOpen] = useState(true);
+  const [pasteMode, setPasteMode] = useState("global");
+  const [pasteCategoryIndex, setPasteCategoryIndex] = useState(null);
+  const [suggestedCategoriesDismissed, setSuggestedCategoriesDismissed] = useState(false);
+  const [addedSuggestedCatKeys, setAddedSuggestedCatKeys] = useState(() => new Set());
   const groups = normalizeTechnicalSkillsState(resume.technicalSkills);
   const techRolePack = useMemo(() => getRoleSuggestions(jobTitle), [jobTitle]);
 
@@ -1217,9 +1389,31 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
     setPasteOpen(false);
     setPasteText("");
     setPastePreview(null);
+    setPasteCategoryIndex(null);
+  };
+
+  const openGlobalPaste = () => {
+    setPasteMode("global");
+    setPasteCategoryIndex(null);
+    setPasteText("");
+    setPastePreview(null);
+    setPasteOpen(true);
+  };
+
+  const openCategoryPaste = (idx) => {
+    setPasteMode("category");
+    setPasteCategoryIndex(idx);
+    setPasteText("");
+    setPastePreview(null);
+    setPasteOpen(true);
   };
 
   const runPasteImport = () => {
+    if (pasteMode === "category" && pasteCategoryIndex != null) {
+      const parts = splitSkillInputSegments(pasteText);
+      setPastePreview({ kind: "category", chips: parts, warn: null });
+      return;
+    }
     const parsed = parseTechnicalSkillsPasteBlock(pasteText);
     const room = Math.max(0, 20 - groups.length);
     let warn = null;
@@ -1228,24 +1422,59 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
       rows = parsed.slice(0, room);
       warn = "Maximum 20 categories reached";
     }
-    setPastePreview({ rows, warn });
+    setPastePreview({ kind: "global", rows, warn });
   };
 
   const commitPaste = () => {
-    if (!pastePreview || pastePreview.rows.length === 0) {
+    if (!pastePreview) {
       closePaste();
       return;
     }
-    updateGroups((g) => [...g, ...pastePreview.rows.map((row) => ({ category: row.category, chips: [...row.chips] }))]);
+    if (pastePreview.kind === "category" && pasteCategoryIndex != null) {
+      const chips = pastePreview.chips || [];
+      if (chips.length === 0) {
+        closePaste();
+        return;
+      }
+      const idx = pasteCategoryIndex;
+      updateGroups((arr) => {
+        const ng = [...arr];
+        if (!ng[idx]) return arr;
+        const merged = [...ng[idx].chips];
+        const seen = new Set(merged.map((c) => c.toLowerCase()));
+        for (const c of chips) {
+          if (!seen.has(c.toLowerCase())) {
+            merged.push(c);
+            seen.add(c.toLowerCase());
+          }
+        }
+        ng[idx] = { ...ng[idx], chips: merged };
+        return ng;
+      });
+      closePaste();
+      return;
+    }
+    const rows = pastePreview.rows || [];
+    if (rows.length === 0) {
+      closePaste();
+      return;
+    }
+    updateGroups((g) => [...g, ...rows.map((row) => ({ category: row.category, chips: [...row.chips] }))]);
     closePaste();
   };
 
   const categoryNameTaken = (name) =>
     groups.some((g) => g.category.trim().toLowerCase() === String(name).trim().toLowerCase());
 
+  const isSuggestedCategoryAdded = (cat) => {
+    const key = String(cat.category || "").trim().toLowerCase();
+    return addedSuggestedCatKeys.has(key) || categoryNameTaken(cat.category);
+  };
+
   const addSuggestedCategory = (cat) => {
     const catName = String(cat.category || "").trim();
     if (!catName) return;
+    const key = catName.toLowerCase();
     updateGroups((g) => {
       const idx = g.findIndex((x) => x.category.trim().toLowerCase() === catName.toLowerCase());
       if (idx >= 0) {
@@ -1257,17 +1486,33 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
       if (g.length >= 20) return g;
       return [...g, { category: catName, chips: [...(Array.isArray(cat.chips) ? cat.chips : [])] }];
     });
+    setAddedSuggestedCatKeys((prev) => new Set(prev).add(key));
   };
 
   const chipRowStyle = {
     display: "flex",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
     alignItems: "flex-start",
     alignContent: "flex-start",
     minHeight: 36,
     width: "100%",
   };
+  const realTechChip = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: 500,
+    padding: "4px 10px",
+    borderRadius: 999,
+    flexShrink: 0,
+  };
+
+  const suggestRows = techRolePack?.technicalSkillCategories?.length && !suggestedCategoriesDismissed ? techRolePack.technicalSkillCategories : null;
 
   return (
     <>
@@ -1307,7 +1552,12 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             {pastePreview && pastePreview.warn ? (
               <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>{pastePreview.warn}</p>
             ) : null}
-            {pastePreview && pastePreview.rows.length > 0 ? (
+            {pastePreview && pastePreview.kind === "category" && (pastePreview.chips || []).length > 0 ? (
+              <div style={{ fontSize: 12, color: "#A0A0A0", lineHeight: 1.4 }}>
+                {(pastePreview.chips || []).join(" · ")}
+              </div>
+            ) : null}
+            {pastePreview && pastePreview.kind === "global" && pastePreview.rows.length > 0 ? (
               <div style={{ overflowY: "auto", maxHeight: 200, display: "grid", gap: 8 }}>
                 {pastePreview.rows.map((row, ri) => (
                   <div key={`${row.category}-${ri}`} style={{ fontSize: 12, color: "#A0A0A0", lineHeight: 1.4 }}>
@@ -1339,93 +1589,6 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
         </div>
       ) : null}
       <div data-cvp-highlight="technicalSkills" style={{ display: "grid", gap: 12 }}>
-        <button type="button" style={PASTE_IMPORT_BTN} onClick={() => setPasteOpen(true)}>
-          <ClipboardIconThin size={16} />
-          Paste &amp; Import
-        </button>
-        {techRolePack?.technicalSkillCategories?.length ? (
-          <div
-            style={{
-              border: "1px solid #2A2A2A",
-              borderRadius: 8,
-              background: "#141414",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setSuggestedTechOpen((o) => !o)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                padding: "12px 14px",
-                background: "transparent",
-                border: "none",
-                color: "#FFFFFF",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 600,
-                textAlign: "left",
-                transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
-              }}
-            >
-              <span>
-                Suggested categories for {techRolePack.jobTitles?.[0] || "this role"}
-              </span>
-              <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 12, fontWeight: 600 }}>{suggestedTechOpen ? "▾" : "▸"}</span>
-            </button>
-            {suggestedTechOpen ? (
-              <div style={{ padding: "0 14px 14px", display: "grid", gap: 10 }}>
-                {techRolePack.technicalSkillCategories.map((cat) => {
-                  const taken = categoryNameTaken(cat.category);
-                  const preview = (cat.chips || []).slice(0, 3).join(", ");
-                  return (
-                    <div
-                      key={cat.category}
-                      style={{
-                        background: taken ? "#101010" : "#1C1C1C",
-                        border: "1px solid #2A2A2A",
-                        borderRadius: 8,
-                        padding: "12px 14px",
-                        display: "grid",
-                        gap: 8,
-                        opacity: taken ? 0.55 : 1,
-                      }}
-                    >
-                      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: taken ? "#666666" : "#FFFFFF" }}>{cat.category}</div>
-                        <button
-                          type="button"
-                          disabled={taken || groups.length >= 20}
-                          onClick={() => addSuggestedCategory(cat)}
-                          style={{
-                            ...CB_UI.btn,
-                            padding: "6px 12px",
-                            fontSize: 12,
-                            opacity: taken || groups.length >= 20 ? 0.45 : 1,
-                            cursor: taken || groups.length >= 20 ? "not-allowed" : "pointer",
-                            transition: `opacity 150ms cubic-bezier(0.4,0,0.2,1)`,
-                          }}
-                        >
-                          + Add
-                        </button>
-                      </div>
-                      {preview ? (
-                        <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.4 }}>
-                          {preview}
-                          {(cat.chips || []).length > 3 ? "…" : ""}
-                        </p>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <input
             style={{ ...CB_UI.input, minHeight: undefined, flex: "1 1 160px" }}
@@ -1454,7 +1617,13 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
       {groups.map((g, i) => (
         <div
           key={i}
-          style={{ ...CB_UI.card, cursor: "default", marginBottom: 0 }}
+          style={{
+            background: "#1C1C1C",
+            border: "1px solid #2A2A2A",
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 8,
+          }}
           onDragOver={(e) => {
             e.preventDefault();
           }}
@@ -1465,7 +1634,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             moveGroup(from, i);
           }}
         >
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <div
               role="button"
               tabIndex={0}
@@ -1485,113 +1654,251 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                   moveGroup(i, i + 1);
                 }
               }}
-              style={{ color: "#A0A0A0", cursor: "grab", flexShrink: 0, padding: "4px 0", touchAction: "none" }}
+              style={{ color: "#A0A0A0", cursor: "grab", flexShrink: 0, display: "flex", touchAction: "none" }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <circle cx="9" cy="7" r="1.35" />
-                <circle cx="15" cy="7" r="1.35" />
-                <circle cx="9" cy="12" r="1.35" />
-                <circle cx="15" cy="12" r="1.35" />
-                <circle cx="9" cy="17" r="1.35" />
-                <circle cx="15" cy="17" r="1.35" />
-              </svg>
+              <GripVertical size={13} strokeWidth={1.8} aria-hidden />
             </div>
-            <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontWeight: 600, fontSize: 14, color: "#FFFFFF" }}>{g.category || "Untitled category"}</span>
+            <input
+              type="text"
+              value={g.category || ""}
+              title="Click to rename"
+              onChange={(e) => {
+                const v = e.target.value;
+                updateGroups((arr) => {
+                  const ng = [...arr];
+                  ng[i] = { ...ng[i], category: v };
+                  return ng;
+                });
+              }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                background: "transparent",
+                border: "none",
+                borderBottom: "1px solid transparent",
+                color: "#FFFFFF",
+                fontSize: 12,
+                fontWeight: 600,
+                outline: "none",
+                padding: "2px 0",
+                fontFamily: "inherit",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderBottomColor = "rgba(59,130,246,0.35)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderBottomColor = "transparent";
+              }}
+            />
+            <span
+              style={{
+                fontSize: 10,
+                color: "#A0A0A0",
+                background: "#0A0A0A",
+                border: "1px solid #2A2A2A",
+                borderRadius: 999,
+                padding: "2px 7px",
+                flexShrink: 0,
+              }}
+            >
+              {g.chips.length} skill{g.chips.length === 1 ? "" : "s"}
+            </span>
+            <button
+              type="button"
+              aria-label="Remove category"
+              onClick={() => updateGroups((arr) => arr.filter((_, j) => j !== i))}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4, display: "flex" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#F87171";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#A0A0A0";
+              }}
+            >
+              <Trash2 size={14} strokeWidth={1.8} aria-hidden />
+            </button>
+          </div>
+          {g.chips.length === 0 ? (
+            <p style={{ fontSize: 12, color: "#F87171", margin: "0 0 8px" }}>
+              Add at least one skill to this category, or remove it — empty categories cannot be saved.
+            </p>
+          ) : null}
+          <div style={chipRowStyle}>
+            {g.chips.map((chip, ci) => (
+              <span key={`${chip}-${ci}`} style={realTechChip}>
+                {chip}
                 <button
                   type="button"
-                  aria-label="Remove category"
-                  onClick={() => updateGroups((arr) => arr.filter((_, j) => j !== i))}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "#FFFFFF";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "#A0A0A0";
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                  </svg>
-                </button>
-              </div>
-              {g.chips.length === 0 ? (
-                <p style={{ fontSize: 12, color: "#F87171", margin: 0 }}>
-                  Add at least one skill to this category, or remove it — empty categories cannot be saved.
-                </p>
-              ) : null}
-              <div style={chipRowStyle}>
-                {g.chips.map((chip, ci) => (
-                  <span key={`${chip}-${ci}`} style={{ ...CB_UI.chip, flexShrink: 0 }}>
-                    {chip}
-                    <button
-                      type="button"
-                      aria-label={`Remove ${chip}`}
-                      onClick={() =>
-                        updateGroups((arr) => {
-                          const ng = [...arr];
-                          ng[i] = { ...ng[i], chips: ng[i].chips.filter((_, k) => k !== ci) };
-                          return ng;
-                        })
-                      }
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "#FFFFFF";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "#A0A0A0";
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                <input
-                  style={{ ...CB_UI.input, flex: "1 1 140px", minHeight: undefined }}
-                  placeholder="Skill or tool name"
-                  value={chipDraftByIndex[i] ?? ""}
-                  onChange={(e) => setChipDraftByIndex((d) => ({ ...d, [i]: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const t = (chipDraftByIndex[i] ?? "").trim();
-                      if (!t) return;
-                      updateGroups((arr) => {
-                        const ng = [...arr];
-                        if (ng[i].chips.includes(t)) return ng;
-                        ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
-                        return ng;
-                      });
-                      setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="cvp-builder-add-entry-btn"
-                  style={{ ...CB_UI.btn }}
-                  onClick={() => {
-                    const t = (chipDraftByIndex[i] ?? "").trim();
-                    if (!t) return;
+                  aria-label={`Remove ${chip}`}
+                  onClick={() =>
                     updateGroups((arr) => {
                       const ng = [...arr];
-                      if (ng[i].chips.includes(t)) return ng;
-                      ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
+                      ng[i] = { ...ng[i], chips: ng[i].chips.filter((_, k) => k !== ci) };
                       return ng;
-                    });
-                    setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
+                    })
+                  }
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#FFFFFF", padding: 0, lineHeight: 1, opacity: 0.5, fontSize: 13 }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = "1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = "0.5";
                   }}
                 >
-                  + Add
+                  ×
                 </button>
-              </div>
-            </div>
+              </span>
+            ))}
           </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input
+              style={{
+                flex: 1,
+                background: "#1C1C1C",
+                border: "1px solid #2A2A2A",
+                borderRadius: 10,
+                color: "#FFFFFF",
+                fontSize: 12,
+                padding: "9px 12px",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+              placeholder="Skill or tool name…"
+              value={chipDraftByIndex[i] ?? ""}
+              onChange={(e) => setChipDraftByIndex((d) => ({ ...d, [i]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const raw = chipDraftByIndex[i] ?? "";
+                  const parts = splitSkillInputSegments(raw);
+                  if (parts.length === 0) return;
+                  updateGroups((arr) => {
+                    const ng = [...arr];
+                    const seen = new Set(ng[i].chips.map((c) => c.toLowerCase()));
+                    for (const t of parts) {
+                      if (!seen.has(t.toLowerCase())) {
+                        ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
+                        seen.add(t.toLowerCase());
+                      }
+                    }
+                    return ng;
+                  });
+                  setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="cvp-builder-add-entry-btn"
+              style={{
+                background: "#fff",
+                border: "none",
+                color: "#000",
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "9px 14px",
+                borderRadius: 12,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                fontFamily: "inherit",
+              }}
+              onClick={() => {
+                const raw = chipDraftByIndex[i] ?? "";
+                const parts = splitSkillInputSegments(raw);
+                if (parts.length === 0) return;
+                updateGroups((arr) => {
+                  const ng = [...arr];
+                  const seen = new Set(ng[i].chips.map((c) => c.toLowerCase()));
+                  for (const t of parts) {
+                    if (!seen.has(t.toLowerCase())) {
+                      ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
+                      seen.add(t.toLowerCase());
+                    }
+                  }
+                  return ng;
+                });
+                setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
+              }}
+            >
+              + Add
+            </button>
+          </div>
+          <button type="button" style={{ ...PASTE_IMPORT_BTN, width: "100%", marginTop: 6, marginBottom: 0 }} onClick={() => openCategoryPaste(i)}>
+            <ClipboardIconThin size={13} />
+            Paste &amp; Import
+          </button>
         </div>
       ))}
+
+        <button type="button" style={{ ...PASTE_IMPORT_BTN, width: "100%", justifyContent: "center", marginTop: 4 }} onClick={openGlobalPaste}>
+          <ClipboardIconThin size={16} />
+          Paste &amp; Import (multiple categories)
+        </button>
+
+        {suggestRows ? (
+          <div
+            style={{
+              background: "rgba(59,130,246,0.06)",
+              border: "1px dashed rgba(59,130,246,0.45)",
+              borderRadius: 12,
+              padding: 12,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                color: "#60A5FA",
+                fontWeight: 600,
+                marginBottom: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
+                Suggested categories — not on your CV yet
+              </span>
+              <button
+                type="button"
+                onClick={() => setSuggestedCategoriesDismissed(true)}
+                style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 0, display: "flex" }}
+              >
+                <X size={13} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {suggestRows.map((cat) => {
+                const added = isSuggestedCategoryAdded(cat);
+                return (
+                  <div key={cat.category} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <span style={{ fontSize: 12, color: "#A0A0A0" }}>{cat.category}</span>
+                    <button
+                      type="button"
+                      disabled={added || groups.length >= 20}
+                      onClick={() => addSuggestedCategory(cat)}
+                      style={{
+                        background: "#1C1C1C",
+                        border: added ? "1px solid #4ADE80" : "1px solid #2A2A2A",
+                        color: added ? "#4ADE80" : "#FFFFFF",
+                        fontFamily: "inherit",
+                        fontSize: 11,
+                        fontWeight: 500,
+                        padding: "5px 12px",
+                        borderRadius: 12,
+                        cursor: added || groups.length >= 20 ? "not-allowed" : "pointer",
+                        opacity: groups.length >= 20 && !added ? 0.45 : 1,
+                      }}
+                    >
+                      {added ? "✓ Added" : "+ Add"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {groups.length === 0 ? <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>Add a category, then add skills as chips.</p> : null}
       </div>
@@ -1669,7 +1976,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, [navigate]);
   const [technicalSkillsFromPrompt, setTechnicalSkillsFromPrompt] = useState(false);
   const fabRef = useRef(null);
-  const expReorder = useExperienceReorder(setResume);
   const builderRootRef = useRef(null);
   const builderIdleT15Ref = useRef(null);
   const builderIdleT25Ref = useRef(null);
@@ -1678,6 +1984,74 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const scheduleBuilderIdleRef = useRef(() => {});
   const prevBuilderTabRef = useRef(null);
   const cvCompletionProgress = useCvProgress(resume);
+  const [pdfTargetPages, setPdfTargetPages] = useState(1);
+  const [savedAtMs, setSavedAtMs] = useState(null);
+  const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
+  const lastSavedSnapshotRef = useRef(null);
+  const [showUnsavedBanner, setShowUnsavedBanner] = useState(false);
+  const [progressTooltipOpen, setProgressTooltipOpen] = useState(false);
+  const progressRingWrapRef = useRef(null);
+  const progressRingWrapMobileRef = useRef(null);
+  const expModalBodyRef = useRef(null);
+  const [expModalScrollShadow, setExpModalScrollShadow] = useState(false);
+  const [expModalBulletWarn, setExpModalBulletWarn] = useState(false);
+
+  useEffect(() => {
+    if (lastSavedSnapshotRef.current == null) {
+      lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
+      return;
+    }
+    setShowUnsavedBanner(JSON.stringify(resume) !== JSON.stringify(lastSavedSnapshotRef.current));
+  }, [resume]);
+
+  useEffect(() => {
+    if (savedAtMs == null) {
+      setSavedBadgeLabel(null);
+      return;
+    }
+    const tick = () => {
+      const sec = (Date.now() - savedAtMs) / 1000;
+      setSavedBadgeLabel(sec < 60 ? "Saved just now" : "Saved 1 min ago");
+    };
+    tick();
+    const id = window.setInterval(tick, 15000);
+    return () => clearInterval(id);
+  }, [savedAtMs]);
+
+  useEffect(() => {
+    if (!progressTooltipOpen) return;
+    const close = (e) => {
+      const a = progressRingWrapRef.current?.contains(e.target);
+      const b = progressRingWrapMobileRef.current?.contains(e.target);
+      if (!a && !b) setProgressTooltipOpen(false);
+    };
+    const t = window.setTimeout(() => document.addEventListener("click", close), 10);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("click", close);
+    };
+  }, [progressTooltipOpen]);
+
+  useEffect(() => {
+    if (!experienceEditor) {
+      setExpModalScrollShadow(false);
+      return;
+    }
+    setExpModalBulletWarn(false);
+    const el = expModalBodyRef.current;
+    if (!el) return;
+    const sync = () => {
+      setExpModalScrollShadow(el.scrollHeight > el.clientHeight + 2 && el.scrollTop + el.clientHeight < el.scrollHeight - 6);
+    };
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sync) : null;
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", sync);
+      ro?.disconnect();
+    };
+  }, [experienceEditor]);
 
   useEffect(() => {
     const prev = prevBuilderTabRef.current;
@@ -1983,6 +2357,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       }
       setResumeId(saved.id);
       setSaveStatus("saved");
+      lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
+      setShowUnsavedBanner(false);
+      setSavedAtMs(Date.now());
       setTimeout(() => setSaveStatus(null), 3000);
       // TODO: wire cv_edited on section save — writeFabMemory({ lastAction: "cv_edited", lastActionAt: new Date().toISOString() })
     } catch(e) {
@@ -2012,7 +2389,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       await new Promise((r) => setTimeout(r, 500));
       const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
       if (!el) throw new Error("Preview not ready");
-      await downloadResumeFromPreview(resume, el);
+      await downloadResumeFromPreview(resume, el, { maxPages: pdfTargetPages });
       writeFabMemory({
         lastAction: "downloaded",
         lastActionAt: new Date().toISOString(),
@@ -2407,6 +2784,152 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         <aside className="cvp-builder-left">
           {builderTab === "content" && (
             <>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  padding: "16px 0 12px",
+                  borderBottom: "1px solid #2A2A2A",
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "#FFF" }}>CVPassport</span>
+                  {savedBadgeLabel ? (
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#4ADE80", opacity: 0.85 }}>
+                      <span style={{ width: 6, height: 6, background: "#4ADE80", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
+                      {savedBadgeLabel}
+                    </span>
+                  ) : null}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
+                    <button
+                      type="button"
+                      onClick={() => setPdfTargetPages(1)}
+                      style={{
+                        border: "none",
+                        background: pdfTargetPages === 1 ? "#3B82F6" : "transparent",
+                        color: pdfTargetPages === 1 ? "#FFFFFF" : "#A0A0A0",
+                        fontSize: 11,
+                        fontWeight: pdfTargetPages === 1 ? 600 : 500,
+                        padding: "5px 10px",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      1 pg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdfTargetPages(2)}
+                      style={{
+                        border: "none",
+                        background: pdfTargetPages === 2 ? "#3B82F6" : "transparent",
+                        color: pdfTargetPages === 2 ? "#FFFFFF" : "#A0A0A0",
+                        fontSize: 11,
+                        fontWeight: pdfTargetPages === 2 ? 600 : 500,
+                        padding: "5px 10px",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      2 pg
+                    </button>
+                  </div>
+                  <div ref={progressRingWrapRef} style={{ position: "relative", display: "inline-flex" }}>
+                    <button
+                      type="button"
+                      aria-label="CV completion breakdown"
+                      onClick={() => setProgressTooltipOpen((v) => !v)}
+                      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", lineHeight: 0 }}
+                    >
+                      <svg width={42} height={42} viewBox="0 0 42 42" style={{ transform: "rotate(-90deg)" }} aria-hidden>
+                        <circle cx="21" cy="21" r="17" fill="none" stroke="#2A2A2A" strokeWidth="3" />
+                        <circle
+                          cx="21"
+                          cy="21"
+                          r="17"
+                          fill="none"
+                          stroke="#3B82F6"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeDasharray="106.8"
+                          strokeDashoffset={106.8 - (106.8 * Math.min(100, Math.max(0, cvCompletionProgress.percent))) / 100}
+                          style={{ transition: "stroke-dashoffset 0.45s ease" }}
+                        />
+                      </svg>
+                      <span
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 9,
+                          fontWeight: 700,
+                          color: "#60A5FA",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        {Math.round(cvCompletionProgress.percent)}%
+                      </span>
+                    </button>
+                    {progressTooltipOpen ? (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "calc(100% + 10px)",
+                          right: 0,
+                          background: "#1C1C1C",
+                          border: "1px solid #2A2A2A",
+                          borderRadius: 12,
+                          padding: 12,
+                          width: 200,
+                          zIndex: 120,
+                          boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                        }}
+                      >
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#60A5FA", marginBottom: 8 }}>CV Completion</div>
+                        {CV_PROGRESS_SECTIONS.map((sec) => {
+                          const ok = sec.isComplete(resume);
+                          const skillCount = splitCommaItems(resume.skills).length;
+                          const needSkills = Math.max(0, 3 - skillCount);
+                          const warnContent = !ok && sec.id === "skills" && needSkills > 0 ? String(needSkills) : !ok ? "!" : "✓";
+                          return (
+                            <div
+                              key={sec.id}
+                              style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#A0A0A0", padding: "3px 0" }}
+                            >
+                              <span
+                                style={{
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: "50%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 8,
+                                  flexShrink: 0,
+                                  background: ok ? "rgba(74,222,128,0.15)" : "rgba(59,130,246,0.12)",
+                                  color: ok ? "#4ADE80" : "#3B82F6",
+                                }}
+                              >
+                                {ok ? "✓" : warnContent}
+                              </span>
+                              {sec.completedLabel}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
               {/* Personal info card — always visible */}
               <div className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                 <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
@@ -2520,57 +3043,21 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
                   )}
                   {resume.experience.map((exp, i) => {
-                    const expDragging = expReorder.drag.active === i;
-                    const expOver =
-                      expReorder.drag.active != null &&
-                      expReorder.drag.over === i &&
-                      expReorder.drag.active !== i;
+                    const period = buildExperiencePeriod(exp) || exp.period || "";
+                    const subtitle = [exp.company, exp.location, period].filter(Boolean).join(" · ") || "—";
                     return (
-                      <div
+                      <BuilderEntryRow
                         key={i}
-                        data-cvp-exp-row
-                        data-cvp-exp-index={i}
-                        style={{
-                          ...CB_UI.card,
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          gap: 12,
-                          boxShadow: expDragging ? "0 10px 28px rgba(0,0,0,0.45)" : undefined,
-                          transform: expDragging ? "scale(1.02)" : "none",
-                          transition: expDragging ? "none" : `box-shadow 200ms ${EASE}, transform 200ms ${EASE}`,
-                          borderTop: expOver ? "3px solid #5A5A5A" : undefined,
-                          position: "relative",
-                          zIndex: expDragging ? 2 : 0,
-                        }}
-                      >
-                        <button
-                          type="button"
-                          aria-label="Drag to reorder experience"
-                          onPointerDown={(e) => expReorder.onHandlePointerDown(e, i)}
-                          style={{
-                            color: "#A0A0A0",
-                            cursor: "grab",
-                            flexShrink: 0,
-                            padding: "4px 0",
-                            touchAction: "none",
-                            background: "none",
-                            border: "none",
-                            margin: 0,
-                            alignSelf: "flex-start",
-                          }}
-                        >
-                          <CvReorderGripIcon />
-                        </button>
-                        <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
-                          <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
-                          <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
-                        </button>
-                        <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-                        </button>
-                      </div>
+                        title={exp.role || "Job title"}
+                        subtitle={subtitle}
+                        onRowClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
+                        onMoveUp={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i - 1) }))}
+                        onMoveDown={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i + 1) }))}
+                        disableUp={i === 0}
+                        disableDown={i >= resume.experience.length - 1}
+                        onEdit={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
+                        onDelete={() => setResume((r) => ({ ...r, experience: r.experience.filter((_, j) => j !== i) }))}
+                      />
                     );
                   })}
                   <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
@@ -2591,19 +3078,24 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   {resume.education.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
                   )}
-                  {resume.education.map((edu, i) => (
-                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                      <button type="button" onClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{edu.degree || "Degree"}</div>
-                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{edu.school || "Institution"}</div>
-                        {edu.fieldOfStudy ? <div style={{ fontSize: 12, color: "#888" }}>{edu.fieldOfStudy}</div> : null}
-                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildEducationYearLine(edu) || edu.year || ""}</div>
-                      </button>
-                      <button type="button" aria-label="Delete education" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, education: r.education.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-                      </button>
-                    </div>
-                  ))}
+                  {resume.education.map((edu, i) => {
+                    const yearLine = buildEducationYearLine(edu) || edu.year || "";
+                    const subtitle = [edu.school, edu.fieldOfStudy, yearLine].filter(Boolean).join(" · ") || "—";
+                    return (
+                      <BuilderEntryRow
+                        key={i}
+                        title={edu.degree || "Degree"}
+                        subtitle={subtitle}
+                        onRowClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })}
+                        onMoveUp={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i - 1) }))}
+                        onMoveDown={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i + 1) }))}
+                        disableUp={i === 0}
+                        disableDown={i >= resume.education.length - 1}
+                        onEdit={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })}
+                        onDelete={() => setResume((r) => ({ ...r, education: r.education.filter((_, j) => j !== i) }))}
+                      />
+                    );
+                  })}
                   <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Education</button>
                 </div>
               </AccordionSection>
@@ -2798,6 +3290,151 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
             {builderTab === "content" && (
               <>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    padding: "12px 12px 10px",
+                    borderBottom: "1px solid #2A2A2A",
+                    marginBottom: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "#FFF" }}>CVPassport</span>
+                    {savedBadgeLabel ? (
+                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#4ADE80", opacity: 0.85 }}>
+                        <span style={{ width: 6, height: 6, background: "#4ADE80", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
+                        {savedBadgeLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
+                      <button
+                        type="button"
+                        onClick={() => setPdfTargetPages(1)}
+                        style={{
+                          border: "none",
+                          background: pdfTargetPages === 1 ? "#3B82F6" : "transparent",
+                          color: pdfTargetPages === 1 ? "#FFFFFF" : "#A0A0A0",
+                          fontSize: 11,
+                          fontWeight: pdfTargetPages === 1 ? 600 : 500,
+                          padding: "5px 10px",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        1 pg
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPdfTargetPages(2)}
+                        style={{
+                          border: "none",
+                          background: pdfTargetPages === 2 ? "#3B82F6" : "transparent",
+                          color: pdfTargetPages === 2 ? "#FFFFFF" : "#A0A0A0",
+                          fontSize: 11,
+                          fontWeight: pdfTargetPages === 2 ? 600 : 500,
+                          padding: "5px 10px",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        2 pg
+                      </button>
+                    </div>
+                    <div ref={progressRingWrapMobileRef} style={{ position: "relative", display: "inline-flex" }}>
+                      <button
+                        type="button"
+                        aria-label="CV completion breakdown"
+                        onClick={() => setProgressTooltipOpen((v) => !v)}
+                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", lineHeight: 0 }}
+                      >
+                        <svg width={42} height={42} viewBox="0 0 42 42" style={{ transform: "rotate(-90deg)" }} aria-hidden>
+                          <circle cx="21" cy="21" r="17" fill="none" stroke="#2A2A2A" strokeWidth="3" />
+                          <circle
+                            cx="21"
+                            cy="21"
+                            r="17"
+                            fill="none"
+                            stroke="#3B82F6"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeDasharray="106.8"
+                            strokeDashoffset={106.8 - (106.8 * Math.min(100, Math.max(0, cvCompletionProgress.percent))) / 100}
+                            style={{ transition: "stroke-dashoffset 0.45s ease" }}
+                          />
+                        </svg>
+                        <span
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: "#60A5FA",
+                            pointerEvents: "none",
+                          }}
+                        >
+                          {Math.round(cvCompletionProgress.percent)}%
+                        </span>
+                      </button>
+                      {progressTooltipOpen ? (
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: "calc(100% + 10px)",
+                            right: 0,
+                            background: "#1C1C1C",
+                            border: "1px solid #2A2A2A",
+                            borderRadius: 12,
+                            padding: 12,
+                            width: 200,
+                            zIndex: 120,
+                            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                          }}
+                        >
+                          <div style={{ fontSize: 11, fontWeight: 600, color: "#60A5FA", marginBottom: 8 }}>CV Completion</div>
+                          {CV_PROGRESS_SECTIONS.map((sec) => {
+                            const ok = sec.isComplete(resume);
+                            const skillCount = splitCommaItems(resume.skills).length;
+                            const needSkills = Math.max(0, 3 - skillCount);
+                            const warnContent = !ok && sec.id === "skills" && needSkills > 0 ? String(needSkills) : !ok ? "!" : "✓";
+                            return (
+                              <div
+                                key={`m-${sec.id}`}
+                                style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#A0A0A0", padding: "3px 0" }}
+                              >
+                                <span
+                                  style={{
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: "50%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: 8,
+                                    flexShrink: 0,
+                                    background: ok ? "rgba(74,222,128,0.15)" : "rgba(59,130,246,0.12)",
+                                    color: ok ? "#4ADE80" : "#3B82F6",
+                                  }}
+                                >
+                                  {ok ? "✓" : warnContent}
+                                </span>
+                                {sec.completedLabel}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
                 <div className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
@@ -2907,57 +3544,21 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
                   )}
                   {resume.experience.map((exp, i) => {
-                    const expDragging = expReorder.drag.active === i;
-                    const expOver =
-                      expReorder.drag.active != null &&
-                      expReorder.drag.over === i &&
-                      expReorder.drag.active !== i;
+                    const period = buildExperiencePeriod(exp) || exp.period || "";
+                    const subtitle = [exp.company, exp.location, period].filter(Boolean).join(" · ") || "—";
                     return (
-                      <div
+                      <BuilderEntryRow
                         key={i}
-                        data-cvp-exp-row
-                        data-cvp-exp-index={i}
-                        style={{
-                          ...CB_UI.card,
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                          gap: 12,
-                          boxShadow: expDragging ? "0 10px 28px rgba(0,0,0,0.45)" : undefined,
-                          transform: expDragging ? "scale(1.02)" : "none",
-                          transition: expDragging ? "none" : `box-shadow 200ms ${EASE}, transform 200ms ${EASE}`,
-                          borderTop: expOver ? "3px solid #5A5A5A" : undefined,
-                          position: "relative",
-                          zIndex: expDragging ? 2 : 0,
-                        }}
-                      >
-                        <button
-                          type="button"
-                          aria-label="Drag to reorder experience"
-                          onPointerDown={(e) => expReorder.onHandlePointerDown(e, i)}
-                          style={{
-                            color: "#A0A0A0",
-                            cursor: "grab",
-                            flexShrink: 0,
-                            padding: "4px 0",
-                            touchAction: "none",
-                            background: "none",
-                            border: "none",
-                            margin: 0,
-                            alignSelf: "flex-start",
-                          }}
-                        >
-                          <CvReorderGripIcon />
-                        </button>
-                        <button type="button" onClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{exp.role || "Job title"}</div>
-                          <div style={{ fontSize: 13, color: "#A0A0A0" }}>{exp.company || "Company"}{exp.location ? ` · ${exp.location}` : ""}</div>
-                          <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildExperiencePeriod(exp) || exp.period || "Dates"}</div>
-                        </button>
-                        <button type="button" aria-label="Delete experience" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, experience: r.experience.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-                        </button>
-                      </div>
+                        title={exp.role || "Job title"}
+                        subtitle={subtitle}
+                        onRowClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
+                        onMoveUp={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i - 1) }))}
+                        onMoveDown={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i + 1) }))}
+                        disableUp={i === 0}
+                        disableDown={i >= resume.experience.length - 1}
+                        onEdit={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
+                        onDelete={() => setResume((r) => ({ ...r, experience: r.experience.filter((_, j) => j !== i) }))}
+                      />
                     );
                   })}
                   <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
@@ -2979,19 +3580,24 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   {resume.education.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
                   )}
-                  {resume.education.map((edu, i) => (
-                    <div key={i} style={{ ...CB_UI.card, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                      <button type="button" onClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", color: "#FFFFFF", minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{edu.degree || "Degree"}</div>
-                        <div style={{ fontSize: 13, color: "#A0A0A0" }}>{edu.school || "Institution"}</div>
-                        {edu.fieldOfStudy ? <div style={{ fontSize: 12, color: "#888" }}>{edu.fieldOfStudy}</div> : null}
-                        <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{buildEducationYearLine(edu) || edu.year || ""}</div>
-                      </button>
-                      <button type="button" aria-label="Delete education" onClick={(e) => { e.stopPropagation(); setResume(r => ({ ...r, education: r.education.filter((_, j) => j !== i) })); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
-                      </button>
-                    </div>
-                  ))}
+                  {resume.education.map((edu, i) => {
+                    const yearLine = buildEducationYearLine(edu) || edu.year || "";
+                    const subtitle = [edu.school, edu.fieldOfStudy, yearLine].filter(Boolean).join(" · ") || "—";
+                    return (
+                      <BuilderEntryRow
+                        key={i}
+                        title={edu.degree || "Degree"}
+                        subtitle={subtitle}
+                        onRowClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })}
+                        onMoveUp={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i - 1) }))}
+                        onMoveDown={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i + 1) }))}
+                        disableUp={i === 0}
+                        disableDown={i >= resume.education.length - 1}
+                        onEdit={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })}
+                        onDelete={() => setResume((r) => ({ ...r, education: r.education.filter((_, j) => j !== i) }))}
+                      />
+                    );
+                  })}
                   <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Education</button>
                 </div>
               </AccordionSection>
@@ -3597,84 +4203,165 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           onClick={() => setExperienceEditor(null)}
         >
           <div
-            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
+            style={{
+              background: "#1C1C1C",
+              border: "1px solid #2A2A2A",
+              borderRadius: 12,
+              maxWidth: 520,
+              width: "100%",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>{experienceEditor.mode === "add" ? "Add experience" : "Edit experience"}</h3>
-            <div style={{ display: "grid", gap: 12 }}>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Company name</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.company} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, company: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Job title</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.role} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, role: e.target.value } } : null))} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <h3 style={{ margin: 0, padding: "16px 20px 12px", fontSize: 17, fontWeight: 600, color: "#FFF", borderBottom: "1px solid #2A2A2A", flexShrink: 0 }}>
+              {experienceEditor.mode === "add" ? "Add experience" : "Edit experience"}
+            </h3>
+            <div
+              ref={expModalBodyRef}
+              style={{
+                overflowY: "auto",
+                flex: 1,
+                padding: "16px 20px",
+                minHeight: 0,
+                boxShadow: expModalScrollShadow ? "inset 0 -20px 20px -10px rgba(0,0,0,0.4)" : "none",
+              }}
+            >
+              <div style={{ display: "grid", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label>
-                  <input
-                    id="cvp-exp-start-date"
-                    style={{
-                      ...CB_UI.input,
-                      marginTop: 4,
-                      minHeight: undefined,
-                      borderColor: experienceDateErrors.start ? "#EF4444" : undefined,
-                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-                    }}
-                    placeholder="01/2020"
-                    value={experienceEditor.draft.startDate}
-                    onChange={(e) => {
-                      const next = processMmYyyyInput(e.target.value, { allowPresent: false });
-                      mmYyyyCursorRef.current = { id: "cvp-exp-start-date", cursor: next.cursor };
-                      flushSync(() => {
-                        setExperienceDateErrors((er) => ({ ...er, start: next.error }));
-                        setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: next.value } } : null));
-                      });
-                    }}
-                    aria-invalid={experienceDateErrors.start ? true : undefined}
-                  />
-                  {experienceDateErrors.start ? (
-                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.start}</p>
-                  ) : null}
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Company name</label>
+                  <input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.company} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, company: e.target.value } } : null))} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label>
-                  <input
-                    id="cvp-exp-end-date"
-                    style={{
-                      ...CB_UI.input,
-                      marginTop: 4,
-                      minHeight: undefined,
-                      borderColor: experienceDateErrors.end ? "#EF4444" : undefined,
-                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-                    }}
-                    placeholder="12/2023 or Present"
-                    disabled={experienceEditor.draft.present}
-                    value={experienceEditor.draft.endDate}
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job title</label>
+                  <input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.role} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, role: e.target.value } } : null))} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Start (MM/YYYY)</label>
+                    <input
+                      id="cvp-exp-start-date"
+                      style={{
+                        ...CB_UI.input,
+                        marginTop: 4,
+                        minHeight: undefined,
+                        borderColor: experienceDateErrors.start ? "#EF4444" : undefined,
+                        transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+                      }}
+                      placeholder="01/2020"
+                      value={experienceEditor.draft.startDate}
+                      onChange={(e) => {
+                        const next = processMmYyyyInput(e.target.value, { allowPresent: false });
+                        mmYyyyCursorRef.current = { id: "cvp-exp-start-date", cursor: next.cursor };
+                        flushSync(() => {
+                          setExperienceDateErrors((er) => ({ ...er, start: next.error }));
+                          setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: next.value } } : null));
+                        });
+                      }}
+                      aria-invalid={experienceDateErrors.start ? true : undefined}
+                    />
+                    {experienceDateErrors.start ? (
+                      <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.start}</p>
+                    ) : null}
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>End (MM/YYYY)</label>
+                    <input
+                      id="cvp-exp-end-date"
+                      style={{
+                        ...CB_UI.input,
+                        marginTop: 4,
+                        minHeight: undefined,
+                        borderColor: experienceDateErrors.end ? "#EF4444" : undefined,
+                        transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+                      }}
+                      placeholder="12/2023"
+                      disabled={experienceEditor.draft.present}
+                      value={experienceEditor.draft.endDate}
+                      onChange={(e) => {
+                        const next = processMmYyyyInput(e.target.value, { allowPresent: true });
+                        mmYyyyCursorRef.current = { id: "cvp-exp-end-date", cursor: next.cursor };
+                        flushSync(() => {
+                          setExperienceDateErrors((er) => ({ ...er, end: next.error }));
+                          setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: next.value } } : null));
+                        });
+                      }}
+                      aria-invalid={experienceDateErrors.end ? true : undefined}
+                    />
+                    {experienceDateErrors.end ? (
+                      <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.end}</p>
+                    ) : null}
+                  </div>
+                </div>
+                {isExperienceEndBeforeStart(
+                  experienceEditor.draft.startDate,
+                  experienceEditor.draft.endDate,
+                  experienceEditor.draft.present
+                ) ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#F87171" }}>
+                    <AlertCircle size={11} strokeWidth={1.8} aria-hidden />
+                    End date cannot be before start date
+                  </div>
+                ) : null}
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#A0A0A0", cursor: "pointer" }}>
+                  <input type="checkbox" checked={experienceEditor.draft.present} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, present: e.target.checked, endDate: e.target.checked ? "" : ev.draft.endDate } } : null))} />
+                  Currently working here
+                </label>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Location</label>
+                  <input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.location} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Description</label>
+                  <textarea
+                    style={{ ...CB_UI.input, marginTop: 4, resize: "vertical", minHeight: 100 }}
+                    placeholder={"Each line = one bullet point on your CV\ne.g. Resolved 50+ tickets daily…"}
+                    value={experienceEditor.draft.points}
                     onChange={(e) => {
-                      const next = processMmYyyyInput(e.target.value, { allowPresent: true });
-                      mmYyyyCursorRef.current = { id: "cvp-exp-end-date", cursor: next.cursor };
-                      flushSync(() => {
-                        setExperienceDateErrors((er) => ({ ...er, end: next.error }));
-                        setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: next.value } } : null));
-                      });
+                      const v = e.target.value;
+                      if (String(v || "").trim()) setExpModalBulletWarn(false);
+                      setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: v } } : null));
                     }}
-                    aria-invalid={experienceDateErrors.end ? true : undefined}
                   />
-                  {experienceDateErrors.end ? (
-                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.end}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, fontSize: 11, color: "#A0A0A0" }}>
+                    <List size={11} strokeWidth={1.8} aria-hidden />
+                    Each line = one bullet on your CV
+                  </div>
+                  {expModalBulletWarn ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 8,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        background: "rgba(59,130,246,0.1)",
+                        border: "1px solid rgba(59,130,246,0.3)",
+                        fontSize: 11,
+                        color: "#60A5FA",
+                      }}
+                    >
+                      <AlertTriangle size={11} strokeWidth={1.8} aria-hidden />
+                      No bullet points added — this may weaken your CV.
+                    </div>
                   ) : null}
                 </div>
               </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#FFF", cursor: "pointer" }}>
-                <input type="checkbox" checked={experienceEditor.draft.present} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, present: e.target.checked, endDate: e.target.checked ? "" : ev.draft.endDate } } : null))} />
-                Present (current role)
-              </label>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (City, Country)</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.location} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Description (bullet points, one per line)</label><textarea style={{ ...CB_UI.input, marginTop: 4, resize: "vertical" }} value={experienceEditor.draft.points} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: e.target.value } } : null))} /></div>
             </div>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setExperienceEditor(null)}>Cancel</button>
+            <div style={{ flexShrink: 0, borderTop: "1px solid #2A2A2A", padding: "12px 20px 20px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setExperienceEditor(null)}>
+                Cancel
+              </button>
               <button
                 type="button"
                 style={CB_UI.btn}
                 onClick={() => {
                   const { mode, index, draft } = experienceEditor;
+                  if (isExperienceEndBeforeStart(draft.startDate, draft.endDate, draft.present)) return;
+                  if (!String(draft.points || "").trim()) setExpModalBulletWarn(true);
                   const next = { ...draft, period: buildExperiencePeriod({ ...draft, present: draft.present }) };
                   setResume((r) => {
                     if (mode === "add") return { ...r, experience: [...r.experience, next] };
@@ -3854,6 +4541,57 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           </div>
         </div>
       )}
+
+      {showUnsavedBanner ? (
+        <div
+          className="cvp-builder-unsaved-banner"
+          style={{
+            position: "fixed",
+            bottom: 96,
+            left: 16,
+            right: 16,
+            zIndex: 250,
+            background: "#1C1C1C",
+            border: "1px solid rgba(59,130,246,0.35)",
+            borderRadius: 12,
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            boxSizing: "border-box",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+          }}
+        >
+          <AlertTriangle size={13} strokeWidth={1.8} color="#60A5FA" aria-hidden />
+          <span style={{ flex: 1, fontSize: 12, color: "#60A5FA" }}>You have unsaved changes</span>
+          <button
+            type="button"
+            onClick={() => {
+              const snap = lastSavedSnapshotRef.current;
+              if (snap) {
+                setResume({
+                  ...snap,
+                  technicalSkills: normalizeTechnicalSkillsState(snap.technicalSkills),
+                });
+              }
+              setShowUnsavedBanner(false);
+            }}
+            style={{
+              background: "#3B82F6",
+              border: "none",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "6px 12px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Discard
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

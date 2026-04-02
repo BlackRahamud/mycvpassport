@@ -34,7 +34,12 @@ ${cvFragmentHtml}
 }
 
 // ─── PDF DOWNLOAD — iLovePDF API (A4) from live preview HTML ───────────────────
-export async function downloadResumeFromPreview(cvInput, captureElement) {
+/**
+ * @param {object} cvInput
+ * @param {HTMLElement} captureElement
+ * @param {{ maxPages?: 1 | 2 }} [opts] When maxPages is 1, PDF is clipped to the first page (server-side).
+ */
+export async function downloadResumeFromPreview(cvInput, captureElement, opts = {}) {
   const cv = cvWithTemplateCertifications(cvInput);
   if (!captureElement) throw new Error("Preview not ready");
 
@@ -50,10 +55,11 @@ export async function downloadResumeFromPreview(cvInput, captureElement) {
   const html = buildCvPdfHtmlDocument(cvElement.outerHTML);
   const baseName = `${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport`;
 
+  const maxPages = opts.maxPages === 1 ? 1 : opts.maxPages === 2 ? 2 : undefined;
   const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ html, filename: baseName }),
+    body: JSON.stringify({ html, filename: baseName, ...(maxPages != null ? { maxPages } : {}) }),
   });
   if (!res.ok) {
     let msg = `Server error ${res.status}`;

@@ -5,7 +5,8 @@ import { splitCommaItems } from "../cvShared";
  * Weighted CV completion for FAB sheet (builder resume shape + optional personalInfo.*).
  * Weights sum to 100. Minimum 20% when full name is present (endowed progress).
  */
-const SECTIONS = [
+/** Exported for builder progress tooltip breakdown (same weights as FAB completion). */
+export const SECTIONS = [
   {
     id: "fullName",
     weight: 15,

@@ -48,7 +48,7 @@ module.exports = async (req, res) => {
     try { body = JSON.parse(body); } catch { return res.status(400).json({ error: "Invalid JSON" }); }
   }
 
-  const { html, templateId, cv, atsMode } = body;
+  const { html, templateId, cv, atsMode, maxPages } = body;
 
   // Determine which HTML to render
   let finalHtml = html;
@@ -243,6 +243,7 @@ module.exports = async (req, res) => {
       autoScaleTypography();
     }, Boolean(atsMode));
 
+    const maxPagesN = Number(maxPages);
     let pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -259,6 +260,7 @@ module.exports = async (req, res) => {
         left: "0mm",
         right: "0mm",
       },
+      ...(maxPagesN === 1 ? { pageRanges: "1" } : {}),
     });
 
     // Template 11: repaint sidebar with a subtle per-page visual reset.
