@@ -2027,6 +2027,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const expModalBodyRef = useRef(null);
   const [expModalScrollShadow, setExpModalScrollShadow] = useState(false);
   const [expModalBulletWarn, setExpModalBulletWarn] = useState(false);
+  /** Default false = mobile column until viewport is measured (avoids wide layout on narrow screens). */
+  const [isWideLayout, setIsWideLayout] = useState(false);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setIsWideLayout(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     if (lastSavedSnapshotRef.current == null) {
@@ -2810,8 +2821,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </div>
       </header>
 
-      {/* Desktop: split 380px | 1fr — layout in index.css */}
-      <div className="cvp-builder-desktop">
+      {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
+      <div className="cvp-builder-desktop" style={isWideLayout ? undefined : { display: "none" }}>
         {/* Left panel — Editor */}
         <aside className="cvp-builder-left">
           {builderTab === "content" && (
@@ -3317,8 +3328,22 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </div>
       </div>
 
-      {/* Mobile: single column */}
-      <div className="cvp-builder-mobile" style={{ display: "none", flexDirection: "column", flex: 1, minHeight: 0, position: "relative", maxWidth: "100vw", overflowX: "hidden", overflowY: "visible" }}>
+      {/* Mobile: single column (default until viewport is at least 768px) */}
+      <div
+        className="cvp-builder-mobile"
+        style={{
+          display: isWideLayout ? "none" : "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          width: "100%",
+          position: "relative",
+          maxWidth: "100%",
+          overflowX: "hidden",
+          overflowY: "visible",
+        }}
+      >
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
             {builderTab === "content" && (
               <>

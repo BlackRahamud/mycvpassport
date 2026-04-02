@@ -324,24 +324,7 @@ input:focus, textarea:focus {
   height: fit-content;
 }
 
-/* CV Builder responsive — mobile show/hide */
-@media (max-width: 767px) {
-  .cvp-builder-desktop {
-    display: none !important;
-  }
-  .cvp-builder-mobile {
-    display: flex !important;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow: visible;
-  }
-}
-@media (min-width: 768px) {
-  .cvp-builder-mobile {
-    display: none !important;
-  }
-}
+/* Builder mobile vs desktop visibility is controlled in BuilderPage.jsx (matchMedia 768px, default mobile). */
 
 /* CV Builder mobile — form / edit panel scroll area */
 .cvp-builder-mobile-form {
