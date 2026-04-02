@@ -580,8 +580,6 @@ const BUILDER_SKILL_INPUT_BASE = {
   fontFamily: "inherit",
 };
 
-const BUILDER_SKILL_INPUT_ROW = { display: "flex", gap: 8, alignItems: "stretch" };
-
 const BUILDER_SKILL_ADD_BTN = {
   background: "#fff",
   border: "none",
@@ -970,10 +968,10 @@ function SkillsEditorSection({
       ) : null}
       <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
         <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
-        <div style={{ ...BUILDER_SKILL_INPUT_ROW, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
           <input
             className="cvp-builder-ph"
-            style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0 }}
+            style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0, width: "auto" }}
             placeholder="Add a skill…"
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
@@ -995,7 +993,7 @@ function SkillsEditorSection({
           <button
             type="button"
             className="cvp-builder-add-entry-btn"
-            style={BUILDER_SKILL_ADD_BTN}
+            style={{ ...BUILDER_SKILL_ADD_BTN, flexShrink: 0 }}
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = "0.88";
             }}
@@ -1950,10 +1948,10 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               </span>
             ))}
           </div>
-          <div style={{ ...BUILDER_SKILL_INPUT_ROW, marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <input
               className="cvp-builder-ph"
-              style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0 }}
+              style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0, width: "auto" }}
               placeholder="Skill or tool name…"
               value={chipDraftByIndex[i] ?? ""}
               onChange={(e) => setChipDraftByIndex((d) => ({ ...d, [i]: e.target.value }))}
@@ -1991,7 +1989,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             <button
               type="button"
               className="cvp-builder-add-entry-btn"
-              style={BUILDER_SKILL_ADD_BTN}
+              style={{ ...BUILDER_SKILL_ADD_BTN, flexShrink: 0 }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = "0.88";
               }}
