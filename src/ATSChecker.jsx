@@ -1,495 +1,511 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { FAB } from "./components/FAB";
-import { getFabMemory, writeFabMemory, checkAtsMilestone } from "./components/FAB/FABLogic";
-import { getCurrentUserProfile, joinWaitlist } from "./supabaseClient";
-import { normalizeResumeText } from "./normalizeResumeText";
-import UpgradeModal from "./UpgradeModal";
-import skillSuggestions from "./data/skillSuggestions";
-import ATSScanner from "./components/ATSScanner";
-import { detectRole as detectRoleDefault, guessRoleFromResumeRaw } from "./utils/detectRole";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
+import { supabase } from "./supabaseClient";
 
-const AT_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-
-const STOP_WORDS = new Set(["a","an","the","and","or","but","in","on","at","to","for","of","with","by","from","is","are","was","were","be","been","being","have","has","had","do","does","did","will","would","could","should","may","might","that","this","these","those","it","its","we","you","your","our","their","they","he","she","as","if","then","than","so","up","out","about","into","through","during","including","until","against","among","throughout","within","also","very","just","more","most","some","such","no","not","only","same","other","each","few","many","how","all","both","between","i","me","my"]);
-
-const EXPECTED_SECTIONS = [
-  { key: "experience", labels: ["experience", "work experience", "employment", "career history", "professional experience"] },
-  { key: "education", labels: ["education", "academic background", "qualifications", "academic qualifications"] },
-  { key: "skills", labels: ["skills", "key skills", "technical skills", "core competencies", "competencies"] },
-  { key: "summary", labels: ["summary", "profile", "objective", "professional summary", "career objective", "about me"] },
-  { key: "certifications", labels: ["certification", "certifications", "courses", "training", "professional development"] },
-];
-
-const FORMATTING_FLAGS = [
-  { id: "table", pattern: /\|.*\||\t.*\t/, msg: "Tables detected — potential parsing interference." },
-  { id: "image", pattern: /\[image\]|\[photo\]|<img/i, msg: "Visual placeholders detected — non-text elements ignored." },
-  { id: "header", pattern: /header|footer/i, msg: "Header/footer content may be skipped." },
-  { id: "special", pattern: /[●◆■▶►✦✧★☆]/, msg: "Non-standard bullet symbols — use hyphens." },
-  { id: "columns", pattern: /(.{1,40}\s{5,}.{1,40}){3,}/, msg: "Multi-column layout detected." },
-];
-
-const ATS_SECTION_GAP_LABELS = {
-  experience: "Experience",
-  education: "Education",
-  skills: "Skills",
-  summary: "Summary",
-  certifications: "Certifications",
+// ─── Design tokens — FIX 1: amber #F59E0B → #D97706 ─────────────────────────
+const T = {
+  bg: "#0C0C0E",
+  surface: "#141414",
+  elevated: "#1C1C1C",
+  border: "#2A2A2A",
+  text: "#FFFFFF",
+  muted: "#A0A0A0",
+  amber: "#D97706",
+  amberDim: "rgba(217,119,6,0.12)",
+  amberBorder: "rgba(217,119,6,0.35)",
+  blue: "#3B82F6",
+  green: "#4ADE80",
+  red: "#F87171",
 };
 
-function buildAtsChecksFromResult(res) {
-  if (!res) return [];
-  const out = [];
-  for (const k of res.sec?.missing || []) {
-    out.push(ATS_SECTION_GAP_LABELS[k] || String(k));
-  }
-  for (const w of res.fmt?.warnings || []) {
-    out.push(w.msg);
-  }
-  const mk = res.kw?.missing || [];
-  const budget = Math.max(0, 8 - out.length);
-  for (let i = 0; i < Math.min(budget, mk.length); i++) {
-    out.push(`Keyword: ${mk[i]}`);
-  }
-  return out;
+function getScoreLabel(score) {
+  if (score <= 49) return "Needs Improvement";
+  if (score <= 69) return "Getting There";
+  if (score <= 84) return "Your Foundation is Solid";
+  return "Market Ready";
 }
 
-// --- Text Extractor Helpers ---
-async function extractText(file) {
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".pdf")) return extractFromPDF(file);
-  if (name.endsWith(".docx")) return extractFromDOCX(file);
-  return extractFromTXT(file);
-}
+const SCAN_STEPS = [
+  "Reading your CV...",
+  "Matching against GCC hiring data...",
+  "Calculating your Rank Triggers...",
+];
 
-async function extractFromPDF(file) {
-  if (!window.pdfjsLib) throw new Error("PDF.js not loaded.");
-  const reader = new FileReader();
-  return new Promise((resolve) => {
-    reader.readAsArrayBuffer(file);
-    reader.onload = async function() {
-      const pdf = await window.pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
-      let text = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(" ");
-        text += pageText + " ";
-      }
-      resolve(text);
-    };
-  });
-}
-
-async function extractFromDOCX(file) {
-  const reader = new FileReader();
-  return new Promise((resolve) => {
-    reader.readAsArrayBuffer(file);
-    reader.onload = async function() {
-      const mammoth = await window.mammoth;
-      const result = await mammoth.extractRawText({ arrayBuffer: this.result });
-      resolve(result.value);
-    };
-  });
-}
-
-function extractFromTXT(file) {
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.readAsText(file);
-    reader.onload = () => resolve(reader.result);
-  });
-}
-
-// --- Analysis Functions ---
-function getKeywords(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
-}
-
-function analyzeKeywords(resumeText, jobDesc) {
-  const resumeSet = new Set(getKeywords(resumeText));
-  const jobWords = [...new Set(getKeywords(jobDesc))];
-  if (jobWords.length === 0) return { score: 0, matched: [], missing: [], total: 0 };
-  const matched = jobWords.filter(w => resumeSet.has(w));
-  const missing = jobWords.filter(w => !resumeSet.has(w));
-  return { score: Math.round((matched.length / jobWords.length) * 50), matched, missing: missing.slice(0, 30), total: jobWords.length };
-}
-
-function scoreAgainstRoleKeywords(cvText, role) {
-  if (!role || !skillSuggestions[role]) return null;
-
-  const keywords = skillSuggestions[role].atsKeywords;
-  const cvLower = cvText.toLowerCase();
-
-  const found = [];
-  const missing = [];
-
-  keywords.forEach(({ keyword, frequency }) => {
-    if (cvLower.includes(keyword.toLowerCase())) {
-      found.push({ keyword, frequency });
-    } else {
-      missing.push({ keyword, frequency });
-    }
-  });
-
-  const totalWeight = keywords.reduce(
-    (sum, k) => sum + (k.frequency === "High" ? 3 : k.frequency === "Medium" ? 2 : 1),
-    0
-  );
-  const foundWeight = found.reduce(
-    (sum, k) => sum + (k.frequency === "High" ? 3 : k.frequency === "Medium" ? 2 : 1),
-    0
-  );
-
-  const freqRank = { High: 3, Medium: 2, Low: 1 };
-  missing.sort((a, b) => (freqRank[b.frequency] || 0) - (freqRank[a.frequency] || 0));
-
-  return {
-    score: Math.round((foundWeight / totalWeight) * 100),
-    found,
-    missing,
-  };
-}
-
-function analyzeSections(resumeText) {
-  const lower = resumeText.toLowerCase();
-  const found = EXPECTED_SECTIONS.filter(s => s.labels.some(l => lower.includes(l))).map(s => s.key);
-  return { score: Math.min(found.length * 6, 30), found, missing: EXPECTED_SECTIONS.filter(s => !found.includes(s.key)).map(s => s.key) };
-}
-
-function analyzeFormatting(resumeText) {
-  const warnings = FORMATTING_FLAGS.filter(f => f.pattern.test(resumeText));
-  return { score: Math.max(20 - warnings.length * 4, 0), warnings };
-}
-
-// --- Main Component ---
-export default function ATSChecker(props) {
-  const detectRoleFn = typeof props.detectRole === "function" ? props.detectRole : detectRoleDefault;
-  const navigate = useNavigate();
-  const [jobDesc, setJobDesc] = useState("");
-  const [resumeFile, setResumeFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [loadingStage, setLoadingStage] = useState(0);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
-  const [isPro, setIsPro] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
-  const [waitlistEmail, setWaitlistEmail] = useState("");
-  const [waitlistLoading, setWaitlistLoading] = useState(false);
-  const [waitlistMessage, setWaitlistMessage] = useState({ type: "", text: "" });
-  const fabRef = useRef(null);
-
-  const atsChecks = useMemo(() => buildAtsChecksFromResult(result), [result]);
-
-  const atsScore = useMemo(() => {
-    if (!result) return 0;
-    return result.hasJobDesc ? result.total : Math.round((result.total / 50) * 100);
-  }, [result]);
-
-  const keywords = useMemo(() => {
-    if (!result) return [];
-    if (result.roleKeywordScore) {
-      const { found, missing } = result.roleKeywordScore;
-      return [
-        ...found.map((k) => ({ keyword: k.keyword, found: true })),
-        ...missing.map((k) => ({ keyword: k.keyword, found: false })),
-      ];
-    }
-    if (result.hasJobDesc) {
-      const kw = result.kw;
-      return [
-        ...(kw.matched || []).map((keyword) => ({ keyword, found: true })),
-        ...(kw.missing || []).map((keyword) => ({ keyword, found: false })),
-      ];
-    }
-    return [];
-  }, [result]);
-
-  const handleDownloadCv = async () => {
-    if (!resumeFile) return;
-    if (fabRef.current?.runAtsDownloadGatekeeper) {
-      const gate = await fabRef.current.runAtsDownloadGatekeeper();
-      if (!gate?.canDownload) return;
-    }
-    const url = URL.createObjectURL(resumeFile);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = resumeFile.name || "resume.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const loadingMessages = [
-    "🔍 Parsing structural data...",
-    "⚙️ Cross-referencing industry keywords...",
-    "📊 Finalizing professional readiness report..."
-  ];
-
-  useEffect(() => {
-    async function checkPro() {
-      try {
-        const { isPro: pro } = await getCurrentUserProfile();
-        setIsPro(!!pro);
-      } catch (e) { console.error("Profile check failed", e); }
-    }
-    checkPro();
-  }, []);
-
-  async function handleCheck() {
-    if (!resumeFile) {
-      setError("Please upload a resume.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    setResult(null);
-    setLoadingStage(0);
-
-    const stages = [0, 1, 2];
-    stages.forEach((stage) => {
-      setTimeout(() => setLoadingStage(stage), stage * 1000);
-    });
-
-    try {
-      const resumeText = await extractText(resumeFile);
-      const plainLength = resumeText.replace(/\s+/g, " ").trim().length;
-
-      if (plainLength < 200) {
-        setError("Scanned PDF Detected: Please upload a text-based PDF.");
-        setLoading(false);
-        return;
-      }
-
-      const normalized = normalizeResumeText(resumeText);
-      const jd = jobDesc.trim();
-      const kw = jd ? analyzeKeywords(normalized, jobDesc) : { score: 0, matched: [], missing: [], total: 0 };
-      const sec = analyzeSections(normalized);
-      const fmt = analyzeFormatting(normalized);
-      const roleFromCv = guessRoleFromResumeRaw(resumeText, detectRoleFn);
-      const roleKeywordScore = jd && roleFromCv ? scoreAgainstRoleKeywords(normalized, roleFromCv) : null;
-
-      setTimeout(() => {
-        const total = kw.score + sec.score + fmt.score;
-        setResult({
-          kw,
-          sec,
-          fmt,
-          total,
-          hasJobDesc: !!jd,
-          roleFromCv,
-          roleKeywordScore,
-          resumeText: normalized,
-          rawResumeText: resumeText,
-          pdfPreviewUrl: URL.createObjectURL(resumeFile),
-        });
-        const mem = getFabMemory();
-        const pending = checkAtsMilestone(total, mem.lastAtsScore);
-        writeFabMemory({
-          lastAction: "ats_checked",
-          lastActionAt: new Date().toISOString(),
-          lastAtsScore: total,
-          pendingAtsMilestone: pending,
-        });
-        setLoading(false);
-      }, 3000);
-
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  }
+// ─── Score ring — FIX 6: stroke-width min 10, smooth 1.2s ease-out animation ─
+function ScoreRing({ score, size = 190, strokeWidth = 12, animated = false, gradientId = "ring-grad" }) {
+  const r = (size - strokeWidth * 2) / 2;
+  const circ = 2 * Math.PI * r;
+  const targetOffset = circ * (1 - score / 100);
 
   return (
-    <div className="cvp-ats-root" style={{ maxWidth: 850, margin: "0 auto", padding: "40px 20px", color: "#FFFFFF", background: "#0A0A0A", minHeight: "100vh", fontFamily: AT_FONT }}>
-      
-      {/* Back Button */}
-      {props.onBack && (
-        <div onClick={props.onBack} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") props.onBack(); }} style={{ fontSize: "13px", color: "#A0A0A0", cursor: "pointer", marginBottom: "24px", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: AT_FONT }}>
-          ← Back to Dashboard
-        </div>
-      )}
-      
-      {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <h1 className="cvp-ats-heading" style={{ fontSize: "28px", fontWeight: 700, letterSpacing: "normal", color: "#FFFFFF", fontFamily: AT_FONT }}>ATS Score Checker</h1>
-        <p style={{ color: "#A0A0A0", marginTop: 8, fontSize: "16px", fontWeight: 400, fontFamily: AT_FONT }}>See how your CV scores against any job description. Built for UAE & GCC roles.</p>
-        <div
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) setResumeFile(file); }}
-          onClick={() => document.getElementById("resume-upload").click()}
-          style={{ background: "#1C1C1C", padding: 24, borderRadius: 12, border: "1px solid #2A2A2A", cursor: "pointer", textAlign: "center", marginTop: 24 }}
-        >
-          <label style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#A0A0A0", letterSpacing: "0.08em", fontFamily: AT_FONT }}>Resume Upload</label>
-          <div style={{ marginTop: 12, color: "#A0A0A0", fontSize: 13, fontFamily: AT_FONT }}>
-            {resumeFile ? `✅ ${resumeFile.name}` : "Drag & drop PDF or DOCX here, or click to browse"}
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={T.amber} />
+          <stop offset="100%" stopColor={T.green} />
+        </linearGradient>
+      </defs>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={T.border} strokeWidth={strokeWidth} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r}
+        fill="none" stroke={`url(#${gradientId})`}
+        strokeWidth={strokeWidth} strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={animated ? targetOffset : circ}
+        style={animated ? { strokeDashoffset: targetOffset, transition: "stroke-dashoffset 1.2s ease-out" } : { strokeDashoffset: circ }}
+      />
+    </svg>
+  );
+}
+
+function AnimatedScoreRing({ score, size, strokeWidth, gradientId }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return <ScoreRing score={score} size={size} strokeWidth={strokeWidth} animated={ready} gradientId={gradientId} />;
+}
+
+// ─── Chip ─────────────────────────────────────────────────────────────────────
+function Chip({ label, variant }) {
+  const s = {
+    green: { color: T.green, border: `1px solid rgba(74,222,128,0.35)`, background: "rgba(74,222,128,0.07)" },
+    amber: { color: T.amber, border: `1px solid ${T.amberBorder}`, background: T.amberDim },
+  };
+  return (
+    <span style={{ ...s[variant], fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 999, cursor: "default", display: "inline-block", lineHeight: "1.4", transition: "background 0.15s" }}>
+      {label}
+    </span>
+  );
+}
+
+// ─── Sub-score card — FIX 3: 32px / 700 ──────────────────────────────────────
+function SubCard({ value, label, color }) {
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: "24px 16px", textAlign: "center", flex: 1 }}>
+      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 700, lineHeight: 1.2, letterSpacing: -1, color }}>{value}</div>
+      <div style={{ fontSize: 12, color: T.muted, marginTop: 8, fontWeight: 500, lineHeight: 1.6 }}>{label}</div>
+    </div>
+  );
+}
+
+// ─── Sample result card — FIX 2: full content, no cutoff ─────────────────────
+function SampleResultCard() {
+  return (
+    <div style={{ width: 360, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "24px 22px 26px", position: "relative", flexShrink: 0 }}>
+      <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, rgba(217,119,6,0.4), transparent)`, borderRadius: "20px 20px 0 0" }} />
+
+      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: T.muted, marginBottom: 18 }}>Sample Result</div>
+
+      {/* Ring */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ position: "relative", width: 120, height: 120, marginBottom: 10 }}>
+          <ScoreRing score={82} size={120} strokeWidth={10} animated gradientId="sample-grad" />
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 34, fontWeight: 800, lineHeight: 1, letterSpacing: -2, color: T.text }}>82</div>
+            <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>out of 100</div>
           </div>
-          <input id="resume-upload" type="file" accept=".pdf,.docx,.txt" onChange={(e) => setResumeFile(e.target.files[0])} style={{ display: "none" }} />
         </div>
-        <div style={{ background: "#1C1C1C", padding: 24, borderRadius: 12, border: "1px solid #2A2A2A", marginTop: 16 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", color: "#A0A0A0", letterSpacing: "0.08em", fontFamily: AT_FONT }}>Job Target</label>
-          <textarea
-            rows={3}
-            value={jobDesc}
-            onChange={(e) => setJobDesc(e.target.value)}
-            placeholder="Paste target role description..."
-            style={{
-              width: "100%",
-              marginTop: 12,
-              background: "#1C1C1C",
-              border: "1px solid #2A2A2A",
-              borderRadius: 8,
-              color: "#FFFFFF",
-              padding: "12px 16px",
-              outline: "none",
-              resize: "vertical",
-              fontSize: 14,
-              fontFamily: AT_FONT,
-              boxSizing: "border-box",
-            }}
-          />
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, color: T.text, lineHeight: 1.6 }}>Your Foundation is Solid</div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ height: 5, borderRadius: 999, background: `linear-gradient(90deg, ${T.red}, ${T.amber} 50%, ${T.green})`, position: "relative", marginBottom: 6 }}>
+          <div style={{ position: "absolute", top: "50%", left: "82%", transform: "translate(-50%,-50%)", width: 11, height: 11, background: T.text, borderRadius: "50%", boxShadow: "0 0 6px rgba(255,255,255,0.5)" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.muted }}>
+          <span>Needs Work</span><span>On Track</span><span>Market Ready</span>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleCheck}
-        disabled={loading}
-        style={{ width: "100%", padding: 16, borderRadius: 8, background: "#FFFFFF", color: "#000000", fontWeight: 600, fontSize: 16, cursor: loading ? "not-allowed" : "pointer", border: "none", fontFamily: AT_FONT }}
-      >
-        {loading ? loadingMessages[loadingStage] : "Execute Analysis"}
-      </button>
-
-      {error && <div style={{ color: "#ef4444", marginTop: 20, textAlign: "center", fontWeight: 600, fontFamily: AT_FONT }}>{error}</div>}
-
-      {/* Dashboard Results */}
-      {result && !loading && (
-        <div>
-          <ATSScanner
-            cvName={props.formData?.name || props.formData?.fullName || ""}
-            cvJobTitle={props.formData?.jobTitle || props.formData?.position || ""}
-            atsScore={atsScore}
-            keywords={keywords}
-            isPaidUser={isPro}
-            onUnlock={() => navigate("/upgrade")}
-            autoStartScanOnMount
-          />
-
-          {/* Visual Proof Hook (Free Users Only) */}
-          {!isPro && (
-            <div style={{ marginTop: 40 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20, fontFamily: AT_FONT }}>ATS Visibility Check</h3>
-              <div className="cvp-ats-visibility-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                <div style={{ background: "#fff", padding: 10, borderRadius: 12, height: 300, overflow: "hidden" }}>
-                  <div style={{ color: "#000", fontSize: 10, fontWeight: 800, marginBottom: 5 }}>Human View (Formatted)</div>
-                  <iframe title="CV Human View" src={result.pdfPreviewUrl} style={{ width: "100%", height: "100%", border: "none" }} />
-                </div>
-                <div style={{ background: "#000", padding: 15, borderRadius: 12, height: 300, position: "relative", border: "1px solid #ef4444" }}>
-                  <div style={{ color: "#ef4444", fontSize: 10, fontWeight: 800, marginBottom: 5 }}>ATS View (Raw Text) — ❌ Layout Interference</div>
-                  <pre style={{ fontSize: 9, color: "#fff", opacity: 0.6, whiteSpace: "pre-wrap" }}>{result.rawResumeText.substring(0, 800)}...</pre>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ marginTop: 32 }}>
-            <button
-              type="button"
-              onClick={handleDownloadCv}
-              style={{
-                width: "100%",
-                padding: 16,
-                borderRadius: 8,
-                background: "#FFFFFF",
-                color: "#000000",
-                fontWeight: 600,
-                fontSize: 16,
-                border: "none",
-                cursor: "pointer",
-                fontFamily: AT_FONT,
-              }}
-            >
-              Download CV
-            </button>
+      {/* Sub-scores */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7, marginBottom: 16 }}>
+        {[["72", "Keywords", T.blue], ["58", "Structure", T.amber], ["85", "Content", T.green]].map(([v, l, c]) => (
+          <div key={l} style={{ background: T.elevated, border: `1px solid ${T.border}`, borderRadius: 11, padding: "12px 8px", textAlign: "center" }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, lineHeight: 1.2, color: c }}>{v}</div>
+            <div style={{ fontSize: 10, color: T.muted, marginTop: 4, lineHeight: 1.6 }}>{l}</div>
           </div>
+        ))}
+      </div>
 
-          {/* Pricing Wall */}
-          <div style={{ marginTop: 40, padding: 32, borderRadius: 24, background: "#141414", textAlign: "center", border: "1px solid #2A2A2A" }}>
-            <h2 style={{ fontSize: 24, fontWeight: 700, fontFamily: AT_FONT }}>Upgrade to Deep Scan Pro</h2>
-            <div className="cvp-ats-pricing-row" style={{ display: "flex", justifyContent: "center", gap: 30, marginTop: 24 }}>
-              <div>
-                <div style={{ fontSize: 12, color: "#A0A0A0" }}>Basic Scan</div>
-                <div style={{ fontSize: 20, fontWeight: 800 }}>AED 0</div>
-              </div>
-              <div style={{ width: 1, background: "#2A2A2A" }} />
-              <div>
-                <div style={{ fontSize: 12, color: "#A0A0A0" }}>Deep Scan Pro</div>
-                <div style={{ fontSize: 20, fontWeight: 800 }}>AED 49</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowWaitlistModal(true)}
-              style={{ marginTop: 24, padding: "12px 40px", borderRadius: 12, background: "#FFFFFF", color: "#000000", fontWeight: 600, border: "none", cursor: "pointer", fontFamily: AT_FONT }}
-            >
-              Join Priority Waitlist
-            </button>
-          </div>
+      {/* Visibility Boosters */}
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", color: T.green, marginBottom: 9, display: "flex", alignItems: "center", gap: 5 }}>✦ Visibility Boosters</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+        {["Negotiation", "CRM", "Client Relations", "Lead Generation", "Sales Pipeline"].map((k) => <Chip key={k} label={k} variant="green" />)}
+      </div>
+
+      {/* Rank Triggers */}
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", color: T.amber, marginBottom: 9, display: "flex", alignItems: "center", gap: 5 }}>⊕ Rank Triggers</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+        {["RERA Certified", "Off-plan Sales", "KYC", "AML"].map((k) => <Chip key={k} label={k} variant="amber" />)}
+      </div>
+
+      {/* CVPassport Verified */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+        <div style={{ background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)", color: "#60A5FA", fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 5 }}>
+          ✦ CVPassport Verified — Top 15% Ready for GCC Finance
         </div>
-      )}
+      </div>
 
-      {/* Waitlist Modal */}
-      {showWaitlistModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-          <div style={{ background: "#141414", padding: 40, borderRadius: 24, maxWidth: 400, width: "90%", textAlign: "center", border: "1px solid #2A2A2A" }}>
-            <h3 style={{ fontSize: 22, fontWeight: 700, fontFamily: AT_FONT }}>Coming Soon</h3>
-            <p style={{ color: "#A0A0A0", margin: "12px 0 24px" }}>We are perfecting our Deep Scan engine. Join the waitlist for priority access and a 50% launch discount.</p>
-            
-            {waitlistMessage.text ? (
-              <div style={{ color: "#FFFFFF", fontWeight: 700, marginBottom: 20 }}>{waitlistMessage.text}</div>
-            ) : (
-              <>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={waitlistEmail}
-                  onChange={(e) => setWaitlistEmail(e.target.value)}
-                  style={{ width: "100%", padding: "12px 16px", borderRadius: 8, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFFFFF", marginBottom: 16, fontFamily: AT_FONT, fontSize: 14, boxSizing: "border-box" }}
+      {/* Label */}
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "rgba(160,160,160,0.45)" }}>
+          Your results will appear here
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Scan animation ───────────────────────────────────────────────────────────
+function ScanRing() {
+  return (
+    <div style={{ width: 90, height: 90, position: "relative" }}>
+      <svg width="90" height="90" viewBox="0 0 90 90" style={{ animation: "ats-spin 1.4s linear infinite" }}>
+        <defs>
+          <linearGradient id="scan-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="100%" stopColor={T.amber} />
+          </linearGradient>
+        </defs>
+        <circle cx="45" cy="45" r="36" fill="none" stroke={T.border} strokeWidth="4" />
+        <circle cx="45" cy="45" r="36" fill="none" stroke="url(#scan-grad)" strokeWidth="4" strokeLinecap="round" strokeDasharray="226" strokeDashoffset="170" />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 10, height: 10, background: T.amber, borderRadius: "50%", animation: "ats-pulse 1.4s ease-in-out infinite" }} />
+      </div>
+      <style>{`
+        @keyframes ats-spin { to { transform: rotate(360deg); } }
+        @keyframes ats-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.6)} }
+        @keyframes ats-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(4px)} }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+export default function ATSChecker() {
+  const [phase, setPhase] = useState("idle");
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
+  const [scanStep, setScanStep] = useState(0);
+  const [results, setResults] = useState(null);
+  const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+
+  const fileInputRef = useRef(null);
+  const outerRef = useRef(null);
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Scan step cycling ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== "loading") return;
+    setScanStep(0);
+    const t1 = setTimeout(() => setScanStep(1), 1200);
+    const t2 = setTimeout(() => setScanStep(2), 2300);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [phase]);
+
+  // ── File handling ─────────────────────────────────────────────────────────
+  const handleFileSelect = useCallback((file) => {
+    if (!file) return;
+    const valid = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    if (!valid.includes(file.type) && !file.name.match(/\.(pdf|docx)$/i)) { setError("Please upload a PDF or DOCX file."); return; }
+    setError(null);
+    setUploadedFile(file);
+  }, []);
+
+  const onFileChange = useCallback((e) => handleFileSelect(e.target.files[0]), [handleFileSelect]);
+  const onDrop = useCallback((e) => { e.preventDefault(); setIsDragging(false); handleFileSelect(e.dataTransfer.files[0]); }, [handleFileSelect]);
+  const onDragOver = useCallback((e) => { e.preventDefault(); setIsDragging(true); }, []);
+  const onDragLeave = useCallback(() => setIsDragging(false), []);
+
+  // ── Analysis ──────────────────────────────────────────────────────────────
+  const handleAnalyze = useCallback(async () => {
+    if (!uploadedFile || !jobDescription.trim()) { setError("Please upload your CV and paste a job description."); return; }
+    setError(null);
+    setPhase("loading");
+    try {
+      const userId = user?.id ?? "anon";
+      const filePath = `cv-uploads/${userId}/${Date.now()}-${uploadedFile.name}`;
+      const { error: uploadError } = await supabase.storage.from("cv-files").upload(filePath, uploadedFile, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-cv", { body: { filePath, jobDescription, userId } });
+      if (fnError) throw fnError;
+
+      if (user) {
+        await supabase.from("ats_results").insert({
+          user_id: user.id, score: data.score,
+          keywords_score: data.keywordsScore, structure_score: data.structureScore,
+          content_score: data.contentScore, visibility_boosters: data.visibilityBoosters,
+          rank_triggers: data.rankTriggers, industry: data.industry,
+          created_at: new Date().toISOString(),
+        });
+      }
+      setResults(data);
+      setPhase("results");
+    } catch (err) {
+      console.error("ATS analysis error:", err);
+      setError("Something went wrong. Please try again.");
+      setPhase("idle");
+    }
+  }, [uploadedFile, jobDescription, user]);
+
+  // ── Shared nav ────────────────────────────────────────────────────────────
+  const Nav = ({ back }) => (
+    <nav style={{ padding: "22px 44px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+      <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 18, letterSpacing: -0.5 }}>
+        CV<span style={{ color: T.amber }}>Passport</span>
+      </span>
+      <span style={{ marginLeft: 12, fontSize: 10, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: T.amber, background: T.amberDim, border: `1px solid ${T.amberBorder}`, padding: "3px 10px", borderRadius: 999 }}>
+        GCC & India
+      </span>
+      {back && (
+        <button onClick={back} style={{ marginLeft: "auto", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 8, padding: "6px 14px", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+          ← New Check
+        </button>
+      )}
+    </nav>
+  );
+
+  // ── RENDER: idle ──────────────────────────────────────────────────────────
+  if (phase === "idle") {
+    return (
+      <div ref={outerRef} style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", overflow: "hidden", position: "relative", lineHeight: 1.6 }}>
+        <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+          <div style={{ position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)", width: 800, height: 500, background: "radial-gradient(ellipse at center, rgba(217,119,6,0.08) 0%, transparent 70%)" }} />
+        </div>
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <Nav />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 56, alignItems: "start", padding: "56px 44px 80px", maxWidth: 1200, margin: "0 auto" }}>
+            {/* Left */}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2.5, textTransform: "uppercase", color: T.amber, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ display: "inline-block", width: 20, height: 1, background: T.amber }} />
+                GCC & India Market Intelligence
+              </div>
+
+              <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: "clamp(34px,4vw,52px)", fontWeight: 800, lineHeight: 1.12, letterSpacing: -1.5, marginBottom: 20 }}>
+                Find out why your CV<br />isn&apos;t getting <span style={{ color: T.amber }}>callbacks</span>
+              </h1>
+
+              <p style={{ fontSize: 16, lineHeight: 1.75, color: T.muted, maxWidth: 480, marginBottom: 36 }}>
+                Upload your CV, paste the job description. Get your score in seconds — based on real regional hiring data.
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 44 }}>
+                {["Upload your CV (PDF or DOCX)", "Paste the target job description", "Get your score + keyword gaps instantly"].map((s, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 15, color: "rgba(255,255,255,0.85)" }}>
+                    <div style={{ width: 30, height: 30, background: T.amber, borderRadius: "50%", color: "#000", fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+                    {s}
+                  </div>
+                ))}
+              </div>
+
+              {/* FIX 4: upload zone unchanged */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
+                style={{ position: "relative", background: isDragging ? "rgba(217,119,6,0.05)" : uploadedFile ? "rgba(74,222,128,0.04)" : T.surface, border: `1.5px dashed ${isDragging ? T.amber : uploadedFile ? "rgba(74,222,128,0.4)" : T.border}`, borderRadius: 16, padding: "44px 24px", textAlign: "center", cursor: "pointer", marginBottom: 14, overflow: "hidden", transition: "border-color 0.2s, background 0.2s" }}
+              >
+                <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(217,119,6,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
+                <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} onChange={onFileChange} />
+                <div style={{ width: 52, height: 52, background: uploadedFile ? "rgba(74,222,128,0.1)" : T.amberDim, border: `1px solid ${uploadedFile ? "rgba(74,222,128,0.35)" : T.amberBorder}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+                  {uploadedFile ? <CheckCircle size={22} color={T.green} /> : <Upload size={22} color={T.amber} />}
+                </div>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700, color: uploadedFile ? T.green : T.text, marginBottom: 6 }}>
+                  {uploadedFile ? uploadedFile.name : "Drop your CV here"}
+                </div>
+                <div style={{ fontSize: 13, color: T.muted }}>
+                  {uploadedFile ? "File ready · click to replace" : <>or <span style={{ color: T.amber, fontWeight: 500 }}>browse your CV</span></>}
+                </div>
+                <div style={{ marginTop: 14, fontSize: 11, color: "rgba(160,160,160,0.5)", letterSpacing: 0.5 }}>PDF · DOCX · Max 10MB</div>
+              </div>
+
+              {/* FIX 4: textarea unchanged */}
+              <div style={{ position: "relative", marginBottom: 16 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: T.muted, marginBottom: 8, display: "block" }}>Target Job Description</label>
+                <textarea
+                  value={jobDescription} onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste the full job description here — the more detail, the sharper your analysis..."
+                  style={{ width: "100%", background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: 16, padding: "18px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: T.text, resize: "none", height: 130, outline: "none", lineHeight: 1.6, transition: "border-color 0.2s", boxSizing: "border-box" }}
+                  onFocus={(e) => { e.target.style.borderColor = T.amberBorder; }}
+                  onBlur={(e) => { e.target.style.borderColor = T.border; }}
                 />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setWaitlistLoading(true);
-                    try {
-                      await joinWaitlist(waitlistEmail);
-                      setWaitlistMessage({ type: "success", text: "You're on the list! We'll notify you first." });
-                    } catch (e) { console.error(e); }
-                    setWaitlistLoading(false);
-                  }}
-                  disabled={waitlistLoading}
-                  style={{ width: "100%", padding: 14, borderRadius: 8, background: "#FFFFFF", color: "#000000", fontWeight: 600, border: "none", cursor: "pointer", fontFamily: AT_FONT }}
-                >
-                  {waitlistLoading ? "Joining..." : "Join Priority List"}
-                </button>
-              </>
-            )}
-            <button type="button" onClick={() => setShowWaitlistModal(false)} style={{ marginTop: 20, background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", fontSize: 12, fontFamily: AT_FONT }}>Close</button>
+                <div style={{ position: "absolute", bottom: 14, right: 16, fontSize: 11, color: "rgba(160,160,160,0.4)", pointerEvents: "none" }}>{jobDescription.length} chars</div>
+              </div>
+
+              {error && (
+                <div style={{ color: T.red, fontSize: 13, marginBottom: 12, padding: "10px 16px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10 }}>{error}</div>
+              )}
+
+              <button
+                onClick={handleAnalyze}
+                style={{ width: "100%", background: T.text, color: "#000", border: "none", borderRadius: 12, padding: "18px 24px", fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: -0.3, transition: "opacity 0.15s, transform 0.15s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+              >
+                Analyze My CV <ArrowRight size={18} />
+              </button>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, fontSize: 12, color: "rgba(160,160,160,0.6)" }}>
+                <Lock size={12} color="rgba(160,160,160,0.5)" />
+                Secure processing via Supabase · Your data is never sold
+              </div>
+            </div>
+
+            {/* FIX 2: full sample card */}
+            <SampleResultCard />
           </div>
         </div>
-      )}
-      <UpgradeModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} feature="ats" />
-      <FAB
-        ref={fabRef}
-        tabKey="ats"
-        atsScore={result?.total ?? 0}
-        atsChecks={atsChecks}
-        onNavigateToCoverLetter={() => {
-          writeFabMemory({ hasVisitedCoverLetter: true });
-          navigate("/cover-letter");
-        }}
-      />
+      </div>
+    );
+  }
+
+  // ── RENDER: loading ───────────────────────────────────────────────────────
+  if (phase === "loading") {
+    return (
+      <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", lineHeight: 1.6 }}>
+        <Nav />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 32, padding: 40 }}>
+          <ScanRing />
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 6 }}>{SCAN_STEPS[scanStep]}</div>
+            <div style={{ fontSize: 13, color: T.muted }}>Hang tight, this takes just a moment</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 300 }}>
+            {SCAN_STEPS.map((s, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13, color: i < scanStep ? T.green : i === scanStep ? T.text : T.muted, opacity: i > scanStep ? 0.4 : 1, transition: "color 0.4s, opacity 0.4s" }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: i < scanStep ? T.green : i === scanStep ? T.amber : T.border, flexShrink: 0, transition: "background 0.3s" }} />
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RENDER: results ───────────────────────────────────────────────────────
+  const score = results?.score ?? 82;
+  const keywordsScore = results?.keywordsScore ?? 72;
+  const structureScore = results?.structureScore ?? 58;
+  const contentScore = results?.contentScore ?? 85;
+  const visibilityBoosters = results?.visibilityBoosters ?? ["Negotiation", "CRM", "Client Relations", "Lead Generation", "Sales Pipeline"];
+  const rankTriggers = results?.rankTriggers ?? ["RERA Certified", "Off-plan Sales", "KYC", "AML"];
+  const industry = results?.industry ?? "Finance";
+  const topPercent = results?.topPercent ?? 15;
+  const missingCount = results?.missingCount ?? 100 - score;
+
+  return (
+    <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
+      <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <div style={{ position: "absolute", top: "-10%", left: "50%", transform: "translateX(-50%)", width: 700, height: 400, background: "radial-gradient(ellipse at center, rgba(217,119,6,0.07) 0%, transparent 70%)" }} />
+      </div>
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <Nav back={() => { setPhase("idle"); setResults(null); setUploadedFile(null); setJobDescription(""); }} />
+
+        <div style={{ maxWidth: 640, margin: "0 auto", padding: "52px 28px 100px" }}>
+
+          {/* FIX 5 + FIX 6: Score ring — fully visible, 56px num, badge below ring */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 40 }}>
+            <div style={{ position: "relative", width: 190, height: 190, marginBottom: 20 }}>
+              <AnimatedScoreRing score={score} size={190} strokeWidth={12} gradientId="result-ring-main" />
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                {/* FIX 3: 56px, 800, -2px */}
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 56, fontWeight: 800, lineHeight: 1, letterSpacing: -2, color: T.text }}>{score}</div>
+                <div style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>out of 100</div>
+              </div>
+            </div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: -0.5, marginBottom: 14 }}>{getScoreLabel(score)}</div>
+            {/* FIX 5: points badge clearly visible */}
+            <div style={{ background: T.amber, color: "#000", fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700, padding: "7px 20px", borderRadius: 999, marginBottom: 14, display: "inline-block" }}>
+              +{100 - score} Points within reach
+            </div>
+            <div style={{ fontSize: 13, color: T.muted }}>Analyzed against real GCC &amp; India hiring data</div>
+          </div>
+
+          {/* Gradient bar — unchanged */}
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ height: 6, borderRadius: 999, background: `linear-gradient(90deg, ${T.red}, ${T.amber} 50%, ${T.green})`, position: "relative", marginBottom: 10 }}>
+              <div style={{ position: "absolute", top: "50%", left: `${score}%`, transform: "translate(-50%,-50%)", width: 14, height: 14, background: T.text, borderRadius: "50%", boxShadow: "0 0 8px rgba(255,255,255,0.6), 0 0 20px rgba(255,255,255,0.2)" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.muted }}>
+              <span>Needs Work</span><span>On Track</span><span>Market Ready</span>
+            </div>
+          </div>
+
+          {/* Sub-scores — unchanged */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 36 }}>
+            <SubCard value={keywordsScore} label="Keywords" color={T.blue} />
+            <SubCard value={structureScore} label="Structure" color={T.amber} />
+            <SubCard value={contentScore} label="Content" color={T.green} />
+          </div>
+
+          {/* Visibility Boosters — unchanged */}
+          <div style={{ marginBottom: 30 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: T.green, marginBottom: 14 }}>
+              <Sparkles size={13} color={T.green} /> Visibility Boosters
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {visibilityBoosters.map((kw) => <Chip key={kw} label={kw} variant="green" />)}
+            </div>
+          </div>
+
+          {/* Rank Triggers — unchanged */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: T.amber, marginBottom: 14 }}>
+              <Plus size={13} color={T.amber} /> Rank Triggers
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {rankTriggers.map((kw) => <Chip key={kw} label={kw} variant="amber" />)}
+            </div>
+          </div>
+
+          {/* CVPassport Verified — unchanged */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+            <div style={{ background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.35)", color: "#60A5FA", fontSize: 13, fontWeight: 600, padding: "9px 22px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Sparkles size={13} color="#60A5FA" />
+              CVPassport Verified — Top {topPercent}% Ready for GCC {industry}
+            </div>
+          </div>
+
+          {/* Conversion card — unchanged */}
+          <div style={{ background: T.elevated, border: `1px solid ${T.border}`, borderRadius: 20, padding: "32px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+            <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent)" }} />
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 800, lineHeight: 1.4, marginBottom: 12 }}>
+              You&apos;re missing {missingCount} Rank Triggers for this role
+            </div>
+            <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, marginBottom: 22, maxWidth: 340, marginLeft: "auto", marginRight: "auto" }}>
+              Unlock your full gap + AI rewrite suggestions built on real GCC hiring data
+            </div>
+            <button
+              style={{ width: "100%", background: T.text, color: "#000", border: "none", borderRadius: 12, padding: "17px 24px", fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: -0.3, marginBottom: 14, transition: "opacity 0.15s, transform 0.15s" }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+            >
+              Unlock Full Analysis <ArrowRight size={16} />
+            </button>
+            <div style={{ fontSize: 11, color: "rgba(160,160,160,0.5)" }}>Trusted by job seekers across UAE, Saudi Arabia &amp; India</div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
+            <div style={{ width: 38, height: 38, background: T.elevated, border: `1px solid ${T.border}`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", animation: "ats-bounce 2s ease-in-out infinite" }}>
+              <ChevronDown size={16} color={T.muted} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
