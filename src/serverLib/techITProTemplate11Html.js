@@ -214,13 +214,13 @@ function buildTechITProTemplate11Html(rawCv) {
       color: ${MID};
       margin: 0;
       padding: 0;
-      background: linear-gradient(90deg, #1E2D45 65mm, #F7F9FC 65mm);
+      background: linear-gradient(90deg, #1E2D45 75mm, #F7F9FC 75mm);
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     .cvp-root {
       display: grid;
-      grid-template-columns: 65mm 1fr;
+      grid-template-columns: 75mm 1fr;
       width: 210mm;
       min-height: 297mm;
       background: transparent;
@@ -435,25 +435,22 @@ function buildTechITProTemplate11Html(rawCv) {
     @media print {
       html, body { margin: 0; padding: 0; }
 
-      body {
-        background: linear-gradient(90deg, #1E2D45 65mm, #F7F9FC 65mm) !important;
-      }
-
       .cvp-root {
-        display: block !important;
+        display: grid;
+        grid-template-columns: 75mm 1fr;
         width: 210mm;
         min-height: auto !important;
         height: auto !important;
         background: transparent;
       }
       .cvp-sidebar {
-        float: left !important;
-        width: 65mm !important;
         position: static !important;
+        width: auto !important;
+        height: auto !important;
       }
       .cvp-main {
-        margin-left: 65mm !important;
-        width: 145mm !important;
+        width: auto !important;
+        margin-left: 0 !important;
         display: block !important;
       }
 
