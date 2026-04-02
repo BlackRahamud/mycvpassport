@@ -488,12 +488,42 @@ function OptionalBuilderAccordionSections({
       ) : (
         <div data-cvp-highlight={opt.id} style={{ display: "grid", gap: 8, borderRadius: 8, padding: 2, margin: -2 }}>
           {opt.multiline ? (
-            <textarea
-              style={{ ...CB_UI.input, resize: "vertical" }}
-              placeholder={opt.label}
-              value={resume[opt.field] || ""}
-              onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))}
-            />
+            <>
+              <div style={{ position: "relative", width: "100%" }}>
+                <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
+                <textarea
+                  className="cvp-builder-ph"
+                  style={BUILDER_DESCR_TEXTAREA}
+                  placeholder={opt.label}
+                  value={resume[opt.field] || ""}
+                  onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "rgba(59,130,246,0.45)";
+                    e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#2A2A2A";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: 10,
+                    right: 12,
+                    fontSize: 10,
+                    color: "#444",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {(resume[opt.field] || "").length}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
+                <span style={{ fontSize: 11, color: "#555" }}>Each line = one bullet on your CV</span>
+              </div>
+            </>
           ) : (
             <input
               style={{ ...CB_UI.input, minHeight: undefined }}
@@ -533,6 +563,92 @@ const BUILDER_SHEET_SURFACE = {
   background: "#141414",
   border: "1px solid #2A2A2A",
   borderRadius: 16,
+};
+
+const CVP_BUILDER_PH_CSS = ".cvp-builder-ph::placeholder{color:rgba(255,255,255,0.22);font-style:italic}";
+
+const BUILDER_SKILL_INPUT_BASE = {
+  background: "#141414",
+  border: "1px solid #2A2A2A",
+  borderRadius: 12,
+  color: "#fff",
+  fontSize: 13,
+  padding: "11px 14px",
+  outline: "none",
+  width: "100%",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+};
+
+const BUILDER_SKILL_INPUT_ROW = { display: "flex", gap: 8, alignItems: "stretch" };
+
+const BUILDER_SKILL_ADD_BTN = {
+  background: "#fff",
+  border: "none",
+  color: "#000",
+  fontSize: 12,
+  fontWeight: 700,
+  padding: "11px 18px",
+  borderRadius: 12,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+  fontFamily: "inherit",
+};
+
+const BUILDER_DESCR_TEXTAREA = {
+  minHeight: 130,
+  background: "#141414",
+  border: "1px solid #2A2A2A",
+  borderRadius: 14,
+  color: "#fff",
+  fontSize: 13,
+  lineHeight: 1.7,
+  padding: "13px 14px",
+  paddingBottom: 30,
+  outline: "none",
+  resize: "vertical",
+  width: "100%",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+};
+
+const EXP_POINTS_PLACEHOLDER =
+  "• Each line becomes one bullet on your CV\n• Keep it action-first: Managed, Built, Resolved…\n• Aim for 3–5 strong bullets";
+
+const BUILDER_TECH_CHIP = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  background: "rgba(59,130,246,0.12)",
+  border: "1px solid rgba(59,130,246,0.3)",
+  color: "#93C5FD",
+  fontSize: 11,
+  fontWeight: 500,
+  padding: "5px 11px",
+  borderRadius: 999,
+  flexShrink: 0,
+};
+
+const BUILDER_TECH_CHIP_REMOVE = {
+  cursor: "pointer",
+  opacity: 0.45,
+  fontSize: 14,
+  color: "#60A5FA",
+  background: "none",
+  border: "none",
+  padding: 0,
+  lineHeight: 1,
+  fontFamily: "inherit",
+};
+
+const BUILDER_TECH_SKILL_COUNT_BADGE = {
+  fontSize: 10,
+  color: "#60A5FA",
+  background: "rgba(59,130,246,0.12)",
+  border: "1px solid rgba(59,130,246,0.25)",
+  borderRadius: 999,
+  padding: "2px 8px",
 };
 
 function BuilderCvPdfSpinner20() {
@@ -589,11 +705,65 @@ function parseTechnicalSkillsPasteBlock(text) {
   return rows;
 }
 
-function ProfessionalSummaryField({ summary, onChange }) {
+function skillsArrayForChipRender(skills) {
+  return typeof skills === "string"
+    ? skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : Array.isArray(skills)
+      ? skills.map((c) => String(c).trim()).filter(Boolean)
+      : [];
+}
+
+function ProfessionalSummaryField({ summary, onChange, saveSuccessTick = 0 }) {
   const [clearAsk, setClearAsk] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    setIsDirty(false);
+  }, [saveSuccessTick]);
+
   return (
     <div style={{ position: "relative" }}>
-      <textarea style={{ ...CB_UI.input, resize: "vertical" }} placeholder="2–3 lines summary..." value={summary} onChange={(e) => onChange(e.target.value)} />
+      <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
+      <div style={{ position: "relative", width: "100%" }}>
+        <textarea
+          className="cvp-builder-ph"
+          style={BUILDER_DESCR_TEXTAREA}
+          placeholder="2–3 lines on your strengths, focus, and what you bring to the role…"
+          value={summary}
+          onChange={(e) => {
+            setIsDirty(true);
+            onChange(e.target.value);
+          }}
+          onFocus={(e) => {
+            e.target.style.borderColor = "rgba(59,130,246,0.45)";
+            e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "#2A2A2A";
+            e.target.style.boxShadow = "none";
+          }}
+          data-cvp-summary-dirty={isDirty ? "1" : "0"}
+        />
+        <span
+          style={{
+            position: "absolute",
+            bottom: 10,
+            right: 12,
+            fontSize: 10,
+            color: "#444",
+            pointerEvents: "none",
+          }}
+        >
+          {String(summary || "").length}
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 8 }}>
+        <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
+        <span style={{ fontSize: 11, color: "#555" }}>Keep it to 2–3 sentences — recruiters scan this first</span>
+      </div>
       {clearAsk ? (
         <div
           style={{
@@ -799,19 +969,11 @@ function SkillsEditorSection({
         </div>
       ) : null}
       <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
+        <div style={{ ...BUILDER_SKILL_INPUT_ROW, marginBottom: 10 }}>
           <input
-            style={{
-              flex: 1,
-              background: "#1C1C1C",
-              border: "1px solid #2A2A2A",
-              borderRadius: 10,
-              color: "#FFFFFF",
-              fontSize: 12,
-              padding: "9px 12px",
-              outline: "none",
-              fontFamily: "inherit",
-            }}
+            className="cvp-builder-ph"
+            style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0 }}
             placeholder="Add a skill…"
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
@@ -821,21 +983,24 @@ function SkillsEditorSection({
                 addSkillsFromInput();
               }
             }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "rgba(59,130,246,0.45)";
+              e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#2A2A2A";
+              e.target.style.boxShadow = "none";
+            }}
           />
           <button
             type="button"
             className="cvp-builder-add-entry-btn"
-            style={{
-              background: "#fff",
-              border: "none",
-              color: "#000",
-              fontSize: 12,
-              fontWeight: 600,
-              padding: "9px 14px",
-              borderRadius: 12,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              fontFamily: "inherit",
+            style={BUILDER_SKILL_ADD_BTN}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.88";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
             }}
             onClick={addSkillsFromInput}
           >
@@ -957,10 +1122,22 @@ function normalizeTechnicalSkillsState(ts) {
   if (Array.isArray(ts) && ts.length > 0) {
     const first = ts[0];
     if (first != null && typeof first === "object" && !Array.isArray(first) && ("chips" in first || "category" in first)) {
-      return ts.map((g) => ({
-        category: String(g?.category ?? "").trim(),
-        chips: Array.isArray(g?.chips) ? g.chips.map((c) => String(c).trim()).filter(Boolean) : [],
-      }));
+      return ts.map((g) => {
+        const raw = g?.chips;
+        const chips =
+          typeof raw === "string"
+            ? raw
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : Array.isArray(raw)
+              ? raw.map((c) => String(c).trim()).filter(Boolean)
+              : [];
+        return {
+          category: String(g?.category ?? "").trim(),
+          chips,
+        };
+      });
     }
   }
   if (typeof ts === "string" && ts.trim()) {
@@ -1473,7 +1650,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
       updateGroups((arr) => {
         const ng = [...arr];
         if (!ng[idx]) return arr;
-        const merged = [...ng[idx].chips];
+        const merged = [...skillsArrayForChipRender(ng[idx].chips)];
         const seen = new Set(merged.map((c) => c.toLowerCase()));
         for (const c of chips) {
           if (!seen.has(c.toLowerCase())) {
@@ -1512,12 +1689,20 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
       const idx = g.findIndex((x) => x.category.trim().toLowerCase() === catName.toLowerCase());
       if (idx >= 0) {
         const next = [...g];
-        const merged = new Set([...next[idx].chips, ...(Array.isArray(cat.chips) ? cat.chips : [])]);
-        next[idx] = { ...next[idx], chips: [...merged] };
+        const seen = new Set();
+        const merged = [];
+        for (const c of [...skillsArrayForChipRender(next[idx].chips), ...skillsArrayForChipRender(cat.chips)]) {
+          const l = c.toLowerCase();
+          if (!seen.has(l)) {
+            seen.add(l);
+            merged.push(c);
+          }
+        }
+        next[idx] = { ...next[idx], chips: merged };
         return next;
       }
       if (g.length >= 20) return g;
-      return [...g, { category: catName, chips: [...(Array.isArray(cat.chips) ? cat.chips : [])] }];
+      return [...g, { category: catName, chips: skillsArrayForChipRender(cat.chips) }];
     });
     setAddedSuggestedCatKeys((prev) => new Set(prev).add(key));
   };
@@ -1530,19 +1715,6 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
     alignContent: "flex-start",
     minHeight: 36,
     width: "100%",
-  };
-  const realTechChip = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: 500,
-    padding: "4px 10px",
-    borderRadius: 999,
-    flexShrink: 0,
   };
 
   const suggestRows = techRolePack?.technicalSkillCategories?.length && !suggestedCategoriesDismissed ? techRolePack.technicalSkillCategories : null;
@@ -1622,6 +1794,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
         </div>
       ) : null}
       <div data-cvp-highlight="technicalSkills" style={{ display: "grid", gap: 12 }}>
+        <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <input
             style={{ ...CB_UI.input, minHeight: undefined, flex: "1 1 160px" }}
@@ -1647,7 +1820,9 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
         </div>
         {groups.length >= 20 ? <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>Maximum 20 categories.</p> : null}
 
-      {groups.map((g, i) => (
+      {groups.map((g, i) => {
+        const chipList = skillsArrayForChipRender(g.chips);
+        return (
         <div
           key={i}
           style={{
@@ -1723,18 +1898,8 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                 e.target.style.borderBottomColor = "transparent";
               }}
             />
-            <span
-              style={{
-                fontSize: 10,
-                color: "#A0A0A0",
-                background: "#0A0A0A",
-                border: "1px solid #2A2A2A",
-                borderRadius: 999,
-                padding: "2px 7px",
-                flexShrink: 0,
-              }}
-            >
-              {g.chips.length} skill{g.chips.length === 1 ? "" : "s"}
+            <span style={{ ...BUILDER_TECH_SKILL_COUNT_BADGE, flexShrink: 0 }}>
+              {chipList.length} skill{chipList.length === 1 ? "" : "s"}
             </span>
             <button
               type="button"
@@ -1751,14 +1916,14 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               <Trash2 size={14} strokeWidth={1.8} aria-hidden />
             </button>
           </div>
-          {g.chips.length === 0 ? (
+          {chipList.length === 0 ? (
             <p style={{ fontSize: 12, color: "#F87171", margin: "0 0 8px" }}>
               Add at least one skill to this category, or remove it — empty categories cannot be saved.
             </p>
           ) : null}
           <div style={chipRowStyle}>
-            {g.chips.map((chip, ci) => (
-              <span key={`${chip}-${ci}`} style={realTechChip}>
+            {chipList.map((chip, ci) => (
+              <span key={`${chip}-${ci}`} style={BUILDER_TECH_CHIP}>
                 {chip}
                 <button
                   type="button"
@@ -1766,16 +1931,18 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                   onClick={() =>
                     updateGroups((arr) => {
                       const ng = [...arr];
-                      ng[i] = { ...ng[i], chips: ng[i].chips.filter((_, k) => k !== ci) };
+                      const list = skillsArrayForChipRender(ng[i].chips);
+                      const next = list.filter((_, k) => k !== ci);
+                      ng[i] = { ...ng[i], chips: next };
                       return ng;
                     })
                   }
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#FFFFFF", padding: 0, lineHeight: 1, opacity: 0.5, fontSize: 13 }}
+                  style={BUILDER_TECH_CHIP_REMOVE}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.opacity = "1";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = "0.5";
+                    e.currentTarget.style.opacity = "0.45";
                   }}
                 >
                   ×
@@ -1783,19 +1950,10 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               </span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <div style={{ ...BUILDER_SKILL_INPUT_ROW, marginBottom: 10 }}>
             <input
-              style={{
-                flex: 1,
-                background: "#1C1C1C",
-                border: "1px solid #2A2A2A",
-                borderRadius: 10,
-                color: "#FFFFFF",
-                fontSize: 12,
-                padding: "9px 12px",
-                outline: "none",
-                fontFamily: "inherit",
-              }}
+              className="cvp-builder-ph"
+              style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0 }}
               placeholder="Skill or tool name…"
               value={chipDraftByIndex[i] ?? ""}
               onChange={(e) => setChipDraftByIndex((d) => ({ ...d, [i]: e.target.value }))}
@@ -1807,33 +1965,38 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                   if (parts.length === 0) return;
                   updateGroups((arr) => {
                     const ng = [...arr];
-                    const seen = new Set(ng[i].chips.map((c) => c.toLowerCase()));
+                    const cur = skillsArrayForChipRender(ng[i].chips);
+                    const seen = new Set(cur.map((c) => c.toLowerCase()));
                     for (const t of parts) {
                       if (!seen.has(t.toLowerCase())) {
-                        ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
+                        cur.push(t);
                         seen.add(t.toLowerCase());
                       }
                     }
+                    ng[i] = { ...ng[i], chips: cur };
                     return ng;
                   });
                   setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
                 }
               }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "rgba(59,130,246,0.45)";
+                e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#2A2A2A";
+                e.target.style.boxShadow = "none";
+              }}
             />
             <button
               type="button"
               className="cvp-builder-add-entry-btn"
-              style={{
-                background: "#fff",
-                border: "none",
-                color: "#000",
-                fontSize: 12,
-                fontWeight: 600,
-                padding: "9px 14px",
-                borderRadius: 12,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                fontFamily: "inherit",
+              style={BUILDER_SKILL_ADD_BTN}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.88";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
               }}
               onClick={() => {
                 const raw = chipDraftByIndex[i] ?? "";
@@ -1841,13 +2004,15 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                 if (parts.length === 0) return;
                 updateGroups((arr) => {
                   const ng = [...arr];
-                  const seen = new Set(ng[i].chips.map((c) => c.toLowerCase()));
+                  const cur = skillsArrayForChipRender(ng[i].chips);
+                  const seen = new Set(cur.map((c) => c.toLowerCase()));
                   for (const t of parts) {
                     if (!seen.has(t.toLowerCase())) {
-                      ng[i] = { ...ng[i], chips: [...ng[i].chips, t] };
+                      cur.push(t);
                       seen.add(t.toLowerCase());
                     }
                   }
+                  ng[i] = { ...ng[i], chips: cur };
                   return ng;
                 });
                 setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
@@ -1861,7 +2026,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             Paste &amp; Import
           </button>
         </div>
-      ))}
+      );})}
 
         <button type="button" style={{ ...PASTE_IMPORT_BTN, width: "100%", justifyContent: "center", marginTop: 4 }} onClick={openGlobalPaste}>
           <ClipboardIconThin size={16} />
@@ -2027,6 +2192,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const expModalBodyRef = useRef(null);
   const [expModalScrollShadow, setExpModalScrollShadow] = useState(false);
   const [expModalBulletWarn, setExpModalBulletWarn] = useState(false);
+  const [expModalHighEffortDirty, setExpModalHighEffortDirty] = useState(false);
+  const [expCloseGuardOpen, setExpCloseGuardOpen] = useState(false);
+  const [saveSuccessTick, setSaveSuccessTick] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -2073,9 +2241,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   useEffect(() => {
     if (!experienceEditor) {
       setExpModalScrollShadow(false);
+      setExpCloseGuardOpen(false);
+      setExpModalHighEffortDirty(false);
       return;
     }
     setExpModalBulletWarn(false);
+    setExpCloseGuardOpen(false);
+    setExpModalHighEffortDirty(false);
     const el = expModalBodyRef.current;
     if (!el) return;
     const sync = () => {
@@ -2398,6 +2570,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
       setShowUnsavedBanner(false);
       setSavedAtMs(Date.now());
+      setSaveSuccessTick((t) => t + 1);
       setTimeout(() => setSaveStatus(null), 3000);
       // TODO: wire cv_edited on section save — writeFabMemory({ lastAction: "cv_edited", lastActionAt: new Date().toISOString() })
     } catch(e) {
@@ -2407,6 +2580,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       setSaving(false);
     }
   }, [user, resume, selectedTemplate, resumeId]);
+
+  const finalizeCloseExperienceModal = useCallback(() => {
+    setExperienceEditor(null);
+    setExpCloseGuardOpen(false);
+    setExpModalHighEffortDirty(false);
+  }, []);
+
+  const askCloseExperienceModal = useCallback(() => {
+    if (expModalHighEffortDirty) {
+      setExpCloseGuardOpen(true);
+      return;
+    }
+    finalizeCloseExperienceModal();
+  }, [expModalHighEffortDirty, finalizeCloseExperienceModal]);
 
   const handleDownload = async () => {
     if (downloadPhase === "loading") return;
@@ -3084,7 +3271,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 onSectionReorder={reorderBuilderSection}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} />
+                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} saveSuccessTick={saveSuccessTick} />
                 </div>
               </AccordionSection>
 
@@ -3599,7 +3786,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 onSectionReorder={reorderBuilderSection}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} />
+                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} saveSuccessTick={saveSuccessTick} />
                 </div>
               </AccordionSection>
 
@@ -4277,10 +4464,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             justifyContent: "center",
             padding: 16,
           }}
-          onClick={() => setExperienceEditor(null)}
+          onClick={askCloseExperienceModal}
         >
           <div
             style={{
+              position: "relative",
               background: "#1C1C1C",
               border: "1px solid #2A2A2A",
               borderRadius: 12,
@@ -4293,6 +4481,50 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {expCloseGuardOpen ? (
+              <div
+                role="presentation"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 50,
+                  background: "rgba(0,0,0,0.72)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 20,
+                  boxSizing: "border-box",
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div
+                  style={{
+                    background: "#1C1C1C",
+                    border: "1px solid rgba(59,130,246,0.35)",
+                    borderRadius: 12,
+                    padding: 20,
+                    maxWidth: 360,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p style={{ margin: "0 0 16px", fontSize: 14, color: "#fff", lineHeight: 1.45 }}>You have unsaved changes. Discard them?</p>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+                      onClick={() => setExpCloseGuardOpen(false)}
+                    >
+                      Keep editing
+                    </button>
+                    <button type="button" style={CB_UI.btn} onClick={finalizeCloseExperienceModal}>
+                      Discard
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <h3 style={{ margin: 0, padding: "16px 20px 12px", fontSize: 17, fontWeight: 600, color: "#FFF", borderBottom: "1px solid #2A2A2A", flexShrink: 0 }}>
               {experienceEditor.mode === "add" ? "Add experience" : "Edit experience"}
             </h3>
@@ -4392,19 +4624,44 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Description</label>
-                  <textarea
-                    style={{ ...CB_UI.input, marginTop: 4, resize: "vertical", minHeight: 100 }}
-                    placeholder={"Each line = one bullet point on your CV\ne.g. Resolved 50+ tickets daily…"}
-                    value={experienceEditor.draft.points}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (String(v || "").trim()) setExpModalBulletWarn(false);
-                      setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: v } } : null));
-                    }}
-                  />
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6, fontSize: 11, color: "#A0A0A0" }}>
-                    <List size={11} strokeWidth={1.8} aria-hidden />
-                    Each line = one bullet on your CV
+                  <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
+                  <div style={{ position: "relative", width: "100%", marginTop: 4 }}>
+                    <textarea
+                      className="cvp-builder-ph"
+                      style={BUILDER_DESCR_TEXTAREA}
+                      placeholder={EXP_POINTS_PLACEHOLDER}
+                      value={experienceEditor.draft.points}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setExpModalHighEffortDirty(true);
+                        if (String(v || "").trim()) setExpModalBulletWarn(false);
+                        setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: v } } : null));
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = "rgba(59,130,246,0.45)";
+                        e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = "#2A2A2A";
+                        e.target.style.boxShadow = "none";
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: 10,
+                        right: 12,
+                        fontSize: 10,
+                        color: "#444",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {String(experienceEditor.draft.points || "").length}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 8 }}>
+                    <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
+                    <span style={{ fontSize: 11, color: "#555" }}>Each line = one bullet on your CV</span>
                   </div>
                   {expModalBulletWarn ? (
                     <div
@@ -4429,7 +4686,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </div>
             </div>
             <div style={{ flexShrink: 0, borderTop: "1px solid #2A2A2A", padding: "12px 20px 20px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setExperienceEditor(null)}>
+              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={askCloseExperienceModal}>
                 Cancel
               </button>
               <button
@@ -4446,6 +4703,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     u[index] = next;
                     return { ...r, experience: u };
                   });
+                  setExpModalHighEffortDirty(false);
+                  setExpCloseGuardOpen(false);
+                  setSavedAtMs(Date.now());
                   setExperienceEditor(null);
                 }}
               >
