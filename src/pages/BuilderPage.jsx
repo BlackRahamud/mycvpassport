@@ -52,6 +52,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
   const list = normalizeCertificationsArray(resume.certifications);
   const certRolePack = useMemo(() => getRoleSuggestions(jobTitle), [jobTitle]);
   const [inlineNameEdit, setInlineNameEdit] = useState(null);
+  const [certSuggestionsDismissed, setCertSuggestionsDismissed] = useState(false);
   const [certYearError, setCertYearError] = useState(null);
   const certYearCursorRef = useRef(null);
   const certYearInputRef = useRef(null);
@@ -80,10 +81,47 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
 
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      {certRolePack?.certifications?.length ? (
-        <div style={{ display: "grid", gap: 8 }}>
-          <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.35 }}>Common certifications for this role:</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+      {certRolePack?.certifications?.length && !certSuggestionsDismissed ? (
+        <div
+          style={{
+            background: "rgba(59,130,246,0.06)",
+            border: "1px dashed rgba(59,130,246,0.45)",
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 10,
+          }}
+        >
+          <div
+            style={{
+              marginBottom: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+            }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
+              <span style={{ fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>Suggested certifications — not on your CV yet</span>
+            </span>
+            <button
+              type="button"
+              title="Dismiss suggestions"
+              onClick={() => setCertSuggestionsDismissed(true)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#A0A0A0",
+                cursor: "pointer",
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <X size={13} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "flex-start" }}>
             {certRolePack.certifications.map((cert) => {
               const taken = certNameTaken(cert);
               return (
@@ -99,18 +137,22 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
                     }));
                   }}
                   style={{
-                    background: taken ? "#141414" : "#1C1C1C",
-                    border: "1px solid #2A2A2A",
-                    color: taken ? "#666666" : "#FFFFFF",
-                    borderRadius: 8,
-                    padding: "6px 12px",
-                    fontSize: 13,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: "transparent",
+                    border: "1px dashed rgba(59,130,246,0.4)",
+                    color: "#60A5FA",
+                    borderRadius: 999,
+                    padding: "4px 10px",
+                    fontSize: 11,
+                    fontWeight: 500,
                     cursor: taken ? "not-allowed" : "pointer",
-                    opacity: taken ? 0.55 : 1,
-                    transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}`,
+                    opacity: taken ? 0.4 : 1,
+                    fontFamily: "inherit",
                   }}
                 >
-                  {cert}
+                  {taken ? cert : `+ ${cert}`}
                 </button>
               );
             })}
@@ -841,9 +883,6 @@ function SkillsEditorSection({
           >
             <div
               style={{
-                fontSize: 11,
-                color: "#60A5FA",
-                fontWeight: 600,
                 marginBottom: 8,
                 display: "flex",
                 alignItems: "center",
@@ -853,7 +892,7 @@ function SkillsEditorSection({
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
-                Suggestions — not on your CV yet
+                <span style={{ fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>Suggestions — not on your CV yet</span>
               </span>
               <button
                 type="button"
@@ -888,20 +927,14 @@ function SkillsEditorSection({
                       background: "transparent",
                       border: "1px dashed rgba(59,130,246,0.4)",
                       color: "#60A5FA",
+                      borderRadius: 999,
+                      padding: "4px 10px",
                       fontSize: 11,
                       fontWeight: 500,
-                      padding: "4px 10px",
-                      borderRadius: 999,
                       cursor: picked ? "default" : "pointer",
                       opacity: picked ? 0.4 : 1,
                       pointerEvents: picked ? "none" : "auto",
                       fontFamily: "inherit",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!picked) e.currentTarget.style.background = "rgba(59,130,246,0.12)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
                     }}
                   >
                     + {sk}
@@ -1842,13 +1875,11 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               border: "1px dashed rgba(59,130,246,0.45)",
               borderRadius: 12,
               padding: 12,
+              marginBottom: 10,
             }}
           >
             <div
               style={{
-                fontSize: 11,
-                color: "#60A5FA",
-                fontWeight: 600,
                 marginBottom: 8,
                 display: "flex",
                 alignItems: "center",
@@ -1858,12 +1889,13 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
-                Suggested categories — not on your CV yet
+                <span style={{ fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>Suggested categories — not on your CV yet</span>
               </span>
               <button
                 type="button"
+                title="Dismiss suggestions"
                 onClick={() => setSuggestedCategoriesDismissed(true)}
-                style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 0, display: "flex" }}
+                style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
               >
                 <X size={13} strokeWidth={2} aria-hidden />
               </button>
