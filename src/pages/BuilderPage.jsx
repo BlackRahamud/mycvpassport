@@ -1183,7 +1183,7 @@ function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, di
             fontSize: 12,
             fontWeight: 600,
             color: "#FFFFFF",
-            whiteSpace: "nowrap",
+            whiteSpace: "normal",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -1194,7 +1194,7 @@ function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, di
           style={{
             fontSize: 11,
             color: "#A0A0A0",
-            whiteSpace: "nowrap",
+            whiteSpace: "normal",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
@@ -2027,16 +2027,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const expModalBodyRef = useRef(null);
   const [expModalScrollShadow, setExpModalScrollShadow] = useState(false);
   const [expModalBulletWarn, setExpModalBulletWarn] = useState(false);
-  /** Default false = mobile column until viewport is measured (avoids wide layout on narrow screens). */
-  const [isWideLayout, setIsWideLayout] = useState(false);
-
-  useLayoutEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    const mq = window.matchMedia("(min-width: 768px)");
-    const apply = () => setIsWideLayout(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -2415,8 +2410,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const handleDownload = async () => {
     if (downloadPhase === "loading") return;
-    const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
-    if (isMobileViewport && fabRef.current?.runAtsDownloadGatekeeper) {
+    if (isMobile && fabRef.current?.runAtsDownloadGatekeeper) {
       const gate = await fabRef.current.runAtsDownloadGatekeeper();
       if (!gate?.canDownload) return;
     }
@@ -2430,7 +2424,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       await new Promise((r) => setTimeout(r, spinMs));
       if (user?.id) await handleSave();
       await new Promise((r) => setTimeout(r, 500));
-      const el = isMobileViewport ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
+      const el = isMobile ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
       if (!el) throw new Error("Preview not ready");
       await downloadResumeFromPreview(resume, el, { maxPages: pdfTargetPages });
       writeFabMemory({
@@ -2539,7 +2533,18 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   return (
     <div
       ref={builderRootRef}
-      style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-page)", color: "var(--text-primary)", fontFamily: "'DM Sans',sans-serif" }}
+      style={{
+        minHeight: "100vh",
+        width: "100%",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--bg-page)",
+        color: "var(--text-primary)",
+        fontFamily: "'DM Sans',sans-serif",
+      }}
     >
       {/* Top nav bar — tabs row + optional CV finder */}
       <header
@@ -2596,7 +2601,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     fontWeight: builderTab === tab ? 600 : 500,
                     fontSize: 14,
                     cursor: "pointer",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "normal",
                     flex: "0 0 auto",
                     transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
                   }}
@@ -2662,7 +2667,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 140 }}>
+            <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 0 }}>
               {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
             <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
@@ -2686,7 +2691,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                minWidth: 200,
+                minWidth: 0,
               }}
               onMouseEnter={(e) => {
                 if (!downloadLoading) e.currentTarget.style.opacity = "0.9";
@@ -2821,10 +2826,22 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </div>
       </header>
 
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          width: "100%",
+          overflowX: "hidden",
+        }}
+      >
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
-      <div className="cvp-builder-desktop" style={isWideLayout ? undefined : { display: "none" }}>
+      {!isMobile ? (
+      <div className="cvp-builder-desktop desktop-preview-panel" style={{ flex: 1 }}>
         {/* Left panel — Editor */}
-        <aside className="cvp-builder-left">
+        <aside className="cvp-builder-left" style={{ width: "100%", minWidth: 0 }}>
           {builderTab === "content" && (
             <>
               <div
@@ -3259,7 +3276,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120, minHeight: undefined }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
+                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 0, minHeight: undefined }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
                     <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); }}>+ Add</button>
                   </div>
                 </div>
@@ -3327,12 +3344,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           />
         </div>
       </div>
+      ) : null}
 
       {/* Mobile: single column (default until viewport is at least 768px) */}
       <div
         className="cvp-builder-mobile"
         style={{
-          display: isWideLayout ? "none" : "flex",
+          display: isMobile ? "flex" : "none",
           flexDirection: "column",
           flex: 1,
           minHeight: 0,
@@ -3779,7 +3797,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 120, minHeight: undefined }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
+                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 0, minHeight: undefined }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
                     <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); }}>+ Add</button>
                   </div>
                 </div>
@@ -4028,6 +4046,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             </div>
           </div>
         ) : null}
+
+      </div>
 
       </div>
 
@@ -4725,14 +4745,15 @@ function AccordionSection({
         <div
           style={{
             display: "flex",
+            width: "100%",
             alignItems: "center",
+            minWidth: 0,
             gap: 10,
             background: "#141414",
             border: "0.5px solid #2A2A2A",
             borderRadius: 9,
             padding: "8px 12px",
             minHeight: 56,
-            width: "100%",
             boxSizing: "border-box",
           }}
         >
@@ -4752,10 +4773,24 @@ function AccordionSection({
               textAlign: "left",
             }}
           >
-            <div style={{ color: "#FFFFFF", fontSize: 15, fontWeight: 600, letterSpacing: "0.02em" }}>{title}</div>
-            {metaSubtitle ? (
-              <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2, fontWeight: 400 }}>{metaSubtitle}</div>
-            ) : null}
+            <div style={{ minWidth: 0, width: "100%" }}>
+              <div
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  color: "#FFFFFF",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {title}
+              </div>
+              {metaSubtitle ? (
+                <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2, fontWeight: 400 }}>{metaSubtitle}</div>
+              ) : null}
+            </div>
           </button>
           {onSectionReorder ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 0, flexShrink: 0 }}>
@@ -4859,9 +4894,10 @@ function AccordionSection({
       <div
         className="cvp-section-row-header"
         style={{
-          width: "100%",
           display: "flex",
+          width: "100%",
           alignItems: "center",
+          minWidth: 0,
           gap: 12,
           padding: 16,
           background: "transparent",
@@ -4891,7 +4927,22 @@ function AccordionSection({
             textAlign: "left",
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 500, color: "#FFFFFF", letterSpacing: "0.02em" }}>{title}</span>
+          <span
+            style={{
+              minWidth: 0,
+              width: "100%",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              fontSize: 15,
+              fontWeight: 500,
+              color: "#FFFFFF",
+              letterSpacing: "0.02em",
+            }}
+          >
+            {title}
+          </span>
           {metaSubtitle ? <span style={{ fontSize: 12, color: "#A0A0A0", fontWeight: 400 }}>{metaSubtitle}</span> : null}
         </button>
         {onSectionReorder ? (
