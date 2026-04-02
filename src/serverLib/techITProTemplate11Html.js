@@ -439,8 +439,7 @@ function buildTechITProTemplate11Html(rawCv) {
         display: grid;
         grid-template-columns: 75mm 1fr;
         width: 210mm;
-        min-height: auto !important;
-        height: auto !important;
+        min-height: 297mm;
         background: transparent;
       }
       .cvp-sidebar {
@@ -454,26 +453,15 @@ function buildTechITProTemplate11Html(rawCv) {
         display: block !important;
       }
 
-      .break-guard {
-        break-inside: auto !important;
-        page-break-inside: auto !important;
-      }
-      .job-header {
-        break-inside: avoid;
-        page-break-inside: avoid;
-        break-after: avoid;
-        page-break-after: avoid;
-      }
+      .section,
+      .job-entry,
       .job-body,
       .job-points,
-      .job-points li {
-        break-inside: auto !important;
-        page-break-inside: auto !important;
-      }
-      .section,
-      .t11-edu-row {
-        break-inside: auto !important;
-        page-break-inside: auto !important;
+      .job-points li,
+      .t11-edu-row,
+      .break-guard {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
       }
       .job-entry { margin-bottom: 14px; }
 
@@ -484,7 +472,7 @@ function buildTechITProTemplate11Html(rawCv) {
         page-break-after: avoid !important;
       }
 
-      p, li { orphans: 2; widows: 2; }
+      p, li { orphans: 3; widows: 3; }
     }
   </style>
 </head>
