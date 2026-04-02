@@ -2,24 +2,15 @@ import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, Fra
 import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  AlertCircle,
-  AlertTriangle,
   Award,
   Briefcase,
   ChevronDown,
   ChevronUp,
-  Clipboard,
   Cpu,
-  Download,
   FileText,
   Globe,
   GraduationCap,
-  GripVertical,
-  Lightbulb,
-  Pencil,
   Star,
-  Trash2,
-  X,
 } from "lucide-react";
 import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
