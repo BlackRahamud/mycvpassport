@@ -1,6 +1,26 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, Fragment } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Award,
+  Briefcase,
+  ChevronDown,
+  ChevronUp,
+  Clipboard,
+  Cpu,
+  Download,
+  FileText,
+  Globe,
+  GraduationCap,
+  GripVertical,
+  Lightbulb,
+  Pencil,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
@@ -429,6 +449,8 @@ function OptionalBuilderAccordionSections({
   isOpen,
   toggleSection,
   variant = "default",
+  orderedSectionIds,
+  onSectionReorder,
 }) {
   return OPTIONAL_BUILDER_SECTIONS.filter(filter).map((opt) => (
     <AccordionSection
@@ -436,9 +458,12 @@ function OptionalBuilderAccordionSections({
       variant={variant}
       id={opt.id}
       title={opt.label}
+      metaSubtitle={builderSectionMeta(resume, opt.id)}
       isOpen={isOpen(opt.id)}
       onToggle={() => toggleSection(opt.id)}
       icon={opt.id}
+      orderedSectionIds={orderedSectionIds}
+      onSectionReorder={onSectionReorder ? (dir) => onSectionReorder(opt.id, dir) : undefined}
     >
       {opt.id === "certifications" ? (
         <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
@@ -855,6 +880,114 @@ function sanitizeTechnicalSkillsForPersist(ts) {
 
 function technicalSkillsHasAnyChip(resume) {
   return normalizeTechnicalSkillsState(resume.technicalSkills).some((g) => g.chips.length > 0);
+}
+
+/** Default builder accordion order; optional sections appear when added to `builderExtraSectionIds`. */
+const BUILDER_SECTION_DEFAULT_ORDER = [
+  "summary",
+  "experience",
+  "education",
+  "certifications",
+  "skills",
+  "technicalSkills",
+  "languages",
+  "projects",
+  "volunteer",
+  "publications",
+];
+
+function builderVisibleSectionIds(resume) {
+  const extra = resume.builderExtraSectionIds || [];
+  const ids = ["summary", "experience", "education"];
+  if (extra.includes("certifications")) ids.push("certifications");
+  ids.push("skills");
+  if (technicalSkillsHasAnyChip(resume)) ids.push("technicalSkills");
+  ids.push("languages");
+  for (const opt of OPTIONAL_BUILDER_SECTIONS) {
+    if (opt.id !== "certifications" && extra.includes(opt.id)) ids.push(opt.id);
+  }
+  return ids;
+}
+
+function resolveOrderedBuilderSectionIds(resume) {
+  const visible = builderVisibleSectionIds(resume);
+  const visibleSet = new Set(visible);
+  const saved = Array.isArray(resume.builderSectionOrder) ? resume.builderSectionOrder : [];
+  const ordered = [];
+  const seen = new Set();
+  for (const id of saved) {
+    if (visibleSet.has(id)) {
+      ordered.push(id);
+      seen.add(id);
+    }
+  }
+  for (const id of BUILDER_SECTION_DEFAULT_ORDER) {
+    if (visibleSet.has(id) && !seen.has(id)) ordered.push(id);
+  }
+  return ordered;
+}
+
+function applyBuilderSectionReorder(resume, sectionId, direction) {
+  const ordered = resolveOrderedBuilderSectionIds(resume);
+  const i = ordered.indexOf(sectionId);
+  if (i < 0) return resume;
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (j < 0 || j >= ordered.length) return resume;
+  const next = [...ordered];
+  [next[i], next[j]] = [next[j], next[i]];
+  return { ...resume, builderSectionOrder: next };
+}
+
+function builderSectionMeta(resume, sectionId) {
+  switch (sectionId) {
+    case "summary": {
+      const t = String(resume.summary || "").trim();
+      if (!t) return "Empty";
+      const parts = t.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean);
+      const n = Math.max(1, parts.length);
+      return `Written · ${n} sentence${n === 1 ? "" : "s"}`;
+    }
+    case "experience": {
+      const n = resume.experience?.length ?? 0;
+      return `${n} entr${n === 1 ? "y" : "ies"}`;
+    }
+    case "education": {
+      const n = resume.education?.length ?? 0;
+      return `${n} entr${n === 1 ? "y" : "ies"}`;
+    }
+    case "certifications": {
+      const n = normalizeCertificationsArray(resume.certifications).length;
+      return `${n} entr${n === 1 ? "y" : "ies"}`;
+    }
+    case "skills": {
+      const n = splitCommaItems(resume.skills).length;
+      return `${n} skill${n === 1 ? "" : "s"}`;
+    }
+    case "technicalSkills": {
+      const groups = normalizeTechnicalSkillsState(resume.technicalSkills);
+      const n = groups.reduce((acc, g) => acc + (g.chips?.length ?? 0), 0);
+      return `${n} skill${n === 1 ? "" : "s"}`;
+    }
+    case "languages": {
+      const n = splitCommaItems(resume.languages).length;
+      return `${n} language${n === 1 ? "" : "s"}`;
+    }
+    default: {
+      for (const opt of OPTIONAL_BUILDER_SECTIONS) {
+        if (opt.id !== sectionId) continue;
+        const v = resume[opt.field];
+        if (opt.multiline) {
+          const lines = String(v || "")
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean).length;
+          return lines ? `${lines} line${lines === 1 ? "" : "s"}` : "Empty";
+        }
+        return String(v || "").trim() ? "Filled" : "Empty";
+      }
+      return "";
+    }
+  }
 }
 
 function moveExperienceInArray(list, from, to) {
@@ -1822,6 +1955,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
 
+  const orderedBuilderSectionIdList = useMemo(() => resolveOrderedBuilderSectionIds(resume), [resume]);
+
+  const reorderBuilderSection = useCallback((sectionId, direction) => {
+    setResume((r) => applyBuilderSectionReorder(r, sectionId, direction));
+  }, []);
+
   const score = builderAtsScore(resume);
 
   const templateFabRecommendNames = useMemo(() => {
@@ -2359,14 +2498,32 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               ) : null}
 
-              <div className="cvp-sections-list">
-              <AccordionSection id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
+              <div className="cvp-sections-list" style={{ display: "flex", flexDirection: "column" }}>
+              <AccordionSection
+                id="summary"
+                title="Professional Summary"
+                metaSubtitle={builderSectionMeta(resume, "summary")}
+                isOpen={isOpen("summary")}
+                onToggle={() => toggleSection("summary")}
+                icon="summary"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} />
                 </div>
               </AccordionSection>
 
-              <AccordionSection id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
+              <AccordionSection
+                id="experience"
+                title="Professional Experience"
+                metaSubtitle={builderSectionMeta(resume, "experience")}
+                isOpen={isOpen("experience")}
+                onToggle={() => toggleSection("experience")}
+                icon="experience"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
@@ -2429,7 +2586,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              <AccordionSection id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
+              <AccordionSection
+                id="education"
+                title="Education"
+                metaSubtitle={builderSectionMeta(resume, "education")}
+                isOpen={isOpen("education")}
+                onToggle={() => toggleSection("education")}
+                icon="education"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
@@ -2459,9 +2625,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 setCertificationEditor={setCertificationEditor}
                 isOpen={isOpen}
                 toggleSection={toggleSection}
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
               />
 
-              <AccordionSection id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+              <AccordionSection
+                id="skills"
+                title="Skills"
+                metaSubtitle={builderSectionMeta(resume, "skills")}
+                isOpen={isOpen("skills")}
+                onToggle={() => toggleSection("skills")}
+                icon="skills"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <SkillsEditorSection
                   resume={resume}
                   setResume={setResume}
@@ -2520,14 +2697,32 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               {technicalSkillsHasAnyChip(resume) ? (
-                <AccordionSection id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
+                <AccordionSection
+                  id="technicalSkills"
+                  title="Technical Skills"
+                  metaSubtitle={builderSectionMeta(resume, "technicalSkills")}
+                  isOpen={isOpen("technicalSkills")}
+                  onToggle={() => toggleSection("technicalSkills")}
+                  icon="skills"
+                  orderedSectionIds={orderedBuilderSectionIdList}
+                  onSectionReorder={reorderBuilderSection}
+                >
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                     <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
                   </div>
                 </AccordionSection>
               ) : null}
 
-              <AccordionSection id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
+              <AccordionSection
+                id="languages"
+                title="Languages"
+                metaSubtitle={builderSectionMeta(resume, "languages")}
+                isOpen={isOpen("languages")}
+                onToggle={() => toggleSection("languages")}
+                icon="languages"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.languages).map((lg, li) => (
@@ -2552,6 +2747,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 setCertificationEditor={setCertificationEditor}
                 isOpen={isOpen}
                 toggleSection={toggleSection}
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
               />
               </div>
 
@@ -2687,13 +2884,33 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                   </div>
                 ) : null}
                 <div className="cvp-mobile-section-rows" style={{ display: "flex", flexDirection: "column", maxWidth: "100%" }}>
-              <AccordionSection variant="mobileRow" id="summary" title="Professional Summary" isOpen={isOpen("summary")} onToggle={() => toggleSection("summary")} icon="summary">
+              <AccordionSection
+                variant="mobileRow"
+                id="summary"
+                title="Professional Summary"
+                metaSubtitle={builderSectionMeta(resume, "summary")}
+                isOpen={isOpen("summary")}
+                onToggle={() => toggleSection("summary")}
+                icon="summary"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} />
                 </div>
               </AccordionSection>
 
-              <AccordionSection variant="mobileRow" id="experience" title="Professional Experience" isOpen={isOpen("experience")} onToggle={() => toggleSection("experience")} icon="experience">
+              <AccordionSection
+                variant="mobileRow"
+                id="experience"
+                title="Professional Experience"
+                metaSubtitle={builderSectionMeta(resume, "experience")}
+                isOpen={isOpen("experience")}
+                onToggle={() => toggleSection("experience")}
+                icon="experience"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
@@ -2756,7 +2973,17 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 </div>
               </AccordionSection>
 
-              <AccordionSection variant="mobileRow" id="education" title="Education" isOpen={isOpen("education")} onToggle={() => toggleSection("education")} icon="education">
+              <AccordionSection
+                variant="mobileRow"
+                id="education"
+                title="Education"
+                metaSubtitle={builderSectionMeta(resume, "education")}
+                isOpen={isOpen("education")}
+                onToggle={() => toggleSection("education")}
+                icon="education"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
                     <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
@@ -2787,9 +3014,21 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 isOpen={isOpen}
                 toggleSection={toggleSection}
                 variant="mobileRow"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
               />
 
-              <AccordionSection variant="mobileRow" id="skills" title="Skills" isOpen={isOpen("skills")} onToggle={() => toggleSection("skills")} icon="skills">
+              <AccordionSection
+                variant="mobileRow"
+                id="skills"
+                title="Skills"
+                metaSubtitle={builderSectionMeta(resume, "skills")}
+                isOpen={isOpen("skills")}
+                onToggle={() => toggleSection("skills")}
+                icon="skills"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <SkillsEditorSection
                   resume={resume}
                   setResume={setResume}
@@ -2848,14 +3087,34 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               </AccordionSection>
 
               {technicalSkillsHasAnyChip(resume) ? (
-                <AccordionSection variant="mobileRow" id="technicalSkills" title="Technical Skills" isOpen={isOpen("technicalSkills")} onToggle={() => toggleSection("technicalSkills")} icon="skills">
+                <AccordionSection
+                  variant="mobileRow"
+                  id="technicalSkills"
+                  title="Technical Skills"
+                  metaSubtitle={builderSectionMeta(resume, "technicalSkills")}
+                  isOpen={isOpen("technicalSkills")}
+                  onToggle={() => toggleSection("technicalSkills")}
+                  icon="skills"
+                  orderedSectionIds={orderedBuilderSectionIdList}
+                  onSectionReorder={reorderBuilderSection}
+                >
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                     <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
                   </div>
                 </AccordionSection>
               ) : null}
 
-              <AccordionSection variant="mobileRow" id="languages" title="Languages" isOpen={isOpen("languages")} onToggle={() => toggleSection("languages")} icon="languages">
+              <AccordionSection
+                variant="mobileRow"
+                id="languages"
+                title="Languages"
+                metaSubtitle={builderSectionMeta(resume, "languages")}
+                isOpen={isOpen("languages")}
+                onToggle={() => toggleSection("languages")}
+                icon="languages"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
+              >
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {splitCommaItems(resume.languages).map((lg, li) => (
@@ -2881,6 +3140,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 isOpen={isOpen}
                 toggleSection={toggleSection}
                 variant="mobileRow"
+                orderedSectionIds={orderedBuilderSectionIdList}
+                onSectionReorder={reorderBuilderSection}
               />
                 </div>
                 {builderTab === "content" && (
@@ -3606,40 +3867,76 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   );
 }
 
-function AccordionSectionIcon({ icon, size = 16, stroke = "currentColor" }) {
-  const sw = size >= 14 ? 2 : 1.5;
-  const s = size;
-  return (
-    <span style={{ width: s, height: s, display: "grid", placeItems: "center", flexShrink: 0 }}>
-      {icon === "summary" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /></svg>}
-      {icon === "experience" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>}
-      {icon === "education" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>}
-      {icon === "skills" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>}
-      {icon === "languages" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>}
-      {icon === "certifications" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M12 15l-2 2 2 2 2-2-2-2z" /><path d="M4 4h16v16H4z" /></svg>}
-      {icon === "projects" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>}
-      {icon === "volunteer" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}
-      {icon === "publications" && <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={sw}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>}
-    </span>
-  );
+const ACCORDION_ICON_BOX = {
+  width: 32,
+  height: 32,
+  borderRadius: 8,
+  background: "rgba(59,130,246,0.08)",
+  border: "1px solid rgba(59,130,246,0.15)",
+  display: "grid",
+  placeItems: "center",
+  flexShrink: 0,
+  boxSizing: "border-box",
+};
+
+function AccordionSectionLucideIcon({ id, icon }) {
+  const size = 16;
+  const stroke = "#60A5FA";
+  const sw = 1.8;
+  if (id === "technicalSkills") return <Cpu size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  if (id === "certifications" || icon === "certifications") return <Award size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  if (icon === "summary" || id === "summary") return <FileText size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  if (icon === "experience" || id === "experience") return <Briefcase size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  if (icon === "education" || id === "education") return <GraduationCap size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  if (icon === "languages" || id === "languages") return <Globe size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  if (icon === "skills" || id === "skills") return <Star size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  return <FileText size={size} color={stroke} strokeWidth={sw} aria-hidden />;
 }
 
+const ACCORDION_REORDER_BTN = {
+  background: "none",
+  border: "none",
+  padding: 4,
+  display: "grid",
+  placeItems: "center",
+  flexShrink: 0,
+  cursor: "pointer",
+};
+
 // Accordion row inside .cvp-sections-list — unified list style
-function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant = "default" }) {
+function AccordionSection({
+  id,
+  title,
+  metaSubtitle,
+  isOpen,
+  onToggle,
+  icon,
+  children,
+  variant = "default",
+  orderedSectionIds,
+  onSectionReorder,
+}) {
   const ease = "cubic-bezier(0.4,0,0.2,1)";
+  const idx = orderedSectionIds ? orderedSectionIds.indexOf(id) : -1;
+  const flexOrder = idx >= 0 ? idx : undefined;
+  const canMoveUp = Boolean(onSectionReorder && idx > 0);
+  const canMoveDown = Boolean(
+    onSectionReorder && orderedSectionIds && idx >= 0 && idx < orderedSectionIds.length - 1
+  );
+
+  const reorderUp = (e) => {
+    e.stopPropagation();
+    if (canMoveUp) onSectionReorder("up");
+  };
+  const reorderDown = (e) => {
+    e.stopPropagation();
+    if (canMoveDown) onSectionReorder("down");
+  };
+
   if (variant === "mobileRow") {
     return (
-      <div data-cvp-accordion={id} style={{ marginBottom: 5, maxWidth: "100%" }}>
+      <div data-cvp-accordion={id} style={{ marginBottom: 5, maxWidth: "100%", order: flexOrder }}>
         <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onToggle();
-            }
-          }}
-          onClick={onToggle}
           style={{
             display: "flex",
             alignItems: "center",
@@ -3647,29 +3944,65 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant
             background: "#141414",
             border: "0.5px solid #2A2A2A",
             borderRadius: 9,
-            padding: "0 16px",
-            cursor: "pointer",
+            padding: "8px 12px",
             minHeight: 56,
             width: "100%",
             boxSizing: "border-box",
           }}
         >
-          <div
+          <div style={ACCORDION_ICON_BOX}>
+            <AccordionSectionLucideIcon id={id} icon={icon} />
+          </div>
+          <button
+            type="button"
+            onClick={onToggle}
             style={{
-              color: "#FFFFFF",
-              opacity: 1,
-              width: "20px",
-              height: "20px",
-              marginRight: "12px",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              flex: 1,
+              minWidth: 0,
+              background: "none",
+              border: "none",
+              padding: "4px 0",
+              cursor: "pointer",
+              textAlign: "left",
             }}
           >
-            <AccordionSectionIcon icon={icon} size={14} stroke="currentColor" />
-          </div>
-          <span style={{ flex: 1, color: "#FFFFFF", fontSize: "15px", fontWeight: "600", letterSpacing: "0.02em", textAlign: "left", minWidth: 0 }}>{title}</span>
+            <div style={{ color: "#FFFFFF", fontSize: 15, fontWeight: 600, letterSpacing: "0.02em" }}>{title}</div>
+            {metaSubtitle ? (
+              <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2, fontWeight: 400 }}>{metaSubtitle}</div>
+            ) : null}
+          </button>
+          {onSectionReorder ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 0, flexShrink: 0 }}>
+              <button
+                type="button"
+                aria-label="Move section up"
+                disabled={!canMoveUp}
+                onClick={reorderUp}
+                style={{
+                  ...ACCORDION_REORDER_BTN,
+                  color: canMoveUp ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                  opacity: canMoveUp ? 1 : 0.35,
+                  cursor: canMoveUp ? "pointer" : "not-allowed",
+                }}
+              >
+                <ChevronUp size={10} strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                aria-label="Move section down"
+                disabled={!canMoveDown}
+                onClick={reorderDown}
+                style={{
+                  ...ACCORDION_REORDER_BTN,
+                  color: canMoveDown ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                  opacity: canMoveDown ? 1 : 0.35,
+                  cursor: canMoveDown ? "pointer" : "not-allowed",
+                }}
+              >
+                <ChevronDown size={10} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={(e) => {
@@ -3680,10 +4013,10 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant
               backgroundColor: "#FFFFFF",
               color: "#000000",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: 8,
               padding: "6px 14px",
-              fontSize: "13px",
-              fontWeight: "600",
+              fontSize: 13,
+              fontWeight: 600,
               cursor: "pointer",
               letterSpacing: "0.01em",
               flexShrink: 0,
@@ -3691,7 +4024,29 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant
           >
             Edit
           </button>
-          <span style={{ color: "#444", fontSize: 14, flexShrink: 0, lineHeight: 1 }} aria-hidden>›</span>
+          <button
+            type="button"
+            aria-expanded={isOpen}
+            aria-label={isOpen ? "Collapse section" : "Expand section"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 4,
+              flexShrink: 0,
+              cursor: "pointer",
+              color: "#A0A0A0",
+              display: "grid",
+              placeItems: "center",
+              transition: `transform 300ms ${ease}`,
+              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          >
+            <ChevronDown size={13} strokeWidth={2} aria-hidden />
+          </button>
         </div>
         <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: `grid-template-rows 300ms ${ease}` }}>
           <div style={{ overflow: isOpen ? "visible" : "hidden" }}>
@@ -3714,36 +4069,122 @@ function AccordionSection({ id, title, isOpen, onToggle, icon, children, variant
     );
   }
   return (
-    <div data-cvp-accordion={id} className={`cvp-section-row${isOpen ? " is-open" : ""}`}>
-      <button
-        type="button"
-        onClick={onToggle}
+    <div data-cvp-accordion={id} className={`cvp-section-row${isOpen ? " is-open" : ""}`} style={{ order: flexOrder }}>
+      <div
         className="cvp-section-row-header"
         style={{
           width: "100%",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
           gap: 12,
           padding: 16,
-          border: "none",
           background: "transparent",
-          cursor: "pointer",
-          textAlign: "left",
+          border: "none",
           borderLeft: isOpen ? "2px solid #FFFFFF" : "2px solid transparent",
           transition: `background-color 150ms ${EASE}, border-color 150ms ${EASE}`,
+          boxSizing: "border-box",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-          <span style={{ width: 16, height: 16, display: "grid", placeItems: "center", color: "#A0A0A0", flexShrink: 0 }}>
-            <AccordionSectionIcon icon={icon} size={16} stroke="currentColor" />
-          </span>
-          <span style={{ fontSize: 15, fontWeight: 500, color: "#FFFFFF", letterSpacing: "0.02em" }}>{title}</span>
+        <div style={ACCORDION_ICON_BOX}>
+          <AccordionSectionLucideIcon id={id} icon={icon} />
         </div>
-        <span style={{ color: "#A0A0A0", display: "grid", placeItems: "center", transition: `transform 300ms ${ease}`, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
-        </span>
-      </button>
+        <button
+          type="button"
+          onClick={onToggle}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "grid",
+            gap: 2,
+            alignContent: "center",
+            justifyItems: "start",
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <span style={{ fontSize: 15, fontWeight: 500, color: "#FFFFFF", letterSpacing: "0.02em" }}>{title}</span>
+          {metaSubtitle ? <span style={{ fontSize: 12, color: "#A0A0A0", fontWeight: 400 }}>{metaSubtitle}</span> : null}
+        </button>
+        {onSectionReorder ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, flexShrink: 0 }}>
+            <button
+              type="button"
+              aria-label="Move section up"
+              disabled={!canMoveUp}
+              onClick={reorderUp}
+              style={{
+                ...ACCORDION_REORDER_BTN,
+                color: canMoveUp ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                opacity: canMoveUp ? 1 : 0.35,
+                cursor: canMoveUp ? "pointer" : "not-allowed",
+              }}
+            >
+              <ChevronUp size={10} strokeWidth={2} aria-hidden />
+            </button>
+            <button
+              type="button"
+              aria-label="Move section down"
+              disabled={!canMoveDown}
+              onClick={reorderDown}
+              style={{
+                ...ACCORDION_REORDER_BTN,
+                color: canMoveDown ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                opacity: canMoveDown ? 1 : 0.35,
+                cursor: canMoveDown ? "pointer" : "not-allowed",
+              }}
+            >
+              <ChevronDown size={10} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+        ) : null}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          style={{
+            flexShrink: 0,
+            backgroundColor: "#FFFFFF",
+            color: "#000000",
+            border: "none",
+            borderRadius: 12,
+            padding: "6px 14px",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            letterSpacing: "0.01em",
+          }}
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-label={isOpen ? "Collapse section" : "Expand section"}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 4,
+            flexShrink: 0,
+            cursor: "pointer",
+            color: "#A0A0A0",
+            display: "grid",
+            placeItems: "center",
+            transition: `transform 300ms ${ease}`,
+            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          <ChevronDown size={13} strokeWidth={2} aria-hidden />
+        </button>
+      </div>
       <div
         style={{
           display: "grid",
