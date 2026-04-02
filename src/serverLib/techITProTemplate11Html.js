@@ -440,28 +440,21 @@ function buildTechITProTemplate11Html(rawCv) {
       }
 
       .cvp-root {
-        display: table !important;
-        table-layout: fixed !important;
-        width: 210mm !important;
-        border-collapse: collapse !important;
+        display: block !important;
+        width: 210mm;
         min-height: auto !important;
         height: auto !important;
         background: transparent;
       }
       .cvp-sidebar {
-        display: table-cell !important;
-        position: static !important;
+        float: left !important;
         width: 65mm !important;
-        min-width: 65mm !important;
-        max-width: 65mm !important;
-        height: auto !important;
-        vertical-align: top !important;
+        position: static !important;
       }
       .cvp-main {
-        display: table-cell !important;
-        width: auto !important;
-        margin-left: 0 !important;
-        vertical-align: top !important;
+        margin-left: 65mm !important;
+        width: 145mm !important;
+        display: block !important;
       }
 
       .break-guard {
