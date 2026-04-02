@@ -214,13 +214,13 @@ function buildTechITProTemplate11Html(rawCv) {
       color: ${MID};
       margin: 0;
       padding: 0;
-      background: linear-gradient(90deg, #1E2D45 75mm, #F7F9FC 75mm);
+      background: linear-gradient(90deg, #1E2D45 65mm, #F7F9FC 65mm);
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     .cvp-root {
       display: grid;
-      grid-template-columns: 75mm 1fr;
+      grid-template-columns: 65mm 1fr;
       width: 210mm;
       min-height: 297mm;
       background: transparent;
@@ -435,23 +435,33 @@ function buildTechITProTemplate11Html(rawCv) {
     @media print {
       html, body { margin: 0; padding: 0; }
 
+      body {
+        background: linear-gradient(90deg, #1E2D45 65mm, #F7F9FC 65mm) !important;
+      }
+
       .cvp-root {
-        display: grid;
-        grid-template-columns: 75mm 1fr;
-        width: 210mm;
+        display: table !important;
+        table-layout: fixed !important;
+        width: 210mm !important;
+        border-collapse: collapse !important;
         min-height: auto !important;
         height: auto !important;
         background: transparent;
       }
       .cvp-sidebar {
+        display: table-cell !important;
         position: static !important;
-        width: auto !important;
+        width: 65mm !important;
+        min-width: 65mm !important;
+        max-width: 65mm !important;
         height: auto !important;
+        vertical-align: top !important;
       }
       .cvp-main {
+        display: table-cell !important;
         width: auto !important;
         margin-left: 0 !important;
-        display: block !important;
+        vertical-align: top !important;
       }
 
       .break-guard {
