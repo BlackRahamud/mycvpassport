@@ -3020,9 +3020,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           flexDirection: isMobile ? "column" : "row",
           flex: 1,
           minHeight: 0,
-          minWidth: 0,
           width: "100%",
           overflowX: "hidden",
+          ...(!isMobile ? { height: 'calc(100vh - 56px)', overflow: 'hidden' } : {}),
         }}
       >
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}

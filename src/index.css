@@ -255,9 +255,8 @@ input:focus, textarea:focus {
 .cvp-builder-desktop {
   display: grid;
   grid-template-columns: 380px 1fr;
-  flex: 1;
-  min-height: 0;
-  height: calc(100vh - 56px);
+  height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -293,14 +292,13 @@ input:focus, textarea:focus {
 .cvp-builder-preview {
   background: #111111;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  flex: 1;
-  min-height: 0;
-  height: calc(100vh - 56px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 32px 24px;
+  padding: 40px 24px;
 }
 
 /* A4 live preview — 794px wide @ 96dpi; scale applied in App.js (BuilderA4PreviewScaled) */
