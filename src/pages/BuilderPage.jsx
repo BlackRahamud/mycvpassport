@@ -3027,7 +3027,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       >
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
       {!isMobile ? (
-      <div className="cvp-builder-desktop desktop-preview-panel" style={{ flex: 1 }}>
+      <div className="cvp-builder-desktop desktop-preview-panel" style={{ height: 'calc(100vh - 56px)' }}>
         {/* Left panel — Editor */}
         <aside className="cvp-builder-left" style={{ width: "100%", minWidth: 0 }}>
           {builderTab === "content" && (
