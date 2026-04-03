@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import { supabase } from "./supabaseClient";
+import { detectRole } from "./utils/detectRole";
+import skillSuggestions from "./data/skillSuggestions";
 
 // ─── Design tokens — FIX 1: amber #F59E0B → #D97706 ─────────────────────────
 const T = {
@@ -239,6 +241,57 @@ export default function ATSChecker() {
   const handleAnalyze = useCallback(async () => {
     if (!uploadedFile || !jobDescription.trim()) { setError("Please upload your CV and paste a job description."); return; }
     setError(null);
+
+    let isPro = false;
+    if (user?.id) {
+      const { data: prof } = await supabase.from("profiles").select("is_pro").eq("id", user.id).maybeSingle();
+      isPro = !!prof?.is_pro;
+    }
+
+    if (!isPro) {
+      try {
+        const jd = jobDescription.trim();
+        const jdLower = jd.toLowerCase();
+        const roleKey = detectRole(jd) || "sales_real_estate";
+        const pack = skillSuggestions[roleKey];
+        const list = pack?.atsKeywords ?? [];
+        const visibilityBoosters = [];
+        const rankTriggers = [];
+        for (const row of list) {
+          const keyword = row?.keyword?.trim();
+          if (!keyword) continue;
+          if (jdLower.includes(keyword.toLowerCase())) visibilityBoosters.push(keyword);
+          else rankTriggers.push(keyword);
+        }
+        const total = list.length;
+        const keywordsScore = total > 0 ? Math.round((visibilityBoosters.length / total) * 100) : 0;
+        const structureScore = 70;
+        const contentScore = 75;
+        const score = Math.round((keywordsScore + structureScore + contentScore) / 3);
+        const industry =
+          (pack?.jobTitles && pack.jobTitles[0]) ||
+          roleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const topPercent = Math.max(1, Math.min(99, 100 - score));
+        setResults({
+          score,
+          keywordsScore,
+          structureScore,
+          contentScore,
+          visibilityBoosters,
+          rankTriggers,
+          industry,
+          topPercent,
+          missingCount: rankTriggers.length,
+        });
+        setPhase("results");
+      } catch (err) {
+        console.error("ATS analysis error:", err);
+        setError("Something went wrong. Please try again.");
+        setPhase("idle");
+      }
+      return;
+    }
+
     setPhase("loading");
     const started = Date.now();
     try {
