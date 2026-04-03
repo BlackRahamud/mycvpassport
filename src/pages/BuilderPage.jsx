@@ -2150,8 +2150,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [mobilePreviewContainerWidth, setMobilePreviewContainerWidth] = useState(0);
 
   const desktopPreviewScale = useMemo(() => {
-    if (!desktopPreviewContainerWidth) return 1;
-    return desktopPreviewContainerWidth / 794;
+    if (!desktopPreviewContainerWidth) return 0.6;
+    return Math.min(desktopPreviewContainerWidth / 794, 0.85);
   }, [desktopPreviewContainerWidth]);
 
   const mobilePreviewScale = useMemo(() => {
@@ -3525,6 +3525,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             ref={desktopPreviewOuterRef}
             style={{
               width: "100%",
+              maxWidth: "794px",
+              margin: "0 auto",
               minWidth: 0,
               overflow: "hidden",
               height: `${A4_PREVIEW_HEIGHT_PX * desktopPreviewScale}px`,
