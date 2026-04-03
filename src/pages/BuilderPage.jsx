@@ -2722,6 +2722,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       ref={builderRootRef}
       style={{
         minHeight: "100vh",
+        height: "100vh",
         width: "100%",
         maxWidth: "100vw",
         overflowX: "hidden",
