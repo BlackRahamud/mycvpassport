@@ -45,7 +45,7 @@ import {
 } from "../cvShared";
 import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI, S } from "../builderStyles";
-import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
+import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX, A4_PREVIEW_HEIGHT_PX } from "../ResumePreview";
 import { useCvProgress, SECTIONS as CV_PROGRESS_SECTIONS } from "../hooks/useCvProgress";
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
@@ -2142,6 +2142,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const previewScrollRef = useRef(null);
   const mobilePreviewScrollRef = useRef(null);
   const desktopPreviewFitRef = useRef(null);
+  const desktopPreviewOuterRef = useRef(null);
   const mobilePreviewFitRef = useRef(null);
   const desktopCvPreviewRef = useRef(null);
   const mobileCvPreviewRef = useRef(null);
@@ -2150,7 +2151,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
   const desktopPreviewScale = useMemo(() => {
     if (!desktopPreviewContainerWidth) return 1;
-    return desktopPreviewContainerWidth / A4_PREVIEW_WIDTH_PX;
+    return desktopPreviewContainerWidth / 794;
   }, [desktopPreviewContainerWidth]);
 
   const mobilePreviewScale = useMemo(() => {
@@ -2353,19 +2354,20 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
-    const el = desktopPreviewFitRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width;
+    if (isMobile) return undefined;
+    const el = desktopPreviewOuterRef.current;
+    if (!el) return undefined;
+    const apply = (width) => {
       if (width == null || width < 1) return;
-      setDesktopPreviewContainerWidth((prev) => {
-        if (Math.abs(prev - width) < 1) return prev;
-        return width;
-      });
+      setDesktopPreviewContainerWidth((prev) => (Math.abs(prev - width) < 1 ? prev : width));
+    };
+    const ro = new ResizeObserver((entries) => {
+      apply(entries[0]?.contentRect?.width);
     });
     ro.observe(el);
+    apply(el.getBoundingClientRect().width);
     return () => ro.disconnect();
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     if (fabSheet !== "preview") return;
@@ -3517,16 +3519,30 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           )}
         </aside>
 
-        {/* Right panel — Live Preview; scale-to-fit (794px A4) */}
+        {/* Right panel — Live Preview; scale = containerWidth/794 (RO on outer wrapper only) */}
         <div className="cvp-builder-preview" ref={previewScrollRef}>
-          <BuilderA4PreviewScaled
-            cv={resume}
-            template={selectedTemplate}
-            scale={desktopPreviewScale}
-            fitRef={desktopPreviewFitRef}
-            padded={false}
-            previewCardRef={desktopCvPreviewRef}
-          />
+          <div
+            ref={desktopPreviewOuterRef}
+            style={{
+              width: "100%",
+              minWidth: 0,
+              overflow: "hidden",
+              height: `${A4_PREVIEW_HEIGHT_PX * desktopPreviewScale}px`,
+              boxSizing: "border-box",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-start",
+            }}
+          >
+            <BuilderA4PreviewScaled
+              cv={resume}
+              template={selectedTemplate}
+              scale={desktopPreviewScale}
+              fitRef={desktopPreviewFitRef}
+              padded={false}
+              previewCardRef={desktopCvPreviewRef}
+            />
+          </div>
         </div>
       </div>
       ) : null}
