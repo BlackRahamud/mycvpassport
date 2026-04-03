@@ -293,11 +293,11 @@ input:focus, textarea:focus {
   background: #111111;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 24px;
+  padding: 24px 0 24px 24px;
 }
 
 /* A4 live preview — 794px wide @ 96dpi; scale applied in App.js (BuilderA4PreviewScaled) */
