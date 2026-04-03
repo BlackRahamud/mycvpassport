@@ -27,12 +27,35 @@ function getScoreLabel(score) {
   return "Market Ready";
 }
 
-const SCAN_STEPS = [
-  "Reading your CV...",
-  "Matching against GCC hiring data...",
-  "Calculating your Rank Triggers...",
-  "Finalising your score...",
-];
+function formatPlanDisplayName(raw) {
+  if (raw == null) return "Career Pro";
+  const s = String(raw).trim();
+  if (!s) return "Career Pro";
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function buildFreeLoadingSteps() {
+  return [
+    "Extracting your information...",
+    "Running against GCC market data...",
+    "Matching keywords...",
+    "Calculating your score...",
+    "Results ready",
+  ];
+}
+
+function buildProLoadingSteps(planName) {
+  const p = formatPlanDisplayName(planName);
+  return [
+    "Extracting your information...",
+    `Activating ${p} analysis...`,
+    "Running against GCC market data pool...",
+    "Matching keywords to your role...",
+    "Something interesting found",
+    "Finalizing your full report...",
+    `${p} results ready`,
+  ];
+}
 
 // ─── Score ring — FIX 6: stroke-width min 10, smooth 1.2s ease-out animation ─
 function ScoreRing({ score, size = 190, strokeWidth = 12, animated = false, gradientId = "ring-grad" }) {
@@ -71,13 +94,21 @@ function AnimatedScoreRing({ score, size, strokeWidth, gradientId }) {
 }
 
 // ─── Chip ─────────────────────────────────────────────────────────────────────
-function Chip({ label, variant }) {
+function Chip({ label, variant, flyIn = false, flyIndex = 0, chipsRevealed = true }) {
   const s = {
     green: { color: T.green, border: `1px solid rgba(74,222,128,0.35)`, background: "rgba(74,222,128,0.07)" },
     amber: { color: T.amber, border: `1px solid ${T.amberBorder}`, background: T.amberDim },
   };
+  const fly = flyIn
+    ? {
+        opacity: chipsRevealed ? 1 : 0,
+        transform: chipsRevealed ? "translateY(0)" : "translateY(20px)",
+        transition: "opacity 0.4s ease, transform 0.4s ease",
+        transitionDelay: `${flyIndex * 50}ms`,
+      }
+    : {};
   return (
-    <span style={{ ...s[variant], fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 999, cursor: "default", display: "inline-block", lineHeight: "1.4", transition: "background 0.15s" }}>
+    <span style={{ ...s[variant], fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 999, cursor: "default", display: "inline-block", lineHeight: "1.4", transition: "background 0.15s", ...fly }}>
       {label}
     </span>
   );
@@ -162,25 +193,41 @@ function SampleResultCard({ isMobile = false }) {
   );
 }
 
-// ─── Scan animation — spin uses transform: rotate only (no transition: all) ───
-function ScanRing() {
+function StepRowTick() {
   return (
-    <div style={{ width: 120, height: 120, position: "relative" }}>
-      <svg width="120" height="120" viewBox="0 0 120 120" style={{ animation: "spin 1.5s linear infinite", transformOrigin: "50% 50%" }}>
-        <defs>
-          <linearGradient id="scan-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="100%" stopColor={T.amber} />
-          </linearGradient>
-        </defs>
-        <circle cx="60" cy="60" r="48" fill="none" stroke={T.border} strokeWidth="5" />
-        <circle cx="60" cy="60" r="48" fill="none" stroke="url(#scan-grad)" strokeWidth="5" strokeLinecap="round" strokeDasharray="301.6" strokeDashoffset="226" />
-      </svg>
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-    </div>
+    <span
+      className="ats-step-tick"
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, flexShrink: 0 }}
+      aria-hidden
+    >
+      <CheckCircle size={17} color={T.green} strokeWidth={2.25} />
+    </span>
   );
+}
+
+function AnimatedScoreNumber({ value }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    let raf = 0;
+    setDisplay(0);
+    const duration = 1500;
+    let start = null;
+    const easeOutCubic = (t) => 1 - (1 - t) ** 3;
+    const step = (now) => {
+      if (cancelled) return;
+      if (start == null) start = now;
+      const t = Math.min(1, (now - start) / duration);
+      setDisplay(Math.round(easeOutCubic(t) * value));
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [value]);
+  return display;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -189,7 +236,10 @@ export default function ATSChecker() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [jobDescription, setJobDescription] = useState("");
-  const [scanStep, setScanStep] = useState(0);
+  const [loadingMeta, setLoadingMeta] = useState(null);
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
+  const [chipsRevealed, setChipsRevealed] = useState(false);
+  const [isProResults, setIsProResults] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
@@ -213,15 +263,65 @@ export default function ATSChecker() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ── Scan step cycling (1.5s per message, 4 steps / 6s total) ───────────────
+  // ── Loading: resolve tier for step copy (UI only; does not change analysis) ─
   useEffect(() => {
-    if (phase !== "loading") return;
-    setScanStep(0);
-    const id = setInterval(() => {
-      setScanStep((s) => (s >= SCAN_STEPS.length - 1 ? s : s + 1));
-    }, 1500);
+    if (phase !== "loading") {
+      setLoadingMeta(null);
+      return;
+    }
+    setLoadingMeta(null);
+    let cancelled = false;
+    (async () => {
+      if (!user?.id) {
+        if (!cancelled) setLoadingMeta({ isPro: false, planName: "Career Pro" });
+        return;
+      }
+      const { data } = await supabase.from("profiles").select("is_pro, plan, plan_tier").eq("id", user.id).maybeSingle();
+      if (cancelled) return;
+      const nameFromPlan = data?.plan != null && String(data.plan).trim() ? String(data.plan).trim() : null;
+      const fromTier = data?.plan_tier != null ? String(data.plan_tier).replace(/_/g, " ") : null;
+      setLoadingMeta({
+        isPro: !!data?.is_pro,
+        planName: formatPlanDisplayName(nameFromPlan || fromTier || "Career Pro"),
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, user?.id]);
+
+  useEffect(() => {
+    if (phase !== "loading" || !loadingMeta) return;
+    setLoadingSeconds(0);
+    const id = setInterval(() => setLoadingSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
-  }, [phase]);
+  }, [phase, loadingMeta]);
+
+  // ── Results: staggered chips + Pro flag for Claude badge ──────────────────
+  useEffect(() => {
+    if (phase !== "results") {
+      setChipsRevealed(false);
+      setIsProResults(false);
+      return;
+    }
+    setChipsRevealed(false);
+    let raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setChipsRevealed(true));
+    });
+    let cancelled = false;
+    (async () => {
+      if (!user?.id) {
+        if (!cancelled) setIsProResults(false);
+        return;
+      }
+      const { data } = await supabase.from("profiles").select("is_pro").eq("id", user.id).maybeSingle();
+      if (!cancelled) setIsProResults(!!data?.is_pro);
+    })();
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [phase, user?.id, results]);
 
   // ── File handling ─────────────────────────────────────────────────────────
   const handleFileSelect = useCallback((file) => {
@@ -522,12 +622,105 @@ export default function ATSChecker() {
 
   // ── RENDER: loading ───────────────────────────────────────────────────────
   if (phase === "loading") {
+    const steps = loadingMeta
+      ? loadingMeta.isPro
+        ? buildProLoadingSteps(loadingMeta.planName)
+        : buildFreeLoadingSteps()
+      : [];
+    const currentIdx = steps.length ? Math.min(loadingSeconds, steps.length - 1) : 0;
+
     return (
       <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", lineHeight: 1.6 }}>
+        <style>{`
+          @keyframes ats-tick-spring { from { transform: scale(0); } to { transform: scale(1); } }
+          .ats-step-tick { animation: ats-tick-spring 150ms cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: center; }
+          @keyframes ats-step-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.55; }
+          }
+          .ats-step-current {
+            color: #D97706 !important;
+            animation: ats-step-pulse 1.15s ease-in-out infinite;
+            font-weight: 600;
+          }
+          @keyframes ats-amber-ring {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.22), 0 0 0 1px rgba(217,119,6,0.2) inset; }
+            50% { box-shadow: 0 0 0 10px rgba(217,119,6,0.06), 0 0 32px rgba(217,119,6,0.18), 0 0 0 1px rgba(217,119,6,0.35) inset; }
+          }
+          .ats-loading-ring { animation: ats-amber-ring 2.2s ease-in-out infinite; }
+          @keyframes ats-plan-glow {
+            0%, 100% { text-shadow: 0 0 10px rgba(217,119,6,0.35); box-shadow: 0 0 12px rgba(217,119,6,0.2); }
+            50% { text-shadow: 0 0 20px rgba(217,119,6,0.55); box-shadow: 0 0 22px rgba(217,119,6,0.35); }
+          }
+          .ats-plan-badge-glow { animation: ats-plan-glow 2s ease-in-out infinite; }
+        `}</style>
         <Nav />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, padding: 40 }}>
-          <ScanRing />
-          <div style={{ color: "#A0A0A0", fontSize: 14, textAlign: "center", maxWidth: 320, lineHeight: 1.5 }}>{SCAN_STEPS[scanStep]}</div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40 }}>
+          <div
+            className="ats-loading-ring"
+            style={{
+              width: "min(100%, 400px)",
+              background: T.surface,
+              border: `1px solid ${T.amberBorder}`,
+              borderRadius: 20,
+              padding: "28px 24px 30px",
+              boxSizing: "border-box",
+            }}
+          >
+            {loadingMeta?.isPro && (
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+                <span
+                  className="ats-plan-badge-glow"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: 1.2,
+                    textTransform: "uppercase",
+                    color: T.amber,
+                    padding: "6px 14px",
+                    borderRadius: 999,
+                    border: `1px solid ${T.amberBorder}`,
+                    background: T.amberDim,
+                  }}
+                >
+                  {loadingMeta.planName}
+                </span>
+              </div>
+            )}
+            {!loadingMeta && (
+              <div style={{ color: T.muted, fontSize: 14, textAlign: "center", lineHeight: 1.55 }}>Preparing your analysis…</div>
+            )}
+            {loadingMeta && (
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+                {steps.map((text, i) => {
+                  const done = loadingSeconds > i;
+                  const current = !done && i === currentIdx;
+                  return (
+                    <li
+                      key={i}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        fontSize: 14,
+                        lineHeight: 1.45,
+                        color: done ? T.muted : current ? T.amber : "rgba(160,160,160,0.45)",
+                      }}
+                    >
+                      {done ? (
+                        <StepRowTick />
+                      ) : (
+                        <span style={{ width: 22, flexShrink: 0 }} aria-hidden />
+                      )}
+                      <span className={current ? "ats-step-current" : undefined} style={{ flex: 1, minWidth: 0 }}>
+                        {text}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -561,7 +754,9 @@ export default function ATSChecker() {
             <div style={{ position: "relative", width: 190, height: 190, marginBottom: 20 }}>
               <AnimatedScoreRing score={score} size={190} strokeWidth={12} gradientId="result-ring-main" />
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 52, fontWeight: 700, lineHeight: 1, letterSpacing: -1, color: T.text }}>{score}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 52, fontWeight: 700, lineHeight: 1, letterSpacing: -1, color: T.text }}>
+                  <AnimatedScoreNumber value={score} />
+                </div>
                 <div style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>out of 100</div>
               </div>
             </div>
@@ -595,7 +790,9 @@ export default function ATSChecker() {
               <Sparkles size={13} color={T.green} /> Visibility Boosters
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {visibilityBoosters.map((kw) => <Chip key={kw} label={kw} variant="green" />)}
+              {visibilityBoosters.map((kw, i) => (
+                <Chip key={kw} label={kw} variant="green" flyIn flyIndex={i} chipsRevealed={chipsRevealed} />
+              ))}
             </div>
           </div>
 
@@ -605,7 +802,16 @@ export default function ATSChecker() {
               <Plus size={13} color={T.amber} /> Rank Triggers
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {rankTriggers.map((kw) => <Chip key={kw} label={kw} variant="amber" />)}
+              {rankTriggers.map((kw, i) => (
+                <Chip
+                  key={kw}
+                  label={kw}
+                  variant="amber"
+                  flyIn
+                  flyIndex={visibilityBoosters.length + i}
+                  chipsRevealed={chipsRevealed}
+                />
+              ))}
             </div>
           </div>
 
@@ -641,6 +847,39 @@ export default function ATSChecker() {
               <ChevronDown size={16} color={T.muted} />
             </div>
           </div>
+
+          {isProResults && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 12px",
+                  borderRadius: 8,
+                  background: "#141414",
+                  border: `1px solid ${T.border}`,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: T.text,
+                  letterSpacing: 0.2,
+                }}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "#EA580C",
+                    flexShrink: 0,
+                    boxShadow: "0 0 6px rgba(234,88,12,0.55)",
+                  }}
+                />
+                Powered by Claude AI
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
