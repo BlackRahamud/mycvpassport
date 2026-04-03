@@ -333,11 +333,14 @@ export default function ATSChecker() {
     const started = Date.now();
     try {
       const userId = user?.id ?? "anon";
-      const filePath = `cv-uploads/${userId}/${Date.now()}-${uploadedFile.name}`;
-      const { error: uploadError } = await supabase.storage.from("cv-files").upload(filePath, uploadedFile, { upsert: true });
-      if (uploadError) throw uploadError;
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = () => reject(new Error("File read failed"));
+        reader.readAsDataURL(uploadedFile);
+      });
 
-      const { data, error: fnError } = await supabase.functions.invoke("analyze-cv", { body: { filePath, jobDescription, userId } });
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-cv", { body: { fileBase64, fileName: uploadedFile.name, jobDescription, userId } });
       if (fnError) throw fnError;
 
       if (user) {
