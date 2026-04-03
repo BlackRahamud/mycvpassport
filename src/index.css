@@ -256,8 +256,8 @@ input:focus, textarea:focus {
   display: grid;
   grid-template-columns: 380px 1fr;
   flex: 1;
-  height: calc(100vh - 56px);
   min-height: 0;
+  height: calc(100vh - 56px);
   overflow: hidden;
 }
 
@@ -297,7 +297,7 @@ input:focus, textarea:focus {
   justify-content: center;
   flex: 1;
   min-height: 0;
-  height: 100%;
+  height: calc(100vh - 56px);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 32px 24px;
