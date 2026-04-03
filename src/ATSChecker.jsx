@@ -239,7 +239,7 @@ export default function ATSChecker() {
 
   // ── Analysis ──────────────────────────────────────────────────────────────
   const handleAnalyze = useCallback(async () => {
-    if (!uploadedFile || !jobDescription.trim()) { setError("Please upload your CV and paste a job description."); return; }
+    if (!uploadedFile) { setError("Please upload your CV."); return; }
     setError(null);
 
     let isPro = false;
@@ -251,39 +251,76 @@ export default function ATSChecker() {
     if (!isPro) {
       try {
         const jd = jobDescription.trim();
-        const jdLower = jd.toLowerCase();
-        const roleKey = detectRole(jd) || "sales_real_estate";
-        const pack = skillSuggestions[roleKey];
-        const list = pack?.atsKeywords ?? [];
-        const visibilityBoosters = [];
-        const rankTriggers = [];
-        for (const row of list) {
-          const keyword = row?.keyword?.trim();
-          if (!keyword) continue;
-          if (jdLower.includes(keyword.toLowerCase())) visibilityBoosters.push(keyword);
-          else rankTriggers.push(keyword);
+        if (!jd) {
+          const seen = new Set();
+          const pool = [];
+          poolLoop: for (const pack of Object.values(skillSuggestions)) {
+            for (const row of pack?.atsKeywords ?? []) {
+              if (pool.length >= 30) break poolLoop;
+              const keyword = row?.keyword?.trim();
+              if (!keyword) continue;
+              const key = keyword.toLowerCase();
+              if (seen.has(key)) continue;
+              seen.add(key);
+              pool.push(keyword);
+            }
+          }
+          const visibilityBoosters = pool.slice(0, 5);
+          const rankTriggers = pool.slice(5, 10);
+          const keywordsScore = 65;
+          const structureScore = 70;
+          const contentScore = 75;
+          const score = Math.round((65 + 70 + 75) / 3);
+          const industry = "General GCC Market";
+          const topPercent = 42;
+          const missingCount = 5;
+          setResults({
+            score,
+            keywordsScore,
+            structureScore,
+            contentScore,
+            visibilityBoosters,
+            rankTriggers,
+            industry,
+            topPercent,
+            missingCount,
+          });
+          setPhase("results");
+        } else {
+          const jdLower = jd.toLowerCase();
+          const roleKey = detectRole(jd) || "sales_real_estate";
+          const pack = skillSuggestions[roleKey];
+          const list = pack?.atsKeywords ?? [];
+          const visibilityBoosters = [];
+          const rankTriggers = [];
+          for (const row of list) {
+            const keyword = row?.keyword?.trim();
+            if (!keyword) continue;
+            if (jdLower.includes(keyword.toLowerCase())) visibilityBoosters.push(keyword);
+            else rankTriggers.push(keyword);
+          }
+          const total = list.length;
+          const keywordsScore = total > 0 ? Math.round((visibilityBoosters.length / total) * 100) : 0;
+          const structureScore = 70;
+          const contentScore = 75;
+          const score = Math.round((keywordsScore + structureScore + contentScore) / 3);
+          const industry =
+            (pack?.jobTitles && pack.jobTitles[0]) ||
+            roleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          const topPercent = Math.max(1, Math.min(99, 100 - score));
+          setResults({
+            score,
+            keywordsScore,
+            structureScore,
+            contentScore,
+            visibilityBoosters,
+            rankTriggers,
+            industry,
+            topPercent,
+            missingCount: rankTriggers.length,
+          });
+          setPhase("results");
         }
-        const total = list.length;
-        const keywordsScore = total > 0 ? Math.round((visibilityBoosters.length / total) * 100) : 0;
-        const structureScore = 70;
-        const contentScore = 75;
-        const score = Math.round((keywordsScore + structureScore + contentScore) / 3);
-        const industry =
-          (pack?.jobTitles && pack.jobTitles[0]) ||
-          roleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-        const topPercent = Math.max(1, Math.min(99, 100 - score));
-        setResults({
-          score,
-          keywordsScore,
-          structureScore,
-          contentScore,
-          visibilityBoosters,
-          rankTriggers,
-          industry,
-          topPercent,
-          missingCount: rankTriggers.length,
-        });
-        setPhase("results");
       } catch (err) {
         console.error("ATS analysis error:", err);
         setError("Something went wrong. Please try again.");
@@ -390,6 +427,7 @@ export default function ATSChecker() {
           />
           <div style={{ position: "absolute", bottom: 14, right: 16, fontSize: 11, color: "rgba(160,160,160,0.4)", pointerEvents: "none" }}>{jobDescription.length} chars</div>
         </div>
+        <div style={{ fontSize: 12, color: T.muted, marginBottom: 16 }}>Optional — add a job description for a targeted score</div>
 
         {error && (
           <div style={{ color: T.red, fontSize: 13, marginBottom: 12, padding: "10px 16px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10 }}>{error}</div>
