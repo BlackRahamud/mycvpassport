@@ -3022,12 +3022,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
           minHeight: 0,
           width: "100%",
           overflowX: "hidden",
-          ...(!isMobile ? { height: 'calc(100vh - 56px)', overflow: 'hidden' } : {}),
+          ...(!isMobile ? { minHeight: 'calc(100vh - 56px)', height: 'auto', overflow: 'hidden' } : {}),
         }}
       >
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
       {!isMobile ? (
-      <div className="cvp-builder-desktop desktop-preview-panel" style={{ height: 'calc(100vh - 56px)' }}>
+      <div className="cvp-builder-desktop desktop-preview-panel" style={{ minHeight: 'calc(100vh - 56px)', height: 'auto' }}>
         {/* Left panel — Editor */}
         <aside
           className="cvp-builder-left"
