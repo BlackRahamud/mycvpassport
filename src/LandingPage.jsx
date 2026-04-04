@@ -1773,21 +1773,21 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <nav className="lp-site-footer-cols" aria-label="Footer">
                 <div>
                   <p className="lp-site-footer-col-h">Product</p>
-                  <a className="lp-site-footer-link" href="#templates">Templates</a>
-                  <a className="lp-site-footer-link" href="#ats">ATS Score</a>
-                  <a className="lp-site-footer-link" href="#cover-letter">Cover Letter</a>
-                  <a className="lp-site-footer-link" href="#walkin">Walk-In Mode</a>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=templates')}>Templates</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=ats')}>ATS Score</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=cover-letter')}>Cover Letter</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/walk-in')}>Walk-In Mode</span>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Legal</p>
-                  <a className="lp-site-footer-link" href="/terms">Terms of Service</a>
-                  <a className="lp-site-footer-link" href="/privacy">Privacy Policy</a>
-                  <a className="lp-site-footer-link" href="/privacy#cookies">Cookie Policy</a>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/terms')}>Terms of Service</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/privacy')}>Privacy Policy</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => window.alert('Cookie settings coming soon.')}>Cookie Policy</span>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Support</p>
-                  <a className="lp-site-footer-link" href="mailto:support@mycvpassport.com">support@mycvpassport.com</a>
-                  <a className="lp-site-footer-link" href="#faq">FAQ</a>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => { window.location.href = 'mailto:support@mycvpassport.com'; }}>support@mycvpassport.com</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}>FAQ</span>
                 </div>
               </nav>
             </div>
