@@ -34,7 +34,7 @@ export default function AdminPanel() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [adminUser, setAdminUser] = useState(null);
+  const [, setAdminUser] = useState(null);
   const [activeSection, setActiveSection] = useState("dashboard");
 
   // modal
