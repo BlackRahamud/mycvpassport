@@ -274,8 +274,6 @@ input:focus, textarea:focus {
   flex-direction: column;
   height: fit-content !important;
   max-height: calc(100vh - 56px);
-  position: sticky;
-  top: 56px;
   overflow-y: auto;
   align-self: start !important;
   padding-bottom: 24px;
