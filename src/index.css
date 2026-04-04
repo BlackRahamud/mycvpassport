@@ -254,7 +254,7 @@ input:focus, textarea:focus {
 /* CV Builder — desktop split grid */
 .cvp-builder-desktop {
   display: grid !important;
-  grid-template-columns: 380px 1fr !important;
+  grid-template-columns: 420px 1fr !important;
   grid-template-rows: auto !important;
   align-items: start !important;
   min-height: calc(100vh - 56px);
