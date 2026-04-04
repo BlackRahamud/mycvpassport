@@ -3029,7 +3029,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       {!isMobile ? (
       <div className="cvp-builder-desktop desktop-preview-panel" style={{ height: 'calc(100vh - 56px)' }}>
         {/* Left panel — Editor */}
-        <aside className="cvp-builder-left" style={{ width: "100%", minWidth: 0 }}>
+        <aside
+          className="cvp-builder-left"
+          style={{ width: "100%", minWidth: 0, alignSelf: "start", height: "fit-content", maxHeight: "100%" }}
+        >
           {builderTab === "content" && (
             <>
               <div
