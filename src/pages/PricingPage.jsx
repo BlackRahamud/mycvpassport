@@ -83,7 +83,7 @@ export default function PricingPage() {
       ctaAction: "express",
       envKey: "REACT_APP_LS_EXPRESS_PASS_URL",
       features: [
-        { text: "All 14 CV templates", included: true },
+        { text: "All templates", included: true },
         { text: "ATS Checker (full)", included: true },
         { text: "Unlimited PDF downloads", included: true },
         { text: "Walk-In Mode", included: true },
@@ -106,7 +106,7 @@ export default function PricingPage() {
       ctaAction: "hunter",
       envKey: "REACT_APP_LS_ACTIVE_HUNTER_URL",
       features: [
-        { text: "All 14 CV templates", included: true },
+        { text: "All templates", included: true },
         { text: "ATS Checker Pro (AI powered)", included: true },
         { text: "Unlimited PDF downloads", included: true },
         { text: "Walk-In Mode", included: true },
@@ -129,7 +129,7 @@ export default function PricingPage() {
       ctaAction: "pro",
       envKey: "REACT_APP_LS_CAREER_PRO_URL",
       features: [
-        { text: "All 14 CV templates", included: true },
+        { text: "All templates", included: true },
         { text: "ATS Checker Pro (AI powered)", included: true },
         { text: "Unlimited PDF downloads", included: true },
         { text: "Walk-In Mode", included: true },
