@@ -1795,7 +1795,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <p>
                 © 2026 CVPassport. All rights reserved.
                 <br />
-                Operated by Junaid Mujtaba Khan, Dubai, UAE.
+                Operated by JMK, Dubai, UAE.
               </p>
               <p>Payments by LemonSqueezy · Infrastructure by Supabase</p>
             </div>
