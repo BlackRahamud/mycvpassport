@@ -143,15 +143,6 @@ export default function PricingPage() {
     },
   ];
 
-  const getPrice = (plan) => {
-    if (plan.id === "explorer") return "Free";
-    if (plan.id === "pro") return currency === "AED" ? "AED 199/yr" : "₹999/yr";
-    const prices = currency === "AED" ? plan.priceAED : plan.priceINR;
-    const price = billing === "monthly" ? prices.monthly : prices.annual;
-    const symbol = currency === "AED" ? "AED" : "₹";
-    return `${symbol} ${price}`;
-  };
-
   const handleCTA = (plan) => {
     if (plan.ctaAction === "free") {
       navigate("/dashboard");
@@ -352,9 +343,7 @@ export default function PricingPage() {
         }}>
           {plans.map((plan) => {
             const isHunter = plan.id === "hunter";
-            const isPro = plan.id === "pro";
             const isCurrent = isCurrentPlan(plan);
-            const priceStr = getPrice(plan);
 
             // Parse price for large display
             let priceLarge = null;
