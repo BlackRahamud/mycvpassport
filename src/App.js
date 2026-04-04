@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
-import Pricing from "./Pricing";
+import PricingPage from "./pages/PricingPage";
 import LandingPage from "./LandingPage";
 import AdminPanel from "./AdminPanel";
 import AuthPage from "./pages/AuthPage";
@@ -93,7 +93,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/pricing" element={<Pricing isLight={document.documentElement.classList.contains("light")} />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route
         path="*"
         element={
