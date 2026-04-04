@@ -250,7 +250,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, onJo
   }
 
   return (
-    <div style={{ display: "grid", gap: 16, padding: 12 }}>
+    <div className="cvp-jobmatch-root" style={{ display: "grid", gap: 16, padding: 12 }}>
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
       <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16 }}>
         <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Job Description Match</div>
@@ -263,15 +263,17 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, onJo
           placeholder="Paste the job description here..."
           rows={8}
           style={{
-            width: "100%",
-            boxSizing: "border-box",
-            background: "#1C1C1C",
-            border: "1px solid #2A2A2A",
-            color: "#FFFFFF",
+            width: '100%',
+            minHeight: 200,
+            background: '#0A0A0A',
+            color: 'white',
+            border: '1px solid #2A2A2A',
             borderRadius: 10,
-            padding: "12px 14px",
+            padding: 16,
             fontSize: 14,
-            resize: "vertical",
+            resize: 'vertical',
+            fontFamily: 'inherit',
+            boxSizing: "border-box",
             outline: "none",
           }}
         />

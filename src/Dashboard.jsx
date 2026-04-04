@@ -214,6 +214,49 @@ export default function Dashboard({
             </Link>
           </div>
 
+          {/* ATS hero banner — BEFORE cvp-cv-grid */}
+          <div
+            className="cvp-dashboard-hero-banner"
+            style={{
+              background: 'linear-gradient(135deg, #141414 0%, #1C1C1C 100%)',
+              border: '1px solid #2A2A2A',
+              borderRadius: 16,
+              padding: '32px 40px',
+              marginBottom: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 24,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#FFFFFF', marginBottom: 6 }}>
+                Check your CV against any job description
+              </div>
+              <div style={{ fontSize: 14, color: '#A0A0A0' }}>
+                See missing keywords instantly — get shortlisted faster
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onRunATS}
+              style={{
+                padding: '12px 28px',
+                borderRadius: 10,
+                border: 'none',
+                background: '#FFFFFF',
+                color: '#000000',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              Run ATS Check →
+            </button>
+          </div>
+
           <div className="cvp-cv-grid">
             {/* New CV card */}
             <button
@@ -221,15 +264,19 @@ export default function Dashboard({
               onClick={onBuildResume}
               className="cvp-new-cv-card"
               style={{
-                border: "1px dashed var(--border)",
-                background: "transparent",
-                borderRadius: "var(--radius-lg)",
-                display: "grid",
-                placeItems: "center",
-                color: "var(--text-secondary)",
-                cursor: "pointer",
-                transition: `border-color 150ms ${EASE}`,
+                border: '2px dashed #2A2A2A',
+                background: '#0D0D0D',
+                borderRadius: 16,
+                minHeight: 280,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'border-color 0.2s',
               }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#555'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = '#2A2A2A'}
             >
               <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
                 <div style={{ width: 44, height: 44, borderRadius: 999, border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-primary)" }}>
@@ -413,7 +460,7 @@ export default function Dashboard({
             {resumeList.length === 0 && (
               <div
                 style={{
-                  gridColumn: "1 / -1", // Span full width of the grid
+                  gridColumn: "1 / -1",
                   background: "#141414",
                   border: "1px solid #2A2A2A",
                   borderRadius: "16px",
@@ -458,55 +505,6 @@ export default function Dashboard({
             )}
           </div>
 
-          {/* ATS banner — below CV grid */}
-          <style>{`
-            @media (max-width: 768px) {
-              .cvp-ats-banner { flex-direction: column; align-items: flex-start; }
-              .cvp-ats-banner-btn { width: 100%; margin-top: 16px; }
-            }
-          `}</style>
-          <div
-            className="cvp-ats-banner"
-            style={{
-              marginTop: 32,
-              minHeight: 80,
-              background: "#141414",
-              border: "1px solid #2A2A2A",
-              borderRadius: 16,
-              padding: "20px 24px",
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "#FFFFFF" }}>Check your CV against any job description</div>
-              <div style={{ fontSize: 13, color: "#A0A0A0" }}>See missing keywords instantly</div>
-            </div>
-            <button
-              type="button"
-              onClick={onRunATS}
-              className="cvp-ats-banner-btn"
-              style={{
-                padding: "10px 20px",
-                borderRadius: 8,
-                border: "none",
-                background: "#FFFFFF",
-                color: "#000000",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: `opacity 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-            >
-              Run ATS Check
-            </button>
-          </div>
           <FAB tabKey={fabRouteTab} />
         </main>
       </div>

@@ -1063,3 +1063,95 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   word-break: normal;
   overflow-wrap: break-word;
 }
+
+/* ============================================
+   PC REDESIGN — desktop only (min-width: 1024px)
+   ============================================ */
+
+@media (min-width: 1024px) {
+
+  /* --- DASHBOARD --- */
+  .cvp-dashboard-wrapper {
+    max-width: 1440px !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    min-height: 100vh !important;
+  }
+  .cvp-dashboard-sidebar {
+    width: 240px !important;
+    min-width: 240px !important;
+    background: #0D0D0D !important;
+    border-right: 1px solid #1E1E1E !important;
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+  }
+  .cvp-cv-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 24px !important;
+    padding: 40px !important;
+    align-items: start !important;
+    flex: 1 !important;
+  }
+  .cvp-builder-desktop {
+    max-width: 1600px !important;
+    margin: 0 auto !important;
+    grid-template-columns: 460px 1fr !important;
+  }
+  .cvp-builder-preview {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 48px 40px !important;
+    background: #111111 !important;
+  }
+  .cvp-builder-preview > div:first-child {
+    max-width: 860px !important;
+    width: 100% !important;
+  }
+  .cvp-builder-templates-tab-root {
+    padding: 40px !important;
+    background: #0A0A0A !important;
+    width: 100% !important;
+  }
+  .cvp-templates-pills {
+    display: flex !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    margin-bottom: 32px !important;
+    padding: 0 !important;
+  }
+  .cvp-templates-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 28px !important;
+  }
+  .cvp-builder-desktop.cvp-jobmatch-active {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .cvp-builder-desktop.cvp-jobmatch-active .cvp-builder-left {
+    padding: 48px 40px !important;
+    background: #141414 !important;
+    border-right: 1px solid #1C1C1C !important;
+    overflow-y: auto !important;
+    height: fit-content !important;
+  }
+  .cvp-builder-desktop.cvp-jobmatch-active .cvp-builder-preview {
+    padding: 48px 40px !important;
+    background: #0A0A0A !important;
+  }
+  .cvp-builder-desktop.cvp-templates-active {
+    display: block !important;
+  }
+  .cvp-builder-desktop.cvp-templates-active .cvp-builder-preview {
+    display: none !important;
+  }
+  .cvp-builder-desktop.cvp-templates-active .cvp-builder-left {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}

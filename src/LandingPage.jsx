@@ -827,7 +827,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             borderBottom:   `1px solid ${T.navBorder}`,
           }}
         >
-          {/* Logo — Link avoids fighting App session redirect + gives native client nav */}
           <Link
             to="/"
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}
@@ -1090,10 +1089,11 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
             {/* CTAs */}
             <div className="lp-hero-ctas" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '40px' }}>
+              {/* PRIMARY CTA — navigate to dashboard if no onSignup handler */}
               <button
                 type="button"
                 className="lp-btn"
-                onClick={() => onSignup && onSignup()}
+                onClick={() => { if (onSignup) onSignup(); else navigate('/dashboard'); }}
                 style={{
                   background:   T.btnPrimary,
                   color:        T.btnPrimaryTxt,
@@ -1109,10 +1109,11 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               >
                 {geo.cta}
               </button>
+              {/* SECONDARY CTA — navigate to builder templates tab */}
               <button
                 type="button"
                 className="lp-ghost-btn"
-                onClick={() => scrollToLandingSection('templates')}
+                onClick={() => navigate('/builder?tab=templates')}
                 style={{
                   background:   'transparent',
                   color:        T.textPrimary,

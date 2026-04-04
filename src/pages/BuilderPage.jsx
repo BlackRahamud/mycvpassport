@@ -2202,6 +2202,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'templates') setBuilderTab('templates');
+  }, []);
+
+  useEffect(() => {
     if (lastSavedSnapshotRef.current == null) {
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
       return;
@@ -3027,7 +3032,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
       >
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
       {!isMobile ? (
-      <div className="cvp-builder-desktop desktop-preview-panel" style={{ minHeight: 'calc(100vh - 56px)', height: 'auto', gridTemplateColumns: '420px 1fr' }}>
+      <div className={`cvp-builder-desktop desktop-preview-panel${builderTab === 'jobmatch' ? ' cvp-jobmatch-active' : ''}${builderTab === 'templates' ? ' cvp-templates-active' : ''}`} style={{ minHeight: 'calc(100vh - 56px)', height: 'auto' }}>
         {/* Left panel — Editor */}
         <aside
           className="cvp-builder-left"
