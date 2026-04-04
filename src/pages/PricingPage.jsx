@@ -235,7 +235,7 @@ export default function PricingPage() {
 
   // ====== COMPARISON TABLE DATA ======
   const compRows = [
-    { feature: "CV Templates", vals: ["3 templates", "All 14", "All 14", "All 14"] },
+    { feature: "CV Templates", vals: ["3 templates", "All", "All", "All"] },
     { feature: "ATS Checker", vals: ["Basic", "Full", "AI Powered", "AI Powered"] },
     { feature: "PDF Downloads", vals: ["3 downloads", "Unlimited", "Unlimited", "Unlimited"] },
     { feature: "Cover Letter", vals: [false, true, true, true] },
