@@ -258,6 +258,8 @@ input:focus, textarea:focus {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  /* Hug sidebar height to content (no full-column black band); preview column still uses height:100% */
+  align-items: start;
 }
 
 @media (max-width: 1024px) {
@@ -270,7 +272,8 @@ input:focus, textarea:focus {
 
 .cvp-builder-left {
   width: 380px;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
   min-height: 0;
   overflow-y: auto;
   padding: 24px;
@@ -299,6 +302,11 @@ input:focus, textarea:focus {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 40px 24px;
+}
+
+/* Keep preview full row height when sidebar uses align-items:start */
+.cvp-builder-desktop .cvp-builder-preview {
+  align-self: stretch;
 }
 
 /* A4 live preview — 794px wide @ 96dpi; scale applied in App.js (BuilderA4PreviewScaled) */
