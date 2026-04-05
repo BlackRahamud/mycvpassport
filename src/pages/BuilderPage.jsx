@@ -580,17 +580,13 @@ const BUILDER_SKILL_INPUT_BASE = {
   fontFamily: "inherit",
 };
 
+/** Inline "+ Add" next to skill inputs — layout/size from `.cvp-builder-skill-add-btn` in index.css */
 const BUILDER_SKILL_ADD_BTN = {
   background: "#fff",
   border: "none",
   color: "#000",
-  fontSize: 12,
   fontWeight: 700,
-  padding: "11px 18px",
-  borderRadius: 12,
   cursor: "pointer",
-  whiteSpace: "nowrap",
-  flexShrink: 0,
   fontFamily: "inherit",
 };
 
@@ -842,21 +838,6 @@ function SkillsEditorSection({
   const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
   const [pickedSuggestions, setPickedSuggestions] = useState(() => new Set());
 
-  const chipRowStyle = { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "flex-start", marginBottom: 10, width: "100%" };
-  const realChip = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: 500,
-    padding: "4px 10px",
-    borderRadius: 999,
-    flexShrink: 0,
-  };
-
   const skillsList = splitCommaItems(resume.skills);
   const lowerSet = useMemo(() => new Set(skillsList.map((x) => x.toLowerCase())), [skillsList]);
 
@@ -966,12 +947,16 @@ function SkillsEditorSection({
           </div>
         </div>
       ) : null}
-      <div data-cvp-highlight="skills" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
+      <div
+        data-cvp-highlight="skills"
+        className="cvp-skills-editor-block"
+        style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}
+      >
         <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <div className="cvp-skills-add-row">
           <input
-            className="cvp-builder-ph"
-            style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0, width: "auto" }}
+            className="cvp-builder-ph cvp-skills-skill-input"
+            style={{ ...BUILDER_SKILL_INPUT_BASE }}
             placeholder="Add a skill…"
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
@@ -992,8 +977,8 @@ function SkillsEditorSection({
           />
           <button
             type="button"
-            className="cvp-builder-add-entry-btn"
-            style={{ ...BUILDER_SKILL_ADD_BTN, flexShrink: 0 }}
+            className="cvp-builder-skill-add-btn"
+            style={BUILDER_SKILL_ADD_BTN}
             onMouseEnter={(e) => {
               e.currentTarget.style.opacity = "0.88";
             }}
@@ -1011,22 +996,22 @@ function SkillsEditorSection({
             This skill is already added
           </div>
         ) : null}
-        <div style={chipRowStyle}>
+        <div className="cvp-skills-chip-row">
           {skillsList.map((sk, si) => (
-            <span key={`${sk}-${si}`} style={realChip}>
-              {sk}
+            <span key={`${sk}-${si}`} className="cvp-skills-real-chip" title={sk}>
+              <span className="cvp-skills-chip-text">{sk}</span>
               <button
                 type="button"
+                className="cvp-skills-chip-remove"
                 aria-label={`Remove ${sk}`}
                 onClick={() =>
                   setResume((r) => ({ ...r, skills: splitCommaItems(r.skills).filter((x) => x !== sk).join(", ") }))
                 }
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#FFFFFF", padding: 0, lineHeight: 1, opacity: 0.5, fontSize: 13 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.opacity = "1";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "0.5";
+                  e.currentTarget.style.removeProperty("opacity");
                 }}
               >
                 ×
@@ -1074,7 +1059,7 @@ function SkillsEditorSection({
                 <X size={13} strokeWidth={2} aria-hidden />
               </button>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <div className="cvp-skills-suggestions-chips">
               {softSuggestions.map((sk) => {
                 const picked = pickedSuggestions.has(sk) || lowerSet.has(sk.toLowerCase());
                 return (
@@ -1948,10 +1933,10 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               </span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <div className="cvp-skills-add-row" style={{ marginBottom: 10 }}>
             <input
-              className="cvp-builder-ph"
-              style={{ ...BUILDER_SKILL_INPUT_BASE, flex: 1, minWidth: 0, width: "auto" }}
+              className="cvp-builder-ph cvp-skills-skill-input"
+              style={{ ...BUILDER_SKILL_INPUT_BASE }}
               placeholder="Skill or tool name…"
               value={chipDraftByIndex[i] ?? ""}
               onChange={(e) => setChipDraftByIndex((d) => ({ ...d, [i]: e.target.value }))}
@@ -1988,8 +1973,8 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             />
             <button
               type="button"
-              className="cvp-builder-add-entry-btn"
-              style={{ ...BUILDER_SKILL_ADD_BTN, flexShrink: 0 }}
+              className="cvp-builder-skill-add-btn"
+              style={BUILDER_SKILL_ADD_BTN}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = "0.88";
               }}

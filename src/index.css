@@ -845,11 +845,163 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   color: #FFFFFF;
 }
 
-/* Full-width add buttons inside section bodies (Experience, Education, Skills) */
+/* Full-width add buttons inside section bodies (Experience, Education, category-level actions) */
 .cvp-builder-add-entry-btn {
   width: 100%;
   display: block;
   margin-bottom: 8px;
+}
+
+/* Skills / technical chip inline "+ Add" — pill, not full-width (overrides block layout above) */
+.cvp-builder-skill-add-btn {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 999px;
+  width: auto !important;
+  max-width: 100%;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: 0 !important;
+  white-space: nowrap;
+  background: #fff;
+  border: none;
+  color: #000;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.cvp-skills-editor-block {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.cvp-skills-add-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 769px) {
+  .cvp-skills-add-row {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .cvp-skills-add-row .cvp-skills-skill-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .cvp-skills-add-row .cvp-skills-skill-input {
+    width: 100% !important;
+  }
+
+  .cvp-skills-add-row .cvp-builder-skill-add-btn {
+    align-self: flex-start;
+  }
+}
+
+.cvp-skills-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  align-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+.cvp-skills-chip-row > .cvp-skills-real-chip {
+  flex: 0 1 auto;
+}
+
+.cvp-skills-real-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.cvp-skills-chip-remove {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ffffff;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  opacity: 0.5;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.cvp-skills-chip-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .cvp-skills-real-chip {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .cvp-skills-chip-remove {
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0 -8px 0 0;
+    padding: 0 8px;
+    opacity: 0.75;
+    font-size: 16px;
+  }
+}
+
+.cvp-skills-suggestions-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Builder textareas — never monospace (matches inputs) */
