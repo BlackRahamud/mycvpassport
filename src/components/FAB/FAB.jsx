@@ -401,6 +401,14 @@ const FAB = forwardRef(function FAB(
     activeSection = null,
     /** Builder: notify when guide/menu sheet open state changes (for idle timer reschedule) */
     onBuilderGuideSheetOpenChange = null,
+    /** Builder: update CV from guided coach */
+    setResume = null,
+    /** Builder: bump to reset/open guided coach (e.g. New CV → Guide me) */
+    guidedCoachRequestKey = 0,
+    /** Builder: PDF download from guided flow */
+    onGuidedDownload = null,
+    /** Builder: ATS checker route (guided flow “ATS tab”) */
+    onGuidedSwitchToAtsTab = null,
   },
   ref
 ) {
@@ -1062,6 +1070,10 @@ const FAB = forwardRef(function FAB(
       isGuideSheetOpen() {
         return sheetOpen || menuOpen;
       },
+      openGuidedCoachSheet() {
+        if (variant !== "builder") return;
+        openGuideSheet(false);
+      },
     }),
     [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet, sheetOpen, menuOpen, tryOpenBuilderContentIdleAutoSheet]
   );
@@ -1676,6 +1688,11 @@ const FAB = forwardRef(function FAB(
           navigate("/pricing");
           closeSheet();
         }}
+        resume={resume}
+        setResume={setResume}
+        guidedCoachRequestKey={guidedCoachRequestKey}
+        onGuidedDownload={onGuidedDownload}
+        onGuidedSwitchToAtsTab={onGuidedSwitchToAtsTab}
       />
     </>
   );

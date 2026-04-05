@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./FAB.css";
+import GuidedFlow from "../GuidedFlow";
+import { EMPTY_EXP, splitCommaItems } from "../../cvShared";
 import { FAB_COVER_LETTER_CROSS_SELL, ATS_FAB_CHIP_TO_NAV_KEY } from "./FABContent";
 import {
   writeFabSeen,
@@ -14,6 +16,86 @@ import {
   shouldShowCoverLetterCrossSell,
   getCvpPricingCurrencyCode,
 } from "./FABLogic";
+
+/** Guided CV coach — question order and builder field mapping (nested paths use resume shape: period/points). */
+const QUESTIONS = [
+  { id: "name", text: "What is your full name?", field: "name" },
+  { id: "title", text: "What is your current job title?", field: "title" },
+  { id: "email", text: "What is your email address?", field: "email" },
+  { id: "phone", text: "And your phone number?", field: "phone" },
+  { id: "location", text: "Which city are you based in?", field: "location" },
+  { id: "exp_company", text: "Let's add your most recent job. Company name?", field: "experience[0].company" },
+  { id: "exp_role", text: "Your role there?", field: "experience[0].role" },
+  { id: "exp_dates", text: "Start date → end date? (e.g. Jan 2022 – Present)", field: "experience[0].dates" },
+  { id: "exp_bullets", text: "Add 2–3 achievements in that role.", field: "experience[0].bullets" },
+  { id: "skills", text: "List your top 5 skills (comma-separated).", field: "skills" },
+  {
+    id: "summary",
+    text: "Last one — write a 2–3 line professional summary. Start with your title and years of experience.",
+    field: "summary",
+  },
+];
+
+const GUIDED_PROGRESS_STEP = Math.max(1, Math.round(100 / QUESTIONS.length));
+
+function guidedResumeIsEmptyForCoach(resume) {
+  if (!resume || typeof resume !== "object") return false;
+  const nameEmpty = !String(resume.name || "").trim();
+  const expArr = Array.isArray(resume.experience) ? resume.experience : [];
+  const expEmpty = expArr.length === 0;
+  return nameEmpty && expEmpty;
+}
+
+function nextGuidedMessageId() {
+  return `gf-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function parseExpBulletsToPoints(raw) {
+  const t = String(raw || "").trim();
+  if (!t) return "";
+  const byNl = t.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  if (byNl.length > 1) return byNl.join("\n");
+  return t
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function applyGuidedFieldToResume(prev, field, processedValue) {
+  const next = { ...prev };
+  if (field.startsWith("experience[0].")) {
+    const ex = [...(Array.isArray(next.experience) ? next.experience : [])];
+    while (ex.length < 1) ex.push({ ...EMPTY_EXP });
+    const row = { ...EMPTY_EXP, ...ex[0] };
+    let key = "company";
+    if (field === "experience[0].role") key = "role";
+    else if (field === "experience[0].dates") key = "period";
+    else if (field === "experience[0].bullets") key = "points";
+    ex[0] = { ...row, [key]: processedValue };
+    return { ...next, experience: ex };
+  }
+  if (field === "skills") {
+    const arr = Array.isArray(processedValue) ? processedValue : splitCommaItems(String(processedValue || ""));
+    return { ...next, skills: arr.filter(Boolean).join(", ") };
+  }
+  return { ...next, [field]: processedValue };
+}
+
+function FabGuideStarIcon({ active }) {
+  const fill = active ? "#FBBF24" : "#606060";
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden style={{ display: "block", flexShrink: 0 }}>
+      <path
+        d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2L12 17.8l-6.3 3.2 2.3-7.2-6-4.6h7.6L12 2z"
+        fill={fill}
+        stroke="#3A3A3A"
+        strokeWidth={1}
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 /** Progress coach ring + label colour by completion band */
 export function getRingColour(percent) {
@@ -563,6 +645,15 @@ export default function FABSheet({
   isOnContentTab = false,
   /** Builder CV completion (thin bar + label + nudge); hides legacy Progress coach when set */
   cvCompletionProgress = null,
+  /** Builder: live CV for guided coach field writes */
+  resume = null,
+  setResume = null,
+  /** Increment to open sheet on Guide tab with fresh guided state (e.g. New CV → Guide me) */
+  guidedCoachRequestKey = 0,
+  /** Builder: trigger PDF download from guided flow */
+  onGuidedDownload,
+  /** Builder: match “ATS tab” / ATS checker (typically navigates to /ats) */
+  onGuidedSwitchToAtsTab,
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
@@ -571,6 +662,25 @@ export default function FABSheet({
   const [postDownloadDays, setPostDownloadDays] = useState(0);
   const celebrationShownThisOpenRef = useRef(false);
   const navigate = useNavigate();
+
+  const [builderCoachTab, setBuilderCoachTab] = useState("tips");
+  const [guidedMessages, setGuidedMessages] = useState([]);
+  const [guidedProgress, setGuidedProgress] = useState(0);
+  const [guidedInput, setGuidedInput] = useState("");
+  const [guidedTyping, setGuidedTyping] = useState(false);
+  const [guidedStep, setGuidedStep] = useState(0);
+  const [guidedShowInput, setGuidedShowInput] = useState(true);
+  const guidedPostSummaryStageRef = useRef("qa");
+
+  const resetGuidedCoach = useCallback(() => {
+    guidedPostSummaryStageRef.current = "qa";
+    setGuidedStep(0);
+    setGuidedProgress(0);
+    setGuidedInput("");
+    setGuidedTyping(false);
+    setGuidedShowInput(true);
+    setGuidedMessages([{ id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[0].text }]);
+  }, []);
 
   const currentAts = typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0;
 
@@ -640,9 +750,180 @@ export default function FABSheet({
     }
   }, [open, sheetIntelligence, currentAts, celebrationConsumedSession, postDownloadConsumedSession]);
 
+  const prevGuidedCoachKeyRef = useRef(0);
+  useEffect(() => {
+    if (variant !== "builder") return;
+    if (guidedCoachRequestKey <= 0 || guidedCoachRequestKey === prevGuidedCoachKeyRef.current) return;
+    prevGuidedCoachKeyRef.current = guidedCoachRequestKey;
+    setBuilderCoachTab("guide");
+    resetGuidedCoach();
+  }, [guidedCoachRequestKey, variant, resetGuidedCoach]);
+
+  const builderSheetOpenedOnceRef = useRef(false);
+  useEffect(() => {
+    if (variant !== "builder") return;
+    if (!open) {
+      builderSheetOpenedOnceRef.current = false;
+      return;
+    }
+    if (resume == null) return;
+    if (builderSheetOpenedOnceRef.current) return;
+    builderSheetOpenedOnceRef.current = true;
+    if (guidedCoachRequestKey > 0) return;
+    if (guidedResumeIsEmptyForCoach(resume)) setBuilderCoachTab("guide");
+    else setBuilderCoachTab("tips");
+  }, [open, variant, resume, guidedCoachRequestKey]);
+
+  useEffect(() => {
+    if (!open || variant !== "builder") return;
+    if (builderCoachTab !== "guide") return;
+    if (guidedMessages.length > 0) return;
+    guidedPostSummaryStageRef.current = "qa";
+    setGuidedStep(0);
+    setGuidedProgress(0);
+    setGuidedShowInput(true);
+    setGuidedMessages([{ id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[0].text }]);
+  }, [open, variant, builderCoachTab, guidedMessages.length]);
+
+  const handleGuidedInputChange = useCallback((e) => {
+    setGuidedInput(e.target.value);
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 88)}px`;
+  }, []);
+
+  const handleGuidedSend = useCallback(() => {
+    const trimmed = guidedInput.trim();
+    if (!trimmed || typeof setResume !== "function") return;
+    if (guidedPostSummaryStageRef.current !== "qa") return;
+    const q = QUESTIONS[guidedStep];
+    if (!q) return;
+
+    setResume((prev) => {
+      let processed = trimmed;
+      if (q.field === "experience[0].bullets") processed = parseExpBulletsToPoints(trimmed);
+      else if (q.field === "skills") processed = splitCommaItems(trimmed).filter(Boolean).join(", ");
+      return applyGuidedFieldToResume(prev, q.field, processed);
+    });
+
+    setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
+    setGuidedInput("");
+    setGuidedTyping(true);
+
+    const isLast = guidedStep >= QUESTIONS.length - 1;
+    const nextStep = guidedStep + 1;
+
+    window.setTimeout(() => {
+      if (isLast) {
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "Your CV is ready. Now let's make it look the part.",
+            ctaBtn: "Choose Your Template →",
+            ctaStyle: "white",
+            ctaId: "choose-template",
+          },
+        ]);
+        setGuidedShowInput(false);
+        setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+        guidedPostSummaryStageRef.current = "template";
+      } else {
+        setGuidedMessages((prev) => [
+          ...prev,
+          { id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[nextStep].text },
+        ]);
+        setGuidedStep(nextStep);
+        setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+      }
+      setGuidedTyping(false);
+    }, 800);
+  }, [guidedInput, guidedStep, setResume]);
+
+  const handleGuidedCtaClick = useCallback(
+    (ctaId) => {
+      if (ctaId === "choose-template") {
+        navigate("/templates");
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "Perfect. Before you download — let's see how recruiters will actually see this CV.",
+            ctaBtn: "Run ATS Scan →",
+            ctaStyle: "white",
+            ctaId: "run-ats",
+          },
+        ]);
+        window.setTimeout(() => onGuidedSwitchToAtsTab?.(), 400);
+        guidedPostSummaryStageRef.current = "ats";
+        return;
+      }
+      if (ctaId === "run-ats") {
+        const scoreVal = Math.round(currentAts);
+        let line = "Let's fix this before you apply.";
+        if (scoreVal >= 85) line = "You're in the top 15% of applicants. Recruiters will see you.";
+        else if (scoreVal >= 60) line = "Good start. Here's what's holding you back.";
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: line,
+            score: scoreVal,
+            ctaBtn: "Test Keyword Match →",
+            ctaStyle: "white",
+            ctaId: "keyword-match",
+          },
+        ]);
+        guidedPostSummaryStageRef.current = "keyword";
+        return;
+      }
+      if (ctaId === "keyword-match") {
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "CVPassport users get 3× more callbacks when their CV is tuned to the job. You're ready.",
+            ctaBtn: "Download Your CV →",
+            ctaStyle: "white",
+            ctaId: "download",
+          },
+        ]);
+        setGuidedShowInput(false);
+        guidedPostSummaryStageRef.current = "download";
+        return;
+      }
+      if (ctaId === "download") {
+        onGuidedDownload?.();
+        setGuidedMessages((prev) => [
+          ...prev,
+          { id: nextGuidedMessageId(), role: "assistant", text: "Done. Good luck — you've got this.", complete: true },
+        ]);
+        setGuidedProgress(100);
+        guidedPostSummaryStageRef.current = "done";
+      }
+    },
+    [currentAts, navigate, onGuidedDownload, onGuidedSwitchToAtsTab]
+  );
+
+  const handleGuidedSkip = useCallback(() => {
+    setBuilderCoachTab("tips");
+    onGuidedSwitchToAtsTab?.();
+  }, [onGuidedSwitchToAtsTab]);
+
+  const handleGuidedExit = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
+
   if (!open) return null;
 
-  const hideHeavyChrome = sheetLayoutKind === "summary-helper" || sheetLayoutKind === "idle-nudge";
+  const hideHeavyChrome =
+    sheetLayoutKind === "summary-helper" ||
+    sheetLayoutKind === "idle-nudge" ||
+    (variant === "builder" && builderCoachTab === "guide");
 
   const showCelebrationBanner = Boolean(activeCelebration);
   const showPostDownloadBanner = Boolean(activePostDownload) && !showCelebrationBanner;
@@ -1109,11 +1390,35 @@ export default function FABSheet({
     return title;
   })();
 
+  const showBuilderGuidedCoach =
+    variant === "builder" && builderCoachTab === "guide" && !sheetBodySlot && sheetLayoutKind === "normal";
+
   const showDownloadGatekeeperPanel =
     showDownloadGatekeeper &&
     !sheetBodySlot &&
+    !showBuilderGuidedCoach &&
     (sheetLayoutKind === "download-only" ||
       (variant === "builder" && tabKey === "content" && !isOnContentTab));
+
+  const showGotItEffective = showGotItButton && !showBuilderGuidedCoach;
+
+  const builderCoachTabChip = {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 10,
+    border: "1px solid #2A2A2A",
+    background: "transparent",
+    color: "#A0A0A0",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    transition: "background-color 200ms cubic-bezier(0.4,0,0.2,1), color 200ms cubic-bezier(0.4,0,0.2,1), border-color 200ms cubic-bezier(0.4,0,0.2,1)",
+  };
 
   return (
     <>
@@ -1132,7 +1437,51 @@ export default function FABSheet({
       >
         <span className="cvp-fab-sheet-drag-handle" aria-hidden />
         <div className="cvp-fab-sheet-main">
-        <div className={`cvp-fab-sheet-scroll${showGotItButton ? "" : " cvp-fab-sheet-scroll--no-sticky-footer"}`}>
+        <div className={`cvp-fab-sheet-scroll${showGotItEffective ? "" : " cvp-fab-sheet-scroll--no-sticky-footer"}`}>
+          {variant === "builder" && !sheetBodySlot && sheetLayoutKind === "normal" ? (
+            <div
+              role="tablist"
+              aria-label="FAB sheet"
+              style={{
+                display: "flex",
+                gap: 8,
+                marginBottom: 14,
+                width: "100%",
+                flexShrink: 0,
+              }}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={builderCoachTab === "tips"}
+                onClick={() => setBuilderCoachTab("tips")}
+                style={{
+                  ...builderCoachTabChip,
+                  background: builderCoachTab === "tips" ? "#1C1C1C" : "transparent",
+                  color: builderCoachTab === "tips" ? "#FFFFFF" : "#A0A0A0",
+                  borderColor: builderCoachTab === "tips" ? "#3A3A3A" : "#2A2A2A",
+                }}
+              >
+                Tips
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={builderCoachTab === "guide"}
+                onClick={() => setBuilderCoachTab("guide")}
+                style={{
+                  ...builderCoachTabChip,
+                  background: builderCoachTab === "guide" ? "#1C1C1C" : "transparent",
+                  color: builderCoachTab === "guide" ? "#FFFFFF" : "#A0A0A0",
+                  borderColor: builderCoachTab === "guide" ? "#3A3A3A" : "#2A2A2A",
+                }}
+              >
+                <FabGuideStarIcon active={builderCoachTab === "guide"} />
+                Guide
+              </button>
+            </div>
+          ) : null}
+
           {!hideHeavyChrome && cvCompletionProgress ? (
             <div style={{ width: "100%", marginBottom: 16 }}>
               <div
@@ -1270,7 +1619,7 @@ export default function FABSheet({
 
           {sheetBodySlot ? <div style={{ width: "100%", marginBottom: 16 }}>{sheetBodySlot}</div> : null}
 
-          {dedicatedRoute === "ats" ? (
+          {dedicatedRoute === "ats" && !showBuilderGuidedCoach ? (
             <div
               style={{
                 width: "100%",
@@ -1291,7 +1640,7 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {showCoachPanels && showProgressCoach && !sheetBodySlot && !dedicatedRoute && !cvCompletionProgress ? (
+          {showCoachPanels && showProgressCoach && !sheetBodySlot && !dedicatedRoute && !cvCompletionProgress && !showBuilderGuidedCoach ? (
             <div
               style={{
                 width: "100%",
@@ -1387,15 +1736,19 @@ export default function FABSheet({
             </div>
           ) : null}
 
-          {dedicatedRoute === "cover-letter" ? (
+          {dedicatedRoute === "cover-letter" && !showBuilderGuidedCoach ? (
             <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedCoverLetter()}</div>
           ) : null}
 
-          {dedicatedRoute === "walkin" ? <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedWalkIn()}</div> : null}
+          {dedicatedRoute === "walkin" && !showBuilderGuidedCoach ? (
+            <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedWalkIn()}</div>
+          ) : null}
 
-          {dedicatedRoute === "account" ? <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedAccount()}</div> : null}
+          {dedicatedRoute === "account" && !showBuilderGuidedCoach ? (
+            <div style={{ width: "100%", marginBottom: 16 }}>{renderDedicatedAccount()}</div>
+          ) : null}
 
-          {showCoverNudge ? (
+          {showCoverNudge && !showBuilderGuidedCoach ? (
             <div style={{ ...bannerBase, marginBottom: 16 }}>
               <p style={{ margin: 0, lineHeight: 1.45 }}>{FAB_COVER_LETTER_CROSS_SELL.body}</p>
               <button
@@ -1431,10 +1784,40 @@ export default function FABSheet({
             />
           ) : null}
 
+          {showBuilderGuidedCoach ? (
+            <div
+              style={{
+                width: "100%",
+                minHeight: "min(55vh, 420px)",
+                maxHeight: "62vh",
+                display: "flex",
+                flexDirection: "column",
+                marginBottom: 8,
+                boxSizing: "border-box",
+              }}
+            >
+              <GuidedFlow
+                useSampleData={false}
+                messages={guidedMessages}
+                progressPercent={guidedProgress}
+                inputValue={guidedInput}
+                onInputChange={handleGuidedInputChange}
+                onSend={handleGuidedSend}
+                onSkip={handleGuidedSkip}
+                onExit={handleGuidedExit}
+                onCtaClick={handleGuidedCtaClick}
+                showInput={guidedShowInput}
+                inputPlaceholder="Type your answer…"
+                isTyping={guidedTyping}
+              />
+            </div>
+          ) : null}
+
           <div>
             {!hideHeavyChrome &&
               !sheetBodySlot &&
               !hideDefaultGuidePoints &&
+              !showBuilderGuidedCoach &&
               points.map((row, i) => (
                 <div
                   key={i}
@@ -1473,7 +1856,7 @@ export default function FABSheet({
             </button>
           ) : null}
         </div>
-        {showGotItButton ? (
+        {showGotItEffective ? (
           <div
             className={`cvp-fab-sheet-gotit-bar${dedicatedRoute === "ats" ? " cvp-fab-sheet-gotit-bar--ats-ghost" : ""}`}
           >

@@ -2099,6 +2099,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     return { ...base, technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills) };
   });
   const [builderTab, setBuilderTab] = useState("content");
+  const [guidedCoachRequestKey, setGuidedCoachRequestKey] = useState(0);
   const [openSection, setOpenSection] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
@@ -2193,6 +2194,16 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') === 'templates') setBuilderTab('templates');
   }, []);
+
+  useEffect(() => {
+    if (location.state?.cvpFabGuide !== true) return;
+    setGuidedCoachRequestKey((k) => k + 1);
+    navigate({ pathname: location.pathname, search: location.search, hash: location.hash, replace: true, state: {} });
+    const id = requestAnimationFrame(() => {
+      fabRef.current?.openGuidedCoachSheet?.();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [location.state?.cvpFabGuide, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     if (lastSavedSnapshotRef.current == null) {
@@ -4117,6 +4128,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 activeSection={activeSection}
                 tabKey={builderTab}
                 atsScore={score}
+                setResume={setResume}
+                guidedCoachRequestKey={guidedCoachRequestKey}
+                onGuidedDownload={handleDownload}
+                onGuidedSwitchToAtsTab={openAtsChecker}
                 selectedTemplateId={selectedTemplate?.id}
                 resume={resume}
                 templatePickPending={templatePickPending}

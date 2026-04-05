@@ -62,6 +62,7 @@ export default function Dashboard({
   const fabRouteTab = location.state?.fabGuideTab === "account" ? "account" : "mycvs";
   const [active, setActive] = useState("mycvs");
   const [menuOpenId, setMenuOpenId] = useState(null);
+  const [newCvChoiceOpen, setNewCvChoiceOpen] = useState(false);
   const isLight = theme === "light";
 
   useEffect(() => {
@@ -261,7 +262,7 @@ export default function Dashboard({
             {/* New CV card */}
             <button
               type="button"
-              onClick={onBuildResume}
+              onClick={() => setNewCvChoiceOpen(true)}
               className="cvp-new-cv-card"
               style={{
                 border: '2px dashed #2A2A2A',
@@ -482,7 +483,7 @@ export default function Dashboard({
                 </div>
                 <button
                   type="button"
-                  onClick={onBuildResume}
+                  onClick={() => setNewCvChoiceOpen(true)}
                   style={{
                     width: "100%",
                     maxWidth: "320px",
@@ -508,6 +509,97 @@ export default function Dashboard({
           <FAB tabKey={fabRouteTab} />
         </main>
       </div>
+
+      {newCvChoiceOpen ? (
+        <>
+          <div
+            role="presentation"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 400,
+              background: "rgba(0,0,0,0.5)",
+              transition: `opacity 200ms ${EASE}`,
+            }}
+            onClick={() => setNewCvChoiceOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-cv-choice-title"
+            style={{
+              position: "fixed",
+              left: 16,
+              right: 16,
+              bottom: 24,
+              zIndex: 401,
+              maxWidth: 400,
+              margin: "0 auto",
+              background: "#141414",
+              border: "1px solid #2A2A2A",
+              borderRadius: 16,
+              padding: "20px 18px 18px",
+              boxShadow: "0 -8px 40px rgba(0,0,0,0.45)",
+              boxSizing: "border-box",
+              transform: "translateY(0)",
+              transition: `transform 220ms ${EASE}, opacity 220ms ${EASE}`,
+            }}
+          >
+            <div id="new-cv-choice-title" style={{ fontSize: 16, fontWeight: 600, color: "#FFFFFF", marginBottom: 8 }}>
+              Start a new CV
+            </div>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#A0A0A0", lineHeight: 1.45 }}>
+              Choose how you want to begin.
+            </p>
+            <div style={{ display: "grid", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewCvChoiceOpen(false);
+                  onBuildResume({ openFabGuide: true });
+                }}
+                style={{
+                  width: "100%",
+                  minHeight: 48,
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#FFFFFF",
+                  color: "#000000",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  transition: `opacity 150ms ${EASE}`,
+                }}
+              >
+                Guide me through it
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewCvChoiceOpen(false);
+                  onBuildResume();
+                }}
+                style={{
+                  width: "100%",
+                  minHeight: 48,
+                  borderRadius: 10,
+                  border: "1px solid #3A3A3A",
+                  background: "transparent",
+                  color: "#FFFFFF",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  transition: `border-color 150ms ${EASE}, background-color 150ms ${EASE}`,
+                }}
+              >
+                Start blank
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
 
     </div>
   );
