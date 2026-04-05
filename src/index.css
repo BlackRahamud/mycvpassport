@@ -267,12 +267,33 @@ input:focus, textarea:focus {
   grid-column: 1;
   display: block !important;
   width: 380px !important;
-  height: fit-content !important;
   min-height: 0 !important;
-  max-height: none !important;
+  max-height: calc(100vh - 56px) !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   align-self: start !important;
   position: relative !important;
   padding-bottom: 40px;
+  scrollbar-color: rgba(255, 255, 255, 0.2) var(--bg-surface);
+  scrollbar-width: thin;
+}
+
+.cvp-builder-left::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cvp-builder-left::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+
+.cvp-builder-left::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.cvp-builder-left::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .cvp-builder-preview {
@@ -1289,7 +1310,8 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     background: #141414 !important;
     border-right: 1px solid #1C1C1C !important;
     overflow-y: auto !important;
-    height: fit-content !important;
+    max-height: calc(100vh - 56px) !important;
+    height: auto !important;
   }
   .cvp-builder-desktop.cvp-jobmatch-active .cvp-builder-preview {
     padding: 48px 40px !important;

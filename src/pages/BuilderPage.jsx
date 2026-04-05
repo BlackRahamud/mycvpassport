@@ -2170,8 +2170,9 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
   const lastSavedSnapshotRef = useRef(null);
   const [showUnsavedBanner, setShowUnsavedBanner] = useState(false);
-  const [unsavedBannerDismissed, setUnsavedBannerDismissed] = useState(false);
-  const resumeAtUnsavedBannerDismissRef = useRef(null);
+  const [cvpBannerDismissedStored, setCvpBannerDismissedStored] = useState(
+    () => typeof window !== "undefined" && window.localStorage.getItem("cvp_banner_dismissed") === "true"
+  );
   const [progressTooltipOpen, setProgressTooltipOpen] = useState(false);
   const progressRingWrapRef = useRef(null);
   const progressRingWrapMobileRef = useRef(null);
@@ -2200,23 +2201,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     }
     setShowUnsavedBanner(JSON.stringify(resume) !== JSON.stringify(lastSavedSnapshotRef.current));
   }, [resume]);
-
-  useEffect(() => {
-    if (!showUnsavedBanner) {
-      setUnsavedBannerDismissed(false);
-      resumeAtUnsavedBannerDismissRef.current = null;
-    }
-  }, [showUnsavedBanner]);
-
-  useEffect(() => {
-    if (!showUnsavedBanner || !unsavedBannerDismissed) return;
-    const snap = resumeAtUnsavedBannerDismissRef.current;
-    if (snap == null) return;
-    if (JSON.stringify(resume) !== snap) {
-      setUnsavedBannerDismissed(false);
-      resumeAtUnsavedBannerDismissRef.current = null;
-    }
-  }, [resume, showUnsavedBanner, unsavedBannerDismissed]);
 
   useEffect(() => {
     if (savedAtMs == null) {
@@ -3040,7 +3024,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         {/* Left panel — Editor */}
         <aside
           className="cvp-builder-left"
-          style={{ width: "100%", minWidth: 0, alignSelf: "start", height: "fit-content", maxHeight: "100%" }}
+          style={{ width: "100%", minWidth: 0, alignSelf: "start" }}
         >
           {builderTab === "content" && (
             <>
@@ -4908,7 +4892,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </div>
       )}
 
-      {showUnsavedBanner && !unsavedBannerDismissed ? (
+      {showUnsavedBanner && !cvpBannerDismissedStored ? (
         <div
           className="cvp-builder-unsaved-banner"
           style={{
@@ -4976,8 +4960,12 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
               type="button"
               aria-label="Dismiss unsaved changes notice"
               onClick={() => {
-                setUnsavedBannerDismissed(true);
-                resumeAtUnsavedBannerDismissRef.current = JSON.stringify(resume);
+                try {
+                  window.localStorage.setItem("cvp_banner_dismissed", "true");
+                } catch {
+                  /* ignore quota / private mode */
+                }
+                setCvpBannerDismissedStored(true);
               }}
               style={{
                 display: "flex",
