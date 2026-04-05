@@ -121,9 +121,45 @@ function cvWithTemplateCertifications(cv) {
   };
 }
 
+/**
+ * Ensures education and languages match preview/React shape for Puppeteer HTML builders.
+ * - education: always an array of objects (never null/undefined)
+ * - languages: comma-separated string (preview uses string; arrays from legacy data join cleanly)
+ */
+function normalizeCvForPdf(cv) {
+  if (!cv || typeof cv !== "object") return cv;
+  let education = cv.education;
+  if (!Array.isArray(education)) education = [];
+  education = education.map((e) =>
+    e && typeof e === "object"
+      ? {
+          ...e,
+          school: e.school != null ? String(e.school) : "",
+          degree: e.degree != null ? String(e.degree) : "",
+          year: e.year != null ? String(e.year) : "",
+        }
+      : { school: "", degree: "", year: "" },
+  );
+
+  let languages = cv.languages;
+  if (Array.isArray(languages)) {
+    languages = languages
+      .map((x) => (x == null ? "" : String(x).trim()))
+      .filter(Boolean)
+      .join(", ");
+  } else if (languages == null) {
+    languages = "";
+  } else {
+    languages = String(languages);
+  }
+
+  return { ...cv, education, languages };
+}
+
 module.exports = {
   escapeHtml,
   stripEmojiPictographs,
   splitExperiencePointsForPreview,
   cvWithTemplateCertifications,
+  normalizeCvForPdf,
 };

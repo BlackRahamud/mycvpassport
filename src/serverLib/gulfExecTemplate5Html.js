@@ -149,6 +149,21 @@ function pdfEditorialDark(cv) {
           `
               : ""
           }
+          ${
+            cv.languages && String(cv.languages).trim()
+              ? `
+            <div class="section-title">Languages</div>
+            <div class="section-underline"></div>
+            <p style="font-size: 10pt; line-height: 1.6; margin: 0; color: ${TEXT_PRIMARY};">
+              ${String(cv.languages)
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          `
+              : ""
+          }
         </div>
       </body>
     </html>

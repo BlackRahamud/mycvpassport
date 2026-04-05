@@ -133,6 +133,21 @@ function pdfExecutiveModern(cv) {
                   .join("")
           }
         </div>
+
+        ${
+          cv.languages && String(cv.languages).trim()
+            ? `
+        <div class="section-head">Languages</div>
+        <p style="text-align: center; font-size: 10pt; line-height: 1.6; margin: 0;">
+          ${String(cv.languages)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        `
+            : ""
+        }
       </body>
     </html>
   `;

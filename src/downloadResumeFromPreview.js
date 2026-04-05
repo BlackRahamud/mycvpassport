@@ -59,7 +59,12 @@ export async function downloadResumeFromPreview(cvInput, captureElement, opts = 
   const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ html, filename: baseName, ...(maxPages != null ? { maxPages } : {}) }),
+    body: JSON.stringify({
+      html,
+      filename: baseName,
+      cv,
+      ...(maxPages != null ? { maxPages } : {}),
+    }),
   });
   if (!res.ok) {
     let msg = `Server error ${res.status}`;

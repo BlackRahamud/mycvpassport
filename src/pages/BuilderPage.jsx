@@ -2165,7 +2165,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const scheduleBuilderIdleRef = useRef(() => {});
   const prevBuilderTabRef = useRef(null);
   const cvCompletionProgress = useCvProgress(resume);
-  const [pdfTargetPages, setPdfTargetPages] = useState(1);
+  const [pdfTargetPages, setPdfTargetPages] = useState(2);
   const [savedAtMs, setSavedAtMs] = useState(null);
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
   const lastSavedSnapshotRef = useRef(null);

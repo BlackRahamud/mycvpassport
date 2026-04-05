@@ -14,6 +14,12 @@ function pdfBankingFinance(cv) {
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const languages = cv.languages
+    ? String(cv.languages)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 
   const contactParts = [];
   if (cv.email) contactParts.push(cv.email);
@@ -205,6 +211,17 @@ function pdfBankingFinance(cv) {
                   )
                   .join("")
           }
+        `
+            : ""
+        }
+
+        ${
+          languages.length > 0 || isPlaceholder
+            ? `
+          <div class="section-title"><span>Languages</span></div>
+          <p class="skills" style="color: ${isPlaceholder ? "#D1D5DB" : BODY_TEXT};">${
+            isPlaceholder ? "English • Hindi" : languages.join(" • ")
+          }</p>
         `
             : ""
         }

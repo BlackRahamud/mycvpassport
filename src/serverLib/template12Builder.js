@@ -15,6 +15,13 @@ function buildTemplate12Html(cv) {
   const safeCv = cv || {};
   const HEADER_BG = safeCv.name ? "#D6D3D1" : "#D1D5DB";
   const SIDEBAR_BG = "#F3F4F6";
+  const education = Array.isArray(safeCv.education) ? safeCv.education : [];
+  const languages = safeCv.languages
+    ? String(safeCv.languages)
+        .split(",")
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : [];
 
   const experienceHtml = (safeCv.experience || [])
     .map((exp) => {
@@ -147,6 +154,30 @@ function buildTemplate12Html(cv) {
             <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${inner}</div>
           `;
             })()
+          }
+          ${
+            languages.length
+              ? `
+            <div class="section-label sidebar-label" style="margin-top: 40px;" data-block="section">Languages</div>
+            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${languages.join(", ")}</div>
+          `
+              : ""
+          }
+          ${
+            education.some((e) => e && (e.school || e.degree))
+              ? `
+            <div class="section-label sidebar-label" style="margin-top: 40px;" data-block="section">Education</div>
+            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">
+              ${education
+                .filter((e) => e && (e.school || e.degree))
+                .map(
+                  (edu) =>
+                    `<p style="margin: 0 0 10px 0;"><strong>${edu.degree || ""}</strong><br/>${edu.school || ""}${edu.year ? ` · ${edu.year}` : ""}</p>`,
+                )
+                .join("")}
+            </div>
+          `
+              : ""
           }
         </div>
 

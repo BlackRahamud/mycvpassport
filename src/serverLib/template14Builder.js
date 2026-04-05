@@ -49,6 +49,12 @@ function buildTemplate14Html(cv) {
     ? safeCv.skills.join(", ")
     : safeCv.skills || "";
   const techGroups = technicalSkillsGroupsForTemplate(safeCv.technicalSkills);
+  const languages = safeCv.languages
+    ? String(safeCv.languages)
+        .split(",")
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : [];
   const technicalSkillsInner = techGroups
     .map(
       (g) =>
@@ -61,6 +67,11 @@ function buildTemplate14Html(cv) {
     techGroups.length
       ? `<div class="section-label" data-block="section" style="margin-top: ${hasSkills ? "24px" : "0"};">Technical Skills</div>
              <div style="font-size: 10pt; line-height: 1.6; margin: 0;">${technicalSkillsInner}</div>`
+      : ""
+  }${
+    languages.length
+      ? `<div class="section-label" data-block="section" style="margin-top: 24px;">Languages</div>
+             <div data-block="text" style="font-size: 10pt; line-height: 1.6;">${languages.join(", ")}</div>`
       : ""
   }`;
 

@@ -115,6 +115,19 @@ function pdfModernEmerald(cv) {
             </div>
           `).join("")}
         ` : ""}
+
+        ${cv.languages && String(cv.languages).trim() ? `
+          <div class="section-title">
+            <span class="section-label">Languages</span>
+          </div>
+          <div style="font-size: 10.5pt; line-height: 1.5;">
+            ${String(cv.languages)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .join(", ")}
+          </div>
+        ` : ""}
       </body>
     </html>
   `;

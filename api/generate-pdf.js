@@ -18,6 +18,7 @@ const { markPageStarts } = require("../src/serverLib/markPageStarts");
 const { buildFinanceTemplate13Html } = require("../src/serverLib/financeTemplate13Html");
 const { buildTemplate14Html } = require("../src/serverLib/template14Builder");
 const { drawT11SidebarStripeOnPdf } = require("../src/serverLib/pdfDrawT11SidebarStripe");
+const { normalizeCvForPdf } = require("../src/serverLib/pdfCommon");
 
 const BUILDERS = {
   1: pdfModernEmerald,
@@ -50,12 +51,20 @@ module.exports = async (req, res) => {
 
   const { html, templateId, cv, atsMode, maxPages } = body;
 
+  const rawCvForLog = body.cv != null ? body.cv : cv;
+  if (rawCvForLog && typeof rawCvForLog === "object") {
+    console.log(
+      "[generate-pdf] CV data for Puppeteer (normalized)",
+      JSON.stringify(normalizeCvForPdf(rawCvForLog)),
+    );
+  }
+
   // Determine which HTML to render
   let finalHtml = html;
   if (!finalHtml && templateId && cv) {
     const builder = BUILDERS[templateId];
     if (builder) {
-      finalHtml = builder(cv);
+      finalHtml = builder(normalizeCvForPdf(cv));
     }
   }
 

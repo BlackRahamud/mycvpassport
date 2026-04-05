@@ -5,6 +5,13 @@ function pdfSlateMinimalist(cv) {
   const TEXT_PRIMARY = "#1F2937";
   const TEXT_SECONDARY = "#4B5563";
   const BORDER = "#D1D5DB";
+  const education = Array.isArray(cv.education) ? cv.education : [];
+  const languages = cv.languages
+    ? String(cv.languages)
+        .split(",")
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : [];
 
   return `
     <html>
@@ -82,6 +89,38 @@ function pdfSlateMinimalist(cv) {
               </div>
             `).join("")}
           </div>
+
+          ${
+            education.some((e) => e && (e.school || e.degree))
+              ? `
+          <div class="section-band">Education</div>
+          ${education
+            .filter((e) => e && (e.school || e.degree))
+            .map(
+              (edu) => `
+            <div class="exp-item">
+              <div class="exp-grid">
+                <div class="exp-left">${edu.year || ""}<br><span style="font-weight:400; font-size:8.5pt;">${edu.school || ""}</span></div>
+                <div class="exp-right">
+                  <div class="role">${edu.degree || ""}</div>
+                </div>
+              </div>
+            </div>
+          `,
+            )
+            .join("")}
+          `
+              : ""
+          }
+
+          ${
+            languages.length
+              ? `
+          <div class="section-band">Languages</div>
+          <p style="text-align: center; font-size: 10pt; line-height: 1.6; margin: 0; color: ${TEXT_PRIMARY};">${languages.join(" · ")}</p>
+          `
+              : ""
+          }
         </div>
       </body>
     </html>

@@ -119,6 +119,23 @@ function pdfSandstoneExecutive(cv) {
         `,
           )
           .join("")}
+
+        ${
+          cv.languages && String(cv.languages).trim()
+            ? `
+        <div class="section-title-row">
+          <span class="section-label">Languages</span><div class="gold-line"></div>
+        </div>
+        <div style="font-size: 10pt; line-height: 1.5; color: ${isEmpty ? "#D1D5DB" : "inherit"}">
+          ${String(cv.languages)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .join(" · ")}
+        </div>
+        `
+            : ""
+        }
       </body>
     </html>
   `;
