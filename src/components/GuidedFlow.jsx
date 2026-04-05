@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * GuidedFlow — chat-style CV onboarding coach, lives inside FABSheet.
@@ -233,7 +233,10 @@ export default function GuidedFlow({
   const [internalTyping, setInternalTyping] = useState(false);
   const followUpIdx = useRef(0);
 
-  const messages         = !useSampleData ? (messagesProp   ?? [])    : sampleMsgs;
+  const messages = useMemo(
+    () => (!useSampleData ? (messagesProp ?? []) : sampleMsgs),
+    [useSampleData, messagesProp, sampleMsgs]
+  );
   const progressPercent  = !useSampleData ? (progressProp   ?? 0)     : sampleProgress;
   const inputValue       = !useSampleData ? (inputValueProp ?? "")    : internalInput;
   const isTyping         = !useSampleData ? (isTypingProp   ?? false) : internalTyping;
