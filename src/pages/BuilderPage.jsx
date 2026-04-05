@@ -2185,6 +2185,8 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
   const lastSavedSnapshotRef = useRef(null);
   const [showUnsavedBanner, setShowUnsavedBanner] = useState(false);
+  const [unsavedBannerDismissed, setUnsavedBannerDismissed] = useState(false);
+  const resumeAtUnsavedBannerDismissRef = useRef(null);
   const [progressTooltipOpen, setProgressTooltipOpen] = useState(false);
   const progressRingWrapRef = useRef(null);
   const progressRingWrapMobileRef = useRef(null);
@@ -2213,6 +2215,23 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
     }
     setShowUnsavedBanner(JSON.stringify(resume) !== JSON.stringify(lastSavedSnapshotRef.current));
   }, [resume]);
+
+  useEffect(() => {
+    if (!showUnsavedBanner) {
+      setUnsavedBannerDismissed(false);
+      resumeAtUnsavedBannerDismissRef.current = null;
+    }
+  }, [showUnsavedBanner]);
+
+  useEffect(() => {
+    if (!showUnsavedBanner || !unsavedBannerDismissed) return;
+    const snap = resumeAtUnsavedBannerDismissRef.current;
+    if (snap == null) return;
+    if (JSON.stringify(resume) !== snap) {
+      setUnsavedBannerDismissed(false);
+      resumeAtUnsavedBannerDismissRef.current = null;
+    }
+  }, [resume, showUnsavedBanner, unsavedBannerDismissed]);
 
   useEffect(() => {
     if (savedAtMs == null) {
@@ -4904,7 +4923,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         </div>
       )}
 
-      {showUnsavedBanner ? (
+      {showUnsavedBanner && !unsavedBannerDismissed ? (
         <div
           className="cvp-builder-unsaved-banner"
           style={{
@@ -4920,38 +4939,94 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
             display: "flex",
             alignItems: "center",
             gap: 10,
+            flexWrap: "wrap",
+            rowGap: 10,
+            maxWidth: "100%",
             boxSizing: "border-box",
             boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
           }}
         >
           <AlertTriangle size={13} strokeWidth={1.8} color="#60A5FA" aria-hidden />
-          <span style={{ flex: 1, fontSize: 12, color: "#60A5FA" }}>You have unsaved changes</span>
-          <button
-            type="button"
-            onClick={() => {
-              const snap = lastSavedSnapshotRef.current;
-              if (snap) {
-                setResume({
-                  ...snap,
-                  technicalSkills: normalizeTechnicalSkillsState(snap.technicalSkills),
-                });
-              }
-              setShowUnsavedBanner(false);
-            }}
+          <span
             style={{
-              background: "#3B82F6",
-              border: "none",
-              color: "#fff",
-              fontSize: 11,
-              fontWeight: 700,
-              padding: "6px 12px",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontFamily: "inherit",
+              flex: "1 1 120px",
+              minWidth: 0,
+              fontSize: 12,
+              color: "#60A5FA",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
-            Discard
-          </button>
+            You have unsaved changes
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: "auto" }}>
+            <button
+              type="button"
+              onClick={() => {
+                const snap = lastSavedSnapshotRef.current;
+                if (snap) {
+                  setResume({
+                    ...snap,
+                    technicalSkills: normalizeTechnicalSkillsState(snap.technicalSkills),
+                  });
+                }
+                setShowUnsavedBanner(false);
+              }}
+              style={{
+                background: "#3B82F6",
+                border: "none",
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "6px 12px",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              aria-label="Dismiss unsaved changes notice"
+              onClick={() => {
+                setUnsavedBannerDismissed(true);
+                resumeAtUnsavedBannerDismissRef.current = JSON.stringify(resume);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxSizing: "border-box",
+                width: isMobile ? 44 : 20,
+                height: isMobile ? 44 : 20,
+                padding: 0,
+                margin: 0,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#fff",
+                opacity: 0.6,
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "1";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "0.6";
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" style={{ display: "block" }}>
+                <path
+                  d="M5 5 L15 15 M15 5 L5 15"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
