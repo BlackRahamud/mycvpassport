@@ -203,8 +203,10 @@ export function useCvpAuth() {
 
   const handleNewResume = (opts) => {
     setEditingResume(null);
-    if (opts?.openFabGuide) navigate("/builder", { state: { cvpFabGuide: true } });
-    else navigate("/builder");
+    if (opts?.openFabGuide) navigate("/builder", {
+      state: { cvpFabGuide: true, forceNew: true },
+    });
+    else navigate("/builder", { state: { forceNew: true } });
   };
 
   const currentPath = location.pathname.replace(/\/$/, "") || "/";

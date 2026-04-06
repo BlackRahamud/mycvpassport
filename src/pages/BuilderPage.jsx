@@ -2094,8 +2094,13 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
+  const locationState = window.history.state?.usr || {};
+  const isForceNew = locationState.forceNew === true;
+  const seedResume = isForceNew
+    ? null
+    : initialResume;
   const [resume, setResume] = useState(() => {
-    const base = normalizeResumeForBuilder(initialResume || { ...EMPTY_RESUME, name: user?.name || "", email: user?.email || "" });
+    const base = normalizeResumeForBuilder(seedResume || { ...EMPTY_RESUME, name: user?.name || "", email: user?.email || "" });
     return { ...base, technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills) };
   });
   const [builderTab, setBuilderTab] = useState("content");
