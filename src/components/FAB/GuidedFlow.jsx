@@ -385,6 +385,7 @@ export default function GuidedFlow({
                 display: "flex",
                 alignItems: "center",
                 minHeight: 40,
+                overflow: "hidden",
               }}>
                 <textarea
                   ref={inputRef}
@@ -394,7 +395,12 @@ export default function GuidedFlow({
                   placeholder={inputPlaceholder}
                   rows={1}
                   style={{
-                    width: "100%", background: "transparent", border: "none",
+                    width: "100%",
+                    border: "none",
+                    outline: "none",
+                    WebkitAppearance: "none",
+                    background: "transparent",
+                    boxShadow: "none",
                     resize: "none", color: T.text, fontSize: 16,
                     lineHeight: 1.5, fontFamily: "inherit",
                     minHeight: 22, maxHeight: 88, overflowY: "auto",
