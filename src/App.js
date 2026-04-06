@@ -92,10 +92,10 @@ export default function App() {
   } = useCvpAuth();
 
   const searchParams = new URLSearchParams(location.search);
-  const isNew = searchParams.get("new") === "true";
+  const newSessionId = searchParams.get("new");
   const builderKey = editingResume?.id
     ? `edit-${editingResume.id}`
-    : (isNew ? `new-${location.key}` : "new-default");
+    : (newSessionId ? `new-${newSessionId}` : "new-default");
 
   return (
     <Routes>

@@ -25,7 +25,6 @@ import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
-import { supabase } from "../appSupabaseClient";
 import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { BuilderTemplatesTab } from "./TemplatesPage";
@@ -2097,7 +2096,7 @@ function ResumeBuilder({
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const isNew = searchParams.get("new") === "true";
+  const isNew = !!searchParams.get("new");
   const isGuided = searchParams.get("guide") === "true";
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloadPhase, setDownloadPhase] = useState("idle");
@@ -2183,6 +2182,7 @@ function ResumeBuilder({
   }, [navigate]);
   const [technicalSkillsFromPrompt, setTechnicalSkillsFromPrompt] = useState(false);
   const fabRef = useRef(null);
+  const hasOpenedGuide = useRef(false);
   const builderRootRef = useRef(null);
   const builderIdleT15Ref = useRef(null);
   const builderIdleT25Ref = useRef(null);
@@ -2221,14 +2221,15 @@ function ResumeBuilder({
   }, []);
 
   useEffect(() => {
-    if (!isGuided) return;
-    console.log("[FAB DEBUG] guide=true in URL, opening coach");
-    setGuidedCoachRequestKey((k) => k + 1);
-    const id = setTimeout(() => {
-      fabRef.current?.openGuidedCoachSheet?.();
-      navigate("/builder", { replace: true });
-    }, 400);
-    return () => clearTimeout(id);
+    if (isGuided && !hasOpenedGuide.current) {
+      hasOpenedGuide.current = true;
+      setGuidedCoachRequestKey((k) => k + 1);
+      const id = setTimeout(() => {
+        fabRef.current?.openGuidedCoachSheet?.();
+        navigate("/builder", { replace: true });
+      }, 500);
+      return () => clearTimeout(id);
+    }
   }, [isGuided, navigate]);
 
   useEffect(() => {
@@ -2586,15 +2587,6 @@ function ResumeBuilder({
         selectedTemplate.id,
         resumeId
       );
-      if (supabase) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error } = await supabase
-            .from('cvs')
-            .insert([{ user_id: user.id }]);
-          if (error) console.error('Error tracking CV creation:', error);
-        }
-      }
       setResumeId(saved.id);
       setSaveStatus("saved");
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);

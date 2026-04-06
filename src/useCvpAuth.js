@@ -203,8 +203,9 @@ export function useCvpAuth() {
 
   const handleNewResume = (opts) => {
     setEditingResume(null);
+    const sessionId = Date.now();
     const params = new URLSearchParams();
-    params.set("new", "true");
+    params.set("new", sessionId);
     if (opts?.openFabGuide) params.set("guide", "true");
     navigate(`/builder?${params.toString()}`);
   };
