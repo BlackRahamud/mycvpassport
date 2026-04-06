@@ -2089,18 +2089,25 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
 function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId, isPro = false }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { state: routerState } = location;
+  const isForceNew = routerState?.forceNew === true;
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloadPhase, setDownloadPhase] = useState("idle");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
-  const locationState = window.history.state?.usr || {};
-  const isForceNew = locationState.forceNew === true;
-  const seedResume = isForceNew
-    ? null
-    : initialResume;
   const [resume, setResume] = useState(() => {
-    const base = normalizeResumeForBuilder(seedResume || { ...EMPTY_RESUME, name: user?.name || "", email: user?.email || "" });
+    if (isForceNew) {
+      const base = normalizeResumeForBuilder({ ...EMPTY_RESUME });
+      return { ...base, technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills) };
+    }
+    const base = normalizeResumeForBuilder(
+      initialResume || {
+        ...EMPTY_RESUME,
+        name: user?.name || "",
+        email: user?.email || "",
+      }
+    );
     return { ...base, technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills) };
   });
   const [builderTab, setBuilderTab] = useState("content");
@@ -2189,6 +2196,11 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [expCloseGuardOpen, setExpCloseGuardOpen] = useState(false);
   const [saveSuccessTick, setSaveSuccessTick] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    if (isForceNew) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [isForceNew]);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
 import PricingPage from "./pages/PricingPage";
@@ -69,9 +69,9 @@ function TemplatesBrowseLayout() {
 }
 
 export default function App() {
+  const location = useLocation();
   const {
     navigate,
-    location,
     authMode,
     setAuthMode,
     setAuthError,
@@ -90,6 +90,10 @@ export default function App() {
     handleNewResume,
     currentPath,
   } = useCvpAuth();
+
+  const builderKey = editingResume?.id
+    ? `edit-${editingResume.id}`
+    : (location.state?.forceNew ? `new-${Date.now()}` : "new-default");
 
   return (
     <Routes>
@@ -188,6 +192,7 @@ export default function App() {
                 path="/builder"
                 element={
                   <BuilderPage
+                    key={builderKey}
                     user={user}
                     isPro={isPro}
                     onBack={() => navigate(user ? "/dashboard" : "/")}
