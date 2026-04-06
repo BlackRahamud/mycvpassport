@@ -407,6 +407,10 @@ const FAB = forwardRef(function FAB(
     guidedCoachRequestKey = 0,
     /** Builder: PDF download from guided flow */
     onGuidedDownload = null,
+    /** Builder: open CV preview from guided flow */
+    onGuidedOpenPreview = null,
+    /** Builder: switch to Templates tab from guided flow */
+    onGuidedSwitchToTemplatesTab = null,
     /** Builder: ATS checker route (guided flow “ATS tab”) */
     onGuidedSwitchToAtsTab = null,
   },
@@ -445,6 +449,8 @@ const FAB = forwardRef(function FAB(
   const [tplExtPulse, setTplExtPulse] = useState(false);
   const [builderIdlePulse, setBuilderIdlePulse] = useState(false);
   const tplTimersRef = useRef([]);
+  const guidedFlowRecentlyClosedRef = useRef(false);
+  const guidedPostSummaryStageSyncRef = useRef("qa");
   const builderGuideSheetNotifySkipRef = useRef(true);
   const atsLandTriggeredRef = useRef(false);
   const tplTabEpochRef = useRef(0);
@@ -796,6 +802,16 @@ const FAB = forwardRef(function FAB(
     resetSheetLayout();
   }, [resetSheetLayout]);
 
+  const handleFabSheetClose = useCallback(() => {
+    if (guidedPostSummaryStageSyncRef.current === "done" || guidedCoachRequestKey > 0) {
+      guidedFlowRecentlyClosedRef.current = true;
+      setTimeout(() => {
+        guidedFlowRecentlyClosedRef.current = false;
+      }, 300000);
+    }
+    closeSheet();
+  }, [guidedCoachRequestKey, closeSheet]);
+
   const runProAtsNav = useCallback(() => {
     if (onNavigateToProAts) onNavigateToProAts();
     else navigate("/ats");
@@ -818,6 +834,7 @@ const FAB = forwardRef(function FAB(
 
   const openSummaryHelperSheet = useCallback(
     (opts = {}) => {
+      if (guidedFlowRecentlyClosedRef.current) return false;
       const fromAutoIdle = opts.fromAutoIdle === true;
       if (sheetOpenRef.current || menuOpenRef.current) return false;
       if (fromAutoIdle) {
@@ -1072,6 +1089,7 @@ const FAB = forwardRef(function FAB(
       },
       openGuidedCoachSheet() {
         if (variant !== "builder") return;
+        guidedFlowRecentlyClosedRef.current = false;
         openGuideSheet(false);
       },
     }),
@@ -1615,7 +1633,7 @@ const FAB = forwardRef(function FAB(
 
       <FABSheet
         open={sheetOpen}
-        onClose={closeSheet}
+        onClose={handleFabSheetClose}
         variant={variant}
         tabKey={tabKey}
         sheetLayoutKind={sheetLayoutKind}
@@ -1692,7 +1710,10 @@ const FAB = forwardRef(function FAB(
         setResume={setResume}
         guidedCoachRequestKey={guidedCoachRequestKey}
         onGuidedDownload={onGuidedDownload}
+        onGuidedOpenPreview={onGuidedOpenPreview}
+        onGuidedSwitchToTemplatesTab={onGuidedSwitchToTemplatesTab}
         onGuidedSwitchToAtsTab={onGuidedSwitchToAtsTab}
+        guidedPostSummaryStageSyncRef={guidedPostSummaryStageSyncRef}
       />
     </>
   );

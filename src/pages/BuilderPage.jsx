@@ -4148,6 +4148,11 @@ function ResumeBuilder({
                 setResume={setResume}
                 guidedCoachRequestKey={guidedCoachRequestKey}
                 onGuidedDownload={handleDownload}
+                onGuidedOpenPreview={() => {
+                  setPreviewTemplateOverride(null);
+                  setFabSheet("preview");
+                }}
+                onGuidedSwitchToTemplatesTab={() => setBuilderTab("templates")}
                 onGuidedSwitchToAtsTab={() => setBuilderTab("templates")}
                 selectedTemplateId={selectedTemplate?.id}
                 resume={resume}

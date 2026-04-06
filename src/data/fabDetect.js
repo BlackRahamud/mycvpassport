@@ -1,8 +1,8 @@
 export const VAGUE_TITLES = [
-  "manager","executive","staff","employee","assistant","associate",
+  "manager","staff","employee","assistant",
   "consultant","contractor","intern","specialist","professional",
   "freelancer","owner","founder","partner","director","lead",
-  "head","coordinator","officer"
+  "head","coordinator"
 ];
 
 export const SOFT_SKILLS = [
@@ -39,7 +39,7 @@ export const hasNoMetrics = (str) =>
   !/\d|%|x\d|doubled|tripled|increased|reduced|grew/i.test(str);
 
 export const isNameIncomplete = (str) =>
-  str.trim().split(/\s+/).length < 2 ||
+  str.trim().length < 2 ||
   /^(Mr|Ms|Dr|Mrs)\.?\s/i.test(str);
 
 export const isAllSoftSkills = (skillsArray) => {

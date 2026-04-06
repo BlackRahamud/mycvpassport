@@ -661,6 +661,12 @@ export default function FABSheet({
   onGuidedDownload,
   /** Builder: match “ATS tab” / ATS checker (typically navigates to /ats) */
   onGuidedSwitchToAtsTab,
+  /** Builder: open CV preview from guided flow */
+  onGuidedOpenPreview = null,
+  /** Builder: switch to Templates tab from guided flow */
+  onGuidedSwitchToTemplatesTab = null,
+  /** Builder: sync guided post-summary stage for parent (e.g. idle summary sheet guard) */
+  guidedPostSummaryStageSyncRef = null,
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
@@ -682,13 +688,51 @@ export default function FABSheet({
 
   const resetGuidedCoach = useCallback(() => {
     guidedPostSummaryStageRef.current = "qa";
+    if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "qa";
     setGuidedStep(0);
     setGuidedProgress(0);
     setGuidedInput("");
     setGuidedTyping(false);
-    setGuidedShowInput(true);
-    setGuidedMessages([{ id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[0].text }]);
-  }, []);
+    setGuidedShowInput(false);
+    setGuidedMessages([
+      {
+        id: nextGuidedMessageId(),
+        role: "assistant",
+        text: "Hey! I'm your CV Coach on CVPassport.",
+      },
+    ]);
+    setTimeout(() => {
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Whatever you type here gets filled into your CV automatically — no forms, just a quick chat.",
+        },
+      ]);
+    }, 800);
+    setTimeout(() => {
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Ready? Let's start with the basics.",
+        },
+      ]);
+    }, 1600);
+    setTimeout(() => {
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: QUESTIONS[0].text,
+        },
+      ]);
+      setGuidedShowInput(true);
+    }, 2400);
+  }, [guidedPostSummaryStageSyncRef]);
 
   const currentAts = typeof atsScore === "number" && Number.isFinite(atsScore) ? atsScore : Number(atsScore) || 0;
 
@@ -787,11 +831,49 @@ export default function FABSheet({
     if (builderCoachTab !== "guide") return;
     if (guidedMessages.length > 0) return;
     guidedPostSummaryStageRef.current = "qa";
+    if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "qa";
     setGuidedStep(0);
     setGuidedProgress(0);
-    setGuidedShowInput(true);
-    setGuidedMessages([{ id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[0].text }]);
-  }, [open, variant, builderCoachTab, guidedMessages.length]);
+    setGuidedShowInput(false);
+    setGuidedMessages([
+      {
+        id: nextGuidedMessageId(),
+        role: "assistant",
+        text: "Hey! I'm your CV Coach on CVPassport.",
+      },
+    ]);
+    setTimeout(() => {
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Whatever you type here gets filled into your CV automatically — no forms, just a quick chat.",
+        },
+      ]);
+    }, 800);
+    setTimeout(() => {
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Ready? Let's start with the basics.",
+        },
+      ]);
+    }, 1600);
+    setTimeout(() => {
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: QUESTIONS[0].text,
+        },
+      ]);
+      setGuidedShowInput(true);
+    }, 2400);
+  }, [open, variant, builderCoachTab, guidedMessages.length, guidedPostSummaryStageSyncRef]);
 
   const handleGuidedInputChange = useCallback((e) => {
     setGuidedInput(e.target.value);
@@ -1085,6 +1167,24 @@ export default function FABSheet({
       processed = parseSkillsString(trimmed);
     }
 
+    if (q.field === "location") {
+      const loc = trimmed.trim().toLowerCase();
+      if (loc === "dubai") processed = "Dubai, UAE";
+      else if (loc === "abu dhabi") processed = "Abu Dhabi, UAE";
+      else if (loc === "sharjah") processed = "Sharjah, UAE";
+      else if (loc === "ajman") processed = "Ajman, UAE";
+      else if (loc === "mumbai") processed = "Mumbai, India";
+      else if (loc === "delhi" || loc === "new delhi") processed = "New Delhi, India";
+      else if (loc === "bangalore" || loc === "bengaluru") processed = "Bangalore, India";
+      else if (loc === "hyderabad") processed = "Hyderabad, India";
+      else if (loc === "chennai") processed = "Chennai, India";
+      else if (loc === "kolkata") processed = "Kolkata, India";
+      else if (loc === "pune") processed = "Pune, India";
+      else {
+        processed = trimmed.trim().replace(/\b\w/g, (l) => l.toUpperCase());
+      }
+    }
+
     setResume((prev) => applyGuidedFieldToResume(prev, q.field, processed));
 
     setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
@@ -1122,16 +1222,18 @@ export default function FABSheet({
         setGuidedShowInput(false);
         setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
         guidedPostSummaryStageRef.current = "template";
+        if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "template";
       } else {
         advanceGuidedStep();
       }
       setGuidedTyping(false);
     }, 800);
-  }, [guidedInput, guidedStep, setResume, resume]);
+  }, [guidedInput, guidedStep, setResume, resume, guidedPostSummaryStageSyncRef]);
 
   const handleSelectSummary = useCallback(
     (text) => {
       guidedPostSummaryStageRef.current = "template";
+      if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "template";
       setResume((prev) => ({ ...prev, summary: text }));
       setGuidedMessages((prev) => [
         ...prev,
@@ -1161,11 +1263,12 @@ export default function FABSheet({
         ]);
       }, 1400);
     },
-    [setResume]
+    [setResume, guidedPostSummaryStageSyncRef]
   );
 
   const handleSkipSummary = useCallback(() => {
     guidedPostSummaryStageRef.current = "template";
+    if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "template";
     setGuidedMessages((prev) => [
       ...prev,
       {
@@ -1192,17 +1295,20 @@ export default function FABSheet({
         },
       ]);
     }, 1400);
-  }, []);
+  }, [guidedPostSummaryStageSyncRef]);
 
   const handleGuidedCtaClick = useCallback(
     (ctaId) => {
       if (ctaId === "preview-draft") {
         onClose?.();
+        setTimeout(() => {
+          onGuidedOpenPreview?.();
+        }, 300);
         return;
       }
       if (ctaId === "pick-template") {
         onClose?.();
-        setTimeout(() => onGuidedSwitchToAtsTab?.(), 600);
+        setTimeout(() => (onGuidedSwitchToTemplatesTab ?? onGuidedSwitchToAtsTab)?.(), 600);
         return;
       }
       if (ctaId === "download") {
@@ -1218,9 +1324,10 @@ export default function FABSheet({
         ]);
         setGuidedProgress(100);
         guidedPostSummaryStageRef.current = "done";
+        if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "done";
       }
     },
-    [onClose, onGuidedDownload, onGuidedSwitchToAtsTab]
+    [onClose, onGuidedDownload, onGuidedOpenPreview, onGuidedSwitchToAtsTab, onGuidedSwitchToTemplatesTab, guidedPostSummaryStageSyncRef]
   );
 
   const handleGuidedSkip = useCallback(() => {
