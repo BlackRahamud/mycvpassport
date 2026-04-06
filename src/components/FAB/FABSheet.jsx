@@ -3,6 +3,23 @@ import { useNavigate } from "react-router-dom";
 import "./FAB.css";
 import GuidedFlow from "./GuidedFlow";
 import { EMPTY_EXP, splitCommaItems } from "../../cvShared";
+import {
+  isHelpless,
+  isNameIncomplete,
+  isVagueTitle,
+  isCommaMissing,
+  isAllSoftSkills,
+  hasNoMetrics,
+  isTooShort,
+  isExperienceDump,
+} from "../../data/fabDetect";
+import {
+  normalizeAllCaps,
+  parseSkillsString,
+  parseDateRange,
+  parseAchievements,
+  reframeAchievement,
+} from "../../data/fabParse";
 import { FAB_COVER_LETTER_CROSS_SELL, ATS_FAB_CHIP_TO_NAV_KEY } from "./FABContent";
 import {
   writeFabSeen,
@@ -50,27 +67,15 @@ function nextGuidedMessageId() {
   return `gf-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function parseExpBulletsToPoints(raw) {
-  const t = String(raw || "").trim();
-  if (!t) return "";
-  const byNl = t.split(/\n+/).map((s) => s.trim()).filter(Boolean);
-  if (byNl.length > 1) return byNl.join("\n");
-  return t
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join("\n");
-}
-
 function applyGuidedFieldToResume(prev, field, processedValue) {
   const next = { ...prev };
   if (field.startsWith("experience[0].")) {
+    if (field === "experience[0].dates") return next;
     const ex = [...(Array.isArray(next.experience) ? next.experience : [])];
     while (ex.length < 1) ex.push({ ...EMPTY_EXP });
     const row = { ...EMPTY_EXP, ...ex[0] };
     let key = "company";
     if (field === "experience[0].role") key = "role";
-    else if (field === "experience[0].dates") key = "period";
     else if (field === "experience[0].bullets") key = "points";
     ex[0] = { ...row, [key]: processedValue };
     return { ...next, experience: ex };
@@ -671,6 +676,7 @@ export default function FABSheet({
   const [guidedStep, setGuidedStep] = useState(0);
   const [guidedShowInput, setGuidedShowInput] = useState(true);
   const guidedPostSummaryStageRef = useRef("qa");
+  const nudgedStepsRef = useRef(new Set());
 
   const resetGuidedCoach = useCallback(() => {
     guidedPostSummaryStageRef.current = "qa";
@@ -796,15 +802,7 @@ export default function FABSheet({
     const trimmed = guidedInput.trim();
     if (!trimmed || typeof setResume !== "function") return;
 
-    const HELPLESS_PHRASES = [
-      "i don't know", "idk", "dont know", "don't know",
-      "write for me", "skip", "not sure", "help",
-      "no idea", "pass", "i have no idea",
-    ];
-    const isHelpless = HELPLESS_PHRASES.some((p) =>
-      trimmed.toLowerCase().includes(p)
-    );
-    if (isHelpless) {
+    if (isHelpless(trimmed)) {
       const isSummaryQuestion = guidedStep === QUESTIONS.length - 1;
       if (isSummaryQuestion) {
         const title =
@@ -870,19 +868,167 @@ export default function FABSheet({
     const q = QUESTIONS[guidedStep];
     if (!q) return;
 
-    setResume((prev) => {
-      let processed = trimmed;
-      if (q.field === "experience[0].bullets") processed = parseExpBulletsToPoints(trimmed);
-      else if (q.field === "skills") processed = splitCommaItems(trimmed).filter(Boolean).join(", ");
-      return applyGuidedFieldToResume(prev, q.field, processed);
-    });
+    const advanceGuidedStep = () => {
+      const nextStep = guidedStep + 1;
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[nextStep].text },
+      ]);
+      setGuidedStep(nextStep);
+      setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+    };
+
+    const alreadyNudged = nudgedStepsRef.current.has(guidedStep);
+
+    if (q.field === "name" && !alreadyNudged && isNameIncomplete(trimmed)) {
+      nudgedStepsRef.current.add(guidedStep);
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Could you add your last name too? Full name helps recruiters find you in HR systems.",
+        },
+      ]);
+      setGuidedInput("");
+      return;
+    }
+
+    if (q.field === "title" && !alreadyNudged && isVagueTitle(trimmed)) {
+      nudgedStepsRef.current.add(guidedStep);
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: `Got it. Can you be more specific? Instead of "${trimmed}", try something like "Sales Manager – Real Estate" or "Customer Service Officer".`,
+        },
+      ]);
+      setGuidedInput("");
+      return;
+    }
+
+    if (q.field === "experience[0].company" && !alreadyNudged && isExperienceDump(trimmed)) {
+      nudgedStepsRef.current.add(guidedStep);
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Let's take it one step at a time — just the company name here. We'll add your role and dates in the next questions.",
+        },
+      ]);
+      setGuidedInput("");
+      return;
+    }
+
+    if (q.field === "experience[0].dates" && !alreadyNudged && /^\d{4}$/.test(trimmed.trim())) {
+      nudgedStepsRef.current.add(guidedStep);
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Almost! Could you add the month too? e.g. Jan 2022 – Present. If unsure, an estimate is fine.",
+        },
+      ]);
+      setGuidedInput("");
+      return;
+    }
+
+    if (
+      q.field === "experience[0].bullets" &&
+      !alreadyNudged &&
+      (isTooShort(trimmed, 10) || hasNoMetrics(trimmed))
+    ) {
+      nudgedStepsRef.current.add(guidedStep);
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "This is the most powerful section! Try adding a number — e.g. 'Increased sales by 20%' or 'Managed a team of 5'. What's one result you're proud of?",
+        },
+      ]);
+      setGuidedInput("");
+      return;
+    }
+
+    if (q.field === "skills" && !alreadyNudged) {
+      const parsed = parseSkillsString(trimmed)
+        .split(", ")
+        .filter(Boolean);
+      if (isCommaMissing(trimmed) || isAllSoftSkills(parsed)) {
+        nudgedStepsRef.current.add(guidedStep);
+        setGuidedMessages((prev) => [
+          ...prev,
+          { id: nextGuidedMessageId(), role: "user", text: trimmed },
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "Good start! Can you add 2-3 hard skills too? Think tools, software, or industry-specific skills you use daily.",
+          },
+        ]);
+        setGuidedInput("");
+        return;
+      }
+    }
+
+    let processed = trimmed;
+
+    if (q.field === "name") {
+      processed = normalizeAllCaps(trimmed);
+    }
+
+    if (q.field === "title") {
+      processed = normalizeAllCaps(trimmed);
+    }
+
+    if (q.field === "experience[0].dates") {
+      const parsed = parseDateRange(trimmed);
+      setResume((prev) => {
+        const experience = [...(prev.experience || [])];
+        if (!experience[0]) experience[0] = { ...EMPTY_EXP };
+        experience[0] = {
+          ...experience[0],
+          startDate: parsed.startDate,
+          endDate: parsed.endDate,
+          present: parsed.present,
+          period: `${parsed.startDate} – ${parsed.endDate}`,
+        };
+        return { ...prev, experience };
+      });
+      setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
+      setGuidedInput("");
+      setGuidedTyping(true);
+      window.setTimeout(() => {
+        advanceGuidedStep();
+        setGuidedTyping(false);
+      }, 800);
+      return;
+    }
+
+    if (q.field === "experience[0].bullets") {
+      const bullets = parseAchievements(trimmed);
+      processed = bullets.map(reframeAchievement).join("\n");
+    }
+
+    if (q.field === "skills") {
+      processed = parseSkillsString(trimmed);
+    }
+
+    setResume((prev) => applyGuidedFieldToResume(prev, q.field, processed));
 
     setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
     setGuidedInput("");
     setGuidedTyping(true);
 
     const isLast = guidedStep >= QUESTIONS.length - 1;
-    const nextStep = guidedStep + 1;
 
     window.setTimeout(() => {
       if (isLast) {
@@ -914,12 +1060,7 @@ export default function FABSheet({
         setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
         guidedPostSummaryStageRef.current = "template";
       } else {
-        setGuidedMessages((prev) => [
-          ...prev,
-          { id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[nextStep].text },
-        ]);
-        setGuidedStep(nextStep);
-        setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+        advanceGuidedStep();
       }
       setGuidedTyping(false);
     }, 800);
