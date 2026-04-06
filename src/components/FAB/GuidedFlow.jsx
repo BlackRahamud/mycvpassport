@@ -250,6 +250,7 @@ export default function GuidedFlow({
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, isTyping]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (showInput) setTimeout(() => inputRef.current?.focus(), 120);
   }, [showInput]);

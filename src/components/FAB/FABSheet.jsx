@@ -795,6 +795,42 @@ export default function FABSheet({
   const handleGuidedSend = useCallback(() => {
     const trimmed = guidedInput.trim();
     if (!trimmed || typeof setResume !== "function") return;
+
+    const HELPLESS_PHRASES = [
+      "i don't know", "idk", "dont know", "don't know",
+      "write for me", "skip", "not sure", "help",
+      "no idea", "pass", "i have no idea",
+    ];
+    const isHelpless = HELPLESS_PHRASES.some((p) =>
+      trimmed.toLowerCase().includes(p)
+    );
+    if (isHelpless) {
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "No problem — I've left that blank for now. You can tap any section in the builder to fill it in manually later.",
+        },
+      ]);
+      setGuidedInput("");
+      setGuidedStep((s) => {
+        const next = s + 1;
+        if (next < QUESTIONS.length) {
+          setTimeout(() => {
+            setGuidedMessages((prev) => [
+              ...prev,
+              { id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[next].text },
+            ]);
+            setGuidedTyping(false);
+          }, 800);
+        }
+        return next;
+      });
+      return;
+    }
+
     if (guidedPostSummaryStageRef.current !== "qa") return;
     const q = QUESTIONS[guidedStep];
     if (!q) return;
@@ -820,12 +856,25 @@ export default function FABSheet({
           {
             id: nextGuidedMessageId(),
             role: "assistant",
-            text: "Your CV is ready. Now let's make it look the part.",
-            ctaBtn: "Choose Your Template →",
+            text: "Your CV is ready. Let's make it look the part.",
+            ctaBtn: "Preview My Draft",
             ctaStyle: "white",
-            ctaId: "choose-template",
+            ctaId: "preview-draft",
           },
         ]);
+        window.setTimeout(() => {
+          setGuidedMessages((prev) => [
+            ...prev,
+            {
+              id: nextGuidedMessageId(),
+              role: "assistant",
+              text: "Want to pick a different design first?",
+              ctaBtn: "Browse Templates",
+              ctaStyle: "outline",
+              ctaId: "pick-template",
+            },
+          ]);
+        }, 1400);
         setGuidedShowInput(false);
         setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
         guidedPostSummaryStageRef.current = "template";
@@ -843,70 +892,31 @@ export default function FABSheet({
 
   const handleGuidedCtaClick = useCallback(
     (ctaId) => {
-      if (ctaId === "choose-template") {
-        navigate("/templates");
-        setGuidedMessages((prev) => [
-          ...prev,
-          {
-            id: nextGuidedMessageId(),
-            role: "assistant",
-            text: "Perfect. Before you download — let's see how recruiters will actually see this CV.",
-            ctaBtn: "Run ATS Scan →",
-            ctaStyle: "white",
-            ctaId: "run-ats",
-          },
-        ]);
-        window.setTimeout(() => onGuidedSwitchToAtsTab?.(), 400);
-        guidedPostSummaryStageRef.current = "ats";
+      if (ctaId === "preview-draft") {
+        onClose?.();
         return;
       }
-      if (ctaId === "run-ats") {
-        const scoreVal = Math.round(currentAts);
-        let line = "Let's fix this before you apply.";
-        if (scoreVal >= 85) line = "You're in the top 15% of applicants. Recruiters will see you.";
-        else if (scoreVal >= 60) line = "Good start. Here's what's holding you back.";
-        setGuidedMessages((prev) => [
-          ...prev,
-          {
-            id: nextGuidedMessageId(),
-            role: "assistant",
-            text: line,
-            score: scoreVal,
-            ctaBtn: "Test Keyword Match →",
-            ctaStyle: "white",
-            ctaId: "keyword-match",
-          },
-        ]);
-        guidedPostSummaryStageRef.current = "keyword";
-        return;
-      }
-      if (ctaId === "keyword-match") {
-        setGuidedMessages((prev) => [
-          ...prev,
-          {
-            id: nextGuidedMessageId(),
-            role: "assistant",
-            text: "CVPassport users get 3× more callbacks when their CV is tuned to the job. You're ready.",
-            ctaBtn: "Download Your CV →",
-            ctaStyle: "white",
-            ctaId: "download",
-          },
-        ]);
-        setGuidedShowInput(false);
-        guidedPostSummaryStageRef.current = "download";
+      if (ctaId === "pick-template") {
+        onClose?.();
+        setTimeout(() => onGuidedSwitchToAtsTab?.(), 600);
         return;
       }
       if (ctaId === "download") {
         onGuidedDownload?.();
         setGuidedMessages((prev) => [
           ...prev,
-          { id: nextGuidedMessageId(), role: "assistant", text: "Done. Good luck — you've got this.", complete: true },
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "Done. Good luck — you've got this.",
+            complete: true,
+          },
         ]);
         setGuidedProgress(100);
         guidedPostSummaryStageRef.current = "done";
       }
     },
-    [currentAts, navigate, onGuidedDownload, onGuidedSwitchToAtsTab]
+    [onClose, onGuidedDownload, onGuidedSwitchToAtsTab]
   );
 
   const handleGuidedSkip = useCallback(() => {

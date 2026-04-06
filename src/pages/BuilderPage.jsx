@@ -4131,7 +4131,7 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
                 setResume={setResume}
                 guidedCoachRequestKey={guidedCoachRequestKey}
                 onGuidedDownload={handleDownload}
-                onGuidedSwitchToAtsTab={openAtsChecker}
+                onGuidedSwitchToAtsTab={() => setBuilderTab("templates")}
                 selectedTemplateId={selectedTemplate?.id}
                 resume={resume}
                 templatePickPending={templatePickPending}
