@@ -15,8 +15,16 @@ export const SOFT_SKILLS = [
 ];
 
 export const HELPLESS_PHRASES = [
-  "i don't know","idk","dont know","don't know","write for me",
-  "skip","not sure","help","no idea","pass","i have no idea","na","n/a","none"
+  "i don't know",
+  "idk",
+  "dont know",
+  "don't know",
+  "write for me",
+  "skip",
+  "not sure",
+  "no idea",
+  "i have no idea",
+  "n/a",
 ];
 
 export const DATE_REGEX = {
@@ -27,8 +35,13 @@ export const DATE_REGEX = {
   ddmmyyyy: /\d{1,2}\/\d{1,2}\/\d{4}/,
 };
 
-export const isHelpless = (str) =>
-  HELPLESS_PHRASES.some((p) => str.toLowerCase().includes(p));
+export const isHelpless = (str) => {
+  const lower = str.trim().toLowerCase();
+  return HELPLESS_PHRASES.some((p) => {
+    const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`^${escaped}$|\\b${escaped}\\b`, "i").test(lower);
+  });
+};
 
 export const isCommaMissing = (str) => {
   if (str.includes(",")) return false;

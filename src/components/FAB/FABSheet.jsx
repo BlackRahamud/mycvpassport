@@ -43,7 +43,7 @@ const QUESTIONS = [
   { id: "email", text: "What is your email address?", field: "email" },
   { id: "phone", text: "And your phone number?", field: "phone" },
   { id: "location", text: "Which city are you based in?", field: "location" },
-  { id: "exp_company", text: "Let's add your most recent job. Company name?", field: "experience[0].company" },
+  { id: "exp_company", text: "What's the name of your current or last company?", field: "experience[0].company" },
   { id: "exp_role", text: "Your role there?", field: "experience[0].role" },
   { id: "exp_dates", text: "Start date → end date? (e.g. Jan 2022 – Present)", field: "experience[0].dates" },
   { id: "exp_bullets", text: "Add 2–3 achievements in that role.", field: "experience[0].bullets" },
@@ -681,7 +681,8 @@ export default function FABSheet({
   const [guidedProgress, setGuidedProgress] = useState(0);
   const [guidedInput, setGuidedInput] = useState("");
   const [guidedTyping, setGuidedTyping] = useState(false);
-  const [guidedStep, setGuidedStep] = useState(0);
+  const [, setGuidedStep] = useState(0);
+  const guidedStepRef = useRef(0);
   const [guidedShowInput, setGuidedShowInput] = useState(true);
   const guidedPostSummaryStageRef = useRef("qa");
   const nudgedStepsRef = useRef(new Set());
@@ -690,6 +691,7 @@ export default function FABSheet({
     guidedPostSummaryStageRef.current = "qa";
     if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "qa";
     setGuidedStep(0);
+    guidedStepRef.current = 0;
     setGuidedProgress(0);
     setGuidedInput("");
     setGuidedTyping(false);
@@ -833,6 +835,7 @@ export default function FABSheet({
     guidedPostSummaryStageRef.current = "qa";
     if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "qa";
     setGuidedStep(0);
+    guidedStepRef.current = 0;
     setGuidedProgress(0);
     setGuidedShowInput(false);
     setGuidedMessages([
@@ -897,7 +900,7 @@ export default function FABSheet({
       "do it for me",
     ];
     const isWriteForMe =
-      guidedStep === QUESTIONS.length - 1 &&
+      guidedStepRef.current === QUESTIONS.length - 1 &&
       WRITE_FOR_ME_PHRASES.some((p) => trimmed.toLowerCase().includes(p));
 
     if (isWriteForMe) {
@@ -935,8 +938,8 @@ export default function FABSheet({
 
     if (isHelpless(trimmed)) {
       const tone = detectTone(trimmed);
-      const currentField = QUESTIONS[guidedStep]?.field || "";
-      const isSummaryQuestion = guidedStep === QUESTIONS.length - 1;
+      const currentField = QUESTIONS[guidedStepRef.current]?.field || "";
+      const isSummaryQuestion = guidedStepRef.current === QUESTIONS.length - 1;
       if (isSummaryQuestion) {
         const title =
           resume?.experience?.[0]?.role ||
@@ -995,6 +998,7 @@ export default function FABSheet({
       setGuidedInput("");
       setGuidedStep((s) => {
         const next = s + 1;
+        guidedStepRef.current = next;
         if (next < QUESTIONS.length) {
           setTimeout(() => {
             setGuidedMessages((prev) => [
@@ -1010,23 +1014,24 @@ export default function FABSheet({
     }
 
     if (guidedPostSummaryStageRef.current !== "qa") return;
-    const q = QUESTIONS[guidedStep];
+    const q = QUESTIONS[guidedStepRef.current];
     if (!q) return;
 
     const advanceGuidedStep = () => {
-      const nextStep = guidedStep + 1;
+      const nextStep = guidedStepRef.current + 1;
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[nextStep].text },
       ]);
       setGuidedStep(nextStep);
+      guidedStepRef.current = nextStep;
       setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
     };
 
-    const alreadyNudged = nudgedStepsRef.current.has(guidedStep);
+    const alreadyNudged = nudgedStepsRef.current.has(guidedStepRef.current);
 
     if (q.field === "name" && !alreadyNudged && isNameIncomplete(trimmed)) {
-      nudgedStepsRef.current.add(guidedStep);
+      nudgedStepsRef.current.add(guidedStepRef.current);
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -1041,7 +1046,7 @@ export default function FABSheet({
     }
 
     if (q.field === "title" && !alreadyNudged && isVagueTitle(trimmed)) {
-      nudgedStepsRef.current.add(guidedStep);
+      nudgedStepsRef.current.add(guidedStepRef.current);
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -1056,7 +1061,7 @@ export default function FABSheet({
     }
 
     if (q.field === "experience[0].company" && !alreadyNudged && isExperienceDump(trimmed)) {
-      nudgedStepsRef.current.add(guidedStep);
+      nudgedStepsRef.current.add(guidedStepRef.current);
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -1071,7 +1076,7 @@ export default function FABSheet({
     }
 
     if (q.field === "experience[0].dates" && !alreadyNudged && /^\d{4}$/.test(trimmed.trim())) {
-      nudgedStepsRef.current.add(guidedStep);
+      nudgedStepsRef.current.add(guidedStepRef.current);
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -1090,7 +1095,7 @@ export default function FABSheet({
       !alreadyNudged &&
       (isTooShort(trimmed, 10) || hasNoMetrics(trimmed))
     ) {
-      nudgedStepsRef.current.add(guidedStep);
+      nudgedStepsRef.current.add(guidedStepRef.current);
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -1109,7 +1114,7 @@ export default function FABSheet({
         .split(", ")
         .filter(Boolean);
       if (isCommaMissing(trimmed) || isAllSoftSkills(parsed)) {
-        nudgedStepsRef.current.add(guidedStep);
+        nudgedStepsRef.current.add(guidedStepRef.current);
         setGuidedMessages((prev) => [
           ...prev,
           { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -1191,7 +1196,7 @@ export default function FABSheet({
     setGuidedInput("");
     setGuidedTyping(true);
 
-    const isLast = guidedStep >= QUESTIONS.length - 1;
+    const isLast = guidedStepRef.current >= QUESTIONS.length - 1;
 
     window.setTimeout(() => {
       if (isLast) {
@@ -1228,7 +1233,8 @@ export default function FABSheet({
       }
       setGuidedTyping(false);
     }, 800);
-  }, [guidedInput, guidedStep, setResume, resume, guidedPostSummaryStageSyncRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- guidedStep reads use guidedStepRef; resume omitted from deps intentionally
+  }, [guidedInput, setResume, guidedPostSummaryStageSyncRef]);
 
   const handleSelectSummary = useCallback(
     (text) => {
@@ -1248,6 +1254,7 @@ export default function FABSheet({
         },
       ]);
       setGuidedStep(QUESTIONS.length);
+      guidedStepRef.current = QUESTIONS.length;
       setGuidedProgress(100);
       window.setTimeout(() => {
         setGuidedMessages((prev) => [
@@ -1281,6 +1288,7 @@ export default function FABSheet({
       },
     ]);
     setGuidedStep(QUESTIONS.length);
+    guidedStepRef.current = QUESTIONS.length;
     setGuidedProgress(100);
     window.setTimeout(() => {
       setGuidedMessages((prev) => [
