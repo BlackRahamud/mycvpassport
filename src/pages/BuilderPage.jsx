@@ -2225,10 +2225,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
 
     if (shouldOpenCoach) {
       setGuidedCoachRequestKey((k) => k + 1);
-      const id = requestAnimationFrame(() => {
+      const id = setTimeout(() => {
         fabRef.current?.openGuidedCoachSheet?.();
-      });
-      return () => cancelAnimationFrame(id);
+      }, 300);
+      return () => clearTimeout(id);
     }
   }, [
     isForceNew,
