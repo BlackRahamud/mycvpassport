@@ -2093,18 +2093,19 @@ function ResumeBuilder({
   initialResumeId,
   initialTemplateId,
   isPro = false,
-  isGuidedFlow = false,
-  onGuidedFlowStarted = null,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isNew = searchParams.get("new") === "true";
+  const isGuided = searchParams.get("guide") === "true";
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloadPhase, setDownloadPhase] = useState("idle");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
   const [resume, setResume] = useState(() => {
-    if (isGuidedFlow) {
+    if (isNew) {
       return {
         ...normalizeResumeForBuilder({ ...EMPTY_RESUME }),
         technicalSkills: normalizeTechnicalSkillsState(""),
@@ -2220,14 +2221,15 @@ function ResumeBuilder({
   }, []);
 
   useEffect(() => {
-    if (!isGuidedFlow) return;
+    if (!isGuided) return;
+    console.log("[FAB DEBUG] guide=true in URL, opening coach");
     setGuidedCoachRequestKey((k) => k + 1);
     const id = setTimeout(() => {
       fabRef.current?.openGuidedCoachSheet?.();
-      onGuidedFlowStarted?.();
-    }, 300);
+      navigate("/builder", { replace: true });
+    }, 400);
     return () => clearTimeout(id);
-  }, [isGuidedFlow, onGuidedFlowStarted]);
+  }, [isGuided, navigate]);
 
   useEffect(() => {
     if (lastSavedSnapshotRef.current == null) {

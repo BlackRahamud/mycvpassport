@@ -88,14 +88,14 @@ export default function App() {
     handleLogout,
     handleEditResume,
     handleNewResume,
-    isGuidedFlow,
-    setIsGuidedFlow,
     currentPath,
   } = useCvpAuth();
 
+  const searchParams = new URLSearchParams(location.search);
+  const isNew = searchParams.get("new") === "true";
   const builderKey = editingResume?.id
     ? `edit-${editingResume.id}`
-    : (isGuidedFlow ? `new-guided-${Date.now()}` : "new-default");
+    : (isNew ? `new-${location.key}` : "new-default");
 
   return (
     <Routes>
@@ -201,8 +201,6 @@ export default function App() {
                     initialResume={editingResume?.cv_data || null}
                     initialResumeId={editingResume?.id || null}
                     initialTemplateId={editingResume?.template_id || null}
-                    isGuidedFlow={isGuidedFlow}
-                    onGuidedFlowStarted={() => setIsGuidedFlow(false)}
                   />
                 }
               />
