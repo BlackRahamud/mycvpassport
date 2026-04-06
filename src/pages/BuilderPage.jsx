@@ -2086,20 +2086,29 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
   );
 }
 
-function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTemplateId, isPro = false }) {
+function ResumeBuilder({
+  user,
+  onBack,
+  initialResume,
+  initialResumeId,
+  initialTemplateId,
+  isPro = false,
+  isGuidedFlow = false,
+  onGuidedFlowStarted = null,
+}) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state: routerState } = location;
-  const isForceNew = routerState?.forceNew === true;
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloadPhase, setDownloadPhase] = useState("idle");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
   const [resume, setResume] = useState(() => {
-    if (isForceNew) {
-      const base = normalizeResumeForBuilder({ ...EMPTY_RESUME });
-      return { ...base, technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills) };
+    if (isGuidedFlow) {
+      return {
+        ...normalizeResumeForBuilder({ ...EMPTY_RESUME }),
+        technicalSkills: normalizeTechnicalSkillsState(""),
+      };
     }
     const base = normalizeResumeForBuilder(
       initialResume || {
@@ -2108,7 +2117,10 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
         email: user?.email || "",
       }
     );
-    return { ...base, technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills) };
+    return {
+      ...base,
+      technicalSkills: normalizeTechnicalSkillsState(base.technicalSkills),
+    };
   });
   const [builderTab, setBuilderTab] = useState("content");
   const [guidedCoachRequestKey, setGuidedCoachRequestKey] = useState(0);
@@ -2197,11 +2209,6 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   const [saveSuccessTick, setSaveSuccessTick] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
-    if (isForceNew) {
-      window.history.replaceState({}, document.title);
-    }
-  }, [isForceNew]);
-  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -2213,31 +2220,14 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, []);
 
   useEffect(() => {
-    const shouldOpenCoach = location.state?.cvpFabGuide === true;
-    const needsCleanup = isForceNew || shouldOpenCoach;
-
-    if (!needsCleanup) return;
-
-    navigate(
-      { pathname: location.pathname, search: location.search, hash: location.hash },
-      { replace: true, state: {} }
-    );
-
-    if (shouldOpenCoach) {
-      setGuidedCoachRequestKey((k) => k + 1);
-      const id = setTimeout(() => {
-        fabRef.current?.openGuidedCoachSheet?.();
-      }, 300);
-      return () => clearTimeout(id);
-    }
-  }, [
-    isForceNew,
-    location.state?.cvpFabGuide,
-    location.pathname,
-    location.search,
-    location.hash,
-    navigate,
-  ]);
+    if (!isGuidedFlow) return;
+    setGuidedCoachRequestKey((k) => k + 1);
+    const id = setTimeout(() => {
+      fabRef.current?.openGuidedCoachSheet?.();
+      onGuidedFlowStarted?.();
+    }, 300);
+    return () => clearTimeout(id);
+  }, [isGuidedFlow, onGuidedFlowStarted]);
 
   useEffect(() => {
     if (lastSavedSnapshotRef.current == null) {

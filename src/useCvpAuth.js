@@ -22,6 +22,7 @@ export function useCvpAuth() {
   const [resumeList, setResumeList] = useState([]);
   const [, setResume] = useState(EMPTY_RESUME);
   const [, setSelectedTemplate] = useState(TEMPLATES[0]);
+  const [isGuidedFlow, setIsGuidedFlow] = useState(false);
 
   const ensureProfileRow = async (authUser) => {
     if (!supabase || !authUser?.id) return;
@@ -203,11 +204,18 @@ export function useCvpAuth() {
 
   const handleNewResume = (opts) => {
     setEditingResume(null);
-    if (opts?.openFabGuide) navigate("/builder", {
-      state: { cvpFabGuide: true, forceNew: true },
-    });
-    else navigate("/builder", { state: { forceNew: true } });
+    if (opts?.openFabGuide) {
+      setIsGuidedFlow(true);
+    } else {
+      navigate("/builder");
+    }
   };
+
+  useEffect(() => {
+    if (isGuidedFlow) {
+      navigate("/builder");
+    }
+  }, [isGuidedFlow, navigate]);
 
   const currentPath = location.pathname.replace(/\/$/, "") || "/";
 
@@ -254,6 +262,8 @@ export function useCvpAuth() {
     handleLogout,
     handleEditResume,
     handleNewResume,
+    isGuidedFlow,
+    setIsGuidedFlow,
     currentPath,
   };
 }
