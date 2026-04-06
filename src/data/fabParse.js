@@ -49,7 +49,9 @@ export const normalizeDate = (str) => {
 };
 
 export const parseDateRange = (str) => {
-  const parts = str.split(/[-–to]+/i).map((s) => s.trim());
+  const parts = str
+    .split(/[\u2013\u2014\u2012-]+|\s+to\s+/i)
+    .map((s) => s.trim());
   if (parts.length >= 2) {
     return {
       startDate: normalizeDate(parts[0]),

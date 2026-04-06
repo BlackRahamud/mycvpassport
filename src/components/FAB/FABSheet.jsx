@@ -1132,7 +1132,10 @@ export default function FABSheet({
     let processed = trimmed;
 
     if (q.field === "name") {
-      processed = normalizeAllCaps(trimmed);
+      processed = trimmed
+        .trim()
+        .toLowerCase()
+        .replace(/\b\w/g, (l) => l.toUpperCase());
     }
 
     if (q.field === "title") {
@@ -1190,6 +1193,11 @@ export default function FABSheet({
       }
     }
 
+    if (q.field === "phone") {
+      processed = trimmed.replace(/\s+/g, " ").trim();
+      if (!processed.startsWith("+")) processed = "+" + processed;
+    }
+
     setResume((prev) => applyGuidedFieldToResume(prev, q.field, processed));
 
     setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
@@ -1229,7 +1237,39 @@ export default function FABSheet({
         guidedPostSummaryStageRef.current = "template";
         if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "template";
       } else {
-        advanceGuidedStep();
+        const nextStep = guidedStepRef.current + 1;
+        if (nextStep === QUESTIONS.length - 1) {
+          setGuidedMessages((prev) => [
+            ...prev,
+            {
+              id: nextGuidedMessageId(),
+              role: "assistant",
+              text: "Almost done! Want me to write your professional summary from what you've told me?",
+              ctaBtn: "Write it for me",
+              ctaStyle: "white",
+              ctaId: "summary-auto",
+            },
+          ]);
+          window.setTimeout(() => {
+            setGuidedMessages((prev) => [
+              ...prev,
+              {
+                id: nextGuidedMessageId(),
+                role: "assistant",
+                text: "Or you can write your own.",
+                ctaBtn: "I'll write it myself",
+                ctaStyle: "outline",
+                ctaId: "summary-manual",
+              },
+            ]);
+          }, 800);
+          setGuidedStep(QUESTIONS.length - 1);
+          guidedStepRef.current = QUESTIONS.length - 1;
+          setGuidedShowInput(false);
+          setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+        } else {
+          advanceGuidedStep();
+        }
       }
       setGuidedTyping(false);
     }, 800);
@@ -1307,6 +1347,48 @@ export default function FABSheet({
 
   const handleGuidedCtaClick = useCallback(
     (ctaId) => {
+      if (ctaId === "summary-auto") {
+        const title =
+          resume?.experience?.[0]?.role ||
+          resume?.experience?.[0]?.title ||
+          resume?.title ||
+          "Professional";
+        const company = resume?.experience?.[0]?.company || "";
+        const rawSkillsStr = resume?.skills || "";
+        const rawSkills =
+          typeof rawSkillsStr === "string" && rawSkillsStr.trim()
+            ? splitCommaItems(rawSkillsStr)
+            : [];
+        const skills = rawSkills.slice(0, 3).join(", ") || "key skills";
+        const location = resume?.location || "";
+        const summaryOptions = [
+          `${title} with hands-on experience${company ? ` at ${company}` : ""}, skilled in ${skills}.`,
+          `Motivated ${title}${location ? ` based in ${location}` : ""}, bringing expertise in ${skills}.`,
+          `Dedicated ${title}${company ? ` from ${company}` : ""} with a strong foundation in ${skills} and a drive to deliver results.`,
+        ];
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "Done — I wrote 3 versions from your info. Pick the one that fits:",
+            summaryOptions,
+          },
+        ]);
+        return;
+      }
+      if (ctaId === "summary-manual") {
+        setGuidedShowInput(true);
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "Go ahead — write a 2–3 line summary starting with your title and years of experience.",
+          },
+        ]);
+        return;
+      }
       if (ctaId === "preview-draft") {
         onClose?.();
         setTimeout(() => {
@@ -1335,7 +1417,17 @@ export default function FABSheet({
         if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "done";
       }
     },
-    [onClose, onGuidedDownload, onGuidedOpenPreview, onGuidedSwitchToAtsTab, onGuidedSwitchToTemplatesTab, guidedPostSummaryStageSyncRef]
+    [
+      onClose,
+      onGuidedDownload,
+      onGuidedOpenPreview,
+      onGuidedSwitchToAtsTab,
+      onGuidedSwitchToTemplatesTab,
+      guidedPostSummaryStageSyncRef,
+      resume,
+      setGuidedMessages,
+      setGuidedShowInput,
+    ]
   );
 
   const handleGuidedSkip = useCallback(() => {
