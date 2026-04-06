@@ -20,6 +20,8 @@ import {
   parseAchievements,
   reframeAchievement,
 } from "../../data/fabParse";
+// eslint-disable-next-line no-unused-vars -- QUESTION_EXAMPLES: fabTone public API (examples live in getToneReply)
+import { detectTone, getToneReply, QUESTION_EXAMPLES } from "../../data/fabTone";
 import { FAB_COVER_LETTER_CROSS_SELL, ATS_FAB_CHIP_TO_NAV_KEY } from "./FABContent";
 import {
   writeFabSeen,
@@ -802,21 +804,71 @@ export default function FABSheet({
     const trimmed = guidedInput.trim();
     if (!trimmed || typeof setResume !== "function") return;
 
+    const WRITE_FOR_ME_PHRASES = [
+      "write for me",
+      "write it for me",
+      "you write",
+      "write it",
+      "generate",
+      "create for me",
+      "make it for me",
+      "do it for me",
+    ];
+    const isWriteForMe =
+      guidedStep === QUESTIONS.length - 1 &&
+      WRITE_FOR_ME_PHRASES.some((p) => trimmed.toLowerCase().includes(p));
+
+    if (isWriteForMe) {
+      const title =
+        resume?.experience?.[0]?.role ||
+        resume?.experience?.[0]?.title ||
+        resume?.title ||
+        "Professional";
+      const company = resume?.experience?.[0]?.company || "";
+      const rawSkillsStr = resume?.skills || "";
+      const rawSkills =
+        typeof rawSkillsStr === "string" && rawSkillsStr.trim()
+          ? splitCommaItems(rawSkillsStr)
+          : [];
+      const skills = rawSkills.slice(0, 3).join(", ") || "key skills";
+      const location = resume?.location || "";
+      const summaryOptions = [
+        `${title} with hands-on experience${company ? ` at ${company}` : ""}, skilled in ${skills}.`,
+        `Motivated ${title}${location ? ` based in ${location}` : ""}, bringing expertise in ${skills}.`,
+        `Dedicated ${title}${company ? ` from ${company}` : ""} with a strong foundation in ${skills} and a drive to deliver results.`,
+      ];
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Done — I wrote 3 versions from your info. Pick the one that fits:",
+          summaryOptions,
+        },
+      ]);
+      setGuidedInput("");
+      return;
+    }
+
     if (isHelpless(trimmed)) {
+      const tone = detectTone(trimmed);
+      const currentField = QUESTIONS[guidedStep]?.field || "";
       const isSummaryQuestion = guidedStep === QUESTIONS.length - 1;
       if (isSummaryQuestion) {
         const title =
-          resume?.experience?.[0]?.title || resume?.experience?.[0]?.role || "Professional";
+          resume?.experience?.[0]?.role ||
+          resume?.experience?.[0]?.title ||
+          resume?.title ||
+          "Professional";
         const company = resume?.experience?.[0]?.company || "";
-        const rawSkillsStr = resume?.skills;
+        const rawSkillsStr = resume?.skills || "";
         const rawSkills =
           typeof rawSkillsStr === "string" && rawSkillsStr.trim()
             ? splitCommaItems(rawSkillsStr)
-            : Array.isArray(rawSkillsStr)
-              ? rawSkillsStr
-              : [];
+            : [];
         const skills = rawSkills.slice(0, 3).join(", ") || "key skills";
-        const location = resume?.personalInfo?.location || "";
+        const location = resume?.location || "";
 
         const summaryOptions = [
           `${title} with hands-on experience${company ? ` at ${company}` : ""}, skilled in ${skills}.`,
@@ -824,13 +876,20 @@ export default function FABSheet({
           `Dedicated ${title}${company ? ` from ${company}` : ""} with a strong foundation in ${skills} and a drive to deliver results.`,
         ];
 
+        const toneIntro = {
+          frustrated: "I hear you — we're almost done! I wrote 3 options from your info. Pick one:",
+          confused: "Let me help — here are 3 versions based on what you told me. Pick one:",
+          lazy: "No problem — here are 3 ready-made options. Just tap one:",
+          normal: "No worries — I wrote 3 options based on what you told me. Pick one:",
+        };
+
         setGuidedMessages((prev) => [
           ...prev,
           { id: nextGuidedMessageId(), role: "user", text: trimmed },
           {
             id: nextGuidedMessageId(),
             role: "assistant",
-            text: "No worries — I wrote 3 options based on what you told me. Pick one:",
+            text: toneIntro[tone] || toneIntro.normal,
             summaryOptions,
           },
         ]);
@@ -838,13 +897,17 @@ export default function FABSheet({
         return;
       }
 
+      const toneReply = getToneReply(tone, currentField);
+      const fallbackReply =
+        "No problem — I've left that blank for now. You can tap any section in the builder to fill it in manually later.";
+
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
         {
           id: nextGuidedMessageId(),
           role: "assistant",
-          text: "No problem — I've left that blank for now. You can tap any section in the builder to fill it in manually later.",
+          text: toneReply || fallbackReply,
         },
       ]);
       setGuidedInput("");
