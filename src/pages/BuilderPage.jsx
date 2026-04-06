@@ -2213,14 +2213,31 @@ function ResumeBuilder({ user, onBack, initialResume, initialResumeId, initialTe
   }, []);
 
   useEffect(() => {
-    if (location.state?.cvpFabGuide !== true) return;
-    setGuidedCoachRequestKey((k) => k + 1);
-    navigate({ pathname: location.pathname, search: location.search, hash: location.hash, replace: true, state: {} });
-    const id = requestAnimationFrame(() => {
-      fabRef.current?.openGuidedCoachSheet?.();
-    });
-    return () => cancelAnimationFrame(id);
-  }, [location.state?.cvpFabGuide, location.pathname, location.search, location.hash, navigate]);
+    const shouldOpenCoach = location.state?.cvpFabGuide === true;
+    const needsCleanup = isForceNew || shouldOpenCoach;
+
+    if (!needsCleanup) return;
+
+    navigate(
+      { pathname: location.pathname, search: location.search, hash: location.hash },
+      { replace: true, state: {} }
+    );
+
+    if (shouldOpenCoach) {
+      setGuidedCoachRequestKey((k) => k + 1);
+      const id = requestAnimationFrame(() => {
+        fabRef.current?.openGuidedCoachSheet?.();
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [
+    isForceNew,
+    location.state?.cvpFabGuide,
+    location.pathname,
+    location.search,
+    location.hash,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (lastSavedSnapshotRef.current == null) {
