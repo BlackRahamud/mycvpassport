@@ -2226,9 +2226,15 @@ function ResumeBuilder({
       setGuidedCoachRequestKey((k) => k + 1);
       const id = setTimeout(() => {
         fabRef.current?.openGuidedCoachSheet?.();
-        navigate("/builder", { replace: true });
       }, 500);
-      return () => clearTimeout(id);
+      // Clean URL after FAB is open — separate longer delay
+      const cleanId = setTimeout(() => {
+        navigate("/builder", { replace: true });
+      }, 1500);
+      return () => {
+        clearTimeout(id);
+        clearTimeout(cleanId);
+      };
     }
   }, [isGuided, navigate]);
 
