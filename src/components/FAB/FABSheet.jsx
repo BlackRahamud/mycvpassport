@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./FAB.css";
-import GuidedFlow from "../GuidedFlow";
+import GuidedFlow from "./GuidedFlow";
 import { EMPTY_EXP, splitCommaItems } from "../../cvShared";
 import { FAB_COVER_LETTER_CROSS_SELL, ATS_FAB_CHIP_TO_NAV_KEY } from "./FABContent";
 import {

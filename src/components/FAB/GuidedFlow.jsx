@@ -373,24 +373,35 @@ export default function GuidedFlow({
           }}>
             <div style={{
               display: "flex", alignItems: "flex-end", gap: 8,
-              background: T.surface, border: `1px solid ${T.border}`,
-              borderRadius: 12, padding: "10px 10px 10px 14px",
+              paddingTop: 8,
+              borderTop: `1px solid #1A1A1A`,
             }}>
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder={inputPlaceholder}
-                rows={1}
-                style={{
-                  flex: 1, background: "transparent", border: "none",
-                  resize: "none", color: T.text, fontSize: 14,
-                  lineHeight: 1.5, fontFamily: "inherit",
-                  minHeight: 22, maxHeight: 88, overflowY: "auto",
-                  padding: 0, caretColor: T.text,
-                }}
-              />
+              <div style={{
+                flex: 1,
+                background: "#1C1C1C",
+                border: "1px solid #2A2A2A",
+                borderRadius: 24,
+                padding: "10px 16px",
+                display: "flex",
+                alignItems: "center",
+                minHeight: 40,
+              }}>
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={inputPlaceholder}
+                  rows={1}
+                  style={{
+                    width: "100%", background: "transparent", border: "none",
+                    resize: "none", color: T.text, fontSize: 16,
+                    lineHeight: 1.5, fontFamily: "inherit",
+                    minHeight: 22, maxHeight: 88, overflowY: "auto",
+                    padding: 0, caretColor: T.text,
+                  }}
+                />
+              </div>
               <button
                 type="button"
                 onClick={useSampleData ? handleInternalSend : onSend}
@@ -398,8 +409,8 @@ export default function GuidedFlow({
                 aria-label="Send"
                 style={{
                   flexShrink: 0, width: 34, height: 34,
-                  borderRadius: 8, border: "none",
-                  background: sendDisabled ? T.border : T.text,
+                  borderRadius: "50%", border: "none",
+                  background: sendDisabled ? T.border : "#D97706",
                   color:      sendDisabled ? T.mute  : "#000",
                   cursor: sendDisabled ? "not-allowed" : "pointer",
                   display: "grid", placeItems: "center",
