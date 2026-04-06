@@ -805,6 +805,41 @@ export default function FABSheet({
       trimmed.toLowerCase().includes(p)
     );
     if (isHelpless) {
+      const isSummaryQuestion = guidedStep === QUESTIONS.length - 1;
+      if (isSummaryQuestion) {
+        const title =
+          resume?.experience?.[0]?.title || resume?.experience?.[0]?.role || "Professional";
+        const company = resume?.experience?.[0]?.company || "";
+        const rawSkillsStr = resume?.skills;
+        const rawSkills =
+          typeof rawSkillsStr === "string" && rawSkillsStr.trim()
+            ? splitCommaItems(rawSkillsStr)
+            : Array.isArray(rawSkillsStr)
+              ? rawSkillsStr
+              : [];
+        const skills = rawSkills.slice(0, 3).join(", ") || "key skills";
+        const location = resume?.personalInfo?.location || "";
+
+        const summaryOptions = [
+          `${title} with hands-on experience${company ? ` at ${company}` : ""}, skilled in ${skills}.`,
+          `Motivated ${title}${location ? ` based in ${location}` : ""}, bringing expertise in ${skills}.`,
+          `Dedicated ${title}${company ? ` from ${company}` : ""} with a strong foundation in ${skills} and a drive to deliver results.`,
+        ];
+
+        setGuidedMessages((prev) => [
+          ...prev,
+          { id: nextGuidedMessageId(), role: "user", text: trimmed },
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "No worries — I wrote 3 options based on what you told me. Pick one:",
+            summaryOptions,
+          },
+        ]);
+        setGuidedInput("");
+        return;
+      }
+
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -888,7 +923,72 @@ export default function FABSheet({
       }
       setGuidedTyping(false);
     }, 800);
-  }, [guidedInput, guidedStep, setResume]);
+  }, [guidedInput, guidedStep, setResume, resume]);
+
+  const handleSelectSummary = useCallback(
+    (text) => {
+      guidedPostSummaryStageRef.current = "template";
+      setResume((prev) => ({ ...prev, summary: text }));
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Your CV is ready. Let's make it look the part.",
+          ctaBtn: "Preview My Draft",
+          ctaStyle: "white",
+          ctaId: "preview-draft",
+        },
+      ]);
+      setGuidedStep(QUESTIONS.length);
+      setGuidedProgress(100);
+      window.setTimeout(() => {
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: "Want to pick a different design first?",
+            ctaBtn: "Browse Templates",
+            ctaStyle: "outline",
+            ctaId: "pick-template",
+          },
+        ]);
+      }, 1400);
+    },
+    [setResume]
+  );
+
+  const handleSkipSummary = useCallback(() => {
+    guidedPostSummaryStageRef.current = "template";
+    setGuidedMessages((prev) => [
+      ...prev,
+      {
+        id: nextGuidedMessageId(),
+        role: "assistant",
+        text: "Your CV is ready. Let's make it look the part.",
+        ctaBtn: "Preview My Draft",
+        ctaStyle: "white",
+        ctaId: "preview-draft",
+      },
+    ]);
+    setGuidedStep(QUESTIONS.length);
+    setGuidedProgress(100);
+    window.setTimeout(() => {
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Want to pick a different design first?",
+          ctaBtn: "Browse Templates",
+          ctaStyle: "outline",
+          ctaId: "pick-template",
+        },
+      ]);
+    }, 1400);
+  }, []);
 
   const handleGuidedCtaClick = useCallback(
     (ctaId) => {
@@ -1816,6 +1916,8 @@ export default function FABSheet({
                 onSkip={handleGuidedSkip}
                 onExit={handleGuidedExit}
                 onCtaClick={handleGuidedCtaClick}
+                onSelectSummary={handleSelectSummary}
+                onSkipSummary={handleSkipSummary}
                 showInput={guidedShowInput}
                 inputPlaceholder="Type your answer…"
                 isTyping={guidedTyping}

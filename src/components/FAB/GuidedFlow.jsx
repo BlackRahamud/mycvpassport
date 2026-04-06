@@ -105,12 +105,14 @@ function AtsRing({ score }) {
   );
 }
 
-function AssistantBubble({ message, onCtaClick }) {
+function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary }) {
   const hasCta = Boolean(message.ctaBtn);
+  const hasSummaryOptions = Array.isArray(message.summaryOptions) && message.summaryOptions.length > 0;
+  const wideContent = hasCta || hasSummaryOptions;
   return (
     <div style={{
       display: "flex", justifyContent: "flex-start",
-      paddingRight: hasCta ? "4%" : "18%",
+      paddingRight: wideContent ? "4%" : "18%",
     }}>
       <div style={{
         width: 6, height: 6, borderRadius: "50%", background: T.amber,
@@ -120,10 +122,10 @@ function AssistantBubble({ message, onCtaClick }) {
         background: T.raised,
         border: `1px solid ${T.border}`,
         borderRadius: "16px 16px 16px 4px",
-        padding: hasCta ? 14 : "11px 14px",
+        padding: wideContent ? 14 : "11px 14px",
         fontSize: 14, color: T.text, lineHeight: 1.55,
         wordBreak: "break-word", whiteSpace: "pre-wrap",
-        width: hasCta ? "100%" : undefined,
+        width: wideContent ? "100%" : undefined,
       }}>
         {message.score != null && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -139,6 +141,50 @@ function AssistantBubble({ message, onCtaClick }) {
         )}
 
         {message.text}
+
+        {hasSummaryOptions && (
+          <>
+            {message.summaryOptions.map((text, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelectSummary?.(text)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  background: "#1A1A1C",
+                  border: "1px solid #333",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  marginBottom: "10px",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  fontSize: "14px",
+                  lineHeight: "1.5",
+                  color: "#E0E0E0",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                {text}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={onSkipSummary}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#666",
+                fontSize: "13px",
+                cursor: "pointer",
+                padding: "4px 0 12px",
+                textDecoration: "underline",
+              }}
+            >
+              Skip for now →
+            </button>
+          </>
+        )}
 
         {hasCta && (
           <button
@@ -222,6 +268,8 @@ export default function GuidedFlow({
   onSkip,
   onExit,
   onCtaClick,
+  onSelectSummary,
+  onSkipSummary,
   showInput:        showInputProp,
   inputPlaceholder: placeholderProp,
   isTyping:         isTypingProp,
@@ -360,7 +408,15 @@ export default function GuidedFlow({
           {messages.map((msg) =>
             msg.role === "user"
               ? <UserBubble   key={msg.id} text={msg.text} />
-              : <AssistantBubble key={msg.id} message={msg} onCtaClick={handleCtaClick} />
+              : (
+                <AssistantBubble
+                  key={msg.id}
+                  message={msg}
+                  onCtaClick={handleCtaClick}
+                  onSelectSummary={useSampleData ? undefined : onSelectSummary}
+                  onSkipSummary={useSampleData ? undefined : onSkipSummary}
+                />
+              )
           )}
           {isTyping && <TypingIndicator />}
           <div style={{ height: 4, flexShrink: 0 }} />
