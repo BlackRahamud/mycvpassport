@@ -38,16 +38,18 @@ export const A4_PREVIEW_WIDTH_PX = 794;
 export const A4_PREVIEW_HEIGHT_PX = 1123;
 
 export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionClick }) {
-  const handleClick = (e) => {
+  const handleSectionTap = (e) => {
     const section = e.target.closest("[data-section]");
     if (section && onSectionClick) {
+      if (e.type === "touchend") e.preventDefault();
       onSectionClick(section.getAttribute("data-section"));
     }
   };
   return (
     <div
       ref={fitRef}
-      onClick={onSectionClick ? handleClick : undefined}
+      onClick={onSectionClick ? handleSectionTap : undefined}
+      onTouchEnd={onSectionClick ? handleSectionTap : undefined}
       style={{
         width: "100%",
         overflow: "hidden",
