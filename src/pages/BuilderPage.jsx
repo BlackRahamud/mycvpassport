@@ -2882,55 +2882,62 @@ function ResumeBuilder({
             <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
               {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
             </button>
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={downloadLoading}
-              className="cvp-builder-topbar-download"
-              style={{
-                padding: "10px 16px",
-                borderRadius: 8,
-                border: downloadLoading ? "1px solid #2A2A2A" : "none",
-                background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
-                color: downloadLoading ? "#FFFFFF" : "#000000",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: downloadLoading ? "not-allowed" : "pointer",
-                transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                minWidth: 0,
-              }}
-              onMouseEnter={(e) => {
-                if (!downloadLoading) e.currentTarget.style.opacity = "0.9";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = "1";
-              }}
-            >
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloadLoading}
+                className="cvp-builder-topbar-download"
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: downloadLoading ? "1px solid #2A2A2A" : "none",
+                  background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
+                  color: downloadLoading ? "#FFFFFF" : "#000000",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: downloadLoading ? "not-allowed" : "pointer",
+                  transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  minWidth: 0,
+                }}
+                onMouseEnter={(e) => {
+                  if (!downloadLoading) e.currentTarget.style.opacity = "0.9";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "1";
+                }}
+              >
+                {downloadLoading ? (
+                  <>
+                    <BuilderCvPdfSpinner20 />
+                    <span>Generating your CV...</span>
+                  </>
+                ) : null}
+                {downloadPhase === "idle" ? <span>Download CV</span> : null}
+                {downloadPhase === "success" ? (
+                  <>
+                    <span style={{ color: "#22C55E", fontSize: 16, lineHeight: 1 }} aria-hidden>
+                      ✓
+                    </span>
+                    <span>Download CV</span>
+                  </>
+                ) : null}
+                {downloadPhase === "error" ? (
+                  <>
+                    <span>Download CV</span>
+                    <span style={{ color: "#EF4444", fontSize: 12, fontWeight: 600 }}>Failed, try again</span>
+                  </>
+                ) : null}
+              </button>
               {downloadLoading ? (
-                <>
-                  <BuilderCvPdfSpinner20 />
-                  <span>Generating your CV...</span>
-                </>
+                <p style={{ fontSize: "12px", color: "#A0A0A0", textAlign: "center", marginTop: "8px" }}>
+                  Optimizing for Gulf/Indian ATS standards... almost there
+                </p>
               ) : null}
-              {downloadPhase === "idle" ? <span>Download CV</span> : null}
-              {downloadPhase === "success" ? (
-                <>
-                  <span style={{ color: "#22C55E", fontSize: 16, lineHeight: 1 }} aria-hidden>
-                    ✓
-                  </span>
-                  <span>Download CV</span>
-                </>
-              ) : null}
-              {downloadPhase === "error" ? (
-                <>
-                  <span>Download CV</span>
-                  <span style={{ color: "#EF4444", fontSize: 12, fontWeight: 600 }}>Failed, try again</span>
-                </>
-              ) : null}
-            </button>
+            </div>
           </div>
         </div>
         {cvJourneyChrome ? (
