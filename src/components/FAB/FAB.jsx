@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import "./FAB.css";
 import FABMenu from "./FABMenu";
@@ -461,6 +462,7 @@ const FAB = forwardRef(function FAB(
 
   const idleTimer = useRef(null);
   const [isGhostPulsing, setIsGhostPulsing] = useState(false);
+  const [isStandby, setIsStandby] = useState(false);
   const ghostPulseKillArmedRef = useRef(false);
 
   const progressRingRef = useRef(null);
@@ -1092,8 +1094,11 @@ const FAB = forwardRef(function FAB(
         guidedFlowRecentlyClosedRef.current = false;
         openGuideSheet(false);
       },
+      setStandby(val) {
+        setIsStandby(val);
+      },
     }),
-    [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet, sheetOpen, menuOpen, tryOpenBuilderContentIdleAutoSheet]
+    [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet, sheetOpen, menuOpen, tryOpenBuilderContentIdleAutoSheet, setIsStandby]
   );
 
   const openTemplatesSmartSheet = useCallback(() => {
@@ -1436,6 +1441,30 @@ const FAB = forwardRef(function FAB(
 
   if (!mobile || !config || hidden) return null;
 
+  if (isStandby) return (
+    <AnimatePresence>
+      <motion.div
+        layoutId="cv-pilot-fab"
+        animate={{ scale: [1, 1.3, 1] }}
+        transition={{ 
+          repeat: Infinity, 
+          duration: 1.5, 
+          ease: "easeInOut" 
+        }}
+        style={{
+          width: 12,
+          height: 12,
+          borderRadius: "50%",
+          background: "#D97706",
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 9999,
+        }}
+      />
+    </AnimatePresence>
+  );
+
   const dedicatedRoute =
     sheetLayoutKind === "download-only"
       ? null
@@ -1464,8 +1493,10 @@ const FAB = forwardRef(function FAB(
 
   return (
     <>
-      <div
+      <motion.div
         ref={anchorRef}
+        layoutId="cv-pilot-fab"
+        layout
         className={[
           "cvp-fab-layer",
           "cvp-fab-sticky-wrap",
@@ -1618,7 +1649,7 @@ const FAB = forwardRef(function FAB(
             }}
           />
         )}
-      </div>
+      </motion.div>
 
       {variant === "builder" ? (
         <FABMilestonePopup
