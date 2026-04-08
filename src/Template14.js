@@ -86,7 +86,7 @@ export function Template14({ cv, mobileMode = false }) {
 
       <div style={{ padding: "40px 50px" }}>
         {/* SUMMARY */}
-        <section style={{ marginBottom: "35px", position: "relative" }}>
+        <section data-section="summary" style={{ marginBottom: "35px", position: "relative" }}>
           <GhostChip>{cv.summary}</GhostChip>
           <h2
             style={{
@@ -105,7 +105,7 @@ export function Template14({ cv, mobileMode = false }) {
         </section>
 
         {/* EXPERIENCE WITH T11 TIMELINE LOGIC */}
-        <section style={{ marginBottom: "35px" }}>
+        <section data-section="experience" style={{ marginBottom: "35px" }}>
           <h2
             style={{
               fontSize: "12pt",
@@ -193,7 +193,7 @@ export function Template14({ cv, mobileMode = false }) {
 
         {/* 2-COLUMN GRID FOR ACHIEVEMENTS/SKILLS */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
-          <section>
+          <section data-section="education">
             <h2
               style={{
                 fontSize: "12pt",
@@ -215,7 +215,7 @@ export function Template14({ cv, mobileMode = false }) {
           </section>
           <div>
             {skillsItems.length > 0 && (
-              <section style={{ position: "relative" }}>
+              <section data-section="competencies" style={{ position: "relative" }}>
                 <GhostChip>
                   {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
                 </GhostChip>
@@ -235,7 +235,7 @@ export function Template14({ cv, mobileMode = false }) {
             )}
 
             {hasTechnicalSkills && (
-              <section style={{ position: "relative", marginTop: skillsItems.length > 0 ? "24px" : 0 }}>
+              <section data-section="competencies" style={{ position: "relative", marginTop: skillsItems.length > 0 ? "24px" : 0 }}>
                 <h2
                   style={{
                     fontSize: "12pt",

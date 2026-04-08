@@ -125,7 +125,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
       <div style={{ padding: "0 15mm" }}>
         {/* Profile */}
         {cv.summary && (
-          <section style={{ position: "relative" }}>
+          <section data-section="summary" style={{ position: "relative" }}>
             <GhostChip>{cv.summary}</GhostChip>
             <SectionTitle>Profile</SectionTitle>
             <p
@@ -142,7 +142,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
         )}
 
         {/* Experience */}
-        <section>
+        <section data-section="experience">
           <SectionTitle>Experience</SectionTitle>
           {experience
             .filter((e) => e.company)
@@ -211,7 +211,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
 
         {/* Technical Skills */}
         {(hasTechnicalSkills || isEmpty) && (
-          <section style={{ position: "relative" }}>
+          <section data-section="competencies" style={{ position: "relative" }}>
             <SectionTitle>Technical Skills</SectionTitle>
             <div style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
               {isEmpty ? (
@@ -237,7 +237,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
 
         {/* Education */}
         {cv.education && cv.education.length > 0 && (
-          <section>
+          <section data-section="education">
             <SectionTitle>Education</SectionTitle>
             {cv.education
               .filter((edu) => edu.school)

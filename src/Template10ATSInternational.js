@@ -158,6 +158,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
         >
           {/* LEFT COLUMN (60%) */}
           <div style={{ flex: "0 0 58%" }}>
+            <div data-section="experience">
             <SectionHeading>Experience</SectionHeading>
             {experience.map((exp, i) => (
               <div key={i} style={{ marginBottom: "24px", pageBreakInside: "avoid", position: "relative" }}>
@@ -175,7 +176,9 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
                   ))}
               </div>
             ))}
+            </div>
 
+            <div data-section="education">
             <SectionHeading>Education</SectionHeading>
             {education.map((edu, i) => (
               <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
@@ -185,9 +188,10 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
                 </div>
               </div>
             ))}
+            </div>
 
             {skills.length > 0 && (
-              <>
+              <div data-section="competencies">
                 <SectionHeading>Skills</SectionHeading>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
                   <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
@@ -206,11 +210,11 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
                     </span>
                   ))}
                 </div>
-              </>
+              </div>
             )}
 
             {hasTechnicalSkills && (
-              <>
+              <div data-section="competencies">
                 <SectionHeading>Technical Skills</SectionHeading>
                 <div style={{ fontSize: "13px", color: COLORS.TEXT_BODY, lineHeight: "1.6", margin: "0 0 0 0" }}>
                   {(() => {
@@ -227,18 +231,20 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
                     );
                   })()}
                 </div>
-              </>
+              </div>
             )}
           </div>
 
           {/* RIGHT COLUMN (40%) */}
           <div style={{ flex: "1" }}>
+            <div data-section="summary">
             <SectionHeading>Summary</SectionHeading>
             <div style={{ position: "relative" }}>
               <GhostChip>{cv.summary}</GhostChip>
               <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", margin: "0 0 28px 0" }}>
                 {cv.summary}
               </p>
+            </div>
             </div>
 
             <SectionHeading>Key Achievements</SectionHeading>
@@ -247,6 +253,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
               <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px", lineHeight: "1.4" }}>Successfully migrated legacy architecture to cloud-native microservices.</div>
             </div>
 
+            <div data-section="languages">
             <SectionHeading>Languages</SectionHeading>
             {languages.map((lang, i) => (
               <div key={i} style={{ marginBottom: "14px" }}>
@@ -256,6 +263,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
                 </div>
               </div>
             ))}
+            </div>
 
             <SectionHeading>Courses</SectionHeading>
             <div style={{ marginBottom: "16px" }}>

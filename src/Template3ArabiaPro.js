@@ -119,7 +119,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
       </header>
 
       {/* Profile */}
-      <section style={{ position: "relative" }}>
+      <section data-section="summary" style={{ position: "relative" }}>
         <SectionHeader>Professional Profile</SectionHeader>
         <GhostChip>
           {cv.summary ||
@@ -140,7 +140,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
       </section>
 
       {/* Experience - T11 Structural Flow */}
-      <section>
+      <section data-section="experience">
         <SectionHeader>Work Experience</SectionHeader>
         {isEmpty ? (
           <div style={{ marginBottom: "6mm" }}>
@@ -183,7 +183,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
       </section>
 
       {/* Education */}
-      <section>
+      <section data-section="education">
         <SectionHeader>Education</SectionHeader>
         {isEmpty ? (
           <div style={{ height: "20px", width: "50%", backgroundColor: SKELETON }} />
@@ -204,7 +204,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skillsCells.length > 0 || isEmpty) && (
-        <section>
+        <section data-section="competencies">
           <SectionHeader>Skills</SectionHeader>
           {isEmpty ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px 20px" }}>
@@ -239,7 +239,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(hasTechnicalSkills || isEmpty) && (
-        <section>
+        <section data-section="competencies">
           <SectionHeader>Technical Skills</SectionHeader>
           <div
             style={{

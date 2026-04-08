@@ -119,7 +119,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       </header>
 
       {/* Summary */}
-      <section style={{ position: "relative" }}>
+      <section data-section="summary" style={{ position: "relative" }}>
         <SectionTitle first>Executive Summary</SectionTitle>
         <GhostChip>
           {cv.summary ||
@@ -132,7 +132,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       </section>
 
       {/* Experience */}
-      <section>
+      <section data-section="experience">
         <SectionTitle>Work History</SectionTitle>
         {isEmpty ? (
           <EntryWrap>
@@ -166,7 +166,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isEmpty) && (
-        <section style={{ position: "relative" }}>
+        <section data-section="competencies" style={{ position: "relative" }}>
           <SectionTitle>Skills</SectionTitle>
           <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
           <div
@@ -184,7 +184,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(hasTechnicalSkills || isEmpty) && (
-        <section style={{ position: "relative" }}>
+        <section data-section="competencies" style={{ position: "relative" }}>
           <SectionTitle>Technical Skills</SectionTitle>
           <div style={{ fontSize: pt(10), lineHeight: 1.8, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
             {isEmpty ? (
@@ -209,7 +209,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       )}
 
       {/* Education */}
-      <section>
+      <section data-section="education">
         <SectionTitle>Academic Background</SectionTitle>
         {isEmpty ? (
           <div style={{ height: "20px", width: "50%", backgroundColor: SKELETON }} />

@@ -132,6 +132,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
 
         <div style={{ display: "flex", flexDirection: "row", gap: "40px", padding: "0 32px 32px 32px" }}>
           <div style={{ flex: "0 0 62%" }}>
+            <div data-section="experience">
             <SectionHeading>Experience</SectionHeading>
             {experience.map((exp, i) => (
               <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid", position: "relative" }}>
@@ -152,7 +153,9 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                   ))}
               </div>
             ))}
+            </div>
 
+            <div data-section="education">
             <SectionHeading>Education</SectionHeading>
             {education.map((edu, i) => (
               <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
@@ -162,9 +165,10 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                 </div>
               </div>
             ))}
+            </div>
 
             {skills.length > 0 && (
-              <>
+              <div data-section="competencies">
                 <SectionHeading>Skills</SectionHeading>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
                   <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
@@ -174,11 +178,11 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                     </span>
                   ))}
                 </div>
-              </>
+              </div>
             )}
 
             {hasTechnicalSkills && (
-              <>
+              <div data-section="competencies">
                 <SectionHeading>Technical Skills</SectionHeading>
                 <div style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: "0 0 24px 0" }}>
                   {(() => {
@@ -195,15 +199,17 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                     );
                   })()}
                 </div>
-              </>
+              </div>
             )}
           </div>
 
           <div style={{ flex: "1" }}>
+            <div data-section="summary">
             <SectionHeading>Professional Summary</SectionHeading>
             <div style={{ position: "relative", margin: "0 0 24px 0" }}>
               <GhostChip>{cv.summary}</GhostChip>
               <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: 0 }}>{cv.summary}</p>
+            </div>
             </div>
 
             <SectionHeading>Key Metrics</SectionHeading>
@@ -216,6 +222,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
               </div>
             </div>
 
+            <div data-section="certifications">
             <SectionHeading>Certifications</SectionHeading>
             <div style={{ fontSize: "12px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.8", marginBottom: "24px" }}>
               {certifications.length
@@ -224,12 +231,15 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                   ))
                 : "CFA Level 1"}
             </div>
+            </div>
 
+            <div data-section="languages">
             <SectionHeading>Languages</SectionHeading>
             <div style={{ fontSize: "12px", color: COLORS.TEXT_PRIMARY }}>
               {languages.map((l, i) => (
                 <div key={i}>{l} — Fluent</div>
               ))}
+            </div>
             </div>
 
             <SectionHeading>Courses</SectionHeading>

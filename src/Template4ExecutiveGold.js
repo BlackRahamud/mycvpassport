@@ -128,7 +128,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
       <div style={{ padding: "0 15mm" }}>
         {/* Profile */}
-        <section style={{ position: "relative" }}>
+        <section data-section="summary" style={{ position: "relative" }}>
           <GhostChip>
             {cv.summary ||
               "Strategically-minded professional with 10+ years of experience..."}
@@ -148,7 +148,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
         </section>
 
         {/* Experience - Two Column Feel within Single Column */}
-        <section>
+        <section data-section="experience">
           <SectionBand>Work History</SectionBand>
           {cv.experience.filter((e) => e.company).map((e, i) => (
             <div
@@ -199,7 +199,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
         {/* Skills */}
         {(skillsCells.length > 0 || isEmpty) && (
-          <section style={{ position: "relative" }}>
+          <section data-section="competencies" style={{ position: "relative" }}>
             <SectionBand>Skills</SectionBand>
             <GhostChip>
               {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
@@ -232,7 +232,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
         {/* Technical Skills */}
         {(hasTechnicalSkills || isEmpty) && (
-          <section style={{ position: "relative" }}>
+          <section data-section="competencies" style={{ position: "relative" }}>
             <SectionBand>Technical Skills</SectionBand>
             <div style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
               {isEmpty ? (

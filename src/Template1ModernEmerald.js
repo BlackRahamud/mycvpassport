@@ -101,7 +101,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isEmpty) && (
-        <section>
+        <section data-section="summary">
           <SectionTitle first>Professional Summary</SectionTitle>
           <p
             style={{
@@ -119,7 +119,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skillList.length > 0 || isEmpty) && (
-        <section>
+        <section data-section="competencies">
           <SectionTitle>Skills</SectionTitle>
           <div style={{ fontSize: pt(10.5), lineHeight: 1.5, position: "relative" }}>
             <GhostChip>
@@ -136,7 +136,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0 || isEmpty) && (
-        <section>
+        <section data-section="competencies">
           <SectionTitle>Technical Skills</SectionTitle>
           <div style={{ fontSize: pt(10.5), lineHeight: 1.6, margin: 0, position: "relative" }}>
             <GhostChip>
@@ -169,7 +169,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
 
       {/* Experience */}
       {(cv.experience?.length > 0 || isEmpty) && (
-        <section>
+        <section data-section="experience">
           <SectionTitle>Professional Experience</SectionTitle>
           {isEmpty ? (
             <EntryWrap>
@@ -213,7 +213,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
 
       {/* Education */}
       {(cv.education?.length > 0 || isEmpty) && (
-        <section>
+        <section data-section="education">
           <SectionTitle>Education</SectionTitle>
           {isEmpty ? (
             <div style={{ color: SKELETON }}>

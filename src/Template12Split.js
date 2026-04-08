@@ -116,7 +116,7 @@ export function Template12Split({ cv, mobileMode = false }) {
             boxSizing: "border-box",
           }}
         >
-          <div style={{ position: "relative" }}>
+          <div data-section="summary" style={{ position: "relative" }}>
             <GhostChip>
               {cv.summary || "Add your professional summary here."}
             </GhostChip>
@@ -139,7 +139,7 @@ export function Template12Split({ cv, mobileMode = false }) {
           </div>
 
           {skillItems.length > 0 && (
-            <div style={{ marginTop: "40px", position: "relative" }}>
+            <div data-section="competencies" style={{ marginTop: "40px", position: "relative" }}>
               <GhostChip>
                 {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
               </GhostChip>
@@ -162,7 +162,7 @@ export function Template12Split({ cv, mobileMode = false }) {
           )}
 
           {hasTechnicalSkills && (
-            <div style={{ marginTop: "40px", position: "relative" }}>
+            <div data-section="competencies" style={{ marginTop: "40px", position: "relative" }}>
               <h3
                 style={{
                   fontSize: "11pt",
@@ -196,6 +196,7 @@ export function Template12Split({ cv, mobileMode = false }) {
 
         {/* RIGHT COLUMN: EXPERIENCE */}
         <main
+          data-section="experience"
           style={{ width: "65%", padding: "40px 40px", boxSizing: "border-box" }}
         >
           <h3

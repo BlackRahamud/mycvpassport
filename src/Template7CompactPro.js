@@ -103,7 +103,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
       <div style={{ padding: "0 15mm" }}>
         {/* Summary */}
         {cv.summary && (
-          <section style={{ position: "relative" }}>
+          <section data-section="summary" style={{ position: "relative" }}>
             <SectionTitle>Professional Profile</SectionTitle>
             <p style={{ fontSize: pt(10), margin: 0, textAlign: "justify", color: BODY_TEXT }}>{cv.summary}</p>
             <GhostChip>{cv.summary}</GhostChip>
@@ -112,7 +112,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
 
         {/* Experience */}
         {(experience.length > 0 || isPlaceholder) && (
-          <section>
+          <section data-section="experience">
             <SectionTitle>Experience</SectionTitle>
             {experience.map((exp, i) => (
               <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid", position: "relative" }}>
@@ -139,7 +139,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
         {/* Skills & Languages - Parallel Columns */}
         <div style={{ display: "flex", gap: "15mm", marginTop: "4mm", pageBreakInside: "avoid" }}>
           {skills.length > 0 && (
-            <div style={{ flex: 1, position: "relative" }}>
+            <div data-section="competencies" style={{ flex: 1, position: "relative" }}>
               <SectionTitle>Skills</SectionTitle>
               <div style={{ fontSize: pt(10), color: BODY_TEXT }}>
                 {skills.map((s, i) => (
@@ -152,7 +152,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
             </div>
           )}
           {hasTechnicalSkills && (
-            <div style={{ flex: 1, position: "relative" }}>
+            <div data-section="competencies" style={{ flex: 1, position: "relative" }}>
               <SectionTitle>Technical Skills</SectionTitle>
               <div style={{ fontSize: pt(10), color: BODY_TEXT, margin: 0, lineHeight: 1.5 }}>
                 {(() => {
@@ -172,7 +172,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
             </div>
           )}
           {languages.length > 0 && (
-            <div style={{ flex: 1 }}>
+            <div data-section="languages" style={{ flex: 1 }}>
               <SectionTitle>Languages</SectionTitle>
               <div style={{ fontSize: pt(10), color: BODY_TEXT }}>
                 {languages.map((l, i) => (
@@ -187,7 +187,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
 
         {/* Education */}
         {education.length > 0 && (
-          <section>
+          <section data-section="education">
             <SectionTitle>Education</SectionTitle>
             {education.map((edu, i) => (
               <div key={i} style={{ marginBottom: "4mm", pageBreakInside: "avoid" }}>

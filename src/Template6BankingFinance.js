@@ -91,7 +91,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isPlaceholder) && (
-        <section style={{ position: "relative" }}>
+        <section data-section="summary" style={{ position: "relative" }}>
           <GhostChip>
             {cv.summary ||
               "Strategically-minded professional with 10+ years of experience..."}
@@ -105,7 +105,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Experience - Two Column Layout */}
       {(experience.length > 0 || isPlaceholder) && (
-        <section>
+        <section data-section="experience">
           <SectionTitle>Professional Experience</SectionTitle>
           {isPlaceholder ? (
             <div style={{ display: "flex", marginBottom: "6mm", pageBreakInside: "avoid", gap: "10mm" }}>
@@ -168,7 +168,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isPlaceholder) && (
-        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="competencies" style={{ position: "relative", pageBreakInside: "avoid" }}>
           <GhostChip>
             {Array.isArray(skills) ? skills.join(" ") : cv.skills}
           </GhostChip>
@@ -181,7 +181,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(hasTechnicalSkills || isPlaceholder) && (
-        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="competencies" style={{ position: "relative", pageBreakInside: "avoid" }}>
           <SectionTitle>Technical Skills</SectionTitle>
           <div style={{ fontSize: pt(10), margin: 0, color: isPlaceholder ? "#D1D5DB" : "#333" }}>
             {isPlaceholder ? (
@@ -207,7 +207,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Education */}
       {(education.length > 0 || isPlaceholder) && (
-        <section>
+        <section data-section="education">
           <SectionTitle>Education</SectionTitle>
           {isPlaceholder ? (
             <div style={{ display: "flex", marginBottom: "4mm", gap: "10mm", pageBreakInside: "avoid" }}>

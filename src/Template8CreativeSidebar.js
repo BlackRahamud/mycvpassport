@@ -96,7 +96,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isPlaceholder) && (
-        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="summary" style={{ position: "relative", pageBreakInside: "avoid" }}>
           <GhostChip>
             {cv.summary || "A dedicated professional with extensive experience..."}
           </GhostChip>
@@ -109,7 +109,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Experience */}
       {(experience.length > 0 || isPlaceholder) && (
-        <section>
+        <section data-section="experience">
           <SectionTitle>Experience</SectionTitle>
           {experience.map((exp, i) => (
             <div key={i} style={{ position: "relative", marginBottom: "6mm", pageBreakInside: "avoid" }}>
@@ -146,7 +146,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isPlaceholder) && (
-        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="competencies" style={{ position: "relative", pageBreakInside: "avoid" }}>
           <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
           <SectionTitle>Skills</SectionTitle>
           <div style={{ fontSize: pt(10), color: textColor, display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -159,7 +159,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(hasTechnicalSkills || isPlaceholder) && (
-        <section style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="competencies" style={{ position: "relative", pageBreakInside: "avoid" }}>
           <SectionTitle>Technical Skills</SectionTitle>
           <div style={{ fontSize: pt(10), color: textColor, margin: 0, lineHeight: 1.5 }}>
             {isPlaceholder ? (
@@ -185,7 +185,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Languages - Two Column */}
       {languages.length > 0 && (
-        <section style={{ pageBreakInside: "avoid" }}>
+        <section data-section="languages" style={{ pageBreakInside: "avoid" }}>
           <SectionTitle>Languages</SectionTitle>
           <div
             style={{
@@ -211,7 +211,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Education */}
       {education.length > 0 && (
-        <section>
+        <section data-section="education">
           <SectionTitle>Education</SectionTitle>
           {education.map((edu, i) => (
             <div key={i} style={{ marginBottom: "4mm", pageBreakInside: "avoid" }}>

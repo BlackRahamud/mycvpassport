@@ -257,7 +257,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
       {/* Professional Summary */}
       {cv.summary && (
-        <section>
+        <section data-section="summary">
           <SectionTitle first>Professional Summary</SectionTitle>
           <div style={{ position: "relative" }}>
             <GhostChip>{cv.summary}</GhostChip>
@@ -279,7 +279,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {skillCore.length > 0 && (
-        <section>
+        <section data-section="competencies">
           <SectionTitle first={!cv.summary}>Skills</SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
             <EntryWrap>
@@ -296,7 +296,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {technicalSkillsGroups.length > 0 && (
-        <section>
+        <section data-section="competencies">
           <SectionTitle first={!cv.summary && skillCore.length === 0}>Technical Skills</SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
             <div className="t11-technical-skills-body">
@@ -321,7 +321,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
       {/* Professional Experience */}
       {experience.some((e) => e.company) && (
-        <section>
+        <section data-section="experience">
           <SectionTitle
             first={!cv.summary && !hasAnySkillsBlock}
           >
@@ -438,7 +438,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
       {/* Education */}
       {education.some((e) => e.school) && (
-        <section>
+        <section data-section="education">
           <SectionTitle
             first={
               !cv.summary &&
@@ -500,7 +500,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
       {/* Certifications */}
       {certList.length > 0 && (
-        <section>
+        <section data-section="certifications">
           <SectionTitle
             first={
               !cv.summary &&
@@ -526,7 +526,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
       {/* Languages */}
       {langList.length > 0 && (
-        <section>
+        <section data-section="languages">
           <SectionTitle
             first={
               !cv.summary &&
