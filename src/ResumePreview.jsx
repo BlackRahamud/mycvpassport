@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { PreviewModernEmerald } from "./Template1ModernEmerald";
 import { PreviewTwoCol } from "./Template2DubaiModern";
 import { PreviewSidebar } from "./Template3ArabiaPro";
@@ -38,18 +39,41 @@ export const A4_PREVIEW_WIDTH_PX = 794;
 export const A4_PREVIEW_HEIGHT_PX = 1123;
 
 export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionClick }) {
-  const handleSectionTap = (e) => {
-    const section = e.target.closest("[data-section]");
-    if (section && onSectionClick) {
-      if (e.type === "touchend") e.preventDefault();
-      onSectionClick(section.getAttribute("data-section"));
+  const longPressTimer = useRef(null);
+  const touchMoved = useRef(false);
+
+  const handleTouchStart = (e) => {
+    touchMoved.current = false;
+    const target = e.target.closest("[data-section]");
+    if (!target || !onSectionClick) return;
+    longPressTimer.current = setTimeout(() => {
+      if (!touchMoved.current) {
+        onSectionClick(target.getAttribute("data-section"));
+      }
+    }, 500);
+  };
+
+  const handleTouchMove = () => {
+    touchMoved.current = true;
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
   return (
     <div
       ref={fitRef}
-      onClick={onSectionClick ? handleSectionTap : undefined}
-      onTouchEnd={onSectionClick ? handleSectionTap : undefined}
+      onTouchStart={onSectionClick ? handleTouchStart : undefined}
+      onTouchMove={onSectionClick ? handleTouchMove : undefined}
+      onTouchEnd={onSectionClick ? handleTouchEnd : undefined}
       style={{
         width: "100%",
         overflow: "hidden",

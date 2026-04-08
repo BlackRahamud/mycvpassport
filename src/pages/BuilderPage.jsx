@@ -2702,7 +2702,6 @@ function ResumeBuilder({
         setOpenSection(sectionName);
       }
       setBuilderTab("content");
-      setGuidedCoachRequestKey((prev) => prev + 1);
       closePreview();
       setTimeout(() => {
         fabRef.current?.openGuidedCoachSheet?.();
