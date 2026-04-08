@@ -2704,6 +2704,9 @@ function ResumeBuilder({
       setBuilderTab("content");
       setGuidedCoachRequestKey((prev) => prev + 1);
       closePreview();
+      setTimeout(() => {
+        fabRef.current?.openGuidedCoachSheet?.();
+      }, 350);
     },
     [closePreview]
   );
@@ -4158,7 +4161,7 @@ function ResumeBuilder({
                 ) : null}
               </button>
             </div>
-            {fabSheet !== "preview" ? (
+            <div style={{ display: fabSheet === "preview" ? "none" : "block" }}>
               <FAB
                 ref={fabRef}
                 variant="builder"
@@ -4225,7 +4228,7 @@ function ResumeBuilder({
                 }}
                 cvCompletionProgress={cvCompletionProgress}
               />
-            ) : null}
+            </div>
           </div>
 
         <div className="cvp-builder-mobile-hidden-capture" aria-hidden style={{ position: "absolute", left: -9999, top: 0, width: 794, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none", zIndex: -1 }}>
