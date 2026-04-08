@@ -72,3 +72,16 @@ export const isTooShort = (str, min = 3) =>
 
 export const isVagueTitle = (str) =>
   VAGUE_TITLES.includes(str.trim().toLowerCase());
+
+export const isNonsense = (text) => {
+  const t = text.trim().toLowerCase();
+  const blackList = [
+    'asdf', 'qwerty', 'abc', 'xxx',
+    'i am a king', 'donald trump', 'i am batman', 'test'
+  ];
+  if (blackList.includes(t) || t.length < 2) return true;
+  if (/(.)\1{3,}/.test(t)) return true;
+  if (/^\d+$/.test(t)) return true;
+  if (t.length > 4 && !/[aeiouy]/.test(t)) return true;
+  return false;
+};

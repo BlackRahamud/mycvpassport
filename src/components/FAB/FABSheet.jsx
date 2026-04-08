@@ -12,6 +12,7 @@ import {
   hasNoMetrics,
   isTooShort,
   isExperienceDump,
+  isNonsense,
 } from "../../data/fabDetect";
 import {
   normalizeAllCaps,
@@ -888,6 +889,20 @@ export default function FABSheet({
   const handleGuidedSend = useCallback(() => {
     const trimmed = guidedInput.trim();
     if (!trimmed || typeof setResume !== "function") return;
+
+    if (isNonsense(trimmed)) {
+      setGuidedMessages((prev) => [
+        ...prev,
+        { id: nextGuidedMessageId(), role: "user", text: trimmed },
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "That doesn't look right — can you try again? Even a rough answer works.",
+        },
+      ]);
+      setGuidedInput("");
+      return;
+    }
 
     const WRITE_FOR_ME_PHRASES = [
       "write for me",
