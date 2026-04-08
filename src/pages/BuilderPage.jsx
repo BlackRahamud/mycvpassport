@@ -2129,6 +2129,7 @@ function ResumeBuilder({
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [fabSheet, setFabSheet] = useState(null);
   const [previewFadeOut, setPreviewFadeOut] = useState(false);
+  const [contextualSection, setContextualSection] = useState(null);
   const [, setJobHasJd] = useState(false);
   const [experienceEditor, setExperienceEditor] = useState(null);
   const [educationEditor, setEducationEditor] = useState(null);
@@ -2692,7 +2693,7 @@ function ResumeBuilder({
       setFabSheet(null);
       setPreviewFadeOut(false);
       setPreviewTemplateOverride(null);
-    }, 300);
+    }, 350);
   }, []);
 
   const handleContextualEdit = useCallback(
@@ -2700,6 +2701,7 @@ function ResumeBuilder({
       const validSections = ["summary", "experience", "education", "competencies", "languages"];
       if (validSections.includes(sectionName)) {
         setOpenSection(sectionName);
+        setContextualSection(sectionName);
       }
       setBuilderTab("content");
       closePreview();
@@ -4169,6 +4171,7 @@ function ResumeBuilder({
                 atsScore={score}
                 setResume={setResume}
                 guidedCoachRequestKey={guidedCoachRequestKey}
+                contextualSection={contextualSection}
                 onGuidedDownload={handleDownload}
                 onGuidedOpenPreview={() => {
                   setPreviewTemplateOverride(null);
@@ -4246,8 +4249,9 @@ function ResumeBuilder({
               height: "100dvh",
               maxHeight: "100dvh",
               background: "#111111",
-              opacity: previewFadeOut ? 0 : 1,
-              transition: "opacity 0.3s ease",
+              opacity: 1,
+              transform: previewFadeOut ? "translateY(100%)" : "translateY(0%)",
+              transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
               display: "flex",
               flexDirection: "column",
               boxSizing: "border-box",

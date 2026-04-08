@@ -406,6 +406,8 @@ const FAB = forwardRef(function FAB(
     setResume = null,
     /** Builder: bump to reset/open guided coach (e.g. New CV → Guide me) */
     guidedCoachRequestKey = 0,
+    /** Builder: section tapped from preview — append contextual coach message */
+    contextualSection = null,
     /** Builder: PDF download from guided flow */
     onGuidedDownload = null,
     /** Builder: open CV preview from guided flow */
@@ -1740,6 +1742,7 @@ const FAB = forwardRef(function FAB(
         resume={resume}
         setResume={setResume}
         guidedCoachRequestKey={guidedCoachRequestKey}
+        contextualSection={contextualSection}
         onGuidedDownload={onGuidedDownload}
         onGuidedOpenPreview={onGuidedOpenPreview}
         onGuidedSwitchToTemplatesTab={onGuidedSwitchToTemplatesTab}

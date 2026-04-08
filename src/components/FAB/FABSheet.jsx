@@ -667,6 +667,8 @@ export default function FABSheet({
   onGuidedSwitchToTemplatesTab = null,
   /** Builder: sync guided post-summary stage for parent (e.g. idle summary sheet guard) */
   guidedPostSummaryStageSyncRef = null,
+  /** Builder: section from preview tap — append one contextual message without reset */
+  contextualSection = null,
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
@@ -877,6 +879,31 @@ export default function FABSheet({
       setGuidedShowInput(true);
     }, 2400);
   }, [open, variant, builderCoachTab, guidedMessages.length, guidedPostSummaryStageSyncRef]);
+
+  const prevContextualSectionRef = useRef(null);
+  useEffect(() => {
+    if (!contextualSection) return;
+    if (contextualSection === prevContextualSectionRef.current) return;
+    prevContextualSectionRef.current = contextualSection;
+    const sectionLabels = {
+      summary: "Summary",
+      experience: "Work History",
+      education: "Education",
+      competencies: "Skills",
+      languages: "Languages",
+    };
+    const label = sectionLabels[contextualSection] || contextualSection;
+    setGuidedMessages((prev) => [
+      ...prev,
+      {
+        id: nextGuidedMessageId(),
+        role: "assistant",
+        text: `I can see you want to work on your ${label} section. Let's make it stronger — what would you like to change?`,
+      },
+    ]);
+    setBuilderCoachTab("guide");
+    setGuidedShowInput(true);
+  }, [contextualSection]);
 
   const handleGuidedInputChange = useCallback((e) => {
     setGuidedInput(e.target.value);
