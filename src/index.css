@@ -1329,3 +1329,40 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     height: auto !important;
   }
 }
+
+/* Contextual Preview Editing — screen only, Puppeteer blind */
+@media screen {
+  [data-section] {
+    cursor: pointer;
+    position: relative;
+    transition: outline 0.2s ease;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  [data-section]:hover {
+    outline-color: rgba(217, 119, 6, 0.5);
+  }
+
+  [data-section]:active {
+    outline-color: rgba(217, 119, 6, 0.9);
+  }
+
+  @keyframes cvp-section-breathe {
+    0%, 100% { outline-color: rgba(217, 119, 6, 0.2); }
+    50% { outline-color: rgba(217, 119, 6, 0.6); }
+  }
+
+  .cvp-preview-interactive [data-section] {
+    animation: cvp-section-breathe 2s ease-in-out infinite;
+  }
+}
+
+@media print {
+  [data-section] {
+    outline: none !important;
+    cursor: default !important;
+    animation: none !important;
+  }
+}

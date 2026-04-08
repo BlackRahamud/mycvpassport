@@ -2695,6 +2695,18 @@ function ResumeBuilder({
     }, 300);
   }, []);
 
+  const handleContextualEdit = useCallback(
+    (sectionName) => {
+      const validSections = ["summary", "experience", "education", "competencies", "languages"];
+      if (validSections.includes(sectionName)) {
+        setOpenSection(sectionName);
+      }
+      setGuidedCoachRequestKey((prev) => prev + 1);
+      closePreview();
+    },
+    [closePreview]
+  );
+
   const handleOpenCoverLetter = () => {
     if (!isPro) {
       setUpgradeOpen(true);
@@ -4286,6 +4298,7 @@ function ResumeBuilder({
                 scale={mobilePreviewScale}
                 fitRef={mobilePreviewFitRef}
                 padded={false}
+                onSectionClick={handleContextualEdit}
               />
             </div>
           </div>

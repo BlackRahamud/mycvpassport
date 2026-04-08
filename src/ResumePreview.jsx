@@ -37,10 +37,17 @@ export function ResumePreview({ cv, template, mobileMode = false }) {
 export const A4_PREVIEW_WIDTH_PX = 794;
 export const A4_PREVIEW_HEIGHT_PX = 1123;
 
-export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef }) {
+export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionClick }) {
+  const handleClick = (e) => {
+    const section = e.target.closest("[data-section]");
+    if (section && onSectionClick) {
+      onSectionClick(section.getAttribute("data-section"));
+    }
+  };
   return (
     <div
       ref={fitRef}
+      onClick={onSectionClick ? handleClick : undefined}
       style={{
         width: "100%",
         overflow: "hidden",
