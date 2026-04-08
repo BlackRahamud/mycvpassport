@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
  * GuidedFlow — chat-style CV onboarding coach, lives inside FABSheet.
  *
  * Controlled props (all optional — internal sample data runs by default):
- *   messages           Array<{ id, role:'assistant'|'user', text, ctaBtn?, ctaStyle?:'white'|'outline', ctaId?, score?, complete? }>
+ *   messages           Array<{ id, role:'assistant'|'user', text, ctaBtn?, ctaStyle?:'white'|'outline', ctaId?, score?, complete?, type?, options?, summaryOptions? }>
  *   progressPercent    0–100
  *   inputValue         string (controlled)
  *   onInputChange      (e) => void
@@ -12,6 +12,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
  *   onSkip             () => void
  *   onExit             () => void
  *   onCtaClick         (ctaId: string) => void
+ *   onSelectSummary    (text: string) => void
+ *   onSkipSummary      () => void
+ *   onSelectBullet     (text: string) => void  — called when user picks a bullet_options tone card
  *   showInput          boolean
  *   inputPlaceholder   string
  *   isTyping           boolean
@@ -105,10 +108,68 @@ function AtsRing({ score }) {
   );
 }
 
-function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary }) {
+/**
+ * BulletOptionsCards — renders 3 tone cards for the experience[0].bullets step.
+ * Each card has an amber tone label and white body text.
+ * Tapping a card calls onSelectBullet(text).
+ */
+function BulletOptionsCards({ options, onSelectBullet }) {
+  if (!Array.isArray(options) || options.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12, width: "100%" }}>
+      {options.map((opt, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onSelectBullet?.(opt.text)}
+          style={{
+            display: "block",
+            width: "100%",
+            background: "#141414",
+            border: "1px solid #2A2A2A",
+            borderRadius: 12,
+            padding: 12,
+            cursor: "pointer",
+            textAlign: "left",
+            fontFamily: "inherit",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#D97706",
+              marginBottom: 6,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {opt.tone}
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: "#FFFFFF",
+              lineHeight: 1.5,
+              wordBreak: "break-word",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {opt.text}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, onSelectBullet }) {
   const hasCta = Boolean(message.ctaBtn);
   const hasSummaryOptions = Array.isArray(message.summaryOptions) && message.summaryOptions.length > 0;
-  const wideContent = hasCta || hasSummaryOptions;
+  const hasBulletOptions = message.type === "bullet_options" && Array.isArray(message.options) && message.options.length > 0;
+  const wideContent = hasCta || hasSummaryOptions || hasBulletOptions;
+
   return (
     <div style={{
       display: "flex", justifyContent: "flex-start",
@@ -142,6 +203,15 @@ function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary }
 
         {message.text}
 
+        {/* ── bullet_options: 3 tone cards ── */}
+        {hasBulletOptions && (
+          <BulletOptionsCards
+            options={message.options}
+            onSelectBullet={onSelectBullet}
+          />
+        )}
+
+        {/* ── summary options ── */}
         {hasSummaryOptions && (
           <>
             {message.summaryOptions.map((text, i) => (
@@ -186,6 +256,7 @@ function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary }
           </>
         )}
 
+        {/* ── regular CTA button ── */}
         {hasCta && (
           <button
             type="button"
@@ -270,6 +341,7 @@ export default function GuidedFlow({
   onCtaClick,
   onSelectSummary,
   onSkipSummary,
+  onSelectBullet,
   showInput:        showInputProp,
   inputPlaceholder: placeholderProp,
   isTyping:         isTypingProp,
@@ -407,7 +479,7 @@ export default function GuidedFlow({
         >
           {messages.map((msg) =>
             msg.role === "user"
-              ? <UserBubble   key={msg.id} text={msg.text} />
+              ? <UserBubble key={msg.id} text={msg.text} />
               : (
                 <AssistantBubble
                   key={msg.id}
@@ -415,6 +487,7 @@ export default function GuidedFlow({
                   onCtaClick={handleCtaClick}
                   onSelectSummary={useSampleData ? undefined : onSelectSummary}
                   onSkipSummary={useSampleData ? undefined : onSkipSummary}
+                  onSelectBullet={useSampleData ? undefined : onSelectBullet}
                 />
               )
           )}

@@ -91,6 +91,18 @@ export const reframeAchievement = (str) =>
     .replace(/^(I )?worked on /i, "Delivered ")
     .trim();
 
+/** Guided coach bullet tone cards — prefix polished achievement line with tone label. */
+const toneLine = (str, label) => {
+  const raw = String(str || "").trim();
+  if (!raw) return raw;
+  const line = reframeAchievement(raw).replace(/\.$/, "");
+  return `${label}: ${line}.`;
+};
+
+export const reframeArchitect = (str) => toneLine(str, "Systems & scale");
+export const reframeRainmaker = (str) => toneLine(str, "Commercial impact");
+export const reframeArtisan = (str) => toneLine(str, "Craft & excellence");
+
 export const normalizeAllCaps = (str) =>
   str === str.toUpperCase() && str.length > 3
     ? str.toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase())

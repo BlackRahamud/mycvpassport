@@ -20,6 +20,9 @@ import {
   parseDateRange,
   parseAchievements,
   reframeAchievement,
+  reframeArchitect,
+  reframeRainmaker,
+  reframeArtisan,
 } from "../../data/fabParse";
 // eslint-disable-next-line no-unused-vars -- QUESTION_EXAMPLES: fabTone public API (examples live in getToneReply)
 import { detectTone, getToneReply, QUESTION_EXAMPLES } from "../../data/fabTone";
@@ -660,7 +663,7 @@ export default function FABSheet({
   guidedCoachRequestKey = 0,
   /** Builder: trigger PDF download from guided flow */
   onGuidedDownload,
-  /** Builder: match “ATS tab” / ATS checker (typically navigates to /ats) */
+  /** Builder: match "ATS tab" / ATS checker (typically navigates to /ats) */
   onGuidedSwitchToAtsTab,
   /** Builder: open CV preview from guided flow */
   onGuidedOpenPreview = null,
@@ -1105,22 +1108,25 @@ export default function FABSheet({
       return;
     }
 
-    if (
-      q.field === "experience[0].bullets" &&
-      !alreadyNudged &&
-      (isTooShort(trimmed, 10) || hasNoMetrics(trimmed))
-    ) {
-      nudgedStepsRef.current.add(guidedStepRef.current);
+    // ── experience[0].bullets: show 3 tone cards instead of writing immediately ──
+    if (q.field === "experience[0].bullets") {
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
         {
           id: nextGuidedMessageId(),
           role: "assistant",
-          text: "This is the most powerful section! Try adding a number — e.g. 'Increased sales by 20%' or 'Managed a team of 5'. What's one result you're proud of?",
+          type: "bullet_options",
+          text: "Pick the version that sounds most like you:",
+          options: [
+            { tone: "Architect", text: reframeArchitect(trimmed) },
+            { tone: "Rainmaker", text: reframeRainmaker(trimmed) },
+            { tone: "Artisan", text: reframeArtisan(trimmed) },
+          ],
         },
       ]);
       setGuidedInput("");
+      // Do NOT advance step or call setResume — handled by handleSelectBullet
       return;
     }
 
@@ -1179,11 +1185,6 @@ export default function FABSheet({
         setGuidedTyping(false);
       }, 800);
       return;
-    }
-
-    if (q.field === "experience[0].bullets") {
-      const bullets = parseAchievements(trimmed);
-      processed = bullets.map(reframeAchievement).join("\n");
     }
 
     if (q.field === "skills") {
@@ -1290,6 +1291,48 @@ export default function FABSheet({
     }, 800);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- guidedStep reads use guidedStepRef; resume omitted from deps intentionally
   }, [guidedInput, setResume, guidedPostSummaryStageSyncRef]);
+
+  /**
+   * handleSelectBullet — called from GuidedFlow when user taps one of the 3 tone cards.
+   * Applies the chosen bullet to the resume, pushes a confirmation message, and advances the step.
+   */
+  const handleSelectBullet = useCallback(
+    (bulletText) => {
+      if (typeof setResume !== "function") return;
+
+      // Write to resume
+      setResume((prev) => applyGuidedFieldToResume(prev, "experience[0].bullets", bulletText));
+
+      // Confirmation + next question
+      const nextStep = guidedStepRef.current + 1;
+      setGuidedMessages((prev) => [
+        ...prev,
+        {
+          id: nextGuidedMessageId(),
+          role: "assistant",
+          text: "Good choice. Let's keep going.",
+        },
+      ]);
+
+      setGuidedStep(nextStep);
+      guidedStepRef.current = nextStep;
+      setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+
+      if (nextStep < QUESTIONS.length) {
+        window.setTimeout(() => {
+          setGuidedMessages((prev) => [
+            ...prev,
+            {
+              id: nextGuidedMessageId(),
+              role: "assistant",
+              text: QUESTIONS[nextStep].text,
+            },
+          ]);
+        }, 600);
+      }
+    },
+    [setResume]
+  );
 
   const handleSelectSummary = useCallback(
     (text) => {
@@ -2344,6 +2387,7 @@ export default function FABSheet({
                 onCtaClick={handleGuidedCtaClick}
                 onSelectSummary={handleSelectSummary}
                 onSkipSummary={handleSkipSummary}
+                onSelectBullet={handleSelectBullet}
                 showInput={guidedShowInput}
                 inputPlaceholder="Type your answer…"
                 isTyping={guidedTyping}
