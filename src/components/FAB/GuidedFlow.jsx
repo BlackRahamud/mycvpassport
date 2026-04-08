@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
  *   onSelectSummary    (text: string) => void
  *   onSkipSummary      () => void
  *   onSelectBullet     (text: string) => void  — called when user picks a bullet_options tone card
+ *   onNudgeSelect      (value: string) => void — called when user taps a nudge_buttons chip
  *   showInput          boolean
  *   inputPlaceholder   string
  *   isTyping           boolean
@@ -35,6 +36,22 @@ const T = {
   green:   "#22C55E",
   red:     "#EF4444",
 };
+
+/* ─── Ghost typing utility ──────────────────────────────────────────── */
+
+function ghostType(fullText, onChar, onDone, delayMs = 28) {
+  let i = 0;
+  function step() {
+    if (i <= fullText.length) {
+      onChar(fullText.slice(0, i));
+      i++;
+      setTimeout(step, delayMs);
+    } else {
+      if (onDone) onDone();
+    }
+  }
+  step();
+}
 
 /* ─── Sample conversation (Stage 1 + Stage 2) ──────────────────────── */
 
@@ -109,66 +126,163 @@ function AtsRing({ score }) {
 }
 
 /**
+ * AmberTypingDots — 3 pulsing amber dots shown while ghost-typing is active.
+ */
+function AmberTypingDots() {
+  return (
+    <>
+      <style>{`
+        @keyframes gfAmberDot {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 1; }
+        }
+      `}</style>
+      <div style={{ display: "inline-flex", gap: 4, alignItems: "center", padding: "4px 0" }}>
+        {[0, 150, 300].map((delay, i) => (
+          <span
+            key={i}
+            style={{
+              display: "block",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "#D97706",
+              animation: `gfAmberDot 900ms ease-in-out infinite`,
+              animationDelay: `${delay}ms`,
+            }}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+/**
  * BulletOptionsCards — renders 3 tone cards for the experience[0].bullets step.
- * Each card has an amber tone label and white body text.
- * Tapping a card calls onSelectBullet(text).
+ * Tapping a card ghost-types the text, then calls onSelectBullet(text).
  */
 function BulletOptionsCards({ options, onSelectBullet }) {
+  const [typing, setTyping] = useState(null);
+
   if (!Array.isArray(options) || options.length === 0) return null;
+
+  const isAnyTyping = typing !== null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12, width: "100%" }}>
+      {options.map((opt, i) => {
+        const isThisTyping = typing === opt.tone;
+        return (
+          <button
+            key={i}
+            type="button"
+            disabled={isAnyTyping}
+            onClick={() => {
+              if (isAnyTyping) return;
+              setTyping(opt.tone);
+              ghostType(
+                opt.text,
+                () => {},
+                () => {
+                  onSelectBullet?.(opt.text);
+                  setTyping(null);
+                },
+                28
+              );
+            }}
+            style={{
+              display: "block",
+              width: "100%",
+              background: "#141414",
+              border: "1px solid #2A2A2A",
+              borderRadius: 12,
+              padding: 12,
+              cursor: isAnyTyping ? "not-allowed" : "pointer",
+              textAlign: "left",
+              fontFamily: "inherit",
+              WebkitTapHighlightColor: "transparent",
+              opacity: isAnyTyping && !isThisTyping ? 0.5 : 1,
+              transition: "opacity 200ms ease",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#D97706",
+                marginBottom: 6,
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {opt.tone}
+            </div>
+            {isThisTyping ? (
+              <AmberTypingDots />
+            ) : (
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#FFFFFF",
+                  lineHeight: 1.5,
+                  wordBreak: "break-word",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {opt.text}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * NudgeButtonsGroup — renders tap chips for message type === "nudge_buttons".
+ */
+function NudgeButtonsGroup({ options, onNudgeSelect }) {
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+
+  if (!Array.isArray(options) || options.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
       {options.map((opt, i) => (
         <button
           key={i}
           type="button"
-          onClick={() => onSelectBullet?.(opt.text)}
+          onClick={() => onNudgeSelect?.(opt.value)}
+          onMouseEnter={() => setHoveredIdx(i)}
+          onMouseLeave={() => setHoveredIdx(null)}
           style={{
-            display: "block",
-            width: "100%",
-            background: "#141414",
-            border: "1px solid #2A2A2A",
-            borderRadius: 12,
-            padding: 12,
+            background: "#1C1C1C",
+            border: `1px solid ${hoveredIdx === i ? "#D97706" : "#2A2A2A"}`,
+            borderRadius: 20,
+            padding: "8px 16px",
+            color: "#FFFFFF",
+            fontSize: 13,
             cursor: "pointer",
-            textAlign: "left",
             fontFamily: "inherit",
+            lineHeight: 1.3,
+            transition: "border-color 150ms ease",
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: "#D97706",
-              marginBottom: 6,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-            }}
-          >
-            {opt.tone}
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: "#FFFFFF",
-              lineHeight: 1.5,
-              wordBreak: "break-word",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {opt.text}
-          </div>
+          {opt.label ?? opt.value}
         </button>
       ))}
     </div>
   );
 }
 
-function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, onSelectBullet }) {
+function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, onSelectBullet, onNudgeSelect }) {
   const hasCta = Boolean(message.ctaBtn);
   const hasSummaryOptions = Array.isArray(message.summaryOptions) && message.summaryOptions.length > 0;
   const hasBulletOptions = message.type === "bullet_options" && Array.isArray(message.options) && message.options.length > 0;
-  const wideContent = hasCta || hasSummaryOptions || hasBulletOptions;
+  const hasNudgeButtons = message.type === "nudge_buttons" && Array.isArray(message.options) && message.options.length > 0;
+  const wideContent = hasCta || hasSummaryOptions || hasBulletOptions || hasNudgeButtons;
 
   return (
     <div style={{
@@ -203,11 +317,19 @@ function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, 
 
         {message.text}
 
-        {/* ── bullet_options: 3 tone cards ── */}
+        {/* ── bullet_options: 3 tone cards with ghost typing ── */}
         {hasBulletOptions && (
           <BulletOptionsCards
             options={message.options}
             onSelectBullet={onSelectBullet}
+          />
+        )}
+
+        {/* ── nudge_buttons: tap chips ── */}
+        {hasNudgeButtons && (
+          <NudgeButtonsGroup
+            options={message.options}
+            onNudgeSelect={onNudgeSelect}
           />
         )}
 
@@ -342,6 +464,7 @@ export default function GuidedFlow({
   onSelectSummary,
   onSkipSummary,
   onSelectBullet,
+  onNudgeSelect,
   showInput:        showInputProp,
   inputPlaceholder: placeholderProp,
   isTyping:         isTypingProp,
@@ -488,6 +611,7 @@ export default function GuidedFlow({
                   onSelectSummary={useSampleData ? undefined : onSelectSummary}
                   onSkipSummary={useSampleData ? undefined : onSkipSummary}
                   onSelectBullet={useSampleData ? undefined : onSelectBullet}
+                  onNudgeSelect={useSampleData ? undefined : onNudgeSelect}
                 />
               )
           )}

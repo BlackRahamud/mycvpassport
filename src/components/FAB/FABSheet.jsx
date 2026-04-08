@@ -885,8 +885,11 @@ export default function FABSheet({
     el.style.height = `${Math.min(el.scrollHeight, 88)}px`;
   }, []);
 
-  const handleGuidedSend = useCallback(() => {
-    const trimmed = guidedInput.trim();
+  const handleGuidedSend = useCallback((textFromNudge) => {
+    const trimmed =
+      textFromNudge !== undefined && textFromNudge !== null
+        ? String(textFromNudge).trim()
+        : guidedInput.trim();
     if (!trimmed || typeof setResume !== "function") return;
 
     if (isNonsense(trimmed)) {
@@ -1328,6 +1331,16 @@ export default function FABSheet({
       }
     },
     [setResume]
+  );
+
+  const handleNudgeSelect = useCallback(
+    (value) => {
+      setGuidedInput(value);
+      window.setTimeout(() => {
+        handleGuidedSend(value);
+      }, 100);
+    },
+    [handleGuidedSend]
   );
 
   const handleSelectSummary = useCallback(
@@ -2384,6 +2397,7 @@ export default function FABSheet({
                 onSelectSummary={handleSelectSummary}
                 onSkipSummary={handleSkipSummary}
                 onSelectBullet={handleSelectBullet}
+                onNudgeSelect={handleNudgeSelect}
                 showInput={guidedShowInput}
                 inputPlaceholder="Type your answer…"
                 isTyping={guidedTyping}
