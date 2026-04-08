@@ -2701,6 +2701,7 @@ function ResumeBuilder({
       if (validSections.includes(sectionName)) {
         setOpenSection(sectionName);
       }
+      setBuilderTab("content");
       setGuidedCoachRequestKey((prev) => prev + 1);
       closePreview();
     },
