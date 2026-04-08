@@ -38,17 +38,19 @@ export function ResumePreview({ cv, template, mobileMode = false }) {
 export const A4_PREVIEW_WIDTH_PX = 794;
 export const A4_PREVIEW_HEIGHT_PX = 1123;
 
-export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionClick }) {
+export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionHold, pendingSection }) {
   const longPressTimer = useRef(null);
   const touchMoved = useRef(false);
+  const touchStartPos = useRef({ x: 0, y: 0 });
 
   const handleTouchStart = (e) => {
     touchMoved.current = false;
+    touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     const target = e.target.closest("[data-section]");
-    if (!target || !onSectionClick) return;
+    if (!target || !onSectionHold) return;
     longPressTimer.current = setTimeout(() => {
       if (!touchMoved.current) {
-        onSectionClick(target.getAttribute("data-section"));
+        onSectionHold(target.getAttribute("data-section"));
       }
     }, 500);
   };
@@ -71,9 +73,10 @@ export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, pr
   return (
     <div
       ref={fitRef}
-      onTouchStart={onSectionClick ? handleTouchStart : undefined}
-      onTouchMove={onSectionClick ? handleTouchMove : undefined}
-      onTouchEnd={onSectionClick ? handleTouchEnd : undefined}
+      data-pending-section={pendingSection || ""}
+      onTouchStart={onSectionHold ? handleTouchStart : undefined}
+      onTouchMove={onSectionHold ? handleTouchMove : undefined}
+      onTouchEnd={onSectionHold ? handleTouchEnd : undefined}
       style={{
         width: "100%",
         overflow: "hidden",

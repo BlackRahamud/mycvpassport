@@ -2174,6 +2174,7 @@ function ResumeBuilder({
   const [templatePickPending, setTemplatePickPending] = useState(null);
   const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
+  const [pendingSection, setPendingSection] = useState(null);
   const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
   const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
   const [cvJourney, setCvJourney] = useState({ templateChosen: false, atsChecked: false, coverLetterSeen: false });
@@ -2688,6 +2689,7 @@ function ResumeBuilder({
   }, [openAtsChecker]);
 
   const closePreview = useCallback(() => {
+    setPendingSection(null);
     setPreviewFadeOut(true);
     setTimeout(() => {
       setFabSheet(null);
@@ -2711,6 +2713,29 @@ function ResumeBuilder({
     },
     [closePreview]
   );
+
+  const sectionLabels = {
+    summary: "Summary",
+    experience: "Work History",
+    education: "Education",
+    competencies: "Skills",
+    languages: "Languages",
+  };
+
+  const handleSectionHold = useCallback((sectionName) => {
+    setPendingSection(sectionName);
+  }, []);
+
+  const handleConfirmEdit = useCallback(() => {
+    if (!pendingSection) return;
+    const section = pendingSection;
+    setPendingSection(null);
+    handleContextualEdit(section);
+  }, [pendingSection, handleContextualEdit]);
+
+  const handleCancelEdit = useCallback(() => {
+    setPendingSection(null);
+  }, []);
 
   const handleOpenCoverLetter = () => {
     if (!isPro) {
@@ -4305,9 +4330,95 @@ function ResumeBuilder({
                 scale={mobilePreviewScale}
                 fitRef={mobilePreviewFitRef}
                 padded={false}
-                onSectionClick={handleContextualEdit}
+                onSectionHold={handleSectionHold}
+                pendingSection={pendingSection}
               />
             </div>
+            {pendingSection ? (
+              <div
+                style={{
+                  position: "fixed",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 102,
+                  padding: "16px",
+                  paddingBottom: "32px",
+                  background: "linear-gradient(to top, #111111 60%, transparent)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#1C1C1C",
+                    border: "1px solid #2A2A2A",
+                    borderRadius: "16px",
+                    padding: "16px 20px",
+                    width: "100%",
+                    maxWidth: "320px",
+                    textAlign: "center",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "#A0A0A0",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    ✦ {sectionLabels[pendingSection] || pendingSection}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "15px",
+                      color: "#FFFFFF",
+                      fontWeight: "500",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    Edit this section?
+                  </p>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: "12px",
+                        border: "1px solid #2A2A2A",
+                        background: "transparent",
+                        color: "#A0A0A0",
+                        fontSize: "14px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      No
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmEdit}
+                      style={{
+                        flex: 1,
+                        padding: "10px",
+                        borderRadius: "12px",
+                        border: "none",
+                        background: "#D97706",
+                        color: "#000000",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Yes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

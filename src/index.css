@@ -1360,6 +1360,20 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   .cvp-preview-interactive [data-section] {
     animation: cvp-section-breathe 2s ease-in-out infinite;
   }
+
+  [data-pending-section] [data-section] {
+    outline: 2px solid transparent;
+  }
+
+  [data-pending-section="summary"] [data-section="summary"],
+  [data-pending-section="experience"] [data-section="experience"],
+  [data-pending-section="education"] [data-section="education"],
+  [data-pending-section="competencies"] [data-section="competencies"],
+  [data-pending-section="languages"] [data-section="languages"] {
+    outline: 2px solid rgba(217, 119, 6, 0.9);
+    background: rgba(217, 119, 6, 0.08);
+    border-radius: 4px;
+  }
 }
 
 @media print {
