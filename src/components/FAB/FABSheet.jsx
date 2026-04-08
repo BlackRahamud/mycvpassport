@@ -9,8 +9,6 @@ import {
   isVagueTitle,
   isCommaMissing,
   isAllSoftSkills,
-  hasNoMetrics,
-  isTooShort,
   isExperienceDump,
   isNonsense,
 } from "../../data/fabDetect";
@@ -18,8 +16,6 @@ import {
   normalizeAllCaps,
   parseSkillsString,
   parseDateRange,
-  parseAchievements,
-  reframeAchievement,
   reframeArchitect,
   reframeRainmaker,
   reframeArtisan,
