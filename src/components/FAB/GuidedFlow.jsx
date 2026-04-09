@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { validateAnswer, getHintForQuestion, getMaxRetriesForField } from "./FABLogic";
 
 /**
  * GuidedFlow — chat-style CV onboarding coach, lives inside FABSheet.
@@ -469,16 +470,26 @@ export default function GuidedFlow({
   inputPlaceholder: placeholderProp,
   isTyping:         isTypingProp,
   useSampleData = true,
+  /** When set (0–10), legacy index for sample/demo flows. */
+  currentQuestionIndex,
+  /** Guided coach field id (e.g. name, title) — `validateAnswer` uses this with FABLogic. */
+  currentFieldId,
 }) {
   const [sampleMsgs,     setSampleMsgs]     = useState(SAMPLE_MESSAGES);
   const [sampleProgress, setSampleProgress] = useState(35);
   const [internalInput,  setInternalInput]  = useState("");
   const [internalTyping, setInternalTyping] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [validationExtraMessages, setValidationExtraMessages] = useState([]);
   const followUpIdx = useRef(0);
 
   const messages = useMemo(
     () => (!useSampleData ? (messagesProp ?? []) : sampleMsgs),
     [useSampleData, messagesProp, sampleMsgs]
+  );
+  const mergedMessages = useMemo(
+    () => [...messages, ...validationExtraMessages],
+    [messages, validationExtraMessages]
   );
   const progressPercent  = !useSampleData ? (progressProp   ?? 0)     : sampleProgress;
   const inputValue       = !useSampleData ? (inputValueProp ?? "")    : internalInput;
@@ -491,7 +502,7 @@ export default function GuidedFlow({
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, isTyping]);
+  }, [mergedMessages, isTyping]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -517,6 +528,75 @@ export default function GuidedFlow({
     }, 900 + Math.random() * 300);
   };
 
+  const clearControlledInput = () => {
+    onInputChange?.({ target: { value: "" } });
+  };
+
+  const appendValidationPair = (userText, assistantText) => {
+    const t = Date.now();
+    setValidationExtraMessages((prev) => [
+      ...prev,
+      { id: `gf-v-u-${t}`, role: "user", text: userText },
+      { id: `gf-v-a-${t}`, role: "assistant", text: assistantText },
+    ]);
+  };
+
+  const handleSendAnswer = () => {
+    if (useSampleData) {
+      handleInternalSend();
+      return;
+    }
+    const val = inputValue.trim();
+    if (!val) return;
+
+    const fieldId = typeof currentFieldId === "string" && currentFieldId.trim() ? currentFieldId.trim() : null;
+    if (!fieldId) {
+      setRetryCount(0);
+      onSend?.();
+      return;
+    }
+
+    const result = validateAnswer(fieldId, val);
+    const maxR = getMaxRetriesForField(fieldId);
+
+    if (!result.valid) {
+      const probeText = result.message ?? "";
+      if (retryCount < maxR) {
+        appendValidationPair(val, probeText);
+        setRetryCount((c) => c + 1);
+        clearControlledInput();
+        return;
+      }
+      appendValidationPair(val, getHintForQuestion(fieldId));
+      setRetryCount(0);
+      clearControlledInput();
+      return;
+    }
+
+    setRetryCount(0);
+
+    const afterSendExtras = () => {
+      if (result.nudge) {
+        setTimeout(() => {
+          setValidationExtraMessages((prev) => [
+            ...prev,
+            { id: `gf-v-nudge-${Date.now()}`, role: "assistant", text: result.nudge },
+          ]);
+        }, 400);
+      } else if (result.hookMessage) {
+        setTimeout(() => {
+          setValidationExtraMessages((prev) => [
+            ...prev,
+            { id: `gf-v-hook-${Date.now()}`, role: "assistant", text: result.hookMessage },
+          ]);
+        }, 400);
+      }
+    };
+
+    onSend?.();
+    afterSendExtras();
+  };
+
   const handleInputChange = (e) => {
     if (useSampleData) {
       setInternalInput(e.target.value);
@@ -530,7 +610,7 @@ export default function GuidedFlow({
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      useSampleData ? handleInternalSend() : onSend?.();
+      handleSendAnswer();
     }
   };
 
@@ -600,7 +680,7 @@ export default function GuidedFlow({
             scrollbarWidth: "none", msOverflowStyle: "none",
           }}
         >
-          {messages.map((msg) =>
+          {mergedMessages.map((msg) =>
             msg.role === "user"
               ? <UserBubble key={msg.id} text={msg.text} />
               : (
@@ -664,7 +744,7 @@ export default function GuidedFlow({
               </div>
               <button
                 type="button"
-                onClick={useSampleData ? handleInternalSend : onSend}
+                onClick={handleSendAnswer}
                 disabled={sendDisabled}
                 aria-label="Send"
                 style={{

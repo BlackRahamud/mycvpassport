@@ -1,0 +1,76 @@
+name: CVPassport FAB Auditor
+
+on:
+  # Run every Monday at 9 AM UAE time (UTC+4 = 5 AM UTC)
+  schedule:
+    - cron: '0 5 * * 1'
+
+  # Run on demand — "Run Workflow" button in GitHub UI
+  workflow_dispatch:
+
+  # Run on every push to main (catches deploy regressions)
+  push:
+    branches: [main]
+
+jobs:
+  audit:
+    name: Run FAB Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run FAB Auditor
+        env:
+          BASE_URL: https://mycvpassport.com
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          HEADLESS: 'true'
+        run: npx playwright test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fab-audit-results-${{ github.run_number }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 30
+
+      - name: Upload trace files on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traces-${{ github.run_number }}
+          path: test-results/**/*.zip
+          retention-days: 7
+
+      # Optional: Send email/Slack on failure
+      # Uncomment and configure if you want notifications
+      # - name: Notify on failure
+      #   if: failure()
+      #   uses: dawidd6/action-send-mail@v3
+      #   with:
+      #     server_address: smtp.gmail.com
+      #     server_port: 587
+      #     username: ${{ secrets.MAIL_USERNAME }}
+      #     password: ${{ secrets.MAIL_PASSWORD }}
+      #     subject: "🔴 CVPassport FAB Audit FAILED — Run #${{ github.run_number }}"
+      #     to: jkhan2523@gmail.com
+      #     from: CVPassport Auditor
+      #     body: "The FAB audit failed. Check the full report at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

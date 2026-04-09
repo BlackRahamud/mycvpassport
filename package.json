@@ -33,7 +33,13 @@
     "lint": "eslint src --ext .js,.jsx",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:audit": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:new-user": "npx playwright test tests/new-user.spec.ts",
+    "test:frequent-user": "npx playwright test tests/frequent-user.spec.ts",
+    "test:fab": "npx playwright test tests/fab-guided-flow.spec.ts",
+    "test:edge": "npx playwright test tests/fab-edge-cases.spec.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -75,6 +81,8 @@
     "waitFor": 2000
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "dotenv": "^17.4.1",
     "husky": "^9.1.7"
   }
 }

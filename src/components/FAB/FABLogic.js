@@ -1,4 +1,15 @@
 import { supabase } from "../../supabaseClient";
+import {
+  isGarbage,
+  isPhoneNumber,
+  isValidName,
+  GCC_CITIES,
+  INDIA_CITIES,
+  EDUCATION_KEYWORDS,
+  LANGUAGE_LIST,
+  ACTION_VERBS,
+  FAB_VALIDATION,
+} from "./FABValidationData";
 
 export const FAB_MEMORY_KEY = "cvp_fab_memory";
 export const ANON_DOWNLOADS_KEY = "cvp_anon_downloads";
@@ -479,4 +490,178 @@ export function shouldShowAtsFabAttention(builderTab, atsScore) {
 
 export function shouldShowFabDot(tabKey, extraDot = false) {
   return extraDot || !readFabSeen(tabKey);
+}
+
+/** Maps guided coach field ids (FABSheet QUESTIONS[].id) → FAB_VALIDATION row index; -1 = no validation */
+export const GUIDED_FIELD_TO_VALIDATION_INDEX = {
+  name: 0,
+  title: 1,
+  email: -1,
+  phone: -1,
+  location: 2,
+  exp_company: 6,
+  exp_role: 1,
+  exp_dates: -1,
+  exp_bullets: 7,
+  skills: 5,
+  summary: 10,
+};
+
+export function validateAnswer(fieldId, answer) {
+  const questionIndex = GUIDED_FIELD_TO_VALIDATION_INDEX[fieldId] ?? -1;
+  if (questionIndex === -1) return { valid: true };
+
+  const text = answer.trim();
+  const lower = text.toLowerCase();
+  const config = FAB_VALIDATION[questionIndex];
+  if (!config) return { valid: true };
+
+  // Global garbage check
+  if (isGarbage(text)) {
+    return {
+      valid: false,
+      type: 'STERN',
+      message: "I can't build a professional CV with that. Let's try again — even a rough answer works."
+    };
+  }
+
+  // Q1 — Full Name
+  if (questionIndex === 0) {
+    if (isPhoneNumber(text)) {
+      return { valid: false, type: 'PROBE', message: config.phoneProbe };
+    }
+    const nameResult = isValidName(text);
+    if (!nameResult.valid) {
+      if (nameResult.reason === 'INITIALS_ONLY') {
+        return { valid: false, type: 'PROBE', message: config.initialsProbe };
+      }
+      return { valid: false, type: 'PROBE', message: config.probe };
+    }
+    return { valid: true };
+  }
+
+  // Q2 — Job Title
+  if (questionIndex === 1) {
+    if (text.length < 3) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectWords = ['job', 'work', 'worker', 'employee', 'staff', 'nothing', 'none'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    return { valid: true };
+  }
+
+  // Q3 — Location
+  if (questionIndex === 2) {
+    if (text.length < 2) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectWords = ['earth', 'home', 'here', 'there', 'anywhere', 'somewhere', 'everywhere'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    const isGCC = GCC_CITIES.some(c => lower.includes(c));
+    const isIndia = INDIA_CITIES.some(c => lower.includes(c));
+    if (isGCC || isIndia) {
+      return { valid: true, hook: 'GCC_RECOGNITION', hookMessage: config.gccHook };
+    }
+    return { valid: true };
+  }
+
+  // Q4 — Industry
+  if (questionIndex === 3) {
+    if (text.length < 3) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectWords = ['anything', 'everything', 'idk', 'any', 'all', 'various', 'other'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    return { valid: true };
+  }
+
+  // Q5 — Experience
+  if (questionIndex === 4) {
+    const hasNumber = /\d/.test(text);
+    const hasFresher = /fresher|fresh\s*grad|entry\s*level|junior|senior|mid|intern|trainee/i.test(text);
+    if (!hasNumber && !hasFresher) {
+      return { valid: false, type: 'PROBE', message: config.probe };
+    }
+    // Reject obviously fake numbers
+    if (/^0$|^99$|^100$/.test(text.trim())) {
+      return { valid: false, type: 'PROBE', message: config.probe };
+    }
+    return { valid: true };
+  }
+
+  // Q6 — Skills
+  if (questionIndex === 5) {
+    const rejectWords = ['everything', 'all', 'skills', 'i am good', 'good', 'nothing'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    const skills = text.split(/[,/\n+]/).filter(s => s.trim().length > 1);
+    if (skills.length < 2 && text.split(/\s+/).length < 2) {
+      return { valid: false, type: 'PROBE', message: config.probe };
+    }
+    return { valid: true };
+  }
+
+  // Q7 — Company
+  if (questionIndex === 6) {
+    if (text.length < 2) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectWords = ['company', 'place', 'secret', 'somewhere', 'employer', 'office', 'work'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    return { valid: true };
+  }
+
+  // Q8 — Achievement
+  if (questionIndex === 7) {
+    if (text.length < 10) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectPhrases = ['worked hard', 'i did my best', 'good job', 'i worked', 'nothing'];
+    if (rejectPhrases.some(p => lower.includes(p))) {
+      return { valid: false, type: 'PROBE', message: config.probe };
+    }
+    const hasVerb = ACTION_VERBS.some(v => lower.includes(v));
+    if (!hasVerb) return { valid: false, type: 'PROBE', message: config.probe };
+    // Valid but no metric — fire nudge
+    const hasMetric = /\d+|%|percent|aed|sar|inr|usd/i.test(text);
+    if (!hasMetric) {
+      return { valid: true, nudge: config.metricNudge };
+    }
+    return { valid: true };
+  }
+
+  // Q9 — Education
+  if (questionIndex === 8) {
+    if (text.length < 2) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectWords = ['done', 'yes', 'school', 'studied', 'education', 'degree', 'college', 'high'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    const hasEduKeyword = EDUCATION_KEYWORDS.some(k => lower.includes(k));
+    if (!hasEduKeyword && text.length < 5) {
+      return { valid: false, type: 'PROBE', message: config.probe };
+    }
+    return { valid: true };
+  }
+
+  // Q10 — Languages
+  if (questionIndex === 9) {
+    if (text.length < 3) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectWords = ['i talk', 'speak', 'language', 'yes', 'none', 'all', 'no'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    const hasLanguage = LANGUAGE_LIST.some(l => lower.includes(l));
+    if (!hasLanguage && text.length < 4) {
+      return { valid: false, type: 'PROBE', message: config.probe };
+    }
+    return { valid: true };
+  }
+
+  // Q11 — Career Goal
+  if (questionIndex === 10) {
+    if (text.length < 8) return { valid: false, type: 'PROBE', message: config.probe };
+    const rejectWords = ['money', 'get a job', 'job', 'anything', 'idk', 'not sure', 'whatever', 'rich'];
+    if (rejectWords.includes(lower)) return { valid: false, type: 'PROBE', message: config.probe };
+    return { valid: true };
+  }
+
+  return { valid: true };
+}
+
+export function getHintForQuestion(fieldId) {
+  const questionIndex = GUIDED_FIELD_TO_VALIDATION_INDEX[fieldId] ?? -1;
+  if (questionIndex === -1) return '';
+  return FAB_VALIDATION[questionIndex]?.hint || '';
+}
+
+export function getMaxRetriesForField(fieldId) {
+  const questionIndex = GUIDED_FIELD_TO_VALIDATION_INDEX[fieldId] ?? -1;
+  if (questionIndex === -1) return 2;
+  return FAB_VALIDATION[questionIndex]?.maxRetries ?? 2;
 }

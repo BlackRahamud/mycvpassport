@@ -35,6 +35,7 @@ import {
   shouldShowCoverLetterCrossSell,
   getCvpPricingCurrencyCode,
 } from "./FABLogic";
+import { cleanAnswer, detectMultiAnswer } from "./FABValidationData";
 
 /** Guided CV coach — question order and builder field mapping (nested paths use resume shape: period/points). */
 const QUESTIONS = [
@@ -54,6 +55,126 @@ const QUESTIONS = [
     field: "summary",
   },
 ];
+
+const GUIDED_FIELD_LABELS = {
+  name: "name",
+  title: "job title",
+  email: "email",
+  phone: "phone number",
+  location: "city",
+  exp_company: "company",
+  exp_role: "role",
+  exp_dates: "dates",
+  exp_bullets: "achievements",
+  skills: "skills",
+  summary: "summary",
+};
+
+function isPositiveConfirmation(text) {
+  const s = String(text || "")
+    .trim()
+    .toLowerCase();
+  if (!s) return false;
+  if (/^(yes|y|ok|okay|sure|yep|yeah|fine|correct|right|👍|perfect)$/.test(s)) return true;
+  if (s.startsWith("looks good") || s.includes("all good")) return true;
+  return false;
+}
+
+function getGuidedFieldValueFromResume(resume, fieldId) {
+  if (!resume || typeof resume !== "object") return "";
+  if (fieldId === "languages") return String(resume.languages || "").trim();
+  const q = QUESTIONS.find((x) => x.id === fieldId);
+  if (!q) return "";
+  if (q.field.startsWith("experience[0].")) {
+    const ex = Array.isArray(resume.experience) ? resume.experience[0] : null;
+    if (!ex) return "";
+    if (q.field === "experience[0].company") return String(ex.company || "").trim();
+    if (q.field === "experience[0].role") return String(ex.role || "").trim();
+    if (q.field === "experience[0].dates") return String(ex.period || ex.startDate || "").trim();
+    if (q.field === "experience[0].bullets") return String(ex.points || "").trim();
+  }
+  if (q.field === "skills") return String(resume.skills || "").trim();
+  if (q.field === "languages") return String(resume.languages || "").trim();
+  return String(resume[q.field] ?? "").trim();
+}
+
+function isGuidedFieldEmptyForExtras(resume, fieldId) {
+  return !getGuidedFieldValueFromResume(resume, fieldId);
+}
+
+function buildExtrasConfirmQueue(appliedKeys) {
+  return QUESTIONS.map((q) => q.id).filter((id) => appliedKeys.includes(id));
+}
+
+/** Apply detectMultiAnswer extras; returns { next, appliedKeys }. */
+function applyGuidedExtrasToResume(prev, extras) {
+  let next = prev && typeof prev === "object" ? { ...prev } : {};
+  const appliedKeys = [];
+  for (const [key, val] of Object.entries(extras || {})) {
+    if (val == null || String(val).trim() === "") continue;
+    if (!isGuidedFieldEmptyForExtras(next, key)) continue;
+    if (key === "languages") {
+      next = { ...next, languages: String(val) };
+      appliedKeys.push(key);
+      continue;
+    }
+    if (key === "exp_dates") {
+      const parsed = parseDateRange(String(val));
+      const experience = [...(Array.isArray(next.experience) ? next.experience : [])];
+      if (!experience[0]) experience[0] = { ...EMPTY_EXP };
+      experience[0] = {
+        ...experience[0],
+        startDate: parsed.startDate,
+        endDate: parsed.endDate,
+        present: parsed.present,
+        period: `${parsed.startDate} – ${parsed.endDate}`,
+      };
+      next = { ...next, experience };
+      appliedKeys.push(key);
+      continue;
+    }
+    const q = QUESTIONS.find((x) => x.id === key);
+    if (!q) continue;
+    next = applyGuidedFieldToResume(next, q.field, val);
+    appliedKeys.push(key);
+  }
+  return { next, appliedKeys };
+}
+
+/** Normalizes cleaned answer for resume write (matches guided coach field handling). */
+function buildProcessedGuidedValue(q, cleanedAnswer, rawTrimmed) {
+  let processed = cleanedAnswer;
+  if (q.field === "name") {
+    processed = cleanedAnswer
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  } else if (q.field === "title") {
+    processed = normalizeAllCaps(cleanedAnswer);
+  } else if (q.field === "skills") {
+    processed = parseSkillsString(cleanedAnswer);
+  } else if (q.field === "location") {
+    const loc = cleanedAnswer.trim().toLowerCase();
+    if (loc === "dubai") processed = "Dubai, UAE";
+    else if (loc === "abu dhabi") processed = "Abu Dhabi, UAE";
+    else if (loc === "sharjah") processed = "Sharjah, UAE";
+    else if (loc === "ajman") processed = "Ajman, UAE";
+    else if (loc === "mumbai") processed = "Mumbai, India";
+    else if (loc === "delhi" || loc === "new delhi") processed = "New Delhi, India";
+    else if (loc === "bangalore" || loc === "bengaluru") processed = "Bangalore, India";
+    else if (loc === "hyderabad") processed = "Hyderabad, India";
+    else if (loc === "chennai") processed = "Chennai, India";
+    else if (loc === "kolkata") processed = "Kolkata, India";
+    else if (loc === "pune") processed = "Pune, India";
+    else {
+      processed = cleanedAnswer.trim().replace(/\b\w/g, (l) => l.toUpperCase());
+    }
+  } else if (q.field === "phone") {
+    processed = cleanedAnswer.replace(/\s+/g, " ").trim();
+    if (!processed.startsWith("+")) processed = "+" + processed;
+  }
+  return processed;
+}
 
 const GUIDED_PROGRESS_STEP = Math.max(1, Math.round(100 / QUESTIONS.length));
 
@@ -683,15 +804,21 @@ export default function FABSheet({
   const [guidedProgress, setGuidedProgress] = useState(0);
   const [guidedInput, setGuidedInput] = useState("");
   const [guidedTyping, setGuidedTyping] = useState(false);
-  const [, setGuidedStep] = useState(0);
+  const [guidedStep, setGuidedStep] = useState(0);
   const guidedStepRef = useRef(0);
   const [guidedShowInput, setGuidedShowInput] = useState(true);
   const guidedPostSummaryStageRef = useRef("qa");
   const nudgedStepsRef = useRef(new Set());
+  const [guidedPendingConfirm, setGuidedPendingConfirm] = useState(null);
+  const guidedExtrasConfirmQueueRef = useRef([]);
+  const lastExtrasSnapshotRef = useRef({});
 
   const resetGuidedCoach = useCallback(() => {
     guidedPostSummaryStageRef.current = "qa";
     if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "qa";
+    setGuidedPendingConfirm(null);
+    guidedExtrasConfirmQueueRef.current = [];
+    lastExtrasSnapshotRef.current = {};
     setGuidedStep(0);
     guidedStepRef.current = 0;
     setGuidedProgress(0);
@@ -836,6 +963,9 @@ export default function FABSheet({
     if (guidedMessages.length > 0) return;
     guidedPostSummaryStageRef.current = "qa";
     if (guidedPostSummaryStageSyncRef) guidedPostSummaryStageSyncRef.current = "qa";
+    setGuidedPendingConfirm(null);
+    guidedExtrasConfirmQueueRef.current = [];
+    lastExtrasSnapshotRef.current = {};
     setGuidedStep(0);
     guidedStepRef.current = 0;
     setGuidedProgress(0);
@@ -1058,11 +1188,35 @@ export default function FABSheet({
     }
 
     if (guidedPostSummaryStageRef.current !== "qa") return;
-    const q = QUESTIONS[guidedStepRef.current];
-    if (!q) return;
 
-    const advanceGuidedStep = () => {
-      const nextStep = guidedStepRef.current + 1;
+    const showNextGuidedAfterStep = (completedStepIndex) => {
+      const nextStep = completedStepIndex + 1;
+      if (nextStep >= QUESTIONS.length) return;
+      const nextId = QUESTIONS[nextStep].id;
+      if (
+        guidedExtrasConfirmQueueRef.current.length > 0 &&
+        guidedExtrasConfirmQueueRef.current[0] === nextId
+      ) {
+        guidedExtrasConfirmQueueRef.current.shift();
+        const label = GUIDED_FIELD_LABELS[nextId] || nextId;
+        const snap =
+          lastExtrasSnapshotRef.current[nextId] != null
+            ? String(lastExtrasSnapshotRef.current[nextId])
+            : "";
+        setGuidedPendingConfirm({ stepIndex: nextStep, fieldId: nextId });
+        setGuidedMessages((prev) => [
+          ...prev,
+          {
+            id: nextGuidedMessageId(),
+            role: "assistant",
+            text: `I've already noted your ${label} as ${snap} — looks good? Or type to correct it.`,
+          },
+        ]);
+        setGuidedStep(nextStep);
+        guidedStepRef.current = nextStep;
+        setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+        return;
+      }
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "assistant", text: QUESTIONS[nextStep].text },
@@ -1070,6 +1224,59 @@ export default function FABSheet({
       setGuidedStep(nextStep);
       guidedStepRef.current = nextStep;
       setGuidedProgress((p) => Math.min(100, p + GUIDED_PROGRESS_STEP));
+    };
+
+    if (guidedPendingConfirm) {
+      const p = guidedPendingConfirm;
+      setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
+      setGuidedInput("");
+      if (isPositiveConfirmation(trimmed)) {
+        setGuidedPendingConfirm(null);
+        setGuidedTyping(true);
+        window.setTimeout(() => {
+          showNextGuidedAfterStep(p.stepIndex);
+          setGuidedTyping(false);
+        }, 800);
+        return;
+      }
+      const qConf = QUESTIONS.find((x) => x.id === p.fieldId);
+      if (!qConf) {
+        setGuidedPendingConfirm(null);
+        return;
+      }
+      const cleaned = cleanAnswer(p.fieldId, trimmed);
+      if (qConf.field === "experience[0].dates") {
+        const parsed = parseDateRange(cleaned);
+        setResume((prev) => {
+          const experience = [...(prev.experience || [])];
+          if (!experience[0]) experience[0] = { ...EMPTY_EXP };
+          experience[0] = {
+            ...experience[0],
+            startDate: parsed.startDate,
+            endDate: parsed.endDate,
+            present: parsed.present,
+            period: `${parsed.startDate} – ${parsed.endDate}`,
+          };
+          return { ...prev, experience };
+        });
+      } else {
+        const processedConf = buildProcessedGuidedValue(qConf, cleaned, trimmed);
+        setResume((prev) => applyGuidedFieldToResume(prev, qConf.field, processedConf));
+      }
+      setGuidedPendingConfirm(null);
+      setGuidedTyping(true);
+      window.setTimeout(() => {
+        showNextGuidedAfterStep(p.stepIndex);
+        setGuidedTyping(false);
+      }, 800);
+      return;
+    }
+
+    const q = QUESTIONS[guidedStepRef.current];
+    if (!q) return;
+
+    const advanceGuidedStep = () => {
+      showNextGuidedAfterStep(guidedStepRef.current);
     };
 
     const alreadyNudged = nudgedStepsRef.current.has(guidedStepRef.current);
@@ -1136,6 +1343,14 @@ export default function FABSheet({
 
     // ── experience[0].bullets: show 3 tone cards instead of writing immediately ──
     if (q.field === "experience[0].bullets") {
+      const extras = detectMultiAnswer(q.id, trimmed);
+      lastExtrasSnapshotRef.current = { ...extras };
+      setResume((prev) => {
+        const { next, appliedKeys } = applyGuidedExtrasToResume(prev, extras);
+        guidedExtrasConfirmQueueRef.current = buildExtrasConfirmQueue(appliedKeys);
+        return next;
+      });
+      const cleanedBullets = cleanAnswer("exp_bullets", trimmed);
       setGuidedMessages((prev) => [
         ...prev,
         { id: nextGuidedMessageId(), role: "user", text: trimmed },
@@ -1145,9 +1360,9 @@ export default function FABSheet({
           type: "bullet_options",
           text: "Pick the version that sounds most like you:",
           options: [
-            { tone: "Architect", text: reframeArchitect(trimmed) },
-            { tone: "Rainmaker", text: reframeRainmaker(trimmed) },
-            { tone: "Artisan", text: reframeArtisan(trimmed) },
+            { tone: "Architect", text: reframeArchitect(cleanedBullets) },
+            { tone: "Rainmaker", text: reframeRainmaker(cleanedBullets) },
+            { tone: "Artisan", text: reframeArtisan(cleanedBullets) },
           ],
         },
       ]);
@@ -1176,23 +1391,30 @@ export default function FABSheet({
       }
     }
 
-    let processed = trimmed;
+    const fieldId = q.id;
+    const cleanedAnswer = cleanAnswer(fieldId, trimmed);
+    const extras = detectMultiAnswer(fieldId, trimmed);
+    lastExtrasSnapshotRef.current = { ...extras };
+
+    let processed = buildProcessedGuidedValue(q, cleanedAnswer, trimmed);
 
     if (q.field === "name") {
-      processed = trimmed
+      processed = cleanedAnswer
         .trim()
         .toLowerCase()
         .replace(/\b\w/g, (l) => l.toUpperCase());
     }
 
     if (q.field === "title") {
-      processed = normalizeAllCaps(trimmed);
+      processed = normalizeAllCaps(cleanedAnswer);
     }
 
     if (q.field === "experience[0].dates") {
-      const parsed = parseDateRange(trimmed);
+      const parsed = parseDateRange(cleanedAnswer);
       setResume((prev) => {
-        const experience = [...(prev.experience || [])];
+        const { next, appliedKeys } = applyGuidedExtrasToResume(prev, extras);
+        guidedExtrasConfirmQueueRef.current = buildExtrasConfirmQueue(appliedKeys);
+        const experience = [...(next.experience || [])];
         if (!experience[0]) experience[0] = { ...EMPTY_EXP };
         experience[0] = {
           ...experience[0],
@@ -1201,7 +1423,7 @@ export default function FABSheet({
           present: parsed.present,
           period: `${parsed.startDate} – ${parsed.endDate}`,
         };
-        return { ...prev, experience };
+        return { ...next, experience };
       });
       setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
       setGuidedInput("");
@@ -1214,33 +1436,14 @@ export default function FABSheet({
     }
 
     if (q.field === "skills") {
-      processed = parseSkillsString(trimmed);
+      processed = parseSkillsString(cleanedAnswer);
     }
 
-    if (q.field === "location") {
-      const loc = trimmed.trim().toLowerCase();
-      if (loc === "dubai") processed = "Dubai, UAE";
-      else if (loc === "abu dhabi") processed = "Abu Dhabi, UAE";
-      else if (loc === "sharjah") processed = "Sharjah, UAE";
-      else if (loc === "ajman") processed = "Ajman, UAE";
-      else if (loc === "mumbai") processed = "Mumbai, India";
-      else if (loc === "delhi" || loc === "new delhi") processed = "New Delhi, India";
-      else if (loc === "bangalore" || loc === "bengaluru") processed = "Bangalore, India";
-      else if (loc === "hyderabad") processed = "Hyderabad, India";
-      else if (loc === "chennai") processed = "Chennai, India";
-      else if (loc === "kolkata") processed = "Kolkata, India";
-      else if (loc === "pune") processed = "Pune, India";
-      else {
-        processed = trimmed.trim().replace(/\b\w/g, (l) => l.toUpperCase());
-      }
-    }
-
-    if (q.field === "phone") {
-      processed = trimmed.replace(/\s+/g, " ").trim();
-      if (!processed.startsWith("+")) processed = "+" + processed;
-    }
-
-    setResume((prev) => applyGuidedFieldToResume(prev, q.field, processed));
+    setResume((prev) => {
+      const { next, appliedKeys } = applyGuidedExtrasToResume(prev, extras);
+      guidedExtrasConfirmQueueRef.current = buildExtrasConfirmQueue(appliedKeys);
+      return applyGuidedFieldToResume(next, q.field, processed);
+    });
 
     setGuidedMessages((prev) => [...prev, { id: nextGuidedMessageId(), role: "user", text: trimmed }]);
     setGuidedInput("");
@@ -2413,6 +2616,11 @@ export default function FABSheet({
             >
               <GuidedFlow
                 useSampleData={false}
+                currentQuestionIndex={Math.min(10, guidedStep)}
+                currentFieldId={
+                  guidedPendingConfirm?.fieldId ??
+                  QUESTIONS[Math.min(Math.max(0, guidedStep), QUESTIONS.length - 1)]?.id
+                }
                 messages={guidedMessages}
                 progressPercent={guidedProgress}
                 inputValue={guidedInput}

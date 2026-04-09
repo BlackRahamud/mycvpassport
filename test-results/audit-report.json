@@ -1,0 +1,603 @@
+{
+  "config": {
+    "configFile": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\playwright.config.ts",
+    "rootDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Mobile Chrome — New User",
+        "name": "Mobile Chrome — New User",
+        "testDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "new-user.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Mobile Chrome — Frequent User",
+        "name": "Mobile Chrome — Frequent User",
+        "testDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "frequent-user.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Mobile Chrome — FAB Guided Flow",
+        "name": "Mobile Chrome — FAB Guided Flow",
+        "testDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "fab-guided-flow.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Mobile Chrome — FAB Edge Cases",
+        "name": "Mobile Chrome — FAB Edge Cases",
+        "testDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "fab-edge-cases.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "Desktop — Full Journey",
+        "name": "Desktop — Full Journey",
+        "testDir": "C:/Users/Junaid Khan/mycvpassport/mycvpassport/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "{new-user,frequent-user}.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/audit-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "fab-guided-flow.spec.ts",
+      "file": "fab-guided-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "🤖 FAB Guided Flow — Full 11-Question Test",
+          "file": "fab-guided-flow.spec.ts",
+          "line": 86,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Full 11-question guided flow completes end-to-end",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome — FAB Guided Flow",
+                  "projectName": "Mobile Chrome — FAB Guided Flow",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 9157,
+                      "error": {
+                        "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png",
+                        "stack": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\n    at assertFABVisible (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:51:15)\n    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:114:5",
+                        "location": {
+                          "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                          "column": 9,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                            "column": 9,
+                            "line": 37
+                          },
+                          "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n\n\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m\n\u001b[2m    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\u001b[22m\n\u001b[2m    at assertFABVisible (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:51:15)\u001b[22m\n\u001b[2m    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:114:5\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "\n📋 FAB GUIDED FLOW — Full 11 Questions\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-08T23:14:11.090Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                        "column": 9,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5606,
+                      "error": {
+                        "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png",
+                        "stack": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\n    at assertFABVisible (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:51:15)\n    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:114:5",
+                        "location": {
+                          "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                          "column": 9,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                            "column": 9,
+                            "line": 37
+                          },
+                          "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n\n\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m\n\u001b[2m    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\u001b[22m\n\u001b[2m    at assertFABVisible (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:51:15)\u001b[22m\n\u001b[2m    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:114:5\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "\n📋 FAB GUIDED FLOW — Full 11 Questions\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-04-08T23:14:22.206Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-f79ee-d-flow-completes-end-to-end-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                        "column": 9,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "a6fdc139585e5bf17152-110e6c6a1f26b5e8d5e9",
+              "file": "fab-guided-flow.spec.ts",
+              "line": 104,
+              "column": 7
+            },
+            {
+              "title": "Greeting sequence appears before Q1",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome — FAB Guided Flow",
+                  "projectName": "Mobile Chrome — FAB Guided Flow",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5391,
+                      "error": {
+                        "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png",
+                        "stack": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\n    at openFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:42:15)\n    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:205:5",
+                        "location": {
+                          "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                          "column": 9,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                            "column": 9,
+                            "line": 37
+                          },
+                          "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n\n\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m\n\u001b[2m    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\u001b[22m\n\u001b[2m    at openFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:42:15)\u001b[22m\n\u001b[2m    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:205:5\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "\n📋 GREETING SEQUENCE TEST\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-08T23:14:29.118Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                        "column": 9,
+                        "line": 37
+                      }
+                    },
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5815,
+                      "error": {
+                        "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png",
+                        "stack": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\n    at openFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:42:15)\n    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:205:5",
+                        "location": {
+                          "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                          "column": 9,
+                          "line": 37
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                            "column": 9,
+                            "line": 37
+                          },
+                          "message": "Error: FAB button not found. Screenshot saved to test-results/fab-not-found.png\n\n\u001b[90m   at \u001b[39m..\\helpers\\fab-helpers.ts:37\n\n\u001b[0m \u001b[90m 35 |\u001b[39m   \u001b[90m// Last resort: screenshot and fail with helpful message\u001b[39m\n \u001b[90m 36 |\u001b[39m   \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mscreenshot({ path\u001b[33m:\u001b[39m \u001b[32m'test-results/fab-not-found.png'\u001b[39m })\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 37 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m'FAB button not found. Screenshot saved to test-results/fab-not-found.png'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 38 |\u001b[39m }\n \u001b[90m 39 |\u001b[39m\n \u001b[90m 40 |\u001b[39m \u001b[90m// ─── Open FAB sheet ───────────────────────────────────────────────────────────\u001b[39m\u001b[0m\n\u001b[2m    at findFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:37:9)\u001b[22m\n\u001b[2m    at openFAB (C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts:42:15)\u001b[22m\n\u001b[2m    at C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\tests\\fab-guided-flow.spec.ts:205:5\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "\n📋 GREETING SEQUENCE TEST\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-04-08T23:14:35.846Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0dbc7--sequence-appears-before-Q1-Mobile-Chrome-—-FAB-Guided-Flow-retry1\\trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\helpers\\fab-helpers.ts",
+                        "column": 9,
+                        "line": 37
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "a6fdc139585e5bf17152-f1961ad5a8c078576508",
+              "file": "fab-guided-flow.spec.ts",
+              "line": 198,
+              "column": 7
+            },
+            {
+              "title": "Gibberish inputs: FAB guided flow stress test",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome — FAB Guided Flow",
+                  "projectName": "Mobile Chrome — FAB Guided Flow",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 36144,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "  ✅ Logged in\n"
+                        },
+                        {
+                          "text": "  ⚠️ New CV button not found — trying direct URL\n"
+                        },
+                        {
+                          "text": "  ⚠️ Guide me through it not found — navigating directly\n"
+                        },
+                        {
+                          "text": "  ✅ Navigated directly to guided flow URL\n"
+                        },
+                        {
+                          "text": "  ⚠️ FAB guide input not visible yet — waiting more\n"
+                        },
+                        {
+                          "text": "  Post-completion CTA 1: \"Templates\"\n"
+                        },
+                        {
+                          "text": "  Post-completion CTA 2: \"Download CV\"\n"
+                        },
+                        {
+                          "text": "  Post-completion CTA 3: \"Download CV\"\n"
+                        },
+                        {
+                          "text": "\n📋 RESULT SUMMARY (gibberish stress test):\n"
+                        },
+                        {
+                          "text": "{\n  \"test\": \"Gibberish inputs: FAB guided flow stress test\",\n  \"fabFound\": true,\n  \"questionsAnsweredBeforeStuck\": 11,\n  \"totalPlannedInputs\": 11,\n  \"stuckBeforeComplete\": false,\n  \"postCompletionCTAs\": 3\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-08T23:14:43.252Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-0f78d-FAB-guided-flow-stress-test-Mobile-Chrome-—-FAB-Guided-Flow\\test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a6fdc139585e5bf17152-c645d4e92145c72b44f0",
+              "file": "fab-guided-flow.spec.ts",
+              "line": 224,
+              "column": 7
+            },
+            {
+              "title": "Real data inputs: FAB guided flow happy path",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "Mobile Chrome — FAB Guided Flow",
+                  "projectName": "Mobile Chrome — FAB Guided Flow",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 38853,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "  ✅ Logged in\n"
+                        },
+                        {
+                          "text": "  ⚠️ New CV button not found — trying direct URL\n"
+                        },
+                        {
+                          "text": "  ⚠️ Guide me through it not found — navigating directly\n"
+                        },
+                        {
+                          "text": "  ✅ Navigated directly to guided flow URL\n"
+                        },
+                        {
+                          "text": "  ⚠️ FAB guide input not visible yet — waiting more\n"
+                        },
+                        {
+                          "text": "\n  After completion:\n"
+                        },
+                        {
+                          "text": "    Post-completion CTAs found: 3\n"
+                        },
+                        {
+                          "text": "    Confirmation-like message visible: false\n"
+                        },
+                        {
+                          "text": "    CV preview region / iframe hint visible: false\n"
+                        },
+                        {
+                          "text": "    CTA 1: \"Templates\"\n"
+                        },
+                        {
+                          "text": "    CTA 2: \"Download CV\"\n"
+                        },
+                        {
+                          "text": "    CTA 3: \"Download CV\"\n"
+                        },
+                        {
+                          "text": "\n📋 RESULT SUMMARY (real data happy path):\n"
+                        },
+                        {
+                          "text": "{\n  \"test\": \"Real data inputs: FAB guided flow happy path\",\n  \"fabFound\": true,\n  \"questionsAnswered\": 11,\n  \"totalPlannedInputs\": 11,\n  \"postCompletionCTAs\": 3,\n  \"confirmationLikeMessageVisible\": false,\n  \"cvPreviewRegionVisible\": false\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-04-08T23:15:19.579Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Junaid Khan\\mycvpassport\\mycvpassport\\test-results\\fab-guided-flow-🤖-FAB-Gui-23ef4--FAB-guided-flow-happy-path-Mobile-Chrome-—-FAB-Guided-Flow\\test-finished-1.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "a6fdc139585e5bf17152-5de6e5e7aa7fc035f441",
+              "file": "fab-guided-flow.spec.ts",
+              "line": 285,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-04-08T23:14:09.818Z",
+    "duration": 109060.783,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}
