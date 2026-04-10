@@ -1766,6 +1766,7 @@ const FAB = forwardRef(function FAB(
         currentGuideStep={currentGuideStep}
         advanceGuideStep={advanceGuideStep}
         features={features}
+        isPro={isPro}
         onPostPaymentCoverLetter={onPostPaymentCoverLetter}
       />
     </>

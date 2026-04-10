@@ -685,7 +685,11 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
               </p>
               <button
                 type="button"
-                onClick={() => window.open(ZIINA_LINKS.activeHunter, "_blank")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  window.open(ZIINA_LINKS.activeHunter, "_blank");
+                }}
                 style={{
                   background: "var(--text-primary, #FFF)",
                   color: "#000",
@@ -808,6 +812,7 @@ export default function FABSheet({
   currentGuideStep = null,
   advanceGuideStep = () => {},
   features = null,
+  isPro = false,
   onPostPaymentCoverLetter = null,
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
@@ -1932,7 +1937,11 @@ export default function FABSheet({
     onClose();
   };
 
-  const handlePro = () => {
+  const handlePro = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     if (tabStorageKey === "ats") writeFabSeen("ats");
     window.open(ZIINA_LINKS.activeHunter, "_blank");
     onClose();
@@ -2006,6 +2015,7 @@ export default function FABSheet({
 
   const renderDedicatedCoverLetter = () => {
     if (coverLetterState === "paywall") {
+      const hasAccess = isPro === true || features?.coverLetter === true;
       return (
         <>
           <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
@@ -2013,7 +2023,14 @@ export default function FABSheet({
           </p>
           <button
             type="button"
-            onClick={() => window.open(ZIINA_LINKS.coverLetter, "_blank")}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (!hasAccess) {
+                window.open(ZIINA_LINKS.coverLetter, "_blank");
+                return;
+              }
+            }}
             style={{
               width: "100%",
               background: "#fff",
@@ -2361,7 +2378,11 @@ export default function FABSheet({
         </div>
         <button
           type="button"
-          onClick={() => window.open(ZIINA_LINKS.activeHunter, "_blank")}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            window.open(ZIINA_LINKS.activeHunter, "_blank");
+          }}
           style={{
             width: "100%",
             background: "#fff",

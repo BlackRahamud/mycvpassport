@@ -31,13 +31,9 @@ function getCoverLetterPricingMarket() {
   }
 }
 
-function isCoverLetterPaidUnlock() {
-  try {
-    return typeof localStorage !== "undefined" && localStorage.getItem("cvp_cl_full_unlocked") === "1";
-  } catch {
-    return false;
-  }
-}
+const ZIINA_LINKS = {
+  coverLetter: "https://pay.ziina.com/mycvpassport/lhhO2BgKB",
+};
 
 function defaultLetterTemplateForCL({ resume, generatedBody, companyName, jobTitle, salutationLine, closingBlock }) {
   const fullName = resume?.name || "Candidate Name";
@@ -119,7 +115,7 @@ export function CoverLetterSpinnerArrow({ size = 48 }) {
     </div>
   );
 }
-function CoverLetterPage({ user, onBack }) {
+function CoverLetterPage({ user, profile, onBack }) {
   const [phase, setPhase] = useState("entry");
   const [selectedOption, setSelectedOption] = useState(null);
   const [savedList, setSavedList] = useState([]);
@@ -148,6 +144,8 @@ function CoverLetterPage({ user, onBack }) {
   const clRefTargetRole = useRef(null);
   const clRefKeyStrength = useRef(null);
   const clRefCompany = useRef(null);
+
+  const hasAccess = profile?.is_pro === true || profile?.features?.coverLetter === true;
 
   const clInputStyle = {
     width: "100%",
@@ -270,8 +268,7 @@ function CoverLetterPage({ user, onBack }) {
       selectedOption === "describe");
 
   const coverLetterFabState = useMemo(() => {
-    const paid = isCoverLetterPaidUnlock();
-    if (phase === "result" && letterBody && !paid && clFreePreview) return "paywall";
+    if (phase === "result" && letterBody && !hasAccess && clFreePreview) return "paywall";
     if (phase === "result" && letterBody) return "generated";
     if (!selectedOption || !sourceReady) return "empty";
     const fn = clFullName.trim();
@@ -287,6 +284,7 @@ function CoverLetterPage({ user, onBack }) {
   }, [
     phase,
     letterBody,
+    hasAccess,
     clFreePreview,
     selectedOption,
     sourceReady,
@@ -540,9 +538,7 @@ function CoverLetterPage({ user, onBack }) {
     };
     lastClPayloadRef.current = requestPayload;
 
-    const paid = isCoverLetterPaidUnlock();
-
-    if (!paid) {
+    if (!hasAccess) {
       setLetterBody(templateBody);
       setClTemplateVariant(market === "India" ? "india" : "uae");
       setClFreePreview(true);
@@ -578,6 +574,10 @@ function CoverLetterPage({ user, onBack }) {
   };
 
   const handleUnlockFullCoverLetter = async () => {
+    if (!hasAccess) {
+      window.open(ZIINA_LINKS.coverLetter, '_blank');
+      return;
+    }
     const payload = lastClPayloadRef.current;
     if (!payload) {
       alert("Generate a letter first.");
@@ -586,7 +586,6 @@ function CoverLetterPage({ user, onBack }) {
     setClUnlocking(true);
     setGenError("");
     try {
-      if (typeof localStorage !== "undefined") localStorage.setItem("cvp_cl_full_unlocked", "1");
       const response = await fetch("/api/cover-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -600,7 +599,6 @@ function CoverLetterPage({ user, onBack }) {
       setClTemplateVariant(null);
     } catch (e) {
       console.error(e);
-      if (typeof localStorage !== "undefined") localStorage.removeItem("cvp_cl_full_unlocked");
       setGenError(e.message || "Could not unlock the full letter. Try again.");
     } finally {
       setClUnlocking(false);
@@ -1156,7 +1154,11 @@ function CoverLetterPage({ user, onBack }) {
               <button
                 type="button"
                 disabled={clUnlocking}
-                onClick={handleUnlockFullCoverLetter}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleUnlockFullCoverLetter();
+                }}
                 style={{
                   width: "100%",
                   padding: "12px 14px",

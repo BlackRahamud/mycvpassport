@@ -218,7 +218,7 @@ export default function App() {
                 }
               />
               <Route path="/ats" element={<ATSPage onBack={() => navigate(user ? "/dashboard" : "/")} />} />
-              <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
+              <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} profile={profile} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
               <Route path="/templates" element={<TemplatesBrowseLayout />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
