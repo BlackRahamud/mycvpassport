@@ -1,4 +1,16 @@
-import { useNavigate } from "react-router-dom";
+const ZIINA_PAY = {
+  expressPass: "https://pay.ziina.com/mycvpassport/2J2VhEl7l",
+  activeHunter: "https://pay.ziina.com/mycvpassport/gLK9xihqZ",
+  careerPro: "https://pay.ziina.com/mycvpassport/lCBmlYb5tX",
+  coverLetter: "https://pay.ziina.com/mycvpassport/lhhO2BgKB",
+};
+
+function ziinaUrlForFeature(feature) {
+  if (feature === "coverLetter") return ZIINA_PAY.coverLetter;
+  if (feature === "expressPass") return ZIINA_PAY.expressPass;
+  if (feature === "careerPro") return ZIINA_PAY.careerPro;
+  return ZIINA_PAY.activeHunter;
+}
 
 function FeatureItem({ text }) {
   return (
@@ -26,7 +38,6 @@ function FeatureItem({ text }) {
 }
 
 export default function UpgradeModal({ isOpen, onClose, feature }) {
-  const navigate = useNavigate();
   if (!isOpen) return null;
 
   const isAts = feature === "ats";
@@ -48,7 +59,11 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
         "Generate a professional cover letter in seconds",
         "All premium templates, unlimited CVs",
       ];
-  const ctaLabel = isAts ? "Unlock Pro — AED 29/month" : "Upgrade to Pro — AED 29/month";
+  const ctaLabel = isAts
+    ? "Unlock Pro — AED 29/month"
+    : feature === "coverLetter"
+      ? "Upgrade to Pro — AED 10"
+      : "Upgrade to Pro — AED 29/month";
 
   return (
     <div
@@ -91,8 +106,7 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
         <button
           type="button"
           onClick={() => {
-            onClose && onClose();
-            navigate("/pricing");
+            window.open(ziinaUrlForFeature(feature), "_blank");
           }}
           style={{
             marginTop: 22,

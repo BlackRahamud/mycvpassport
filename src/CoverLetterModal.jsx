@@ -360,7 +360,7 @@ ${letterBody}`
         ) : null}
       </div>
     </div>
-    <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+    <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="coverLetter" />
     </>
   );
 }
