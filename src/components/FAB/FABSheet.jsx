@@ -36,6 +36,7 @@ import {
   getCvpPricingCurrencyCode,
 } from "./FABLogic";
 import { cleanAnswer, detectMultiAnswer } from "./FABValidationData";
+import { ZIINA_LINKS, hasFeatureAccess } from "../../utils/paywall";
 
 function usePrevious(value) {
   const ref = useRef();
@@ -43,12 +44,7 @@ function usePrevious(value) {
   return ref.current;
 }
 
-const ZIINA_LINKS = {
-  coverLetter: "https://pay.ziina.com/mycvpassport/lhhO2BgKB",
-  expressPass: "https://pay.ziina.com/mycvpassport/2J2VhEl7l",
-  activeHunter: "https://pay.ziina.com/mycvpassport/gLK9xihqZ",
-  careerPro: "https://pay.ziina.com/mycvpassport/lCBmlYb5tX",
-};
+/* ZIINA_LINKS moved to src/utils/paywall.js */
 
 /** Guided CV coach — question order and builder field mapping (nested paths use resume shape: period/points). */
 const QUESTIONS = [
@@ -2015,7 +2011,7 @@ export default function FABSheet({
 
   const renderDedicatedCoverLetter = () => {
     if (coverLetterState === "paywall") {
-      const hasAccess = isPro === true || features?.coverLetter === true;
+      const hasAccess = hasFeatureAccess({ is_pro: isPro, features }, 'coverLetter');
       return (
         <>
           <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>

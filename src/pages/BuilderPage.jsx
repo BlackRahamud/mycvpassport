@@ -23,6 +23,7 @@ import {
 import JobMatch from "../JobMatch";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
+import { hasFeatureAccess } from "../utils/paywall";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
@@ -2096,7 +2097,7 @@ function ResumeBuilder({
   profile = null,
   refreshProfile = null,
 }) {
-  const hasCoverLetterAccess = isPro || !!profile?.features?.activeHunter || !!profile?.features?.careerPro;
+  const hasCoverLetterAccess = hasFeatureAccess(profile, 'coverLetter');
 
   const navigate = useNavigate();
   const location = useLocation();

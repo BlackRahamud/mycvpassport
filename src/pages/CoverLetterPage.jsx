@@ -4,6 +4,7 @@ import { generateCoverLetterFromTemplate } from "../coverLetterDataBank.generate
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { loadUserResumes } from "../resumeDb";
+import { ZIINA_LINKS, hasFeatureAccess } from "../utils/paywall";
 import "../components/FAB/FAB.css";
 
 const CL_GREEN = "#6EE7B7";
@@ -31,9 +32,7 @@ function getCoverLetterPricingMarket() {
   }
 }
 
-const ZIINA_LINKS = {
-  coverLetter: "https://pay.ziina.com/mycvpassport/lhhO2BgKB",
-};
+/* ZIINA_LINKS moved to src/utils/paywall.js */
 
 function defaultLetterTemplateForCL({ resume, generatedBody, companyName, jobTitle, salutationLine, closingBlock }) {
   const fullName = resume?.name || "Candidate Name";
@@ -138,6 +137,7 @@ function CoverLetterPage({ user, profile, onBack }) {
   const [clUnlocking, setClUnlocking] = useState(false);
   const uploadInputRef = useRef(null);
   const lastClPayloadRef = useRef(null);
+  const userTriggeredRef = useRef(false);
   const clRefFullName = useRef(null);
   const clRefCurrentJob = useRef(null);
   const clRefYears = useRef(null);
@@ -145,7 +145,7 @@ function CoverLetterPage({ user, profile, onBack }) {
   const clRefKeyStrength = useRef(null);
   const clRefCompany = useRef(null);
 
-  const hasAccess = profile?.is_pro === true || profile?.features?.coverLetter === true;
+  const hasAccess = hasFeatureAccess(profile, 'coverLetter');
 
   const clInputStyle = {
     width: "100%",
@@ -486,6 +486,7 @@ function CoverLetterPage({ user, profile, onBack }) {
   };
 
   const handleGenerate = async () => {
+    userTriggeredRef.current = true;
     if (!sourceReady || !resumeForApi) return;
     setGenError("");
     const fieldErrs = validateCoverLetterStructuredFields({
@@ -543,6 +544,12 @@ function CoverLetterPage({ user, profile, onBack }) {
       setClTemplateVariant(market === "India" ? "india" : "uae");
       setClFreePreview(true);
       setPhase("result");
+      userTriggeredRef.current = false;
+      return;
+    }
+
+    if (!hasFeatureAccess(profile, 'coverLetter') || !userTriggeredRef.current) {
+      userTriggeredRef.current = false;
       return;
     }
 
@@ -570,11 +577,13 @@ function CoverLetterPage({ user, profile, onBack }) {
       console.error(err);
       setGenError(err.message || "Generation failed.");
       setPhase("entry");
+    } finally {
+      userTriggeredRef.current = false;
     }
   };
 
   const handleUnlockFullCoverLetter = async () => {
-    if (!hasAccess) {
+    if (!hasFeatureAccess(profile, 'coverLetter')) {
       window.open(ZIINA_LINKS.coverLetter, '_blank');
       return;
     }

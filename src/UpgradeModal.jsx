@@ -1,16 +1,4 @@
-const ZIINA_PAY = {
-  expressPass: "https://pay.ziina.com/mycvpassport/2J2VhEl7l",
-  activeHunter: "https://pay.ziina.com/mycvpassport/gLK9xihqZ",
-  careerPro: "https://pay.ziina.com/mycvpassport/lCBmlYb5tX",
-  coverLetter: "https://pay.ziina.com/mycvpassport/lhhO2BgKB",
-};
-
-function ziinaUrlForFeature(feature) {
-  if (feature === "coverLetter") return ZIINA_PAY.coverLetter;
-  if (feature === "expressPass") return ZIINA_PAY.expressPass;
-  if (feature === "careerPro") return ZIINA_PAY.careerPro;
-  return ZIINA_PAY.activeHunter;
-}
+import { ZIINA_LINKS } from "./utils/paywall";
 
 function FeatureItem({ text }) {
   return (
@@ -106,7 +94,7 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
         <button
           type="button"
           onClick={() => {
-            window.open(ziinaUrlForFeature(feature), "_blank");
+            window.open(ZIINA_LINKS[feature] || ZIINA_LINKS.activeHunter, "_blank");
           }}
           style={{
             marginTop: 22,

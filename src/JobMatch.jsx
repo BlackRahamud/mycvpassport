@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import UpgradeModal from "./UpgradeModal";
+import { hasFeatureAccess } from "./utils/paywall";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -179,7 +180,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
   }, [jobDescription, onJobDescriptionChange]);
 
   async function handleAnalyse() {
-    const hasAccess = isPro || !!features?.activeHunter || !!features?.careerPro;
+    const hasAccess = hasFeatureAccess({ is_pro: isPro, features }, 'activeHunter');
     if (!hasAccess) {
       setUpgradeOpen(true);
       return;
