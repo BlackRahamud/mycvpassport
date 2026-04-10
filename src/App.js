@@ -16,6 +16,7 @@ import AccountPage from "./pages/AccountPage";
 import TemplatesPage from "./pages/TemplatesPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import MobileTabBar from "./components/MobileTabBar";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
@@ -107,6 +108,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route
         path="*"
         element={
