@@ -528,6 +528,7 @@ const FAB = forwardRef(function FAB(
   }, [variant, tabKey]);
 
   useEffect(() => {
+    if (variant !== "builder" && !window.location.pathname.startsWith("/builder")) return;
     resetTimer();
     window.addEventListener("mousedown", resetTimer);
     window.addEventListener("mousemove", resetTimer);
@@ -540,7 +541,7 @@ const FAB = forwardRef(function FAB(
       window.removeEventListener("touchstart", resetTimer);
       window.removeEventListener("scroll", resetTimer);
     };
-  }, [resetTimer]);
+  }, [resetTimer, variant]);
 
   useEffect(() => {
     if (isGhostPulsing) ghostPulseKillArmedRef.current = true;
