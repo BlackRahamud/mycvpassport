@@ -37,6 +37,12 @@ import {
 } from "./FABLogic";
 import { cleanAnswer, detectMultiAnswer } from "./FABValidationData";
 
+function usePrevious(value) {
+  const ref = useRef();
+  useEffect(() => { ref.current = value; });
+  return ref.current;
+}
+
 const ZIINA_LINKS = {
   coverLetter: "https://pay.ziina.com/mycvpassport/lhhO2BgKB",
   expressPass: "https://pay.ziina.com/mycvpassport/2J2VhEl7l",
@@ -801,6 +807,8 @@ export default function FABSheet({
   guideStep = 0,
   currentGuideStep = null,
   advanceGuideStep = () => {},
+  features = null,
+  onPostPaymentCoverLetter = null,
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
@@ -809,6 +817,18 @@ export default function FABSheet({
   const [postDownloadDays, setPostDownloadDays] = useState(0);
   const celebrationShownThisOpenRef = useRef(false);
   const navigate = useNavigate();
+
+  const [isCelebrating, setIsCelebrating] = useState(false);
+  const prevFeatures = usePrevious(features);
+
+  useEffect(() => {
+    if (!prevFeatures?.coverLetter && features?.coverLetter) {
+      setIsCelebrating(true);
+      onPostPaymentCoverLetter?.();
+      const timer = setTimeout(() => setIsCelebrating(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [features?.coverLetter, prevFeatures?.coverLetter, onPostPaymentCoverLetter]);
 
   const [builderCoachTab, setBuilderCoachTab] = useState("tips");
   const [guidedMessages, setGuidedMessages] = useState([]);
@@ -2563,6 +2583,35 @@ export default function FABSheet({
               >
                 Update CV →
               </button>
+            </div>
+          ) : null}
+
+          {isCelebrating ? (
+            <div
+              style={{
+                width: "100%",
+                marginBottom: 16,
+                padding: 14,
+                boxSizing: "border-box",
+                borderRadius: 12,
+                background: "#1C1C1C",
+                border: "1px solid #F59E0B",
+                textAlign: "center",
+                animation: "fabFadeIn 0.3s ease",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#F59E0B",
+                  lineHeight: 1.45,
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              >
+                Payment confirmed! Generating your Cover Letter now...
+              </p>
             </div>
           ) : null}
 

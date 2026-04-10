@@ -420,6 +420,9 @@ const FAB = forwardRef(function FAB(
     onGuidedSwitchToTemplatesTab = null,
     /** Builder: ATS checker route (guided flow “ATS tab”) */
     onGuidedSwitchToAtsTab = null,
+    features = null,
+    isPro = false,
+    onPostPaymentCoverLetter = null,
   },
   ref
 ) {
@@ -1762,6 +1765,8 @@ const FAB = forwardRef(function FAB(
         guideStep={guideStep}
         currentGuideStep={currentGuideStep}
         advanceGuideStep={advanceGuideStep}
+        features={features}
+        onPostPaymentCoverLetter={onPostPaymentCoverLetter}
       />
     </>
   );

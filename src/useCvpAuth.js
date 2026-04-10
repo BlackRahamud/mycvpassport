@@ -13,6 +13,7 @@ export function useCvpAuth() {
   const [authMode, setAuthMode] = useState("signup");
   const [user, setUser] = useState(null);
   const [isPro, setIsPro] = useState(false);
+  const [profile, setProfile] = useState({ is_pro: false, plan: "FREE", features: {} });
   const [authLoading, setAuthLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState(null);
@@ -49,10 +50,20 @@ export function useCvpAuth() {
     let cancelled = false;
     const fetchProStatus = async (userId) => {
       try {
-        const { data: profile } = await supabase.from("profiles").select("is_pro").eq("id", userId).single();
-        if (!cancelled) setIsPro(!!profile?.is_pro);
+        const { data: row } = await supabase.from("profiles").select("is_pro, plan, features").eq("id", userId).single();
+        if (!cancelled) {
+          setIsPro(!!row?.is_pro);
+          setProfile({
+            is_pro: !!row?.is_pro,
+            plan: row?.plan || "FREE",
+            features: row?.features || {},
+          });
+        }
       } catch {
-        if (!cancelled) setIsPro(false);
+        if (!cancelled) {
+          setIsPro(false);
+          setProfile({ is_pro: false, plan: "FREE", features: {} });
+        }
       }
     };
     const applySession = (session) => {
@@ -64,6 +75,7 @@ export function useCvpAuth() {
       } else {
         setUser(null);
         setIsPro(false);
+        setProfile({ is_pro: false, plan: "FREE", features: {} });
       }
       setAuthReady(true);
     };
@@ -81,6 +93,25 @@ export function useCvpAuth() {
       subscription.unsubscribe();
     };
   }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!supabase || !user?.id) return;
+    try {
+      const { data: row } = await supabase
+        .from("profiles")
+        .select("is_pro, plan, features")
+        .eq("id", user.id)
+        .single();
+      setIsPro(!!row?.is_pro);
+      setProfile({
+        is_pro: !!row?.is_pro,
+        plan: row?.plan || "FREE",
+        features: row?.features || {},
+      });
+    } catch {
+      /* leave current values on failure */
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (!authReady || !user) return;
@@ -193,6 +224,7 @@ export function useCvpAuth() {
     if (supabase) await supabase.auth.signOut();
     setUser(null);
     setIsPro(false);
+    setProfile({ is_pro: false, plan: "FREE", features: {} });
     navigate("/");
   };
 
@@ -245,6 +277,8 @@ export function useCvpAuth() {
     setPendingVerificationEmail,
     user,
     isPro,
+    profile,
+    refreshProfile,
     authReady,
     authPageSharedProps,
     resumeList,

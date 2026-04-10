@@ -79,6 +79,8 @@ export default function App() {
     setPendingVerificationEmail,
     user,
     isPro,
+    profile,
+    refreshProfile,
     authReady,
     authPageSharedProps,
     resumeList,
@@ -206,6 +208,8 @@ export default function App() {
                     key={builderKey}
                     user={user}
                     isPro={isPro}
+                    profile={profile}
+                    refreshProfile={refreshProfile}
                     onBack={() => navigate(user ? "/dashboard" : "/")}
                     initialResume={editingResume?.cv_data || null}
                     initialResumeId={editingResume?.id || null}

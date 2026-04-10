@@ -2093,6 +2093,8 @@ function ResumeBuilder({
   initialResumeId,
   initialTemplateId,
   isPro = false,
+  profile = null,
+  refreshProfile = null,
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -2104,6 +2106,12 @@ function ResumeBuilder({
     return params.get("guide") === "true" && localStorage.getItem("hasCompletedGuide") !== "true" ? "guide" : "assistant";
   });
   const [guideStep, setGuideStep] = useState(0);
+
+  useEffect(() => {
+    refreshProfile?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloadPhase, setDownloadPhase] = useState("idle");
   const [saving, setSaving] = useState(false);
@@ -2790,6 +2798,10 @@ function ResumeBuilder({
     if (isPro) setCoverLetterOpen(true);
     else setUpgradeOpen(true);
   }, [isPro]);
+
+  const onPostPaymentCoverLetter = useCallback(() => {
+    runCoverLetterJourneyStep();
+  }, [runCoverLetterJourneyStep]);
 
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
@@ -4297,6 +4309,9 @@ function ResumeBuilder({
                 guideStep={guideStep}
                 currentGuideStep={GUIDE_STEPS[guideStep]}
                 advanceGuideStep={advanceGuideStep}
+                features={profile?.features}
+                isPro={isPro}
+                onPostPaymentCoverLetter={onPostPaymentCoverLetter}
               />
             </div>
           </div>
