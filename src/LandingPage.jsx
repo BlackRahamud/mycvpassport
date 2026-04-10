@@ -213,7 +213,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What happens if I pay and something goes wrong?',
-    a: "Email support@mycvpassport.com with your LemonSqueezy order ID and we'll sort it. All payments are processed securely through LemonSqueezy — we never see your card details.",
+    a: "Email support@mycvpassport.com with your Ziina order ID and we'll sort it. All payments are processed securely through Ziina — we never see your card details.",
   },
   {
     q: 'Can I use CVPassport on my phone?',
@@ -1797,7 +1797,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <br />
                 Operated by JMK, Dubai, UAE.
               </p>
-              <p>Payments by LemonSqueezy · Infrastructure by Supabase</p>
+              <p>Payments by Ziina · Infrastructure by Supabase</p>
             </div>
           </div>
         </footer>

@@ -151,7 +151,7 @@ export default function TermsPage() {
       </p>
       <h3 style={h3}>Merchant of Record</h3>
       <p style={p}>
-        All transactions are processed via Lemon Squeezy. When you complete a payment, your bank or card statement will show &apos;Lemon Squeezy&apos; or &apos;LS CVPassport&apos; as the charge
+        All transactions are processed via Ziina. When you complete a payment, your bank or card statement will show &apos;Ziina&apos; or &apos;Ziina CVPassport&apos; as the charge
         description.
       </p>
       <h3 style={h3}>Account Abuse</h3>

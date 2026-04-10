@@ -633,7 +633,7 @@ export default function AdminPanel() {
             <div style={{ fontSize: "12px", color: T.textMuted, marginBottom: "6px" }}>Provider</div>
             <select value={provider} onChange={(e) => setProvider(e.target.value)} style={{ ...s.input, marginTop: 0 }}>
               <option value="stripe">Stripe</option>
-              <option value="lemonsqueezy">LemonSqueezy</option>
+              <option value="ziina">Ziina</option>
               <option value="razorpay">Razorpay</option>
             </select>
           </div>

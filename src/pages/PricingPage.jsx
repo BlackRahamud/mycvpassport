@@ -548,7 +548,7 @@ export default function PricingPage() {
             marginBottom: "20px",
           }}>
             {[
-              "Secured by LemonSqueezy 🔒",
+              "Secured by Ziina 🔒",
               "Cancel Anytime ↩",
               "No Hidden Fees ✓",
             ].map((item) => (

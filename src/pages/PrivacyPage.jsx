@@ -128,7 +128,7 @@ export default function PrivacyPage() {
         and processing purposes.
       </p>
       <h3 style={h3}>Payments</h3>
-      <p style={p}>All payments are handled by Lemon Squeezy, our Merchant of Record.</p>
+      <p style={p}>All payments are handled by Ziina, our Merchant of Record.</p>
       <h3 style={h3}>Hosting</h3>
       <p style={p}>Our infrastructure is powered by Vercel.</p>
       <hr style={divider} />
