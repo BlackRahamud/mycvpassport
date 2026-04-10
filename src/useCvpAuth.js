@@ -10,7 +10,7 @@ const extractName = (u) => u.user_metadata?.name || u.user_metadata?.full_name |
 export function useCvpAuth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [authMode, setAuthMode] = useState("signup");
+  const [authMode, setAuthMode] = useState("login");
   const [user, setUser] = useState(null);
   const [isPro, setIsPro] = useState(false);
   const [profile, setProfile] = useState({ is_pro: false, plan: "FREE", features: {} });

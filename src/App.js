@@ -129,7 +129,7 @@ export default function App() {
                     }}
                     onSignup={() => {
                       setAuthMode("signup");
-                      navigate("/register");
+                      navigate("/auth");
                     }}
                     onWalkIn={() => navigate("/walk-in")}
                   />
