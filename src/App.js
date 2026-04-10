@@ -17,6 +17,7 @@ import TemplatesPage from "./pages/TemplatesPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import ResetPassword from "./pages/ResetPassword";
 import MobileTabBar from "./components/MobileTabBar";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
@@ -174,6 +175,8 @@ export default function App() {
                   />
                 }
               />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/signin" element={<Navigate to="/auth" replace />} />
               <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanel /> : <Navigate to="/" replace />} />
               <Route
                 path="/dashboard"
