@@ -166,7 +166,7 @@ function SkeletonBlock({ height, width = "100%", radius = 10 }) {
   );
 }
 
-export default function JobMatch({ resume, selectedTemplate, isPro = false, onJobDescriptionChange }) {
+export default function JobMatch({ resume, selectedTemplate, isPro = false, features = null, onJobDescriptionChange }) {
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -179,7 +179,8 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, onJo
   }, [jobDescription, onJobDescriptionChange]);
 
   async function handleAnalyse() {
-    if (!isPro) {
+    const hasAccess = isPro || !!features?.activeHunter || !!features?.careerPro;
+    if (!hasAccess) {
       setUpgradeOpen(true);
       return;
     }
@@ -297,7 +298,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, onJo
           {loading ? "Analysing..." : "Analyse Match"}
         </button>
         {error ? <div style={{ marginTop: 10, color: "#EF4444", fontSize: 13 }}>{error}</div> : null}
-        {!isPro ? (
+        {!(isPro || !!features?.activeHunter || !!features?.careerPro) ? (
           <div style={{ marginTop: 10, color: "#A0A0A0", fontSize: 13 }}>
             Job Match is a Pro feature. Click Analyse Match to upgrade.
           </div>

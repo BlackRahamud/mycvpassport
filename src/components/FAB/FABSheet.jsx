@@ -819,6 +819,9 @@ export default function FABSheet({
   const navigate = useNavigate();
 
   const [isCelebrating, setIsCelebrating] = useState(false);
+  const [isCelebratingExpress, setIsCelebratingExpress] = useState(false);
+  const [isCelebratingHunter, setIsCelebratingHunter] = useState(false);
+  const [isCelebratingPro, setIsCelebratingPro] = useState(false);
   const prevFeatures = usePrevious(features);
 
   useEffect(() => {
@@ -829,6 +832,32 @@ export default function FABSheet({
       return () => clearTimeout(timer);
     }
   }, [features?.coverLetter, prevFeatures?.coverLetter, onPostPaymentCoverLetter]);
+
+  useEffect(() => {
+    if (!prevFeatures?.expressPass && features?.expressPass) {
+      setIsCelebratingExpress(true);
+      const timer = setTimeout(() => setIsCelebratingExpress(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [features?.expressPass, prevFeatures?.expressPass]);
+
+  useEffect(() => {
+    if (!prevFeatures?.activeHunter && features?.activeHunter) {
+      setIsCelebratingHunter(true);
+      onPostPaymentCoverLetter?.();
+      const timer = setTimeout(() => setIsCelebratingHunter(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [features?.activeHunter, prevFeatures?.activeHunter, onPostPaymentCoverLetter]);
+
+  useEffect(() => {
+    if (!prevFeatures?.careerPro && features?.careerPro) {
+      setIsCelebratingPro(true);
+      onPostPaymentCoverLetter?.();
+      const timer = setTimeout(() => setIsCelebratingPro(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [features?.careerPro, prevFeatures?.careerPro, onPostPaymentCoverLetter]);
 
   const [builderCoachTab, setBuilderCoachTab] = useState("tips");
   const [guidedMessages, setGuidedMessages] = useState([]);
@@ -2611,6 +2640,93 @@ export default function FABSheet({
                 }}
               >
                 Payment confirmed! Generating your Cover Letter now...
+              </p>
+            </div>
+          ) : null}
+
+          {isCelebratingExpress ? (
+            <div
+              style={{
+                width: "100%",
+                marginBottom: 16,
+                padding: 14,
+                boxSizing: "border-box",
+                borderRadius: 12,
+                background: "#1C1C1C",
+                border: "1px solid #F59E0B",
+                textAlign: "center",
+                animation: "fabFadeIn 0.3s ease",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#F59E0B",
+                  lineHeight: 1.45,
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              >
+                Express Pass unlocked! You can now download unlimited PDFs.
+              </p>
+            </div>
+          ) : null}
+
+          {isCelebratingHunter ? (
+            <div
+              style={{
+                width: "100%",
+                marginBottom: 16,
+                padding: 14,
+                boxSizing: "border-box",
+                borderRadius: 12,
+                background: "#1C1C1C",
+                border: "1px solid #F59E0B",
+                textAlign: "center",
+                animation: "fabFadeIn 0.3s ease",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#F59E0B",
+                  lineHeight: 1.45,
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              >
+                Active Hunter unlocked! All features are now live.
+              </p>
+            </div>
+          ) : null}
+
+          {isCelebratingPro ? (
+            <div
+              style={{
+                width: "100%",
+                marginBottom: 16,
+                padding: 14,
+                boxSizing: "border-box",
+                borderRadius: 12,
+                background: "#1C1C1C",
+                border: "1px solid #F59E0B",
+                textAlign: "center",
+                animation: "fabFadeIn 0.3s ease",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#F59E0B",
+                  lineHeight: 1.45,
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              >
+                Career Pro unlocked! You're now on our best plan.
               </p>
             </div>
           ) : null}

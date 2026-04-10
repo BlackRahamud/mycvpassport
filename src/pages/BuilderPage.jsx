@@ -2096,6 +2096,8 @@ function ResumeBuilder({
   profile = null,
   refreshProfile = null,
 }) {
+  const hasCoverLetterAccess = isPro || !!profile?.features?.activeHunter || !!profile?.features?.careerPro;
+
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -2785,7 +2787,7 @@ function ResumeBuilder({
   }, []);
 
   const handleOpenCoverLetter = () => {
-    if (!isPro) {
+    if (!hasCoverLetterAccess) {
       setUpgradeOpen(true);
       return;
     }
@@ -2795,9 +2797,9 @@ function ResumeBuilder({
   const runCoverLetterJourneyStep = useCallback(() => {
     setCvJourney((j) => ({ ...j, coverLetterSeen: true }));
     setBuilderTab("jobmatch");
-    if (isPro) setCoverLetterOpen(true);
+    if (hasCoverLetterAccess) setCoverLetterOpen(true);
     else setUpgradeOpen(true);
-  }, [isPro]);
+  }, [hasCoverLetterAccess]);
 
   const onPostPaymentCoverLetter = useCallback(() => {
     runCoverLetterJourneyStep();
@@ -3639,7 +3641,7 @@ function ResumeBuilder({
               >
                 Get Cover Letter
               </button>
-              <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} onJobDescriptionChange={setJobHasJd} />
+              <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
             </div>
           )}
         </aside>
@@ -4176,7 +4178,7 @@ function ResumeBuilder({
                 >
                   Get Cover Letter
                 </button>
-                <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} onJobDescriptionChange={setJobHasJd} />
+                <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
               </div>
             )}
             <div className="cvp-builder-mobile-download-row" style={{ padding: "12px 10px 88px", marginTop: "auto" }}>
