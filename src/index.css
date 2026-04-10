@@ -191,6 +191,116 @@ input:focus, textarea:focus {
   flex-shrink: 0;
 }
 
+/* Auth page — traveling light beam border */
+@keyframes beam-top {
+  0% {
+    left: -50%;
+  }
+  100% {
+    left: 120%;
+  }
+}
+
+@keyframes beam-right {
+  0% {
+    top: -50%;
+  }
+  100% {
+    top: 120%;
+  }
+}
+
+@keyframes beam-bottom {
+  0% {
+    right: -50%;
+  }
+  100% {
+    right: 120%;
+  }
+}
+
+@keyframes beam-left {
+  0% {
+    bottom: -50%;
+  }
+  100% {
+    bottom: 120%;
+  }
+}
+
+@keyframes cvp-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.cvp-auth-beam-wrap {
+  position: absolute;
+  inset: -1px;
+  border-radius: 20px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cvp-auth-beam--top {
+  position: absolute;
+  top: 0;
+  left: -50%;
+  height: 2px;
+  width: 50%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: beam-top 2.5s ease-in-out infinite;
+}
+
+.cvp-auth-beam--right {
+  position: absolute;
+  right: 0;
+  top: -50%;
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: beam-right 2.5s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+.cvp-auth-beam--bottom {
+  position: absolute;
+  bottom: 0;
+  right: -50%;
+  height: 2px;
+  width: 50%;
+  background: linear-gradient(270deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: beam-bottom 2.5s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+.cvp-auth-beam--left {
+  position: absolute;
+  left: 0;
+  bottom: -50%;
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(0deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: beam-left 2.5s ease-in-out infinite;
+  animation-delay: 1.8s;
+}
+
+.cvp-auth-btn-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  animation: cvp-shimmer 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.cvp-auth-btn--amber .cvp-auth-spinner {
+  border-color: rgba(0, 0, 0, 0.25);
+  border-top-color: transparent;
+}
+
 /* Dashboard CV card grid — responsive columns */
 .cvp-cv-grid {
   display: grid;
