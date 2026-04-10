@@ -37,6 +37,13 @@ import {
 } from "./FABLogic";
 import { cleanAnswer, detectMultiAnswer } from "./FABValidationData";
 
+const ZIINA_LINKS = {
+  coverLetter: "https://pay.ziina.com/mycvpassport/lhhO2BgKB",
+  expressPass: "https://pay.ziina.com/mycvpassport/2J2VhEl7l",
+  activeHunter: "https://pay.ziina.com/mycvpassport/gLK9xihqZ",
+  careerPro: "https://pay.ziina.com/mycvpassport/lCBmlYb5tX",
+};
+
 /** Guided CV coach — question order and builder field mapping (nested paths use resume shape: period/points). */
 const QUESTIONS = [
   { id: "name", text: "What is your full name?", field: "name" },
@@ -672,7 +679,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
               </p>
               <button
                 type="button"
-                onClick={() => onNavigatePricing?.()}
+                onClick={() => window.open(ZIINA_LINKS.activeHunter, "_blank")}
                 style={{
                   background: "var(--text-primary, #FFF)",
                   color: "#000",
@@ -1878,7 +1885,7 @@ export default function FABSheet({
 
   const handlePro = () => {
     if (tabStorageKey === "ats") writeFabSeen("ats");
-    onProCta?.();
+    window.open(ZIINA_LINKS.activeHunter, "_blank");
     onClose();
   };
 
@@ -1957,7 +1964,7 @@ export default function FABSheet({
           </p>
           <button
             type="button"
-            onClick={() => onNavigatePricing?.()}
+            onClick={() => window.open(ZIINA_LINKS.coverLetter, "_blank")}
             style={{
               width: "100%",
               background: "#fff",
@@ -2305,7 +2312,7 @@ export default function FABSheet({
         </div>
         <button
           type="button"
-          onClick={() => onNavigatePricing?.()}
+          onClick={() => window.open(ZIINA_LINKS.activeHunter, "_blank")}
           style={{
             width: "100%",
             background: "#fff",
