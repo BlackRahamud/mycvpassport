@@ -25,6 +25,7 @@ import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
+import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
 import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { BuilderTemplatesTab } from "./TemplatesPage";
@@ -2097,7 +2098,12 @@ function ResumeBuilder({
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const isNew = !!searchParams.get("new");
-  const isGuided = searchParams.get("guide") === "true";
+  const [fabMode, setFabMode] = useState(() => {
+    if (typeof window === "undefined") return "assistant";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("guide") === "true" && localStorage.getItem("hasCompletedGuide") !== "true" ? "guide" : "assistant";
+  });
+  const [guideStep, setGuideStep] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
   const [downloadPhase, setDownloadPhase] = useState("idle");
   const [saving, setSaving] = useState(false);
@@ -2123,7 +2129,7 @@ function ResumeBuilder({
     };
   });
   const [builderTab, setBuilderTab] = useState("content");
-  const [guidedCoachRequestKey, setGuidedCoachRequestKey] = useState(0);
+  const [guidedCoachRequestKey] = useState(0);
   const [openSection, setOpenSection] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
@@ -2184,7 +2190,6 @@ function ResumeBuilder({
   }, [navigate]);
   const [technicalSkillsFromPrompt, setTechnicalSkillsFromPrompt] = useState(false);
   const fabRef = useRef(null);
-  const hasOpenedGuide = useRef(false);
   const builderRootRef = useRef(null);
   const builderIdleT15Ref = useRef(null);
   const builderIdleT25Ref = useRef(null);
@@ -2223,15 +2228,49 @@ function ResumeBuilder({
   }, []);
 
   useEffect(() => {
-    if (isGuided && !hasOpenedGuide.current) {
-      hasOpenedGuide.current = true;
-      setGuidedCoachRequestKey((k) => k + 1);
-      const id = setTimeout(() => {
-        fabRef.current?.openGuidedCoachSheet?.();
-      }, 500);
-      return () => clearTimeout(id);
+    if (fabMode !== "guide") return;
+    const step = GUIDE_STEPS[guideStep];
+    if (!step) return;
+    const allSections = [
+      "section-personal",
+      "section-summary",
+      "section-experience",
+      "section-education",
+      "section-skills",
+      "section-languages",
+    ];
+    allSections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (step.sectionId === id) {
+        el.classList.add("fab-guide-highlight");
+        el.classList.remove("fab-guide-dimmed");
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+      } else {
+        el.classList.remove("fab-guide-highlight");
+        el.classList.add("fab-guide-dimmed");
+      }
+    });
+  }, [guideStep, fabMode]);
+
+  const finishGuide = useCallback(() => {
+    ["section-personal", "section-summary", "section-experience", "section-education", "section-skills", "section-languages"].forEach(
+      (id) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove("fab-guide-highlight", "fab-guide-dimmed");
+      }
+    );
+    localStorage.setItem("hasCompletedGuide", "true");
+    setFabMode("assistant");
+  }, []);
+
+  const advanceGuideStep = useCallback(() => {
+    if (guideStep < GUIDE_STEPS.length - 1) {
+      setGuideStep((p) => p + 1);
+    } else {
+      finishGuide();
     }
-  }, [isGuided]);
+  }, [guideStep, finishGuide]);
 
   useEffect(() => {
     if (lastSavedSnapshotRef.current == null) {
@@ -3252,7 +3291,7 @@ function ResumeBuilder({
               </div>
 
               {/* Personal info card — always visible */}
-              <div className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+              <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                 <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
@@ -3787,7 +3826,7 @@ function ResumeBuilder({
                     </div>
                   </div>
                 </div>
-                <div className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+                <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
@@ -4254,6 +4293,10 @@ function ResumeBuilder({
                   runCoverLetterJourneyStep();
                 }}
                 cvCompletionProgress={cvCompletionProgress}
+                fabMode={fabMode}
+                guideStep={guideStep}
+                currentGuideStep={GUIDE_STEPS[guideStep]}
+                advanceGuideStep={advanceGuideStep}
               />
             </div>
           </div>
@@ -5247,9 +5290,11 @@ function AccordionSection({
     if (canMoveDown) onSectionReorder("down");
   };
 
+  const guideSectionDomId = ["summary", "experience", "education", "skills", "languages"].includes(id) ? `section-${id}` : undefined;
+
   if (variant === "mobileRow") {
     return (
-      <div data-cvp-accordion={id} style={{ marginBottom: 5, maxWidth: "100%", order: flexOrder }}>
+      <div id={guideSectionDomId} data-cvp-accordion={id} style={{ marginBottom: 5, maxWidth: "100%", order: flexOrder }}>
         <div
           style={{
             display: "flex",
@@ -5398,7 +5443,7 @@ function AccordionSection({
     );
   }
   return (
-    <div data-cvp-accordion={id} className={`cvp-section-row${isOpen ? " is-open" : ""}`} style={{ order: flexOrder }}>
+    <div id={guideSectionDomId} data-cvp-accordion={id} className={`cvp-section-row${isOpen ? " is-open" : ""}`} style={{ order: flexOrder }}>
       <div
         className="cvp-section-row-header"
         style={{

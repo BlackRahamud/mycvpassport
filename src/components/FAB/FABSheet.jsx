@@ -790,6 +790,10 @@ export default function FABSheet({
   guidedPostSummaryStageSyncRef = null,
   /** Builder: section from preview tap — append one contextual message without reset */
   contextualSection = null,
+  fabMode = "assistant",
+  guideStep = 0,
+  currentGuideStep = null,
+  advanceGuideStep = () => {},
 }) {
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
@@ -812,6 +816,7 @@ export default function FABSheet({
   const [guidedPendingConfirm, setGuidedPendingConfirm] = useState(null);
   const guidedExtrasConfirmQueueRef = useRef([]);
   const lastExtrasSnapshotRef = useRef({});
+  const [guideNinePhase, setGuideNinePhase] = useState(1);
 
   const resetGuidedCoach = useCallback(() => {
     guidedPostSummaryStageRef.current = "qa";
@@ -1735,6 +1740,125 @@ export default function FABSheet({
   const handleGuidedExit = useCallback(() => {
     onClose?.();
   }, [onClose]);
+
+  useEffect(() => {
+    if (variant !== "builder" || fabMode !== "guide" || !currentGuideStep?.twoPhase) return;
+    setGuideNinePhase(1);
+    const t = setTimeout(() => setGuideNinePhase(2), 2500);
+    return () => clearTimeout(t);
+  }, [variant, fabMode, guideStep, currentGuideStep?.id, currentGuideStep?.twoPhase]);
+
+  if (variant === "builder" && fabMode === "guide" && currentGuideStep) {
+    const step = currentGuideStep;
+    const hideFabGuideButtons = step.twoPhase === true && guideNinePhase === 1;
+    const bodyText =
+      step.twoPhase === true
+        ? guideNinePhase === 1
+          ? step.textPhase1
+          : step.textPhase2
+        : step.bubbleText;
+    return (
+      <div
+        style={{
+          position: "fixed",
+          bottom: "90px",
+          right: "20px",
+          zIndex: 100,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: "10px",
+        }}
+      >
+        <div
+          key={guideStep}
+          style={{
+            background: "#1C1C1C",
+            border: `1px solid ${step.upsell ? "#F59E0B" : "#2A2A2A"}`,
+            borderRadius: "12px",
+            padding: "12px 14px",
+            maxWidth: "230px",
+            animation: "fabFadeIn 0.3s cubic-bezier(0.4,0,0.2,1)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "9px",
+              fontWeight: 700,
+              color: "#F59E0B",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              marginBottom: "5px",
+            }}
+          >
+            {step.id} / 11
+          </div>
+          <div
+            style={{
+              fontSize: "11px",
+              color: "#fff",
+              lineHeight: 1.55,
+              ...(step.twoPhase === true && guideNinePhase === 2 ? { animation: "fabFadeIn 0.3s ease" } : {}),
+            }}
+          >
+            {bodyText}
+          </div>
+          {!hideFabGuideButtons ? (
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                marginTop: "10px",
+                flexWrap: "wrap",
+                alignItems: "center",
+                ...(step.twoPhase === true && guideNinePhase === 2 ? { animation: "fabFadeIn 0.3s ease" } : {}),
+              }}
+            >
+              {step.btns.map((btn, i) =>
+                btn.style === "skip" ? (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={advanceGuideStep}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#606060",
+                      fontSize: "10px",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      padding: "4px 6px",
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                ) : (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={advanceGuideStep}
+                    style={{
+                      background: "#F59E0B",
+                      color: "#000",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "6px 14px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                )
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   if (!open) return null;
 

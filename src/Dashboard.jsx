@@ -63,7 +63,12 @@ export default function Dashboard({
   const [active, setActive] = useState("mycvs");
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [newCvChoiceOpen, setNewCvChoiceOpen] = useState(false);
+  const [showTease, setShowTease] = useState(false);
   const isLight = theme === "light";
+
+  useEffect(() => {
+    if (newCvChoiceOpen) setShowTease(false);
+  }, [newCvChoiceOpen]);
 
   useEffect(() => {
     writeFabMemory({ lastTabVisited: active });
@@ -518,8 +523,9 @@ export default function Dashboard({
               position: "fixed",
               inset: 0,
               zIndex: 400,
-              background: "rgba(0,0,0,0.5)",
-              transition: `opacity 200ms ${EASE}`,
+              background: "rgba(0,0,0,0.7)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
             }}
             onClick={() => setNewCvChoiceOpen(false)}
           />
@@ -529,74 +535,98 @@ export default function Dashboard({
             aria-labelledby="new-cv-choice-title"
             style={{
               position: "fixed",
-              left: 16,
-              right: 16,
-              bottom: 24,
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
               zIndex: 401,
+              width: "calc(100% - 32px)",
               maxWidth: 400,
-              margin: "0 auto",
               background: "#141414",
               border: "1px solid #2A2A2A",
-              borderRadius: 16,
-              padding: "20px 18px 18px",
-              boxShadow: "0 -8px 40px rgba(0,0,0,0.45)",
+              borderRadius: 24,
+              padding: 24,
               boxSizing: "border-box",
-              transform: "translateY(0)",
-              transition: `transform 220ms ${EASE}, opacity 220ms ${EASE}`,
             }}
           >
-            <div id="new-cv-choice-title" style={{ fontSize: 16, fontWeight: 600, color: "#FFFFFF", marginBottom: 8 }}>
+            <div id="new-cv-choice-title" style={{ fontSize: 18, fontWeight: 600, color: "#fff" }}>
               Start a new CV
             </div>
-            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#A0A0A0", lineHeight: 1.45 }}>
+            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#A0A0A0", lineHeight: 1.45 }}>
               Choose how you want to begin.
             </p>
-            <div style={{ display: "grid", gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setNewCvChoiceOpen(false);
-                  onBuildResume({ openFabGuide: true });
-                }}
+            <button
+              type="button"
+              onClick={() => {
+                setNewCvChoiceOpen(false);
+                onBuildResume({ openFabGuide: true });
+              }}
+              style={{
+                width: "100%",
+                background: "#F59E0B",
+                color: "#000",
+                border: "none",
+                borderRadius: 14,
+                padding: 16,
+                fontSize: 15,
+                fontWeight: 600,
+                marginBottom: 10,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                display: "block",
+                textAlign: "center",
+              }}
+            >
+              <span style={{ display: "block" }}>Guide me through it</span>
+              <span style={{ display: "block", fontSize: 11, opacity: 0.7, fontWeight: 600, marginTop: 4 }}>
+                Step-by-step · Recommended for new users
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTease(true)}
+              style={{
+                width: "100%",
+                background: "#1C1C1C",
+                border: "1px solid #2A2A2A",
+                borderRadius: 14,
+                padding: 16,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                textAlign: "left",
+                boxSizing: "border-box",
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0 }}>
+                <span style={{ color: "#fff", fontSize: 15, fontWeight: 600 }}>Co-pilot mode</span>
+                <span
+                  style={{
+                    fontSize: 9,
+                    background: "rgba(245,158,11,0.15)",
+                    color: "#F59E0B",
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                    marginLeft: 8,
+                    fontWeight: 600,
+                  }}
+                >
+                  SOON
+                </span>
+              </span>
+              <div style={{ color: "#606060", fontSize: 11, marginTop: 4, fontWeight: 400 }}>AI assistant · Coming soon</div>
+            </button>
+            {showTease ? (
+              <p
                 style={{
-                  width: "100%",
-                  minHeight: 48,
-                  borderRadius: 10,
-                  border: "none",
-                  background: "#FFFFFF",
-                  color: "#000000",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  transition: `opacity 150ms ${EASE}`,
+                  fontSize: 12,
+                  color: "#A0A0A0",
+                  textAlign: "center",
+                  marginTop: 12,
+                  animation: "fabFadeIn 0.3s ease",
                 }}
               >
-                Guide me through it
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setNewCvChoiceOpen(false);
-                  onBuildResume();
-                }}
-                style={{
-                  width: "100%",
-                  minHeight: 48,
-                  borderRadius: 10,
-                  border: "1px solid #3A3A3A",
-                  background: "transparent",
-                  color: "#FFFFFF",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  transition: `border-color 150ms ${EASE}, background-color 150ms ${EASE}`,
-                }}
-              >
-                Start blank
-              </button>
-            </div>
+                Co-pilot is in production. Your support helps us ship it faster — try Guide mode meanwhile.
+              </p>
+            ) : null}
           </div>
         </>
       ) : null}

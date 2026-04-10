@@ -406,6 +406,10 @@ const FAB = forwardRef(function FAB(
     setResume = null,
     /** Builder: bump to reset/open guided coach (e.g. New CV → Guide me) */
     guidedCoachRequestKey = 0,
+    fabMode = "assistant",
+    guideStep = 0,
+    currentGuideStep = null,
+    advanceGuideStep = () => {},
     /** Builder: section tapped from preview — append contextual coach message */
     contextualSection = null,
     /** Builder: PDF download from guided flow */
@@ -866,6 +870,7 @@ const FAB = forwardRef(function FAB(
 
   const tryOpenBuilderContentIdleAutoSheet = useCallback(() => {
     if (variant !== "builder" || tabKey !== "content") return false;
+    if (fabMode === "guide") return false;
     if (sheetOpenRef.current || menuOpenRef.current) return false;
     if (typeof document !== "undefined") {
       const el = document.activeElement;
@@ -901,7 +906,7 @@ const FAB = forwardRef(function FAB(
     setShowSheetGotIt(true);
     setSheetOpen(true);
     return true;
-  }, [variant, tabKey, resume, activeSection, resetSheetLayout, isIdleCooldownClear, openSummaryHelperSheet]);
+  }, [variant, tabKey, fabMode, resume, activeSection, resetSheetLayout, isIdleCooldownClear, openSummaryHelperSheet]);
 
   const onSummaryInsertTip = useCallback((tip) => {
     if (typeof document === "undefined") return;
@@ -1334,7 +1339,12 @@ const FAB = forwardRef(function FAB(
   const dismissMilestonePopup = useCallback(() => setMilestoneVisible(false), []);
   const clearMilestoneMessageAfterExit = useCallback(() => setMilestoneMessage(null), []);
 
+  useEffect(() => {
+    if (variant === "builder" && fabMode === "guide") closeSheet();
+  }, [variant, fabMode, closeSheet]);
+
   const onFabActivate = useCallback(() => {
+    if (variant === "builder" && fabMode === "guide") return;
     const m = bumpFabSessionOpen();
     if (process.env.NODE_ENV === "development") {
       console.log("[FAB] sessionCount", m.sessionCount);
@@ -1357,7 +1367,7 @@ const FAB = forwardRef(function FAB(
       return;
     }
     setMenuOpen(true);
-  }, [variant, tabKey, activeSection, openTemplatesSmartSheet, openGuideSheet, openSummaryHelperSheet, clearTplTimers]);
+  }, [variant, tabKey, activeSection, fabMode, openTemplatesSmartSheet, openGuideSheet, openSummaryHelperSheet, clearTplTimers]);
 
   const effectiveSheetBodySlot = useMemo(() => {
     if (sheetLayoutKind === "summary-helper") {
@@ -1665,7 +1675,7 @@ const FAB = forwardRef(function FAB(
       <FABMenu open={menuOpen} onClose={() => setMenuOpen(false)} options={config.menuOptions} anchorRef={anchorRef} onSelect={handleMenuPick} />
 
       <FABSheet
-        open={sheetOpen}
+        open={fabMode === "guide" ? false : sheetOpen}
         onClose={handleFabSheetClose}
         variant={variant}
         tabKey={tabKey}
@@ -1748,6 +1758,10 @@ const FAB = forwardRef(function FAB(
         onGuidedSwitchToTemplatesTab={onGuidedSwitchToTemplatesTab}
         onGuidedSwitchToAtsTab={onGuidedSwitchToAtsTab}
         guidedPostSummaryStageSyncRef={guidedPostSummaryStageSyncRef}
+        fabMode={fabMode}
+        guideStep={guideStep}
+        currentGuideStep={currentGuideStep}
+        advanceGuideStep={advanceGuideStep}
       />
     </>
   );

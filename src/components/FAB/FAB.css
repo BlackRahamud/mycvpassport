@@ -863,3 +863,103 @@
     filter: drop-shadow(0 0 0px #22c55e);
   }
 }
+
+/* ── FAB Guide Mode ── */
+.fab-guide-highlight {
+  position: relative;
+  opacity: 1 !important;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@property --fab-guide-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.fab-guide-highlight::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: conic-gradient(
+    from var(--fab-guide-angle, 0deg),
+    #fb923c,
+    #fbbf24,
+    #f59e0b,
+    #fb923c,
+    #fbbf24,
+    #f59e0b,
+    #fb923c
+  );
+  animation:
+    fabGuideBorderRotate 2s linear infinite,
+    fabGuideBreath 3s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.fab-guide-highlight::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: var(--bg-surface, #141414);
+  border-radius: 14px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.fab-guide-highlight > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes fabGuideBorderRotate {
+  to {
+    --fab-guide-angle: 360deg;
+  }
+}
+
+@keyframes fabGuideBreath {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.fab-guide-highlight input,
+.fab-guide-highlight textarea {
+  animation: fabInputPulse 2s ease-in-out infinite;
+}
+
+@keyframes fabInputPulse {
+  0% {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+  }
+}
+
+.fab-guide-dimmed {
+  opacity: 0.4 !important;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+@keyframes fabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
