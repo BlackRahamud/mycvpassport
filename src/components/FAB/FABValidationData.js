@@ -4,12 +4,12 @@
  * Targets: UAE, GCC, and Indian job markets.
  */
 
-export const PHONE_REGEX = /^(\+|00)?(971|91|92|63|20)?[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}$/;
+export const PHONE_REGEX = /^(\+|00)?(971|91|92|63|20)?[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4}$/;
 
-export const UAE_PHONE_REGEX = /^(\+971|00971|0)?[\s\-]?5[0-9][\s\-]?\d{3}[\s\-]?\d{4}$/;
-export const INDIA_PHONE_REGEX = /^(\+91|0091|0)?[\s\-]?[6-9]\d{9}$/;
-export const PAKISTAN_PHONE_REGEX = /^(\+92|0092|0)?[\s\-]?3\d{9}$/;
-export const GENERIC_PHONE_REGEX = /^\+?[\d\s\-]{7,15}$/;
+export const UAE_PHONE_REGEX = /^(\+971|00971|0)?[\s-]?5[0-9][\s-]?\d{3}[\s-]?\d{4}$/;
+export const INDIA_PHONE_REGEX = /^(\+91|0091|0)?[\s-]?[6-9]\d{9}$/;
+export const PAKISTAN_PHONE_REGEX = /^(\+92|0092|0)?[\s-]?3\d{9}$/;
+export const GENERIC_PHONE_REGEX = /^\+?[\d\s-]{7,15}$/;
 
 export const isPhoneNumber = (str) => {
   const clean = str.trim();
@@ -267,7 +267,7 @@ export const cleanAnswer = (fieldId, rawAnswer) => {
     case 'phone':
       // Standardize UAE: 0585508782 → 058 550 8782
       // Keep as-is but strip spaces and dashes for storage
-      clean = clean.replace(/[\s\-]/g, '');
+      clean = clean.replace(/[\s-]/g, '');
       // Add + if starts with 971 or 91
       if (/^971/.test(clean)) clean = '+' + clean;
       if (/^91[6-9]/.test(clean)) clean = '+' + clean;
@@ -283,7 +283,7 @@ export const cleanAnswer = (fieldId, rawAnswer) => {
         'english', 'arabic', 'hindi', 'urdu', 'tagalog', 'filipino',
         'malayalam', 'tamil', 'telugu', 'french', 'spanish', 'german'
       ];
-      const allItems = clean.split(/[,\/\n\+&]+/)
+      const allItems = clean.split(/[,/\n+&]+/)
         .map(s => s.trim())
         .filter(s => s.length > 1 && !blacklist.includes(s.toLowerCase()));
       const skillItems = allItems.filter(s => !languageWords.includes(s.toLowerCase()));
