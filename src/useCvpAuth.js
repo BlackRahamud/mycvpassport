@@ -26,6 +26,7 @@ export function useCvpAuth() {
 
   const ensureProfileRow = async (authUser) => {
     if (!supabase || !authUser?.id) return;
+    // Step 1 — insert only if new user; never overwrite existing row
     await supabase.from("profiles").upsert(
       {
         id: authUser.id,
@@ -34,8 +35,14 @@ export function useCvpAuth() {
         flagged: false,
         features: {},
       },
-      { onConflict: "id" },
+      { onConflict: "id", ignoreDuplicates: true },
     );
+    // Step 2 — keep email in sync, but never touch plan/features/is_pro
+    await supabase
+      .from("profiles")
+      .update({ email: authUser.email || "" })
+      .eq("id", authUser.id)
+      .or(`email.is.null,email.neq.${authUser.email || ""}`);
   };
 
   useEffect(() => {
