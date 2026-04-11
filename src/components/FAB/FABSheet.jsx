@@ -36,15 +36,13 @@ import {
   getCvpPricingCurrencyCode,
 } from "./FABLogic";
 import { cleanAnswer, detectMultiAnswer } from "./FABValidationData";
-import { ZIINA_LINKS, hasFeatureAccess } from "../../utils/paywall";
+import { getPaymentLink, hasFeatureAccess } from "../../utils/paywall";
 
 function usePrevious(value) {
   const ref = useRef();
   useEffect(() => { ref.current = value; });
   return ref.current;
 }
-
-/* ZIINA_LINKS moved to src/utils/paywall.js */
 
 /** Guided CV coach — question order and builder field mapping (nested paths use resume shape: period/points). */
 const QUESTIONS = [
@@ -684,7 +682,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  window.open(ZIINA_LINKS.activeHunter, "_blank");
+                  window.open(getPaymentLink("activeHunter"), "_blank");
                 }}
                 style={{
                   background: "var(--text-primary, #FFF)",
@@ -2075,7 +2073,7 @@ export default function FABSheet({
       e.preventDefault();
     }
     if (tabStorageKey === "ats") writeFabSeen("ats");
-    window.open(ZIINA_LINKS.activeHunter, "_blank");
+    window.open(getPaymentLink("ats"), "_blank");
     onClose();
   };
 
@@ -2159,7 +2157,7 @@ export default function FABSheet({
               e.stopPropagation();
               e.preventDefault();
               if (!hasAccess) {
-                window.open(ZIINA_LINKS.coverLetter, "_blank");
+                window.open(getPaymentLink("coverLetter"), "_blank");
                 return;
               }
             }}
@@ -2513,7 +2511,7 @@ export default function FABSheet({
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            window.open(ZIINA_LINKS.activeHunter, "_blank");
+            window.open(getPaymentLink("activeHunter"), "_blank");
           }}
           style={{
             width: "100%",

@@ -4,7 +4,7 @@ import { generateCoverLetterFromTemplate } from "../coverLetterDataBank.generate
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { loadUserResumes } from "../resumeDb";
-import { ZIINA_LINKS, hasFeatureAccess } from "../utils/paywall";
+import { getPaymentLink, hasFeatureAccess } from "../utils/paywall";
 import "../components/FAB/FAB.css";
 
 const CL_GREEN = "#6EE7B7";
@@ -31,8 +31,6 @@ function getCoverLetterPricingMarket() {
     return "UAE";
   }
 }
-
-/* ZIINA_LINKS moved to src/utils/paywall.js */
 
 function defaultLetterTemplateForCL({ resume, generatedBody, companyName, jobTitle, salutationLine, closingBlock }) {
   const fullName = resume?.name || "Candidate Name";
@@ -584,7 +582,7 @@ function CoverLetterPage({ user, profile, onBack }) {
 
   const handleUnlockFullCoverLetter = async () => {
     if (!hasFeatureAccess(profile, 'coverLetter')) {
-      window.open(ZIINA_LINKS.coverLetter, '_blank');
+      window.open(getPaymentLink('coverLetter'), '_blank');
       return;
     }
     const payload = lastClPayloadRef.current;

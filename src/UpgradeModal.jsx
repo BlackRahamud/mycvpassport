@@ -1,4 +1,4 @@
-import { ZIINA_LINKS } from "./utils/paywall";
+import { getPaymentLink } from "./utils/paywall";
 
 function FeatureItem({ text }) {
   return (
@@ -94,7 +94,7 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
         <button
           type="button"
           onClick={() => {
-            window.open(ZIINA_LINKS[feature] || ZIINA_LINKS.activeHunter, "_blank");
+            window.open(getPaymentLink(feature), "_blank");
           }}
           style={{
             marginTop: 22,
