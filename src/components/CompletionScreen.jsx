@@ -14,8 +14,12 @@ export default function CompletionScreen({ visible, atsScore, userName, onDashbo
     <div style={{
       position:'fixed', inset:0, zIndex:601,
       background:'rgba(0,0,0,0.9)',
-      display:'flex', alignItems:'center', justifyContent:'center',
-      padding:16, boxSizing:'border-box',
+      display:'flex',
+      alignItems:'flex-start',
+      justifyContent:'center',
+      overflowY:'auto',
+      WebkitOverflowScrolling:'touch',
+      padding:'40px 16px 64px', boxSizing:'border-box',
     }}>
       <style>{`
         @keyframes travel-light {

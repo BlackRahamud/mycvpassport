@@ -2115,6 +2115,7 @@ function ResumeBuilder({
     return params.get("guide") === "true" && sessionStorage.getItem("hasCompletedGuide") !== "true" ? "guide" : "assistant";
   });
   const [guideStep, setGuideStep] = useState(0);
+  const guideStepRef = useRef(0);
 
   useEffect(() => {
     refreshProfile?.();
@@ -2308,18 +2309,24 @@ function ResumeBuilder({
   }, []);
 
   const advanceGuideStep = useCallback(() => {
-    if (guideStep < GUIDE_STEPS.length - 1) {
-      setGuideStep((p) => p + 1);
-    } else {
-      finishGuide();
-    }
-  }, [guideStep, finishGuide]);
+    setGuideStep((p) => {
+      const next = p + 1;
+      guideStepRef.current = next;
+      if (next >= GUIDE_STEPS.length) {
+        finishGuide();
+        return p;
+      }
+      return next;
+    });
+  }, [finishGuide]);
 
   const retreatGuideStep = useCallback(() => {
-    if (guideStep > 0) {
-      setGuideStep((p) => p - 1);
-    }
-  }, [guideStep]);
+    setGuideStep((p) => {
+      const next = Math.max(0, p - 1);
+      guideStepRef.current = next;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (isNew) return;
@@ -2658,6 +2665,15 @@ function ResumeBuilder({
     return () => document.body.classList.remove("cvp-builder-full-preview");
   }, [fabSheet, previewFadeOut]);
 
+  useEffect(() => {
+    if (synthVisible || completionVisible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [synthVisible, completionVisible]);
+
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
 
   const orderedBuilderSectionIdList = useMemo(() => resolveOrderedBuilderSectionIds(resume), [resume]);
@@ -2717,10 +2733,10 @@ function ResumeBuilder({
   }, [expModalHighEffortDirty, finalizeCloseExperienceModal]);
 
   const handleDownload = async (opts = {}) => {
-    if (downloadPhase === "loading") return;
+    if (downloadPhase === "loading" || synthVisible) return;
 
     // Guide mode: show synthesis overlay first
-    if (!opts.skipSynthesisOverlay && fabMode === "guide" && guideStep >= 10) {
+    if (!opts.skipSynthesisOverlay) {
       setSynthVisible(true);
       return;
     }

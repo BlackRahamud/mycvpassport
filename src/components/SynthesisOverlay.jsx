@@ -98,9 +98,11 @@ export default function SynthesisOverlay({
         zIndex: 600,
         background: "rgba(0,0,0,0.85)",
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "center",
-        padding: 16,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        padding: "40px 16px 64px",
         boxSizing: "border-box",
       }}
     >
