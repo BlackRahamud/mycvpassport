@@ -25,6 +25,7 @@ import ATSScanner from "../components/ATSScanner";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { hasFeatureAccess } from "../utils/paywall";
+import SynthesisOverlay from "../components/SynthesisOverlay";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
@@ -2201,6 +2202,7 @@ function ResumeBuilder({
   const [tabTransitioning, setTabTransitioning] = useState(false);
   const [transitingToTab, setTransitingToTab] = useState(null);
   const [navigationSource, setNavigationSource] = useState(null);
+  const [synthVisible, setSynthVisible] = useState(false);
   const [scanStatus, setScanStatus] = useState("idle");
   const TOLL_PLAZA_MESSAGES = {
     templates: "Choosing the best layout...",
@@ -2209,20 +2211,19 @@ function ResumeBuilder({
     coverletter: "Drafting your pitch...",
   };
 
-  const onNavigateToTab = useCallback(
-    (tab) => {
-      if (tabTransitioning) return;
-      setTransitingToTab(tab);
-      setTabTransitioning(true);
-      setNavigationSource(GUIDE_STEPS[guideStep]?.navigationSource ?? null);
-      setTimeout(() => {
-        setBuilderTab(tab);
-        setTabTransitioning(false);
-        setTransitingToTab(null);
-      }, 800);
-    },
-    [tabTransitioning, guideStep]
-  );
+  const onNavigateToTab = useCallback((tab) => {
+    setTabTransitioning((prev) => {
+      if (prev) return prev;
+      return true;
+    });
+    setTransitingToTab(tab);
+    setNavigationSource(`guide_step`);
+    setTimeout(() => {
+      setBuilderTab(tab);
+      setTabTransitioning(false);
+      setTransitingToTab(null);
+    }, 800);
+  }, []);
   const openAtsChecker = useCallback(() => {
     setCvJourney((j) => (j.atsChecked ? j : { ...j, atsChecked: true }));
     navigate("/ats");
@@ -2390,6 +2391,14 @@ function ResumeBuilder({
   useEffect(() => {
     if (technicalSkillsHasAnyChip({ technicalSkills: resume.technicalSkills })) setTechnicalSkillsFromPrompt(false);
   }, [resume.technicalSkills]);
+
+  useEffect(() => {
+    if (fabMode !== "guide") return;
+    if (guideStep !== 6) return;
+    if (!selectedTemplate) return;
+    advanceGuideStep();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- advance when template id changes at templates guide step only
+  }, [selectedTemplate?.id]);
 
   useEffect(() => {
     if (experienceEditor == null) {
@@ -2704,8 +2713,15 @@ function ResumeBuilder({
     finalizeCloseExperienceModal();
   }, [expModalHighEffortDirty, finalizeCloseExperienceModal]);
 
-  const handleDownload = async () => {
+  const handleDownload = async (opts = {}) => {
     if (downloadPhase === "loading") return;
+
+    // Guide mode: show synthesis overlay first
+    if (!opts.skipSynthesisOverlay && fabMode === "guide" && guideStep >= 10) {
+      setSynthVisible(true);
+      return;
+    }
+
     if (isMobile && fabRef.current?.runAtsDownloadGatekeeper) {
       const gate = await fabRef.current.runAtsDownloadGatekeeper();
       if (!gate?.canDownload) return;
@@ -2752,7 +2768,9 @@ function ResumeBuilder({
       onApplyTemplate={setSelectedTemplate}
       onApplyTemplateAndGoToContent={(tpl) => {
         setSelectedTemplate(tpl);
-        setBuilderTab("content");
+        if (fabMode !== "guide") {
+          setBuilderTab("content");
+        }
         setTemplatePickPending(null);
         setTemplateConfirmOpen(false);
         setTemplateSessionApplyCount((c) => c + 1);
@@ -5356,6 +5374,19 @@ function ResumeBuilder({
           </div>
         </div>
       ) : null}
+
+      <SynthesisOverlay
+        visible={synthVisible}
+        resume={resume}
+        selectedTemplateName={selectedTemplate?.name}
+        scanStatus={scanStatus}
+        atsScore={score}
+        onComplete={() => {
+          setSynthVisible(false);
+          void handleDownload({ skipSynthesisOverlay: true });
+          finishGuide();
+        }}
+      />
     </div>
   );
 }

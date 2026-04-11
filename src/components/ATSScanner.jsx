@@ -263,15 +263,19 @@ function ScoreRing({ score, size = 108 }) {
   const offset = circ * (1 - progress);
 
   useEffect(() => {
-    const duration = 1200;
-    const start = performance.now();
-    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
-    function tick(now) {
-      const t = Math.min((now - start) / duration, 1);
-      setDisplay(Math.round(easeOut(t) * score));
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
+    if (!score || score === 0) return;
+    const delay = setTimeout(() => {
+      const duration = 1200;
+      const start = performance.now();
+      function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+      function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        setDisplay(Math.round(easeOut(t) * score));
+        if (t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }, 900);
+    return () => clearTimeout(delay);
   }, [score]);
 
   return (

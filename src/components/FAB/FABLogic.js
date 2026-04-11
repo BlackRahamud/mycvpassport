@@ -398,7 +398,7 @@ export async function getDownloadGatekeeperData() {
 
     let isPro = false;
     let planTier = null;
-    const wide = await supabase.from("profiles").select("is_pro, plan_tier, plan").eq("id", user.id).maybeSingle();
+    const wide = await supabase.from("profiles").select("is_pro,plan_tier,plan").eq("id", user.id).maybeSingle();
     if (!wide.error) {
       isPro = !!wide.data?.is_pro;
       planTier = wide.data?.plan_tier ?? wide.data?.plan ?? null;

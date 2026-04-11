@@ -1806,11 +1806,10 @@ export default function FABSheet({
 
   useEffect(() => {
     if (variant !== "builder" || fabMode !== "guide" || !currentGuideStep) return;
-    if (currentGuideStep.onEnter && onNavigateToTab) {
-      onNavigateToTab(currentGuideStep.onEnter);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run onEnter once per guide step (id), not on every render
-  }, [currentGuideStep?.id]);
+    if (!currentGuideStep.onEnter || !onNavigateToTab) return;
+    onNavigateToTab(currentGuideStep.onEnter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onEnter once per guide step id; onNavigateToTab stable from parent
+  }, [currentGuideStep?.id, variant, fabMode]);
 
   useEffect(() => {
     if (fabMode !== "guide" || !currentGuideStep) return;
