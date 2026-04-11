@@ -28,6 +28,7 @@ import { hasFeatureAccess } from "../utils/paywall";
 import SynthesisOverlay from "../components/SynthesisOverlay";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
+import { invalidateGatekeeperCache } from "../services/gatekeeper";
 import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
 import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
@@ -2744,6 +2745,7 @@ function ResumeBuilder({
         lastActionAt: new Date().toISOString(),
         lastTemplateId: selectedTemplate?.id != null ? `T${selectedTemplate.id}` : null,
       });
+      invalidateGatekeeperCache();
       setDownloadPhase("success");
       if (downloadUiTimerRef.current != null) clearTimeout(downloadUiTimerRef.current);
       downloadUiTimerRef.current = window.setTimeout(() => {

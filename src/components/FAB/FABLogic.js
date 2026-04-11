@@ -1,4 +1,3 @@
-import { supabase } from "../../supabaseClient";
 import {
   isGarbage,
   isPhoneNumber,
@@ -10,6 +9,7 @@ import {
   ACTION_VERBS,
   FAB_VALIDATION,
 } from "./FABValidationData";
+import { getGatekeeperData, invalidateGatekeeperCache } from "../../services/gatekeeper";
 
 export const FAB_MEMORY_KEY = "cvp_fab_memory";
 export const ANON_DOWNLOADS_KEY = "cvp_anon_downloads";
@@ -58,17 +58,6 @@ export const PROGRESS_COACH_FALLBACK = {
 
 function safeLen(s) {
   return String(s ?? "").replace(/\s+/g, " ").trim().length;
-}
-
-function readAnonDownloadCount() {
-  try {
-    if (typeof localStorage === "undefined") return 0;
-    const raw = localStorage.getItem(ANON_DOWNLOADS_KEY);
-    const n = parseInt(raw || "0", 10);
-    return Number.isFinite(n) && n >= 0 ? n : 0;
-  } catch {
-    return 0;
-  }
 }
 
 function parseFabMemory(raw) {
@@ -348,106 +337,14 @@ export function getProgressCoachData(cvData) {
   }
 }
 
-function mapPlanName(isPro, rawTier) {
-  const t = String(rawTier || "").toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
-  if (t === "express_pass") return "Express Pass";
-  if (t === "active_hunter") return "Active Hunter";
-  if (t === "career_pro" || t === "pro" || t === "max_pro") return "Career Pro";
-  if (isPro) return "Career Pro";
-  return "Free";
-}
-
 /**
  * Download limits: paid → unlimited; signed-in free → Supabase `downloads` count (limit 3); anon → localStorage cvp_anon_downloads.
  */
 export async function getDownloadGatekeeperData() {
-  try {
-    if (!supabase) {
-      const used = readAnonDownloadCount();
-      const can = used < FREE_DOWNLOAD_LIMIT;
-      return {
-        canDownload: can,
-        downloadsUsed: used,
-        downloadsLimit: FREE_DOWNLOAD_LIMIT,
-        isPaidUser: false,
-        planName: "Free",
-        isSignedIn: false,
-        blockerReason: can ? null : "not_signed_in",
-      };
-    }
-
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
-    if (userErr) throw userErr;
-
-    if (!user) {
-      const used = readAnonDownloadCount();
-      const can = used < FREE_DOWNLOAD_LIMIT;
-      return {
-        canDownload: can,
-        downloadsUsed: used,
-        downloadsLimit: FREE_DOWNLOAD_LIMIT,
-        isPaidUser: false,
-        planName: "Free",
-        isSignedIn: false,
-        blockerReason: can ? null : "not_signed_in",
-      };
-    }
-
-    let isPro = false;
-    let planTier = null;
-    const wide = await supabase.from("profiles").select("is_pro,plan_tier,plan").eq("id", user.id).maybeSingle();
-    if (!wide.error) {
-      isPro = !!wide.data?.is_pro;
-      planTier = wide.data?.plan_tier ?? wide.data?.plan ?? null;
-    } else {
-      const narrow = await supabase.from("profiles").select("is_pro").eq("id", user.id).maybeSingle();
-      if (narrow.error && narrow.error.code !== "PGRST116") throw narrow.error;
-      isPro = !!narrow.data?.is_pro;
-    }
-
-    const tier = String(planTier || "").toLowerCase().trim();
-    const normTier = tier.replace(/\s+/g, "_").replace(/-/g, "_");
-    const paidNormTiers = new Set(["express_pass", "active_hunter", "career_pro", "pro", "max_pro"]);
-    const tierPaid = tier !== "" && tier !== "free" && paidNormTiers.has(normTier);
-    const isPaidUser = !!isPro || tierPaid;
-    const planName = mapPlanName(isPro, planTier);
-
-    if (isPaidUser) {
-      return {
-        canDownload: true,
-        downloadsUsed: 0,
-        downloadsLimit: Number.POSITIVE_INFINITY,
-        isPaidUser: true,
-        planName,
-        isSignedIn: true,
-        blockerReason: null,
-      };
-    }
-
-    const { count, error: cErr } = await supabase
-      .from("downloads")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
-
-    if (cErr) throw cErr;
-    const downloadsUsed = typeof count === "number" ? count : 0;
-    const canDownload = downloadsUsed < FREE_DOWNLOAD_LIMIT;
-    return {
-      canDownload,
-      downloadsUsed,
-      downloadsLimit: FREE_DOWNLOAD_LIMIT,
-      isPaidUser: false,
-      planName: "Free",
-      isSignedIn: true,
-      blockerReason: canDownload ? null : "limit_reached",
-    };
-  } catch {
-    return { ...GATEKEEPER_FALLBACK };
-  }
+  return getGatekeeperData();
 }
+
+export { invalidateGatekeeperCache };
 
 export function readFabSeen(tabKey) {
   try {
