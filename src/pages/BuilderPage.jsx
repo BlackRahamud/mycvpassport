@@ -2106,7 +2106,7 @@ function ResumeBuilder({
   const [fabMode, setFabMode] = useState(() => {
     if (typeof window === "undefined") return "assistant";
     const params = new URLSearchParams(window.location.search);
-    return params.get("guide") === "true" && localStorage.getItem("hasCompletedGuide") !== "true" ? "guide" : "assistant";
+    return params.get("guide") === "true" && sessionStorage.getItem("hasCompletedGuide") !== "true" ? "guide" : "assistant";
   });
   const [guideStep, setGuideStep] = useState(0);
 
@@ -2195,6 +2195,30 @@ function ResumeBuilder({
   const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
   const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
   const [cvJourney, setCvJourney] = useState({ templateChosen: false, atsChecked: false, coverLetterSeen: false });
+  const [tabTransitioning, setTabTransitioning] = useState(false);
+  const [transitingToTab, setTransitingToTab] = useState(null);
+  const [navigationSource, setNavigationSource] = useState(null);
+  const TOLL_PLAZA_MESSAGES = {
+    templates: "Choosing the best layout...",
+    ats: "Preparing your ATS scan...",
+    jobmatch: "Analyzing market fit...",
+    coverletter: "Drafting your pitch...",
+  };
+
+  const onNavigateToTab = useCallback(
+    (tab) => {
+      if (tabTransitioning) return;
+      setTransitingToTab(tab);
+      setTabTransitioning(true);
+      setNavigationSource(`guide_step`);
+      setTimeout(() => {
+        setBuilderTab(tab);
+        setTabTransitioning(false);
+        setTransitingToTab(null);
+      }, 800);
+    },
+    [tabTransitioning]
+  );
   const openAtsChecker = useCallback(() => {
     setCvJourney((j) => (j.atsChecked ? j : { ...j, atsChecked: true }));
     navigate("/ats");
@@ -2271,7 +2295,7 @@ function ResumeBuilder({
         if (el) el.classList.remove("fab-guide-highlight", "fab-guide-dimmed");
       }
     );
-    localStorage.setItem("hasCompletedGuide", "true");
+    sessionStorage.setItem("hasCompletedGuide", "true");
     setFabMode("assistant");
   }, []);
 
@@ -2284,12 +2308,13 @@ function ResumeBuilder({
   }, [guideStep, finishGuide]);
 
   useEffect(() => {
+    if (isNew) return;
     if (lastSavedSnapshotRef.current == null) {
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
       return;
     }
     setShowUnsavedBanner(JSON.stringify(resume) !== JSON.stringify(lastSavedSnapshotRef.current));
-  }, [resume]);
+  }, [resume, isNew]);
 
   useEffect(() => {
     if (savedAtMs == null) {
@@ -4315,6 +4340,8 @@ function ResumeBuilder({
                 features={profile?.features}
                 isPro={isPro}
                 onPostPaymentCoverLetter={onPostPaymentCoverLetter}
+                onNavigateToTab={onNavigateToTab}
+                navigationSource={navigationSource}
               />
             </div>
           </div>
@@ -4482,6 +4509,45 @@ function ResumeBuilder({
             ) : null}
           </div>
         ) : null}
+
+        {tabTransitioning && transitingToTab && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 500,
+              background: "rgba(10,10,10,0.92)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 16,
+              animation: "fabFadeIn 0.2s ease",
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                border: "2px solid #2A2A2A",
+                borderTop: "2px solid #F59E0B",
+                borderRadius: "50%",
+                animation: "cvpBuilderPdfSpin 0.7s linear infinite",
+              }}
+            />
+            <p
+              style={{
+                fontSize: 14,
+                color: "#F59E0B",
+                fontWeight: 500,
+                margin: 0,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {TOLL_PLAZA_MESSAGES[transitingToTab] || "On our way..."}
+            </p>
+          </div>
+        )}
 
       </div>
 
