@@ -26,6 +26,7 @@ import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { hasFeatureAccess } from "../utils/paywall";
 import SynthesisOverlay from "../components/SynthesisOverlay";
+import CompletionScreen from "../components/CompletionScreen";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { invalidateGatekeeperCache } from "../services/gatekeeper";
@@ -2204,6 +2205,7 @@ function ResumeBuilder({
   const [transitingToTab, setTransitingToTab] = useState(null);
   const [navigationSource, setNavigationSource] = useState(null);
   const [synthVisible, setSynthVisible] = useState(false);
+  const [completionVisible, setCompletionVisible] = useState(false);
   const [scanStatus, setScanStatus] = useState("idle");
   const TOLL_PLAZA_MESSAGES = {
     templates: "Choosing the best layout...",
@@ -2747,6 +2749,7 @@ function ResumeBuilder({
       });
       invalidateGatekeeperCache();
       setDownloadPhase("success");
+      if (!opts.skipSynthesisOverlay) setCompletionVisible(true);
       if (downloadUiTimerRef.current != null) clearTimeout(downloadUiTimerRef.current);
       downloadUiTimerRef.current = window.setTimeout(() => {
         downloadUiTimerRef.current = null;
@@ -5386,6 +5389,16 @@ function ResumeBuilder({
           setSynthVisible(false);
           void handleDownload({ skipSynthesisOverlay: true });
           finishGuide();
+          setCompletionVisible(true);
+        }}
+      />
+      <CompletionScreen
+        visible={completionVisible}
+        atsScore={score}
+        userName={resume?.name}
+        onDashboard={() => {
+          setCompletionVisible(false);
+          onBack?.();
         }}
       />
     </div>
