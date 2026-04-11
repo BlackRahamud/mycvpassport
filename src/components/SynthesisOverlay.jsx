@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { splitCommaItems } from "../cvShared";
 
 export default function SynthesisOverlay({
@@ -9,7 +9,38 @@ export default function SynthesisOverlay({
 }) {
   const [states, setStates] = useState(Array(6).fill("pending"));
   const [downloadReady, setDownloadReady] = useState(false);
-  const [started, setStarted] = useState(false);
+
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
+    const timers = [];
+    for (let i = 0; i < 6; i++) {
+      timers.push(
+        setTimeout(() => {
+          setStates((prev) => {
+            const n = [...prev];
+            n[i] = "checking";
+            return n;
+          });
+        }, i * 850 + 200)
+      );
+      timers.push(
+        setTimeout(() => {
+          setStates((prev) => {
+            const n = [...prev];
+            n[i] = "confirmed";
+            return n;
+          });
+        }, i * 850 + 750)
+      );
+    }
+    timers.push(setTimeout(() => setDownloadReady(true), 6 * 850 + 400));
+    timers.push(setTimeout(() => onCompleteRef.current?.(), 6 * 850 + 900));
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   const userName = resume?.name || "You";
   const expCount = resume?.experience?.length || 0;
@@ -46,38 +77,6 @@ export default function SynthesisOverlay({
     },
     { label: `${templateName} applied`, sub: "Design applied" },
   ];
-
-  useEffect(() => {
-    if (started) return;
-    setStarted(true);
-    setStates(Array(6).fill("pending"));
-    setDownloadReady(false);
-    const timers = [];
-    for (let i = 0; i < 6; i++) {
-      timers.push(
-        setTimeout(() => {
-          setStates((prev) => {
-            const n = [...prev];
-            n[i] = "checking";
-            return n;
-          });
-        }, i * 850 + 200)
-      );
-      timers.push(
-        setTimeout(() => {
-          setStates((prev) => {
-            const n = [...prev];
-            n[i] = "confirmed";
-            return n;
-          });
-        }, i * 850 + 750)
-      );
-    }
-    timers.push(setTimeout(() => setDownloadReady(true), 6 * 850 + 400));
-    timers.push(setTimeout(() => onComplete?.(), 6 * 850 + 900));
-    return () => timers.forEach(clearTimeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sequence runs once per overlay open; onComplete is stable enough for this UX
-  }, [started]);
 
   return (
     <div
