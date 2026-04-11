@@ -480,6 +480,7 @@ export default function ATSScanner({
   isPaidUser = false,
   onUnlock = () => {},
   autoStartScanOnMount = false,
+  onScanComplete,
 }) {
   const [phase, setPhase] = useState("idle");
   const didAutoStart = useRef(false);
@@ -497,6 +498,7 @@ export default function ATSScanner({
 
   function handleScanComplete() {
     setPhase("results");
+    onScanComplete?.();
   }
 
   const isScanning = phase === "scanning";

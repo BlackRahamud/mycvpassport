@@ -811,6 +811,7 @@ export default function FABSheet({
   activeGuideSection: _activeGuideSection = null,
   onNavigateToTab = null,
   navigationSource = null,
+  scanStatus = "idle",
   features = null,
   isPro = false,
   onPostPaymentCoverLetter = null,
@@ -2002,6 +2003,31 @@ export default function FABSheet({
                     {btn.label}
                   </button>
                 )
+              )}
+              {step.id === 8 && scanStatus === "complete" && (
+                <button
+                  type="button"
+                  onClick={() => onGuidedDownload?.()}
+                  style={{
+                    marginTop: 8,
+                    width: "100%",
+                    background: "#FFFFFF",
+                    color: "#000000",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 14px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  ↓ Download CV
+                </button>
               )}
               {guideStep > 0 && (
                 <button

@@ -424,6 +424,7 @@ const FAB = forwardRef(function FAB(
     retreatGuideStep = () => {},
     activeGuideSection = null,
     navigationSource = null,
+    scanStatus = "idle",
     features = null,
     isPro = false,
     onPostPaymentCoverLetter = null,
@@ -1770,6 +1771,7 @@ const FAB = forwardRef(function FAB(
         retreatGuideStep={retreatGuideStep}
         activeGuideSection={activeGuideSection}
         navigationSource={navigationSource}
+        scanStatus={scanStatus}
         guidedPostSummaryStageSyncRef={guidedPostSummaryStageSyncRef}
         fabMode={fabMode}
         guideStep={guideStep}

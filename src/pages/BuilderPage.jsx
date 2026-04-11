@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import JobMatch from "../JobMatch";
+import ATSScanner from "../components/ATSScanner";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { hasFeatureAccess } from "../utils/paywall";
@@ -2200,6 +2201,7 @@ function ResumeBuilder({
   const [tabTransitioning, setTabTransitioning] = useState(false);
   const [transitingToTab, setTransitingToTab] = useState(null);
   const [navigationSource, setNavigationSource] = useState(null);
+  const [scanStatus, setScanStatus] = useState("idle");
   const TOLL_PLAZA_MESSAGES = {
     templates: "Choosing the best layout...",
     ats: "Preparing your ATS scan...",
@@ -2212,14 +2214,14 @@ function ResumeBuilder({
       if (tabTransitioning) return;
       setTransitingToTab(tab);
       setTabTransitioning(true);
-      setNavigationSource(`guide_step`);
+      setNavigationSource(GUIDE_STEPS[guideStep]?.navigationSource ?? null);
       setTimeout(() => {
         setBuilderTab(tab);
         setTabTransitioning(false);
         setTransitingToTab(null);
       }, 800);
     },
-    [tabTransitioning]
+    [tabTransitioning, guideStep]
   );
   const openAtsChecker = useCallback(() => {
     setCvJourney((j) => (j.atsChecked ? j : { ...j, atsChecked: true }));
@@ -2504,6 +2506,7 @@ function ResumeBuilder({
 
   useEffect(() => {
     writeFabMemory({ lastTabVisited: builderTab });
+    if (builderTab !== "ats") setScanStatus("idle");
   }, [builderTab]);
 
   useEffect(
@@ -2925,7 +2928,11 @@ function ResumeBuilder({
                   className="cvp-builder-tabchip"
                   onClick={() => {
                     if (tab === "ats") {
-                      openAtsChecker();
+                      if (fabMode === "guide") {
+                        setBuilderTab("ats");
+                      } else {
+                        openAtsChecker();
+                      }
                       return;
                     }
                     setBuilderTab(tab);
@@ -4206,6 +4213,19 @@ function ResumeBuilder({
               {templatesPanel}
             </div>
           ) : null}
+            {builderTab === "ats" && (
+              <div style={{ padding: "0 12px 12px" }}>
+                <ATSScanner
+                  cvName={resume?.name || "Your CV"}
+                  cvJobTitle={resume?.title || "Professional"}
+                  atsScore={score}
+                  autoStartScanOnMount={navigationSource === "guide_step_8" || scanStatus === "scanning"}
+                  onScanComplete={() => setScanStatus("complete")}
+                  isPaidUser={isPro}
+                  onUnlock={navigateToProAtsPage}
+                />
+              </div>
+            )}
             {builderTab === "jobmatch" && (
               <div style={{ display: "grid", gap: 12, padding: "0 12px 12px" }}>
                 <button
@@ -4368,6 +4388,7 @@ function ResumeBuilder({
                 onPostPaymentCoverLetter={onPostPaymentCoverLetter}
                 onNavigateToTab={onNavigateToTab}
                 navigationSource={navigationSource}
+                scanStatus={scanStatus}
               />
             </div>
           </div>
@@ -4644,7 +4665,11 @@ function ResumeBuilder({
                   type="button"
                   onClick={() => {
                     if (row.id === "ats") {
-                      openAtsChecker();
+                      if (fabMode === "guide") {
+                        setBuilderTab("ats");
+                      } else {
+                        openAtsChecker();
+                      }
                       setMenuDrawerOpen(false);
                       return;
                     }
