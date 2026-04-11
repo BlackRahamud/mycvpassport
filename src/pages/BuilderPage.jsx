@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, useReducer, Fragment } from "react";
-import { flushSync } from "react-dom";
+import { flushSync, createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   AlertCircle,
@@ -2688,12 +2688,18 @@ function ResumeBuilder({
   }, [fabSheet, previewFadeOut]);
 
   useEffect(() => {
-    if (downloadState.status !== 'idle') {
+    const isActive = downloadState.status !== 'idle';
+    if (isActive) {
+      document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
     } else {
+      document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
   }, [downloadState.status]);
 
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
@@ -2938,6 +2944,9 @@ function ResumeBuilder({
           flexDirection: "column",
           alignItems: "stretch",
           padding: 0,
+          opacity: downloadState.status !== 'idle' ? 0 : 1,
+          pointerEvents: downloadState.status !== 'idle' ? 'none' : 'auto',
+          transition: 'opacity 0.3s ease',
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: ".cvp-cv-finder-input::placeholder{color:rgba(255,255,255,.55)}" }} />
@@ -3228,7 +3237,7 @@ function ResumeBuilder({
       >
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
       {!isMobile ? (
-      <div className={`cvp-builder-desktop desktop-preview-panel${builderTab === 'jobmatch' ? ' cvp-jobmatch-active' : ''}${builderTab === 'templates' ? ' cvp-templates-active' : ''}`} style={{ minHeight: 'calc(100vh - 56px)', height: 'auto' }}>
+      <div className={`cvp-builder-desktop desktop-preview-panel${builderTab === 'jobmatch' ? ' cvp-jobmatch-active' : ''}${builderTab === 'templates' ? ' cvp-templates-active' : ''}`} style={{ minHeight: 'calc(100vh - 56px)', height: 'auto', opacity: downloadState.status !== 'idle' ? 0 : 1, pointerEvents: downloadState.status !== 'idle' ? 'none' : 'auto', transition: 'opacity 0.3s ease' }}>
         {/* Left panel — Editor */}
         <aside
           className="cvp-builder-left"
@@ -3776,6 +3785,9 @@ function ResumeBuilder({
           maxWidth: "100%",
           overflowX: "hidden",
           overflowY: "visible",
+          opacity: downloadState.status !== 'idle' ? 0 : 1,
+          pointerEvents: downloadState.status !== 'idle' ? 'none' : 'auto',
+          transition: 'opacity 0.3s ease',
         }}
       >
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
@@ -4290,63 +4302,59 @@ function ResumeBuilder({
               </div>
             )}
             <div className="cvp-builder-mobile-download-row" style={{ padding: "12px 10px 88px", marginTop: "auto" }}>
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={downloadState.status === 'generating'}
-                style={{
-                  width: "calc(100% - 20px)",
-                  margin: "0 10px",
-                  boxSizing: "border-box",
-                  minHeight: 44,
-                  padding: "10px 12px",
-                  borderRadius: 9,
-                  border: downloadState.status === 'generating' ? "1px solid #2A2A2A" : "none",
-                  background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
-                  color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
-                  fontSize: downloadState.status === 'generating' ? 10 : 8.5,
-                  fontWeight: 600,
-                  cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
-                  opacity: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
-                }}
+              <div style={{
+                padding: '1.5px',
+                borderRadius: '14px',
+                background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 30%, rgba(255,255,255,0.75) 50%, #1C1C1C 70%, #1C1C1C 100%)',
+                backgroundSize: '300% 100%',
+                animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2s linear infinite',
+                margin: '0 10px',
+                boxSizing: 'border-box',
+                width: 'calc(100% - 20px)',
+              }}
               >
-                {downloadState.status === 'generating' ? (
-                  <>
-                    <BuilderCvPdfSpinner20 />
-                    <span>Generating your CV...</span>
-                  </>
-                ) : null}
-                {downloadState.status === 'idle' ? (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    <span>Download CV</span>
-                  </>
-                ) : null}
-                {downloadState.status === 'completed' ? (
-                  <>
-                    <span style={{ color: "#22C55E", fontSize: 14, lineHeight: 1 }} aria-hidden>
-                      ✓
-                    </span>
-                    <span>Download CV</span>
-                  </>
-                ) : null}
-                {downloadState.status === 'error' ? (
-                  <>
-                    <span>Download CV</span>
-                    <span style={{ color: "#EF4444", fontSize: 9, fontWeight: 600 }}>Failed, try again</span>
-                  </>
-                ) : null}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  disabled={downloadState.status !== 'idle'}
+                  style={{
+                    width: '100%',
+                    height: '54px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: downloadState.status === 'generating' ? '#1C1C1C' : '#FFFFFF',
+                    color: downloadState.status === 'generating' ? '#FFFFFF' : '#0A0A0A',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    letterSpacing: '-0.01em',
+                    cursor: downloadState.status !== 'idle' ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    fontFamily: 'inherit',
+                    transition: 'transform 0.15s ease, background 0.3s ease',
+                  }}
+                  onMouseEnter={e => { if (downloadState.status === 'idle') e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
+                >
+                  {downloadState.status === 'generating' ? (
+                    <>
+                      <BuilderCvPdfSpinner20 />
+                      <span>Generating your CV...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+                        <rect width="22" height="22" rx="6" fill="#F59E0B"/>
+                        <path d="M11 5L17 11L11 17L5 11Z" fill="#0A0A0A"/>
+                        <path d="M11 8.5L13.5 11L11 13.5L8.5 11Z" fill="#F59E0B"/>
+                      </svg>
+                      <span>Download CV</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
             <div style={{ display: fabSheet === "preview" ? "none" : "block" }}>
               <FAB
@@ -5394,25 +5402,29 @@ function ResumeBuilder({
         </div>
       ) : null}
 
-      <SynthesisOverlay
-        visible={downloadState.status === 'synthesizing'}
-        resume={resume}
-        selectedTemplateName={selectedTemplate?.name}
-        atsScore={score}
-        onComplete={() => {
-          finishGuide();
-          void handleDownload({ skipSynthesis: true });
-        }}
-      />
-      <CompletionScreen
-        visible={downloadState.status === 'completed'}
-        atsScore={score}
-        userName={resume?.name}
-        onDashboard={() => {
-          dispatch({ type: 'RESET' });
-          onBack?.();
-        }}
-      />
+      {downloadState.status === 'synthesizing' && createPortal(
+        <SynthesisOverlay
+          resume={resume}
+          selectedTemplateName={selectedTemplate?.name}
+          atsScore={score}
+          onComplete={() => {
+            finishGuide();
+            void handleDownload({ skipSynthesis: true });
+          }}
+        />,
+        document.body
+      )}
+      {downloadState.status === 'completed' && createPortal(
+        <CompletionScreen
+          atsScore={score}
+          userName={resume?.name}
+          onDashboard={() => {
+            dispatch({ type: 'RESET' });
+            onBack?.();
+          }}
+        />,
+        document.body
+      )}
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { splitCommaItems } from "../cvShared";
 
 export default function SynthesisOverlay({
-  visible,
   resume,
   selectedTemplateName,
   atsScore,
@@ -49,7 +48,7 @@ export default function SynthesisOverlay({
   ];
 
   useEffect(() => {
-    if (!visible || started) return;
+    if (started) return;
     setStarted(true);
     setStates(Array(6).fill("pending"));
     setDownloadReady(false);
@@ -78,17 +77,7 @@ export default function SynthesisOverlay({
     timers.push(setTimeout(() => onComplete?.(), 6 * 850 + 900));
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sequence runs once per overlay open; onComplete is stable enough for this UX
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible) {
-      setStarted(false);
-      setStates(Array(6).fill("pending"));
-      setDownloadReady(false);
-    }
-  }, [visible]);
-
-  if (!visible) return null;
+  }, [started]);
 
   return (
     <div

@@ -1,11 +1,9 @@
 import { useState } from "react";
 
-export default function CompletionScreen({ visible, atsScore, userName, onDashboard }) {
+export default function CompletionScreen({ atsScore, userName, onDashboard }) {
   const [feedback, setFeedback] = useState(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
-
-  if (!visible) return null;
 
   const score = typeof atsScore === 'number' ? atsScore : 0;
   const scoreLabel = score >= 70 ? 'Strong' : score >= 50 ? 'Good' : 'Fair';
