@@ -5381,7 +5381,6 @@ function ResumeBuilder({
         visible={synthVisible}
         resume={resume}
         selectedTemplateName={selectedTemplate?.name}
-        scanStatus={scanStatus}
         atsScore={score}
         onComplete={() => {
           setSynthVisible(false);

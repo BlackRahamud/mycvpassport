@@ -1,107 +1,91 @@
 import { useState, useEffect } from "react";
 import { splitCommaItems } from "../cvShared";
 
-const EASE = "cubic-bezier(0.4,0,0.2,1)";
-
-function AmberTick() {
-  return (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="10" fill="#F59E0B" />
-      <path
-        d="M7 12l4 4 6-6"
-        stroke="#000"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SpinnerDot() {
-  return (
-    <div
-      style={{
-        width: 16,
-        height: 16,
-        border: "2px solid #2A2A2A",
-        borderTop: "2px solid #F59E0B",
-        borderRadius: "50%",
-        animation: "cvpBuilderPdfSpin 0.7s linear infinite",
-        flexShrink: 0,
-      }}
-    />
-  );
-}
-
 export default function SynthesisOverlay({
   visible,
   resume,
   selectedTemplateName,
-  scanStatus,
   atsScore,
   onComplete,
 }) {
-  const [step, setStep] = useState(0);
+  const [states, setStates] = useState(Array(6).fill("pending"));
+  const [downloadReady, setDownloadReady] = useState(false);
+  const [started, setStarted] = useState(false);
 
-  const expCount = Array.isArray(resume?.experience)
-    ? resume.experience.filter(e => e.company || e.role).length
-    : 0;
-  const eduCount = Array.isArray(resume?.education)
-    ? resume.education.filter(e => e.school || e.degree).length
-    : 0;
+  const userName = resume?.name || "You";
+  const expCount = resume?.experience?.length || 0;
+  const edu = resume?.education?.[0];
+  const eduLabel = edu?.school
+    ? `${edu.school}${
+        edu.endDate || edu.year
+          ? ", " + (edu.endDate?.slice(-4) || edu.year || "")
+          : ""
+      }`
+    : "Education added";
   const skillsCount = splitCommaItems(resume?.skills || "").length;
+  const score = typeof atsScore === "number" ? atsScore : 0;
+  const scoreLabel =
+    score >= 70 ? "Strong match" : score >= 50 ? "Good match" : "Fair match";
+  const templateName = selectedTemplateName || "Default";
 
   const items = [
+    { label: userName, sub: "Identity confirmed" },
     {
-      text: `${resume?.name || "Your info"} — Personal info verified`,
+      label: expCount === 1 ? "1 role added" : `${expCount} roles added`,
+      sub: "Work history structured",
+    },
+    { label: eduLabel, sub: "Qualifications formatted" },
+    {
+      label: `${skillsCount} skills — ATS optimised`,
+      sub: "Keywords matched to job signals",
     },
     {
-      text: expCount > 0
-        ? `${expCount} Experience ${expCount === 1 ? "entry" : "entries"} formatted`
-        : "Experience section formatted",
+      label: "ATS Score",
+      sub: scoreLabel,
+      score,
+      badge: score >= 70 ? "Strong" : score >= 50 ? "Good" : "Fair",
     },
-    {
-      text: eduCount > 0
-        ? `${eduCount} Education ${eduCount === 1 ? "entry" : "entries"} added`
-        : "Education section added",
-    },
-    {
-      text: skillsCount > 0
-        ? `${skillsCount} Skills optimized for ATS`
-        : "Skills section optimized",
-    },
-    {
-      text: scanStatus === "complete" && atsScore
-        ? `ATS Score: ${atsScore} — Strong ✦`
-        : "ATS patterns applied",
-    },
-    {
-      text: selectedTemplateName
-        ? `Template: ${selectedTemplateName} applied`
-        : "Template applied",
-    },
+    { label: `${templateName} applied`, sub: "Design applied" },
   ];
 
   useEffect(() => {
-    if (!visible) {
-      setStep(0);
-      return;
-    }
-    setStep(0);
+    if (!visible || started) return;
+    setStarted(true);
+    setStates(Array(6).fill("pending"));
+    setDownloadReady(false);
     const timers = [];
-    items.forEach((_, i) => {
+    for (let i = 0; i < 6; i++) {
       timers.push(
-        setTimeout(() => setStep(i + 1), 400 + i * 400)
+        setTimeout(() => {
+          setStates((prev) => {
+            const n = [...prev];
+            n[i] = "checking";
+            return n;
+          });
+        }, i * 850 + 200)
       );
-    });
-    timers.push(
-      setTimeout(() => {
-        onComplete?.();
-      }, 400 + items.length * 400 + 600)
-    );
+      timers.push(
+        setTimeout(() => {
+          setStates((prev) => {
+            const n = [...prev];
+            n[i] = "confirmed";
+            return n;
+          });
+        }, i * 850 + 750)
+      );
+    }
+    timers.push(setTimeout(() => setDownloadReady(true), 6 * 850 + 400));
+    timers.push(setTimeout(() => onComplete?.(), 6 * 850 + 900));
     return () => timers.forEach(clearTimeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- timed sequence when overlay opens; items/onComplete intentionally snapshot
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sequence runs once per overlay open; onComplete is stable enough for this UX
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      setStarted(false);
+      setStates(Array(6).fill("pending"));
+      setDownloadReady(false);
+    }
   }, [visible]);
 
   if (!visible) return null;
@@ -112,82 +96,226 @@ export default function SynthesisOverlay({
         position: "fixed",
         inset: 0,
         zIndex: 600,
-        background: "rgba(10,10,10,0.97)",
+        background: "rgba(0,0,0,0.85)",
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "32px 24px",
+        padding: 16,
         boxSizing: "border-box",
-        animation: "fabFadeIn 0.3s ease",
       }}
     >
+      <style>{`
+        @keyframes travel-light {
+          0% { background-position: 200% center; }
+          100% { background-position: -200% center; }
+        }
+        @keyframes synth-check-draw {
+          from { stroke-dashoffset: 20; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes synth-pulse {
+          0%,100% { border-color: rgba(245,158,11,0.3); }
+          50% { border-color: rgba(245,158,11,0.9); }
+        }
+        @keyframes synth-fade-up {
+          from { opacity:0; transform:translateY(6px); }
+          to { opacity:1; transform:translateY(0); }
+        }
+      `}</style>
       <div
         style={{
+          padding: "1.5px",
+          borderRadius: 20,
+          maxWidth: 400,
           width: "100%",
-          maxWidth: 320,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          background:
+            "linear-gradient(90deg,#1C1C1C 0%,#1C1C1C 35%,rgba(255,255,255,0.4) 50%,#1C1C1C 65%,#1C1C1C 100%)",
+          backgroundSize: "300% 100%",
+          animation: "travel-light 2.5s linear infinite",
         }}
       >
-        <p
+        <div
           style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: "#F59E0B",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            margin: "0 0 20px",
-            textAlign: "center",
+            background: "#111111",
+            borderRadius: 18,
+            padding: "1.5rem 1.25rem",
           }}
         >
-          Compiling your CVPassport...
-        </p>
-
-        {items.map((item, i) => {
-          const done = step > i;
-          const active = step === i;
-          return (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                opacity: done || active ? 1 : 0.25,
-                transition: `opacity 300ms ${EASE}`,
-              }}
-            >
-              {done ? <AmberTick /> : <SpinnerDot />}
-              <span
-                style={{
-                  fontSize: 13,
-                  color: done ? "#FFFFFF" : "#A0A0A0",
-                  fontWeight: done ? 500 : 400,
-                  transition: `color 300ms ${EASE}`,
-                }}
-              >
-                {item.text}
-              </span>
-            </div>
-          );
-        })}
-
-        {step >= items.length && (
           <div
             style={{
-              marginTop: 20,
-              textAlign: "center",
-              fontSize: 14,
-              color: "#F59E0B",
-              fontWeight: 600,
-              animation: "fabFadeIn 0.3s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              marginBottom: "1.25rem",
             }}
           >
-            ↓ Downloading your CV...
+            <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+              <rect width="22" height="22" rx="6" fill="#F59E0B" />
+              <path d="M11 5L17 11L11 17L5 11Z" fill="#0A0A0A" />
+              <path d="M11 8.5L13.5 11L11 13.5L8.5 11Z" fill="#F59E0B" />
+            </svg>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: "#F59E0B",
+                letterSpacing: "0.1em",
+              }}
+            >
+              CVPASSPORT
+            </span>
           </div>
-        )}
+
+          <div style={{ marginBottom: "1.25rem" }}>
+            <p
+              style={{
+                margin: "0 0 2px",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "rgba(255,255,255,0.4)",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+              }}
+            >
+              Verifying your
+            </p>
+            <p style={{ margin: 0, fontSize: 22, fontWeight: 500, color: "#FFFFFF" }}>
+              CV<span style={{ color: "#F59E0B" }}>…</span>
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {items.map((item, i) => {
+              const state = states[i];
+              const confirmed = state === "confirmed";
+              const checking = state === "checking";
+              return (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "10px 0",
+                    borderBottom:
+                      i < items.length - 1 ? "0.5px solid rgba(255,255,255,0.07)" : "none",
+                    animation:
+                      state !== "pending" ? "synth-fade-up 0.3s ease-out" : "none",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: confirmed
+                        ? "1.5px solid #22C55E"
+                        : checking
+                          ? "1.5px solid rgba(245,158,11,0.7)"
+                          : "1.5px solid rgba(255,255,255,0.15)",
+                      background: confirmed ? "rgba(34,197,94,0.08)" : "transparent",
+                      animation: checking ? "synth-pulse 0.6s ease-in-out infinite" : "none",
+                      transition: "border-color 0.3s ease, background 0.3s ease",
+                    }}
+                  >
+                    {confirmed && (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path
+                          d="M2.5 7L5.5 10L11.5 4"
+                          stroke="#22C55E"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeDasharray="12"
+                          strokeDashoffset="0"
+                          style={{ animation: "synth-check-draw 0.3s ease-out both" }}
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 14,
+                          fontWeight: 500,
+                          color:
+                            state === "pending" ? "rgba(255,255,255,0.3)" : "#FFFFFF",
+                          transition: "color 0.3s ease",
+                        }}
+                      >
+                        {item.label}
+                      </p>
+                      {item.score != null && confirmed && (
+                        <span style={{ fontSize: 16, fontWeight: 600, color: "#F59E0B" }}>
+                          {item.score}
+                        </span>
+                      )}
+                      {item.badge && confirmed && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: "#F59E0B",
+                            border: "0.5px solid rgba(245,158,11,0.4)",
+                            borderRadius: 20,
+                            padding: "2px 8px",
+                            fontWeight: 500,
+                          }}
+                        >
+                          ✦ {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 11,
+                        color:
+                          state === "pending"
+                            ? "rgba(255,255,255,0.15)"
+                            : "#F59E0B",
+                        fontFamily: "monospace",
+                        transition: "color 0.3s ease",
+                      }}
+                    >
+                      {item.sub}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {downloadReady && (
+            <div
+              style={{
+                marginTop: "1rem",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                animation: "synth-fade-up 0.4s ease-out",
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "#F59E0B",
+                  flexShrink: 0,
+                }}
+              />
+              <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
+                Preparing your download…
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
