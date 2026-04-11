@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, Fragment } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, useReducer, Fragment } from "react";
 import { flushSync } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -2093,6 +2093,30 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
   );
 }
 
+const initialDownloadState = {
+  status: 'idle',
+  error: null,
+};
+
+function downloadReducer(state, action) {
+  switch (action.type) {
+    case 'START_SYNTHESIS':
+      if (state.status !== 'idle') return state;
+      return { status: 'synthesizing', error: null };
+    case 'BEGIN_GENERATION':
+      if (state.status !== 'synthesizing') return state;
+      return { ...state, status: 'generating' };
+    case 'FINISH_SUCCESS':
+      return { status: 'completed', error: null };
+    case 'FAIL':
+      return { status: 'error', error: action.payload };
+    case 'RESET':
+      return initialDownloadState;
+    default:
+      return state;
+  }
+}
+
 function ResumeBuilder({
   user,
   onBack,
@@ -2123,7 +2147,7 @@ function ResumeBuilder({
   }, []);
 
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
-  const [downloadPhase, setDownloadPhase] = useState("idle");
+  const [downloadState, dispatch] = useReducer(downloadReducer, initialDownloadState);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(initialResumeId || null);
@@ -2205,8 +2229,6 @@ function ResumeBuilder({
   const [tabTransitioning, setTabTransitioning] = useState(false);
   const [transitingToTab, setTransitingToTab] = useState(null);
   const [navigationSource, setNavigationSource] = useState(null);
-  const [synthVisible, setSynthVisible] = useState(false);
-  const [completionVisible, setCompletionVisible] = useState(false);
   const [scanStatus, setScanStatus] = useState("idle");
   const TOLL_PLAZA_MESSAGES = {
     templates: "Choosing the best layout...",
@@ -2666,13 +2688,13 @@ function ResumeBuilder({
   }, [fabSheet, previewFadeOut]);
 
   useEffect(() => {
-    if (synthVisible || completionVisible) {
-      document.body.style.overflow = "hidden";
+    if (downloadState.status !== 'idle') {
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ""; };
-  }, [synthVisible, completionVisible]);
+    return () => { document.body.style.overflow = ''; };
+  }, [downloadState.status]);
 
   const set = (k, v) => setResume(r => ({ ...r, [k]: v }));
 
@@ -2733,53 +2755,31 @@ function ResumeBuilder({
   }, [expModalHighEffortDirty, finalizeCloseExperienceModal]);
 
   const handleDownload = async (opts = {}) => {
-    if (downloadPhase === "loading" || synthVisible) return;
-
-    // Guide mode: show synthesis overlay first
-    if (!opts.skipSynthesisOverlay) {
-      setSynthVisible(true);
+    if (opts.skipSynthesis) {
+      dispatch({ type: 'BEGIN_GENERATION' });
+      try {
+        if (user?.id) {
+          try { await handleSave(); } catch (e) { console.warn('Save failed, continuing download', e); }
+        }
+        await new Promise((r) => setTimeout(r, 500));
+        const el = isMobile ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
+        if (!el) throw new Error('Preview not ready');
+        await downloadResumeFromPreview(resume, el, { maxPages: pdfTargetPages });
+        writeFabMemory({
+          lastAction: 'downloaded',
+          lastActionAt: new Date().toISOString(),
+          lastTemplateId: selectedTemplate?.id != null ? `T${selectedTemplate.id}` : null,
+        });
+        invalidateGatekeeperCache();
+        dispatch({ type: 'FINISH_SUCCESS' });
+      } catch (e) {
+        console.error(e);
+        dispatch({ type: 'FAIL', payload: e.message });
+        setTimeout(() => dispatch({ type: 'RESET' }), 3000);
+      }
       return;
     }
-
-    if (isMobile && fabRef.current?.runAtsDownloadGatekeeper) {
-      const gate = await fabRef.current.runAtsDownloadGatekeeper();
-      if (!gate?.canDownload) return;
-    }
-    if (downloadUiTimerRef.current != null) {
-      clearTimeout(downloadUiTimerRef.current);
-      downloadUiTimerRef.current = null;
-    }
-    setDownloadPhase("loading");
-    const spinMs = 2000 + Math.floor(Math.random() * 1001);
-    try {
-      await new Promise((r) => setTimeout(r, spinMs));
-      if (user?.id) await handleSave();
-      await new Promise((r) => setTimeout(r, 500));
-      const el = isMobile ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
-      if (!el) throw new Error("Preview not ready");
-      await downloadResumeFromPreview(resume, el, { maxPages: pdfTargetPages });
-      writeFabMemory({
-        lastAction: "downloaded",
-        lastActionAt: new Date().toISOString(),
-        lastTemplateId: selectedTemplate?.id != null ? `T${selectedTemplate.id}` : null,
-      });
-      invalidateGatekeeperCache();
-      setDownloadPhase("success");
-      if (!opts.skipSynthesisOverlay) setCompletionVisible(true);
-      if (downloadUiTimerRef.current != null) clearTimeout(downloadUiTimerRef.current);
-      downloadUiTimerRef.current = window.setTimeout(() => {
-        downloadUiTimerRef.current = null;
-        setDownloadPhase("idle");
-      }, 2000);
-    } catch (e) {
-      console.error(e);
-      setDownloadPhase("error");
-      if (downloadUiTimerRef.current != null) clearTimeout(downloadUiTimerRef.current);
-      downloadUiTimerRef.current = window.setTimeout(() => {
-        downloadUiTimerRef.current = null;
-        setDownloadPhase("idle");
-      }, 3000);
-    }
+    dispatch({ type: 'START_SYNTHESIS' });
   };
 
   const templatesPanel = (
@@ -2883,8 +2883,6 @@ function ResumeBuilder({
 
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
-
-  const downloadLoading = downloadPhase === "loading";
 
   const builderExtraSectionIds = resume.builderExtraSectionIds || [];
   const allOptionalSectionsAdded = OPTIONAL_BUILDER_SECTIONS.every((s) => builderExtraSectionIds.includes(s.id));
@@ -3061,17 +3059,17 @@ function ResumeBuilder({
               <button
                 type="button"
                 onClick={handleDownload}
-                disabled={downloadLoading}
+                disabled={downloadState.status === 'generating'}
                 className="cvp-builder-topbar-download"
                 style={{
                   padding: "10px 16px",
                   borderRadius: 8,
-                  border: downloadLoading ? "1px solid #2A2A2A" : "none",
-                  background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
-                  color: downloadLoading ? "#FFFFFF" : "#000000",
+                  border: downloadState.status === 'generating' ? "1px solid #2A2A2A" : "none",
+                  background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
+                  color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
                   fontSize: 14,
                   fontWeight: 600,
-                  cursor: downloadLoading ? "not-allowed" : "pointer",
+                  cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
                   transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
                   display: "inline-flex",
                   alignItems: "center",
@@ -3079,20 +3077,20 @@ function ResumeBuilder({
                   minWidth: 0,
                 }}
                 onMouseEnter={(e) => {
-                  if (!downloadLoading) e.currentTarget.style.opacity = "0.9";
+                  if (downloadState.status !== 'generating') e.currentTarget.style.opacity = "0.9";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.opacity = "1";
                 }}
               >
-                {downloadLoading ? (
+                {downloadState.status === 'generating' ? (
                   <>
                     <BuilderCvPdfSpinner20 />
                     <span>Generating your CV...</span>
                   </>
                 ) : null}
-                {downloadPhase === "idle" ? <span>Download CV</span> : null}
-                {downloadPhase === "success" ? (
+                {downloadState.status === 'idle' ? <span>Download CV</span> : null}
+                {downloadState.status === 'completed' ? (
                   <>
                     <span style={{ color: "#22C55E", fontSize: 16, lineHeight: 1 }} aria-hidden>
                       ✓
@@ -3100,14 +3098,14 @@ function ResumeBuilder({
                     <span>Download CV</span>
                   </>
                 ) : null}
-                {downloadPhase === "error" ? (
+                {downloadState.status === 'error' ? (
                   <>
                     <span>Download CV</span>
                     <span style={{ color: "#EF4444", fontSize: 12, fontWeight: 600 }}>Failed, try again</span>
                   </>
                 ) : null}
               </button>
-              {downloadLoading ? (
+              {downloadState.status === 'generating' ? (
                 <p style={{ fontSize: "12px", color: "#A0A0A0", textAlign: "center", marginTop: "8px" }}>
                   Optimizing for Gulf/Indian ATS standards... almost there
                 </p>
@@ -3448,16 +3446,16 @@ function ResumeBuilder({
                   <button
                     type="button"
                     onClick={handleDownload}
-                    disabled={downloadLoading}
+                    disabled={downloadState.status === 'generating'}
                     style={{
                       padding: "10px 14px",
                       borderRadius: 8,
                       border: "none",
-                      background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
-                      color: downloadLoading ? "#FFFFFF" : "#000000",
+                      background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
+                      color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
                       fontSize: 14,
                       fontWeight: 600,
-                      cursor: downloadLoading ? "not-allowed" : "pointer",
+                      cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
                       transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
                     }}
                   >
@@ -3987,16 +3985,16 @@ function ResumeBuilder({
                     <button
                       type="button"
                       onClick={handleDownload}
-                      disabled={downloadLoading}
+                      disabled={downloadState.status === 'generating'}
                       style={{
                         padding: "10px 14px",
                         borderRadius: 8,
                         border: "none",
-                        background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
-                        color: downloadLoading ? "#FFFFFF" : "#000000",
+                        background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
+                        color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
                         fontSize: 14,
                         fontWeight: 600,
-                        cursor: downloadLoading ? "not-allowed" : "pointer",
+                        cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
                         transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
                       }}
                     >
@@ -4295,7 +4293,7 @@ function ResumeBuilder({
               <button
                 type="button"
                 onClick={handleDownload}
-                disabled={downloadLoading}
+                disabled={downloadState.status === 'generating'}
                 style={{
                   width: "calc(100% - 20px)",
                   margin: "0 10px",
@@ -4303,12 +4301,12 @@ function ResumeBuilder({
                   minHeight: 44,
                   padding: "10px 12px",
                   borderRadius: 9,
-                  border: downloadLoading ? "1px solid #2A2A2A" : "none",
-                  background: downloadLoading ? "#1C1C1C" : "#FFFFFF",
-                  color: downloadLoading ? "#FFFFFF" : "#000000",
-                  fontSize: downloadLoading ? 10 : 8.5,
+                  border: downloadState.status === 'generating' ? "1px solid #2A2A2A" : "none",
+                  background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
+                  color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
+                  fontSize: downloadState.status === 'generating' ? 10 : 8.5,
                   fontWeight: 600,
-                  cursor: downloadLoading ? "not-allowed" : "pointer",
+                  cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
                   opacity: 1,
                   display: "flex",
                   alignItems: "center",
@@ -4318,13 +4316,13 @@ function ResumeBuilder({
                   transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
                 }}
               >
-                {downloadLoading ? (
+                {downloadState.status === 'generating' ? (
                   <>
                     <BuilderCvPdfSpinner20 />
                     <span>Generating your CV...</span>
                   </>
                 ) : null}
-                {downloadPhase === "idle" ? (
+                {downloadState.status === 'idle' ? (
                   <>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -4334,7 +4332,7 @@ function ResumeBuilder({
                     <span>Download CV</span>
                   </>
                 ) : null}
-                {downloadPhase === "success" ? (
+                {downloadState.status === 'completed' ? (
                   <>
                     <span style={{ color: "#22C55E", fontSize: 14, lineHeight: 1 }} aria-hidden>
                       ✓
@@ -4342,7 +4340,7 @@ function ResumeBuilder({
                     <span>Download CV</span>
                   </>
                 ) : null}
-                {downloadPhase === "error" ? (
+                {downloadState.status === 'error' ? (
                   <>
                     <span>Download CV</span>
                     <span style={{ color: "#EF4444", fontSize: 9, fontWeight: 600 }}>Failed, try again</span>
@@ -4791,7 +4789,7 @@ function ResumeBuilder({
             </button>
             <button
               type="button"
-              disabled={downloadLoading}
+              disabled={downloadState.status === 'generating'}
               onClick={() => {
                 setMenuDrawerOpen(false);
                 handleDownload();
@@ -4806,24 +4804,24 @@ function ResumeBuilder({
                 marginBottom: 8,
                 padding: "10px 9px",
                 borderRadius: 8,
-                border: downloadLoading ? "1px solid #2A2A2A" : "none",
-                background: downloadLoading ? "#1C1C1C" : "#fff",
-                color: downloadLoading ? "#fff" : "#000",
+                border: downloadState.status === 'generating' ? "1px solid #2A2A2A" : "none",
+                background: downloadState.status === 'generating' ? "#1C1C1C" : "#fff",
+                color: downloadState.status === 'generating' ? "#fff" : "#000",
                 fontSize: 12,
                 fontWeight: 500,
-                cursor: downloadLoading ? "not-allowed" : "pointer",
+                cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
                 transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
               }}
             >
-              {downloadLoading ? <BuilderCvPdfSpinner20 /> : null}
-              {downloadLoading ? null : (
+              {downloadState.status === 'generating' ? <BuilderCvPdfSpinner20 /> : null}
+              {downloadState.status === 'generating' ? null : (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
               )}
-              {downloadLoading ? "Generating your CV..." : "Download CV"}
+              {downloadState.status === 'generating' ? "Generating your CV..." : "Download CV"}
             </button>
             <div style={{ flex: 1, minHeight: 8 }} aria-hidden />
             <div style={{ paddingTop: 4 }}>
@@ -5397,23 +5395,21 @@ function ResumeBuilder({
       ) : null}
 
       <SynthesisOverlay
-        visible={synthVisible}
+        visible={downloadState.status === 'synthesizing'}
         resume={resume}
         selectedTemplateName={selectedTemplate?.name}
         atsScore={score}
         onComplete={() => {
-          setSynthVisible(false);
-          void handleDownload({ skipSynthesisOverlay: true });
           finishGuide();
-          setCompletionVisible(true);
+          void handleDownload({ skipSynthesis: true });
         }}
       />
       <CompletionScreen
-        visible={completionVisible}
+        visible={downloadState.status === 'completed'}
         atsScore={score}
         userName={resume?.name}
         onDashboard={() => {
-          setCompletionVisible(false);
+          dispatch({ type: 'RESET' });
           onBack?.();
         }}
       />
