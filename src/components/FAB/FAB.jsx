@@ -420,6 +420,8 @@ const FAB = forwardRef(function FAB(
     onGuidedSwitchToTemplatesTab = null,
     /** Builder: ATS checker route (guided flow “ATS tab”) */
     onGuidedSwitchToAtsTab = null,
+    onNavigateToTab = null,
+    navigationSource = null,
     features = null,
     isPro = false,
     onPostPaymentCoverLetter = null,
@@ -1455,7 +1457,8 @@ const FAB = forwardRef(function FAB(
     setIsTipVisible(true);
   }, [activeSection]);
 
-  if (!mobile || !config || hidden) return null;
+  if (!mobile || hidden) return null;
+  if (!config && fabMode !== "guide") return null;
 
   if (isStandby) return (
     <AnimatePresence>
@@ -1761,6 +1764,8 @@ const FAB = forwardRef(function FAB(
         onGuidedOpenPreview={onGuidedOpenPreview}
         onGuidedSwitchToTemplatesTab={onGuidedSwitchToTemplatesTab}
         onGuidedSwitchToAtsTab={onGuidedSwitchToAtsTab}
+        onNavigateToTab={onNavigateToTab}
+        navigationSource={navigationSource}
         guidedPostSummaryStageSyncRef={guidedPostSummaryStageSyncRef}
         fabMode={fabMode}
         guideStep={guideStep}
