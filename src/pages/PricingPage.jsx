@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import { getPaymentLink } from "../utils/paywall";
 
 const PLAN_MAP = {
   explorer: "FREE",
@@ -81,7 +82,6 @@ export default function PricingPage() {
       description: "One-time payment, lifetime access",
       cta: "Buy Now",
       ctaAction: "express",
-      envKey: "REACT_APP_LS_EXPRESS_PASS_URL",
       features: [
         { text: "All templates", included: true },
         { text: "ATS Checker (full)", included: true },
@@ -104,7 +104,6 @@ export default function PricingPage() {
       description: "Best for active job seekers",
       cta: "Start Hunting",
       ctaAction: "hunter",
-      envKey: "REACT_APP_LS_ACTIVE_HUNTER_URL",
       features: [
         { text: "All templates", included: true },
         { text: "ATS Checker Pro (AI powered)", included: true },
@@ -127,7 +126,6 @@ export default function PricingPage() {
       description: "Full year, maximum results",
       cta: "Go Annual",
       ctaAction: "pro",
-      envKey: "REACT_APP_LS_CAREER_PRO_URL",
       features: [
         { text: "All templates", included: true },
         { text: "ATS Checker Pro (AI powered)", included: true },
@@ -148,16 +146,16 @@ export default function PricingPage() {
       navigate("/dashboard");
       return;
     }
-    const urls = {
-      express: process.env.REACT_APP_LS_EXPRESS_PASS_URL,
-      hunter: process.env.REACT_APP_LS_ACTIVE_HUNTER_URL,
-      pro: process.env.REACT_APP_LS_CAREER_PRO_URL,
-    };
-    const url = urls[plan.ctaAction];
-    if (url) {
-      window.open(url, "_blank");
-    } else {
-      alert("Payment coming soon. Check back shortly.");
+    if (plan.ctaAction === "express") {
+      window.open(getPaymentLink("expressPass"), "_blank");
+      return;
+    }
+    if (plan.ctaAction === "hunter") {
+      window.open(getPaymentLink("activeHunter"), "_blank");
+      return;
+    }
+    if (plan.ctaAction === "pro") {
+      window.open(getPaymentLink("careerPro"), "_blank");
     }
   };
 
