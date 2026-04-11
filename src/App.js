@@ -101,13 +101,6 @@ export default function App() {
     ? `edit-${editingResume.id}`
     : (newSessionId ? `new-${newSessionId}` : "new-default");
 
-  console.log("[KEY DEBUG]", {
-    builderKey,
-    newSessionId,
-    editingResumeId: editingResume?.id,
-    locationSearch: location.search,
-  });
-
   return (
     <Routes>
       <Route path="/pricing" element={<PricingPage />} />

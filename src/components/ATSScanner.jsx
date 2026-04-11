@@ -480,7 +480,8 @@ export default function ATSScanner({
   isPaidUser = false,
   onUnlock = () => {},
   autoStartScanOnMount = false,
-  onScanComplete,
+  onScanComplete = null,
+  inline = false,
 }) {
   const [phase, setPhase] = useState("idle");
   const didAutoStart = useRef(false);
@@ -533,7 +534,12 @@ export default function ATSScanner({
         }
       `}</style>
 
-      <div style={S.root}>
+      <div style={inline ? {
+        ...S.root,
+        minHeight: "auto",
+        padding: "12px 0 48px",
+        background: "transparent",
+      } : S.root}>
         <div style={S.header}>
           <span style={S.logo}>&gt;&gt;&gt; CVPassport</span>
           <span style={S.headerRight}>ATS Scanner</span>

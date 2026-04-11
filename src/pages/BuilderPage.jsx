@@ -4214,15 +4214,16 @@ function ResumeBuilder({
             </div>
           ) : null}
             {builderTab === "ats" && (
-              <div style={{ padding: "0 12px 12px" }}>
+              <div style={{ padding: "0 12px 12px", minHeight: 400 }}>
                 <ATSScanner
                   cvName={resume?.name || "Your CV"}
                   cvJobTitle={resume?.title || "Professional"}
                   atsScore={score}
-                  autoStartScanOnMount={navigationSource === "guide_step_8" || scanStatus === "scanning"}
+                  autoStartScanOnMount={navigationSource === "guide_step_8"}
                   onScanComplete={() => setScanStatus("complete")}
                   isPaidUser={isPro}
                   onUnlock={navigateToProAtsPage}
+                  inline={true}
                 />
               </div>
             )}
