@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import { supabase } from "./supabaseClient";
+import { getGatekeeperData } from "./services/gatekeeper";
 import { detectRole } from "./utils/detectRole";
 import skillSuggestions from "./data/skillSuggestions";
 
@@ -243,6 +244,8 @@ export default function ATSChecker() {
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [isPro, setIsPro] = useState(false);
+  const [gatePlanName, setGatePlanName] = useState("Career Pro");
   const [isMobile, setIsMobile] = useState(
     window.innerWidth < 768
   );
@@ -263,6 +266,17 @@ export default function ATSChecker() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    getGatekeeperData()
+      .then((gate) => {
+        setIsPro(gate.isPaidUser);
+        setGatePlanName(gate.planName || "Career Pro");
+      })
+      .catch(() => {
+        setIsPro(false);
+      });
+  }, []);
+
   // ── Loading: resolve tier for step copy (UI only; does not change analysis) ─
   useEffect(() => {
     if (phase !== "loading") {
@@ -270,25 +284,15 @@ export default function ATSChecker() {
       return;
     }
     setLoadingMeta(null);
-    let cancelled = false;
-    (async () => {
-      if (!user?.id) {
-        if (!cancelled) setLoadingMeta({ isPro: false, planName: "Career Pro" });
-        return;
-      }
-      const { data } = await supabase.from("profiles").select("is_pro, plan, plan_tier").eq("id", user.id).maybeSingle();
-      if (cancelled) return;
-      const nameFromPlan = data?.plan != null && String(data.plan).trim() ? String(data.plan).trim() : null;
-      const fromTier = data?.plan_tier != null ? String(data.plan_tier).replace(/_/g, " ") : null;
-      setLoadingMeta({
-        isPro: !!data?.is_pro,
-        planName: formatPlanDisplayName(nameFromPlan || fromTier || "Career Pro"),
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [phase, user?.id]);
+    if (!user?.id) {
+      setLoadingMeta({ isPro: false, planName: "Career Pro" });
+      return;
+    }
+    setLoadingMeta({
+      isPro,
+      planName: formatPlanDisplayName(gatePlanName || "Career Pro"),
+    });
+  }, [phase, user?.id, isPro, gatePlanName]);
 
   useEffect(() => {
     if (phase !== "loading" || !loadingMeta) return;
@@ -308,20 +312,11 @@ export default function ATSChecker() {
     let raf = requestAnimationFrame(() => {
       requestAnimationFrame(() => setChipsRevealed(true));
     });
-    let cancelled = false;
-    (async () => {
-      if (!user?.id) {
-        if (!cancelled) setIsProResults(false);
-        return;
-      }
-      const { data } = await supabase.from("profiles").select("is_pro").eq("id", user.id).maybeSingle();
-      if (!cancelled) setIsProResults(!!data?.is_pro);
-    })();
+    setIsProResults(!!user?.id && isPro);
     return () => {
-      cancelled = true;
       cancelAnimationFrame(raf);
     };
-  }, [phase, user?.id, results]);
+  }, [phase, user?.id, isPro, results]);
 
   // ── File handling ─────────────────────────────────────────────────────────
   const handleFileSelect = useCallback((file) => {
@@ -342,13 +337,13 @@ export default function ATSChecker() {
     if (!uploadedFile) { setError("Please upload your CV."); return; }
     setError(null);
 
-    let isPro = false;
+    let paidUser = false;
     if (user?.id) {
-      const { data: prof } = await supabase.from("profiles").select("is_pro").eq("id", user.id).maybeSingle();
-      isPro = !!prof?.is_pro;
+      const gate = await getGatekeeperData();
+      paidUser = gate.isPaidUser;
     }
 
-    if (!isPro) {
+    if (!paidUser) {
       try {
         const jd = jobDescription.trim();
         if (!jd) {

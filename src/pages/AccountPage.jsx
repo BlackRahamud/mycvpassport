@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getDownloadGatekeeperData, getCvpPricingCurrencyCode } from "../components/FAB/FABLogic";
-import { supabase } from "../supabaseClient";
+import { getCvpPricingCurrencyCode } from "../components/FAB/FABLogic";
+import { getGatekeeperData } from "../services/gatekeeper";
 import "../components/FAB/FAB.css";
 
 function normTier(raw) {
@@ -55,28 +55,19 @@ export default function AccountPage() {
 
   useEffect(() => {
     let cancel = false;
-    (async () => {
-      const g = await getDownloadGatekeeperData();
-      if (cancel) return;
-      setGate(g);
-      if (!supabase || !g.isSignedIn) {
+    getGatekeeperData()
+      .then((g) => {
+        if (cancel) return;
+        setGate(g);
+        setPlanTier(g.planName ?? null);
+        setProfileIsPro(g.planName === "Career Pro");
+      })
+      .catch(() => {
+        if (cancel) return;
+        setGate({ isPaidUser: false, planName: "Free" });
         setPlanTier(null);
         setProfileIsPro(false);
-        return;
-      }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user?.id) {
-        setPlanTier(null);
-        setProfileIsPro(false);
-        return;
-      }
-      const { data } = await supabase.from("profiles").select("is_pro, plan_tier, plan").eq("id", user.id).maybeSingle();
-      if (cancel) return;
-      setProfileIsPro(!!data?.is_pro);
-      setPlanTier(data?.plan_tier ?? data?.plan ?? null);
-    })();
+      });
     return () => {
       cancel = true;
     };
