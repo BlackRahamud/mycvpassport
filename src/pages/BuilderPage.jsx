@@ -2106,6 +2106,8 @@ function downloadReducer(state, action) {
     case 'BEGIN_GENERATION':
       if (state.status !== 'synthesizing') return state;
       return { ...state, status: 'generating' };
+    case 'SET_EXITING':
+      return { ...state, status: 'exiting' };
     case 'FINISH_SUCCESS':
       return { status: 'completed', error: null };
     case 'FAIL':
@@ -2777,7 +2779,8 @@ function ResumeBuilder({
           lastTemplateId: selectedTemplate?.id != null ? `T${selectedTemplate.id}` : null,
         });
         invalidateGatekeeperCache();
-        dispatch({ type: 'FINISH_SUCCESS' });
+        dispatch({ type: 'SET_EXITING' });
+        setTimeout(() => dispatch({ type: 'FINISH_SUCCESS' }), 260);
       } catch (e) {
         console.error(e);
         dispatch({ type: 'FAIL', payload: e.message });
@@ -5402,11 +5405,12 @@ function ResumeBuilder({
         </div>
       ) : null}
 
-      {downloadState.status === 'synthesizing' && createPortal(
+      {['synthesizing', 'generating', 'exiting'].includes(downloadState.status) && createPortal(
         <SynthesisOverlay
           resume={resume}
           selectedTemplateName={selectedTemplate?.name}
           atsScore={score}
+          isExiting={downloadState.status === 'exiting'}
           onComplete={() => {
             finishGuide();
             void handleDownload({ skipSynthesis: true });

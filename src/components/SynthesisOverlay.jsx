@@ -6,6 +6,7 @@ export default function SynthesisOverlay({
   selectedTemplateName,
   atsScore,
   onComplete,
+  isExiting = false,
 }) {
   const [states, setStates] = useState(Array(6).fill("pending"));
   const [downloadReady, setDownloadReady] = useState(false);
@@ -80,6 +81,7 @@ export default function SynthesisOverlay({
 
   return (
     <div
+      className={isExiting ? "synthesis-exiting" : undefined}
       style={{
         position: "fixed",
         inset: 0,
@@ -95,6 +97,13 @@ export default function SynthesisOverlay({
       }}
     >
       <style>{`
+        @keyframes synthFadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        .synthesis-exiting {
+          animation: synthFadeOut 250ms ease forwards;
+        }
         @keyframes travel-light {
           0% { background-position: 200% center; }
           100% { background-position: -200% center; }
