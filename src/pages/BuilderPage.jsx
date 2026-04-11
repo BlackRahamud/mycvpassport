@@ -458,6 +458,7 @@ function OptionalBuilderAccordionSections({
   variant = "default",
   orderedSectionIds,
   onSectionReorder,
+  activeGuideSection = null,
 }) {
   return OPTIONAL_BUILDER_SECTIONS.filter(filter).map((opt) => (
     <AccordionSection
@@ -471,6 +472,7 @@ function OptionalBuilderAccordionSections({
       icon={opt.id}
       orderedSectionIds={orderedSectionIds}
       onSectionReorder={onSectionReorder ? (dir) => onSectionReorder(opt.id, dir) : undefined}
+      activeGuideSection={activeGuideSection}
     >
       {opt.id === "certifications" ? (
         <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
@@ -3428,6 +3430,7 @@ function ResumeBuilder({
                 icon="summary"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} saveSuccessTick={saveSuccessTick} />
@@ -3443,6 +3446,7 @@ function ResumeBuilder({
                 icon="experience"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
@@ -3479,6 +3483,7 @@ function ResumeBuilder({
                 icon="education"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
@@ -3516,6 +3521,7 @@ function ResumeBuilder({
                 toggleSection={toggleSection}
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               />
 
               <AccordionSection
@@ -3527,6 +3533,7 @@ function ResumeBuilder({
                 icon="skills"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <SkillsEditorSection
                   resume={resume}
@@ -3595,6 +3602,7 @@ function ResumeBuilder({
                   icon="skills"
                   orderedSectionIds={orderedBuilderSectionIdList}
                   onSectionReorder={reorderBuilderSection}
+                  activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
                 >
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                     <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
@@ -3611,6 +3619,7 @@ function ResumeBuilder({
                 icon="languages"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -3638,6 +3647,7 @@ function ResumeBuilder({
                 toggleSection={toggleSection}
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               />
               </div>
 
@@ -3959,6 +3969,7 @@ function ResumeBuilder({
                 icon="summary"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} saveSuccessTick={saveSuccessTick} />
@@ -3975,6 +3986,7 @@ function ResumeBuilder({
                 icon="experience"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
@@ -4012,6 +4024,7 @@ function ResumeBuilder({
                 icon="education"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
@@ -4050,6 +4063,7 @@ function ResumeBuilder({
                 variant="mobileRow"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               />
 
               <AccordionSection
@@ -4062,6 +4076,7 @@ function ResumeBuilder({
                 icon="skills"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <SkillsEditorSection
                   resume={resume}
@@ -4131,6 +4146,7 @@ function ResumeBuilder({
                   icon="skills"
                   orderedSectionIds={orderedBuilderSectionIdList}
                   onSectionReorder={reorderBuilderSection}
+                  activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
                 >
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                     <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
@@ -4148,6 +4164,7 @@ function ResumeBuilder({
                 icon="languages"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -4176,6 +4193,7 @@ function ResumeBuilder({
                 variant="mobileRow"
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
+                activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               />
                 </div>
                 {builderTab === "content" && (
@@ -5364,6 +5382,7 @@ function AccordionSection({
   variant = "default",
   orderedSectionIds,
   onSectionReorder,
+  activeGuideSection = null,
 }) {
   const ease = "cubic-bezier(0.4,0,0.2,1)";
   const idx = orderedSectionIds ? orderedSectionIds.indexOf(id) : -1;
@@ -5476,16 +5495,22 @@ function AccordionSection({
               onToggle();
             }}
             style={{
-              backgroundColor: "#FFFFFF",
+              flexShrink: 0,
+              backgroundColor: activeGuideSection === `section-${id}` ? "#F59E0B" : "#FFFFFF",
               color: "#000000",
               border: "none",
-              borderRadius: 8,
+              borderRadius: 12,
               padding: "6px 14px",
               fontSize: 13,
               fontWeight: 600,
               cursor: "pointer",
               letterSpacing: "0.01em",
-              flexShrink: 0,
+              animation: activeGuideSection === `section-${id}`
+                ? "fabGuideEditPulse 1.2s ease-in-out infinite"
+                : "none",
+              boxShadow: activeGuideSection === `section-${id}`
+                ? "0 0 0 0 rgba(245,158,11,0.6)"
+                : "none",
             }}
           >
             Edit
@@ -5630,7 +5655,7 @@ function AccordionSection({
           }}
           style={{
             flexShrink: 0,
-            backgroundColor: "#FFFFFF",
+            backgroundColor: activeGuideSection === `section-${id}` ? "#F59E0B" : "#FFFFFF",
             color: "#000000",
             border: "none",
             borderRadius: 12,
@@ -5639,6 +5664,12 @@ function AccordionSection({
             fontWeight: 600,
             cursor: "pointer",
             letterSpacing: "0.01em",
+            animation: activeGuideSection === `section-${id}`
+              ? "fabGuideEditPulse 1.2s ease-in-out infinite"
+              : "none",
+            boxShadow: activeGuideSection === `section-${id}`
+              ? "0 0 0 0 rgba(245,158,11,0.6)"
+              : "none",
           }}
         >
           Edit

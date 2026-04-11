@@ -808,7 +808,7 @@ export default function FABSheet({
   currentGuideStep = null,
   advanceGuideStep = () => {},
   retreatGuideStep = () => {},
-  activeGuideSection = null,
+  activeGuideSection: _activeGuideSection = null,
   onNavigateToTab = null,
   navigationSource = null,
   features = null,
@@ -878,6 +878,7 @@ export default function FABSheet({
   const guidedExtrasConfirmQueueRef = useRef([]);
   const lastExtrasSnapshotRef = useRef({});
   const [guideNinePhase, setGuideNinePhase] = useState(1);
+  const [tooltipCoords, setTooltipCoords] = useState({ top: null, bottom: 90, right: 20 });
 
   const resetGuidedCoach = useCallback(() => {
     guidedPostSummaryStageRef.current = "qa";
@@ -1811,21 +1812,39 @@ export default function FABSheet({
   }, [currentGuideStep?.id]);
 
   useEffect(() => {
-    if (fabMode !== "guide" || !activeGuideSection) return;
-    const sectionEl =
-      typeof document !== "undefined" ? document.getElementById(activeGuideSection) : null;
-    if (!sectionEl) return;
-    const editBtn = sectionEl.querySelector("button");
-    if (!editBtn) return;
-    editBtn.style.animation = "fabGuideEditPulse 1.2s ease-in-out infinite";
-    editBtn.style.background = "#F59E0B";
-    editBtn.style.color = "#000";
-    return () => {
-      editBtn.style.animation = "";
-      editBtn.style.background = "";
-      editBtn.style.color = "";
+    if (fabMode !== "guide" || !currentGuideStep) return;
+
+    const calculate = () => {
+      const sectionId = currentGuideStep.sectionId;
+      if (!sectionId) {
+        setTooltipCoords({ top: null, bottom: 90, right: 20 });
+        return;
+      }
+      const el = typeof document !== "undefined"
+        ? document.getElementById(sectionId)
+        : null;
+      if (!el) {
+        setTooltipCoords({ top: null, bottom: 90, right: 20 });
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      const viewportH = window.innerHeight;
+      const spaceBelow = viewportH - rect.bottom;
+      const tooltipH = 160;
+
+      if (spaceBelow >= tooltipH + 16) {
+        setTooltipCoords({ top: Math.round(rect.bottom + 10), bottom: null, right: 20 });
+      } else {
+        setTooltipCoords({ top: Math.max(8, Math.round(rect.top - tooltipH - 10)), bottom: null, right: 20 });
+      }
     };
-  }, [fabMode, activeGuideSection]);
+
+    calculate();
+
+    const onScroll = () => calculate();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [guideStep, fabMode, currentGuideStep]);
 
   useEffect(() => {
     if (variant !== "builder" || fabMode !== "guide" || !currentGuideStep?.twoPhase) return;
@@ -1845,48 +1864,17 @@ export default function FABSheet({
         : step.bubbleText;
     return (
       <div
-        style={(() => {
-          const sectionId = currentGuideStep?.sectionId;
-          if (!sectionId) {
-            return {
-              position: "fixed",
-              bottom: "90px",
-              right: "20px",
-              zIndex: 100,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: "10px",
-            };
-          }
-          const el = typeof document !== "undefined" ? document.getElementById(sectionId) : null;
-          if (!el) {
-            return {
-              position: "fixed",
-              bottom: "90px",
-              right: "20px",
-              zIndex: 100,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: "10px",
-            };
-          }
-          const rect = el.getBoundingClientRect();
-          const spaceBelow = window.innerHeight - rect.bottom;
-          const top = spaceBelow > 160 ? rect.bottom + 12 : rect.top - 12;
-          return {
-            position: "fixed",
-            top: spaceBelow > 160 ? top : undefined,
-            bottom: spaceBelow > 160 ? undefined : window.innerHeight - top,
-            right: "20px",
-            zIndex: 100,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: "10px",
-          };
-        })()}
+        style={{
+          position: "fixed",
+          top: tooltipCoords.top != null ? tooltipCoords.top : undefined,
+          bottom: tooltipCoords.top == null ? tooltipCoords.bottom : undefined,
+          right: tooltipCoords.right,
+          zIndex: 100,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: "10px",
+        }}
       >
         <style
           dangerouslySetInnerHTML={{
@@ -1894,10 +1882,6 @@ export default function FABSheet({
   @keyframes fabShimmerBorder {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
-  }
-  @keyframes fabGuideEditPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.6); }
-    50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
   }
 `,
           }}
