@@ -421,6 +421,8 @@ const FAB = forwardRef(function FAB(
     /** Builder: ATS checker route (guided flow “ATS tab”) */
     onGuidedSwitchToAtsTab = null,
     onNavigateToTab = null,
+    retreatGuideStep = () => {},
+    activeGuideSection = null,
     navigationSource = null,
     features = null,
     isPro = false,
@@ -1765,6 +1767,8 @@ const FAB = forwardRef(function FAB(
         onGuidedSwitchToTemplatesTab={onGuidedSwitchToTemplatesTab}
         onGuidedSwitchToAtsTab={onGuidedSwitchToAtsTab}
         onNavigateToTab={onNavigateToTab}
+        retreatGuideStep={retreatGuideStep}
+        activeGuideSection={activeGuideSection}
         navigationSource={navigationSource}
         guidedPostSummaryStageSyncRef={guidedPostSummaryStageSyncRef}
         fabMode={fabMode}

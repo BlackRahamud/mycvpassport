@@ -807,6 +807,10 @@ export default function FABSheet({
   guideStep = 0,
   currentGuideStep = null,
   advanceGuideStep = () => {},
+  retreatGuideStep = () => {},
+  activeGuideSection = null,
+  onNavigateToTab = null,
+  navigationSource = null,
   features = null,
   isPro = false,
   onPostPaymentCoverLetter = null,
@@ -1799,6 +1803,31 @@ export default function FABSheet({
   }, [onClose]);
 
   useEffect(() => {
+    if (variant !== "builder" || fabMode !== "guide" || !currentGuideStep) return;
+    if (currentGuideStep.onEnter && onNavigateToTab) {
+      onNavigateToTab(currentGuideStep.onEnter);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run onEnter once per guide step (id), not on every render
+  }, [currentGuideStep?.id]);
+
+  useEffect(() => {
+    if (fabMode !== "guide" || !activeGuideSection) return;
+    const sectionEl =
+      typeof document !== "undefined" ? document.getElementById(activeGuideSection) : null;
+    if (!sectionEl) return;
+    const editBtn = sectionEl.querySelector("button");
+    if (!editBtn) return;
+    editBtn.style.animation = "fabGuideEditPulse 1.2s ease-in-out infinite";
+    editBtn.style.background = "#F59E0B";
+    editBtn.style.color = "#000";
+    return () => {
+      editBtn.style.animation = "";
+      editBtn.style.background = "";
+      editBtn.style.color = "";
+    };
+  }, [fabMode, activeGuideSection]);
+
+  useEffect(() => {
     if (variant !== "builder" || fabMode !== "guide" || !currentGuideStep?.twoPhase) return;
     setGuideNinePhase(1);
     const t = setTimeout(() => setGuideNinePhase(2), 2500);
@@ -1816,17 +1845,63 @@ export default function FABSheet({
         : step.bubbleText;
     return (
       <div
-        style={{
-          position: "fixed",
-          bottom: "90px",
-          right: "20px",
-          zIndex: 100,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: "10px",
-        }}
+        style={(() => {
+          const sectionId = currentGuideStep?.sectionId;
+          if (!sectionId) {
+            return {
+              position: "fixed",
+              bottom: "90px",
+              right: "20px",
+              zIndex: 100,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: "10px",
+            };
+          }
+          const el = typeof document !== "undefined" ? document.getElementById(sectionId) : null;
+          if (!el) {
+            return {
+              position: "fixed",
+              bottom: "90px",
+              right: "20px",
+              zIndex: 100,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: "10px",
+            };
+          }
+          const rect = el.getBoundingClientRect();
+          const spaceBelow = window.innerHeight - rect.bottom;
+          const top = spaceBelow > 160 ? rect.bottom + 12 : rect.top - 12;
+          return {
+            position: "fixed",
+            top: spaceBelow > 160 ? top : undefined,
+            bottom: spaceBelow > 160 ? undefined : window.innerHeight - top,
+            right: "20px",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "10px",
+          };
+        })()}
       >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+  @keyframes fabShimmerBorder {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @keyframes fabGuideEditPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+  }
+`,
+          }}
+        />
         <div
           key={guideStep}
           style={{
@@ -1889,6 +1964,40 @@ export default function FABSheet({
                   >
                     {btn.label}
                   </button>
+                ) : btn.style === "shimmer" ? (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={advanceGuideStep}
+                    style={{
+                      background: "transparent",
+                      color: "#fff",
+                      borderRadius: "8px",
+                      padding: "6px 14px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      position: "relative",
+                      overflow: "hidden",
+                      border: "none",
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        borderRadius: "8px",
+                        padding: "1px",
+                        background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
+                        WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        backgroundSize: "200% 100%",
+                        animation: "fabShimmerBorder 2s linear infinite",
+                      }}
+                    />
+                    {btn.label}
+                  </button>
                 ) : (
                   <button
                     key={i}
@@ -1909,6 +2018,24 @@ export default function FABSheet({
                     {btn.label}
                   </button>
                 )
+              )}
+              {guideStep > 0 && (
+                <button
+                  type="button"
+                  onClick={retreatGuideStep}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#606060",
+                    fontSize: "10px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    padding: "4px 6px",
+                    marginLeft: "auto",
+                  }}
+                >
+                  ← Back
+                </button>
               )}
             </div>
           ) : null}

@@ -2307,6 +2307,12 @@ function ResumeBuilder({
     }
   }, [guideStep, finishGuide]);
 
+  const retreatGuideStep = useCallback(() => {
+    if (guideStep > 0) {
+      setGuideStep((p) => p - 1);
+    }
+  }, [guideStep]);
+
   useEffect(() => {
     if (isNew) return;
     if (lastSavedSnapshotRef.current == null) {
@@ -4336,7 +4342,9 @@ function ResumeBuilder({
                 fabMode={fabMode}
                 guideStep={guideStep}
                 currentGuideStep={GUIDE_STEPS[guideStep]}
+                activeGuideSection={GUIDE_STEPS[guideStep]?.sectionId ?? null}
                 advanceGuideStep={advanceGuideStep}
+                retreatGuideStep={retreatGuideStep}
                 features={profile?.features}
                 isPro={isPro}
                 onPostPaymentCoverLetter={onPostPaymentCoverLetter}
