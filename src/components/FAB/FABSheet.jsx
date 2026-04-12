@@ -367,8 +367,8 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
         className="cvp-ats-fade-up-delay-0"
         style={{ display: "flex", flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 4 }}
       >
-        <div style={{ width: size, height: size, flexShrink: 0, position: "relative" }}>
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden style={{ display: "block" }}>
+        <div style={{ width: size, height: size, flexShrink: 0, position: "relative", willChange: "transform", transform: "translateZ(0)" }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden style={{ display: "block", willChange: "transform" }}>
             <circle
               className="cvp-ats-ring-track"
               cx={cx}
@@ -813,7 +813,12 @@ export default function FABSheet({
   features = null,
   isPro = false,
   onPostPaymentCoverLetter = null,
+  /** ATS tab FAB: trigger free scan using existing resume data (builder context) */
+  onFabFreeScan = null,
+  /** ATS tab FAB: trigger pro analysis using existing resume + job description */
+  onFabProScan = null,
 }) {
+  const [fabAtsJd, setFabAtsJd] = useState("");
   const [celebrationConsumedSession, setCelebrationConsumedSession] = useState(false);
   const [activeCelebration, setActiveCelebration] = useState(null);
   const [postDownloadConsumedSession, setPostDownloadConsumedSession] = useState(false);
@@ -2885,23 +2890,136 @@ export default function FABSheet({
           {sheetBodySlot ? <div style={{ width: "100%", marginBottom: 16 }}>{sheetBodySlot}</div> : null}
 
           {dedicatedRoute === "ats" && !showBuilderGuidedCoach ? (
-            <div
-              style={{
-                width: "100%",
-                marginBottom: 16,
-                padding: 14,
-                boxSizing: "border-box",
-                borderRadius: 12,
-                background: "var(--bg-elevated, #1C1C1C)",
-                border: "1px solid var(--border-default, #2A2A2A)",
-              }}
-            >
-              <AtsFabScoreSheetBlock
-                score={currentAts}
-                onJobMatchCta={handleAtsJobMatchCta}
-                onCoverLetterCta={handleAtsCoverLetterCta}
-              />
-              {renderAtsChips()}
+            <div style={{ width: "100%", marginBottom: 16 }}>
+              {/* ATS Scan Trigger — FAB primary path */}
+              {(onFabFreeScan || onFabProScan) ? (
+                <div
+                  style={{
+                    padding: 14,
+                    boxSizing: "border-box",
+                    borderRadius: 12,
+                    background: "var(--bg-elevated, #1C1C1C)",
+                    border: "1px solid var(--border-default, #2A2A2A)",
+                    marginBottom: 12,
+                  }}
+                >
+                  <textarea
+                    value={fabAtsJd}
+                    onChange={(e) => setFabAtsJd(e.target.value)}
+                    placeholder="Paste job description for deeper analysis..."
+                    rows={3}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: "#141414",
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 16,
+                      padding: "12px 14px",
+                      color: "#fff",
+                      fontSize: 14,
+                      fontFamily: "inherit",
+                      resize: "none",
+                      lineHeight: 1.45,
+                      marginBottom: 10,
+                      display: "block",
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = "rgba(245,158,11,0.35)"; }}
+                    onBlur={(e) => { e.target.style.borderColor = "#2A2A2A"; }}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {onFabFreeScan ? (
+                      <button
+                        type="button"
+                        onClick={() => { onFabFreeScan(fabAtsJd); onClose(); }}
+                        style={{
+                          flex: 1,
+                          background: "#D97706",
+                          color: "#000",
+                          border: "none",
+                          borderRadius: 10,
+                          padding: "12px 8px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          minHeight: 44,
+                        }}
+                      >
+                        Free Scan
+                      </button>
+                    ) : null}
+                    {onFabProScan ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isPro) {
+                            navigate("/pricing");
+                            onClose();
+                            return;
+                          }
+                          if (!fabAtsJd.trim()) return;
+                          onFabProScan(fabAtsJd);
+                          onClose();
+                        }}
+                        style={{
+                          flex: 1,
+                          background: "transparent",
+                          color: isPro ? "#D97706" : "#A0A0A0",
+                          border: `1px solid ${isPro ? "#D97706" : "#2A2A2A"}`,
+                          borderRadius: 10,
+                          padding: "12px 8px",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          minHeight: 44,
+                          opacity: !isPro || !fabAtsJd.trim() ? 0.7 : 1,
+                        }}
+                        title={!isPro ? "Upgrade to Pro" : !fabAtsJd.trim() ? "Add a job description first" : undefined}
+                      >
+                        {isPro ? "Pro Analysis" : "Pro ✦"}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* ATS Score block — shows after scan has results */}
+              {currentAts > 0 ? (
+                <div
+                  style={{
+                    padding: 14,
+                    boxSizing: "border-box",
+                    borderRadius: 12,
+                    background: "var(--bg-elevated, #1C1C1C)",
+                    border: "1px solid var(--border-default, #2A2A2A)",
+                  }}
+                >
+                  <AtsFabScoreSheetBlock
+                    score={currentAts}
+                    onJobMatchCta={handleAtsJobMatchCta}
+                    onCoverLetterCta={handleAtsCoverLetterCta}
+                  />
+                  {renderAtsChips()}
+                </div>
+              ) : !onFabFreeScan && !onFabProScan ? (
+                <div
+                  style={{
+                    padding: 14,
+                    boxSizing: "border-box",
+                    borderRadius: 12,
+                    background: "var(--bg-elevated, #1C1C1C)",
+                    border: "1px solid var(--border-default, #2A2A2A)",
+                  }}
+                >
+                  <AtsFabScoreSheetBlock
+                    score={currentAts}
+                    onJobMatchCta={handleAtsJobMatchCta}
+                    onCoverLetterCta={handleAtsCoverLetterCta}
+                  />
+                  {renderAtsChips()}
+                </div>
+              ) : null}
             </div>
           ) : null}
 

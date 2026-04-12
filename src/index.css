@@ -80,11 +80,24 @@ h1, h2, h3, h4, h5, h6 {
   transform: scale(1.02);
 }
 
-/* Input focus glow */
-input:focus, textarea:focus {
+/* iOS Input Zoom Fix — Highway: prevents Safari viewport zoom globally, forever */
+input, textarea, select, [contenteditable] {
+  font-size: 16px !important;
+}
+
+/* Focus state — amber accent, no blue, no gray */
+*, *::before, *::after {
   outline: none;
-  border-color: rgba(160, 160, 160, 0.5);
-  box-shadow: 0 0 0 3px rgba(160, 160, 160, 0.08);
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+[contenteditable]:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.45) !important;
+  border-color: rgba(245, 158, 11, 0.7) !important;
+  background-color: inherit !important;
 }
 
 /* Scrollbar styling */

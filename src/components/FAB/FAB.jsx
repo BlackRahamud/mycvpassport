@@ -428,6 +428,10 @@ const FAB = forwardRef(function FAB(
     features = null,
     isPro = false,
     onPostPaymentCoverLetter = null,
+    /** ATS tab: trigger free scan using existing resume data (builder context) */
+    onFabFreeScan = null,
+    /** ATS tab: trigger pro analysis with job description */
+    onFabProScan = null,
   },
   ref
 ) {
@@ -503,6 +507,34 @@ const FAB = forwardRef(function FAB(
   const [isBulbFlickering, setIsBulbFlickering] = useState(false);
   const [isTipVisible, setIsTipVisible] = useState(false);
   const [currentTip, setCurrentTip] = useState("");
+
+  // FIX 2 — Keyboard awareness: shrink FAB when soft keyboard opens
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const baseViewportHeightRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const onVpResize = () => {
+      if (baseViewportHeightRef.current === null) baseViewportHeightRef.current = vv.height;
+      const shrinkage = baseViewportHeightRef.current - vv.height;
+      setKeyboardOpen(shrinkage > 100);
+    };
+    baseViewportHeightRef.current = vv.height;
+    vv.addEventListener("resize", onVpResize);
+    return () => vv.removeEventListener("resize", onVpResize);
+  }, []);
+
+  // FIX 3 — Tab entrance animation class
+  const prevTabKeyRef = useRef(tabKey);
+  const [tabEnterClass, setTabEnterClass] = useState("");
+  useEffect(() => {
+    if (prevTabKeyRef.current === tabKey) return;
+    prevTabKeyRef.current = tabKey;
+    setTabEnterClass("cvp-fab-tab-enter");
+    const t = setTimeout(() => setTabEnterClass(""), 500);
+    return () => clearTimeout(t);
+  }, [tabKey]);
 
   const config = getFabTabConfig(tabKey, variant);
 
@@ -1526,6 +1558,8 @@ const FAB = forwardRef(function FAB(
           isGhostPulsing ? "pulse-ghost" : "",
           variant === "builder" && fabBouncing ? "cvp-fab-bouncing" : "",
           fabVictoryClass,
+          keyboardOpen ? "cvp-fab--kb-open" : "",
+          tabEnterClass,
         ]
           .filter(Boolean)
           .join(" ")}
@@ -1543,10 +1577,11 @@ const FAB = forwardRef(function FAB(
                 height: "72px",
                 top: "50%",
                 left: "50%",
-                transform: "translate(-50%, -50%)",
+                transform: "translate(-50%, -50%) translateZ(0)",
                 pointerEvents: "none",
                 zIndex: 1,
                 overflow: "visible",
+                willChange: "transform",
               }}
             >
               <circle cx="34" cy="34" r="30" fill="none" stroke="#2A2A2A" strokeWidth="2" />
@@ -1780,6 +1815,8 @@ const FAB = forwardRef(function FAB(
         features={features}
         isPro={isPro}
         onPostPaymentCoverLetter={onPostPaymentCoverLetter}
+        onFabFreeScan={onFabFreeScan}
+        onFabProScan={onFabProScan}
       />
     </>
   );

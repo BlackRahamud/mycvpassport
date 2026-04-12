@@ -232,7 +232,7 @@ function AnimatedScoreNumber({ value }) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function ATSChecker() {
+export default function ATSChecker({ onResultsVisible } = {}) {
   const [phase, setPhase] = useState("idle");
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -415,6 +415,7 @@ export default function ATSChecker() {
             missingCount: rankTriggers.length,
           });
           setPhase("results");
+          onResultsVisible?.(true);
         }
       } catch (err) {
         console.error("ATS analysis error:", err);
@@ -461,6 +462,7 @@ export default function ATSChecker() {
           missingCount,
         });
         setPhase("results");
+        onResultsVisible?.(true);
       } catch (err) {
         console.error("ATS analysis error:", err);
         setError("Something went wrong. Please try again.");
@@ -497,12 +499,13 @@ export default function ATSChecker() {
       if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
       setResults(data);
       setPhase("results");
+      onResultsVisible?.(true);
     } catch (err) {
       console.error("ATS analysis error:", err);
       setError("Something went wrong. Please try again.");
       setPhase("idle");
     }
-  }, [uploadedFile, jobDescription, user]);
+  }, [uploadedFile, jobDescription, user, onResultsVisible]);
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (

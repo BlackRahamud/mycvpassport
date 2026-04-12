@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ATSChecker from "../ATSChecker";
 import { detectRole } from "../utils/detectRole";
@@ -10,6 +10,11 @@ export default function ATSPage({ onBack }) {
   const navigate = useNavigate();
   const enteredAtRef = useRef(typeof Date !== "undefined" ? Date.now() : 0);
   const [showCoverLetterJourney, setShowCoverLetterJourney] = useState(false);
+  const [atsResultsVisible, setAtsResultsVisible] = useState(false);
+
+  const handleResultsVisible = useCallback((visible) => {
+    setAtsResultsVisible(visible);
+  }, []);
 
   useEffect(() => {
     const t0 = enteredAtRef.current;
@@ -26,7 +31,49 @@ export default function ATSPage({ onBack }) {
 
   return (
     <div style={{ position: "relative", background: "#0A0A0A", minHeight: "100vh" }}>
-      <ATSChecker onBack={onBack} detectRole={detectRole} />
+      <ATSChecker onBack={onBack} detectRole={detectRole} onResultsVisible={handleResultsVisible} />
+
+      {/* FIX 6 — Sticky Download CV CTA bar: renders only after scan completes */}
+      {atsResultsVisible ? (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 64px)",
+            left: 0,
+            right: 0,
+            padding: "12px 20px",
+            background: "linear-gradient(to top, #0A0A0A 60%, transparent)",
+            zIndex: 40,
+            boxSizing: "border-box",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate("/builder")}
+            style={{
+              display: "block",
+              width: "100%",
+              maxWidth: 600,
+              margin: "0 auto",
+              background: "#D97706",
+              color: "#fff",
+              border: "none",
+              borderRadius: 14,
+              padding: 16,
+              fontSize: 16,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+            }}
+            onMouseEnter={(ev) => { ev.currentTarget.style.opacity = "0.9"; ev.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(ev) => { ev.currentTarget.style.opacity = "1"; ev.currentTarget.style.transform = "translateY(0)"; }}
+          >
+            Download CV
+          </button>
+        </div>
+      ) : null}
+
       {showCoverLetterJourney ? (
         <div
           style={{
