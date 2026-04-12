@@ -110,6 +110,24 @@ export default function CompletionScreen({ atsScore, userName, onDashboard }) {
 
           <hr style={{ border:'none', borderTop:'0.5px solid rgba(255,255,255,0.07)', margin:'0 0 1rem' }}/>
 
+          <div style={{ marginBottom:'1rem', padding:'12px 14px', borderRadius:12, border:'0.5px solid rgba(217,119,6,0.3)', background:'rgba(217,119,6,0.06)', display:'flex', flexDirection:'column', gap:8 }}>
+            <p style={{ margin:0, fontSize:13, fontWeight:600, color:'#F5F5F5', lineHeight:1.4 }}>Your CV is ATS-Ready.</p>
+            <p style={{ margin:0, fontSize:12, color:'rgba(255,255,255,0.55)', lineHeight:1.45 }}>Share CVPassport with a friend — every referral helps the product grow.</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: 'CVPassport', text: 'Build an ATS-ready CV for UAE and GCC jobs — free.', url: 'https://mycvpassport.com' });
+                } else {
+                  navigator.clipboard?.writeText('https://mycvpassport.com');
+                }
+              }}
+              style={{ background:'rgba(217,119,6,0.15)', border:'0.5px solid rgba(217,119,6,0.4)', borderRadius:8, padding:'9px 14px', color:'#F59E0B', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', textAlign:'center' }}
+            >
+              Share CVPassport →
+            </button>
+          </div>
+
           <p style={{ margin:'0 0 4px', fontSize:10, fontWeight:500, color:'rgba(255,255,255,0.25)', letterSpacing:'0.1em', textTransform:'uppercase' }}>Support the build</p>
           <a href="https://mycvpassport.com/support" target="_blank" rel="noreferrer" style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderTop:'0.5px solid rgba(255,255,255,0.06)', textDecoration:'none' }}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 14s-6-3.5-6-7.5a3.5 3.5 0 017 0 3.5 3.5 0 017 0C16 10.5 8 14 8 14z" fill="#E24B4A"/></svg>

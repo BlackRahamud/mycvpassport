@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import JobMatch from "../JobMatch";
-import ATSScanner from "../components/ATSScanner";
+import ATSChecker from "../ATSChecker";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import { hasFeatureAccess } from "../utils/paywall";
@@ -4266,17 +4266,8 @@ function ResumeBuilder({
             </div>
           ) : null}
             {builderTab === "ats" && (
-              <div style={{ padding: "0 12px 12px", minHeight: 400 }}>
-                <ATSScanner
-                  cvName={resume?.name || "Your CV"}
-                  cvJobTitle={resume?.title || "Professional"}
-                  atsScore={score}
-                  autoStartScanOnMount={navigationSource === "guide_step_8"}
-                  onScanComplete={() => setScanStatus("complete")}
-                  isPaidUser={isPro}
-                  onUnlock={navigateToProAtsPage}
-                  inline={true}
-                />
+              <div style={{ minHeight: 400 }}>
+                <ATSChecker />
               </div>
             )}
             {builderTab === "jobmatch" && (
