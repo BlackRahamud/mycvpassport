@@ -65,8 +65,8 @@ function fabRingColor(p) {
   const n = p ?? 0;
   if (n >= 100) return "#22C55E";
   if (n >= 90) return "#16A34A";
-  if (n >= 80) return "#3B82F6";
-  if (n >= 70) return "#60A5FA";
+  if (n >= 80) return "#D97706";
+  if (n >= 70) return "#F59E0B";
   if (n >= 60) return "#F59E0B";
   if (n >= 50) return "#FBBF24";
   if (n >= 40) return "#F97316";
@@ -518,11 +518,17 @@ const FAB = forwardRef(function FAB(
     const onVpResize = () => {
       if (baseViewportHeightRef.current === null) baseViewportHeightRef.current = vv.height;
       const shrinkage = baseViewportHeightRef.current - vv.height;
-      setKeyboardOpen(shrinkage > 100);
+      const isOpen = shrinkage > 100;
+      setKeyboardOpen(isOpen);
+      // Sync body class so tab bar CSS can react globally
+      document.body.classList.toggle("cvp-keyboard-open", isOpen);
     };
     baseViewportHeightRef.current = vv.height;
     vv.addEventListener("resize", onVpResize);
-    return () => vv.removeEventListener("resize", onVpResize);
+    return () => {
+      vv.removeEventListener("resize", onVpResize);
+      document.body.classList.remove("cvp-keyboard-open");
+    };
   }, []);
 
   // FIX 3 — Tab entrance animation class

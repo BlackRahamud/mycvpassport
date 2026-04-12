@@ -85,6 +85,32 @@ input, textarea, select, [contenteditable] {
   font-size: 16px !important;
 }
 
+/* Textarea highway — global containment; no per-component patching ever */
+textarea {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Autofill override — prevent browser yellow/cream background on any input */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #141414 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 0 0px 1000px #141414 inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  caret-color: #ffffff !important;
+}
+
 /* Focus state — amber accent, no blue, no gray */
 *, *::before, *::after {
   outline: none;
@@ -1231,6 +1257,10 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 @media (max-width: 768px) {
   .cvp-mobile-tabbar {
     display: grid !important;
+    /* Solid background — never bleeds through keyboard toolbar */
+    background: #0A0A0A !important;
+    /* Force above all page content, below modals */
+    z-index: 60 !important;
   }
 }
 
@@ -1238,6 +1268,22 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 @media (max-width: 768px) {
   body.cvp-fab-sheet-open .cvp-mobile-tabbar {
     display: none !important;
+  }
+}
+
+/* Keyboard open — tab bar slides below viewport; keyboard toolbar takes that space */
+@media (max-width: 768px) {
+  body.cvp-keyboard-open .cvp-mobile-tabbar {
+    transform: translateY(100%);
+    transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 768px) {
+  body:not(.cvp-keyboard-open) .cvp-mobile-tabbar {
+    transform: translateY(0);
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
 }
 

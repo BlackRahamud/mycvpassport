@@ -232,12 +232,12 @@ function FabGuideStarIcon({ active }) {
   );
 }
 
-/** Progress coach ring + label colour by completion band */
+/** Progress coach ring + label colour by completion band — no blue, ever */
 export function getRingColour(percent) {
   const p = Math.max(0, Math.min(100, percent));
   if (p <= 40) return "#EF4444";
   if (p <= 70) return "#F59E0B";
-  if (p < 100) return "#3B82F6";
+  if (p < 100) return "#D97706";
   return "#22C55E";
 }
 
@@ -245,8 +245,8 @@ export function getAtsScoreStrokeColor(score) {
   const s = Math.round(Math.max(0, Math.min(100, Number(score) || 0)));
   if (s <= 40) return "#EF4444";
   if (s <= 70) return "#F59E0B";
-  if (s < 100) return "#3B82F6";
-  return "#4CAF50";
+  if (s < 100) return "#D97706";
+  return "#22C55E";
 }
 
 export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
@@ -383,7 +383,7 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
               cy={cy}
               r={r}
               fill="none"
-              stroke="#378ADD"
+              stroke={getAtsScoreStrokeColor(p)}
               strokeWidth={strokeW}
               strokeDasharray={c}
               strokeDashoffset={offset}
@@ -431,7 +431,7 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
                 width: 30,
                 height: 30,
                 borderRadius: "50%",
-                background: "#378ADD",
+                background: "#D97706",
                 display: "grid",
                 placeItems: "center",
                 zIndex: 1,
@@ -447,7 +447,7 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
                 />
               </svg>
             </div>
-            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#378ADD" }}>ATS scan</div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#D97706" }}>ATS scan</div>
             <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>done</div>
           </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
@@ -1814,39 +1814,13 @@ export default function FABSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- onEnter once per guide step id; onNavigateToTab stable from parent
   }, [currentGuideStep?.id, variant, fabMode]);
 
+  /* Guide tooltip coords — always anchored left of the FAB, never based on DOM section position.
+     This makes the bubble feel like one organism with the FAB (Apple Watch complication style).
+     The FAB sits at right:20px / bottom:80px+safe-area. We place the bubble flush left of the ring. */
   useEffect(() => {
     if (fabMode !== "guide" || !currentGuideStep) return;
-
-    const calculate = () => {
-      const sectionId = currentGuideStep.sectionId;
-      if (!sectionId) {
-        setTooltipCoords({ top: null, bottom: 90, right: 20 });
-        return;
-      }
-      const el = typeof document !== "undefined"
-        ? document.getElementById(sectionId)
-        : null;
-      if (!el) {
-        setTooltipCoords({ top: null, bottom: 90, right: 20 });
-        return;
-      }
-      const rect = el.getBoundingClientRect();
-      const viewportH = window.innerHeight;
-      const spaceBelow = viewportH - rect.bottom;
-      const tooltipH = 160;
-
-      if (spaceBelow >= tooltipH + 16) {
-        setTooltipCoords({ top: Math.round(rect.bottom + 10), bottom: null, right: 20 });
-      } else {
-        setTooltipCoords({ top: Math.max(8, Math.round(rect.top - tooltipH - 10)), bottom: null, right: 20 });
-      }
-    };
-
-    calculate();
-
-    const onScroll = () => calculate();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    // Fixed: always anchor to FAB — right:20 + 56px FAB + 16px gap = right:92
+    setTooltipCoords({ top: null, bottom: 90, right: 92 });
   }, [guideStep, fabMode, currentGuideStep]);
 
   useEffect(() => {
@@ -1869,14 +1843,13 @@ export default function FABSheet({
       <div
         style={{
           position: "fixed",
-          top: tooltipCoords.top != null ? tooltipCoords.top : undefined,
-          bottom: tooltipCoords.top == null ? tooltipCoords.bottom : undefined,
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
           right: tooltipCoords.right,
           zIndex: 100,
           display: "flex",
-          flexDirection: "column",
+          flexDirection: "row",
           alignItems: "flex-end",
-          gap: "10px",
+          gap: "0",
         }}
       >
         <style
@@ -1889,28 +1862,53 @@ export default function FABSheet({
 `,
           }}
         />
+        {/* Bubble — anchored left of FAB, grows from it like an Apple Watch complication */}
         <div
           key={guideStep}
           style={{
             background: "#1C1C1C",
-            border: `1px solid ${step.upsell ? "#F59E0B" : "#2A2A2A"}`,
+            border: `1px solid ${step.upsell ? "#F59E0B" : "rgba(255,255,255,0.12)"}`,
             borderRadius: "12px",
             padding: "12px 14px",
-            maxWidth: "230px",
+            maxWidth: "220px",
+            minWidth: "180px",
             animation: "fabFadeIn 0.3s cubic-bezier(0.4,0,0.2,1)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+            flexShrink: 0,
           }}
         >
-          <div
-            style={{
+          {/* Step counter pill */}
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            marginBottom: 7,
+          }}>
+            <div style={{
               fontSize: "9px",
               fontWeight: 700,
               color: "#F59E0B",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              marginBottom: "5px",
-            }}
-          >
-            {step.id} / 11
+            }}>
+              Step {step.id} of 11
+            </div>
+            {/* mini progress track */}
+            <div style={{
+              width: 36,
+              height: 3,
+              background: "#2A2A2A",
+              borderRadius: 99,
+              overflow: "hidden",
+            }}>
+              <div style={{
+                width: `${(step.id / 11) * 100}%`,
+                height: "100%",
+                background: "#D97706",
+                borderRadius: 99,
+                transition: "width 400ms cubic-bezier(0.4,0,0.2,1)",
+              }} />
+            </div>
           </div>
           <div
             style={{
@@ -2052,6 +2050,17 @@ export default function FABSheet({
             </div>
           ) : null}
         </div>
+        {/* Arrow tail — points right, connecting bubble to FAB */}
+        <div style={{
+          alignSelf: "flex-end",
+          marginBottom: 14,
+          width: 0,
+          height: 0,
+          borderTop: "6px solid transparent",
+          borderBottom: "6px solid transparent",
+          borderLeft: "7px solid rgba(255,255,255,0.12)",
+          flexShrink: 0,
+        }} />
       </div>
     );
   }
