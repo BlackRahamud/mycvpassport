@@ -37,6 +37,8 @@ import {
 } from "./FABLogic";
 import { cleanAnswer, detectMultiAnswer } from "./FABValidationData";
 import { getPaymentLink, hasFeatureAccess } from "../../utils/paywall";
+import skillSuggestions from "../../data/skillSuggestions";
+import { detectRole } from "../../utils/detectRole";
 
 function usePrevious(value) {
   const ref = useRef();
@@ -883,6 +885,10 @@ export default function FABSheet({
   const lastExtrasSnapshotRef = useRef({});
   const [guideNinePhase, setGuideNinePhase] = useState(1);
   const [tooltipCoords, setTooltipCoords] = useState({ top: null, bottom: 90, right: 20 });
+  // Step 8 ATS micro-flow: idle | scanning | scored | pro-jd
+  const [step8Phase, setStep8Phase] = useState("idle");
+  const [step8Result, setStep8Result] = useState(null);
+  const [step8Jd, setStep8Jd] = useState("");
 
   const resetGuidedCoach = useCallback(() => {
     guidedPostSummaryStageRef.current = "qa";
@@ -1830,6 +1836,75 @@ export default function FABSheet({
     return () => clearTimeout(t);
   }, [variant, fabMode, guideStep, currentGuideStep?.id, currentGuideStep?.twoPhase]);
 
+  // Reset step 8 micro-flow whenever the guide step changes
+  useEffect(() => {
+    setStep8Phase("idle");
+    setStep8Result(null);
+    setStep8Jd("");
+  }, [guideStep]);
+
+  const computeStep8FreeScan = useCallback(() => {
+    const cv = resume || {};
+    const parts = [
+      String(cv.title || ""),
+      String(cv.summary || ""),
+      String(cv.skills || ""),
+      ...(Array.isArray(cv.experience)
+        ? cv.experience.flatMap((e) => [String(e?.role || ""), String(e?.company || ""), String(e?.points || "")])
+        : []),
+    ];
+    const cvText = parts.join(" ").toLowerCase();
+    const roleKey = detectRole(cv.title || "") || "sales_real_estate";
+    const pack = skillSuggestions[roleKey] || skillSuggestions.sales_real_estate;
+    const list = pack?.atsKeywords ?? [];
+    const found = [];
+    const missing = [];
+    for (const row of list) {
+      const kw = row?.keyword?.trim();
+      if (!kw) continue;
+      if (cvText.includes(kw.toLowerCase())) found.push(kw);
+      else missing.push(kw);
+    }
+    if (found.length + missing.length === 0) {
+      const seen = new Set();
+      for (const p of Object.values(skillSuggestions)) {
+        for (const row of p?.atsKeywords ?? []) {
+          const kw = row?.keyword?.trim();
+          if (!kw) continue;
+          const k = kw.toLowerCase();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          if (cvText.includes(k)) found.push(kw);
+          else missing.push(kw);
+          if (found.length + missing.length >= 20) break;
+        }
+      }
+    }
+    const total = found.length + missing.length;
+    const kwScore = total > 0 ? Math.round((found.length / total) * 100) : 52;
+    const hasSummary = String(cv.summary || "").trim().length > 20;
+    const hasExp = Array.isArray(cv.experience) && cv.experience.some((e) => String(e?.role || "").trim());
+    const hasSkills = String(cv.skills || "").trim().length > 0;
+    const structScore = 52 + (hasSummary ? 10 : 0) + (hasExp ? 10 : 0) + (hasSkills ? 10 : 0);
+    const contentScore = hasSummary && hasExp ? 72 : 56;
+    const raw = Math.round((kwScore + structScore + contentScore) / 3);
+    return {
+      score: Math.max(42, Math.min(84, raw)),
+      visibilityBoosters: found.slice(0, 4),
+      rankTriggers: missing.slice(0, 4),
+      industry: pack?.jobTitles?.[0] || "General GCC Market",
+    };
+  }, [resume]);
+
+  const handleStep8FreeScan = useCallback(() => {
+    setStep8Phase("scanning");
+    setTimeout(() => {
+      const result = computeStep8FreeScan();
+      setStep8Result(result);
+      setStep8Phase("scored");
+    }, 1800);
+  }, [computeStep8FreeScan]);
+
   if (variant === "builder" && fabMode === "guide" && currentGuideStep) {
     const step = currentGuideStep;
     const hideFabGuideButtons = step.twoPhase === true && guideNinePhase === 1;
@@ -1859,6 +1934,18 @@ export default function FABSheet({
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
   }
+  @keyframes step8StepIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes step8RingFill {
+    from { stroke-dashoffset: var(--ring-circ); }
+    to   { stroke-dashoffset: var(--ring-offset); }
+  }
+  @keyframes step8ChipIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 `,
           }}
         />
@@ -1870,7 +1957,7 @@ export default function FABSheet({
             border: `1px solid ${step.upsell ? "#F59E0B" : "rgba(255,255,255,0.12)"}`,
             borderRadius: "12px",
             padding: "12px 14px",
-            maxWidth: "220px",
+            maxWidth: (step.id === 8 && (step8Phase === "scored" || step8Phase === "pro-jd")) ? "288px" : "220px",
             minWidth: "180px",
             animation: "fabFadeIn 0.3s cubic-bezier(0.4,0,0.2,1)",
             boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
@@ -1920,7 +2007,343 @@ export default function FABSheet({
           >
             {bodyText}
           </div>
-          {!hideFabGuideButtons ? (
+          {/* ── Step 8: ATS micro-flow ─────────────────────────────────── */}
+          {step.id === 8 ? (
+            <div style={{ marginTop: 10 }}>
+              {/* Phase: idle — two entry buttons */}
+              {step8Phase === "idle" && (
+                <>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {/* See my score — amber, fires local databank scan */}
+                    <button
+                      type="button"
+                      onClick={handleStep8FreeScan}
+                      style={{
+                        background: "#D97706",
+                        color: "#000",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "6px 14px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        minHeight: 32,
+                      }}
+                    >
+                      See my score
+                    </button>
+                    {/* Run Pro ATS — shimmer, shows JD input */}
+                    <button
+                      type="button"
+                      onClick={() => setStep8Phase("pro-jd")}
+                      style={{
+                        background: "transparent",
+                        color: "#fff",
+                        borderRadius: 8,
+                        padding: "6px 14px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        position: "relative",
+                        overflow: "hidden",
+                        border: "none",
+                        minHeight: 32,
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          borderRadius: 8,
+                          padding: "1px",
+                          background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
+                          WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
+                          WebkitMaskComposite: "xor",
+                          backgroundSize: "200% 100%",
+                          animation: "fabShimmerBorder 2s linear infinite",
+                        }}
+                      />
+                      Run Pro ATS
+                    </button>
+                  </div>
+                  {guideStep > 0 && (
+                    <button
+                      type="button"
+                      onClick={retreatGuideStep}
+                      style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0", marginTop: 4, display: "block" }}
+                    >
+                      ← Back
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Phase: scanning — 4 sequential steps */}
+              {step8Phase === "scanning" && (
+                <div style={{ paddingTop: 4 }}>
+                  {["Extracting your CV...", "Running GCC market data...", "Matching keywords...", "Computing score..."].map((label, i) => (
+                    <div
+                      key={label}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 7,
+                        marginBottom: 7,
+                        opacity: 0,
+                        animation: `step8StepIn 0.35s cubic-bezier(0.4,0,0.2,1) ${i * 400}ms forwards`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          background: "rgba(217,119,6,0.15)",
+                          border: "1px solid rgba(217,119,6,0.5)",
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D97706" }} />
+                      </div>
+                      <span style={{ fontSize: 10, color: "#A0A0A0", lineHeight: 1.3 }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Phase: scored — score reveal + upsell */}
+              {step8Phase === "scored" && step8Result && (() => {
+                const { score, visibilityBoosters, rankTriggers, industry } = step8Result;
+                const r = 22;
+                const circ = 2 * Math.PI * r;
+                const offset = circ * (1 - score / 100);
+                const scoreColor = score >= 80 ? "#22C55E" : score >= 60 ? "#D97706" : "#EF4444";
+                const headline = score >= 80 ? "Strong foundation." : score >= 60 ? "Getting there." : "Room to grow.";
+                return (
+                  <div style={{ animation: "fabFadeIn 0.4s cubic-bezier(0.4,0,0.2,1)" }}>
+                    {/* Score ring row */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                      <div style={{ position: "relative", width: 52, height: 52, flexShrink: 0 }}>
+                        <svg width={52} height={52} viewBox="0 0 52 52" aria-hidden style={{ display: "block" }}>
+                          <circle cx={26} cy={26} r={r} fill="none" stroke="#1A1A1A" strokeWidth={5} />
+                          <circle
+                            cx={26} cy={26} r={r} fill="none"
+                            stroke={scoreColor} strokeWidth={5}
+                            strokeLinecap="round"
+                            strokeDasharray={circ}
+                            strokeDashoffset={offset}
+                            transform="rotate(-90 26 26)"
+                            style={{ transition: "stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)" }}
+                          />
+                        </svg>
+                        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: scoreColor }}>
+                          {score}
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", lineHeight: 1.3 }}>{headline}</div>
+                        <div style={{ fontSize: 10, color: "#A0A0A0", marginTop: 2 }}>{industry}</div>
+                      </div>
+                    </div>
+
+                    {/* Visibility Boosters */}
+                    {visibilityBoosters.length > 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "#4ADE80", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 5 }}>
+                          ✦ Found in your CV
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {visibilityBoosters.slice(0, 3).map((kw, i) => (
+                            <span
+                              key={kw}
+                              style={{
+                                fontSize: 10, padding: "3px 8px", borderRadius: 999,
+                                background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.3)", color: "#4ADE80",
+                                opacity: 0,
+                                animation: `step8ChipIn 0.3s ease ${i * 80}ms forwards`,
+                              }}
+                            >{kw}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rank Triggers */}
+                    {rankTriggers.length > 0 && (
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "#D97706", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 5 }}>
+                          ⊕ Add these to rank higher
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {rankTriggers.slice(0, 3).map((kw, i) => (
+                            <span
+                              key={kw}
+                              style={{
+                                fontSize: 10, padding: "3px 8px", borderRadius: 999,
+                                background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.3)", color: "#D97706",
+                                opacity: 0,
+                                animation: `step8ChipIn 0.3s ease ${(visibilityBoosters.length + i) * 80}ms forwards`,
+                              }}
+                            >{kw}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pro upsell — Apple-style: show the gap, one door */}
+                    <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 10, marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: "#A0A0A0", lineHeight: 1.5, marginBottom: 8 }}>
+                        Free scan: 12 signals. Pro checks 40+ against your target job — and shows every keyword that gets you shortlisted.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isPro) setStep8Phase("pro-jd");
+                          else window.open(getPaymentLink("ats"), "_blank");
+                        }}
+                        style={{
+                          width: "100%",
+                          background: "transparent",
+                          color: "#fff",
+                          borderRadius: 8,
+                          padding: "7px 14px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          position: "relative",
+                          overflow: "hidden",
+                          border: "none",
+                          minHeight: 32,
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: "absolute", inset: 0, borderRadius: 8, padding: "1px",
+                            background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
+                            WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
+                            WebkitMaskComposite: "xor",
+                            backgroundSize: "200% 100%",
+                            animation: "fabShimmerBorder 2s linear infinite",
+                          }}
+                        />
+                        {isPro ? "Run Pro ATS →" : "Unlock Pro ATS →"}
+                      </button>
+                    </div>
+
+                    {/* Download CV */}
+                    <button
+                      type="button"
+                      onClick={() => onGuidedDownload?.()}
+                      style={{
+                        width: "100%",
+                        background: "#FFFFFF",
+                        color: "#000000",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "7px 14px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        marginBottom: 6,
+                        minHeight: 32,
+                      }}
+                    >
+                      ↓ Download CV
+                    </button>
+
+                    {/* Next step — ghost link */}
+                    <button
+                      type="button"
+                      onClick={advanceGuideStep}
+                      style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "2px 0", display: "block", width: "100%" }}
+                    >
+                      Next: Job Match →
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {/* Phase: pro-jd — job description input */}
+              {step8Phase === "pro-jd" && (
+                <div style={{ animation: "fabFadeIn 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
+                  <p style={{ margin: "0 0 8px", fontSize: 10, color: "#A0A0A0", lineHeight: 1.5 }}>
+                    Paste the job description — I'll map every keyword against your CV.
+                  </p>
+                  <textarea
+                    value={step8Jd}
+                    onChange={(e) => setStep8Jd(e.target.value)}
+                    placeholder="Paste job description here..."
+                    rows={4}
+                    style={{
+                      width: "100%",
+                      fontSize: 16,
+                      fontFamily: "inherit",
+                      background: "#141414",
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 8,
+                      color: "#fff",
+                      padding: "8px 10px",
+                      resize: "none",
+                      outline: "none",
+                      boxSizing: "border-box",
+                      lineHeight: 1.45,
+                      caretColor: "#D97706",
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = "#D97706"; }}
+                    onBlur={(e) => { e.target.style.borderColor = "#2A2A2A"; }}
+                  />
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!step8Jd.trim()) return;
+                        if (isPro) {
+                          onFabProScan?.(step8Jd);
+                          advanceGuideStep();
+                        } else {
+                          window.open(getPaymentLink("ats"), "_blank");
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        background: step8Jd.trim() ? "#D97706" : "#2A2A2A",
+                        color: step8Jd.trim() ? "#000" : "#606060",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "7px 14px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: step8Jd.trim() ? "pointer" : "not-allowed",
+                        fontFamily: "inherit",
+                        minHeight: 32,
+                        transition: "background 200ms cubic-bezier(0.4,0,0.2,1), color 200ms cubic-bezier(0.4,0,0.2,1)",
+                      }}
+                    >
+                      {isPro ? "Analyze now →" : "Unlock Pro →"}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep8Phase(step8Result ? "scored" : "idle")}
+                    style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0", marginTop: 4, display: "block" }}
+                  >
+                    ← Back
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : !hideFabGuideButtons ? (
+            /* ── All other steps — standard buttons ────────────────────── */
             <div
               style={{
                 display: "flex",
@@ -2003,31 +2426,6 @@ export default function FABSheet({
                     {btn.label}
                   </button>
                 )
-              )}
-              {step.id === 8 && scanStatus === "complete" && (
-                <button
-                  type="button"
-                  onClick={() => onGuidedDownload?.()}
-                  style={{
-                    marginTop: 8,
-                    width: "100%",
-                    background: "#FFFFFF",
-                    color: "#000000",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "8px 14px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                  }}
-                >
-                  ↓ Download CV
-                </button>
               )}
               {guideStep > 0 && (
                 <button
