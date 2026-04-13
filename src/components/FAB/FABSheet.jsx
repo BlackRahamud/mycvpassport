@@ -1929,12 +1929,10 @@ export default function FABSheet({
       const resultEl = document.querySelector('[data-jobmatch-result]');
       if (resultEl) {
         const scoreText = resultEl.getAttribute('data-jobmatch-score');
-        const parsedScore = scoreText ? parseInt(scoreText, 10) : null;
-        if (parsedScore != null && !isNaN(parsedScore)) {
-          setStep9Phase("result");
-          setStep9Score(parsedScore);
-          return;
-        }
+        const parsedScore = scoreText ? parseInt(scoreText, 10) : NaN;
+        setStep9Phase("result");
+        setStep9Score(!isNaN(parsedScore) ? parsedScore : null);
+        return;
       }
       // Check for textarea content
       const ta = document.querySelector('[data-jobmatch-textarea]');
@@ -1960,8 +1958,10 @@ export default function FABSheet({
         ? step.bubbleTextScored || step.bubbleText
         : step.bubbleText;
     } else if (step.id === 9) {
-      if (step9Phase === "result" && step.bubbleTextResult) {
-        bodyText = step.bubbleTextResult.replace("{score}", String(step9Score || 0));
+      if (step9Phase === "result") {
+        bodyText = step9Score != null && step.bubbleTextResult
+          ? step.bubbleTextResult.replace("{score}", String(step9Score))
+          : "Results locked. Upgrade to see your full match score and every missing keyword.";
       } else if (step9Phase === "typing" && step.bubbleTextTyping) {
         bodyText = step.bubbleTextTyping;
       } else {

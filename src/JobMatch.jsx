@@ -378,6 +378,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
       <div style={{ display: "grid", gap: 0 }}>
         <textarea
           data-jobmatch-textarea="true"
+          autoComplete="off"
           value={jobDescription}
           onChange={(e) => setJobDescription(e.target.value)}
           placeholder="Paste the job description here..."
@@ -469,7 +470,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
 
       {/* ── Blurred preview paywall ── */}
       {showPaywall && !hasAccess ? (
-        <div style={{ display: "grid", gap: 16 }}>
+        <div data-jobmatch-result="true" style={{ display: "grid", gap: 16 }}>
           {/* Blurred fake results */}
           <div style={{
             background: "#141414",
