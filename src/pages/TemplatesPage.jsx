@@ -9,29 +9,59 @@ const TEMPLATE_PREVIEW_DUMMY_CV = {
   ...EMPTY_RESUME,
   name: "Ahmed Al Mansouri",
   title: "Customer Service Officer",
-  summary: "Customer-focused professional with experience in retail banking and client service excellence across the UAE.",
+  email: "ahmed.almansouri@email.com",
+  phone: "+971 50 234 5678",
+  location: "Dubai, UAE",
+  nationality: "Emirati",
+  availability: "Immediately Available",
+  languages: "Arabic (Native) · English (Fluent)",
+  summary:
+    "Customer-focused professional with 6 years of experience delivering exceptional service in UAE banking and hospitality sectors. Proven track record in client relationship management, complaint resolution, and cross-selling financial products. Bilingual in Arabic and English with strong knowledge of UAE compliance standards.",
   experience: [
     {
       ...EMPTY_EXP,
       company: "Emirates NBD",
       role: "Customer Service Officer",
       location: "Dubai",
-      period: "2020 — Present",
-      points: "Handled daily client inquiries; maintained high satisfaction scores and accurate transaction records.",
+      period: "Jan 2021 – Present",
+      points:
+        "Managed daily interactions with 80+ customers across teller and service desk functions\nAchieved 96% customer satisfaction score for 3 consecutive quarters\nProcessed account openings, loan applications, and KYC documentation\nTrained 4 new joiners on CRM systems and service protocols",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Marriott Hotels",
+      role: "Customer Relations Executive",
+      location: "Abu Dhabi",
+      period: "Mar 2018 – Dec 2020",
+      points:
+        "Handled VIP guest relations and resolved escalated complaints within SLA\nCoordinated with 6 departments to deliver seamless guest experiences\nRecognised as Employee of the Month twice in 2019",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Etisalat",
+      role: "Customer Service Representative",
+      location: "Dubai",
+      period: "Jun 2016 – Feb 2018",
+      points:
+        "Resolved 50+ daily inbound queries via phone, email, and walk-in\nUpsold service packages achieving 118% of quarterly sales target",
     },
   ],
   education: [
     {
       school: "American University of Sharjah",
-      degree: "BBA",
-      year: "2015",
-      fieldOfStudy: "",
-      startDate: "",
-      endDate: "",
-      location: "",
+      degree: "Bachelor of Business Administration",
+      year: "2016",
+      fieldOfStudy: "Business Administration",
+      startDate: "2012",
+      endDate: "2016",
+      location: "Sharjah, UAE",
     },
   ],
-  skills: "Customer Service, CRM, MS Office, Stakeholder Communication",
+  certifications: [
+    { name: "Certified Customer Experience Professional (CCXP)", issuer: "CXPA", year: "2022" },
+    { name: "AML Awareness Certificate", issuer: "UAE Central Bank", year: "2021" },
+  ],
+  skills: "Customer Service · CRM · MS Office · Stakeholder Communication · KYC · AML Awareness · Complaint Resolution · Cross-selling · Arabic · English",
 };
 
 function templateTierMarketingLabel(t) {
@@ -56,10 +86,10 @@ const AMBER_GLOW_IDS = new Set([3, 4, 5]);
 
 /** Scroll sections — each template appears exactly once, no duplicates. */
 const SCROLL_SECTIONS = [
-  { key: "popular",  label: "POPULAR",  ids: [1, 2, 3, 4, 5] },
-  { key: "simple",   label: "SIMPLE",   ids: [6, 7] },
-  { key: "modern",   label: "MODERN",   ids: [8, 9, 10] },
-  { key: "creative", label: "CREATIVE", ids: [11, 12, 13, 14] },
+  { key: "popular",  label: "POPULAR",  desc: "Engineered for GCC shortlists. ATS-optimised, recruiter-tested.",         ids: [1, 2, 3, 4, 5] },
+  { key: "simple",   label: "SIMPLE",   desc: "Clean, minimal layouts that let your experience speak.",                   ids: [6, 7] },
+  { key: "modern",   label: "MODERN",   desc: "Contemporary designs for competitive, fast-moving industries.",            ids: [8, 9, 10] },
+  { key: "creative", label: "CREATIVE", desc: "Bold formats for roles where presentation signals capability.",            ids: [11, 12, 13, 14] },
 ];
 
 /**
@@ -342,29 +372,39 @@ function BuilderTemplatesTab({
           const sectionTemplates = TEMPLATES.filter((t) => section.ids.includes(t.id));
           return (
             <Fragment key={section.key}>
-              {/* Section divider heading */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "12px 12px 8px",
-                  gap: 8,
-                }}
-              >
-                <div style={{ flex: 1, height: 0.5, background: "#2A2A2A" }} />
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 600,
-                    color: "#484848",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {section.label}
-                </span>
-                <div style={{ flex: 1, height: 0.5, background: "#2A2A2A" }} />
+              {/* Section divider heading + descriptor */}
+              <div style={{ padding: "16px 12px 6px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, height: 0.5, background: "#2A2A2A" }} />
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 600,
+                      color: "#484848",
+                      letterSpacing: "0.14em",
+                      textTransform: "uppercase",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {section.label}
+                  </span>
+                  <div style={{ flex: 1, height: 0.5, background: "#2A2A2A" }} />
+                </div>
+                {section.desc ? (
+                  <p
+                    style={{
+                      margin: "5px 0 0",
+                      fontSize: 10,
+                      fontWeight: 400,
+                      color: "#3E3E3E",
+                      textAlign: "center",
+                      letterSpacing: "0.01em",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {section.desc}
+                  </p>
+                ) : null}
               </div>
               {/* 2-column grid — overflow visible so cards aren't clipped within scroll */}
               <div className="cvp-templates-grid" style={{ overflowY: "visible", flex: "none" }}>
