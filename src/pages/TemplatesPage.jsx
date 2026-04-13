@@ -92,10 +92,12 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
         borderRadius: 12,
         background: "#141414",
         cursor: "pointer",
-        overflow: "visible",
-        display: "block",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
         textAlign: "left",
         boxSizing: "border-box",
+        transition: "transform 200ms cubic-bezier(0.4,0,0.2,1), box-shadow 200ms cubic-bezier(0.4,0,0.2,1)",
       }}
     >
       <div className="cvp-templates-card-thumb">
@@ -112,42 +114,37 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
           </div>
         </div>
       </div>
-      <div className="cvp-templates-card-label">
-        <span className="cvp-templates-card-name">{t.name}</span>
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 5,
-          left: 5,
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          flexWrap: "wrap",
-          maxWidth: "calc(100% - 10px)",
-          pointerEvents: "none",
-        }}
-      >
+      {/* Card footer: name + tier pill + ATS badge */}
+      <div className="cvp-templates-card-footer">
+        <div className="cvp-templates-card-footer-row">
+          <span className="cvp-templates-card-name">{t.name}</span>
+          <span
+            style={{
+              fontSize: 8,
+              padding: "2px 6px",
+              borderRadius: 4,
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              flexShrink: 0,
+              textTransform: "uppercase",
+              ...tierPill,
+            }}
+          >
+            {tierLabel}
+          </span>
+        </div>
         <span
           style={{
-            fontSize: 6.5,
-            padding: "2px 5px",
-            borderRadius: 5,
-            fontWeight: 600,
-            ...tierPill,
-          }}
-        >
-          {tierLabel}
-        </span>
-        <span
-          style={{
+            display: "inline-flex",
+            alignItems: "center",
             background: "#0F2A1A",
             color: "#4ADE80",
-            borderRadius: 99,
-            padding: "3px 8px",
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.3px",
+            borderRadius: 4,
+            padding: "2px 6px",
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            alignSelf: "flex-start",
           }}
         >
           {atsBadge}

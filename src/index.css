@@ -517,11 +517,26 @@ select:focus,
   align-content: start;
 }
 
+/* Template card — show top 45% of A4 (header / name area) as preview */
 .cvp-templates-card-thumb {
   position: relative;
   width: 100%;
-  padding-bottom: 141%;
+  padding-bottom: 63%; /* 141% × 0.447 ≈ 63%: shows top 45% of A4 */
   background: #1c1c1c;
+  overflow: hidden;
+}
+
+/* Gradient fade — makes the crop intentional, not broken */
+.cvp-templates-card-thumb::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 42%;
+  background: linear-gradient(to bottom, transparent 0%, #141414 100%);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .cvp-templates-card-thumb-inner {
@@ -549,18 +564,42 @@ select:focus,
   pointer-events: none;
 }
 
-.cvp-templates-card-label {
-  padding: 6px 8px 8px;
+/* Card footer: name + tier pill + ATS badge */
+.cvp-templates-card-footer {
+  padding: 8px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cvp-templates-card-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
 }
 
 .cvp-templates-card-name {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: #ffffff;
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Hover: subtle lift + box-shadow (doesn't conflict with inline border) */
+.cvp-templates-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.cvp-templates-card:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 /* MOBILE TEMPLATE FIX - DO NOT MODIFY WITHOUT READING THIS BLOCK */
@@ -591,10 +630,10 @@ select:focus,
     position: relative;
   }
 
-  /* Thumb height = width × (1123/794), matching JS scale(containerWidth/794) + 1123px inner */
+  /* Thumb height = top 45% of A4 → aspect-ratio 794/(1123*0.45)≈794/506 */
   .cvp-templates-card-thumb {
     padding-bottom: 0;
-    aspect-ratio: 794 / 1123;
+    aspect-ratio: 794 / 506;
     height: auto;
     overflow: hidden;
   }

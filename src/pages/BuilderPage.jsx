@@ -4295,7 +4295,7 @@ function ResumeBuilder({
                 <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
               </div>
             )}
-            <div className="cvp-builder-mobile-download-row" style={{ padding: "12px 10px 88px", marginTop: "auto" }}>
+            <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto" }}>
               <div style={{
                 padding: '1.5px',
                 borderRadius: '14px',
