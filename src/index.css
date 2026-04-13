@@ -168,7 +168,7 @@ select:focus,
   pointer-events: none;
 }
 
-/* Landing S3 — scaled CV preview (scale set in JS via ResizeObserver; no fixed transform here) */
+/* Landing carousel — outer container for CvTemplateThumb */
 .lp-cv-thumb-scale-outer {
   width: 120px;
   height: 160px;
@@ -180,16 +180,17 @@ select:focus,
   flex-shrink: 0;
 }
 
-.lp-cv-thumb-scale-inner {
+/* Gradient fade — matches builder card treatment, fades to white */
+.lp-cv-thumb-scale-outer::after {
+  content: '';
   position: absolute;
+  bottom: 0;
   left: 0;
-  top: 0;
-  width: 794px;
-  height: 1123px;
-  transform-origin: top left;
-  will-change: transform;
-  transition: none;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.96) 100%);
   pointer-events: none;
+  z-index: 2;
 }
 
 /* Auth — focused field styling (no transition: all) */

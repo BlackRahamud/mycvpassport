@@ -51,16 +51,22 @@ function templateAtsBadgeText(t) {
   return "ATS 85+";
 }
 
-const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template: t, isSelected, sheetHighlight, resume, onPick, cardRef }) {
-  const thumbScaleOuterRef = useRef(null);
+/**
+ * CvTemplateThumb — shared scaled CV preview.
+ *
+ * Handles ResizeObserver + scale calculation + ResumePreview in one place.
+ * All template preview surfaces (selection grid, landing carousel) delegate here
+ * so a single fix propagates everywhere automatically.
+ *
+ * Usage: wrap in any outer container that sets the desired rendered dimensions.
+ * The inner preview scales to fill 100% of that container's width.
+ */
+export const CvTemplateThumb = memo(function CvTemplateThumb({ resume, template }) {
+  const scaleOuterRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const tierLabel = templateTierMarketingLabel(t);
-  const tierPill = templateTierPillColors(tierLabel);
-  const atsBadge = templateAtsBadgeText(t);
-  const borderStyle = sheetHighlight ? "2px solid rgba(255,255,255,0.8)" : isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A";
 
   useEffect(() => {
-    const el = thumbScaleOuterRef.current;
+    const el = scaleOuterRef.current;
     if (!el) return undefined;
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect?.width;
@@ -75,6 +81,24 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
     const w = containerWidth > 0 ? containerWidth : A4_PREVIEW_WIDTH_PX;
     return w / A4_PREVIEW_WIDTH_PX;
   }, [containerWidth]);
+
+  return (
+    <div ref={scaleOuterRef} className="cvp-templates-card-thumb-scale-outer">
+      <div
+        className="cvp-templates-card-thumb-scale-inner"
+        style={{ transform: `scale(${scale})` }}
+      >
+        <ResumePreview cv={resume} template={template} />
+      </div>
+    </div>
+  );
+});
+
+const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template: t, isSelected, sheetHighlight, resume, onPick, cardRef }) {
+  const tierLabel = templateTierMarketingLabel(t);
+  const tierPill = templateTierPillColors(tierLabel);
+  const atsBadge = templateAtsBadgeText(t);
+  const borderStyle = sheetHighlight ? "2px solid rgba(255,255,255,0.8)" : isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A";
 
   return (
     <button
@@ -102,16 +126,7 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
     >
       <div className="cvp-templates-card-thumb">
         <div className="cvp-templates-card-thumb-inner">
-          <div ref={thumbScaleOuterRef} className="cvp-templates-card-thumb-scale-outer">
-            <div
-              className="cvp-templates-card-thumb-scale-inner"
-              style={{
-                transform: `scale(${scale})`,
-              }}
-            >
-              <ResumePreview cv={resume} template={t} />
-            </div>
-          </div>
+          <CvTemplateThumb resume={resume} template={t} />
         </div>
       </div>
       {/* Card footer: name + tier pill + ATS badge */}

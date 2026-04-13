@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import CVPassportLogo from './components/CVPassportLogo';
 import CVPlayCard from './components/CVPlayCard';
 import { useGeoContent } from './hooks/useGeoContent';
-import { ResumePreview, A4_PREVIEW_WIDTH_PX } from './ResumePreview';
 import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
+import { CvTemplateThumb } from './pages/TemplatesPage';
 import HowItWorks from './HowItWorks';
 import CookieBanner from './components/CookieBanner';
 
@@ -222,39 +222,9 @@ const FAQ_ITEMS = [
 ];
 
 function LandingTemplateThumb({ template }) {
-  const wrapRef = useRef(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return undefined;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect?.width;
-      if (w == null || w < 1) return;
-      setContainerWidth((prev) => (Math.abs(prev - w) < 0.5 ? prev : w));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const scale = useMemo(() => {
-    const w = containerWidth > 0 ? containerWidth : 120;
-    return w / A4_PREVIEW_WIDTH_PX;
-  }, [containerWidth]);
-
   return (
-    <div ref={wrapRef} className="lp-cv-thumb-scale-outer">
-      <div
-        className="lp-cv-thumb-scale-inner"
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          willChange: 'transform',
-          transition: 'none',
-        }}
-      >
-        <ResumePreview cv={LANDING_THUMB_CV} template={template} />
-      </div>
+    <div className="lp-cv-thumb-scale-outer">
+      <CvTemplateThumb resume={LANDING_THUMB_CV} template={template} />
     </div>
   );
 }
