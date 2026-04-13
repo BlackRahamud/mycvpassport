@@ -97,9 +97,10 @@ export const GUIDE_STEPS = [
     navigationSource: 'guide_step_8',
     upsell: true,
     bubbleText: "Running your free ATS scan now. This checks if your CV passes recruiter filters.",
+    bubbleTextScored: "Free scan: 12 signals checked. Pro checks 40+ against your target job — and shows every keyword that gets you shortlisted.",
     btns: [
-      { label: 'See my score', style: 'amber' },
-      { label: 'Run Pro ATS', style: 'shimmer' }
+      { label: 'Unlock Pro ATS →', style: 'amber' },
+      { label: 'Next: Job Match →', style: 'outlined' }
     ]
   },
   {
@@ -109,25 +110,25 @@ export const GUIDE_STEPS = [
     autoAction: false,
     navigationSource: 'guide_step_9',
     upsell: true,
-    bubbleText: "Paste any job description here — I'll show you exactly which keywords you're missing and score your CV against the role. Used by job seekers targeting global companies hiring across the Gulf.",
-    btns: [
-      { label: 'Try Job Match', style: 'amber' },
-      { label: 'Unlock Job Match', style: 'shimmer' }
-    ]
+    bubbleText: "Paste any job description above — I'll score your CV against the role and show you exactly which keywords you're missing.",
+    bubbleTextTyping: "Good. Now hit Analyse Match ↑ — I'll show your score in seconds.",
+    bubbleTextResult: "You're at {score}%. Unlock Pro Job Match to see all missing keywords + get a rewrite suggestion that hits 90%+.",
+    btns: []
   },
   {
     id: 10,
     sectionId: null,
-    onEnter: null,
+    onEnter: 'coverletter',
     autoAction: false,
     navigationSource: null,
     upsell: true,
     twoPhase: true,
     textPhase1: "Almost there. A cover letter doubles your callback rate.",
-    textPhase2: "Cover Letter: AED 10. Or unlock everything with Full Pro Pass.",
+    textPhase2: "Cover Letter: AED 10. Or unlock everything with Full Pro Pass — AED 25.",
     btns: [
       { label: 'Get Cover Letter — AED 10', style: 'amber' },
-      { label: 'Full Pro Pass', style: 'shimmer' }
+      { label: 'Full Pro Pass — AED 25', style: 'shimmer' },
+      { label: 'Skip → Download my CV', style: 'skip' }
     ]
   },
   {
@@ -139,7 +140,7 @@ export const GUIDE_STEPS = [
     upsell: false,
     bubbleText: "Your CV is ready. Download it and start applying.",
     btns: [
-      { label: 'Download CV', style: 'amber' },
+      { label: 'Download CV ↓', style: 'amber' },
       { label: 'Skip', style: 'skip' }
     ]
   }

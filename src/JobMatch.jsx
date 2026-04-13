@@ -377,6 +377,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
       {/* ── Textarea + counter + button ── */}
       <div style={{ display: "grid", gap: 0 }}>
         <textarea
+          data-jobmatch-textarea="true"
           value={jobDescription}
           onChange={(e) => setJobDescription(e.target.value)}
           placeholder="Paste the job description here..."
@@ -386,7 +387,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
             minHeight: 160,
             background: "#141414",
             color: "#FFFFFF",
-            border: "1px solid #2A2A2A",
+            border: jobDescription.trim() ? "1px solid rgba(217,119,6,0.5)" : "1px solid #2A2A2A",
             borderRadius: 16,
             padding: 16,
             fontSize: 15,
@@ -395,10 +396,16 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
             fontStyle: "italic",
             boxSizing: "border-box",
             outline: "none",
-            transition: `border-color 200ms ${EASE}`,
+            transition: `border-color 200ms ${EASE}, box-shadow 200ms ${EASE}`,
+            boxShadow: jobDescription.trim() ? "0 0 0 3px rgba(217,119,6,0.12), 0 0 16px rgba(217,119,6,0.2)" : "none",
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.35)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(245,158,11,0.08)"; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.boxShadow = "none"; }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(217,119,6,0.5)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(217,119,6,0.12), 0 0 16px rgba(217,119,6,0.2)"; }}
+          onBlur={(e) => {
+            if (!jobDescription.trim()) {
+              e.currentTarget.style.borderColor = "#2A2A2A";
+              e.currentTarget.style.boxShadow = "none";
+            }
+          }}
         />
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, padding: "8px 4px 0", minHeight: 20 }}>
           {keywordCount > 0
@@ -408,7 +415,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
         <button
           type="button"
           onClick={handleAnalyse}
-          disabled={loading}
+          disabled={loading || !jobDescription.trim()}
           style={{
             marginTop: 12,
             border: "none",
@@ -419,10 +426,12 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
             color: "#000000",
             fontWeight: 700,
             fontSize: 15,
-            cursor: loading ? "not-allowed" : "pointer",
+            cursor: (loading || !jobDescription.trim()) ? "not-allowed" : "pointer",
             width: "100%",
-            opacity: loading ? 0.7 : 1,
-            transition: `opacity 200ms ${EASE}`,
+            opacity: (!jobDescription.trim() && !loading) ? 0.4 : loading ? 0.7 : 1,
+            pointerEvents: (!jobDescription.trim() && !loading) ? "none" : "auto",
+            transition: `opacity 200ms ${EASE}, box-shadow 200ms ${EASE}`,
+            boxShadow: jobDescription.trim() && !loading ? "0 0 0 3px rgba(217,119,6,0.25), 0 4px 20px rgba(217,119,6,0.4)" : "none",
           }}
         >
           {loading ? "Analysing..." : "Analyse Match"}
@@ -608,7 +617,7 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
 
       {/* ── Results ── */}
       {result ? (
-        <div style={{ display: "grid", gap: 16 }}>
+        <div data-jobmatch-result="true" data-jobmatch-score={result.score} style={{ display: "grid", gap: 16 }}>
           <div style={{
             background: "#141414",
             border: "1px solid #2A2A2A",

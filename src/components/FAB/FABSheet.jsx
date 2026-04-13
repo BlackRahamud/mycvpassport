@@ -889,6 +889,9 @@ export default function FABSheet({
   const [step8Phase, setStep8Phase] = useState("idle");
   const [step8Result, setStep8Result] = useState(null);
   const [step8Jd, setStep8Jd] = useState("");
+  // Step 9 Job Match sub-states: idle | typing | result
+  const [step9Phase, setStep9Phase] = useState("idle");
+  const [step9Score, setStep9Score] = useState(null);
 
   const resetGuidedCoach = useCallback(() => {
     guidedPostSummaryStageRef.current = "qa";
@@ -1836,12 +1839,19 @@ export default function FABSheet({
     return () => clearTimeout(t);
   }, [variant, fabMode, guideStep, currentGuideStep?.id, currentGuideStep?.twoPhase]);
 
-  // Reset step 8 micro-flow whenever the guide step changes
+  // Reset step 8 & 9 micro-flow whenever the guide step changes
   useEffect(() => {
-    setStep8Phase("idle");
     setStep8Result(null);
     setStep8Jd("");
-  }, [guideStep]);
+    setStep9Phase("idle");
+    setStep9Score(null);
+    // Auto-trigger free scan when entering step 8
+    if (currentGuideStep?.id === 8 && currentGuideStep?.autoAction) {
+      setStep8Phase("scanning");
+    } else {
+      setStep8Phase("idle");
+    }
+  }, [guideStep, currentGuideStep?.id, currentGuideStep?.autoAction]);
 
   const computeStep8FreeScan = useCallback(() => {
     const cv = resume || {};
@@ -1896,24 +1906,72 @@ export default function FABSheet({
     };
   }, [resume]);
 
-  const handleStep8FreeScan = useCallback(() => {
-    setStep8Phase("scanning");
-    setTimeout(() => {
+  // Auto-complete scan when in scanning phase
+  useEffect(() => {
+    if (step8Phase !== "scanning") return;
+    const t = setTimeout(() => {
       const result = computeStep8FreeScan();
       setStep8Result(result);
       setStep8Phase("scored");
     }, 1800);
-  }, [computeStep8FreeScan]);
+    return () => clearTimeout(t);
+  }, [step8Phase, computeStep8FreeScan]);
+
+  const handleStep8FreeScan = useCallback(() => {
+    setStep8Phase("scanning");
+  }, []);
+
+  // Step 9: watch Job Match textarea for content changes + result rendering
+  useEffect(() => {
+    if (variant !== "builder" || fabMode !== "guide" || currentGuideStep?.id !== 9) return;
+    const checkJobMatchState = () => {
+      // Check for result first
+      const resultEl = document.querySelector('[data-jobmatch-result]');
+      if (resultEl) {
+        const scoreText = resultEl.getAttribute('data-jobmatch-score');
+        const parsedScore = scoreText ? parseInt(scoreText, 10) : null;
+        if (parsedScore != null && !isNaN(parsedScore)) {
+          setStep9Phase("result");
+          setStep9Score(parsedScore);
+          return;
+        }
+      }
+      // Check for textarea content
+      const ta = document.querySelector('[data-jobmatch-textarea]');
+      if (ta && ta.value && ta.value.trim().length > 0) {
+        setStep9Phase("typing");
+      } else {
+        setStep9Phase("idle");
+      }
+    };
+    // Poll periodically since we can't easily attach listeners to elements we don't own
+    const interval = setInterval(checkJobMatchState, 500);
+    checkJobMatchState();
+    return () => clearInterval(interval);
+  }, [variant, fabMode, currentGuideStep?.id]);
 
   if (variant === "builder" && fabMode === "guide" && currentGuideStep) {
     const step = currentGuideStep;
     const hideFabGuideButtons = step.twoPhase === true && guideNinePhase === 1;
-    const bodyText =
-      step.twoPhase === true
-        ? guideNinePhase === 1
-          ? step.textPhase1
-          : step.textPhase2
+    // Dynamic bubble text for step 8 (ATS sub-states) and step 9 (Job Match sub-states)
+    let bodyText;
+    if (step.id === 8) {
+      bodyText = (step8Phase === "scored" || step8Phase === "pro-jd")
+        ? step.bubbleTextScored || step.bubbleText
         : step.bubbleText;
+    } else if (step.id === 9) {
+      if (step9Phase === "result" && step.bubbleTextResult) {
+        bodyText = step.bubbleTextResult.replace("{score}", String(step9Score || 0));
+      } else if (step9Phase === "typing" && step.bubbleTextTyping) {
+        bodyText = step.bubbleTextTyping;
+      } else {
+        bodyText = step.bubbleText;
+      }
+    } else if (step.twoPhase === true) {
+      bodyText = guideNinePhase === 1 ? step.textPhase1 : step.textPhase2;
+    } else {
+      bodyText = step.bubbleText;
+    }
     return (
       <div
         style={{
@@ -1957,7 +2015,7 @@ export default function FABSheet({
             border: `1px solid ${step.upsell ? "#F59E0B" : "rgba(255,255,255,0.12)"}`,
             borderRadius: "12px",
             padding: "12px 14px",
-            maxWidth: (step.id === 8 && (step8Phase === "scored" || step8Phase === "pro-jd")) ? "288px" : "220px",
+            maxWidth: (step.id === 8 && (step8Phase === "scored" || step8Phase === "pro-jd")) || (step.id === 9 && step9Phase === "result") ? "288px" : "220px",
             minWidth: "180px",
             animation: "fabFadeIn 0.3s cubic-bezier(0.4,0,0.2,1)",
             boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
@@ -2126,7 +2184,7 @@ export default function FABSheet({
                 const headline = score >= 80 ? "Strong foundation." : score >= 60 ? "Getting there." : "Room to grow.";
                 return (
                   <div style={{ animation: "fabFadeIn 0.4s cubic-bezier(0.4,0,0.2,1)" }}>
-                    {/* Score ring row */}
+                    {/* Score ring row + download icon */}
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                       <div style={{ position: "relative", width: 52, height: 52, flexShrink: 0 }}>
                         <svg width={52} height={52} viewBox="0 0 52 52" aria-hidden style={{ display: "block" }}>
@@ -2149,6 +2207,26 @@ export default function FABSheet({
                         <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", lineHeight: 1.3 }}>{headline}</div>
                         <div style={{ fontSize: 10, color: "#A0A0A0", marginTop: 2 }}>{industry}</div>
                       </div>
+                      {/* Download icon button */}
+                      <button
+                        type="button"
+                        onClick={() => onGuidedDownload?.()}
+                        style={{
+                          width: 32, height: 32, flexShrink: 0,
+                          background: "rgba(217,119,6,0.1)",
+                          border: "1px solid rgba(217,119,6,0.3)",
+                          borderRadius: 8,
+                          display: "grid", placeItems: "center",
+                          cursor: "pointer", padding: 0,
+                        }}
+                        aria-label="Download CV"
+                      >
+                        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden>
+                          <line x1="8" y1="2" x2="8" y2="10.5" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" />
+                          <polyline points="4.5,8 8,11.5 11.5,8" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <line x1="3" y1="14" x2="13" y2="14" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </button>
                     </div>
 
                     {/* Visibility Boosters */}
@@ -2195,11 +2273,8 @@ export default function FABSheet({
                       </div>
                     )}
 
-                    {/* Pro upsell — Apple-style: show the gap, one door */}
-                    <div style={{ borderTop: "1px solid #2A2A2A", paddingTop: 10, marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: "#A0A0A0", lineHeight: 1.5, marginBottom: 8 }}>
-                        Free scan: 12 signals. Pro checks 40+ against your target job — and shows every keyword that gets you shortlisted.
-                      </div>
+                    {/* CTAs: Unlock Pro ATS (amber) + Next: Job Match (outlined) */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
                       <button
                         type="button"
                         onClick={() => {
@@ -2207,43 +2282,39 @@ export default function FABSheet({
                           else window.open(getPaymentLink("ats"), "_blank");
                         }}
                         style={{
-                          width: "100%",
-                          background: "transparent",
-                          color: "#fff",
+                          background: "#D97706",
+                          color: "#000",
+                          border: "none",
                           borderRadius: 8,
-                          padding: "7px 14px",
+                          padding: "6px 14px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          minHeight: 32,
+                        }}
+                      >
+                        {isPro ? "Run Pro ATS →" : "Unlock Pro ATS →"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={advanceGuideStep}
+                        style={{
+                          background: "transparent",
+                          color: "#D97706",
+                          border: "1.5px solid #D97706",
+                          borderRadius: 8,
+                          padding: "6px 14px",
                           fontSize: 11,
                           fontWeight: 600,
                           cursor: "pointer",
                           fontFamily: "inherit",
-                          position: "relative",
-                          overflow: "hidden",
-                          border: "none",
                           minHeight: 32,
                         }}
                       >
-                        <span
-                          style={{
-                            position: "absolute", inset: 0, borderRadius: 8, padding: "1px",
-                            background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
-                            WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
-                            WebkitMaskComposite: "xor",
-                            backgroundSize: "200% 100%",
-                            animation: "fabShimmerBorder 2s linear infinite",
-                          }}
-                        />
-                        {isPro ? "Run Pro ATS →" : "Unlock Pro ATS →"}
+                        Next: Job Match →
                       </button>
                     </div>
-
-                    {/* Next step — ghost link */}
-                    <button
-                      type="button"
-                      onClick={advanceGuideStep}
-                      style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "2px 0", display: "block", width: "100%" }}
-                    >
-                      Next: Job Match →
-                    </button>
                   </div>
                 );
               })()}
@@ -2317,6 +2388,116 @@ export default function FABSheet({
                 </div>
               )}
             </div>
+          ) : step.id === 9 ? (
+            /* ── Step 9: Job Match — zero CTAs in idle/typing, CTAs only in result ── */
+            <div style={{ marginTop: 10 }}>
+              {step9Phase === "idle" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {guideStep > 0 && (
+                    <button type="button" onClick={retreatGuideStep}
+                      style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0" }}>
+                      ← Back
+                    </button>
+                  )}
+                </div>
+              )}
+              {step9Phase === "typing" && null}
+              {step9Phase === "result" && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", animation: "fabFadeIn 0.3s ease" }}>
+                  <button type="button"
+                    onClick={() => {
+                      if (!isPro) window.open(getPaymentLink("activeHunter"), "_blank");
+                    }}
+                    style={{
+                      background: "#D97706", color: "#000", border: "none", borderRadius: 8,
+                      padding: "6px 14px", fontSize: 11, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "inherit", minHeight: 32,
+                    }}>
+                    Unlock Job Match →
+                  </button>
+                  <button type="button" onClick={advanceGuideStep}
+                    style={{
+                      background: "transparent", color: "#D97706",
+                      border: "1.5px solid #D97706", borderRadius: 8,
+                      padding: "6px 14px", fontSize: 11, fontWeight: 600,
+                      cursor: "pointer", fontFamily: "inherit", minHeight: 32,
+                    }}>
+                    Next: Cover Letter →
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : step.id === 10 && !hideFabGuideButtons ? (
+            /* ── Step 10: Cover Letter pitch — Ziina payment CTAs ── */
+            <div
+              style={{
+                display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center",
+                ...(step.twoPhase === true && guideNinePhase === 2 ? { animation: "fabFadeIn 0.3s ease" } : {}),
+              }}
+            >
+              <button type="button"
+                onClick={() => window.open(getPaymentLink("coverLetter"), "_blank")}
+                style={{
+                  background: "#D97706", color: "#000", border: "none", borderRadius: 8,
+                  padding: "6px 14px", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit", minHeight: 32,
+                }}>
+                Get Cover Letter — AED 10
+              </button>
+              <button type="button"
+                onClick={() => window.open(getPaymentLink("activeHunter"), "_blank")}
+                style={{
+                  background: "transparent", color: "#fff", borderRadius: 8,
+                  padding: "6px 14px", fontSize: 11, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
+                  position: "relative", overflow: "hidden", border: "none", minHeight: 32,
+                }}>
+                <span style={{
+                  position: "absolute", inset: 0, borderRadius: 8, padding: "1px",
+                  background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  backgroundSize: "200% 100%",
+                  animation: "fabShimmerBorder 2s linear infinite",
+                }} />
+                Full Pro Pass — AED 25
+              </button>
+              <button type="button" onClick={advanceGuideStep}
+                style={{
+                  background: "none", border: "none", color: "#606060",
+                  fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 6px",
+                }}>
+                Skip → Download my CV
+              </button>
+            </div>
+          ) : step.id === 11 ? (
+            /* ── Step 11: Download — finishGuide on either CTA ── */
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10, alignItems: "center" }}>
+              <button type="button"
+                onClick={() => {
+                  onGuidedDownload?.();
+                  localStorage.setItem('hasCompletedGuide', 'true');
+                  advanceGuideStep();
+                }}
+                style={{
+                  background: "#D97706", color: "#000", border: "none", borderRadius: 8,
+                  padding: "6px 14px", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit", minHeight: 32,
+                }}>
+                Download CV ↓
+              </button>
+              <button type="button"
+                onClick={() => {
+                  localStorage.setItem('hasCompletedGuide', 'true');
+                  advanceGuideStep();
+                }}
+                style={{
+                  background: "none", border: "none", color: "#606060",
+                  fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 6px",
+                }}>
+                Skip
+              </button>
+            </div>
           ) : !hideFabGuideButtons ? (
             /* ── All other steps — standard buttons ────────────────────── */
             <div
@@ -2379,6 +2560,25 @@ export default function FABSheet({
                         animation: "fabShimmerBorder 2s linear infinite",
                       }}
                     />
+                    {btn.label}
+                  </button>
+                ) : btn.style === "outlined" ? (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={advanceGuideStep}
+                    style={{
+                      background: "transparent",
+                      color: "#D97706",
+                      border: "1.5px solid #D97706",
+                      borderRadius: "8px",
+                      padding: "6px 14px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
                     {btn.label}
                   </button>
                 ) : (
