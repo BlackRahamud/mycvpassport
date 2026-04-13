@@ -118,24 +118,18 @@ export const CvTemplateThumb = memo(function CvTemplateThumb({ resume, template 
     return () => ro.disconnect();
   }, []);
 
-  // scale = cardWidth / A4_WIDTH — scales the 794px A4 down to the card width
+  /* scale = cardWidth / A4_WIDTH — scales the 794px A4 down to the card width.
+     Height is handled by CSS: parent .cvp-templates-card-thumb has aspect-ratio: 794/1123,
+     and this element fills it via position:absolute;inset:0. No JS height needed. */
   const scale = useMemo(() => {
     if (containerWidth <= 0) return 0;
     return containerWidth / A4_PREVIEW_WIDTH_PX;
-  }, [containerWidth]);
-
-  // thumbHeight = A4_WIDTH × A4_RATIO × scale = cardWidth × 1.4142
-  // Set as inline style so card height flows from content, not CSS padding tricks.
-  const thumbHeight = useMemo(() => {
-    if (containerWidth <= 0) return null;
-    return Math.round(containerWidth * 1.4142);
   }, [containerWidth]);
 
   return (
     <div
       ref={scaleOuterRef}
       className="cvp-templates-card-thumb-scale-outer"
-      style={thumbHeight != null ? { height: thumbHeight } : undefined}
     >
       {scale > 0 && (
         <div
@@ -373,14 +367,14 @@ function BuilderTemplatesTab({
           return (
             <Fragment key={section.key}>
               {/* Section divider heading + descriptor */}
-              <div style={{ padding: "16px 12px 6px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ flex: 1, height: 0.5, background: "#2A2A2A" }} />
+              <div style={{ padding: "24px 12px 8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ flex: 1, height: "0.5px", background: "rgba(255,255,255,0.08)" }} />
                   <span
                     style={{
-                      fontSize: 9,
-                      fontWeight: 600,
-                      color: "#484848",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "rgba(255,255,255,0.5)",
                       letterSpacing: "0.14em",
                       textTransform: "uppercase",
                       whiteSpace: "nowrap",
@@ -388,18 +382,18 @@ function BuilderTemplatesTab({
                   >
                     {section.label}
                   </span>
-                  <div style={{ flex: 1, height: 0.5, background: "#2A2A2A" }} />
+                  <div style={{ flex: 1, height: "0.5px", background: "rgba(255,255,255,0.08)" }} />
                 </div>
                 {section.desc ? (
                   <p
                     style={{
-                      margin: "5px 0 0",
-                      fontSize: 10,
+                      margin: "6px 0 0",
+                      fontSize: 11,
                       fontWeight: 400,
-                      color: "#3E3E3E",
+                      color: "rgba(255,255,255,0.38)",
                       textAlign: "center",
                       letterSpacing: "0.01em",
-                      lineHeight: 1.4,
+                      lineHeight: 1.45,
                     }}
                   >
                     {section.desc}

@@ -518,33 +518,36 @@ select:focus,
   align-content: start;
 }
 
-/* Template card — height flows from CvTemplateThumb (JS sets it via inline style) */
+/* Template card — aspect-ratio lives HERE so grid sees correct height from first paint.
+   Previous bug: aspect-ratio was on scale-outer (position:relative child of this div).
+   Grid row height was determined before JS ResizeObserver fired, so grid saw only footer
+   height → overflow:hidden on the card button clipped the CV. */
 .cvp-templates-card-thumb {
   position: relative;
   width: 100%;
+  aspect-ratio: 794 / 1123;
   background: #1c1c1c;
   overflow: hidden;
 }
 
-/* Hairline bottom-edge fade — premium finish, does not hide content */
+/* Bottom-edge fade — soft gradient so any sub-pixel overflow looks intentional */
 .cvp-templates-card-thumb::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 6%;
-  background: linear-gradient(to bottom, transparent 0%, rgba(20,20,20,0.5) 100%);
+  height: 10%;
+  background: linear-gradient(to bottom, transparent 0%, rgba(20,20,20,0.65) 60%, #141414 100%);
   pointer-events: none;
   z-index: 2;
 }
 
+/* Scale-outer fills card-thumb via absolute positioning — no aspect-ratio here */
 .cvp-templates-card-thumb-scale-outer {
-  width: 100%;
-  /* aspect-ratio is the CSS fallback before JS sets an explicit height */
-  aspect-ratio: 794 / 1123;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  position: relative;
 }
 
 .cvp-templates-card-thumb-scale-inner {

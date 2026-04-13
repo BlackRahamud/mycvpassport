@@ -2236,32 +2236,6 @@ export default function FABSheet({
                       </button>
                     </div>
 
-                    {/* Download CV */}
-                    <button
-                      type="button"
-                      onClick={() => onGuidedDownload?.()}
-                      style={{
-                        width: "100%",
-                        background: "#FFFFFF",
-                        color: "#000000",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "7px 14px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 5,
-                        marginBottom: 6,
-                        minHeight: 32,
-                      }}
-                    >
-                      ↓ Download CV
-                    </button>
-
                     {/* Next step — ghost link */}
                     <button
                       type="button"
