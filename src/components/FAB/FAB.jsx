@@ -562,7 +562,7 @@ const FAB = forwardRef(function FAB(
           return;
         }
       }
-      if (variant === "builder" && tabKey === "content") {
+      if (variant === "builder" && (tabKey === "content" || tabKey === "templates")) {
         resetTimer();
         return;
       }
@@ -1128,12 +1128,14 @@ const FAB = forwardRef(function FAB(
       },
       openGuideForCurrentTab() {
         if (variant !== "builder") return;
+        if (tabKey === "templates") return;
         if (sheetOpen || menuOpen) return;
         const useAtsHigh = tabKey === "ats" && atsScore >= 71 && !readFabSeen("ats");
         openGuideSheet(useAtsHigh);
       },
       triggerBuilderIdlePulse() {
         if (sheetOpenRef.current || menuOpenRef.current) return;
+        if (variant === "builder" && tabKey === "templates") return;
         if (variant === "builder" && tabKey === "content") {
           tryOpenBuilderContentIdleAutoSheet();
           return;

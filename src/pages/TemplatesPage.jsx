@@ -4,8 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { TEMPLATES, isCvDataEmptyForTemplateApply, EMPTY_RESUME, EMPTY_EXP } from "../cvShared";
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 
-/** Preview when user has no saved CV data (standalone /templates + empty builder). */
-const TEMPLATE_PREVIEW_DUMMY_CV = {
+/*──────────────────────────────────────────────────────────────────────────────
+ * Per-template dummy profiles — each person's data density is tuned to fill
+ * that template's page 1 with zero black void at the bottom.
+ *──────────────────────────────────────────────────────────────────────────────*/
+
+/** Ahmed Al Mansouri — Customer Service Officer, Dubai UAE
+ *  Assigned to: T1 Modern Emerald, T2 Dubai Modern, T6 Banking & Finance
+ *  Body 10–10.5pt / 1.5–1.6 lh / 15mm pad → 3 roles × 4 bullets fills A4 */
+const DUMMY_AHMED = {
   ...EMPTY_RESUME,
   name: "Ahmed Al Mansouri",
   title: "Customer Service Officer",
@@ -14,9 +21,9 @@ const TEMPLATE_PREVIEW_DUMMY_CV = {
   location: "Dubai, UAE",
   nationality: "Emirati",
   availability: "Immediately Available",
-  languages: "Arabic (Native) · English (Fluent)",
+  languages: "Arabic (Native) · English (Fluent) · Hindi (Conversational)",
   summary:
-    "Customer-focused professional with 6 years of experience delivering exceptional service in UAE banking and hospitality sectors. Proven track record in client relationship management, complaint resolution, and cross-selling financial products. Bilingual in Arabic and English with strong knowledge of UAE compliance standards.",
+    "Customer-focused professional with 7 years of experience delivering exceptional service across UAE banking, telecoms, and hospitality sectors. Proven track record managing high-volume client interactions, resolving escalations within SLA, and cross-selling financial products. Bilingual in Arabic and English with strong knowledge of UAE compliance standards including KYC/AML regulations.",
   experience: [
     {
       ...EMPTY_EXP,
@@ -25,7 +32,7 @@ const TEMPLATE_PREVIEW_DUMMY_CV = {
       location: "Dubai",
       period: "Jan 2021 – Present",
       points:
-        "Managed daily interactions with 80+ customers across teller and service desk functions\nAchieved 96% customer satisfaction score for 3 consecutive quarters\nProcessed account openings, loan applications, and KYC documentation\nTrained 4 new joiners on CRM systems and service protocols",
+        "Managed daily interactions with 80+ customers across teller and service desk functions\nAchieved 96% customer satisfaction score for 3 consecutive quarters\nProcessed account openings, loan applications, and KYC documentation in line with UAE Central Bank regulations\nTrained 4 new joiners on CRM systems, service protocols, and compliance workflows",
     },
     {
       ...EMPTY_EXP,
@@ -34,7 +41,7 @@ const TEMPLATE_PREVIEW_DUMMY_CV = {
       location: "Abu Dhabi",
       period: "Mar 2018 – Dec 2020",
       points:
-        "Handled VIP guest relations and resolved escalated complaints within SLA\nCoordinated with 6 departments to deliver seamless guest experiences\nRecognised as Employee of the Month twice in 2019",
+        "Handled VIP guest relations and resolved escalated complaints within 24-hour SLA\nCoordinated with 6 departments to deliver seamless guest experiences for 400+ room property\nRecognised as Employee of the Month twice in 2019 for exceeding guest satisfaction targets\nManaged guest feedback database and implemented service recovery protocols reducing repeat complaints by 30%",
     },
     {
       ...EMPTY_EXP,
@@ -43,7 +50,7 @@ const TEMPLATE_PREVIEW_DUMMY_CV = {
       location: "Dubai",
       period: "Jun 2016 – Feb 2018",
       points:
-        "Resolved 50+ daily inbound queries via phone, email, and walk-in\nUpsold service packages achieving 118% of quarterly sales target",
+        "Resolved 50+ daily inbound queries via phone, email, and walk-in channels\nUpsold service packages achieving 118% of quarterly sales target\nMaintained 98% first-call resolution rate across consumer and enterprise accounts",
     },
   ],
   education: [
@@ -60,9 +67,297 @@ const TEMPLATE_PREVIEW_DUMMY_CV = {
   certifications: [
     { name: "Certified Customer Experience Professional (CCXP)", issuer: "CXPA", year: "2022" },
     { name: "AML Awareness Certificate", issuer: "UAE Central Bank", year: "2021" },
+    { name: "Customer Relationship Management Specialist", issuer: "Emirates Institute of Banking", year: "2020" },
   ],
-  skills: "Customer Service · CRM · MS Office · Stakeholder Communication · KYC · AML Awareness · Complaint Resolution · Cross-selling · Arabic · English",
+  skills: "Customer Service · CRM (Salesforce) · MS Office Suite · Stakeholder Communication · KYC/AML Compliance · Complaint Resolution · Cross-selling · Team Training · Arabic · English",
 };
+
+/** Sara Al Hashemi — HR Manager, Abu Dhabi UAE
+ *  Assigned to: T3 Arabia Pro, T4 Executive Gold, T5 Gulf Executive
+ *  Body 10pt / 1.4–1.6 lh / 15–20mm pad → 3 roles × 4 bullets + dense skills */
+const DUMMY_SARA = {
+  ...EMPTY_RESUME,
+  name: "Sara Al Hashemi",
+  title: "Human Resources Manager",
+  email: "sara.alhashemi@email.com",
+  phone: "+971 50 876 5432",
+  location: "Abu Dhabi, UAE",
+  nationality: "Emirati",
+  availability: "Immediately Available",
+  languages: "Arabic (Native) · English (Fluent) · French (Intermediate)",
+  summary:
+    "Strategic HR professional with 10 years of progressive experience in talent acquisition, learning & development, and HR operations across oil & gas, aviation, and retail conglomerates in the UAE. Certified in SHRM-SCP and SAP SuccessFactors with a track record of reducing time-to-hire by 35% and driving Emiratisation compliance across large-scale organisations.",
+  experience: [
+    {
+      ...EMPTY_EXP,
+      company: "ADNOC",
+      role: "HR Manager — Talent Acquisition & L&D",
+      location: "Abu Dhabi",
+      period: "Apr 2020 – Present",
+      points:
+        "Led end-to-end recruitment for 200+ positions annually across technical and corporate functions\nDesigned and launched a graduate development programme placing 45 Emirati nationals in engineering roles\nImplemented SAP SuccessFactors across 3 business units reducing onboarding time by 40%\nManaged annual L&D budget of AED 2.5M, delivering 120+ training programmes with 92% satisfaction",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Etihad Airways",
+      role: "Senior HR Business Partner",
+      location: "Abu Dhabi",
+      period: "Jan 2017 – Mar 2020",
+      points:
+        "Partnered with 4 department heads to align workforce planning with business strategy\nReduced employee turnover by 18% through engagement surveys and targeted retention initiatives\nLed restructuring project affecting 300+ roles, ensuring compliance with UAE Labour Law\nDelivered diversity & inclusion programme recognised at Gulf HR Excellence Awards 2019",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Al Futtaim Group",
+      role: "HR Coordinator",
+      location: "Dubai",
+      period: "Jun 2014 – Dec 2016",
+      points:
+        "Coordinated recruitment for retail and automotive divisions handling 150+ vacancies per quarter\nAdministered employee benefits, visa processing, and WPS payroll for 800+ staff\nStreamlined exit interview process improving data capture and actionable insights by 60%\nSupported annual performance review cycle for 1,200 employees across 5 business units",
+    },
+  ],
+  education: [
+    {
+      school: "United Arab Emirates University",
+      degree: "Master of Business Administration",
+      year: "2017",
+      fieldOfStudy: "Human Resource Management",
+      startDate: "2015",
+      endDate: "2017",
+      location: "Al Ain, UAE",
+    },
+    {
+      school: "Zayed University",
+      degree: "Bachelor of Science in Business",
+      year: "2014",
+      fieldOfStudy: "Management",
+      startDate: "2010",
+      endDate: "2014",
+      location: "Abu Dhabi, UAE",
+    },
+  ],
+  certifications: [
+    { name: "SHRM Senior Certified Professional (SHRM-SCP)", issuer: "SHRM", year: "2021" },
+    { name: "SAP SuccessFactors Certified Consultant", issuer: "SAP", year: "2020" },
+    { name: "Emirates HR Network — Certified HR Practitioner", issuer: "Emirates HR Network", year: "2019" },
+  ],
+  skills: "Talent Acquisition · Learning & Development · HRIS (SAP SuccessFactors) · UAE Labour Law · Emiratisation · Workforce Planning · Employee Engagement · Performance Management · WPS Payroll · Arabic · English",
+};
+
+/** Rohan Mehta — IT Support Engineer, Dubai UAE
+ *  Assigned to: T11 Tech & IT Pro, T10 ATS International, T7 Compact Pro
+ *  Body 10pt / 1.4–1.5 lh / 15mm pad → dense tech skills + 3 roles × 4 bullets + certs */
+const DUMMY_ROHAN = {
+  ...EMPTY_RESUME,
+  name: "Rohan Mehta",
+  title: "IT Support Engineer",
+  email: "rohan.mehta@email.com",
+  phone: "+971 55 412 7890",
+  location: "Dubai, UAE",
+  nationality: "Indian",
+  availability: "Immediately Available",
+  languages: "English (Fluent) · Hindi (Native) · Marathi (Native)",
+  summary:
+    "Detail-oriented IT Support Engineer with 7+ years of experience in infrastructure management, helpdesk operations, and network administration across e-commerce, mobility, and enterprise IT environments. CompTIA A+, ITIL v4, and Azure certified with proven ability to reduce incident resolution time by 45% and maintain 99.8% uptime across hybrid cloud and on-premise environments.",
+  technicalSkills: "Windows Server · Active Directory · Azure AD · O365 Administration · VMware · Cisco Networking · TCP/IP · DNS/DHCP · ITIL v4 · ServiceNow · Jira · PowerShell · Python Scripting · Linux (Ubuntu/CentOS)",
+  experience: [
+    {
+      ...EMPTY_EXP,
+      company: "Noon.com",
+      role: "IT Support Engineer",
+      location: "Dubai",
+      period: "Mar 2022 – Present",
+      points:
+        "Managed IT infrastructure for 500+ users across Dubai and Riyadh offices including Azure AD and O365\nReduced average ticket resolution time from 4 hours to 2.2 hours through automation and knowledge base\nDeployed and maintained 200+ endpoints using SCCM and Intune MDM across Windows and macOS\nLed migration of on-premise file servers to SharePoint Online serving 12 departments",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Careem",
+      role: "IT Helpdesk Analyst",
+      location: "Dubai",
+      period: "Aug 2019 – Feb 2022",
+      points:
+        "Provided Level 2 support for 350+ employees across 5 regional offices via ServiceNow\nConfigured and maintained Cisco switches, access points, and VPN infrastructure\nCreated automated provisioning scripts in PowerShell reducing onboarding setup from 3 hours to 45 minutes\nAchieved 98.5% SLA compliance for P1/P2 incidents across 24/7 support rotation",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Infosys",
+      role: "Systems Administrator",
+      location: "Pune, India",
+      period: "Jul 2016 – Jul 2019",
+      points:
+        "Administered Windows Server 2016/2019 environment for 1,200-seat enterprise client\nManaged Active Directory, Group Policy, and WSUS patch management across 4 domains\nDeployed VMware vSphere cluster hosting 80+ virtual machines with 99.9% uptime\nDocumented 150+ SOPs and trained 6 junior engineers on incident management workflows",
+    },
+  ],
+  education: [
+    {
+      school: "Savitribai Phule Pune University",
+      degree: "Bachelor of Engineering",
+      year: "2016",
+      fieldOfStudy: "Computer Engineering",
+      startDate: "2012",
+      endDate: "2016",
+      location: "Pune, India",
+    },
+  ],
+  certifications: [
+    { name: "CompTIA A+ Certified Technician", issuer: "CompTIA", year: "2020" },
+    { name: "ITIL v4 Foundation", issuer: "Axelos", year: "2021" },
+    { name: "Microsoft Certified: Azure Administrator Associate", issuer: "Microsoft", year: "2023" },
+    { name: "Cisco Certified Network Associate (CCNA)", issuer: "Cisco", year: "2019" },
+  ],
+  skills: "Windows Server · Active Directory · Azure AD · O365 · VMware · Cisco Networking · ServiceNow · ITIL v4 · PowerShell · Python · SCCM/Intune · Linux · TCP/IP · DNS/DHCP",
+};
+
+/** Fatima Al Zaabi — Guest Relations Manager, Dubai UAE
+ *  Assigned to: T9 Hospitality & Service, T12 Flat Split, T8 Creative Sidebar
+ *  Body 10–10.5pt / 1.6–1.8 lh / 15mm pad → 2 roles × 4 bullets + languages + concise achievements */
+const DUMMY_FATIMA = {
+  ...EMPTY_RESUME,
+  name: "Fatima Al Zaabi",
+  title: "Guest Relations Manager",
+  email: "fatima.alzaabi@email.com",
+  phone: "+971 56 789 0123",
+  location: "Dubai, UAE",
+  nationality: "Emirati",
+  availability: "Immediately Available",
+  languages: "Arabic (Native) · English (Fluent) · French (Conversational) · Urdu (Basic)",
+  summary:
+    "Hospitality professional with 8 years of experience in luxury guest relations, VIP services, and front office operations across 5-star properties in Dubai. Skilled in managing guest experience programmes, training multicultural teams, and driving TripAdvisor and Google review scores. Passionate about creating memorable stays that translate into repeat bookings and brand loyalty.",
+  experience: [
+    {
+      ...EMPTY_EXP,
+      company: "Burj Al Arab Jumeirah",
+      role: "Guest Relations Manager",
+      location: "Dubai",
+      period: "Sep 2021 – Present",
+      points:
+        "Managed VIP guest experience programme for 200+ suite guests monthly including royalty and celebrity clients\nAchieved 97% guest satisfaction score and increased TripAdvisor rating from 4.6 to 4.9 in 18 months\nLed a team of 12 guest relations officers across lobby, concierge, and butler service divisions\nDesigned and implemented personalised pre-arrival preference system reducing check-in time by 50%",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Atlantis, The Palm",
+      role: "Senior Guest Relations Officer",
+      location: "Dubai",
+      period: "Mar 2018 – Aug 2021",
+      points:
+        "Handled 100+ daily guest interactions across lobby, pool, and dining touchpoints in 1,500-room resort\nResolved guest complaints within 2-hour SLA maintaining 94% first-contact resolution rate\nCoordinated with 8 departments for VIP arrivals, events, and bespoke dining experiences\nTrained 20+ new team members on Forbes 5-Star service standards and cultural sensitivity protocols",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Jumeirah Beach Hotel",
+      role: "Front Desk Agent",
+      location: "Dubai",
+      period: "Jun 2016 – Feb 2018",
+      points:
+        "Processed 80+ check-ins and check-outs daily using Opera PMS across 600-room beachfront property\nUpsold room upgrades and packages generating AED 45K additional revenue per quarter\nManaged group bookings and conference delegate registrations for events up to 500 attendees",
+    },
+  ],
+  education: [
+    {
+      school: "Emirates Academy of Hospitality Management",
+      degree: "Bachelor of Business Administration",
+      year: "2016",
+      fieldOfStudy: "Hospitality Management",
+      startDate: "2013",
+      endDate: "2016",
+      location: "Dubai, UAE",
+    },
+  ],
+  certifications: [
+    { name: "Certified Hospitality Supervisor (CHS)", issuer: "AHLEI", year: "2021" },
+    { name: "Forbes Travel Guide Service Training", issuer: "Forbes Travel Guide", year: "2020" },
+    { name: "First Aid & Emergency Response", issuer: "Dubai Health Authority", year: "2022" },
+  ],
+  skills: "Guest Relations · VIP Services · Opera PMS · Front Office Management · Team Leadership · Complaint Resolution · Upselling · Event Coordination · Cultural Sensitivity · Arabic · English · French",
+};
+
+/** James Okafor — Business Development Manager, Dubai UAE
+ *  Assigned to: T13 Finance, T14 Figma Mirror + remaining templates
+ *  Body 10–12.5px / 1.5–1.6 lh / 32–50px pad → achievement-heavy with revenue numbers */
+const DUMMY_JAMES = {
+  ...EMPTY_RESUME,
+  name: "James Okafor",
+  title: "Business Development Manager",
+  email: "james.okafor@email.com",
+  phone: "+971 52 345 6789",
+  location: "Dubai, UAE",
+  nationality: "Nigerian",
+  availability: "Immediately Available",
+  languages: "English (Native) · Arabic (Intermediate) · Yoruba (Native)",
+  summary:
+    "Results-driven Business Development Manager with 10+ years of experience scaling revenue across real estate, proptech, and professional services in the UAE and MENA region. Closed AED 180M+ in cumulative deal value with expertise in enterprise sales, strategic partnerships, and market expansion. Proven ability to build high-performing sales teams and penetrate new verticals in competitive GCC markets.",
+  experience: [
+    {
+      ...EMPTY_EXP,
+      company: "Property Finder",
+      role: "Business Development Manager — Enterprise",
+      location: "Dubai",
+      period: "Jan 2020 – Present",
+      points:
+        "Grew enterprise client portfolio from 35 to 120 accounts generating AED 28M annual recurring revenue\nNegotiated and closed 15 strategic partnerships with major developers including Emaar, DAMAC, and Aldar\nExpanded into Saudi Arabia market achieving AED 8M revenue in first 12 months of launch\nBuilt and managed a team of 6 BDRs, achieving 140% of quarterly pipeline targets consistently",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Bayut",
+      role: "Senior Sales Executive",
+      location: "Dubai",
+      period: "Mar 2017 – Dec 2019",
+      points:
+        "Exceeded annual sales targets by average 125% over 3 consecutive years totalling AED 42M in bookings\nDeveloped new business verticals in commercial real estate adding AED 6M in first-year revenue\nManaged key accounts including Knight Frank, CBRE, and Betterhomes with 95% renewal rate\nCreated sales playbook and objection-handling framework adopted company-wide across 40+ reps",
+    },
+    {
+      ...EMPTY_EXP,
+      company: "Savills Middle East",
+      role: "Business Development Executive",
+      location: "Dubai",
+      period: "Aug 2014 – Feb 2017",
+      points:
+        "Sourced and qualified 200+ leads monthly through cold outreach, networking events, and referral programmes\nClosed AED 15M in residential and commercial property advisory deals in first 18 months\nOrganised quarterly investor roadshows attracting 50+ HNW individuals per event\nCollaborated with marketing team to launch digital lead generation funnel increasing qualified leads by 70%",
+    },
+  ],
+  education: [
+    {
+      school: "University of Lagos",
+      degree: "Bachelor of Science in Economics",
+      year: "2013",
+      fieldOfStudy: "Economics",
+      startDate: "2009",
+      endDate: "2013",
+      location: "Lagos, Nigeria",
+    },
+  ],
+  certifications: [
+    { name: "Certified Sales Leadership Professional (CSLP)", issuer: "Sales Management Association", year: "2022" },
+    { name: "Dubai Real Estate Regulatory Agency (RERA) Licensed Broker", issuer: "RERA Dubai", year: "2020" },
+    { name: "HubSpot Inbound Sales Certification", issuer: "HubSpot", year: "2021" },
+  ],
+  skills: "Enterprise Sales · Strategic Partnerships · Revenue Growth · Pipeline Management · Key Account Management · CRM (HubSpot/Salesforce) · Market Expansion · Team Leadership · Contract Negotiation · Arabic · English",
+};
+
+/** Template ID → dummy profile mapping.
+ *  Each template gets a person whose data density fills its specific A4 layout. */
+const TEMPLATE_DUMMY_MAP = {
+  1: DUMMY_AHMED,    // Modern Emerald — 10.5pt body, banner layout
+  2: DUMMY_AHMED,    // Dubai Modern — 10pt body, two-column
+  6: DUMMY_AHMED,    // Banking & Finance — 12.5px body, ultra-clean serif
+  3: DUMMY_SARA,     // Arabia Pro — 10pt body, sidebar
+  4: DUMMY_SARA,     // Executive Gold — 10pt body, timeline
+  5: DUMMY_SARA,     // Gulf Executive — 10pt body, dark navy + gold
+  11: DUMMY_ROHAN,   // Tech & IT Pro — 10pt body, dark slate sidebar
+  10: DUMMY_ROHAN,   // ATS International — 10pt body, pure ATS
+  7: DUMMY_ROHAN,    // Compact Pro — 10pt body, dense teal
+  9: DUMMY_FATIMA,   // Hospitality & Service — 10.5pt body, warm tone
+  12: DUMMY_FATIMA,  // Flat Split — 10pt body, beige header + grey sidebar
+  8: DUMMY_FATIMA,   // Creative Sidebar — 10pt body, coral sidebar
+  13: DUMMY_JAMES,   // Finance — 12.5px body, dense finance
+  14: DUMMY_JAMES,   // Figma Mirror — 10.5pt body, 2-page
+};
+
+/** Get the right dummy profile for a given template, falling back to James Okafor. */
+function getDummyForTemplate(templateId) {
+  return TEMPLATE_DUMMY_MAP[templateId] || DUMMY_JAMES;
+}
 
 function templateTierMarketingLabel(t) {
   if (t.tier === "free") return "FREE";
@@ -201,13 +496,14 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
           style={{
             display: "inline-flex",
             alignItems: "center",
-            background: "#0F2A1A",
-            color: "#4ADE80",
-            borderRadius: 4,
+            background: "transparent",
+            color: "rgba(255,255,255,0.9)",
+            border: "1px solid rgba(255,255,255,0.25)",
+            borderRadius: 6,
             padding: "2px 6px",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: "0.04em",
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.3px",
             alignSelf: "flex-start",
           }}
         >
@@ -266,7 +562,7 @@ function BuilderTemplatesTab({
     document.body.style.touchAction = "";
   };
 
-  const previewCv = isCvDataEmptyForTemplateApply(resume) ? TEMPLATE_PREVIEW_DUMMY_CV : resume;
+  const userCvEmpty = isCvDataEmptyForTemplateApply(resume);
 
   return (
     <div
@@ -408,7 +704,7 @@ function BuilderTemplatesTab({
                     template={t}
                     isSelected={selectedTemplate?.id === t.id}
                     sheetHighlight={confirmOpen && pendingTemplate?.id === t.id}
-                    resume={previewCv}
+                    resume={userCvEmpty ? getDummyForTemplate(t.id) : resume}
                     onPick={(tpl) => {
                       onTemplatesFabInteract?.();
                       onPendingTemplateChange(tpl);
@@ -521,7 +817,7 @@ function BuilderTemplatesTab({
                   }}
                 >
                   <div className="cvp-templates-preview-cv-wrap" onClick={(e) => e.stopPropagation()}>
-                    <ResumePreview cv={previewCv} template={pendingTemplate} />
+                    <ResumePreview cv={userCvEmpty ? getDummyForTemplate(pendingTemplate?.id) : resume} template={pendingTemplate} />
                   </div>
                 </div>
                 <div className="cvp-templates-preview-cta">
