@@ -518,11 +518,10 @@ select:focus,
   align-content: start;
 }
 
-/* Template card — full A4 miniature: complete page visible at a glance */
+/* Template card — height flows from CvTemplateThumb (JS sets it via inline style) */
 .cvp-templates-card-thumb {
   position: relative;
   width: 100%;
-  padding-bottom: 141.42%; /* A4 ratio: 1123/794 × 100% — full page, no crop */
   background: #1c1c1c;
   overflow: hidden;
 }
@@ -540,15 +539,10 @@ select:focus,
   z-index: 2;
 }
 
-.cvp-templates-card-thumb-inner {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
 .cvp-templates-card-thumb-scale-outer {
   width: 100%;
-  height: 100%;
+  /* aspect-ratio is the CSS fallback before JS sets an explicit height */
+  aspect-ratio: 794 / 1123;
   overflow: hidden;
   position: relative;
 }
@@ -603,9 +597,7 @@ select:focus,
   box-shadow: none;
 }
 
-/* MOBILE TEMPLATE FIX - DO NOT MODIFY WITHOUT READING THIS BLOCK */
-/* This fix is intentionally isolated. Desktop styles are untouched. */
-/* Changing card width, overflow, or scale formula will break thumbnails */
+/* MOBILE TEMPLATE FIX */
 @media (max-width: 768px) {
   .cvp-templates-grid .cvp-templates-card {
     min-width: 0;
@@ -622,28 +614,6 @@ select:focus,
 
   .cvp-templates-card-thumb {
     isolation: isolate;
-  }
-
-  .cvp-templates-card-thumb,
-  .cvp-templates-card-thumb-inner,
-  .cvp-templates-card-thumb-scale-outer {
-    width: 100%;
-    position: relative;
-  }
-
-  /* Full A4 aspect ratio — complete page at a glance, no crop */
-  .cvp-templates-card-thumb {
-    padding-bottom: 0;
-    aspect-ratio: 794 / 1123;
-    height: auto;
-    overflow: hidden;
-  }
-
-  .cvp-templates-card-thumb-inner,
-  .cvp-templates-card-thumb-scale-outer {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
   }
 
   .cvp-templates-preview-scroll {
