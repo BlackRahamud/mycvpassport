@@ -528,6 +528,7 @@ select:focus,
   aspect-ratio: 794 / 1123;
   background: #1c1c1c;
   overflow: hidden;
+  isolation: isolate;
 }
 
 /* Bottom-edge fade — soft gradient so any sub-pixel overflow looks intentional */
@@ -540,7 +541,7 @@ select:focus,
   height: 40%;
   background: linear-gradient(to top, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
   pointer-events: none;
-  z-index: 2;
+  z-index: 10;
 }
 
 /* Scale-outer fills card-thumb via absolute positioning — no aspect-ratio here */
@@ -613,10 +614,6 @@ select:focus,
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-  }
-
-  .cvp-templates-card-thumb {
-    isolation: isolate;
   }
 
   .cvp-templates-preview-scroll {
