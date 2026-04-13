@@ -392,7 +392,7 @@ function BuilderTemplatesTab({
             template={t}
             isSelected={selectedTemplate?.id === t.id}
             sheetHighlight={confirmOpen && pendingTemplate?.id === t.id}
-            resume={resume}
+            resume={previewCv}
             onPick={(tpl) => {
               onTemplatesFabInteract?.();
               onPendingTemplateChange(tpl);

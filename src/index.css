@@ -518,24 +518,24 @@ select:focus,
   align-content: start;
 }
 
-/* Template card — show top 45% of A4 (header / name area) as preview */
+/* Template card — full A4 miniature: complete page visible at a glance */
 .cvp-templates-card-thumb {
   position: relative;
   width: 100%;
-  padding-bottom: 63%; /* 141% × 0.447 ≈ 63%: shows top 45% of A4 */
+  padding-bottom: 141.42%; /* A4 ratio: 1123/794 × 100% — full page, no crop */
   background: #1c1c1c;
   overflow: hidden;
 }
 
-/* Gradient fade — makes the crop intentional, not broken */
+/* Hairline bottom-edge fade — premium finish, does not hide content */
 .cvp-templates-card-thumb::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 42%;
-  background: linear-gradient(to bottom, transparent 0%, #141414 100%);
+  height: 6%;
+  background: linear-gradient(to bottom, transparent 0%, rgba(20,20,20,0.5) 100%);
   pointer-events: none;
   z-index: 2;
 }
@@ -631,10 +631,10 @@ select:focus,
     position: relative;
   }
 
-  /* Thumb height = top 45% of A4 → aspect-ratio 794/(1123*0.45)≈794/506 */
+  /* Full A4 aspect ratio — complete page at a glance, no crop */
   .cvp-templates-card-thumb {
     padding-bottom: 0;
-    aspect-ratio: 794 / 506;
+    aspect-ratio: 794 / 1123;
     height: auto;
     overflow: hidden;
   }
