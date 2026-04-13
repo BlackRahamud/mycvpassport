@@ -2871,13 +2871,7 @@ function ResumeBuilder({
     setPendingSection(null);
   }, []);
 
-  const handleOpenCoverLetter = () => {
-    if (!hasCoverLetterAccess) {
-      setUpgradeOpen(true);
-      return;
-    }
-    setCoverLetterOpen(true);
-  };
+
 
   const runCoverLetterJourneyStep = useCallback(() => {
     setCvJourney((j) => ({ ...j, coverLetterSeen: true }));
@@ -3718,29 +3712,7 @@ function ResumeBuilder({
             </div>
           ) : null}
           {builderTab === "jobmatch" && (
-            <div style={{ display: "grid", gap: 12 }}>
-              <button
-                type="button"
-                onClick={handleOpenCoverLetter}
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: 8,
-                  border: "1px solid #2A2A2A",
-                  background: "transparent",
-                  color: "#FFFFFF",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: `border-color 150ms ${EASE}`,
-                  justifySelf: "start",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
-              >
-                Get Cover Letter
-              </button>
-              <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
-            </div>
+            <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
           )}
         </aside>
 
@@ -4271,27 +4243,7 @@ function ResumeBuilder({
               </div>
             )}
             {builderTab === "jobmatch" && (
-              <div style={{ display: "grid", gap: 12, padding: "0 12px 12px" }}>
-                <button
-                  type="button"
-                  onClick={handleOpenCoverLetter}
-                  style={{
-                    padding: "10px 16px",
-                    borderRadius: 8,
-                    border: "1px solid #2A2A2A",
-                    background: "transparent",
-                    color: "#FFFFFF",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: `border-color 150ms ${EASE}`,
-                    justifySelf: "start",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; }}
-                >
-                  Get Cover Letter
-                </button>
+              <div style={{ padding: "0 12px 12px" }}>
                 <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
               </div>
             )}

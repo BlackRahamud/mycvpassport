@@ -109,7 +109,7 @@ export const GUIDE_STEPS = [
     autoAction: false,
     navigationSource: 'guide_step_9',
     upsell: true,
-    bubbleText: "Paste a job description — I'll tell you exactly which keywords you're missing.",
+    bubbleText: "Paste any job description here — I'll show you exactly which keywords you're missing and score your CV against the role. Used by job seekers targeting global companies hiring across the Gulf.",
     btns: [
       { label: 'Try Job Match', style: 'amber' },
       { label: 'Unlock Job Match', style: 'shimmer' }

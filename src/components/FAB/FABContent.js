@@ -59,9 +59,9 @@ const BUILDER_GUIDES = {
   jobmatch: {
     title: "Job Match",
     points: [
-      { icon: "paste", text: "Paste a job description in the field below" },
-      { icon: "target", text: "We match it against your CV instantly" },
-      { icon: "edit", text: "Shows your gaps and strengths for that role" },
+      { icon: "paste", text: "Paste any job description — see which keywords you're missing" },
+      { icon: "target", text: "Your CV is scored against the role instantly" },
+      { icon: "edit", text: "Used by job seekers targeting global companies hiring across the Gulf" },
     ],
   },
 };
