@@ -149,6 +149,19 @@ function getFirstName(name) {
   return String(name || "").trim().split(/\s+/)[0] || "there";
 }
 
+function getDisplayName(user) {
+  let raw = user?.name;
+  if (!raw && user?.email) {
+    raw = user.email.split("@")[0];
+  }
+  raw = String(raw || "User").trim();
+  // Capitalize first letter
+  raw = raw.charAt(0).toUpperCase() + raw.slice(1);
+  // Truncate at 16 chars
+  if (raw.length > 16) return raw.slice(0, 16) + "…";
+  return raw;
+}
+
 function getScoreColor(score) {
   if (score >= 75) return "#1D9E75";
   if (score >= 50) return "#D97706";
@@ -312,15 +325,14 @@ export default function Dashboard({
           <Link
             to="/"
             style={{
-              display: "flex", alignItems: "center", gap: 8,
+              display: "flex", alignItems: "center",
               padding: "4px 10px 16px",
               borderBottom: "1px solid #0e0e0e",
               marginBottom: 14,
               color: "#fff", textDecoration: "none",
             }}
           >
-            <CVPassportLogo style={{ height: 20, width: "auto" }} />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.01em" }}>CVPassport</span>
+            <CVPassportLogo height={20} />
           </Link>
 
           {/* Section label */}
@@ -363,7 +375,7 @@ export default function Dashboard({
 
           {/* Feedback panel */}
           <div style={{
-            marginTop: 20,
+            marginTop: 24,
             background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: 12,
           }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#888", marginBottom: 2 }}>Help us improve</div>
@@ -409,67 +421,32 @@ export default function Dashboard({
           </div>
 
           {/* Plan section (pushed to bottom) */}
-          <div style={{ marginTop: "auto", borderTop: "1px solid #0e0e0e", paddingTop: 10 }}>
+          <div style={{ marginTop: "auto", borderTop: "1px solid #0e0e0e", paddingTop: 12 }}>
+            {/* Plan row: name left, Manage → right */}
             <div style={{
-              display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 10px",
-              borderLeft: `2px solid ${user?.plan === "Career Pro" ? "#378ADD" : user?.plan === "Active Hunter" ? "#1D9E75" : "#D97706"}`,
+              display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 10px 8px",
             }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{user?.plan || "Free"}</div>
-                <span style={{
-                  display: "inline-block", fontSize: 9, fontWeight: 700, borderRadius: 20, padding: "2px 8px", marginTop: 2,
-                  ...(user?.plan === "Career Pro"
-                    ? { background: "rgba(55,138,221,0.15)", color: "#378ADD", border: "1px solid rgba(55,138,221,0.3)" }
-                    : user?.plan === "Active Hunter"
-                      ? { background: "rgba(29,158,117,0.15)", color: "#1D9E75", border: "1px solid rgba(29,158,117,0.3)" }
-                      : { background: "rgba(217,119,6,0.15)", color: "#D97706", border: "1px solid rgba(217,119,6,0.3)" }),
-                }}>
-                  {isPaid ? `Renews ${user?.renewDate || "—"}` : "Free Plan"}
-                </span>
-              </div>
-              <div
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#666" }}>{user?.plan || "Free"}</div>
+              <span
                 role="button"
                 tabIndex={0}
                 onClick={() => setPlanModalOpen(true)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setPlanModalOpen(true); }}
                 style={{
-                  position: "relative", overflow: "hidden",
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  color: "#fff", borderRadius: 20, padding: "6px 14px",
-                  fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  animation: "cvp-pulse-manage 3s ease-in-out infinite",
-                  transition: `background 150ms ${EASE}`,
+                  fontSize: 10, color: "#444", cursor: "pointer",
+                  transition: `color 150ms ${EASE}`,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.textDecoration = "underline"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; e.currentTarget.style.textDecoration = "none"; }}
               >
-                <div style={{
-                  position: "absolute", inset: 0, overflow: "hidden", borderRadius: 20, pointerEvents: "none",
-                }}>
-                  <div style={{
-                    position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
-                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
-                    animation: "cvp-beam-manage 3s ease-in-out infinite",
-                  }} />
-                </div>
-                <span style={{ position: "relative" }}>Manage Plan</span>
-                <div style={{
-                  position: "relative", width: 16, height: 16, borderRadius: "50%",
-                  background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
+                Manage →
+              </span>
             </div>
 
             {/* User row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px 4px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px 8px", borderTop: "1px solid #0e0e0e" }}>
               <div style={{
-                width: 26, height: 26, borderRadius: 999,
+                width: 26, height: 26, borderRadius: 999, flexShrink: 0,
                 background: isPaid ? "#0a2a1e" : "#1a1a1a",
                 color: isPaid ? "#1D9E75" : "#666",
                 display: "grid", placeItems: "center",
@@ -477,10 +454,13 @@ export default function Dashboard({
               }}>
                 {initials}
               </div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{user?.name || "User"}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 600, color: "#fff",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>{getDisplayName(user)}</div>
                 <span style={{
-                  display: "inline-block", fontSize: 9, fontWeight: 700, borderRadius: 20, padding: "2px 8px", marginTop: 2,
+                  display: "inline-block", fontSize: 9, fontWeight: 700, borderRadius: 20, padding: "1px 7px", marginTop: 3,
                   ...(user?.plan === "Career Pro"
                     ? { background: "rgba(55,138,221,0.15)", color: "#378ADD", border: "1px solid rgba(55,138,221,0.3)" }
                     : user?.plan === "Active Hunter"
@@ -497,9 +477,8 @@ export default function Dashboard({
 
           {/* Mobile top bar */}
           <div className="cvp-dashboard-mobile-topbar">
-            <Link to="/" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: "#fff" }}>
-              <CVPassportLogo style={{ height: 18, width: "auto" }} />
-              <span style={{ fontSize: 12, fontWeight: 700 }}>CVPassport</span>
+            <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", color: "#fff" }}>
+              <CVPassportLogo height={20} />
             </Link>
             <button
               type="button"
@@ -759,7 +738,7 @@ export default function Dashboard({
                       </div>
 
                       {/* Info area */}
-                      <div style={{ padding: "10px 12px" }}>
+                      <div style={{ padding: "10px 14px" }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {title}
                         </div>
@@ -803,12 +782,12 @@ export default function Dashboard({
               style={{
                 background: "transparent", border: "none",
                 display: "flex", flexDirection: "column", alignItems: "center",
-                gap: 3, padding: "10px 4px", cursor: "pointer",
+                gap: 4, padding: "10px 6px", cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
               <t.Icon active={isAct} />
-              <span style={{ fontSize: 8, color: isAct ? "#fff" : "#2a2a2a", fontWeight: 600 }}>{t.label}</span>
+              <span style={{ fontSize: 9, color: isAct ? "#fff" : "#2a2a2a", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
             </button>
           );
         })}
