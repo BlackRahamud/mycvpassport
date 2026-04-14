@@ -2910,6 +2910,25 @@ function ResumeBuilder({
     return rows;
   }, [resume.builderExtraSectionIds]);
 
+  /* ── Cover Letter locked preview for Guide step 10 ── */
+  const guideCoverLetterPreview = (
+    <div style={{ padding: "24px 16px 200px", filter: "blur(8px)", pointerEvents: "none", userSelect: "none" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>Cover Letter</span>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#2A2A2A", color: "#A0A0A0" }}>Preview</span>
+      </div>
+      <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16, overflow: "hidden", position: "relative" }}>
+        <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>
+          {"Dear Hiring Manager,\n\nI am writing to express my strong interest in the position at your esteemed organisation. With my background in professional services and a proven track record of delivering results, I am confident in my ability to contribute meaningfully to your team."}
+        </div>
+        <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5", filter: "blur(5px)", marginTop: 12 }}>
+          {"Throughout my career, I have consistently demonstrated the ability to manage complex projects and collaborate effectively with cross-functional teams. My experience in the Gulf region has equipped me with a deep understanding of regional business practices.\n\nI look forward to the opportunity to discuss how my qualifications align with your needs.\n\nSincerely,\nYour Name"}
+        </div>
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "55%", background: "linear-gradient(to bottom, rgba(20,20,20,0), #141414 55%, #141414)", pointerEvents: "none" }} />
+      </div>
+    </div>
+  );
+
   return (
     <div
       ref={builderRootRef}
@@ -3714,6 +3733,7 @@ function ResumeBuilder({
           {builderTab === "jobmatch" && (
             <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
           )}
+          {builderTab === "coverletter" && guideCoverLetterPreview}
         </aside>
 
         {/* Right panel — Live Preview; scale = containerWidth/794 (RO on outer wrapper only) */}
@@ -4247,6 +4267,7 @@ function ResumeBuilder({
                 <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
               </div>
             )}
+            {builderTab === "coverletter" && guideCoverLetterPreview}
             <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto", display: builderTab === "templates" ? "none" : undefined }}>
               <div style={{
                 padding: '1.5px',
