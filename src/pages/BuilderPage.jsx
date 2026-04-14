@@ -3282,6 +3282,7 @@ function ResumeBuilder({
                     </span>
                   ) : null}
                 </div>
+                {fabMode !== "guide" && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
                     <button
@@ -3405,6 +3406,7 @@ function ResumeBuilder({
                     ) : null}
                   </div>
                 </div>
+                )}
               </div>
 
               {/* Personal info card — always visible */}
@@ -3809,6 +3811,7 @@ function ResumeBuilder({
                       </span>
                     ) : null}
                   </div>
+                  {fabMode !== "guide" && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
                       <button
@@ -3932,6 +3935,7 @@ function ResumeBuilder({
                       ) : null}
                     </div>
                   </div>
+                  )}
                 </div>
                 <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>

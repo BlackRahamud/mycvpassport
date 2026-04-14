@@ -113,6 +113,13 @@ export function CoverLetterSpinnerArrow({ size = 48 }) {
   );
 }
 function CoverLetterPage({ user, profile, onBack }) {
+  const [isDesktopCL, setIsDesktopCL] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e) => setIsDesktopCL(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
   const [phase, setPhase] = useState("entry");
   const [selectedOption, setSelectedOption] = useState(null);
   const [savedList, setSavedList] = useState([]);
@@ -648,21 +655,24 @@ function CoverLetterPage({ user, profile, onBack }) {
       </button>
 
       {phase === "entry" && (
-        <>
-          <h1 style={{ fontSize: 22, fontWeight: 700, marginTop: 8, marginBottom: 4 }}>Cover Letter</h1>
-          <p style={{ fontSize: 15, color: "#A0A0A0", marginTop: 0, marginBottom: 20 }}>How would you like to start?</p>
+        <div style={isDesktopCL ? { display: "grid", gridTemplateColumns: "40% 60%", gap: 32, marginTop: 8, maxWidth: 1120 } : {}}>
+          <div>
+          <h1 style={{ fontSize: isDesktopCL ? 32 : 22, fontWeight: isDesktopCL ? 800 : 700, marginTop: 8, marginBottom: 4, letterSpacing: isDesktopCL ? "-0.02em" : undefined }}>Cover Letter</h1>
+          <p style={{ fontSize: isDesktopCL ? 14 : 15, color: isDesktopCL ? "#444" : "#A0A0A0", marginTop: 0, marginBottom: isDesktopCL ? 32 : 20 }}>How would you like to start?</p>
           {genError ? (
             <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{genError}</div>
           ) : null}
 
-          <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ display: "grid", gap: isDesktopCL ? 10 : 12 }}>
             {[
               {
                 id: "saved",
                 title: "Use my CVPassport CV",
                 sub: "Pull from your saved profile",
+                iconBg: "rgba(29,158,117,0.15)",
+                iconColor: "#1D9E75",
                 icon: (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <path d="M14 2v6h6" />
                   </svg>
@@ -671,9 +681,11 @@ function CoverLetterPage({ user, profile, onBack }) {
               {
                 id: "upload",
                 title: "Upload existing CV",
-                sub: "PDF or Word — we'll read it for you",
+                sub: "PDF or Word \u2014 we\u2019ll read it for you",
+                iconBg: "rgba(55,138,221,0.15)",
+                iconColor: "#378ADD",
                 icon: (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
@@ -684,39 +696,52 @@ function CoverLetterPage({ user, profile, onBack }) {
                 id: "describe",
                 title: "Describe yourself",
                 sub: "Just tell us about yourself",
+                iconBg: "rgba(217,119,6,0.15)",
+                iconColor: "#D97706",
                 icon: (
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                 ),
               },
-            ].map((opt) => (
+            ].map((opt) => {
+              const isActive = selectedOption === opt.id;
+              const activeBorder = isDesktopCL ? opt.iconColor : CL_GREEN;
+              return (
               <button
                 key={opt.id}
                 type="button"
                 onClick={() => setSelectedOption(opt.id)}
                 style={{
                   display: "flex",
-                  alignItems: "flex-start",
+                  alignItems: isDesktopCL ? "center" : "flex-start",
                   gap: 14,
                   textAlign: "left",
-                  padding: 16,
+                  padding: isDesktopCL ? "16px 20px" : 16,
                   borderRadius: 14,
-                  border: selectedOption === opt.id ? `1px solid ${CL_GREEN}` : "1px solid #2A2A2A",
-                  background: "#141414",
+                  border: isActive ? ("1px solid " + activeBorder) : ("1px solid " + (isDesktopCL ? "#1a1a1a" : "#2A2A2A")),
+                  background: isActive && isDesktopCL ? (opt.iconColor + "0D") : (isDesktopCL ? "#0e0e0e" : "#141414"),
                   color: "#FFF",
                   cursor: "pointer",
                   boxSizing: "border-box",
+                  transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1), transform 150ms cubic-bezier(0.4,0,0.2,1)",
                 }}
+                onMouseEnter={(e) => { if (isDesktopCL && !isActive) { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.transform = "translateY(-1px)"; } }}
+                onMouseLeave={(e) => { if (isDesktopCL && !isActive) { e.currentTarget.style.borderColor = "#1a1a1a"; e.currentTarget.style.transform = "translateY(0)"; } }}
               >
-                <span style={{ color: CL_GREEN, flexShrink: 0, marginTop: 2 }}>{opt.icon}</span>
+                {isDesktopCL ? (
+                  <span style={{ width: 36, height: 36, borderRadius: "50%", background: opt.iconBg, color: opt.iconColor, display: "grid", placeItems: "center", flexShrink: 0 }}>{opt.icon}</span>
+                ) : (
+                  <span style={{ color: CL_GREEN, flexShrink: 0, marginTop: 2 }}>{opt.icon}</span>
+                )}
                 <span>
-                  <span style={{ display: "block", fontSize: 15, fontWeight: 600 }}>{opt.title}</span>
-                  <span style={{ display: "block", fontSize: 13, color: "#A0A0A0", marginTop: 4 }}>{opt.sub}</span>
+                  <span style={{ display: "block", fontSize: isDesktopCL ? 13 : 15, fontWeight: 600 }}>{opt.title}</span>
+                  <span style={{ display: "block", fontSize: isDesktopCL ? 11 : 13, color: "#444", marginTop: 2 }}>{opt.sub}</span>
                 </span>
               </button>
-            ))}
+              );
+            })}
           </div>
 
           {selectedOption === "saved" && (
@@ -900,21 +925,46 @@ function CoverLetterPage({ user, profile, onBack }) {
             disabled={!sourceReady}
             style={{
               width: "100%",
-              marginTop: 24,
-              padding: "14px 18px",
-              borderRadius: 12,
+              marginTop: isDesktopCL ? 16 : 24,
+              padding: isDesktopCL ? 14 : "14px 18px",
+              borderRadius: isDesktopCL ? 10 : 12,
               border: "none",
-              background: sourceReady ? CL_GREEN : "#1C1C1C",
-              color: sourceReady ? "#000000" : "#A0A0A0",
-              fontSize: 15,
+              background: sourceReady ? (isDesktopCL ? "#fff" : CL_GREEN) : "#141414",
+              color: sourceReady ? "#000000" : (isDesktopCL ? "#333" : "#A0A0A0"),
+              fontSize: 14,
               fontWeight: 700,
-              cursor: sourceReady ? "pointer" : "not-allowed",
-              boxShadow: sourceReady ? "0 0 16px rgba(110,231,183,0.3)" : "none",
+              cursor: sourceReady ? "pointer" : "default",
+              boxShadow: sourceReady && !isDesktopCL ? "0 0 16px rgba(110,231,183,0.3)" : "none",
             }}
           >
             Generate My Cover Letter
           </button>
-        </>
+          </div>
+          {isDesktopCL && (
+            <div style={{ background: "#0e0e0e", border: "1px solid #1a1a1a", borderRadius: 16, padding: 28, minHeight: 400, display: "flex", flexDirection: "column" }}>
+              <div style={{ background: "#fff", borderRadius: 8, padding: 24, flex: 1, position: "relative", overflow: "hidden", color: "#222", fontSize: 13, lineHeight: 1.7, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#111", marginBottom: 4 }}>[Name] | email@example.com | Phone | Dubai, UAE</div>
+                <div style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>{getTodayDateLabelCL()}</div>
+                <div style={{ fontSize: 13, color: "#333", marginBottom: 16 }}>Dear Hiring Manager,</div>
+                {[85, 100, 70].map((w, i) => (
+                  <div key={"a" + i} style={{ height: 10, borderRadius: 4, background: "#e5e5e5", marginBottom: 8, width: w + "%" }} />
+                ))}
+                <div style={{ height: 16 }} />
+                {[100, 90, 95, 80].map((w, i) => (
+                  <div key={"b" + i} style={{ height: 10, borderRadius: 4, background: "#e5e5e5", marginBottom: 8, width: w + "%" }} />
+                ))}
+                <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "50%", background: "linear-gradient(to bottom, transparent, #0e0e0e)", pointerEvents: "none" }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.25)", borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: "#D97706" }}>
+                  <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden><rect x="2" y="5" width="7" height="5" rx="1" fill="none" stroke="#D97706" strokeWidth="1.2" /><path d="M3.5 5V3.5a2 2 0 0 1 4 0V5" fill="none" stroke="#D97706" strokeWidth="1.2" /></svg>
+                  {getCoverLetterPricingMarket() === "India" ? "Unlock full letter \u2014 \u20B949" : "Unlock full letter \u2014 AED 10"}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: "#444", marginTop: 8 }}>One-time payment. No subscription.</div>
+            </div>
+          )}
+        </div>
       )}
 
       {phase === "loading" && (
