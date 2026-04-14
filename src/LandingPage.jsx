@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import CVPassportLogo from './components/CVPassportLogo';
-import CVPlayCard from './components/CVPlayCard';
 import { useGeoContent } from './hooks/useGeoContent';
 import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
 import { CvTemplateThumb } from './pages/TemplatesPage';
 import HowItWorks from './HowItWorks';
 import CookieBanner from './components/CookieBanner';
 
-// ── SVG Icons (line style, 20×20 viewBox unless noted) ─────────────
+// ── SVG Icons ──────────────────────────────────────────────────────
 function SunIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -99,34 +98,18 @@ function CheckIcon() {
   );
 }
 
-function FaqChevronIcon({ open }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      style={{
-        flexShrink: 0,
-        color: 'var(--text-secondary)',
-        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-        transition: 'transform 200ms cubic-bezier(0.4,0,0.2,1)',
-      }}
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
 function WhatsAppIcon({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6"/>
     </svg>
   );
 }
@@ -143,7 +126,6 @@ function scrollToLandingSection(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/** Hero headline cycle — natural job search journey (order fixed). */
 const HERO_CYCLE_WORDS = ['shortlisted', 'called', 'hired'];
 
 const LANDING_THUMB_CV = {
@@ -221,6 +203,63 @@ const FAQ_ITEMS = [
   },
 ];
 
+// ── Feature cards data ──────────────────────────────────────────────
+const FEATURE_CARDS = [
+  {
+    eyebrow: 'ATS CHECK',
+    title: 'Score your CV against real ATS',
+    desc: 'Keyword density, format compliance, section structure — get a score and fix list before you apply.',
+    iconColor: '#1D9E75',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+    ),
+    route: '/builder?tab=ats',
+  },
+  {
+    eyebrow: 'JOB MATCH',
+    title: 'Match your CV to job descriptions',
+    desc: 'Paste any job listing and see exactly which keywords you hit and which you miss.',
+    iconColor: '#378ADD',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#378ADD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    ),
+    route: '/builder?tab=jobmatch',
+  },
+  {
+    eyebrow: 'COVER LETTER',
+    title: 'Gulf-tone cover letters in seconds',
+    desc: 'Structured fields, region-aware tone. UAE formal or India professional — ready in one click.',
+    iconColor: '#D97706',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    ),
+    route: '/cover-letter',
+  },
+  {
+    eyebrow: 'WALK-IN MODE',
+    title: '60-second CV for walk-in interviews',
+    desc: '6 fields, instant PDF, WhatsApp-ready. Built for hospitality, retail, and logistics roles.',
+    iconColor: '#EF4444',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    ),
+    route: '/walkin',
+  },
+];
+
 function LandingTemplateThumb({ template }) {
   return (
     <div className="lp-cv-thumb-scale-outer">
@@ -249,10 +288,7 @@ const LandingTemplateMarquee = React.memo(function LandingTemplateMarquee() {
   useEffect(() => {
     const c = scrollRef.current;
     if (!c) return;
-    const init = () => {
-      c.scrollLeft = c.scrollWidth / 3;
-    };
-    init();
+    c.scrollLeft = c.scrollWidth / 3;
 
     const tick = () => {
       if (!isPaused.current && !isDragging.current) {
@@ -289,13 +325,8 @@ const LandingTemplateMarquee = React.memo(function LandingTemplateMarquee() {
   return (
     <div
       className="lp-templates-carousel"
-      onMouseEnter={() => {
-        isPaused.current = true;
-      }}
-      onMouseLeave={() => {
-        isPaused.current = false;
-        isDragging.current = false;
-      }}
+      onMouseEnter={() => { isPaused.current = true; }}
+      onMouseLeave={() => { isPaused.current = false; isDragging.current = false; }}
     >
       <div
         ref={scrollRef}
@@ -317,6 +348,249 @@ const LandingTemplateMarquee = React.memo(function LandingTemplateMarquee() {
     </div>
   );
 });
+
+// ── Animated SVG background for hero ────────────────────────────────
+function HeroBackground({ isDark }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+      <style>{`
+        @keyframes lp-path-draw {
+          to { stroke-dashoffset: 0; }
+        }
+      `}</style>
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 1440 700"
+        preserveAspectRatio="xMidYMid slice"
+        fill="none"
+        style={{ position: 'absolute', inset: 0, opacity: isDark ? 0.4 : 0.15 }}
+      >
+        <path
+          d="M-100 200 C200 180, 400 300, 700 250 S1100 150, 1540 280"
+          stroke={isDark ? '#1C1C1C' : '#D0D0D0'}
+          strokeWidth="1"
+          strokeDasharray="8 6"
+          style={{ animation: 'lp-path-draw 4s ease forwards' }}
+          strokeDashoffset="1200"
+        />
+        <path
+          d="M-50 450 C300 400, 500 500, 800 420 S1200 350, 1540 500"
+          stroke={isDark ? '#1C1C1C' : '#D0D0D0'}
+          strokeWidth="1"
+          strokeDasharray="10 8"
+          style={{ animation: 'lp-path-draw 5s ease 0.5s forwards' }}
+          strokeDashoffset="1400"
+        />
+        <path
+          d="M-80 100 C150 80, 350 180, 600 120 S900 200, 1200 150 S1400 100, 1540 160"
+          stroke={isDark ? '#1C1C1C' : '#D0D0D0'}
+          strokeWidth="0.8"
+          strokeDasharray="6 10"
+          style={{ animation: 'lp-path-draw 6s ease 1s forwards' }}
+          strokeDashoffset="1600"
+        />
+        <path
+          d="M-30 600 C200 560, 500 620, 750 580 S1000 540, 1540 610"
+          stroke={isDark ? '#181818' : '#E0E0E0'}
+          strokeWidth="0.6"
+          strokeDasharray="4 12"
+          style={{ animation: 'lp-path-draw 7s ease 1.5s forwards' }}
+          strokeDashoffset="1500"
+        />
+      </svg>
+    </div>
+  );
+}
+
+// ── Beam sweep animation component ──────────────────────────────────
+function BeamBorder({ color = 'rgba(255,255,255,0.4)' }) {
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, overflow: 'hidden', borderRadius: 'inherit' }}>
+      <style>{`
+        @keyframes lp-beam-sweep {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+      `}</style>
+      <div style={{
+        width: '50%',
+        height: '100%',
+        background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+        animation: 'lp-beam-sweep 3s ease-in-out infinite',
+      }} />
+    </div>
+  );
+}
+
+// ── Bento Cards for Hero (desktop only) ─────────────────────────────
+function BentoCardYourCV() {
+  return (
+    <div style={{
+      background: '#0C0C0C',
+      border: '1px solid #161616',
+      borderRadius: 18,
+      padding: '20px',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <BeamBorder />
+      {/* Eyebrow */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1D9E75', boxShadow: '0 0 6px #1D9E75', animation: 'lp-pulse-dot 2s ease-in-out infinite' }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#1D9E75', letterSpacing: 1.2, textTransform: 'uppercase' }}>Your CV</span>
+      </div>
+
+      {/* CV bar preview */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+        {[
+          { color: '#378ADD', label: 'Contact Details', width: '90%' },
+          { color: '#1D9E75', label: 'Experience', width: '85%' },
+          { color: '#6366F1', label: 'Education', width: '60%' },
+          { color: '#D97706', label: 'Skills', width: '70%' },
+        ].map((sec) => (
+          <div key={sec.label}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+              <div style={{ width: 3, height: 10, borderRadius: 1, background: sec.color }} />
+              <span style={{ fontSize: 9, color: '#666', letterSpacing: 0.3 }}>{sec.label}</span>
+            </div>
+            <div style={{ height: 4, width: sec.width, background: `${sec.color}33`, borderRadius: 2 }}>
+              <div style={{ height: '100%', width: '100%', background: sec.color, borderRadius: 2, opacity: 0.6 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Badges row */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <span style={{ fontSize: 9, background: 'rgba(29,158,117,0.1)', color: '#1D9E75', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>ATS cleared</span>
+        <span style={{ fontSize: 9, background: 'rgba(55,138,221,0.1)', color: '#378ADD', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>Score 84</span>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ marginTop: 10, fontSize: 9, color: '#444', display: 'flex', gap: 4, alignItems: 'center' }}>
+        <span>Gulf-ready templates</span>
+        <span>&middot;</span>
+        <span>11 Steps</span>
+        <span>&middot;</span>
+        <span>Free to start</span>
+      </div>
+    </div>
+  );
+}
+
+function BentoCardGuideFlow() {
+  const steps = [
+    { label: 'Build CV', done: true },
+    { label: 'ATS scan', done: true },
+    { label: 'Job match', done: true },
+    { label: 'Cover letter', done: false },
+    { label: 'Download', done: false },
+  ];
+
+  return (
+    <div style={{
+      background: '#0C0C0C',
+      border: '1px solid #161616',
+      borderRadius: 18,
+      padding: '16px',
+      position: 'relative',
+      overflow: 'hidden',
+      flex: 1,
+    }}>
+      <BeamBorder />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#1D9E75', boxShadow: '0 0 6px #1D9E75', animation: 'lp-pulse-dot 2s ease-in-out infinite' }} />
+        <span style={{ fontSize: 9, fontWeight: 700, color: '#1D9E75', letterSpacing: 1, textTransform: 'uppercase' }}>Guide Flow</span>
+      </div>
+      <p style={{ fontSize: 11, color: '#ccc', fontWeight: 600, margin: '0 0 10px', lineHeight: 1.3 }}>We don&apos;t give you a blank page.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {steps.map((s) => (
+          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{
+              width: 14, height: 14, borderRadius: '50%',
+              background: s.done ? '#1D9E75' : 'transparent',
+              border: s.done ? 'none' : '1.5px solid #333',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 8, color: '#fff', flexShrink: 0,
+            }}>
+              {s.done && '\u2713'}
+            </div>
+            <span style={{ fontSize: 10, color: s.done ? '#ccc' : '#555' }}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BentoCardATSCheck() {
+  const score = 84;
+  const r = 18;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+
+  return (
+    <div style={{
+      background: '#0C0C0C',
+      border: '1px solid #161616',
+      borderRadius: 18,
+      padding: '16px',
+      position: 'relative',
+      overflow: 'hidden',
+      flex: 1,
+    }}>
+      <BeamBorder />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#378ADD', boxShadow: '0 0 6px #378ADD', animation: 'lp-pulse-dot 2s ease-in-out infinite' }} />
+        <span style={{ fontSize: 9, fontWeight: 700, color: '#378ADD', letterSpacing: 1, textTransform: 'uppercase' }}>ATS Check</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <p style={{ fontSize: 11, color: '#ccc', fontWeight: 600, margin: '0 0 10px' }}>Gulf Market Ready</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {[
+              { label: 'Keywords', status: 'Pass', ok: true },
+              { label: 'Format', status: 'Pass', ok: true },
+              { label: 'Add achievements', status: 'Improve', ok: false },
+            ].map((row) => (
+              <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: row.ok ? '#1D9E75' : '#D97706',
+                  flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 9, color: '#888' }}>{row.label}</span>
+                <span style={{
+                  fontSize: 8,
+                  color: row.ok ? '#1D9E75' : '#D97706',
+                  fontWeight: 600,
+                  marginLeft: 'auto',
+                }}>{row.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Score ring */}
+        <div style={{ position: 'relative', width: 48, height: 48, flexShrink: 0, marginLeft: 8 }}>
+          <svg width={48} height={48} viewBox="0 0 48 48" style={{ transform: 'rotate(-90deg)' }}>
+            <defs>
+              <linearGradient id="bento-ats-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#1D9E75" />
+                <stop offset="100%" stopColor="#378ADD" />
+              </linearGradient>
+            </defs>
+            <circle cx={24} cy={24} r={r} fill="none" stroke="#1e1e1e" strokeWidth={3} />
+            <circle cx={24} cy={24} r={r} fill="none" stroke="url(#bento-ats-grad)" strokeWidth={3} strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{score}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Main component ──────────────────────────────────────────────────
 export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalkIn }) {
@@ -379,7 +653,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  /** Nav items: Templates = in-page anchor; ATS/Pricing via React Router. */
   const handleLandingNav = (item) => {
     if (item === 'Templates') scrollToLandingSection('templates');
     else if (item === 'ATS Check') navigate('/ats');
@@ -396,7 +669,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         <meta name="author" content="CVPassport" />
         <link rel="canonical" href="https://mycvpassport.com" />
         <meta property="og:title" content="CVPassport — ATS-Friendly Resume Builder for Gulf Jobs" />
-        <meta property="og:description" content="Free resume builder for UAE, Saudi &amp; GCC job markets. ATS score checker, 11 professional templates, Walk-In CV mode." />
+        <meta property="og:description" content="Free resume builder for UAE, Saudi &amp; GCC job markets. ATS score checker, professionally designed templates, Walk-In CV mode." />
         <meta property="og:url" content="https://mycvpassport.com" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://mycvpassport.com/images/falcon-icon.png" />
@@ -428,10 +701,20 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
         @keyframes lp-arcflow { to { stroke-dashoffset: -20; } }
         @keyframes lp-globe-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        path[stroke="rgba(255,255,255,0.5)"] { stroke-dashoffset: 0; }
-        @keyframes lp-cvLineIn {
-          from { opacity: 0; transform: translateX(-12px); }
-          to   { opacity: 1; transform: translateX(0); }
+        @keyframes lp-pulse-dot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+
+        /* ── Smooth theme transition ─── */
+        .lp-wrapper,
+        .lp-wrapper nav,
+        .lp-wrapper .lp-card,
+        .lp-wrapper footer,
+        .lp-wrapper section {
+          transition: background-color 0.4s cubic-bezier(0.4,0,0.2,1),
+                      color 0.4s cubic-bezier(0.4,0,0.2,1),
+                      border-color 0.4s cubic-bezier(0.4,0,0.2,1);
         }
 
         .lp-nav        { padding: 0 60px; }
@@ -453,7 +736,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         .lp-nav-link  { transition: color 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-card      { transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-theme-btn { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1); }
-        .lp-wrapper   { transition: background-color 0.25s cubic-bezier(0.4,0,0.2,1), color 0.25s cubic-bezier(0.4,0,0.2,1); }
 
         /* Mobile — 390px first */
         @media (max-width: 768px) {
@@ -479,6 +761,41 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           .lp-mobile-menu  { display: none !important; }
         }
 
+        /* Desktop hero overrides */
+        @media (min-width: 1024px) {
+          .lp-hero {
+            padding: 100px 60px 60px !important;
+          }
+          .lp-hero-inner {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 60px !important;
+          }
+          .lp-hero-content {
+            flex: 0 0 55% !important;
+            max-width: 55% !important;
+          }
+          .lp-hero-right-bento {
+            display: flex !important;
+            flex: 0 0 42% !important;
+          }
+          .lp-hero h1 {
+            font-size: 72px !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.03em !important;
+            line-height: 1.0 !important;
+          }
+          .lp-feature-grid-desktop {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        .lp-hero-right-bento {
+          display: none;
+          flex-direction: column;
+          gap: 10px;
+        }
+
         .lp-sec.lp-proof { text-align: center; padding: 48px 24px; }
         .lp-proof-statement {
           font-size: clamp(24px, 5vw, 42px);
@@ -491,33 +808,13 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         .lp-sec.lp-templates { padding: 48px 0 48px 24px; }
         .lp-section-title { font-size: clamp(22px, 4vw, 36px); font-weight: 800; margin-bottom: 8px; }
         .lp-section-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
-        .lp-templates-carousel {
-          width: 100%;
-        }
+        .lp-templates-carousel { width: 100%; }
         .lp-templates-viewport {
-          overflow: hidden;
-          width: 100%;
-          cursor: grab;
-          -webkit-user-select: none;
-          user-select: none;
+          overflow: hidden; width: 100%; cursor: grab;
+          -webkit-user-select: none; user-select: none;
         }
-        .lp-templates-viewport:active {
-          cursor: grabbing;
-        }
-        .lp-templates-track {
-          display: flex;
-          gap: 16px;
-          width: max-content;
-          padding-bottom: 16px;
-        }
-        .lp-template-card {
-          flex: 0 0 120px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-        }
+        .lp-templates-viewport:active { cursor: grabbing; }
+        .lp-templates-track { display: flex; gap: 16px; width: max-content; padding-bottom: 16px; }
         .lp-hero-cycle-word {
           display: inline-block;
           margin: 0 0.12em;
@@ -526,249 +823,98 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .lp-feature-grid {
+        .lp-feature-grid-desktop {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 16px;
         }
-        @media (min-width: 769px) {
-          .lp-feature-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-        }
-        .lp-feature-section-bleed {
-          padding: 80px 60px;
-        }
         @media (max-width: 768px) {
-          .lp-feature-section-bleed {
-            padding: 60px 20px;
+          .lp-feature-grid-desktop {
+            grid-template-columns: 1fr;
           }
         }
-        .lp-template-card-link {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          text-decoration: none;
-          color: inherit;
-        }
-        .lp-feature-cta {
-          transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .lp-feature-cta:hover {
-          opacity: 0.85;
-        }
-        .lp-template-name { font-size: 12px; color: var(--text-primary); font-weight: 500; }
-        .lp-template-tier { font-size: 11px; font-weight: 600; }
-        .lp-tier-free { color: #3B8BD4; }
-        .lp-tier-popular { color: #EF9F27; }
-        .lp-tier-premium { color: var(--text-secondary); }
-        .lp-template-more {
-          justify-content: center;
-          opacity: 0.5;
-          font-size: 14px;
-          color: var(--text-secondary);
+
+        .lp-feature-section-bleed { padding: 80px 60px; }
+        @media (max-width: 768px) {
+          .lp-feature-section-bleed { padding: 60px 20px; }
         }
 
-        .lp-problem-card-header {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: 12px;
+        .lp-faq-section { max-width: 720px; margin: 0 auto; padding: 80px 24px; }
+        .lp-faq-heading { font-size: 28px; font-weight: 600; color: var(--text-primary); margin: 0 0 40px; }
+        .lp-faq-item { border-bottom: 1px solid var(--border-default); }
+        .lp-faq-q {
+          width: 100%; display: flex; justify-content: space-between; align-items: center;
+          cursor: pointer; padding: 20px 0; margin: 0; background: none; border: none;
+          font-family: inherit; text-align: left;
         }
-        .lp-problem-card-icon {
-          width: 20px;
-          height: 20px;
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: inherit;
+        .lp-faq-q-text { font-size: 15px; color: var(--text-primary); font-weight: 500; padding-right: 16px; }
+        .lp-faq-a { font-size: 14px; color: var(--text-secondary); line-height: 1.6; padding-bottom: 20px; margin: 0; }
+
+        .lp-site-footer {
+          background: #0A0A0A; border-top: 1px solid #2A2A2A; padding: 48px 24px 32px;
+          --text-secondary: #A0A0A0; --border-default: #2A2A2A;
         }
-        .lp-problem-card-icon svg { width: 20px; height: 20px; }
-        .lp-problem-card-title {
-          font-weight: 600;
-          font-size: 14px;
-          margin: 0;
-          color: var(--text-primary);
-          font-family: inherit;
+        .lp-site-footer-inner { max-width: 1100px; margin: 0 auto; }
+        .lp-site-footer-row1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; flex-wrap: wrap; }
+        .lp-site-footer-brand-title { font-size: 16px; font-weight: 600; color: #FFF; margin: 0; }
+        .lp-site-footer-brand-tag { font-size: 13px; color: var(--text-secondary); margin: 8px 0 0; }
+        .lp-site-footer-cols { display: flex; flex-direction: row; gap: 40px; flex-wrap: wrap; }
+        .lp-site-footer-col-h {
+          font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+          color: var(--text-secondary); opacity: 0.5; margin: 0 0 12px; font-weight: 500;
         }
-        .lp-problem-card-desc {
-          font-size: 13px;
-          color: var(--text-secondary);
-          margin-top: 4px;
-          margin-bottom: 0;
-          line-height: 1.65;
+        .lp-site-footer-link {
+          font-size: 13px; color: var(--text-secondary); text-decoration: none; display: block;
+          line-height: 2; transition: color 150ms ease;
+        }
+        .lp-site-footer-link:hover { color: #FFF; }
+        .lp-site-footer-row2 {
+          margin-top: 40px; padding-top: 24px; border-top: 1px solid #2A2A2A;
+          display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+        }
+        .lp-site-footer-row2 p { font-size: 12px; color: var(--text-secondary); margin: 0; }
+        @media (max-width: 768px) {
+          .lp-site-footer-row1 { flex-direction: column; }
+          .lp-site-footer-cols { flex-direction: column; gap: 24px; }
+          .lp-site-footer-row2 { flex-direction: column; text-align: center; }
+        }
+        .lp-footer-trust {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          font-size: 11px; color: #555; margin-top: 16px;
         }
 
-        .lp-feature-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; justify-content: center; }
-        .lp-feature-pill {
-          padding: 6px 14px;
-          border-radius: 20px;
-          border: 1px solid var(--border-default);
-          font-size: 12px;
-          color: var(--text-secondary);
-        }
+        .lp-footer-disclaimer { text-align: center; padding: 24px; border-top: 1px solid var(--border-default); }
+        .lp-footer-disclaimer p { font-size: 11px; color: var(--text-secondary); opacity: 0.4; max-width: 560px; margin: 0 auto; line-height: 1.6; }
 
         .lp-sec.lp-industry { text-align: center; padding: 48px 24px; }
         .lp-badges { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0; }
         .lp-badge {
-          padding: 8px 18px;
-          border-radius: 20px;
-          border: 1px solid var(--border-default);
-          font-size: 13px;
-          color: var(--text-primary);
-          background: var(--bg-surface);
+          padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border-default);
+          font-size: 13px; color: var(--text-primary); background: var(--bg-surface);
         }
         .lp-micro-disclaimer {
-          font-size: 11px;
-          color: var(--text-secondary);
-          opacity: 0.5;
-          margin-top: 12px;
-          max-width: 480px;
-          margin-left: auto;
-          margin-right: auto;
+          font-size: 11px; color: var(--text-secondary); opacity: 0.5;
+          margin-top: 12px; max-width: 480px; margin-left: auto; margin-right: auto;
         }
 
-        .lp-faq-section {
-          max-width: 720px;
-          margin: 0 auto;
-          padding: 80px 24px;
-        }
-        .lp-faq-heading {
-          font-size: 28px;
-          font-weight: 600;
-          color: var(--text-primary);
-          margin: 0 0 40px;
-        }
-        .lp-faq-item {
-          border-bottom: 1px solid var(--border-default);
-        }
-        .lp-faq-q {
-          width: 100%;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-          padding: 20px 0;
-          margin: 0;
-          background: none;
-          border: none;
-          font-family: inherit;
-          text-align: left;
-        }
-        .lp-faq-q-text {
-          font-size: 15px;
-          color: var(--text-primary);
-          font-weight: 500;
-          padding-right: 16px;
-        }
-        .lp-faq-a {
-          font-size: 14px;
-          color: var(--text-secondary);
-          line-height: 1.6;
-          padding-bottom: 20px;
-          margin: 0;
-        }
+        .lp-problem-card-header { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+        .lp-problem-card-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: inherit; }
+        .lp-problem-card-icon svg { width: 20px; height: 20px; }
+        .lp-problem-card-title { font-weight: 600; font-size: 14px; margin: 0; color: var(--text-primary); font-family: inherit; }
+        .lp-problem-card-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0; line-height: 1.65; }
 
-        .lp-site-footer {
-          background: #0A0A0A;
-          border-top: 1px solid #2A2A2A;
-          padding: 48px 24px 32px;
-          --text-secondary: #A0A0A0;
-          --border-default: #2A2A2A;
+        /* Hamburger panel links */
+        .lp-hamburger-link {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 16px 0; border-bottom: 1px solid var(--border-default);
+          background: none; border-left: none; border-right: none; border-top: none;
+          color: var(--text-primary); font-size: 18px; font-weight: 500;
+          cursor: pointer; font-family: inherit; text-align: left; width: 100%;
         }
-        .lp-site-footer-inner {
-          max-width: 1100px;
-          margin: 0 auto;
-        }
-        .lp-site-footer-row1 {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 40px;
-          flex-wrap: wrap;
-        }
-        .lp-site-footer-brand-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: #FFF;
-          margin: 0;
-        }
-        .lp-site-footer-brand-tag {
-          font-size: 13px;
-          color: var(--text-secondary);
-          margin: 8px 0 0;
-        }
-        .lp-site-footer-cols {
-          display: flex;
-          flex-direction: row;
-          gap: 40px;
-          flex-wrap: wrap;
-        }
-        .lp-site-footer-col-h {
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--text-secondary);
-          opacity: 0.5;
-          margin: 0 0 12px;
-          font-weight: 500;
-        }
-        .lp-site-footer-link {
-          font-size: 13px;
-          color: var(--text-secondary);
-          text-decoration: none;
-          display: block;
-          line-height: 2;
-          transition: color 150ms ease;
-        }
-        .lp-site-footer-link:hover {
-          color: #FFF;
-        }
-        .lp-site-footer-row2 {
-          margin-top: 40px;
-          padding-top: 24px;
-          border-top: 1px solid #2A2A2A;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .lp-site-footer-row2 p {
-          font-size: 12px;
-          color: var(--text-secondary);
-          margin: 0;
-        }
-        @media (max-width: 768px) {
-          .lp-site-footer-row1 {
-            flex-direction: column;
-          }
-          .lp-site-footer-cols {
-            flex-direction: column;
-            gap: 24px;
-          }
-          .lp-site-footer-row2 {
-            flex-direction: column;
-            text-align: center;
-          }
-        }
+        .lp-hamburger-link:last-of-type { border-bottom: none; }
 
-        .lp-footer-disclaimer {
-          text-align: center;
-          padding: 24px;
-          border-top: 1px solid var(--border-default);
-        }
-        .lp-footer-disclaimer p {
-          font-size: 11px;
-          color: var(--text-secondary);
-          opacity: 0.4;
-          max-width: 560px;
-          margin: 0 auto;
-          line-height: 1.6;
-        }
+        .lp-feature-cta { transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .lp-feature-cta:hover { opacity: 0.85; }
       `}</style>
 
       <div
@@ -884,7 +1030,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <button
                   type="button"
                   className="lp-ghost-btn"
-                  onClick={() => onLogin && onLogin()}
+                  onClick={() => navigate('/login')}
                   style={{
                     background:   'transparent',
                     border:       `1px solid ${T.btnGhostBorder}`,
@@ -902,7 +1048,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <button
                   type="button"
                   className="lp-btn"
-                  onClick={() => onSignup && onSignup()}
+                  onClick={() => navigate('/signup')}
                   style={{
                     background:   T.btnPrimary,
                     border:       'none',
@@ -941,7 +1087,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </nav>
 
-        {/* ── MOBILE MENU ─────────────────────────────────────────── */}
+        {/* ── MOBILE MENU (Task 5 — rebuilt hamburger panel) ────── */}
         {mobileMenuOpen && (
           <div
             className="lp-mobile-menu"
@@ -950,207 +1096,249 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               top:        '64px',
               left:       0,
               right:      0,
+              bottom:     0,
               zIndex:     99,
               background: T.bgSurface,
-              borderBottom: `1px solid ${T.border}`,
-              padding:    '16px 20px',
+              padding:    '24px 20px',
               display:    'flex',
               flexDirection: 'column',
-              gap:        '4px',
+              overflowY:  'auto',
             }}
           >
-            {['Templates', 'ATS Check', 'Pricing'].map(item => (
+            {/* Nav links */}
+            {[
+              { label: 'Templates', route: '/builder?tab=templates' },
+              { label: 'ATS Check', route: '/ats' },
+              { label: 'Job Match', route: '/builder?tab=jobmatch' },
+              { label: 'Cover Letter', route: '/cover-letter' },
+              { label: 'Walk-In Mode', route: '/walkin' },
+            ].map(item => (
               <button
-                key={item}
+                key={item.label}
                 type="button"
-                onClick={() => { closeMobileMenu(); handleLandingNav(item); }}
-                style={{ background: 'none', border: 'none', color: T.textSecondary, fontSize: '15px', padding: '12px 0', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                className="lp-hamburger-link"
+                onClick={() => { closeMobileMenu(); navigate(item.route); }}
               >
-                {item}
+                <span>{item.label}</span>
+                <ChevronRightIcon />
               </button>
             ))}
-            <div style={{ height: '1px', background: T.border, margin: '8px 0' }} />
-            {user ? (
-              <button
-                onClick={() => { closeMobileMenu(); onSignOut && onSignOut(); }}
-                style={{ background: 'none', border: `1px solid ${T.border}`, color: T.textPrimary, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                Sign Out
-              </button>
-            ) : (
-              <>
+
+            {/* Pricing CTA */}
+            <button
+              type="button"
+              onClick={() => { closeMobileMenu(); navigate('/pricing'); }}
+              style={{
+                width: '100%',
+                background: '#111',
+                border: `1px solid ${T.border}`,
+                borderRadius: 12,
+                padding: '16px 20px',
+                fontSize: 15,
+                fontWeight: 600,
+                color: '#fff',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                marginTop: 24,
+                position: 'relative',
+                overflow: 'hidden',
+                textAlign: 'left',
+              }}
+            >
+              <BeamBorder />
+              View Pricing Plans &rarr;
+            </button>
+
+            {/* Auth section */}
+            <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {user ? (
                 <button
-                  onClick={() => { closeMobileMenu(); onLogin && onLogin(); }}
-                  style={{ background: 'none', border: `1px solid ${T.border}`, color: T.textPrimary, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={() => { closeMobileMenu(); onSignOut && onSignOut(); }}
+                  style={{
+                    background: 'none',
+                    border: `1px solid ${T.border}`,
+                    color: T.textPrimary,
+                    borderRadius: 10,
+                    padding: 13,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
                 >
-                  Sign In
+                  Sign Out
                 </button>
-                <button
-                  onClick={() => { closeMobileMenu(); onSignup && onSignup(); }}
-                  style={{ background: T.btnPrimary, border: 'none', color: T.btnPrimaryTxt, borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', marginTop: '6px', fontFamily: 'inherit' }}
-                >
-                  Get Started
-                </button>
-              </>
-            )}
+              ) : (
+                <>
+                  <button
+                    onClick={() => { closeMobileMenu(); navigate('/login'); }}
+                    style={{
+                      background: 'none',
+                      border: `1px solid ${T.border}`,
+                      color: T.textPrimary,
+                      borderRadius: 10,
+                      padding: 13,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => { closeMobileMenu(); navigate('/signup'); }}
+                    style={{
+                      background: T.btnPrimary,
+                      border: 'none',
+                      color: T.btnPrimaryTxt,
+                      borderRadius: 10,
+                      padding: 13,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Get Started &mdash; Free &rarr;
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
 
-        {/* ── HERO ────────────────────────────────────────────────── */}
+        {/* ── HERO (Task 3) ──────────────────────────────────────── */}
         <section
           className="lp-hero"
-          style={{ maxWidth: '1300px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '60px', overflow: 'visible' }}
+          style={{ maxWidth: '1300px', margin: '0 auto', position: 'relative', overflow: 'visible' }}
         >
-          {/* Left */}
-          <div className="lp-hero-content" style={{ flex: 1, maxWidth: '560px' }}>
-            {geo.showWalkIn && (
-              <button
-                type="button"
-                className="cvp-walkin-chip"
-                onClick={() => scrollToLandingSection('walkin')}
-                style={{ marginBottom: '16px' }}
-              >
-                ⚡ Walk-in tomorrow? Start building now
-              </button>
-            )}
+          <HeroBackground isDark={isDark} />
+          <div className="lp-hero-inner" style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '40px' }}>
+            {/* Left */}
+            <div className="lp-hero-content" style={{ flex: 1, maxWidth: '560px' }}>
+              {geo.showWalkIn && (
+                <button
+                  type="button"
+                  className="cvp-walkin-chip"
+                  onClick={() => scrollToLandingSection('walkin')}
+                  style={{ marginBottom: '16px' }}
+                >
+                  &#9889; Walk-in tomorrow? Start building now
+                </button>
+              )}
 
-            {/* Badge pill */}
-            <div style={{
-              display:      'inline-flex',
-              alignItems:   'center',
-              gap:          '8px',
-              background:   isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-              border:       `1px solid ${T.border}`,
-              borderRadius: '100px',
-              padding:      '6px 16px',
-              marginBottom: '28px',
-            }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: T.textPrimary, flexShrink: 0 }} />
-              <span style={{ fontSize: '12px', fontWeight: '600', color: T.textPrimary, letterSpacing: '0.3px' }}>
-                {geo.pill}
-              </span>
-            </div>
-
-            {/* H1 */}
-            <h1 style={{
-              fontSize:     'clamp(34px, 5vw, 58px)',
-              fontWeight:   '800',
-              lineHeight:   1.05,
-              letterSpacing:'-2px',
-              marginBottom: '20px',
-              color:        T.textPrimary,
-              fontFamily:   "'DM Sans', sans-serif",
-            }}>
-              {geo.heroHeadlineBefore}
-              <span
-                className="lp-hero-cycle-word"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {HERO_CYCLE_WORDS[heroWordIndex]}
-              </span>
-              {geo.heroHeadlineAfter}
-            </h1>
-
-            {/* Subtext */}
-            <p style={{ fontSize: '17px', color: T.textSecondary, marginBottom: '36px', lineHeight: 1.7 }}>
-              {geo.subheadline}
-            </p>
-
-            {/* CTAs */}
-            <div className="lp-hero-ctas" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '40px' }}>
-              {/* PRIMARY CTA — navigate to dashboard if no onSignup handler */}
-              <button
-                type="button"
-                className="lp-btn"
-                onClick={() => { if (onSignup) onSignup(); else navigate('/dashboard'); }}
-                style={{
-                  background:   T.btnPrimary,
-                  color:        T.btnPrimaryTxt,
-                  border:       'none',
-                  borderRadius: '10px',
-                  padding:      '14px 28px',
-                  fontSize:     '15px',
-                  fontWeight:   '700',
-                  cursor:       'pointer',
-                  fontFamily:   'inherit',
-                  whiteSpace:   'nowrap',
-                }}
-              >
-                {geo.cta}
-              </button>
-              {/* SECONDARY CTA — navigate to builder templates tab */}
-              <button
-                type="button"
-                className="lp-ghost-btn"
-                onClick={() => navigate('/builder?tab=templates')}
-                style={{
-                  background:   'transparent',
-                  color:        T.textPrimary,
-                  border:       `1px solid ${T.btnGhostBorder}`,
-                  borderRadius: '10px',
-                  padding:      '14px 28px',
-                  fontSize:     '15px',
-                  fontWeight:   '600',
-                  cursor:       'pointer',
-                  fontFamily:   'inherit',
-                  whiteSpace:   'nowrap',
-                }}
-              >
-                {geo.ctaSecondary}
-              </button>
-            </div>
-
-            <p
-              style={{
-                fontSize: '13px',
-                color: 'var(--text-secondary)',
-                textAlign: 'center',
-                marginTop: '8px',
-              }}
-            >
-              {geo.anxietyKiller}
-            </p>
-          </div>
-
-          {/* Right — CV card left of globe, side-by-side with gap (no overlap) */}
-          <div
-            className="lp-hero-right"
-            style={{
-              flex:           '0 0 auto',
-              display:        'flex',
-              justifyContent: 'flex-end',
-              alignItems:     'center',
-              position:       'relative',
-              overflow:       'hidden',
-              paddingRight:   '24px',
-              boxSizing:      'border-box',
-            }}
-          >
-            <div style={{ position: 'relative', display: 'inline-block', overflow: 'hidden', flexShrink: 0, width: '700px', height: '700px' }}>
-              {/* Glow halo */}
+              {/* Pill */}
               <div style={{
-                position:     'absolute',
-                width:        '700px',
-                height:       '700px',
-                borderRadius: '50%',
-                background:   'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
-                pointerEvents:'none',
-              }} />
-              <img src="/images/globe_and_card.svg" alt="globe" style={{ width: '680px', height: '680px', animation: 'lp-globe-rotate 60s linear infinite' }} />
-              <div
-                className="hidden md:block"
-                style={{
-                  position: 'absolute',
-                  top: '68%',
-                  right: '-12%',
-                  transform: 'translateY(-50%) scale(0.67)',
-                  transformOrigin: 'left center',
-                  pointerEvents: 'none',
-                  zIndex: 2,
-                }}
-              >
-                <CVPlayCard />
+                display:      'inline-flex',
+                alignItems:   'center',
+                gap:          '8px',
+                background:   isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)',
+                border:       `1px solid ${isDark ? '#1E1E1E' : '#E0E0E0'}`,
+                borderRadius: '20px',
+                padding:      '6px 16px',
+                marginBottom: '28px',
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: '#555',
+                  animation: 'lp-pulse-dot 2s ease-in-out infinite',
+                  flexShrink: 0,
+                }} />
+                <span style={{ fontSize: '12px', fontWeight: '600', color: T.textPrimary, letterSpacing: '0.3px' }}>
+                  {geo.pill}
+                </span>
+              </div>
+
+              {/* H1 */}
+              <h1 style={{
+                fontSize:     'clamp(34px, 5vw, 58px)',
+                fontWeight:   '800',
+                lineHeight:   1.05,
+                letterSpacing:'-2px',
+                marginBottom: '20px',
+                color:        T.textPrimary,
+                fontFamily:   "'DM Sans', sans-serif",
+              }}>
+                {geo.heroHeadlineBefore}
+                <span
+                  className="lp-hero-cycle-word"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {HERO_CYCLE_WORDS[heroWordIndex]}
+                </span>
+                {geo.heroHeadlineAfter}
+              </h1>
+
+              {/* Subheadline */}
+              <p style={{ fontSize: '16px', color: isDark ? '#444' : '#666', marginBottom: '36px', lineHeight: 1.7, maxWidth: 480 }}>
+                {geo.subheadline}
+              </p>
+
+              {/* CTA row */}
+              <div className="lp-hero-ctas" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  className="lp-btn"
+                  onClick={() => navigate('/signup')}
+                  style={{
+                    background:   isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                    color:        T.textPrimary,
+                    border:       `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                    borderRadius: '26px',
+                    padding:      '13px 28px',
+                    fontSize:     '15px',
+                    fontWeight:   '600',
+                    cursor:       'pointer',
+                    fontFamily:   'inherit',
+                    whiteSpace:   'nowrap',
+                    display:      'inline-flex',
+                    alignItems:   'center',
+                    gap:          '10px',
+                  }}
+                >
+                  {geo.cta}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: isDark ? '#fff' : '#111',
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6h8M7 3l3 3-3 3" stroke={isDark ? '#000' : '#fff'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/builder?tab=templates')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: isDark ? '#333' : '#888',
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    padding: 0,
+                  }}
+                >
+                  {geo.ctaSecondary}
+                </button>
+              </div>
+
+              <p style={{ fontSize: '12px', color: isDark ? '#333' : '#999', marginTop: 4 }}>
+                {geo.anxietyKiller}
+              </p>
+            </div>
+
+            {/* Right — Bento cards (desktop only) */}
+            <div className="lp-hero-right-bento">
+              <BentoCardYourCV />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <BentoCardGuideFlow />
+                <BentoCardATSCheck />
               </div>
             </div>
           </div>
@@ -1162,18 +1350,19 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </h2>
         </section>
 
+        {/* ── FEATURES (Task 6) ──────────────────────────────────── */}
         <section
           id="lp-features"
           className="lp-feature-section-bleed"
           style={{
-            background: '#0A0A0A',
-            color: '#FFFFFF',
+            background: isDark ? '#0A0A0A' : '#F5F5F0',
+            color: T.textPrimary,
             maxWidth: 'none',
             margin: 0,
           }}
         >
           <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-            <p style={{ fontSize: '11px', letterSpacing: '3px', color: '#A0A0A0', fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center' }}>
+            <p style={{ fontSize: '11px', letterSpacing: '3px', color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px', textAlign: 'center' }}>
               Everything in one place
             </p>
             <h2 style={{
@@ -1181,236 +1370,64 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               fontWeight: '800',
               letterSpacing: '-0.5px',
               marginBottom: '28px',
-              color: '#FFFFFF',
+              color: T.textPrimary,
               fontFamily: "'DM Sans', sans-serif",
               textAlign: 'center',
             }}>
               Built for Gulf job seekers
             </h2>
-            <div className="lp-feature-grid">
-              {/* Card 1 — ATS */}
-              <div
-                id="ats"
-                className="lp-card"
-                style={{
-                  background: isDark ? '#141414' : '#F5F5F0',
-                  border: isDark ? '1px solid #2A2A2A' : '1px solid #E0E0E0',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  textAlign: 'left',
-                }}
-              >
-                <p style={{ fontSize: '10px', letterSpacing: '0.5px', color: '#A0A0A0', textTransform: 'uppercase', margin: '0 0 16px', fontWeight: '600' }}>
-                  ATS CHECKER
-                </p>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                  <div style={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
-                    <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
-                      <circle cx="28" cy="28" r="22" fill="none" stroke="#2A2A2A" strokeWidth="6" />
-                      <circle
-                        cx="28"
-                        cy="28"
-                        r="22"
-                        fill="none"
-                        stroke="#14B8A6"
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                        strokeDasharray="138.23 138.23"
-                        strokeDashoffset={138.23 * (1 - 0.84)}
-                        transform="rotate(-90 28 28)"
-                      />
-                    </svg>
-                    <span style={{
-                      position: 'absolute',
-                      left: 0,
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      fontWeight: 500,
-                      color: '#14B8A6',
-                    }}
-                    >
-                      84
-                    </span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
-                    {[
-                      { label: 'Keywords', pct: 80, fill: '#22C55E' },
-                      { label: 'Format', pct: 65, fill: '#F59E0B' },
-                      { label: 'Sections', pct: 90, fill: '#EAB308' },
-                    ].map((row) => (
-                      <div key={row.label}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, color: '#A0A0A0' }}>
-                          <span>{row.label}</span>
-                          <span>{row.pct}%</span>
-                        </div>
-                        <div style={{ height: 4, borderRadius: 99, background: '#2A2A2A', overflow: 'hidden' }}>
-                          <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: 99, background: row.fill }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+            <div className="lp-feature-grid-desktop">
+              {FEATURE_CARDS.map((card) => (
                 <button
+                  key={card.eyebrow}
                   type="button"
-                  className="lp-feature-cta"
-                  onClick={() => navigate('/ats')}
+                  className="lp-card"
+                  onClick={() => navigate(card.route)}
                   style={{
-                    marginTop: '18px',
-                    padding: 0,
-                    border: 'none',
-                    background: 'none',
+                    background: isDark ? '#141414' : '#FFFFFF',
+                    border: `1px solid ${isDark ? '#2A2A2A' : '#E0E0E0'}`,
+                    borderRadius: '16px',
+                    padding: '24px',
+                    textAlign: 'left',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#14B8A6',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
-                  Start for free →
-                </button>
-              </div>
-
-              {/* Card 2 — Cover letter (always dark) */}
-              <div
-                id="cover-letter"
-                className="lp-card"
-                style={{
-                  background: '#0F1F1A',
-                  border: '1px solid #2A2A2A',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  textAlign: 'left',
-                }}
-              >
-                <p style={{ fontSize: '10px', color: '#A0A0A0', textTransform: 'uppercase', margin: '0 0 14px', fontWeight: '600' }}>
-                  COVER LETTER
-                </p>
-                <p style={{ fontSize: '13px', fontWeight: 500, color: '#FFFFFF', margin: '0 0 8px', lineHeight: 1.45 }}>
-                  Dear Hiring Manager,
-                </p>
-                <p style={{ fontSize: '12px', color: '#A0A0A0', margin: '0 0 6px', lineHeight: 1.5 }}>
-                  I am writing to express my strong interest in
-                </p>
-                <p style={{ fontSize: '12px', color: '#A0A0A0', margin: '0 0 14px', lineHeight: 1.5 }}>
-                  the Customer Service role at Emirates NBD...
-                </p>
-                <span style={{
-                  display: 'inline-block',
-                  fontSize: '10px',
-                  background: '#1A3A30',
-                  color: '#4ADE80',
-                  borderRadius: 99,
-                  padding: '4px 10px',
-                  marginBottom: '12px',
-                }}
-                >
-                  Gulf tone · Arabic-aware
-                </span>
-                <p style={{ fontSize: '12px', color: '#A0A0A0', margin: 0 }}>
-                  AED 10 / ₹49
-                </p>
-              </div>
-
-              {/* Card 3 — Walk-in (always dark) */}
-              <div
-                className="lp-card"
-                style={{
-                  background: '#0A1A0A',
-                  border: '1px solid #2A2A2A',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  textAlign: 'left',
-                }}
-              >
-                <p style={{ fontSize: '10px', color: '#A0A0A0', textTransform: 'uppercase', margin: '0 0 14px', fontWeight: '600' }}>
-                  WALK-IN MODE
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: '14px' }}>
-                  {['Ahmed Al Mansouri', 'Driver', '+971 50 123 4567', '10 yrs experience'].map((text) => (
-                    <div
-                      key={text}
-                      style={{
-                        background: '#0F2A0F',
-                        border: '1px solid #1A4A1A',
-                        borderRadius: 6,
-                        padding: '6px 10px',
-                        fontSize: 11,
-                        color: '#4ADE80',
-                      }}
-                    >
-                      {text}
+                  <BeamBorder color={`${card.iconColor}66`} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10,
+                      background: `${card.iconColor}15`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {card.icon}
                     </div>
-                  ))}
-                </div>
-                <p style={{ fontSize: '11px', color: '#4ADE80', margin: 0 }}>
-                  60 seconds · WhatsApp ready
-                </p>
-              </div>
-
-              {/* Card 4 — Job match */}
-              <div
-                className="lp-card"
-                style={{
-                  background: isDark ? '#141414' : '#F5F5F0',
-                  border: isDark ? '1px solid #2A2A2A' : '1px solid #E0E0E0',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: '14px', flexWrap: 'wrap' }}>
-                  <p style={{ fontSize: '10px', letterSpacing: '0.5px', color: '#A0A0A0', textTransform: 'uppercase', margin: 0, fontWeight: '600' }}>
-                    JOB MATCH
+                    <p style={{ fontSize: '10px', letterSpacing: '1px', color: T.textSecondary, textTransform: 'uppercase', margin: 0, fontWeight: '600' }}>
+                      {card.eyebrow}
+                    </p>
+                  </div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: '0 0 8px', lineHeight: 1.3 }}>
+                    {card.title}
+                  </h3>
+                  <p style={{ fontSize: 13, color: T.textSecondary, margin: 0, lineHeight: 1.55 }}>
+                    {card.desc}
                   </p>
-                  <span style={{
-                    fontSize: '10px',
-                    background: '#2A2A2A',
-                    color: '#A0A0A0',
-                    borderRadius: 99,
-                    padding: '3px 8px',
-                  }}
+                  <span
+                    className="lp-feature-cta"
+                    style={{
+                      display: 'inline-block',
+                      marginTop: 14,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: card.iconColor,
+                    }}
                   >
-                    Coming Soon
+                    Try it free &rarr;
                   </span>
-                </div>
-                {[
-                  { label: 'LinkedIn UAE', pct: 70, fill: '#14B8A6' },
-                  { label: 'Bayt.com', pct: 55, fill: '#F59E0B' },
-                ].map((row) => (
-                  <div key={row.label} style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 11, color: '#A0A0A0' }}>
-                      <span>{row.label}</span>
-                      <span>{row.pct}%</span>
-                    </div>
-                    <div style={{ height: 4, borderRadius: 99, background: '#2A2A2A', overflow: 'hidden' }}>
-                      <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: 99, background: row.fill }} />
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="lp-feature-cta"
-                  onClick={() => onSignup && onSignup()}
-                  style={{
-                    marginTop: '6px',
-                    padding: 0,
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#14B8A6',
-                  }}
-                >
-                  Start for free →
                 </button>
-              </div>
+              ))}
             </div>
           </div>
         </section>
@@ -1420,7 +1437,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             See what your CV will look like
           </h2>
           <p className="lp-section-sub">
-            14 ATS-friendly designs. Tap to preview.
+            Professionally designed, ATS-friendly layouts. Tap to preview.
           </p>
           <LandingTemplateMarquee />
           <div style={{ paddingLeft: 24, paddingRight: 24, marginTop: 16 }}>
@@ -1436,7 +1453,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
-              Browse all templates →
+              Browse all templates &rarr;
             </Link>
           </div>
         </section>
@@ -1485,7 +1502,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </section>
 
-        {/* ── HOW IT WORKS (S5) ───────────────────────────────────── */}
+        {/* ── HOW IT WORKS ───────────────────────────────────────── */}
         <HowItWorks />
 
         {/* ── WALK-IN BAND ────────────────────────────────────────── */}
@@ -1502,9 +1519,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             className="lp-walkin-inner"
             style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', gap: '60px', alignItems: 'center' }}
           >
-            {/* Left — text + CTA */}
             <div style={{ flex: 1 }}>
-              {/* Urgency badge */}
               <div style={{
                 display:      'inline-flex',
                 alignItems:   'center',
@@ -1534,7 +1549,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 Share it instantly on WhatsApp.
               </p>
 
-              {/* Checkmarks */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                 {[
                   'ATS-optimised in one click',
@@ -1551,7 +1565,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <button
                 type="button"
                 className="lp-btn"
-                onClick={() => onWalkIn && onWalkIn()}
+                onClick={() => navigate('/walkin')}
                 style={{
                   background:   T.btnPrimary,
                   color:        T.btnPrimaryTxt,
@@ -1566,12 +1580,11 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   fontFamily:   'inherit',
                 }}
               >
-                Build walk-in CV →
+                Build walk-in CV &rarr;
               </button>
               <p style={{ fontSize: '12px', color: T.textSecondary }}>No signup needed</p>
             </div>
 
-            {/* Right — form mockup card (hidden on mobile) */}
             <div className="lp-walkin-right" style={{ flex: '0 0 340px' }}>
               <div style={{
                 background:   T.bgSurface,
@@ -1601,6 +1614,8 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button
+                    type="button"
+                    onClick={() => navigate('/walkin')}
                     style={{
                       flex:         1,
                       background:   T.btnPrimary,
@@ -1617,6 +1632,8 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                     Download PDF
                   </button>
                   <button
+                    type="button"
+                    onClick={() => navigate('/walkin')}
                     style={{
                       flex:         1,
                       background:   '#25D366',
@@ -1653,7 +1670,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <p className="lp-micro-disclaimer">{geo.microDisclaimer}</p>
         </section>
 
-        {/* ── FINAL CTA (pricing / signup anchor) ─────────────────── */}
+        {/* ── FINAL CTA ───────────────────────────────────────────── */}
         <section id="lp-pricing" className="lp-sec" style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
           <h2 style={{
             fontSize:     'clamp(26px, 4vw, 44px)',
@@ -1671,7 +1688,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <button
             type="button"
             className="lp-btn"
-            onClick={() => onSignup && onSignup()}
+            onClick={() => navigate('/signup')}
             style={{
               background:   T.btnPrimary,
               color:        T.btnPrimaryTxt,
@@ -1701,6 +1718,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </p>
         </footer>
 
+        {/* ── FAQ (Task 7) ───────────────────────────────────────── */}
         <section id="faq" className="lp-faq-section" aria-labelledby="lp-faq-heading">
           <h2 id="lp-faq-heading" className="lp-faq-heading">
             Questions people actually ask
@@ -1708,15 +1726,24 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           {FAQ_ITEMS.map((item, i) => {
             const open = faqOpenIndex === i;
             return (
-              <div key={item.q} className="lp-faq-item">
+              <div key={item.q} className="lp-faq-item" style={{ background: isDark ? '#0A0A0A' : '#F5F5F0' }}>
                 <button
                   type="button"
                   className="lp-faq-q"
                   aria-expanded={open}
                   onClick={() => setFaqOpenIndex((prev) => (prev === i ? null : i))}
                 >
-                  <span className="lp-faq-q-text">{item.q}</span>
-                  <FaqChevronIcon open={open} />
+                  <span className="lp-faq-q-text" style={{ color: T.textPrimary }}>{item.q}</span>
+                  <span style={{
+                    width: 24, height: 24, borderRadius: '50%',
+                    background: isDark ? '#1C1C1C' : '#E0E0E0',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 16, color: T.textSecondary, flexShrink: 0,
+                    transition: 'transform 200ms cubic-bezier(0.4,0,0.2,1)',
+                    transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+                  }}>
+                    +
+                  </span>
                 </button>
                 <div
                   style={{
@@ -1726,13 +1753,14 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                     transition: 'max-height 300ms cubic-bezier(0.4,0,0.2,1), opacity 300ms cubic-bezier(0.4,0,0.2,1)',
                   }}
                 >
-                  <p className="lp-faq-a">{item.a}</p>
+                  <p className="lp-faq-a" style={{ color: T.textSecondary }}>{item.a}</p>
                 </div>
               </div>
             );
           })}
         </section>
 
+        {/* ── FOOTER (Task 8) ────────────────────────────────────── */}
         <footer className="lp-site-footer" role="contentinfo">
           <div className="lp-site-footer-inner">
             <div className="lp-site-footer-row1">
@@ -1745,14 +1773,13 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   <p className="lp-site-footer-col-h">Product</p>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=templates')}>Templates</span>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=ats')}>ATS Score</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=cover-letter')}>Cover Letter</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/walk-in')}>Walk-In Mode</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/cover-letter')}>Cover Letter</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/walkin')}>Walk-In Mode</span>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Legal</p>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/terms')}>Terms of Service</span>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/privacy')}>Privacy Policy</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => window.alert('Cookie settings coming soon.')}>Cookie Policy</span>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Support</p>
@@ -1761,13 +1788,21 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 </div>
               </nav>
             </div>
+            {/* Trust row */}
+            <div className="lp-footer-trust">
+              <span>Ziina</span>
+              <span>&middot;</span>
+              <span>Visa</span>
+              <span>&middot;</span>
+              <span>Mastercard</span>
+              <span>&middot;</span>
+              <span>Supabase</span>
+              <span>&middot;</span>
+              <span>Operated by JMK, Dubai UAE</span>
+            </div>
             <div className="lp-site-footer-row2">
-              <p>
-                © 2026 CVPassport. All rights reserved.
-                <br />
-                Operated by JMK, Dubai, UAE.
-              </p>
-              <p>Payments by Ziina · Infrastructure by Supabase</p>
+              <p>&copy; 2026 CVPassport. All rights reserved.</p>
+              <p>Payments by Ziina &middot; Infrastructure by Supabase</p>
             </div>
           </div>
         </footer>
