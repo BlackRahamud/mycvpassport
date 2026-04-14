@@ -162,6 +162,7 @@ const LP_TEMPLATE_STRIP = [
   { name: 'Gulf Pro', tier: 'POPULAR', template: TEMPLATES[4] },
   { name: 'Tech Pro', tier: 'PREMIUM', template: TEMPLATES[10] },
   { name: 'Executive', tier: 'PREMIUM', template: TEMPLATES[3] },
+  { name: 'Modern', tier: 'FREE', template: TEMPLATES[1] },
 ];
 
 const FAQ_ITEMS = [
@@ -815,6 +816,42 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         }
         .lp-templates-viewport:active { cursor: grabbing; }
         .lp-templates-track { display: flex; gap: 16px; width: max-content; padding-bottom: 16px; }
+
+        .lp-templates-mobile-only { display: block; }
+        .lp-templates-desktop-only { display: none; }
+        @media (min-width: 1024px) {
+          .lp-templates-mobile-only { display: none; }
+          .lp-templates-desktop-only { display: block; text-align: center; padding: 0 24px; }
+          .lp-sec.lp-templates { padding: 48px 24px; text-align: center; }
+          .lp-templates-desktop-grid {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+          }
+          .lp-templates-desktop-card {
+            position: relative;
+            min-width: 220px;
+            flex-shrink: 0;
+          }
+          .lp-templates-desktop-card .lp-cv-thumb-scale-outer {
+            width: 220px;
+            height: 300px;
+            border-radius: 12px;
+          }
+          .lp-templates-desktop-card-frost {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.85) 60%, rgba(255,255,255,0.96) 100%);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            border-radius: 0 0 12px 12px;
+            pointer-events: none;
+            z-index: 3;
+          }
+        }
         .lp-hero-cycle-word {
           display: inline-block;
           margin: 0 0.12em;
@@ -915,6 +952,23 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
         .lp-feature-cta { transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .lp-feature-cta:hover { opacity: 0.85; }
+
+        @keyframes lp-hero-beam {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
+        }
+        .lp-hero-primary-cta::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 40%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+          animation: lp-hero-beam 3s ease-in-out infinite;
+          pointer-events: none;
+          z-index: 1;
+        }
       `}</style>
 
       <div
@@ -1030,7 +1084,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <button
                   type="button"
                   className="lp-ghost-btn"
-                  onClick={() => navigate('/login')}
+                  onClick={onLogin}
                   style={{
                     background:   'transparent',
                     border:       `1px solid ${T.btnGhostBorder}`,
@@ -1048,7 +1102,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <button
                   type="button"
                   className="lp-btn"
-                  onClick={() => navigate('/signup')}
+                  onClick={onSignup}
                   style={{
                     background:   T.btnPrimary,
                     border:       'none',
@@ -1171,7 +1225,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               ) : (
                 <>
                   <button
-                    onClick={() => { closeMobileMenu(); navigate('/login'); }}
+                    onClick={() => { closeMobileMenu(); onLogin(); }}
                     style={{
                       background: 'none',
                       border: `1px solid ${T.border}`,
@@ -1188,7 +1242,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                     Sign In
                   </button>
                   <button
-                    onClick={() => { closeMobileMenu(); navigate('/signup'); }}
+                    onClick={() => { closeMobileMenu(); onSignup(); }}
                     style={{
                       background: T.btnPrimary,
                       border: 'none',
@@ -1282,9 +1336,11 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <div className="lp-hero-ctas" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
                 <button
                   type="button"
-                  className="lp-btn"
-                  onClick={() => navigate('/signup')}
+                  className="lp-btn lp-hero-primary-cta"
+                  onClick={onSignup}
                   style={{
+                    position:     'relative',
+                    overflow:     'hidden',
                     background:   isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
                     color:        T.textPrimary,
                     border:       `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
@@ -1439,8 +1495,45 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <p className="lp-section-sub">
             Professionally designed, ATS-friendly layouts. Tap to preview.
           </p>
-          <LandingTemplateMarquee />
-          <div style={{ paddingLeft: 24, paddingRight: 24, marginTop: 16 }}>
+
+          {/* Mobile: scrolling marquee */}
+          <div className="lp-templates-mobile-only">
+            <LandingTemplateMarquee />
+          </div>
+
+          {/* Desktop: static row of 5 */}
+          <div className="lp-templates-desktop-only">
+            <div className="lp-templates-desktop-grid">
+              {LP_TEMPLATE_STRIP.slice(0, 5).map((t) => (
+                <div key={t.name} className="lp-templates-desktop-card">
+                  <LandingTemplateThumb template={t.template} />
+                  <div className="lp-templates-desktop-card-frost" />
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/builder?tab=templates')}
+              style={{
+                display: 'inline-block',
+                marginTop: 24,
+                background: 'none',
+                border: 'none',
+                fontSize: 14,
+                fontWeight: 600,
+                color: T.textPrimary,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                borderBottom: `1px solid ${T.border}`,
+                padding: 0,
+              }}
+            >
+              Explore Gulf-ready templates &rarr;
+            </button>
+          </div>
+
+          {/* Mobile CTA */}
+          <div className="lp-templates-mobile-only" style={{ paddingLeft: 24, paddingRight: 24, marginTop: 16 }}>
             <Link
               to="/templates"
               onClick={() => window.scrollTo(0, 0)}
@@ -1688,7 +1781,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <button
             type="button"
             className="lp-btn"
-            onClick={() => navigate('/signup')}
+            onClick={onSignup}
             style={{
               background:   T.btnPrimary,
               color:        T.btnPrimaryTxt,

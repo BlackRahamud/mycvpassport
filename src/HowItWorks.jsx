@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 /* ─── Profile data for rotating CV ─────────────────────────────────── */
 const CV_PROFILES = [
@@ -981,6 +982,7 @@ const STEPS = [
 
 /* ─── Main Section ───────────────────────────────────────────────────── */
 export default function HowItWorks() {
+  const navigate = useNavigate();
   const sectionRef = useRef(null);
   const [visible, setVisible] = useState(false);
 
@@ -1042,33 +1044,38 @@ export default function HowItWorks() {
           .hiw-desktop-layout::before {
             content: '';
             position: absolute;
-            left: 32px;
+            left: 23px;
             top: 0;
             bottom: 0;
-            width: 1px;
-            background: linear-gradient(to bottom, transparent, #2A2A2A 10%, #2A2A2A 90%, transparent);
+            width: 2px;
+            background: linear-gradient(to bottom, #D97706, #1D9E75);
           }
           .hiw-step-row {
             display: grid;
-            grid-template-columns: 72px 1fr;
+            grid-template-columns: 56px 1fr;
             gap: 48px;
             align-items: start;
           }
           .hiw-step-number {
-            width: 64px;
-            height: 64px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background: #141414;
-            border: 1px solid #2A2A2A;
+            background: #111;
+            border: 1.5px solid #2A2A2A;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 800;
             color: #A0A0A0;
             font-family: system-ui, monospace;
             position: relative;
             z-index: 2;
+          }
+          .hiw-step-row:first-child .hiw-step-number {
+            border-color: #D97706;
+            color: #D97706;
+            box-shadow: 0 0 12px rgba(217,119,6,0.3);
           }
           .hiw-step-body {
             display: grid;
@@ -1274,6 +1281,8 @@ export default function HowItWorks() {
       {/* Bottom CTA */}
       <div style={{ textAlign: "center", marginTop: 72 }}>
         <button
+          type="button"
+          onClick={() => navigate('/auth')}
           style={{
             background: "#34C97A",
             color: "#0A0A0A",

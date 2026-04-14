@@ -4,10 +4,7 @@ export const useGeoContent = () => {
   return useMemo(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
 
-    const isIndia =
-      tz.includes('Kolkata') ||
-      tz.includes('Calcutta') ||
-      tz.includes('Asia/Kolkata')
+    const isIndia = tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta'
 
     if (isIndia) {
       return {
