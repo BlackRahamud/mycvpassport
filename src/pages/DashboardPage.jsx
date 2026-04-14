@@ -159,7 +159,7 @@ export default function DashboardPage({
   const [cancelStep, setCancelStep] = useState(0);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
-
+  const [mobileTab, setMobileTab] = useState("mycvs");
 
   useEffect(() => { ensureKeyframes(); }, []);
   useEffect(() => { if (newCvChoiceOpen) setShowTease(false); }, [newCvChoiceOpen]);
@@ -200,6 +200,14 @@ export default function DashboardPage({
     { id: "templates", label: "Templates", icon: IconTable, iconColor: "#378ADD", action: () => { setActive("templates"); onTemplates(); } },
   ];
 
+  /* ─── Mobile tabs ─── */
+  const mobileTabs = [
+    { id: "mycvs", label: "My CVs", icon: IconGrid, action: () => setMobileTab("mycvs") },
+    { id: "ats", label: "ATS Check", icon: IconTarget, action: () => { setMobileTab("ats"); onRunATS(); } },
+    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, action: () => { setMobileTab("coverletter"); navigate("/cover-letter"); } },
+    { id: "walkin", label: "Walk-In", icon: IconBolt, action: () => { setMobileTab("walkin"); onWalkIn(); } },
+    { id: "templates", label: "Templates", icon: IconTable, action: () => { setMobileTab("templates"); onTemplates(); } },
+  ];
 
   const lastResume = resumeList[0];
   const lastTitle = lastResume?.title || lastResume?.cv_data?.name || lastResume?.name || null;
@@ -256,7 +264,7 @@ export default function DashboardPage({
 
         {/* ═══ SIDEBAR ═══ */}
         <aside
-          className="cvp2-sidebar"
+          className="cvp2-sidebar cvp-sidebar"
           style={{
             position: "fixed",
             top: 0,
@@ -408,7 +416,7 @@ export default function DashboardPage({
         </aside>
 
         {/* ═══ MAIN CONTENT ═══ */}
-        <main className="cvp2-main" style={{ marginLeft: "var(--sb-width)", minHeight: "100vh", boxSizing: "border-box", padding: "24px 28px", background: "#0A0A0A", display: "flex", flexDirection: "column" }}>
+        <main className="cvp2-main cvp-main" style={{ marginLeft: "var(--sb-width)", minHeight: "100vh", boxSizing: "border-box", padding: "24px 28px", background: "#0A0A0A", display: "flex", flexDirection: "column" }}>
 
           {/* Mobile top bar */}
           <div
@@ -464,7 +472,7 @@ export default function DashboardPage({
           </div>
 
           {/* ═══ STATS STRIP ═══ */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8, marginBottom: 16, marginTop: 16 }}>
+          <div className="cvp-stats-strip" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8, marginBottom: 16, marginTop: 16 }}>
             {/* Card 1 — ATS Score */}
             <div className="cvp2-stats-card" style={{
               background: "#111", border: "0.5px solid #1a1a1a",
@@ -546,7 +554,7 @@ export default function DashboardPage({
           {/* ═══ RETURNING USER — two-col + templates ═══ */}
           {resumeList.length > 0 ? (
             <>
-              <div className="cvp2-two-col" style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+              <div className="cvp2-two-col cvp-two-col" style={{ display: "grid", gap: 10, marginBottom: 18 }}>
 
                 {/* LEFT — MY CVS */}
                 <div className="cvp2-card" style={{ background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10, padding: 20 }}>
@@ -700,7 +708,7 @@ export default function DashboardPage({
             <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 60, textAlign: "center" }}>
               <div style={{ maxWidth: 480, width: "100%" }}>
                 <div style={{ fontSize: 11, color: "#333", marginBottom: 8 }}>Welcome to CVPassport</div>
-                <div className="cvp2-hero-heading" style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 12 }}>
+                <div className="cvp2-hero-heading cvp-welcome-heading" style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 12 }}>
                   Your Gulf CV starts here.
                 </div>
                 <div className="cvp2-hero-sub" style={{ fontSize: 15, color: "#444", lineHeight: 1.7, marginBottom: 32, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
@@ -708,7 +716,7 @@ export default function DashboardPage({
                 </div>
                 <button
                   type="button"
-                  className="cvp2-start-btn"
+                  className="cvp2-start-btn cvp-start-btn"
                   onClick={() => setNewCvChoiceOpen(true)}
                   style={{
                     maxWidth: 480, width: "100%", background: "#fff", color: "#000", border: "none",
@@ -780,6 +788,41 @@ export default function DashboardPage({
 
           <FAB tabKey={fabRouteTab} />
         </main>
+
+      {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
+      <div
+        className="cvp-tab-bar"
+        style={{
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          height: 58, background: "#0e0e0e",
+          borderTop: "0.5px solid #1a1a1a",
+          alignItems: "center", justifyContent: "space-around",
+          zIndex: 200, boxSizing: "border-box",
+        }}
+      >
+        {mobileTabs.map((t) => {
+          const isAct = mobileTab === t.id;
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={t.action}
+              style={{
+                background: "transparent", border: "none",
+                minHeight: 44, minWidth: 44,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 3, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <span style={{ display: "flex", color: isAct ? "#FFB300" : "#333", width: 20, height: 20 }}>
+                <Icon size={20} />
+              </span>
+              <span style={{ fontSize: 10, color: isAct ? "#FFB300" : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ═══ NEW CV CHOICE MODAL ═══ */}
       {newCvChoiceOpen && (

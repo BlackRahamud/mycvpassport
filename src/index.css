@@ -1610,3 +1610,37 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     animation: none !important;
   }
 }
+
+/* === MOBILE DASHBOARD === */
+@media (max-width: 1023px) {
+  .cvp-sidebar {
+    display: none !important;
+  }
+  .cvp-main {
+    margin-left: 0 !important;
+    padding: 16px 16px 80px !important;
+  }
+  .cvp-tab-bar {
+    display: flex !important;
+  }
+  .cvp-stats-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+  .cvp-two-col {
+    grid-template-columns: 1fr !important;
+  }
+  .cvp-welcome-heading {
+    font-size: 28px !important;
+  }
+  .cvp-start-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cvp-tab-bar {
+    display: none !important;
+  }
+}
