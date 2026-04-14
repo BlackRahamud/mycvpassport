@@ -1,82 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-/* ─── Profile data for rotating CV ─────────────────────────────────── */
-const CV_PROFILES = [
-  {
-    name: "Ahmed Al Mansouri",
-    role: "Senior Operations Manager",
-    company: "Emirates NBD",
-    location: "Dubai, UAE",
-    email: "ahmed@email.com",
-    phone: "+971 50 000 0000",
-    summary:
-      "Results-driven operations leader with 12+ years in banking and financial services across the GCC.",
-    exp: [
-      {
-        role: "Senior Operations Manager",
-        company: "Emirates NBD",
-        period: "2018 – Present",
-        points: [
-          "Led cross-functional team of 45+",
-          "Reduced processing time by 34%",
-        ],
-      },
-    ],
-    skills: ["Operations", "Risk Management", "Lean Six Sigma", "Arabic / English"],
-  },
-  {
-    name: "Priya Sharma",
-    role: "Marketing Manager",
-    company: "Noon.com",
-    location: "Dubai, UAE",
-    email: "priya@email.com",
-    phone: "+971 55 123 4567",
-    summary:
-      "Performance marketer with 8+ years driving growth for e-commerce and FMCG brands across India and GCC.",
-    exp: [
-      {
-        role: "Marketing Manager",
-        company: "Noon.com",
-        period: "2020 – Present",
-        points: [
-          "Grew organic traffic 120% YoY",
-          "Managed AED 4M annual ad spend",
-        ],
-      },
-    ],
-    skills: ["SEO/SEM", "Growth Marketing", "Google Analytics", "Hindi / English"],
-  },
-  {
-    name: "Mohammed Al Rashidi",
-    role: "Finance Analyst",
-    company: "Dubai Islamic Bank",
-    location: "Dubai, UAE",
-    email: "mohammed@email.com",
-    phone: "+971 52 987 6543",
-    summary:
-      "Detail-oriented finance analyst specialising in Islamic banking products and regulatory compliance.",
-    exp: [
-      {
-        role: "Finance Analyst",
-        company: "Dubai Islamic Bank",
-        period: "2019 – Present",
-        points: [
-          "Built financial models for AED 500M portfolio",
-          "Achieved 99.7% reporting accuracy",
-        ],
-      },
-    ],
-    skills: ["Financial Modelling", "Islamic Finance", "SAP", "Arabic / English"],
-  },
-];
-
-const TEMPLATE_CHIPS = [
-  { color: "#1A3A5C", label: "Classic" },
-  { color: "#1D9E75", label: "Gulf Pro", active: true },
-  { color: "#4A1B0C", label: "Executive" },
-  { color: "#26215C", label: "Tech" },
-];
+/* ─── (CV_PROFILES and TEMPLATE_CHIPS removed — Step01Phone now uses static data + FAB animation) ─── */
 
 /* ─── Phone Shell ─────────────────────────────────────────────────── */
 function PhoneShell({ children, glow }) {
@@ -193,26 +118,86 @@ function PhoneShell({ children, glow }) {
   );
 }
 
-/* ─── Step 01: Template chooser with rotating profiles ─────────────── */
+/* ─── Step 01: Static CV + FAB guide animation ──────────────────────── */
 function Step01Phone() {
-  const [profileIndex, setProfileIndex] = useState(0);
-  const [opacity, setOpacity] = useState(1);
+  const [fabPhase, setFabPhase] = useState(0);
+  const [typedText, setTypedText] = useState("");
+  const timersRef = useRef([]);
+  const intervalRef = useRef(null);
+
+  const FULL_NAME = "Ahmed Al Mansouri";
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setOpacity(0);
-      setTimeout(() => {
-        setProfileIndex((i) => (i + 1) % CV_PROFILES.length);
-        setOpacity(1);
-      }, 400);
-    }, 4000);
-    return () => clearInterval(id);
-  }, []);
+    const clearAll = () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
 
-  const p = CV_PROFILES[profileIndex];
+    const addTimer = (fn, ms) => {
+      const id = setTimeout(fn, ms);
+      timersRef.current.push(id);
+      return id;
+    };
+
+    clearAll();
+    setTypedText("");
+
+    // Phase 0: FAB bouncing (0–2500ms)
+    addTimer(() => setFabPhase(1), 2500);
+
+    // Phase 1: Sheet slides up (2500ms), wait 500ms then type
+    addTimer(() => {
+      setFabPhase(2);
+      let charIndex = 0;
+      intervalRef.current = setInterval(() => {
+        charIndex++;
+        if (charIndex <= FULL_NAME.length) {
+          setTypedText(FULL_NAME.slice(0, charIndex));
+        } else {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }, 60);
+    }, 3000);
+
+    // Phase 3: Typing done, pause
+    addTimer(() => setFabPhase(3), 4200);
+
+    // Phase 4: Sheet slides down
+    addTimer(() => setFabPhase(4), 5500);
+
+    // Reset: loop
+    addTimer(() => {
+      setFabPhase(0);
+      setTypedText("");
+    }, 7000);
+
+    return clearAll;
+  }, [fabPhase === 0 ? fabPhase : undefined]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sheetVisible = fabPhase >= 1 && fabPhase <= 3;
+  const overlayVisible = fabPhase >= 1 && fabPhase <= 3;
 
   return (
     <PhoneShell>
+      <style>{`
+        @keyframes hiw-fab-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        @keyframes hiw-fab-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(217,119,6,0.4); }
+          100% { box-shadow: 0 0 0 10px rgba(217,119,6,0); }
+        }
+        @keyframes hiw-cursor-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
       <div
         style={{
           position: "absolute",
@@ -220,11 +205,9 @@ function Step01Phone() {
           display: "flex",
           flexDirection: "column",
           background: "#fff",
-          transition: "opacity 0.4s cubic-bezier(0.4,0,0.2,1)",
-          opacity,
         }}
       >
-        {/* CV Document */}
+        {/* Static CV — Ahmed Al Mansouri */}
         <div
           style={{
             flex: 1,
@@ -237,7 +220,7 @@ function Step01Phone() {
           {/* Header Band */}
           <div
             style={{
-              background: "#BAE6FD",
+              background: "#1A3A5C",
               padding: "8px 10px 7px",
               marginBottom: 8,
               borderRadius: 3,
@@ -247,113 +230,96 @@ function Step01Phone() {
               style={{
                 fontSize: 10.5,
                 fontWeight: 700,
-                color: "#0A0A0A",
+                color: "#fff",
                 letterSpacing: 0.3,
                 lineHeight: 1.2,
               }}
             >
-              {p.name}
+              Ahmed Al Mansouri
             </div>
             <div
               style={{
                 fontSize: 6.5,
-                color: "#0A0A0A",
+                color: "rgba(255,255,255,0.8)",
                 marginTop: 1.5,
                 letterSpacing: 0.5,
               }}
             >
-              {p.role} &middot; {p.company}
+              Senior Operations Manager &middot; Emirates NBD
             </div>
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-              {[p.location, p.email, p.phone].map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 5,
-                    color: "#0A0A0A",
-                    background: "#93C5FD",
-                    padding: "1.5px 4px",
-                    borderRadius: 2,
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
+              {["Dubai, UAE", "ahmed@email.com", "+971 50 000 0000"].map(
+                (t) => (
+                  <span
+                    key={t}
+                    style={{
+                      fontSize: 5,
+                      color: "#fff",
+                      background: "rgba(255,255,255,0.15)",
+                      padding: "1.5px 4px",
+                      borderRadius: 2,
+                    }}
+                  >
+                    {t}
+                  </span>
+                )
+              )}
             </div>
           </div>
 
-          {/* Summary */}
+          {/* Professional Summary — grey bars */}
           <SectionBlock label="Professional Summary" accent="#c9a84c">
-            <p
-              style={{
-                fontSize: 5.5,
-                color: "#444",
-                lineHeight: 1.6,
-                margin: 0,
-              }}
-            >
-              {p.summary}
-            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <div
+                style={{
+                  height: 4,
+                  background: "#e0e0e0",
+                  borderRadius: 2,
+                  width: "100%",
+                }}
+              />
+              <div
+                style={{
+                  height: 4,
+                  background: "#e0e0e0",
+                  borderRadius: 2,
+                  width: "75%",
+                }}
+              />
+            </div>
           </SectionBlock>
 
-          {/* Experience */}
+          {/* Experience — role + bullet bars */}
           <SectionBlock label="Experience" accent="#c9a84c">
-            {p.exp.map((e, i) => (
-              <div key={i} style={{ marginBottom: 5 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 5.5,
-                        fontWeight: 700,
-                        color: "#222",
-                      }}
-                    >
-                      {e.role}
-                    </div>
-                    <div style={{ fontSize: 5, color: "#777" }}>
-                      {e.company}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 4.5,
-                      color: "#aaa",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {e.period}
-                  </div>
-                </div>
-                <ul style={{ margin: "2px 0 0 8px", padding: 0 }}>
-                  {e.points.map((pt, j) => (
-                    <li
-                      key={j}
-                      style={{
-                        fontSize: 5,
-                        color: "#555",
-                        marginBottom: 1,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div
+              style={{ fontSize: 5.5, fontWeight: 700, color: "#222", marginBottom: 3 }}
+            >
+              Senior Operations Manager
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2.5, marginLeft: 6 }}>
+              <div
+                style={{
+                  height: 3.5,
+                  background: "#e8e8e8",
+                  borderRadius: 2,
+                  width: "90%",
+                }}
+              />
+              <div
+                style={{
+                  height: 3.5,
+                  background: "#e8e8e8",
+                  borderRadius: 2,
+                  width: "70%",
+                }}
+              />
+            </div>
           </SectionBlock>
 
-          {/* Skills */}
+          {/* Key Skills — 3 chips */}
           <SectionBlock label="Key Skills" accent="#c9a84c">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-              {p.skills.map((s) => (
+              {["Operations", "Risk Management", "Lean Six Sigma"].map((s) => (
                 <span
                   key={s}
                   style={{
@@ -371,81 +337,191 @@ function Step01Phone() {
             </div>
           </SectionBlock>
         </div>
+      </div>
 
-        {/* Template Switcher Strip */}
+      {/* Dark overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(0,0,0,0.6)",
+          opacity: overlayVisible ? 1 : 0,
+          transition: "opacity 0.3s ease",
+          pointerEvents: "none",
+          zIndex: 5,
+        }}
+      />
+
+      {/* FAB Button */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: sheetVisible ? 76 : 16,
+          right: 16,
+          zIndex: 8,
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          background: "#D97706",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          animation:
+            fabPhase === 0
+              ? "hiw-fab-bounce 1.5s ease-in-out infinite, hiw-fab-pulse 2s infinite"
+              : "none",
+          transition: "bottom 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+          boxShadow:
+            fabPhase === 0
+              ? undefined
+              : "0 4px 12px rgba(0,0,0,0.3)",
+        }}
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      </div>
+
+      {/* Bottom Sheet */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "65%",
+          background: "#141414",
+          borderRadius: "20px 20px 0 0",
+          zIndex: 7,
+          transform: sheetVisible ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "0 16px 16px",
+        }}
+      >
+        {/* Drag handle */}
         <div
           style={{
-            height: 44,
-            background: "#0f0f0f",
-            borderTop: "1px solid #1e1e1e",
             display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "0 10px",
+            justifyContent: "center",
+            padding: "12px 0 16px",
           }}
         >
-          <span
-            style={{
-              fontSize: 5,
-              color: "#555",
-              marginRight: 2,
-              letterSpacing: 0.5,
-              textTransform: "uppercase",
-            }}
-          >
-            Templates
-          </span>
-          {TEMPLATE_CHIPS.map((t) => (
-            <div
-              key={t.label}
-              style={{
-                width: t.active ? 30 : 24,
-                height: t.active ? 38 : 32,
-                borderRadius: 4,
-                background: t.color,
-                border: t.active
-                  ? "1.5px solid #34C97A"
-                  : "1px solid #2a2a2a",
-                boxShadow: t.active
-                  ? "0 0 8px rgba(52,201,122,0.4)"
-                  : "none",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: 3,
-                  left: 2,
-                  right: 2,
-                  height: 1.5,
-                  background: "rgba(255,255,255,0.2)",
-                  borderRadius: 1,
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  left: 2,
-                  right: 4,
-                  height: 1,
-                  background: "rgba(255,255,255,0.1)",
-                  borderRadius: 1,
-                }}
-              />
-            </div>
-          ))}
           <div
             style={{
-              marginLeft: "auto",
-              fontSize: 5,
-              color: "#34C97A",
-              letterSpacing: 0.3,
+              width: 36,
+              height: 4,
+              background: "#2A2A2A",
+              borderRadius: 2,
+            }}
+          />
+        </div>
+
+        {/* Step label */}
+        <div
+          style={{
+            fontSize: 9,
+            color: "#D97706",
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+            fontWeight: 700,
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          STEP 1 OF 11 &mdash;&mdash;
+        </div>
+
+        {/* Question */}
+        <div
+          style={{
+            fontSize: 14,
+            color: "#fff",
+            fontWeight: 600,
+            marginTop: 8,
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          What&rsquo;s your full name?
+        </div>
+
+        {/* Input field */}
+        <div style={{ marginTop: 16, position: "relative" }}>
+          <div
+            style={{
+              background: "#1C1C1C",
+              border: "1.5px solid #D97706",
+              borderRadius: 8,
+              padding: "10px 44px 10px 12px",
+              width: "100%",
+              boxSizing: "border-box",
+              minHeight: 38,
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            More &rsaquo;
+            <span
+              style={{
+                fontSize: 11,
+                color: typedText ? "#e8e8e8" : "#555",
+                fontFamily: "system-ui, sans-serif",
+              }}
+            >
+              {typedText || "Type here..."}
+            </span>
+            {fabPhase >= 2 && fabPhase <= 3 && (
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 1,
+                  height: 12,
+                  background: "#D97706",
+                  marginLeft: 1,
+                  animation: "hiw-cursor-blink 1s steps(1) infinite",
+                }}
+              />
+            )}
+          </div>
+          {/* Send button */}
+          <div
+            style={{
+              position: "absolute",
+              right: 4,
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: "#D97706",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#fff"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
           </div>
         </div>
       </div>
