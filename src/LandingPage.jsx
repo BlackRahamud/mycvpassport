@@ -250,9 +250,9 @@ const FEATURE_CARDS = [
     eyebrow: 'WALK-IN MODE',
     title: '60-second CV for walk-in interviews',
     desc: '6 fields, instant PDF, WhatsApp-ready. Built for hospitality, retail, and logistics roles.',
-    iconColor: '#EF4444',
+    iconColor: '#D85A30',
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D85A30" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>
         <polyline points="12 6 12 12 16 14"/>
       </svg>

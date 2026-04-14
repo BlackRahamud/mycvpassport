@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FAB } from "./components/FAB";
 import { writeFabMemory } from "./components/FAB/FABLogic";
 import { getPaymentLink } from "./utils/paywall";
-import { ReactComponent as FalconLogo } from "./logo.svg";
+import CVPassportLogo from "./components/CVPassportLogo";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
@@ -167,6 +167,20 @@ function ensureKeyframes() {
   0% { box-shadow: 0 0 0 0 rgba(217,119,6,0.35); border-color: #D97706; }
   70% { box-shadow: 0 0 0 8px rgba(217,119,6,0); border-color: #1a1a1a; }
   100% { box-shadow: 0 0 0 0 rgba(217,119,6,0); border-color: #1a1a1a; }
+}
+@keyframes cvp-pulse-manage {
+  0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.1); }
+  70% { box-shadow: 0 0 0 4px rgba(255,255,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+@keyframes cvp-beam-manage {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes cvp-pulse-feedback {
+  0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.08); }
+  70% { box-shadow: 0 0 0 5px rgba(255,255,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
 }`;
   document.head.appendChild(style);
 }
@@ -305,7 +319,7 @@ export default function Dashboard({
               color: "#fff", textDecoration: "none",
             }}
           >
-            <FalconLogo width={20} height={20} aria-hidden="true" style={{ display: "block", flexShrink: 0 }} />
+            <CVPassportLogo style={{ height: 20, width: "auto" }} />
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "-0.01em" }}>CVPassport</span>
           </Link>
 
@@ -350,17 +364,17 @@ export default function Dashboard({
           {/* Feedback panel */}
           <div style={{
             marginTop: 20,
-            background: "#080808", border: "1px solid #111", borderRadius: 10, padding: 12,
+            background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: 12,
           }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 2 }}>Help us improve</div>
-            <div style={{ fontSize: 10, color: "#2a2a2a", marginBottom: 8 }}>What would make CVPassport better?</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#888", marginBottom: 2 }}>Help us improve</div>
+            <div style={{ fontSize: 10, color: "#444", marginBottom: 8 }}>What would make CVPassport better?</div>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               placeholder="Your thoughts..."
               style={{
-                width: "100%", background: "#0e0e0e", border: "1px solid #161616",
-                borderRadius: 6, padding: "7px 9px", fontSize: 10, color: "#888",
+                width: "100%", background: "#0e0e0e", border: "1px solid #222",
+                borderRadius: 6, padding: "7px 9px", fontSize: 10, color: "#aaa",
                 fontFamily: "inherit", resize: "none", height: 52,
                 boxSizing: "border-box", outline: "none",
               }}
@@ -369,9 +383,10 @@ export default function Dashboard({
               type="button"
               onClick={handleFeedbackSend}
               style={{
-                width: "100%", background: "#141414", border: "1px solid #1a1a1a",
-                color: "#666", borderRadius: 6, padding: 7, fontSize: 10, fontWeight: 600,
+                width: "100%", background: "#141414", border: "1px solid #222",
+                color: "#888", borderRadius: 6, padding: 7, fontSize: 10, fontWeight: 600,
                 cursor: "pointer", marginTop: 6, fontFamily: "inherit",
+                animation: "cvp-pulse-feedback 2.5s ease-in-out infinite",
                 transition: `background 150ms ${EASE}`,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#1a1a1a"; }}
@@ -382,7 +397,12 @@ export default function Dashboard({
               {feedbackSent ? "Sent ✓" : "Send feedback"}
             </button>
             <div style={{ textAlign: "center", marginTop: 8 }}>
-              <a href="mailto:support@mycvpassport.com" style={{ fontSize: 10, color: "#2a2a2a", textDecoration: "none" }}>
+              <a
+                href="mailto:support@mycvpassport.com"
+                style={{ fontSize: 10, color: "#333", textDecoration: "none", transition: `color 150ms ${EASE}` }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#333"; }}
+              >
                 support@mycvpassport.com
               </a>
             </div>
@@ -390,26 +410,60 @@ export default function Dashboard({
 
           {/* Plan section (pushed to bottom) */}
           <div style={{ marginTop: "auto", borderTop: "1px solid #0e0e0e", paddingTop: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 10px" }}>
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 10px",
+              borderLeft: `2px solid ${user?.plan === "Career Pro" ? "#378ADD" : user?.plan === "Active Hunter" ? "#1D9E75" : "#D97706"}`,
+            }}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{user?.plan || "Free"}</div>
-                <div style={{ fontSize: 9, color: isPaid ? "#1D9E75" : "#444", marginTop: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{user?.plan || "Free"}</div>
+                <span style={{
+                  display: "inline-block", fontSize: 9, fontWeight: 700, borderRadius: 20, padding: "2px 8px", marginTop: 2,
+                  ...(user?.plan === "Career Pro"
+                    ? { background: "rgba(55,138,221,0.15)", color: "#378ADD", border: "1px solid rgba(55,138,221,0.3)" }
+                    : user?.plan === "Active Hunter"
+                      ? { background: "rgba(29,158,117,0.15)", color: "#1D9E75", border: "1px solid rgba(29,158,117,0.3)" }
+                      : { background: "rgba(217,119,6,0.15)", color: "#D97706", border: "1px solid rgba(217,119,6,0.3)" }),
+                }}>
                   {isPaid ? `Renews ${user?.renewDate || "—"}` : "Free Plan"}
+                </span>
+              </div>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setPlanModalOpen(true)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setPlanModalOpen(true); }}
+                style={{
+                  position: "relative", overflow: "hidden",
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#fff", borderRadius: 20, padding: "6px 14px",
+                  fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  animation: "cvp-pulse-manage 3s ease-in-out infinite",
+                  transition: `background 150ms ${EASE}`,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+              >
+                <div style={{
+                  position: "absolute", inset: 0, overflow: "hidden", borderRadius: 20, pointerEvents: "none",
+                }}>
+                  <div style={{
+                    position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)",
+                    animation: "cvp-beam-manage 3s ease-in-out infinite",
+                  }} />
+                </div>
+                <span style={{ position: "relative" }}>Manage Plan</span>
+                <div style={{
+                  position: "relative", width: 16, height: 16, borderRadius: "50%",
+                  background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
+                  </svg>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setPlanModalOpen(true)}
-                style={{
-                  fontSize: 10, color: "#333", background: "none", border: "none",
-                  cursor: "pointer", fontFamily: "inherit", padding: 0,
-                  transition: `color 150ms ${EASE}`,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "#333"; }}
-              >
-                Manage →
-              </button>
             </div>
 
             {/* User row */}
@@ -424,8 +478,15 @@ export default function Dashboard({
                 {initials}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#fff" }}>{user?.name || "User"}</div>
-                <div style={{ fontSize: 9, color: isPaid ? "#1D9E75" : "#444" }}>{user?.plan || "Free"}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{user?.name || "User"}</div>
+                <span style={{
+                  display: "inline-block", fontSize: 9, fontWeight: 700, borderRadius: 20, padding: "2px 8px", marginTop: 2,
+                  ...(user?.plan === "Career Pro"
+                    ? { background: "rgba(55,138,221,0.15)", color: "#378ADD", border: "1px solid rgba(55,138,221,0.3)" }
+                    : user?.plan === "Active Hunter"
+                      ? { background: "rgba(29,158,117,0.15)", color: "#1D9E75", border: "1px solid rgba(29,158,117,0.3)" }
+                      : { background: "rgba(217,119,6,0.15)", color: "#D97706", border: "1px solid rgba(217,119,6,0.3)" }),
+                }}>{user?.plan || "Free"}</span>
               </div>
             </div>
           </div>
@@ -437,7 +498,7 @@ export default function Dashboard({
           {/* Mobile top bar */}
           <div className="cvp-dashboard-mobile-topbar">
             <Link to="/" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none", color: "#fff" }}>
-              <FalconLogo width={18} height={18} aria-hidden="true" style={{ display: "block" }} />
+              <CVPassportLogo style={{ height: 18, width: "auto" }} />
               <span style={{ fontSize: 12, fontWeight: 700 }}>CVPassport</span>
             </Link>
             <button
@@ -862,14 +923,15 @@ export default function Dashboard({
             {/* Current plan card */}
             <div style={{
               background: "#141414",
-              border: `1px solid ${isPaid ? "#1D9E75" : "#1a1a1a"}`,
+              border: `1px solid ${isPaid ? "#1D9E75" : "rgba(217,119,6,0.4)"}`,
               borderRadius: 10, padding: "12px 14px", marginBottom: 12,
+              ...(!isPaid ? { boxShadow: "0 0 12px rgba(217,119,6,0.08)" } : {}),
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{user?.plan || "Explorer"}</div>
-              <div style={{ fontSize: 11, color: isPaid ? "#1D9E75" : "#444", marginTop: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: isPaid ? "#fff" : "#D97706" }}>{user?.plan || "Explorer"}</div>
+              <div style={{ fontSize: 11, color: isPaid ? "#1D9E75" : "#555", marginTop: 4 }}>
                 {isPaid
                   ? `AED 29/mo · Renews ${user?.renewDate || "—"} · Unlimited everything`
-                  : "Explorer · Limited features · Upgrade to unlock all"
+                  : "Limited features · Upgrade to unlock all"
                 }
               </div>
             </div>
