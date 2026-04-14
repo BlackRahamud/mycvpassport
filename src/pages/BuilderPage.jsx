@@ -2876,9 +2876,9 @@ function ResumeBuilder({
   const runCoverLetterJourneyStep = useCallback(() => {
     setCvJourney((j) => ({ ...j, coverLetterSeen: true }));
     setBuilderTab("jobmatch");
-    if (hasCoverLetterAccess) setCoverLetterOpen(true);
+    if (hasCoverLetterAccess || fabMode === "guide") setCoverLetterOpen(true);
     else setUpgradeOpen(true);
-  }, [hasCoverLetterAccess]);
+  }, [hasCoverLetterAccess, fabMode]);
 
   const onPostPaymentCoverLetter = useCallback(() => {
     runCoverLetterJourneyStep();

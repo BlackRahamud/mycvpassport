@@ -721,31 +721,34 @@ function CoverLetterPage({ user, profile, onBack }) {
 
           {selectedOption === "saved" && (
             <div style={{ marginTop: 18 }}>
-              <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Your CV</label>
-              <select
-                value={selectedCvId}
-                onChange={(e) => setSelectedCvId(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: 10,
-                  border: "1px solid #2A2A2A",
-                  background: "#0A0A0A",
-                  color: "#FFF",
-                  fontSize: 14,
-                  fontFamily: "'DM Sans',sans-serif",
-                }}
-              >
-                {savedList.length === 0 ? (
-                  <option value="">No saved CVs yet</option>
-                ) : (
-                  savedList.map((r) => (
-                    <option key={r.id} value={String(r.id)}>
-                      {r.title || r?.cv_data?.name || "My CV"}
-                    </option>
-                  ))
-                )}
-              </select>
+              {savedList.length > 1 && (
+                <>
+                  <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Your CV</label>
+                  <select
+                    value={selectedCvId}
+                    onChange={(e) => setSelectedCvId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      borderRadius: 10,
+                      border: "1px solid #2A2A2A",
+                      background: "#0A0A0A",
+                      color: "#FFF",
+                      fontSize: 14,
+                      fontFamily: "'DM Sans',sans-serif",
+                    }}
+                  >
+                    {savedList.map((r) => (
+                      <option key={r.id} value={String(r.id)}>
+                        {r.title || r?.cv_data?.name || "My CV"}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+              {savedList.length === 0 && (
+                <div style={{ color: "#A0A0A0", fontSize: 13 }}>No saved CVs yet</div>
+              )}
             </div>
           )}
 
@@ -851,18 +854,28 @@ function CoverLetterPage({ user, profile, onBack }) {
               </div>
               <div>
                 <label style={clLabelStyle}>Years of experience</label>
-                <select
-                  ref={clRefYears}
-                  value={clYearsOfExperience}
-                  onChange={(e) => setClYearsOfExperience(e.target.value)}
-                  style={{ ...clInputStyle, cursor: "pointer" }}
-                >
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {CL_YEARS_EXPERIENCE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setClYearsOfExperience(opt)}
+                      style={{
+                        background: clYearsOfExperience === opt ? "#D97706" : "#1C1C1C",
+                        color: clYearsOfExperience === opt ? "#000" : "#fff",
+                        fontWeight: clYearsOfExperience === opt ? 700 : 400,
+                        border: clYearsOfExperience === opt ? "none" : "1px solid #333",
+                        borderRadius: 20,
+                        padding: "6px 14px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
                       {opt}
-                    </option>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
               <div>
                 <label style={clLabelStyle}>Role you are applying for</label>

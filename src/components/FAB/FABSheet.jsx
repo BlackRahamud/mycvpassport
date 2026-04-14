@@ -2460,7 +2460,7 @@ export default function FABSheet({
                   backgroundSize: "200% 100%",
                   animation: "fabShimmerBorder 2s linear infinite",
                 }} />
-                Full Pro Pass — AED 25
+                Unlock Everything — AED 29/mo
               </button>
               <button type="button" onClick={advanceGuideStep}
                 style={{
