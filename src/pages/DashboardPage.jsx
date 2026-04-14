@@ -241,15 +241,13 @@ export default function DashboardPage({
     .cvp2-sidebar { display: flex; }
     .cvp2-mobile-topbar { display: none; }
     .cvp2-mobile-tabs { display: none; }
-    .cvp2-wrapper { display: grid; grid-template-columns: 210px 1fr; }
     .cvp2-two-col { grid-template-columns: 1fr 1fr; }
     .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr); }
-    @media (max-width: 768px) {
+    @media (max-width: 1023px) {
       .cvp2-sidebar { display: none !important; }
       .cvp2-mobile-topbar { display: flex !important; }
       .cvp2-mobile-tabs { display: flex !important; }
-      .cvp2-wrapper { display: block !important; }
-      .cvp2-wrapper > main { padding: 20px 16px 80px !important; }
+      .cvp2-main { margin-left: 0 !important; padding: 16px 16px 80px !important; }
       .cvp2-two-col { grid-template-columns: 1fr !important; }
       .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr) !important; }
       .cvp2-greeting { font-size: 22px !important; }
@@ -261,142 +259,152 @@ export default function DashboardPage({
       .cvp2-start-btn-label { font-size: 13px !important; }
       .cvp2-card { padding: 16px !important; }
       .cvp2-cv-item { padding: 10px 0 !important; }
-      .cvp2-mobile-tabs { height: 58px !important; }
       .cvp2-tab-icon { width: 20px !important; height: 20px !important; }
       .cvp2-tab-label { font-size: 10px !important; }
     }
   `;
 
   return (
-    <div style={{ height: "100vh", background: "#0A0A0A", color: "#fff", fontFamily: "'DM Sans', system-ui, -apple-system, Segoe UI, sans-serif" }}>
+    <div style={{ "--sb-width": "196px", background: "#0A0A0A", color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh" }}>
       <style>{responsiveCSS}</style>
-      <div className="cvp2-wrapper" style={{ height: "100%" }}>
 
         {/* ═══ SIDEBAR ═══ */}
         <aside
           className="cvp2-sidebar"
           style={{
-            width: 210,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "var(--sb-width)",
+            height: "100vh",
             background: "#060606",
             borderRight: "1px solid #0e0e0e",
-            padding: "18px 12px",
             flexDirection: "column",
             boxSizing: "border-box",
+            overflow: "hidden",
+            zIndex: 100,
           }}
         >
-          {/* Logo */}
-          <Link
-            to="/"
-            style={{ display: "flex", alignItems: "center", padding: "4px 10px 16px", borderBottom: "1px solid #0e0e0e", marginBottom: 14, color: "#fff", textDecoration: "none" }}
-          >
-            <CVPassportLogo height={20} />
-          </Link>
-
-          {/* Section label */}
-          <div style={{ fontSize: 9, color: "#2a2a2a", letterSpacing: "0.1em", textTransform: "uppercase", padding: "0 10px", marginBottom: 6 }}>MENU</div>
-
-          {/* Nav */}
-          <nav style={{ display: "grid", gap: 2, padding: "0 0 10px" }}>
-            {navItems.map((it) => {
-              const isActive = active === it.id;
-              const Icon = it.icon;
-              return (
-                <button
-                  key={it.id}
-                  type="button"
-                  onClick={it.action}
-                  style={{
-                    height: 36, padding: "0 10px", borderRadius: 8,
-                    fontSize: 12, fontWeight: 500, border: "none",
-                    background: isActive ? "#111" : "transparent",
-                    color: isActive ? "#fff" : "#3a3a3a",
-                    display: "flex", alignItems: "center", gap: 8,
-                    cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                    transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "#0a0a0a"; e.currentTarget.style.color = "#888"; } }}
-                  onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#3a3a3a"; } }}
-                >
-                  <span style={{ display: "flex", color: it.iconColor, opacity: isActive ? 1 : 0.4, transition: `opacity 150ms ${EASE}` }}>
-                    <Icon size={13} />
-                  </span>
-                  <span>{it.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Feedback panel */}
-          <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: "#666", letterSpacing: "0.02em", marginBottom: 2 }}>Help us improve</div>
-            <div style={{ fontSize: 10, fontWeight: 400, color: "#333", marginBottom: 8 }}>What would make CVPassport better?</div>
-            <textarea
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Your thoughts..."
-              style={{
-                width: "100%", background: "#0e0e0e", border: "1px solid #222",
-                borderRadius: 6, padding: "7px 9px", fontSize: 10, color: "#aaa",
-                fontFamily: "inherit", resize: "none", height: 52, boxSizing: "border-box", outline: "none",
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleFeedbackSend}
-              style={{
-                width: "100%", background: "#ffffff", border: "none", color: "#000000",
-                borderRadius: 6, padding: 8, fontSize: 11, fontWeight: 600,
-                cursor: "pointer", marginTop: 6, fontFamily: "inherit",
-                transition: `background 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f0f0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; }}
+          {/* Section 1 — Logo */}
+          <div style={{ flexShrink: 0, padding: 16 }}>
+            <Link
+              to="/"
+              style={{ display: "flex", alignItems: "center", padding: "4px 0 0", color: "#fff", textDecoration: "none" }}
             >
-              {feedbackSent ? "Sent ✓" : "Send feedback"}
-            </button>
-            <div style={{ textAlign: "center", marginTop: 8 }}>
-              <a
-                href="mailto:support@mycvpassport.com"
-                style={{ fontSize: 10, color: "#333", textDecoration: "none", transition: `color 150ms ${EASE}` }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "#333"; }}
-              >
-                support@mycvpassport.com
-              </a>
-            </div>
+              <CVPassportLogo height={20} />
+            </Link>
           </div>
 
-          {/* ─── User row (bottom) ─── */}
-          <div style={{ marginTop: 12 }}>
-            <div
-              style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
-                background: "#111", borderRadius: 8, border: "0.5px solid #1a1a1a",
-              }}
-            >
-              <div style={{
-                width: 28, height: 28, borderRadius: 999, flexShrink: 0,
-                background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
-                display: "grid", placeItems: "center",
-                fontSize: 10, fontWeight: 700, color: "#FFB300",
-              }}>
-                {initials}
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {getDisplayName(user)}
-                </div>
-                <span style={{
-                  display: "inline-block", fontSize: 9, color: "#FFB300",
-                  background: "rgba(255,179,0,0.08)", border: "0.5px solid rgba(255,179,0,0.2)",
-                  borderRadius: 4, padding: "1px 5px", marginTop: 2,
-                }}>
-                  {planLabel}
-                </span>
+          {/* Section 2 — Nav container */}
+          <nav style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+            {/* Section label */}
+            <div style={{ fontSize: 9, color: "#2a2a2a", letterSpacing: "0.1em", textTransform: "uppercase", padding: "0 12px", marginBottom: 6 }}>MENU</div>
+
+            <div style={{ display: "grid", gap: 2 }}>
+              {navItems.map((it) => {
+                const isActive = active === it.id;
+                const Icon = it.icon;
+                return (
+                  <button
+                    key={it.id}
+                    type="button"
+                    onClick={it.action}
+                    style={{
+                      minHeight: 44, padding: "0 12px", borderRadius: 10,
+                      fontSize: 13, fontWeight: 500, border: "none",
+                      background: isActive ? "#111" : "transparent",
+                      color: isActive ? "#fff" : "#3a3a3a",
+                      display: "flex", alignItems: "center", gap: 10,
+                      cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                      boxSizing: "border-box",
+                      transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "#0a0a0a"; e.currentTarget.style.color = "#888"; } }}
+                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#3a3a3a"; } }}
+                  >
+                    <span style={{ display: "flex", color: it.iconColor, opacity: isActive ? 1 : 0.4, transition: `opacity 150ms ${EASE}` }}>
+                      <Icon size={13} />
+                    </span>
+                    <span>{it.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Section 3 — Bottom (feedback + user + signout) */}
+          <div style={{ flexShrink: 0, padding: 12 }}>
+            {/* Feedback panel */}
+            <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "#666", letterSpacing: "0.02em", marginBottom: 2 }}>Help us improve</div>
+              <div style={{ fontSize: 10, fontWeight: 400, color: "#333", marginBottom: 8 }}>What would make CVPassport better?</div>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Your thoughts..."
+                style={{
+                  width: "100%", background: "#0e0e0e", border: "1px solid #222",
+                  borderRadius: 6, padding: "7px 9px", fontSize: 10, color: "#aaa",
+                  fontFamily: "inherit", resize: "none", height: 52, boxSizing: "border-box", outline: "none",
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleFeedbackSend}
+                style={{
+                  width: "100%", background: "#ffffff", border: "none", color: "#000000",
+                  borderRadius: 6, padding: 8, fontSize: 11, fontWeight: 600,
+                  cursor: "pointer", marginTop: 6, fontFamily: "inherit",
+                  transition: `background 150ms ${EASE}`,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f0f0"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; }}
+              >
+                {feedbackSent ? "Sent ✓" : "Send feedback"}
+              </button>
+              <div style={{ textAlign: "center", marginTop: 8 }}>
+                <a
+                  href="mailto:support@mycvpassport.com"
+                  style={{ fontSize: 10, color: "#333", textDecoration: "none", transition: `color 150ms ${EASE}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#333"; }}
+                >
+                  support@mycvpassport.com
+                </a>
               </div>
             </div>
-            <button
-              type="button"
+
+            {/* User row */}
+            <div style={{ marginTop: 12 }}>
+              <div
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+                  background: "#111", borderRadius: 8, border: "0.5px solid #1a1a1a",
+                }}
+              >
+                <div style={{
+                  width: 28, height: 28, borderRadius: 999, flexShrink: 0,
+                  background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
+                  display: "grid", placeItems: "center",
+                  fontSize: 10, fontWeight: 700, color: "#FFB300",
+                }}>
+                  {initials}
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {getDisplayName(user)}
+                  </div>
+                  <span style={{
+                    display: "inline-block", fontSize: 9, color: "#FFB300",
+                    background: "rgba(255,179,0,0.08)", border: "0.5px solid rgba(255,179,0,0.2)",
+                    borderRadius: 4, padding: "1px 5px", marginTop: 2,
+                  }}>
+                    {planLabel}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
               onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
               style={{
                 display: "block", fontSize: 10, color: "#252525", cursor: "pointer",
@@ -409,11 +417,12 @@ export default function DashboardPage({
             >
               Sign out
             </button>
+            </div>
           </div>
         </aside>
 
         {/* ═══ MAIN CONTENT ═══ */}
-        <main style={{ background: "#0A0A0A", padding: 28, overflow: "auto", overflowX: "hidden", minHeight: "calc(100vh - 180px)", display: "flex", flexDirection: "column" }}>
+        <main className="cvp2-main" style={{ marginLeft: "var(--sb-width)", minHeight: "100vh", boxSizing: "border-box", padding: "24px 28px", background: "#0A0A0A", display: "flex", flexDirection: "column" }}>
 
           {/* Mobile top bar */}
           <div
@@ -421,7 +430,7 @@ export default function DashboardPage({
             style={{
               justifyContent: "space-between", alignItems: "center",
               height: 52, padding: "0 16px",
-              borderBottom: "1px solid #0e0e0e", margin: "-28px -28px 16px",
+              borderBottom: "1px solid #0e0e0e", margin: "-24px -28px 16px",
             }}
           >
             <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", color: "#fff" }}>
@@ -785,17 +794,16 @@ export default function DashboardPage({
 
           <FAB tabKey={fabRouteTab} />
         </main>
-      </div>
 
       {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
       <div
         className="cvp2-mobile-tabs"
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0,
-          background: "#0e0e0e", borderTop: "0.5px solid #1a1a1a",
-          height: 56, alignItems: "center", justifyContent: "space-around",
+          height: 58, background: "#0e0e0e", borderTop: "0.5px solid #1a1a1a",
+          display: "flex", alignItems: "center", justifyContent: "space-around",
+          zIndex: 100, boxSizing: "border-box",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          zIndex: 60, boxSizing: "border-box",
         }}
       >
         {mobileTabs.map((t) => {
@@ -808,14 +816,15 @@ export default function DashboardPage({
               onClick={t.action}
               style={{
                 background: "transparent", border: "none",
-                display: "flex", flexDirection: "column", alignItems: "center",
-                gap: 3, padding: "8px 6px", cursor: "pointer", fontFamily: "inherit",
+                minHeight: 44, minWidth: 44,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 3, cursor: "pointer", fontFamily: "inherit",
               }}
             >
               <span className="cvp2-tab-icon" style={{ display: "flex", color: isAct ? "#FFB300" : "#333", width: 20, height: 20 }}>
                 <Icon size={20} />
               </span>
-              <span className="cvp2-tab-label" style={{ fontSize: 9, color: isAct ? "#FFB300" : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
+              <span className="cvp2-tab-label" style={{ fontSize: 10, color: isAct ? "#FFB300" : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
             </button>
           );
         })}
