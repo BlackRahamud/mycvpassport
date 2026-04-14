@@ -1643,4 +1643,7 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   .cvp-tab-bar {
     display: none !important;
   }
+  .cvp-mobile-signout {
+    display: none !important;
+  }
 }

@@ -210,7 +210,17 @@ export function useCvpAuth() {
       setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id });
       setPendingVerificationEmail(null);
       authLoginSuccessHoldRef.current = true;
-      return { ok: true, loginShowSuccess: true };
+      // Fetch user_type to determine routing
+      let loginRoute = "/dashboard";
+      try {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("user_type")
+          .eq("id", data.user.id)
+          .single();
+        if (prof?.user_type === "recruiter") loginRoute = "/hr";
+      } catch { /* default to /dashboard */ }
+      return { ok: true, loginShowSuccess: true, loginRoute };
     } catch (err) {
       console.error("handleAuth:", err);
       setAuthError(mapAuthError(err));
