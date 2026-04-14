@@ -159,7 +159,7 @@ export default function DashboardPage({
   const [cancelStep, setCancelStep] = useState(0);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
-  const [mobileTab, setMobileTab] = useState("mycvs");
+
 
   useEffect(() => { ensureKeyframes(); }, []);
   useEffect(() => { if (newCvChoiceOpen) setShowTease(false); }, [newCvChoiceOpen]);
@@ -200,14 +200,6 @@ export default function DashboardPage({
     { id: "templates", label: "Templates", icon: IconTable, iconColor: "#378ADD", action: () => { setActive("templates"); onTemplates(); } },
   ];
 
-  /* ─── Mobile tabs ─── */
-  const mobileTabs = [
-    { id: "mycvs", label: "My CVs", icon: IconGrid, action: () => setMobileTab("mycvs") },
-    { id: "ats", label: "ATS Check", icon: IconTarget, action: () => { setMobileTab("ats"); onRunATS(); } },
-    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, action: () => { setMobileTab("coverletter"); navigate("/cover-letter"); } },
-    { id: "walkin", label: "Walk-In", icon: IconBolt, action: () => { setMobileTab("walkin"); onWalkIn(); } },
-    { id: "templates", label: "Templates", icon: IconTable, action: () => { setMobileTab("templates"); onTemplates(); } },
-  ];
 
   const lastResume = resumeList[0];
   const lastTitle = lastResume?.title || lastResume?.cv_data?.name || lastResume?.name || null;
@@ -240,14 +232,10 @@ export default function DashboardPage({
   const responsiveCSS = `
     .cvp2-sidebar { display: flex; }
     .cvp2-mobile-topbar { display: none; }
-    .cvp2-mobile-tabs { display: none; }
     .cvp2-two-col { grid-template-columns: 1fr 1fr; }
     .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr); }
     @media (max-width: 1023px) {
-      .cvp2-sidebar { display: none !important; }
       .cvp2-mobile-topbar { display: flex !important; }
-      .cvp2-mobile-tabs { display: flex !important; }
-      .cvp2-main { margin-left: 0 !important; padding: 16px 16px 80px !important; }
       .cvp2-two-col { grid-template-columns: 1fr !important; }
       .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr) !important; }
       .cvp2-greeting { font-size: 22px !important; }
@@ -259,8 +247,6 @@ export default function DashboardPage({
       .cvp2-start-btn-label { font-size: 13px !important; }
       .cvp2-card { padding: 16px !important; }
       .cvp2-cv-item { padding: 10px 0 !important; }
-      .cvp2-tab-icon { width: 20px !important; height: 20px !important; }
-      .cvp2-tab-label { font-size: 10px !important; }
     }
   `;
 
@@ -794,41 +780,6 @@ export default function DashboardPage({
 
           <FAB tabKey={fabRouteTab} />
         </main>
-
-      {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
-      <div
-        className="cvp2-mobile-tabs"
-        style={{
-          position: "fixed", bottom: 0, left: 0, right: 0,
-          height: 58, background: "#0e0e0e", borderTop: "0.5px solid #1a1a1a",
-          display: "flex", alignItems: "center", justifyContent: "space-around",
-          zIndex: 100, boxSizing: "border-box",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
-      >
-        {mobileTabs.map((t) => {
-          const isAct = mobileTab === t.id;
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={t.action}
-              style={{
-                background: "transparent", border: "none",
-                minHeight: 44, minWidth: 44,
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 3, cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              <span className="cvp2-tab-icon" style={{ display: "flex", color: isAct ? "#FFB300" : "#333", width: 20, height: 20 }}>
-                <Icon size={20} />
-              </span>
-              <span className="cvp2-tab-label" style={{ fontSize: 10, color: isAct ? "#FFB300" : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
-            </button>
-          );
-        })}
-      </div>
 
       {/* ═══ NEW CV CHOICE MODAL ═══ */}
       {newCvChoiceOpen && (
