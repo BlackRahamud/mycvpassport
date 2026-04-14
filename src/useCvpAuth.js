@@ -241,7 +241,10 @@ export function useCvpAuth() {
     const sessionId = Date.now();
     const params = new URLSearchParams();
     params.set("new", sessionId);
-    if (opts?.openFabGuide) params.set("guide", "true");
+    if (opts?.openFabGuide) {
+      params.set("guide", "true");
+      sessionStorage.removeItem("hasCompletedGuide");
+    }
     navigate(`/builder?${params.toString()}`);
   };
 

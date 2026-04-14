@@ -1008,8 +1008,8 @@ const FAB = forwardRef(function FAB(
           setSheetGate(null);
         }
       } else {
-        setSheetTitle(config.title);
-        setSheetPoints(config.points);
+        setSheetTitle(config?.title ?? "");
+        setSheetPoints(config?.points ?? []);
         setSheetAtsHigh(false);
         if ((routeDedicated && tabKey === "ats") || (variant === "builder" && tabKey === "ats")) {
           setSheetShowProgress(false);
@@ -1121,6 +1121,7 @@ const FAB = forwardRef(function FAB(
         setSheetOpen(true);
         setFabExtraClass("cvp-fab-bounce-once");
         const gate = await getDownloadGatekeeperData().catch(() => ({ ...GATEKEEPER_FALLBACK }));
+        if (typeof atsScore === "number" && atsScore > 0) gate.atsScore = atsScore;
         setSheetGate(gate);
         await new Promise((r) => setTimeout(r, 300));
         setFabExtraClass("");
@@ -1725,7 +1726,7 @@ const FAB = forwardRef(function FAB(
         />
       ) : null}
 
-      <FABMenu open={menuOpen} onClose={() => setMenuOpen(false)} options={config.menuOptions} anchorRef={anchorRef} onSelect={handleMenuPick} />
+      <FABMenu open={menuOpen} onClose={() => setMenuOpen(false)} options={config?.menuOptions ?? []} anchorRef={anchorRef} onSelect={handleMenuPick} />
 
       <FABSheet
         open={fabMode === "guide" ? false : sheetOpen}
