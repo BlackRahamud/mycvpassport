@@ -182,6 +182,8 @@ export default function App() {
                   user ? (
                     <DashboardPage
                       user={user}
+                      isPro={isPro}
+                      profile={profile}
                       resumeList={resumeList}
                       onBuildResume={handleNewResume}
                       onEditResume={handleEditResume}
