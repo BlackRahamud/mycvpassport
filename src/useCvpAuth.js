@@ -182,7 +182,7 @@ export function useCvpAuth() {
           setUser({ name: trimmed.name || extractName(data.user), email: data.user.email, id: data.user.id });
           setIsPro(false);
           setPendingVerificationEmail(null);
-          const dest = trimmed.userType === "recruiter" ? "/hr" : "/dashboard";
+          const dest = trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true";
           navigate(dest, { replace: true });
           return { ok: true };
         }

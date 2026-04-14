@@ -30,11 +30,11 @@ const taglineStyle = {
 
 const authLabelStyle = {
   display: "block",
-  fontSize: "11px",
-  fontWeight: 600,
-  color: "#3A3A3A",
-  letterSpacing: "0.06em",
-  textTransform: "uppercase",
+  fontSize: "12px",
+  fontWeight: 400,
+  color: "rgba(160,158,152,0.5)",
+  letterSpacing: "-0.01em",
+  textTransform: "none",
   marginBottom: "8px",
   fontFamily: AUTH_FONT,
 };
@@ -42,9 +42,9 @@ const authLabelStyle = {
 const authInputStyle = {
   width: "100%",
   padding: "12px 14px",
-  background: "#0A0A0A",
-  border: "1px solid #2A2A2A",
-  borderRadius: "10px",
+  background: "#1a1a1a",
+  border: "none",
+  borderRadius: "12px",
   color: "#FFFFFF",
   fontSize: "14px",
   outline: "none",
@@ -55,10 +55,11 @@ const authInputStyle = {
 const cardInnerStyle = {
   position: "relative",
   zIndex: 1,
-  background: "#141414",
+  background: "linear-gradient(160deg, #161616 0%, #111111 100%)",
   borderRadius: "20px",
-  border: "1px solid #1E1E1E",
-  padding: "36px 32px",
+  border: "1px solid rgba(255,255,255,0.08)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+  padding: "24px 18px 28px",
 };
 
 // ─── AUTH PAGE ────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ function AuthFooter() {
               aria-hidden
             />
           ) : null}
-          <span style={{ fontSize: "11px", color: "#2A2A2A" }}>{label}</span>
+          <span style={{ fontSize: "11px", color: "rgba(160,158,152,0.5)" }}>{label}</span>
         </Fragment>
       ))}
     </div>
@@ -254,8 +255,8 @@ function AuthPage({
     border: "none",
     borderRadius: "12px",
     padding: "14px",
-    fontWeight: 700,
-    color: "#000",
+    fontWeight: 500,
+    color: "#1a0f00",
     fontSize: "14px",
     cursor: "pointer",
     fontFamily: AUTH_FONT,
@@ -272,8 +273,8 @@ function AuthPage({
     loginUiSuccess
       ? { ...amberBtnBase, background: "#22C55E", color: "#FFFFFF", cursor: "default" }
       : loading
-        ? { ...amberBtnBase, background: "#F59E0B", opacity: 0.75, cursor: "not-allowed" }
-        : { ...amberBtnBase, background: "#F59E0B" };
+        ? { ...amberBtnBase, background: "linear-gradient(180deg, #FFD33D 0%, #FBBC05 100%)", opacity: 0.75, cursor: "not-allowed", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 14px rgba(255,193,7,0.32)" }
+        : { ...amberBtnBase, background: "linear-gradient(180deg, #FFD33D 0%, #FBBC05 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 14px rgba(255,193,7,0.32)" };
 
   if (pendingVerificationEmail) {
     const handleVerifyResend = async () => {
@@ -704,53 +705,66 @@ function AuthPage({
                     >
                       At least 8 characters
                     </p>
-                    {/* Role selector */}
+                    {/* Segmented control — Candidate / Employer */}
                     <div style={{ marginTop: "16px" }}>
-                      <label style={authLabelStyle}>I am</label>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button
-                          type="button"
-                          onClick={() => setUserType("candidate")}
-                          style={{
-                            flex: 1,
-                            padding: "10px 8px",
-                            borderRadius: "10px",
-                            border: userType === "candidate" ? "2px solid #F59E0B" : "1px solid #2A2A2A",
-                            background: userType === "candidate" ? "rgba(245,158,11,0.1)" : "transparent",
-                            color: userType === "candidate" ? "#F59E0B" : "#A0A0A0",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            fontFamily: AUTH_FONT,
-                            transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)",
-                          }}
-                        >
-                          I&apos;m looking for my next role
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUserType("recruiter")}
-                          style={{
-                            flex: 1,
-                            padding: "10px 8px",
-                            borderRadius: "10px",
-                            border: userType === "recruiter" ? "2px solid #F59E0B" : "1px solid #2A2A2A",
-                            background: userType === "recruiter" ? "rgba(245,158,11,0.1)" : "transparent",
-                            color: userType === "recruiter" ? "#F59E0B" : "#A0A0A0",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            fontFamily: AUTH_FONT,
-                            transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)",
-                          }}
-                        >
-                          I&apos;m hiring &amp; managing talent
-                        </button>
+                      <label style={authLabelStyle}>What brings you here?</label>
+                      <div
+                        style={{
+                          background: "#141414",
+                          border: "0.5px solid #1e1e1e",
+                          borderRadius: "10px",
+                          padding: "4px",
+                          display: "flex",
+                        }}
+                      >
+                        {[
+                          { key: "candidate", label: "Candidate" },
+                          { key: "recruiter", label: "Employer" },
+                        ].map((opt) => {
+                          const active = userType === opt.key;
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => setUserType(opt.key)}
+                              style={{
+                                flex: 1,
+                                padding: "8px 0",
+                                borderRadius: "8px",
+                                border: active ? "0.5px solid rgba(255,255,255,0.1)" : "none",
+                                background: active ? "#2e2e2e" : "transparent",
+                                color: active ? "#e8e8e8" : "rgba(160,158,152,0.4)",
+                                fontWeight: active ? 500 : 400,
+                                fontSize: "13px",
+                                cursor: "pointer",
+                                fontFamily: AUTH_FONT,
+                                boxShadow: active
+                                  ? "0 1px 4px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.07)"
+                                  : "none",
+                                transition: "background-color 150ms cubic-bezier(0.4,0,0.2,1), color 150ms cubic-bezier(0.4,0,0.2,1)",
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                     {/* Recruiter extra fields */}
                     {userType === "recruiter" ? (
-                      <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <div
+                        className="cvp-auth-employer-fields"
+                        style={{
+                          marginTop: "12px",
+                          background: "#0e0e0e",
+                          border: "0.5px solid #1a1a1a",
+                          borderRadius: "12px",
+                          padding: "12px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "12px",
+                        }}
+                      >
                         <div>
                           <label style={authLabelStyle} htmlFor="cvp-auth-work-email">Work email</label>
                           <input
@@ -831,19 +845,19 @@ function AuthPage({
                   ) : mode === "login" ? (
                     "Sign in"
                   ) : (
-                    "Create account →"
+                    "Create Account"
                   )}
                 </span>
                 {!loading && !loginUiSuccess ? <span className="cvp-auth-btn-shimmer" aria-hidden /> : null}
               </button>
             </form>
             <div style={{ borderTop: "1px solid #1E1E1E", paddingTop: "20px", marginTop: "20px", textAlign: "center" }}>
-              <p style={{ fontSize: "13px", color: "#555", fontFamily: AUTH_FONT, margin: 0 }}>
+              <p style={{ fontSize: "13px", color: "rgba(160,158,152,0.5)", fontFamily: AUTH_FONT, margin: 0 }}>
                 {mode === "login" ? "New here? " : "Already have an account? "}
                 <span
                   role="button"
                   tabIndex={0}
-                  style={{ color: "#F59E0B", cursor: "pointer", fontWeight: 600 }}
+                  style={{ color: "rgba(255,179,0,0.8)", cursor: "pointer", fontWeight: 600 }}
                   onClick={onToggle}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") onToggle();

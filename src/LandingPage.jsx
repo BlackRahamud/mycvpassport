@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from './appSupabaseClient';
 import { Helmet } from 'react-helmet-async';
 import CVPassportLogo from './components/CVPassportLogo';
 import { useGeoContent } from './hooks/useGeoContent';
@@ -597,12 +598,85 @@ function BentoCardATSCheck() {
 export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalkIn }) {
   const geo = useGeoContent();
   const navigate = useNavigate();
+  const location = useLocation();
   const [heroWordIndex, setHeroWordIndex] = useState(0);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('cvp-theme') || 'dark'; } catch { return 'dark'; }
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faqOpenIndex, setFaqOpenIndex] = useState(null);
+
+  // Smart Landing Flow state
+  const [userProfile, setUserProfile] = useState(null); // { user_type, full_name }
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastFading, setToastFading] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Fetch user profile for smart CTA / hero personalization
+  useEffect(() => {
+    if (!supabase || !user?.id) { setUserProfile(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from('profiles').select('user_type, full_name').eq('id', user.id).single();
+        if (!cancelled && data) setUserProfile(data);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Welcome toast on ?welcome=true
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('welcome') !== 'true') return;
+    // Build toast message
+    const isHr = params.get('type') === 'hr';
+    const firstName = userProfile?.full_name
+      ? userProfile.full_name.split(' ')[0]
+      : (user?.name ? user.name.split(' ')[0] : 'there');
+    const msg = isHr
+      ? `Welcome, ${firstName}! Your hiring portal is set up and ready.`
+      : `Welcome, ${firstName}! Explore freely — your dashboard is ready when you are.`;
+    setToastMessage(msg);
+    setToastVisible(true);
+    setToastFading(false);
+    // Remove ?welcome from URL
+    params.delete('welcome');
+    params.delete('type');
+    const cleanUrl = params.toString() ? `${location.pathname}?${params.toString()}` : location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+    // Auto-dismiss
+    const fadeTimer = setTimeout(() => setToastFading(true), 3700);
+    const hideTimer = setTimeout(() => { setToastVisible(false); setToastFading(false); }, 4000);
+    return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer); };
+  }, [location.search, location.pathname, userProfile, user?.name]);
+
+  // Smart CTA helpers
+  const userType = userProfile?.user_type;
+  const firstName = userProfile?.full_name
+    ? userProfile.full_name.split(' ')[0]
+    : (user?.name ? user.name.split(' ')[0] : '');
+  const userInitials = (() => {
+    const fullName = userProfile?.full_name || user?.name || '';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    if (parts.length === 1 && parts[0]) return parts[0][0].toUpperCase();
+    return '?';
+  })();
+
+  const smartCtaText = !user
+    ? geo.cta
+    : userType === 'recruiter'
+      ? 'Manage Talent'
+      : 'Continue to Dashboard';
+
+  const smartCtaAction = !user
+    ? onSignup
+    : userType === 'recruiter'
+      ? () => navigate('/hr')
+      : () => navigate('/dashboard');
+
+  const avatarDest = userType === 'recruiter' ? '/hr' : '/dashboard';
 
   const isDark = theme === 'dark';
 
@@ -1063,21 +1137,26 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             {user ? (
               <button
                 type="button"
-                className="lp-ghost-btn"
-                onClick={() => onSignOut && onSignOut()}
+                onClick={() => navigate(avatarDest)}
+                aria-label="Go to dashboard"
                 style={{
-                  background:   'transparent',
-                  border:       `1px solid ${T.btnGhostBorder}`,
-                  color:        T.btnGhostTxt,
-                  borderRadius: '8px',
-                  padding:      '8px 18px',
-                  fontSize:     '13px',
-                  fontWeight:   '600',
-                  cursor:       'pointer',
-                  fontFamily:   'inherit',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: '#1a1a1a',
+                  border: '1px solid rgba(255,179,0,0.3)',
+                  color: '#FFB300',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  padding: 0,
                 }}
               >
-                Sign Out
+                {userInitials}
               </button>
             ) : (
               <>
@@ -1207,8 +1286,11 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {user ? (
                 <button
-                  onClick={() => { closeMobileMenu(); onSignOut && onSignOut(); }}
+                  onClick={() => { closeMobileMenu(); navigate(avatarDest); }}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
                     background: 'none',
                     border: `1px solid ${T.border}`,
                     color: T.textPrimary,
@@ -1218,9 +1300,25 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                     fontWeight: 600,
                     cursor: 'pointer',
                     fontFamily: 'inherit',
+                    justifyContent: 'center',
                   }}
                 >
-                  Sign Out
+                  <span style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: '#1a1a1a',
+                    border: '1px solid rgba(255,179,0,0.3)',
+                    color: '#FFB300',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {userInitials}
+                  </span>
+                  Go to {userType === 'recruiter' ? 'Hiring Portal' : 'Dashboard'}
                 </button>
               ) : (
                 <>
@@ -1316,15 +1414,21 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 color:        T.textPrimary,
                 fontFamily:   "'DM Sans', sans-serif",
               }}>
-                {geo.heroHeadlineBefore}
-                <span
-                  className="lp-hero-cycle-word"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  {HERO_CYCLE_WORDS[heroWordIndex]}
-                </span>
-                {geo.heroHeadlineAfter}
+                {user && firstName ? (
+                  <>Ready to build, {firstName}?</>
+                ) : (
+                  <>
+                    {geo.heroHeadlineBefore}
+                    <span
+                      className="lp-hero-cycle-word"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      {HERO_CYCLE_WORDS[heroWordIndex]}
+                    </span>
+                    {geo.heroHeadlineAfter}
+                  </>
+                )}
               </h1>
 
               {/* Subheadline */}
@@ -1337,7 +1441,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <button
                   type="button"
                   className="lp-btn lp-hero-primary-cta"
-                  onClick={onSignup}
+                  onClick={smartCtaAction}
                   style={{
                     position:     'relative',
                     overflow:     'hidden',
@@ -1356,7 +1460,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                     gap:          '10px',
                   }}
                 >
-                  {geo.cta}
+                  {smartCtaText}
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: 24, height: 24, borderRadius: '50%',
@@ -1781,7 +1885,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <button
             type="button"
             className="lp-btn"
-            onClick={onSignup}
+            onClick={smartCtaAction}
             style={{
               background:   T.btnPrimary,
               color:        T.btnPrimaryTxt,
@@ -1796,7 +1900,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               fontFamily:   'inherit',
             }}
           >
-            {geo.cta}
+            {smartCtaText}
           </button>
           <p style={{ fontSize: '13px', color: T.textSecondary }}>
             {geo.anxietyKiller}
@@ -1901,6 +2005,34 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         </footer>
 
         <CookieBanner />
+
+        {/* Welcome toast */}
+        {toastVisible && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 32,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#161616',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderLeft: '3px solid #FFB300',
+              borderRadius: 12,
+              padding: '14px 20px',
+              color: '#e0e0e0',
+              fontSize: 13,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+              zIndex: 9999,
+              opacity: toastFading ? 0 : 1,
+              transition: 'opacity 300ms cubic-bezier(0.4,0,0.2,1)',
+              maxWidth: '90vw',
+              whiteSpace: 'nowrap',
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            {toastMessage}
+          </div>
+        )}
       </div>
     </>
   );
