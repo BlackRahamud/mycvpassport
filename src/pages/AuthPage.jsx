@@ -213,7 +213,7 @@ function AuthPage({
         name: name || (email || "").split("@")[0] || "",
         email,
         password,
-        userType: mode === "signup" ? userType : undefined,
+        userType,
         workEmail: mode === "signup" && userType === "recruiter" ? workEmail : undefined,
         companyName: mode === "signup" && userType === "recruiter" ? companyName : undefined,
       },
@@ -222,7 +222,7 @@ function AuthPage({
     if (result?.loginShowSuccess && mode === "login") {
       setLoginUiSuccess(true);
       setTimeout(() => {
-        onDelayedLoginNavigate?.();
+        onDelayedLoginNavigate?.(userType === "recruiter" ? "/hr" : "/dashboard");
       }, 800);
     }
   };
@@ -818,6 +818,55 @@ function AuthPage({
                   </div>
                 )}
               </div>
+              {mode === "login" ? (
+                <div style={{ marginTop: "16px", marginBottom: "16px" }}>
+                  <label style={authLabelStyle}>I am a...</label>
+                  <div
+                    style={{
+                      background: "#141414",
+                      border: "0.5px solid #1e1e1e",
+                      borderRadius: "10px",
+                      padding: "4px",
+                      display: "flex",
+                      gap: "3px",
+                      width: "100%",
+                    }}
+                  >
+                    {[
+                      { key: "candidate", label: "Candidate" },
+                      { key: "recruiter", label: "Employer" },
+                    ].map((opt) => {
+                      const active = userType === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => setUserType(opt.key)}
+                          style={{
+                            flex: 1,
+                            padding: "9px 0",
+                            borderRadius: "7px",
+                            border: active ? "0.5px solid rgba(255,255,255,0.1)" : "none",
+                            background: active ? "#2e2e2e" : "transparent",
+                            color: active ? "#e8e8e8" : "rgba(160,158,152,0.4)",
+                            fontWeight: active ? 500 : 400,
+                            fontSize: "13px",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            fontFamily: AUTH_FONT,
+                            boxShadow: active
+                              ? "0 1px 4px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.07)"
+                              : "none",
+                            transition: "background 0.18s ease, color 0.18s ease, font-weight 0.18s ease, border 0.18s ease, box-shadow 0.18s ease",
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <button
                 type="submit"
                 className="cvp-auth-btn--amber"

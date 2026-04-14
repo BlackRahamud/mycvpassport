@@ -274,9 +274,9 @@ export function useCvpAuth() {
     error: authError,
     pendingVerificationEmail,
     onClearAuthError: () => setAuthError(null),
-    onDelayedLoginNavigate: () => {
+    onDelayedLoginNavigate: (path) => {
       authLoginSuccessHoldRef.current = false;
-      navigate("/dashboard", { replace: true });
+      navigate(path || "/dashboard", { replace: true });
     },
     onResendVerification: handleResendVerification,
     onForgotPassword: handleForgotPassword,
