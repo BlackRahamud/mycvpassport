@@ -677,6 +677,20 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
       : () => navigate('/dashboard');
 
   const avatarDest = userType === 'recruiter' ? '/hr' : '/dashboard';
+  const [avatarDropdownOpen, setAvatarDropdownOpen] = useState(false);
+  const avatarDropdownRef = useRef(null);
+
+  // Close avatar dropdown on outside click
+  useEffect(() => {
+    if (!avatarDropdownOpen) return;
+    const handler = (e) => {
+      if (avatarDropdownRef.current && !avatarDropdownRef.current.contains(e.target)) {
+        setAvatarDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [avatarDropdownOpen]);
 
   const isDark = theme === 'dark';
 
@@ -1043,6 +1057,9 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           pointer-events: none;
           z-index: 1;
         }
+        .lp-avatar-dropdown-item:hover {
+          background: rgba(255,255,255,0.04) !important;
+        }
       `}</style>
 
       <div
@@ -1135,29 +1152,93 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               {isDark ? <SunIcon /> : <MoonIcon />}
             </button>
             {user ? (
-              <button
-                type="button"
-                onClick={() => navigate(avatarDest)}
-                aria-label="Go to dashboard"
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: '#1a1a1a',
-                  border: '1px solid rgba(255,179,0,0.3)',
-                  color: '#FFB300',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  padding: 0,
-                }}
-              >
-                {userInitials}
-              </button>
+              <div ref={avatarDropdownRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setAvatarDropdownOpen((o) => !o)}
+                  aria-label="User menu"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    background: '#1a1a1a',
+                    border: '1px solid rgba(255,179,0,0.3)',
+                    color: '#FFB300',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    padding: 0,
+                  }}
+                >
+                  {userInitials}
+                </button>
+                {avatarDropdownOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 44,
+                      right: 0,
+                      background: '#161616',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 12,
+                      padding: 8,
+                      minWidth: 160,
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                      zIndex: 999,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="lp-avatar-dropdown-item"
+                      onClick={() => { setAvatarDropdownOpen(false); navigate(avatarDest); }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        color: 'rgba(200,198,192,0.8)',
+                        cursor: 'pointer',
+                        background: 'none',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {userType === 'recruiter' ? 'Go to Portal' : 'Go to Dashboard'}
+                    </button>
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
+                    <button
+                      type="button"
+                      className="lp-avatar-dropdown-item"
+                      onClick={async () => {
+                        setAvatarDropdownOpen(false);
+                        if (supabase) await supabase.auth.signOut();
+                        navigate('/');
+                      }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        color: 'rgba(200,198,192,0.8)',
+                        cursor: 'pointer',
+                        background: 'none',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <button

@@ -4,6 +4,7 @@ import { FAB } from "./components/FAB";
 import { writeFabMemory } from "./components/FAB/FABLogic";
 import { getPaymentLink } from "./utils/paywall";
 import CVPassportLogo from "./components/CVPassportLogo";
+import { supabase } from "./appSupabaseClient";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
@@ -484,6 +485,30 @@ export default function Dashboard({
                 }}>{user?.plan || "Free"}</span>
               </div>
             </div>
+            <button
+              type="button"
+              className="cvp-dash-signout"
+              onClick={async () => {
+                if (supabase) await supabase.auth.signOut();
+                navigate("/");
+              }}
+              style={{
+                display: "block",
+                fontSize: 12,
+                color: "rgba(160,158,152,0.4)",
+                cursor: "pointer",
+                padding: "4px 10px",
+                background: "none",
+                border: "none",
+                fontFamily: "inherit",
+                textAlign: "left",
+                transition: `color 150ms ${EASE}`,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,179,0,0.7)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(160,158,152,0.4)"; }}
+            >
+              Sign out
+            </button>
           </div>
         </aside>
 
