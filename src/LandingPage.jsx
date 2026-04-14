@@ -842,8 +842,14 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           .lp-walkin-inner { flex-direction: column !important; gap: 32px !important; }
           .lp-trust-bar    { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
           .lp-trust-sep    { display: none !important; }
-          .lp-hero-ctas    { flex-direction: column !important; }
+          .lp-hero-ctas    { flex-direction: column !important; align-items: center !important; }
           .lp-hero-ctas button { width: 100% !important; }
+          .lp-hero-ctas .lp-hero-primary-cta {
+            width: auto !important;
+            max-width: 280px !important;
+            padding: 14px 28px !important;
+            margin: 0 auto !important;
+          }
         }
         @media (min-width: 769px) {
           .lp-hamburger    { display: none !important; }

@@ -591,7 +591,7 @@ export default function Dashboard({
           {resumeList.length === 0 ? (
             <div style={{ maxWidth: 380, margin: "60px auto 0", textAlign: "center" }}>
               <div style={{ fontSize: 11, color: "#333", marginBottom: 6 }}>Welcome to CVPassport</div>
-              <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 10 }}>
+              <div className="cvp-dash-hero-heading" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 10 }}>
                 Your Gulf CV starts here.
               </div>
               <div style={{ fontSize: 14, color: "#444", lineHeight: 1.6, marginBottom: 28 }}>

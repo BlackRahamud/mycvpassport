@@ -393,6 +393,7 @@ select:focus,
 @media (max-width: 768px) {
   .cvp-dashboard-wrapper {
     display: block !important;
+    overflow-x: hidden !important;
   }
   .cvp-dashboard-wrapper > main {
     padding: 16px 16px 80px !important;
@@ -413,9 +414,12 @@ select:focus,
     font-size: 20px !important;
   }
   .cvp-cv-grid {
-    grid-template-columns: repeat(2, minmax(140px, 1fr)) !important;
+    grid-template-columns: 1fr !important;
     gap: 10px !important;
     padding: 0 !important;
+  }
+  .cvp-dash-hero-heading {
+    font-size: 24px !important;
   }
   .cvp-new-cv-card {
     min-height: 130px !important;
