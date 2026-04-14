@@ -2464,7 +2464,7 @@ export default function FABSheet({
               </button>
               <button type="button" onClick={advanceGuideStep}
                 style={{
-                  background: "none", border: "none", color: "#606060",
+                  background: "none", border: "none", color: "#A0A0A0",
                   fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 6px",
                 }}>
                 Skip → Download my CV
@@ -2485,17 +2485,6 @@ export default function FABSheet({
                   cursor: "pointer", fontFamily: "inherit", minHeight: 32,
                 }}>
                 Download CV ↓
-              </button>
-              <button type="button"
-                onClick={() => {
-                  localStorage.setItem('hasCompletedGuide', 'true');
-                  advanceGuideStep();
-                }}
-                style={{
-                  background: "none", border: "none", color: "#606060",
-                  fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 6px",
-                }}>
-                Skip
               </button>
             </div>
           ) : !hideFabGuideButtons ? (

@@ -721,31 +721,6 @@ function CoverLetterPage({ user, profile, onBack }) {
 
           {selectedOption === "saved" && (
             <div style={{ marginTop: 18 }}>
-              {savedList.length > 1 && (
-                <>
-                  <label style={{ fontSize: 13, color: "#A0A0A0", display: "block", marginBottom: 8 }}>Your CV</label>
-                  <select
-                    value={selectedCvId}
-                    onChange={(e) => setSelectedCvId(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "12px 14px",
-                      borderRadius: 10,
-                      border: "1px solid #2A2A2A",
-                      background: "#0A0A0A",
-                      color: "#FFF",
-                      fontSize: 14,
-                      fontFamily: "'DM Sans',sans-serif",
-                    }}
-                  >
-                    {savedList.map((r) => (
-                      <option key={r.id} value={String(r.id)}>
-                        {r.title || r?.cv_data?.name || "My CV"}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
               {savedList.length === 0 && (
                 <div style={{ color: "#A0A0A0", fontSize: 13 }}>No saved CVs yet</div>
               )}
