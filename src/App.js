@@ -190,6 +190,7 @@ export default function App() {
                       }}
                       onRunATS={() => navigate("/ats")}
                       onWalkIn={() => navigate("/walk-in")}
+                      onTemplates={() => navigate("/templates")}
                     />
                   ) : (
                     <Navigate to="/" replace />

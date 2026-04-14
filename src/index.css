@@ -349,36 +349,34 @@ select:focus,
 /* Dashboard CV card grid — responsive columns */
 .cvp-cv-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
   max-width: 1200px;
-  padding: 0 24px;
-  margin: 0 auto;
+  padding: 0;
+  margin: 0;
 }
 
-/* CV card — desktop min height, mobile natural height */
+/* CV card — no forced min height */
 .cvp-cv-card {
-  min-height: 380px;
+  min-height: unset;
 }
 
 .cvp-new-cv-card {
-  min-height: 380px; /* desktop */
+  min-height: 160px;
 }
 
-@media (max-width: 1199px) {
-  .cvp-cv-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+/* Dashboard mobile top bar — hidden on desktop */
+.cvp-dashboard-mobile-topbar {
+  display: none;
 }
 
-@media (max-width: 900px) {
-  .cvp-cv-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
+/* Dashboard mobile bottom tabs — hidden on desktop */
+.cvp-dashboard-bottom-tabs {
+  display: none;
 }
 
-.cvp-dashboard-mobile-head {
+/* Dashboard mobile feedback link — hidden on desktop */
+.cvp-dashboard-mobile-feedback {
   display: none;
 }
 
@@ -393,16 +391,49 @@ select:focus,
   .cvp-dashboard-sidebar {
     display: none !important;
   }
-  .cvp-dashboard-mobile-head {
+  .cvp-dashboard-mobile-topbar {
     display: flex !important;
+    justify-content: space-between;
     align-items: center;
-    min-height: 44px;
-    margin: -4px 0 8px;
+    height: 52px;
+    padding: 0 16px;
+    border-bottom: 1px solid #0e0e0e;
+    margin: -16px -16px 16px;
+  }
+  .cvp-dash-greeting {
+    font-size: 20px !important;
   }
   .cvp-cv-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
+    grid-template-columns: repeat(2, minmax(140px, 1fr)) !important;
+    gap: 10px !important;
     padding: 0 !important;
+  }
+  .cvp-new-cv-card {
+    min-height: 130px !important;
+  }
+  .cvp-dashboard-mobile-feedback {
+    display: block !important;
+    text-align: center;
+    font-size: 10px;
+    color: #1a1a1a;
+    padding: 12px;
+    margin-top: 24px;
+  }
+  .cvp-dashboard-bottom-tabs {
+    display: flex !important;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: #060606;
+    border-top: 1px solid #0e0e0e;
+    justify-content: space-around;
+    align-items: center;
+    padding: 6px 4px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 8px) + 6px);
+    z-index: 60;
+    box-sizing: border-box;
   }
 }
 
@@ -1228,26 +1259,13 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 /* Dashboard — New CV card + CV card height on mobile */
 @media (max-width: 768px) {
   .cvp-new-cv-card {
-    min-height: 160px !important;
+    min-height: 130px !important;
     max-height: 160px !important;
     aspect-ratio: unset !important;
   }
   .cvp-cv-card {
     min-height: unset !important;
     max-height: unset !important;
-  }
-  .cvp-cv-card [style*="aspect-ratio"] {
-    aspect-ratio: 0.707 !important;
-  }
-}
-
-/* Dashboard — Walk-In card on mobile (natural height, no clipping) */
-@media (max-width: 768px) {
-  .cvp-walkin-card {
-    padding: 14px !important;
-    padding-bottom: 12px !important;
-    min-height: auto !important;
-    max-height: none !important;
   }
 }
 
@@ -1438,14 +1456,15 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   .cvp-dashboard-wrapper {
     max-width: 1440px !important;
     margin: 0 auto !important;
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: 210px 1fr !important;
     min-height: 100vh !important;
   }
   .cvp-dashboard-sidebar {
-    width: 240px !important;
-    min-width: 240px !important;
-    background: #0D0D0D !important;
-    border-right: 1px solid #1E1E1E !important;
+    width: 210px !important;
+    min-width: 210px !important;
+    background: #060606 !important;
+    border-right: 1px solid #0e0e0e !important;
     position: sticky !important;
     top: 0 !important;
     height: 100vh !important;
@@ -1453,11 +1472,9 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   }
   .cvp-cv-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-    gap: 24px !important;
-    padding: 40px !important;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 10px !important;
     align-items: start !important;
-    flex: 1 !important;
   }
   .cvp-builder-desktop {
     max-width: 1600px !important;

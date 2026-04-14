@@ -10,6 +10,7 @@ export default function DashboardPage({
   onDelete,
   onRunATS,
   onWalkIn,
+  onTemplates,
 }) {
   return (
     <Dashboard
@@ -27,7 +28,7 @@ export default function DashboardPage({
       onDelete={onDelete}
       onRunATS={onRunATS}
       onWalkIn={onWalkIn}
-      onTemplates={() => {}}
+      onTemplates={onTemplates || (() => {})}
     />
   );
 }
