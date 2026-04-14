@@ -93,7 +93,7 @@ function getDisplayName(u) {
   if (!raw && u?.email) raw = u.email.split("@")[0];
   raw = String(raw || "User").trim();
   raw = raw.charAt(0).toUpperCase() + raw.slice(1);
-  if (raw.length > 16) return raw.slice(0, 16) + "\u2026";
+  if (raw.length > 16) return raw.slice(0, 16) + "…";
   return raw;
 }
 function scoreColor(s) {
@@ -109,11 +109,11 @@ function getNudge(resumeList) {
   const title = first?.title || first?.cv_data?.name || first?.name || "My CV";
   const strength = getStrength(first?.cv_data || first);
   if (strength === 0 || strength === undefined)
-    return { text: `Run ATS on "${title}"`, actionLabel: "Run ATS \u2192", action: "ats" };
+    return { text: `Run ATS on "${title}"`, actionLabel: "Run ATS →", action: "ats" };
   if (!first?.job_match_score)
-    return { text: `Run Job Match on "${title}"`, actionLabel: "Job Match \u2192", action: "jobmatch" };
+    return { text: `Run Job Match on "${title}"`, actionLabel: "Job Match →", action: "jobmatch" };
   if (!first?.has_cover_letter)
-    return { text: `Write a cover letter for "${title}"`, actionLabel: "Cover Letter \u2192", action: "coverletter" };
+    return { text: `Write a cover letter for "${title}"`, actionLabel: "Cover Letter →", action: "coverletter" };
   return null;
 }
 
@@ -211,7 +211,7 @@ export default function DashboardPage({
 
   const lastResume = resumeList[0];
   const lastTitle = lastResume?.title || lastResume?.cv_data?.name || lastResume?.name || null;
-  const subLine = lastTitle ? `${lastTitle} \u00b7 ${timeAgo(lastResume?.updated_at)}` : "Welcome \u2014 let\u2019s build your first CV.";
+  const subLine = lastTitle ? `${lastTitle} · ${timeAgo(lastResume?.updated_at)}` : "Welcome — let's build your first CV.";
 
   /* ─── Strength data for first CV ─── */
   const firstCv = lastResume?.cv_data || null;
@@ -249,12 +249,21 @@ export default function DashboardPage({
       .cvp2-mobile-topbar { display: flex !important; }
       .cvp2-mobile-tabs { display: flex !important; }
       .cvp2-wrapper { display: block !important; }
-      .cvp2-wrapper > main { padding: 16px 16px 72px !important; }
+      .cvp2-wrapper > main { padding: 20px 16px 80px !important; }
       .cvp2-two-col { grid-template-columns: 1fr !important; }
       .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr) !important; }
-      .cvp2-greeting { font-size: 20px !important; }
-      .cvp2-stats-val { font-size: 17px !important; }
-      .cvp2-hero-heading { font-size: 24px !important; }
+      .cvp2-greeting { font-size: 22px !important; }
+      .cvp2-stats-card { padding: 12px 14px !important; min-height: auto !important; }
+      .cvp2-stats-val { font-size: 18px !important; }
+      .cvp2-hero-heading { font-size: 26px !important; }
+      .cvp2-hero-sub { font-size: 14px !important; }
+      .cvp2-start-btn { padding: 16px 20px !important; }
+      .cvp2-start-btn-label { font-size: 13px !important; }
+      .cvp2-card { padding: 16px !important; }
+      .cvp2-cv-item { padding: 10px 0 !important; }
+      .cvp2-mobile-tabs { height: 58px !important; }
+      .cvp2-tab-icon { width: 20px !important; height: 20px !important; }
+      .cvp2-tab-label { font-size: 10px !important; }
     }
   `;
 
@@ -343,7 +352,7 @@ export default function DashboardPage({
               onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f0f0"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; }}
             >
-              {feedbackSent ? "Sent \u2713" : "Send feedback"}
+              {feedbackSent ? "Sent ✓" : "Send feedback"}
             </button>
             <div style={{ textAlign: "center", marginTop: 8 }}>
               <a
@@ -404,7 +413,7 @@ export default function DashboardPage({
         </aside>
 
         {/* ═══ MAIN CONTENT ═══ */}
-        <main style={{ background: "#0A0A0A", padding: 28, overflow: "auto", overflowX: "hidden" }}>
+        <main style={{ background: "#0A0A0A", padding: 28, overflow: "auto", overflowX: "hidden", minHeight: "calc(100vh - 180px)", display: "flex", flexDirection: "column" }}>
 
           {/* Mobile top bar */}
           <div
@@ -435,7 +444,7 @@ export default function DashboardPage({
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, flexWrap: "wrap", gap: 12 }}>
             <div>
-              <div className="cvp2-greeting" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em" }}>
+              <div className="cvp2-greeting" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px" }}>
                 {getGreeting()}, {getFirstName(user?.name)}.
               </div>
               <div style={{ fontSize: 12, color: "#2a2a2a", marginTop: 4 }}>{subLine}</div>
@@ -444,8 +453,8 @@ export default function DashboardPage({
               type="button"
               onClick={() => setNewCvChoiceOpen(true)}
               style={{
-                background: "#fff", color: "#000", border: "none", borderRadius: 20,
-                padding: "8px 16px", fontSize: 12, fontWeight: 700,
+                background: "#fff", color: "#000", border: "none", borderRadius: 10,
+                padding: "10px 20px", fontSize: 13, fontWeight: 700,
                 display: "flex", alignItems: "center", gap: 6,
                 cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
                 transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
@@ -460,42 +469,42 @@ export default function DashboardPage({
           </div>
 
           {/* ═══ STATS STRIP ═══ */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8, marginBottom: 12, marginTop: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8, marginBottom: 16, marginTop: 16 }}>
             {/* Card 1 — ATS Score */}
-            <div style={{
+            <div className="cvp2-stats-card" style={{
               background: "#111", border: "0.5px solid #1a1a1a",
-              borderRadius: "2px 2px 8px 8px", borderTop: "1.5px solid #FFB300",
-              padding: "11px 12px",
+              borderRadius: "2px 2px 10px 10px", borderTop: "1.5px solid #FFB300",
+              padding: "16px 20px", minHeight: 90,
             }}>
-              <div style={{ fontSize: 9, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 4 }}>ATS SCORE</div>
-              <div className="cvp2-stats-val" style={{ fontSize: 19, fontWeight: 700, color: "#FFB300" }}>
-                {resumeList.length > 0 ? firstStrength : "\u2014"}
+              <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>ATS SCORE</div>
+              <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#FFB300", letterSpacing: "-0.5px" }}>
+                {resumeList.length > 0 ? firstStrength : "—"}
               </div>
-              <div style={{ fontSize: 9, color: "#252525", marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: "#252525", marginTop: 4 }}>
                 {firstStrength > 0 ? "Target: 85+" : "Build a CV first"}
               </div>
             </div>
             {/* Card 2 — CVs Built */}
-            <div style={{
+            <div className="cvp2-stats-card" style={{
               background: "#111", border: "0.5px solid #1a1a1a",
-              borderRadius: "2px 2px 8px 8px",
-              padding: "11px 12px",
+              borderRadius: "2px 2px 10px 10px",
+              padding: "16px 20px", minHeight: 90,
             }}>
-              <div style={{ fontSize: 9, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 4 }}>CVS BUILT</div>
-              <div className="cvp2-stats-val" style={{ fontSize: 19, fontWeight: 700, color: "#ddd" }}>{resumeList.length}</div>
-              <div style={{ fontSize: 9, color: "#252525", marginTop: 2 }}>
+              <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>CVS BUILT</div>
+              <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#ddd", letterSpacing: "-0.5px" }}>{resumeList.length}</div>
+              <div style={{ fontSize: 11, color: "#252525", marginTop: 4 }}>
                 {resumeList.length > 0 ? "Last edited today" : "Start below"}
               </div>
             </div>
             {/* Card 3 — Plan */}
-            <div style={{
+            <div className="cvp2-stats-card" style={{
               background: "#111", border: "0.5px solid #1a1a1a",
-              borderRadius: "2px 2px 8px 8px",
-              padding: "11px 12px",
+              borderRadius: "2px 2px 10px 10px",
+              padding: "16px 20px", minHeight: 90,
             }}>
-              <div style={{ fontSize: 9, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 4 }}>PLAN</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#FFB300", marginTop: 4 }}>{planLabel}</div>
-              <div style={{ fontSize: 9, marginTop: 2 }}>
+              <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>PLAN</div>
+              <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#FFB300", letterSpacing: "-0.5px" }}>{planLabel}</div>
+              <div style={{ fontSize: 11, marginTop: 4 }}>
                 {isPaid ? (
                   <span style={{ color: "#1D9E75" }}>Active</span>
                 ) : (
@@ -506,7 +515,7 @@ export default function DashboardPage({
                     onClick={() => navigate("/pricing")}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/pricing"); }}
                   >
-                    Upgrade \u2192
+                    Upgrade →
                   </span>
                 )}
               </div>
@@ -517,16 +526,16 @@ export default function DashboardPage({
           {nudge && (
             <div style={{
               background: "#111", borderLeft: "2px solid #FFB300",
-              borderRadius: "0 8px 8px 0", padding: "10px 13px",
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 14,
+              borderRadius: "0 8px 8px 0", padding: "14px 18px",
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 18,
             }}>
               <div style={{ width: 5, height: 5, borderRadius: 999, background: "#FFB300", flexShrink: 0 }} />
-              <div style={{ fontSize: 11, color: "#555", lineHeight: 1.5, flex: 1 }}>{nudge.text}</div>
+              <div style={{ fontSize: 13, color: "#555", lineHeight: 1.5, flex: 1 }}>{nudge.text}</div>
               <button
                 type="button"
                 onClick={() => handleNudgeAction(nudge.action)}
                 style={{
-                  fontSize: 11, color: "#FFB300", fontWeight: 600,
+                  fontSize: 13, color: "#FFB300", fontWeight: 600,
                   background: "none", border: "none", cursor: "pointer",
                   fontFamily: "inherit", whiteSpace: "nowrap", padding: 0,
                   transition: `opacity 150ms ${EASE}`,
@@ -542,12 +551,12 @@ export default function DashboardPage({
           {/* ═══ RETURNING USER — two-col + templates ═══ */}
           {resumeList.length > 0 ? (
             <>
-              <div className="cvp2-two-col" style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+              <div className="cvp2-two-col" style={{ display: "grid", gap: 10, marginBottom: 18 }}>
 
                 {/* LEFT — MY CVS */}
-                <div style={{ background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10, padding: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, color: "#333", textTransform: "uppercase", letterSpacing: "0.07em" }}>MY CVS</div>
+                <div className="cvp2-card" style={{ background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, color: "#333", textTransform: "uppercase", letterSpacing: "0.07em" }}>MY CVS</div>
                     <span
                       role="button"
                       tabIndex={0}
@@ -569,30 +578,31 @@ export default function DashboardPage({
                         tabIndex={0}
                         onClick={() => onEditResume(r)}
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEditResume(r); }}
+                        className="cvp2-cv-item"
                         style={{
-                          display: "flex", alignItems: "center", gap: 10,
-                          padding: "8px 0",
+                          display: "flex", alignItems: "center", gap: 12,
+                          padding: "12px 0",
                           borderBottom: isLast ? "none" : "0.5px solid #141414",
                           cursor: "pointer",
                         }}
                       >
                         {/* Thumbnail */}
                         <div style={{
-                          width: 32, height: 40, background: "#141414",
-                          border: "0.5px solid #1e1e1e", borderRadius: 3,
-                          padding: "4px 3px", boxSizing: "border-box", flexShrink: 0,
+                          width: 38, height: 48, background: "#141414",
+                          border: "0.5px solid #1e1e1e", borderRadius: 4,
+                          padding: "6px 5px", boxSizing: "border-box", flexShrink: 0,
                         }}>
-                          <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, marginBottom: 3, width: "80%" }} />
-                          <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, marginBottom: 3, width: "60%" }} />
-                          <div style={{ height: 2, background: "#FFB300", borderRadius: 1, marginBottom: 3, width: "55%" }} />
+                          <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, marginBottom: 4, width: "80%" }} />
+                          <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, marginBottom: 4, width: "60%" }} />
+                          <div style={{ height: 2, background: "#FFB300", borderRadius: 1, marginBottom: 4, width: "55%" }} />
                           <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, width: "70%" }} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, fontWeight: 500, color: "#bbb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
-                          <div style={{ fontSize: 9, color: "#2a2a2a", marginTop: 1 }}>{timeAgo(r?.updated_at)}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#bbb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
+                          <div style={{ fontSize: 11, color: "#2a2a2a", marginTop: 2 }}>{timeAgo(r?.updated_at)}</div>
                         </div>
-                        <div style={{ fontSize: 11, fontWeight: 500, color: scoreColor(strength), flexShrink: 0 }}>
-                          {strength > 0 ? strength : "\u2014"}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: scoreColor(strength), flexShrink: 0 }}>
+                          {strength > 0 ? strength : "—"}
                         </div>
                       </div>
                     );
@@ -600,9 +610,9 @@ export default function DashboardPage({
                 </div>
 
                 {/* RIGHT — CV HEALTH */}
-                <div style={{ background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10, padding: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, color: "#333", textTransform: "uppercase", letterSpacing: "0.07em" }}>CV HEALTH</div>
+                <div className="cvp2-card" style={{ background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, color: "#333", textTransform: "uppercase", letterSpacing: "0.07em" }}>CV HEALTH</div>
                     <span
                       role="button"
                       tabIndex={0}
@@ -610,11 +620,11 @@ export default function DashboardPage({
                       onClick={() => onRunATS()}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onRunATS(); }}
                     >
-                      Full report \u2192
+                      Full report →
                     </span>
                   </div>
                   {healthBars ? (
-                    <div style={{ display: "grid", gap: 9 }}>
+                    <div style={{ display: "grid", gap: 14 }}>
                       {[
                         { label: "Keywords", value: healthBars.keywords, color: scoreColor(healthBars.keywords) },
                         { label: "Format", value: healthBars.format, color: scoreColor(healthBars.format) },
@@ -622,11 +632,11 @@ export default function DashboardPage({
                         { label: "Job Match", value: lastResume?.job_match_score ?? null, color: "#378ADD" },
                       ].map((bar) => (
                         <div key={bar.label}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                            <span style={{ fontSize: 10, color: "#444" }}>{bar.label}</span>
-                            <span style={{ fontSize: 10, color: "#555" }}>{bar.value != null ? bar.value : "\u2014"}</span>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                            <span style={{ fontSize: 12, color: "#444" }}>{bar.label}</span>
+                            <span style={{ fontSize: 12, color: "#555" }}>{bar.value != null ? bar.value : "—"}</span>
                           </div>
-                          <div style={{ height: 3, background: "#141414", borderRadius: 2 }}>
+                          <div style={{ height: 5, background: "#141414", borderRadius: 3 }}>
                             {bar.value != null && (
                               <div style={{
                                 height: "100%", borderRadius: 2,
@@ -658,7 +668,7 @@ export default function DashboardPage({
                     onClick={() => navigate("/templates")}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/templates"); }}
                   >
-                    View all \u2192
+                    View all →
                   </span>
                 </div>
                 <div className="cvp2-tpl-row" style={{ display: "grid", gap: 8 }}>
@@ -668,18 +678,22 @@ export default function DashboardPage({
                       type="button"
                       onClick={() => navigate("/builder", { state: { cvpInitialTemplateId: tpl.id } })}
                       style={{
-                        background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 8,
+                        background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10,
                         padding: 0, cursor: "pointer", overflow: "hidden",
                         transition: `border-color 150ms ${EASE}, transform 150ms ${EASE}`,
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1a1a1a"; e.currentTarget.style.transform = "translateY(0)"; }}
                     >
-                      <div style={{ height: 48, background: "#0e0e0e", position: "relative" }}>
-                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "#FFB300" }} />
+                      <div style={{ height: 72, background: "#0e0e0e", position: "relative", padding: "14px 16px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
+                        <div style={{ height: 2, background: "#FFB300", borderRadius: 1, width: "40%" }} />
+                        <div style={{ height: 2, background: "#1e1e1e", borderRadius: 1, width: "80%" }} />
+                        <div style={{ height: 2, background: "#1e1e1e", borderRadius: 1, width: "65%" }} />
+                        <div style={{ height: 2, background: "#1e1e1e", borderRadius: 1, width: "75%" }} />
                       </div>
-                      <div style={{ padding: "6px 8px" }}>
-                        <div style={{ fontSize: 10, color: "#666", fontWeight: 500 }}>{tpl.name}</div>
+                      <div style={{ padding: "10px 16px" }}>
+                        <div style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>{tpl.name}</div>
+                        <div style={{ fontSize: 10, color: "#333", marginTop: 2 }}>ATS-ready</div>
                       </div>
                     </button>
                   ))}
@@ -688,82 +702,85 @@ export default function DashboardPage({
             </>
           ) : (
             /* ═══ NEW USER STATE ═══ */
-            <div style={{ maxWidth: 380, margin: "60px auto 0", textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#333", marginBottom: 6 }}>Welcome to CVPassport</div>
-              <div className="cvp2-hero-heading" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 10 }}>
-                Your Gulf CV starts here.
-              </div>
-              <div style={{ fontSize: 14, color: "#444", lineHeight: 1.6, marginBottom: 28 }}>
-                The guide walks you through everything — no blank page, no confusion.
-              </div>
-              <button
-                type="button"
-                onClick={() => setNewCvChoiceOpen(true)}
-                style={{
-                  width: "100%", background: "#fff", color: "#000", border: "none",
-                  borderRadius: 12, padding: "14px 20px",
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  cursor: "pointer", fontFamily: "inherit",
-                  transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-              >
-                <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>Start guided experience</div>
-                  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>Recommended \u00b7 5 minutes</div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 60, textAlign: "center" }}>
+              <div style={{ maxWidth: 480, width: "100%" }}>
+                <div style={{ fontSize: 11, color: "#333", marginBottom: 8 }}>Welcome to CVPassport</div>
+                <div className="cvp2-hero-heading" style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 12 }}>
+                  Your Gulf CV starts here.
                 </div>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 999,
-                  background: "#000", color: "#fff",
-                  display: "grid", placeItems: "center",
-                }}>
-                  <IconArrowRight size={14} />
+                <div className="cvp2-hero-sub" style={{ fontSize: 15, color: "#444", lineHeight: 1.7, marginBottom: 32, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
+                  The guide walks you through everything — no blank page, no confusion.
                 </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/builder?tab=templates")}
-                style={{
-                  width: "100%", background: "transparent", color: "#fff",
-                  border: "1px solid #1a1a1a", borderRadius: 12, padding: "12px 20px",
-                  fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                  marginTop: 10,
-                  transition: `background 150ms ${EASE}, transform 150ms ${EASE}`,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#0e0e0e"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-              >
-                Browse templates instead
-              </button>
-              <div style={{ marginTop: 28, display: "grid", gap: 12, textAlign: "left" }}>
-                {[
-                  "Answer questions \u2014 your CV fills itself",
-                  "ATS scan \u2014 instant Gulf market score",
-                  "Download \u2014 PDF ready to send",
-                ].map((text, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: 999, background: "#0e0e0e",
-                      display: "grid", placeItems: "center",
-                      fontSize: 10, fontWeight: 700, color: "#555", flexShrink: 0,
-                    }}>
-                      {i + 1}
-                    </div>
-                    <span style={{ fontSize: 12, color: "#333" }}>{text}</span>
+                <button
+                  type="button"
+                  className="cvp2-start-btn"
+                  onClick={() => setNewCvChoiceOpen(true)}
+                  style={{
+                    maxWidth: 480, width: "100%", background: "#fff", color: "#000", border: "none",
+                    borderRadius: 14, padding: "18px 24px",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                  onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+                  onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                >
+                  <div style={{ textAlign: "left" }}>
+                    <div className="cvp2-start-btn-label" style={{ fontSize: 14, fontWeight: 700 }}>Start guided experience</div>
+                    <div style={{ fontSize: 11, color: "#666", marginTop: 3 }}>Recommended · 5 minutes</div>
                   </div>
-                ))}
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 999,
+                    background: "#000", color: "#fff",
+                    display: "grid", placeItems: "center",
+                  }}>
+                    <IconArrowRight size={14} />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/builder?tab=templates")}
+                  style={{
+                    maxWidth: 480, width: "100%", background: "transparent", color: "#fff",
+                    border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 24px",
+                    fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    marginTop: 10,
+                    transition: `background 150ms ${EASE}, transform 150ms ${EASE}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#0e0e0e"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+                  onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                >
+                  Browse templates instead
+                </button>
+                <div style={{ marginTop: 32, display: "grid", gap: 10, textAlign: "left" }}>
+                  {[
+                    "Answer questions — your CV fills itself",
+                    "ATS scan — instant Gulf market score",
+                    "Download — PDF ready to send",
+                  ].map((text, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: 999, background: "#0e0e0e",
+                        display: "grid", placeItems: "center",
+                        fontSize: 10, fontWeight: 700, color: "#555", flexShrink: 0,
+                      }}>
+                        {i + 1}
+                      </div>
+                      <span style={{ fontSize: 13, color: "#333" }}>{text}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {/* Mobile feedback */}
           <div className="cvp2-mobile-topbar" style={{ display: "none", justifyContent: "center", fontSize: 10, color: "#1a1a1a", padding: 12, marginTop: 24 }}>
-            feedback \u00b7 <a href="mailto:support@mycvpassport.com" style={{ color: "inherit", textDecoration: "none", marginLeft: 4 }}>support@mycvpassport.com</a>
+            feedback · <a href="mailto:support@mycvpassport.com" style={{ color: "inherit", textDecoration: "none", marginLeft: 4 }}>support@mycvpassport.com</a>
           </div>
 
           <FAB tabKey={fabRouteTab} />
@@ -795,10 +812,10 @@ export default function DashboardPage({
                 gap: 3, padding: "8px 6px", cursor: "pointer", fontFamily: "inherit",
               }}
             >
-              <span style={{ display: "flex", color: isAct ? "#FFB300" : "#333" }}>
-                <Icon size={16} />
+              <span className="cvp2-tab-icon" style={{ display: "flex", color: isAct ? "#FFB300" : "#333", width: 20, height: 20 }}>
+                <Icon size={20} />
               </span>
-              <span style={{ fontSize: 9, color: isAct ? "#FFB300" : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
+              <span className="cvp2-tab-label" style={{ fontSize: 9, color: isAct ? "#FFB300" : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
             </button>
           );
         })}
@@ -841,7 +858,7 @@ export default function DashboardPage({
               onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             >
               <span style={{ display: "block" }}>Guide me through it</span>
-              <span style={{ display: "block", fontSize: 11, opacity: 0.7, fontWeight: 600, marginTop: 4 }}>Step-by-step \u00b7 Recommended for new users</span>
+              <span style={{ display: "block", fontSize: 11, opacity: 0.7, fontWeight: 600, marginTop: 4 }}>Step-by-step · Recommended for new users</span>
             </button>
             <button
               type="button"
@@ -861,7 +878,7 @@ export default function DashboardPage({
                 <span style={{ color: "#fff", fontSize: 15, fontWeight: 600 }}>Co-pilot mode</span>
                 <span style={{ fontSize: 9, background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "2px 6px", marginLeft: 8, fontWeight: 600 }}>SOON</span>
               </span>
-              <div style={{ color: "#606060", fontSize: 11, marginTop: 4, fontWeight: 400 }}>AI assistant \u00b7 Coming soon</div>
+              <div style={{ color: "#606060", fontSize: 11, marginTop: 4, fontWeight: 400 }}>AI assistant · Coming soon</div>
             </button>
             {showTease && (
               <p style={{ fontSize: 12, color: "#A0A0A0", textAlign: "center", marginTop: 12 }}>
@@ -919,7 +936,7 @@ export default function DashboardPage({
               <div style={{ fontSize: 11, color: isPaid ? "#1D9E75" : "#555", marginTop: 4 }}>
                 {isPaid
                   ? "Unlimited everything"
-                  : "Limited features \u00b7 Upgrade to unlock all"
+                  : "Limited features · Upgrade to unlock all"
                 }
               </div>
             </div>
@@ -942,7 +959,7 @@ export default function DashboardPage({
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                     >
-                      Upgrade to Active Hunter \u2014 AED 29/mo \u2192
+                      Upgrade to Active Hunter — AED 29/mo →
                     </a>
                     <button
                       type="button"
@@ -958,7 +975,7 @@ export default function DashboardPage({
                       onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
                       onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                     >
-                      View all plans \u2192
+                      View all plans →
                     </button>
                   </>
                 ) : (
@@ -977,7 +994,7 @@ export default function DashboardPage({
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                     >
-                      Upgrade to Career Pro \u2014 AED 199/yr \u2192
+                      Upgrade to Career Pro — AED 199/yr →
                     </a>
                     <div style={{ height: 1, background: "#1a1a1a", margin: "4px 0 8px" }} />
                     <button
