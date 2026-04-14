@@ -321,17 +321,17 @@ export default function DashboardPage({
           {/* Section 3 — Bottom (feedback + user + signout) */}
           <div style={{ flexShrink: 0, padding: 12 }}>
             {/* Feedback panel */}
-            <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: "#666", letterSpacing: "0.02em", marginBottom: 2 }}>Help us improve</div>
-              <div style={{ fontSize: 10, fontWeight: 400, color: "#333", marginBottom: 8 }}>What would make CVPassport better?</div>
+            <div style={{ background: "#111111", border: "1px solid #1a1a1a", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "#888", letterSpacing: "0.05em", textTransform: "uppercase" }}>Help us improve</div>
+              <div style={{ fontSize: 12, fontWeight: 400, color: "#555" }}>What would make CVPassport better?</div>
               <textarea
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
                 placeholder="Your thoughts..."
                 style={{
-                  width: "100%", background: "#0e0e0e", border: "1px solid #222",
-                  borderRadius: 6, padding: "7px 9px", fontSize: 10, color: "#aaa",
-                  fontFamily: "inherit", resize: "none", height: 52, boxSizing: "border-box", outline: "none",
+                  width: "100%", background: "#0a0a0a", border: "1px solid #222",
+                  borderRadius: 6, padding: "10px 12px", fontSize: 13, color: "#ccc",
+                  fontFamily: "inherit", resize: "none", height: 82, boxSizing: "border-box", outline: "none",
                 }}
               />
               <button
@@ -339,8 +339,8 @@ export default function DashboardPage({
                 onClick={handleFeedbackSend}
                 style={{
                   width: "100%", background: "#ffffff", border: "none", color: "#000000",
-                  borderRadius: 6, padding: 8, fontSize: 11, fontWeight: 600,
-                  cursor: "pointer", marginTop: 6, fontFamily: "inherit",
+                  borderRadius: 6, padding: 10, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
                   transition: `background 150ms ${EASE}`,
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f0f0"; }}
@@ -348,7 +348,7 @@ export default function DashboardPage({
               >
                 {feedbackSent ? "Sent ✓" : "Send feedback"}
               </button>
-              <div style={{ textAlign: "center", marginTop: 8 }}>
+              <div style={{ textAlign: "center", marginTop: 4 }}>
                 <a
                   href="mailto:support@mycvpassport.com"
                   style={{ fontSize: 10, color: "#333", textDecoration: "none", transition: `color 150ms ${EASE}` }}
