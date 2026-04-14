@@ -150,6 +150,9 @@ function AuthPage({
 }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [userType, setUserType] = useState("candidate");
+  const [workEmail, setWorkEmail] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [loginUiSuccess, setLoginUiSuccess] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -205,7 +208,14 @@ function AuthPage({
     const password = passwordRef.current?.value ?? form.password;
     const name = (nameRef.current?.value ?? form.name).trim();
     const result = await onAuth(
-      { name: name || (email || "").split("@")[0] || "", email, password },
+      {
+        name: name || (email || "").split("@")[0] || "",
+        email,
+        password,
+        userType: mode === "signup" ? userType : undefined,
+        workEmail: mode === "signup" && userType === "recruiter" ? workEmail : undefined,
+        companyName: mode === "signup" && userType === "recruiter" ? companyName : undefined,
+      },
       mode,
     );
     if (result?.loginShowSuccess && mode === "login") {
@@ -682,17 +692,91 @@ function AuthPage({
                   </button>
                 </div>
                 {mode === "signup" ? (
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      color: form.password.length >= 8 ? "#22C55E" : "#A0A0A0",
-                      marginTop: "6px",
-                      marginBottom: 0,
-                      fontFamily: AUTH_FONT,
-                    }}
-                  >
-                    At least 8 characters
-                  </p>
+                  <>
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: form.password.length >= 8 ? "#22C55E" : "#A0A0A0",
+                        marginTop: "6px",
+                        marginBottom: 0,
+                        fontFamily: AUTH_FONT,
+                      }}
+                    >
+                      At least 8 characters
+                    </p>
+                    {/* Role selector */}
+                    <div style={{ marginTop: "16px" }}>
+                      <label style={authLabelStyle}>I am</label>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          type="button"
+                          onClick={() => setUserType("candidate")}
+                          style={{
+                            flex: 1,
+                            padding: "10px 8px",
+                            borderRadius: "10px",
+                            border: userType === "candidate" ? "2px solid #F59E0B" : "1px solid #2A2A2A",
+                            background: userType === "candidate" ? "rgba(245,158,11,0.1)" : "transparent",
+                            color: userType === "candidate" ? "#F59E0B" : "#A0A0A0",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: AUTH_FONT,
+                            transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)",
+                          }}
+                        >
+                          I&apos;m looking for my next role
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUserType("recruiter")}
+                          style={{
+                            flex: 1,
+                            padding: "10px 8px",
+                            borderRadius: "10px",
+                            border: userType === "recruiter" ? "2px solid #F59E0B" : "1px solid #2A2A2A",
+                            background: userType === "recruiter" ? "rgba(245,158,11,0.1)" : "transparent",
+                            color: userType === "recruiter" ? "#F59E0B" : "#A0A0A0",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: AUTH_FONT,
+                            transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)",
+                          }}
+                        >
+                          I&apos;m hiring &amp; managing talent
+                        </button>
+                      </div>
+                    </div>
+                    {/* Recruiter extra fields */}
+                    {userType === "recruiter" ? (
+                      <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                        <div>
+                          <label style={authLabelStyle} htmlFor="cvp-auth-work-email">Work email</label>
+                          <input
+                            id="cvp-auth-work-email"
+                            className="cvp-auth-field"
+                            style={authInputStyle}
+                            type="email"
+                            placeholder="work@company.com"
+                            value={workEmail}
+                            onChange={(e) => setWorkEmail(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label style={authLabelStyle} htmlFor="cvp-auth-company">Company name</label>
+                          <input
+                            id="cvp-auth-company"
+                            className="cvp-auth-field"
+                            style={authInputStyle}
+                            placeholder="Your company"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <div style={{ textAlign: "right", marginTop: "8px", marginBottom: "24px" }}>
                     <button

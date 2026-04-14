@@ -124,7 +124,7 @@ export function useCvpAuth() {
       navigate("/dashboard", { replace: true });
       return;
     }
-    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates"].includes(clean)) {
+    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates", "/hr", "/dashboard/applications"].includes(clean) && !clean.startsWith("/jobs/")) {
       navigate("/dashboard", { replace: true });
     }
   }, [authReady, user, location.pathname, navigate]);
@@ -162,10 +162,20 @@ export function useCvpAuth() {
         }
         if (data.session && data.user) {
           await ensureProfileRow(data.user);
+          // Store user_type and company_name for recruiter signups
+          if (trimmed.userType) {
+            const profileUpdate = { user_type: trimmed.userType };
+            if (trimmed.userType === "recruiter") {
+              if (trimmed.workEmail) profileUpdate.work_email = trimmed.workEmail;
+              if (trimmed.companyName) profileUpdate.company_name = trimmed.companyName;
+            }
+            await supabase.from("profiles").update(profileUpdate).eq("id", data.user.id);
+          }
           setUser({ name: trimmed.name || extractName(data.user), email: data.user.email, id: data.user.id });
           setIsPro(false);
           setPendingVerificationEmail(null);
-          navigate("/dashboard", { replace: true });
+          const dest = trimmed.userType === "recruiter" ? "/hr" : "/dashboard";
+          navigate(dest, { replace: true });
           return { ok: true };
         }
         if (data.user && !data.session) {

@@ -18,6 +18,9 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import ResetPassword from "./pages/ResetPassword";
+import HRPortal from "./pages/HRPortal";
+import JobPage from "./pages/JobPage";
+import ApplicationsPage from "./pages/ApplicationsPage";
 import MobileTabBar from "./components/MobileTabBar";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
@@ -105,6 +108,8 @@ export default function App() {
     <Routes>
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
+      <Route path="/hr" element={<HRPortal />} />
+      <Route path="/jobs/:jobId" element={<JobPage />} />
       <Route
         path="*"
         element={
@@ -219,6 +224,7 @@ export default function App() {
               <Route path="/templates" element={<TemplatesBrowseLayout />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/dashboard/applications" element={user ? <ApplicationsPage /> : <Navigate to="/auth" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} fabGuideTab={location.state?.fabGuideTab} />
