@@ -278,11 +278,11 @@ export default function Dashboard({
 
   /* ─── Nav items ─── */
   const navItems = [
-    { id: "mycvs", label: "My CVs", icon: IconGrid, action: () => setActive("mycvs") },
-    { id: "ats", label: "ATS Check", icon: IconTarget, action: () => { setActive("ats"); onRunATS(); } },
-    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
-    { id: "walkin", label: "Walk-In Mode", icon: IconBolt, action: () => { setActive("walkin"); onWalkIn(); } },
-    { id: "templates", label: "Templates", icon: IconTable, action: () => { setActive("templates"); onTemplates(); } },
+    { id: "mycvs", label: "My CVs", icon: IconGrid, iconColor: "#ffffff", action: () => setActive("mycvs") },
+    { id: "ats", label: "ATS Check", icon: IconTarget, iconColor: "#1D9E75", action: () => { setActive("ats"); onRunATS(); } },
+    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: "#D97706", action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
+    { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: "#D85A30", action: () => { setActive("walkin"); onWalkIn(); } },
+    { id: "templates", label: "Templates", icon: IconTable, iconColor: "#378ADD", action: () => { setActive("templates"); onTemplates(); } },
     // { id: 'jobs', label: 'CVPassport Jobs', icon: IconBriefcase, action: () => navigate('/jobs'), badge: 'Soon' }
     // Uncomment when /jobs route is built
   ];
@@ -361,12 +361,28 @@ export default function Dashboard({
                     fontFamily: "inherit",
                     transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
                   }}
-                  onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "#0a0a0a"; e.currentTarget.style.color = "#666"; } }}
-                  onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#3a3a3a"; } }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "#0a0a0a";
+                      e.currentTarget.style.color = "#888";
+                      const iconEl = e.currentTarget.querySelector("[data-nav-icon]");
+                      if (iconEl) iconEl.style.opacity = "1";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#3a3a3a";
+                      const iconEl = e.currentTarget.querySelector("[data-nav-icon]");
+                      if (iconEl) iconEl.style.opacity = "0.4";
+                    }
+                  }}
                   onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
                   onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                 >
-                  <Icon size={13} />
+                  <span data-nav-icon style={{ display: "flex", color: it.iconColor, opacity: isActive ? 1 : 0.4, transition: `opacity 150ms ${EASE}` }}>
+                    <Icon size={13} />
+                  </span>
                   <span>{it.label}</span>
                 </button>
               );
@@ -378,8 +394,8 @@ export default function Dashboard({
             marginTop: 24,
             background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: 12,
           }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#888", marginBottom: 2 }}>Help us improve</div>
-            <div style={{ fontSize: 10, color: "#444", marginBottom: 8 }}>What would make CVPassport better?</div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: "#666", letterSpacing: "0.02em", marginBottom: 2 }}>Help us improve</div>
+            <div style={{ fontSize: 10, fontWeight: 400, color: "#333", marginBottom: 8 }}>What would make CVPassport better?</div>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
@@ -395,14 +411,13 @@ export default function Dashboard({
               type="button"
               onClick={handleFeedbackSend}
               style={{
-                width: "100%", background: "#141414", border: "1px solid #222",
-                color: "#888", borderRadius: 6, padding: 7, fontSize: 10, fontWeight: 600,
+                width: "100%", background: "#ffffff", border: "none",
+                color: "#000000", borderRadius: 6, padding: 8, fontSize: 11, fontWeight: 600,
                 cursor: "pointer", marginTop: 6, fontFamily: "inherit",
-                animation: "cvp-pulse-feedback 2.5s ease-in-out infinite",
                 transition: `background 150ms ${EASE}`,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#1a1a1a"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#141414"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f0f0"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; }}
               onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
               onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             >

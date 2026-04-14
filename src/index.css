@@ -1245,6 +1245,12 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   background: #0A0A0A;
 }
 
+/* CV Builder template dropdown — option styling */
+.cvp-builder-topbar-template option {
+  background: #141414;
+  color: #ffffff;
+}
+
 /* CV Builder top bar — mobile: hide template, Save, and Download */
 @media (max-width: 768px) {
   .cvp-builder-topbar-template,
