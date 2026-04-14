@@ -121,7 +121,19 @@ export function useCvpAuth() {
     const clean = location.pathname.replace(/\/$/, "") || "/";
     if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) return;
     if (clean === "/auth" || clean === "/register") {
-      navigate("/dashboard", { replace: true });
+      // Route based on user_type from profile
+      (async () => {
+        let dest = "/dashboard";
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", user.id)
+            .single();
+          if (prof?.user_type === "recruiter") dest = "/hr";
+        } catch { /* default to /dashboard */ }
+        navigate(dest, { replace: true });
+      })();
       return;
     }
     if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates", "/hr", "/dashboard/applications"].includes(clean) && !clean.startsWith("/jobs/")) {

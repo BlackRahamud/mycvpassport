@@ -764,7 +764,7 @@ function NotificationsView({ notifications, onMarkAllRead, onClickNotification }
 }
 
 // ─── SETTINGS VIEW ───────────────────────────────────────────────
-function SettingsView({ profile, onSave }) {
+function SettingsView({ profile, onSave, onNavigate }) {
   const [form, setForm] = useState({
     company_name: profile?.company_name || "",
     work_email: profile?.work_email || profile?.email || "",
@@ -875,10 +875,21 @@ function SettingsView({ profile, onSave }) {
         Save changes
       </button>
 
-      <div style={{ marginTop: 24, borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
-        <a href="/dashboard" style={{ fontSize: 12, color: T.muted, textDecoration: "none", fontFamily: T.font }}>
-          Looking for a job? Switch account
-        </a>
+      <div style={{ marginTop: 24, borderTop: `1px solid ${T.border}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 6 }}>
+        <button
+          type="button"
+          onClick={() => onNavigate("/dashboard")}
+          style={{ fontSize: 12, color: "#555", cursor: "pointer", fontFamily: T.font, background: "none", border: "none", textAlign: "left", padding: 0 }}
+        >
+          Switch to Candidate
+        </button>
+        <button
+          type="button"
+          onClick={async () => { if (supabase) await supabase.auth.signOut(); onNavigate("/"); }}
+          style={{ fontSize: 12, color: "rgba(160,158,152,0.4)", cursor: "pointer", fontFamily: T.font, background: "none", border: "none", textAlign: "left", padding: 0 }}
+        >
+          Sign out
+        </button>
       </div>
     </div>
   );
@@ -1124,6 +1135,7 @@ export default function HRPortal() {
     <div style={{ display: "flex", minHeight: "100vh", background: T.bg, fontFamily: T.font }}>
       {/* ─── SIDEBAR ──────────────────────────────── */}
       <aside
+        className="cvp-hr-sidebar"
         style={{
           width: SIDEBAR_W,
           background: T.surface,
@@ -1210,16 +1222,24 @@ export default function HRPortal() {
             {hrProfile?.work_email || user?.email || ""}
           </p>
         </div>
-        <a
-          href="/dashboard"
-          style={{ fontSize: 10, color: T.muted, textDecoration: "none", marginTop: 10, padding: "0 4px", fontFamily: T.font }}
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard")}
+          style={{ fontSize: 12, color: "#555", cursor: "pointer", marginTop: 10, padding: "0 4px", fontFamily: T.font, background: "none", border: "none", textAlign: "left" }}
         >
-          Looking for a job? Switch account
-        </a>
+          Switch to Candidate
+        </button>
+        <button
+          type="button"
+          onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
+          style={{ fontSize: 12, color: "rgba(160,158,152,0.4)", cursor: "pointer", marginTop: 4, padding: "0 4px", fontFamily: T.font, background: "none", border: "none", textAlign: "left" }}
+        >
+          Sign out
+        </button>
       </aside>
 
       {/* ─── MAIN CONTENT ─────────────────────────── */}
-      <main style={{ flex: 1, minWidth: 0, padding: 24 }}>
+      <main className="cvp-hr-main" style={{ flex: 1, minWidth: 0, padding: 24 }}>
         {activeNav === "jobs" && (
           <>
             {/* Topbar */}
@@ -1550,7 +1570,7 @@ export default function HRPortal() {
         )}
 
         {activeNav === "settings" && (
-          <SettingsView profile={hrProfile} onSave={handleSaveSettings} />
+          <SettingsView profile={hrProfile} onSave={handleSaveSettings} onNavigate={navigate} />
         )}
       </main>
 
@@ -1576,6 +1596,55 @@ export default function HRPortal() {
       )}
 
       <PostJobModal open={showPostJob} onClose={() => setShowPostJob(false)} onSubmit={handlePostJob} />
+
+      {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
+      <div
+        className="cvp-hr-tab-bar"
+        style={{
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          height: 58, background: "#0e0e0e",
+          borderTop: "0.5px solid #1a1a1a",
+          alignItems: "center", justifyContent: "space-around",
+          zIndex: 200, boxSizing: "border-box",
+        }}
+      >
+        {navItems.map((item) => {
+          const isAct = activeNav === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setActiveNav(item.key)}
+              style={{
+                background: "transparent", border: "none",
+                minHeight: 44, minWidth: 44,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 3, cursor: "pointer", fontFamily: "inherit",
+                color: isAct ? "#6366f1" : "#333",
+              }}
+            >
+              <span style={{ display: "flex", width: 20, height: 20 }}>{item.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>{item.label}</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
+          style={{
+            background: "transparent", border: "none",
+            minHeight: 44, minWidth: 44,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            gap: 3, cursor: "pointer", fontFamily: "inherit",
+            color: "rgba(160,158,152,0.3)",
+          }}
+        >
+          <span style={{ display: "flex", width: 20, height: 20 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1 }}>Sign out</span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -1647,3 +1647,24 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     display: none !important;
   }
 }
+
+/* === MOBILE HR PORTAL === */
+@media (max-width: 1023px) {
+  .cvp-hr-sidebar {
+    display: none !important;
+  }
+  .cvp-hr-main {
+    margin-left: 0 !important;
+    padding: 16px 16px 80px !important;
+    width: 100% !important;
+  }
+  .cvp-hr-tab-bar {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cvp-hr-tab-bar {
+    display: none !important;
+  }
+}

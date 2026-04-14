@@ -1372,41 +1372,67 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             {/* Auth section */}
             <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {user ? (
-                <button
-                  onClick={() => { closeMobileMenu(); navigate(avatarDest); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    background: 'none',
-                    border: `1px solid ${T.border}`,
-                    color: T.textPrimary,
-                    borderRadius: 10,
-                    padding: 13,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <span style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    background: '#1a1a1a',
-                    border: '1px solid rgba(255,179,0,0.3)',
-                    color: '#FFB300',
-                    fontSize: 11,
-                    fontWeight: 500,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    {userInitials}
-                  </span>
-                  Go to {userType === 'recruiter' ? 'Hiring Portal' : 'Dashboard'}
-                </button>
+                <>
+                  <button
+                    onClick={() => { closeMobileMenu(); navigate(avatarDest); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      background: 'none',
+                      border: `1px solid ${T.border}`,
+                      color: T.textPrimary,
+                      borderRadius: 10,
+                      padding: 13,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      background: '#1a1a1a',
+                      border: '1px solid rgba(255,179,0,0.3)',
+                      color: '#FFB300',
+                      fontSize: 11,
+                      fontWeight: 500,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      {userInitials}
+                    </span>
+                    Go to {userType === 'recruiter' ? 'Hiring Portal' : 'Dashboard'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      closeMobileMenu();
+                      if (supabase) await supabase.auth.signOut();
+                      navigate('/');
+                    }}
+                    style={{
+                      padding: '16px 0',
+                      borderTop: '0.5px solid #1a1a1a',
+                      fontSize: 14,
+                      color: 'rgba(160,158,152,0.5)',
+                      cursor: 'pointer',
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      borderTopStyle: 'solid',
+                      borderTopWidth: '0.5px',
+                      borderTopColor: '#1a1a1a',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Sign out
+                  </button>
+                </>
               ) : (
                 <>
                   <button

@@ -796,7 +796,7 @@ export default function DashboardPage({
         onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
         style={{
           position: "fixed", bottom: 64, right: 16,
-          fontSize: 11, color: "rgba(160,158,152,0.4)",
+          fontSize: 11, color: "rgba(120,118,112,0.4)",
           cursor: "pointer", zIndex: 201,
           background: "none", border: "none", fontFamily: "inherit",
           padding: 0,
