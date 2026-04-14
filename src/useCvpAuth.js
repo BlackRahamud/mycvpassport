@@ -170,6 +170,14 @@ export function useCvpAuth() {
               if (trimmed.companyName) profileUpdate.company_name = trimmed.companyName;
             }
             await supabase.from("profiles").update(profileUpdate).eq("id", data.user.id);
+            // Also create hr_profiles row for recruiters
+            if (trimmed.userType === "recruiter" && trimmed.companyName) {
+              await supabase.from("hr_profiles").upsert({
+                user_id: data.user.id,
+                company_name: trimmed.companyName,
+                work_email: trimmed.workEmail || "",
+              }, { onConflict: "user_id", ignoreDuplicates: true });
+            }
           }
           setUser({ name: trimmed.name || extractName(data.user), email: data.user.email, id: data.user.id });
           setIsPro(false);

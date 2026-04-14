@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../appSupabaseClient";
 import CVPassportLogo from "../components/CVPassportLogo";
 
-// ─── DESIGN TOKENS (Public page — no purple on candidate side) ───
+// ─── DESIGN TOKENS (Public page) ─────────────────────────────────
 const T = {
   bg: "#0A0A0A",
   surface: "#141414",
@@ -17,9 +17,13 @@ const T = {
   font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
 
-function hiringStatus(createdAt) {
-  if (!createdAt) return { color: T.muted, label: "Unknown" };
-  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
+function getHiringStatus(postedAt, hiringStatus) {
+  if (hiringStatus === "closed")
+    return { color: T.muted, label: "Applications closed" };
+  if (!postedAt) return { color: T.muted, label: "Unknown" };
+  const days = Math.floor(
+    (Date.now() - new Date(postedAt).getTime()) / 86400000
+  );
   if (days <= 7) return { color: T.green, label: "Actively hiring" };
   if (days <= 21) return { color: T.amber, label: "Few spots left" };
   return { color: T.muted, label: "Applications closing soon" };
@@ -96,6 +100,30 @@ function ApplyForm({ job, user }) {
     cv_filename: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [existingApp, setExistingApp] = useState(null);
+  const [cooldownDays, setCooldownDays] = useState(null);
+
+  // Check if user already applied + cooldown
+  useEffect(() => {
+    if (!supabase || !user?.id || !job?.id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("applications")
+        .select("id, cooldown_expires_at, applied_at")
+        .eq("candidate_id", user.id)
+        .eq("job_id", job.id)
+        .maybeSingle();
+      if (data) {
+        setExistingApp(data);
+        if (data.cooldown_expires_at && new Date(data.cooldown_expires_at) > new Date()) {
+          const remaining = Math.ceil(
+            (new Date(data.cooldown_expires_at).getTime() - Date.now()) / 86400000
+          );
+          setCooldownDays(remaining);
+        }
+      }
+    })();
+  }, [user?.id, job?.id]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -129,24 +157,69 @@ function ApplyForm({ job, user }) {
       ? !form.cv_file || !form.visa_status
       : false;
 
-  const handleSubmit = async () => {
+  const submitApplication = async (isEasyApply) => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      if (supabase) {
-        await supabase.from("applications").insert({
+      if (!supabase) { setStep(3); return; }
+      const cooldownDate = new Date();
+      cooldownDate.setDate(cooldownDate.getDate() + 7);
+
+      const candidateName = isEasyApply
+        ? (user.user_metadata?.name || user.email?.split("@")[0] || "")
+        : `${form.first_name} ${form.last_name}`;
+
+      const appData = {
+        candidate_id: user?.id || null,
+        job_id: job.id,
+        hr_id: job.hr_id,
+        ats_score: 0,
+        match_keywords: [],
+        missing_keywords: [],
+        is_visible_to_hr: true,
+        cooldown_expires_at: cooldownDate.toISOString(),
+        status: "submitted",
+        candidate_name: candidateName,
+        candidate_email: isEasyApply ? user.email : form.email,
+        candidate_phone: form.phone,
+        visa_status: form.visa_status || (isEasyApply ? "Own visa" : ""),
+        applied_at: new Date().toISOString(),
+      };
+
+      // Upsert handles reapply after cooldown
+      if (existingApp && !cooldownDays) {
+        await supabase
+          .from("applications")
+          .update(appData)
+          .eq("id", existingApp.id);
+      } else if (!existingApp) {
+        await supabase.from("applications").insert(appData);
+      }
+
+      // Notify HR
+      await supabase.from("hr_notifications").insert({
+        hr_id: job.hr_id,
+        candidate_id: user?.id || null,
+        job_id: job.id,
+        title: `New applicant — ${candidateName}`,
+        body: `Applied for ${job.title}`,
+        type: "new_application",
+      });
+
+      // Insert candidate event
+      if (user?.id) {
+        await supabase.from("candidate_events").insert({
+          candidate_id: user.id,
           job_id: job.id,
-          first_name: form.first_name,
-          last_name: form.last_name,
-          name: `${form.first_name} ${form.last_name}`,
-          email: form.email,
-          phone: form.phone,
-          visa_status: form.visa_status,
-          status: "New",
-          applied_at: new Date().toISOString(),
-          apply_method: user ? "easy_apply" : "manual",
+          hr_id: job.hr_id,
+          event_type: existingApp ? "reapplied" : "applied",
+          metadata: {
+            source: isEasyApply ? "easy_apply" : "manual",
+            visa_status: form.visa_status,
+          },
         });
       }
+
       setStep(3);
     } catch (err) {
       console.error("Apply error:", err);
@@ -155,32 +228,28 @@ function ApplyForm({ job, user }) {
     }
   };
 
-  const handleEasyApply = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      if (supabase) {
-        await supabase.from("applications").insert({
-          job_id: job.id,
-          user_id: user.id,
-          first_name: user.user_metadata?.name?.split(" ")[0] || "",
-          last_name: user.user_metadata?.name?.split(" ").slice(1).join(" ") || "",
-          name: user.user_metadata?.name || user.email?.split("@")[0] || "",
-          email: user.email,
-          phone: form.phone,
-          visa_status: form.visa_status || "Own visa",
-          status: "New",
-          applied_at: new Date().toISOString(),
-          apply_method: "easy_apply",
-        });
-      }
-      setStep(3);
-    } catch (err) {
-      console.error("Easy apply error:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // Show cooldown state
+  if (cooldownDays) {
+    return (
+      <div
+        style={{
+          background: T.surface,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          padding: 24,
+          marginTop: 20,
+          textAlign: "center",
+        }}
+      >
+        <p style={{ fontSize: 14, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>
+          Applied {daysAgo(existingApp?.applied_at)}
+        </p>
+        <p style={{ fontSize: 12, color: T.muted, margin: 0, fontFamily: T.font }}>
+          You can reapply in {cooldownDays} day{cooldownDays !== 1 ? "s" : ""}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -247,7 +316,7 @@ function ApplyForm({ job, user }) {
             <div style={{ marginBottom: 16 }}>
               <button
                 type="button"
-                onClick={handleEasyApply}
+                onClick={() => submitApplication(true)}
                 disabled={submitting}
                 style={{
                   width: "100%",
@@ -282,7 +351,7 @@ function ApplyForm({ job, user }) {
           <div
             style={{
               background: "rgba(99,91,255,0.08)",
-              border: `1px solid rgba(99,91,255,0.2)`,
+              border: "1px solid rgba(99,91,255,0.2)",
               borderRadius: 10,
               padding: "12px 16px",
               marginBottom: 16,
@@ -366,7 +435,7 @@ function ApplyForm({ job, user }) {
             <button
               type="button"
               disabled={btnDisabled || submitting}
-              onClick={handleSubmit}
+              onClick={() => submitApplication(false)}
               style={{
                 flex: 1,
                 padding: "12px",
@@ -416,7 +485,7 @@ function ApplyForm({ job, user }) {
           <div
             style={{
               background: "rgba(99,91,255,0.08)",
-              border: `1px solid rgba(99,91,255,0.2)`,
+              border: "1px solid rgba(99,91,255,0.2)",
               borderRadius: 12,
               padding: "16px 20px",
               marginBottom: 16,
@@ -459,7 +528,6 @@ export default function JobPage() {
 
   useEffect(() => {
     if (!supabase) return;
-    // Check if user is logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
     });
@@ -468,9 +536,18 @@ export default function JobPage() {
   useEffect(() => {
     if (!supabase || !jobId) return;
     (async () => {
-      const { data } = await supabase.from("jobs").select("*").eq("id", jobId).single();
+      const { data } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", jobId)
+        .eq("status", "published")
+        .single();
       setJob(data || null);
       setLoading(false);
+      // Increment view count
+      if (data) {
+        supabase.rpc("increment_job_views", { p_job_id: jobId }).catch(() => {});
+      }
     })();
   }, [jobId]);
 
@@ -507,11 +584,10 @@ export default function JobPage() {
     );
   }
 
-  const hiring = hiringStatus(job.created_at);
-  const requirements = (job.requirements || "")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+  const hiring = getHiringStatus(job.posted_at, job.hiring_status);
+  // requirements is jsonb array
+  const requirements = Array.isArray(job.requirements) ? job.requirements : [];
+  const perks = Array.isArray(job.perks) ? job.perks : [];
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", fontFamily: T.font }}>
@@ -563,10 +639,10 @@ export default function JobPage() {
         >
           {/* Header */}
           <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
-            {initialsAvatar(job.company_name || job.title, 48)}
+            {initialsAvatar(job.company || job.title, 48)}
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                <span style={{ fontSize: 13, color: T.muted }}>{job.company_name || "Company"}</span>
+                <span style={{ fontSize: 13, color: T.muted }}>{job.company || "Company"}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill={T.green} stroke="none">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
@@ -590,13 +666,13 @@ export default function JobPage() {
                 {(job.salary_min || job.salary_max) && (
                   <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: T.elevated, color: T.muted, fontFamily: T.font }}>
                     {job.salary_min && job.salary_max
-                      ? `${job.salary_min.toLocaleString()} – ${job.salary_max.toLocaleString()}`
+                      ? `${job.salary_min.toLocaleString()} – ${job.salary_max.toLocaleString()} ${job.currency || "AED"}`
                       : job.salary_min
-                        ? `From ${job.salary_min.toLocaleString()}`
-                        : `Up to ${job.salary_max.toLocaleString()}`}
+                        ? `From ${job.salary_min.toLocaleString()} ${job.currency || "AED"}`
+                        : `Up to ${job.salary_max.toLocaleString()} ${job.currency || "AED"}`}
                   </span>
                 )}
-                {job.visa_sponsor && (
+                {job.visa_sponsored && (
                   <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: "rgba(29,158,117,0.12)", color: T.green, fontFamily: T.font }}>
                     Visa sponsored
                   </span>
@@ -607,17 +683,11 @@ export default function JobPage() {
 
           {/* Meta line */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: T.muted }}>{daysAgo(job.created_at)}</span>
+            <span style={{ fontSize: 12, color: T.muted }}>{daysAgo(job.posted_at)}</span>
             {job.view_count != null && (
               <>
                 <span style={{ fontSize: 12, color: T.border }}>·</span>
                 <span style={{ fontSize: 12, color: T.muted }}>{job.view_count} views</span>
-              </>
-            )}
-            {job.applicant_count != null && (
-              <>
-                <span style={{ fontSize: 12, color: T.border }}>·</span>
-                <span style={{ fontSize: 12, color: T.muted }}>{job.applicant_count} applicants</span>
               </>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -652,13 +722,13 @@ export default function JobPage() {
           )}
 
           {/* Perks */}
-          {job.perks && (
+          {perks.length > 0 && (
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>Perks</h3>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {job.perks.split(",").map((p) => (
+                {perks.map((p, i) => (
                   <span
-                    key={p}
+                    key={i}
                     style={{
                       fontSize: 11,
                       padding: "4px 10px",
@@ -668,7 +738,7 @@ export default function JobPage() {
                       fontFamily: T.font,
                     }}
                   >
-                    {p.trim()}
+                    {p}
                   </span>
                 ))}
               </div>

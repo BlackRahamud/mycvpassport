@@ -22,6 +22,28 @@ const T = {
 const SIDEBAR_W = 196;
 const PANEL_W = 360;
 
+// Map DB status values to display labels
+const STATUS_DISPLAY = {
+  submitted: "New",
+  viewed: "Reviewing",
+  shortlisted: "Shortlisted",
+  interviewing: "Interviewing",
+  offered: "Offered",
+  hired: "Hired",
+  rejected: "Rejected",
+};
+
+// Map display labels back to DB values
+const STATUS_DB = {
+  New: "submitted",
+  Reviewing: "viewed",
+  Shortlisted: "shortlisted",
+  Interviewing: "interviewing",
+  Offered: "offered",
+  Hired: "hired",
+  Rejected: "rejected",
+};
+
 // ─── HELPERS ─────────────────────────────────────────────────────
 function initialsAvatar(name, size = 32, bg = T.accent) {
   const initials = (name || "?")
@@ -58,25 +80,44 @@ function matchColor(pct) {
   return T.muted;
 }
 
-function hiringDot(postedDate) {
-  if (!postedDate) return { color: T.muted, label: "Unknown" };
-  const days = Math.floor((Date.now() - new Date(postedDate).getTime()) / 86400000);
+function getHiringStatus(postedAt, hiringStatus) {
+  if (hiringStatus === "closed")
+    return { color: T.muted, label: "Applications closed" };
+  if (!postedAt) return { color: T.muted, label: "Unknown" };
+  const days = Math.floor(
+    (Date.now() - new Date(postedAt).getTime()) / 86400000
+  );
   if (days <= 7) return { color: T.green, label: "Actively hiring" };
   if (days <= 21) return { color: T.amber, label: "Few spots left" };
   return { color: T.muted, label: "Applications closing" };
 }
 
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+}
+
 function StatusPill({ status, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const options = ["New", "Reviewing", "Shortlisted", "Rejected"];
+  const displayOptions = ["New", "Reviewing", "Shortlisted", "Interviewing", "Rejected"];
+  const displayStatus = STATUS_DISPLAY[status] || "New";
   const colors = {
     New: { bg: "rgba(99,91,255,0.15)", color: T.accent },
     Reviewing: { bg: "rgba(217,119,6,0.15)", color: T.amber },
     Shortlisted: { bg: "rgba(29,158,117,0.15)", color: T.green },
+    Interviewing: { bg: "rgba(99,91,255,0.15)", color: T.accent },
     Rejected: { bg: "rgba(239,68,68,0.15)", color: T.red },
   };
-  const c = colors[status] || colors.New;
+  const c = colors[displayStatus] || colors.New;
 
   useEffect(() => {
     if (!open) return;
@@ -104,7 +145,7 @@ function StatusPill({ status, onChange }) {
           fontFamily: T.font,
         }}
       >
-        {status || "New"}
+        {displayStatus}
       </button>
       {open && (
         <div
@@ -121,19 +162,19 @@ function StatusPill({ status, onChange }) {
             minWidth: 120,
           }}
         >
-          {options.map((opt) => (
+          {displayOptions.map((opt) => (
             <button
               key={opt}
               type="button"
               onClick={() => {
-                onChange(opt);
+                onChange(STATUS_DB[opt] || "submitted");
                 setOpen(false);
               }}
               style={{
                 display: "block",
                 width: "100%",
                 textAlign: "left",
-                background: opt === status ? "rgba(99,91,255,0.1)" : "transparent",
+                background: opt === displayStatus ? "rgba(99,91,255,0.1)" : "transparent",
                 border: "none",
                 color: T.text,
                 padding: "6px 10px",
@@ -213,14 +254,14 @@ function PostJobModal({ open, onClose, onSubmit }) {
     title: "",
     department: "",
     location: "",
-    job_type: "Full-time",
+    job_type: "full-time",
     market: "gulf",
     salary_min: "",
     salary_max: "",
-    visa_sponsor: true,
+    visa_sponsored: true,
     description: "",
     requirements: "",
-    hiring_status: "Actively hiring",
+    hiring_status: "active",
   });
 
   if (!open) return null;
@@ -318,9 +359,9 @@ function PostJobModal({ open, onClose, onSubmit }) {
           <div>
             <label style={labelStyle}>Job type</label>
             <select style={fieldStyle} value={form.job_type} onChange={(e) => set("job_type", e.target.value)}>
-              <option>Full-time</option>
-              <option>Part-time</option>
-              <option>Contract</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="contract">Contract</option>
             </select>
           </div>
         </div>
@@ -347,7 +388,7 @@ function PostJobModal({ open, onClose, onSubmit }) {
                     fontFamily: T.font,
                   }}
                 >
-                  {m === "gulf" ? "🇦🇪 Gulf / UAE" : "🇮🇳 India"}
+                  {m === "gulf" ? "Gulf / UAE" : "India"}
                 </button>
               ))}
             </div>
@@ -359,14 +400,14 @@ function PostJobModal({ open, onClose, onSubmit }) {
                 <button
                   key={String(v)}
                   type="button"
-                  onClick={() => set("visa_sponsor", v)}
+                  onClick={() => set("visa_sponsored", v)}
                   style={{
                     flex: 1,
                     padding: "8px 0",
                     borderRadius: 8,
-                    border: `1px solid ${form.visa_sponsor === v ? T.accent : T.border}`,
-                    background: form.visa_sponsor === v ? "rgba(99,91,255,0.12)" : "transparent",
-                    color: form.visa_sponsor === v ? T.accent : T.muted,
+                    border: `1px solid ${form.visa_sponsored === v ? T.accent : T.border}`,
+                    background: form.visa_sponsored === v ? "rgba(99,91,255,0.12)" : "transparent",
+                    color: form.visa_sponsored === v ? T.accent : T.muted,
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: "pointer",
@@ -414,9 +455,9 @@ function PostJobModal({ open, onClose, onSubmit }) {
         <div style={{ marginBottom: 20 }}>
           <label style={labelStyle}>Hiring status</label>
           <select style={fieldStyle} value={form.hiring_status} onChange={(e) => set("hiring_status", e.target.value)}>
-            <option>Actively hiring</option>
-            <option>Urgently hiring</option>
-            <option>Slow hiring</option>
+            <option value="active">Actively hiring</option>
+            <option value="urgent">Urgently hiring</option>
+            <option value="slow">Slow hiring</option>
           </select>
         </div>
 
@@ -458,14 +499,14 @@ function CVPanel({ candidate, onClose, onStatusChange, onPrev, onNext, currentIn
 
   if (!candidate) return null;
 
-  const techSkills = candidate.matched_skills?.technical || [];
-  const softSkills = candidate.matched_skills?.soft || [];
-  const missingTech = candidate.missing_skills?.technical || [];
-  const missingSoft = candidate.missing_skills?.soft || [];
-  const workHistory = candidate.work_history || [];
+  const matchedKw = candidate.match_keywords || [];
+  const missingKw = candidate.missing_keywords || [];
+  const cvData = candidate.cv_snapshot || {};
+  const workHistory = cvData.experience || [];
 
+  const firstName = (candidate.candidate_name || "").split(" ")[0];
   const waMsg = encodeURIComponent(
-    `Hi ${candidate.name?.split(" ")[0]}, I'm reaching out from CVPassport regarding your application. Are you available for a quick call?`
+    `Hi ${firstName}, I'm reaching out from CVPassport regarding your application. Are you available for a quick call?`
   );
 
   return (
@@ -494,7 +535,7 @@ function CVPanel({ candidate, onClose, onStatusChange, onPrev, onNext, currentIn
         >
           ← Back
         </button>
-        <span style={{ fontSize: 14, fontWeight: 500, color: T.text }}>{candidate.name}</span>
+        <span style={{ fontSize: 14, fontWeight: 500, color: T.text }}>{candidate.candidate_name}</span>
         <button
           type="button"
           style={{
@@ -515,27 +556,27 @@ function CVPanel({ candidate, onClose, onStatusChange, onPrev, onNext, currentIn
       {/* Zone 1 — Hero */}
       <div style={{ padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <h3 style={{ fontSize: 17, fontWeight: 500, color: T.text, margin: "0 0 4px", fontFamily: T.font }}>{candidate.name}</h3>
+          <h3 style={{ fontSize: 17, fontWeight: 500, color: T.text, margin: "0 0 4px", fontFamily: T.font }}>{candidate.candidate_name}</h3>
           <p style={{ fontSize: 12, color: T.muted, margin: "0 0 12px", fontFamily: T.font }}>
-            {candidate.role} · {candidate.experience} · {candidate.location}
+            {cvData.role || ""} {cvData.experience_years ? `· ${cvData.experience_years}yr` : ""} {cvData.location ? `· ${cvData.location}` : ""}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {candidate.location && (
+            {cvData.location && (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.muted} strokeWidth="2">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
-                <span style={{ fontSize: 11, color: T.muted }}>{candidate.location}</span>
+                <span style={{ fontSize: 11, color: T.muted }}>{cvData.location}</span>
               </div>
             )}
-            {candidate.notice_period && (
+            {cvData.notice_period && (
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.muted} strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 6v6l4 2" />
                 </svg>
-                <span style={{ fontSize: 11, color: T.muted }}>{candidate.notice_period}</span>
+                <span style={{ fontSize: 11, color: T.muted }}>{cvData.notice_period}</span>
               </div>
             )}
             {candidate.visa_status && (
@@ -549,55 +590,36 @@ function CVPanel({ candidate, onClose, onStatusChange, onPrev, onNext, currentIn
             )}
           </div>
         </div>
-        <ScoreRing score={candidate.match_score || 0} />
+        <ScoreRing score={candidate.ats_score || 0} />
       </div>
 
       {/* Zone 2 — ATS Keywords */}
       <div style={{ padding: "0 20px 20px" }}>
         <h4 style={{ fontSize: 12, fontWeight: 600, color: T.text, margin: "0 0 10px", fontFamily: T.font }}>ATS keyword match</h4>
-
-        {(techSkills.length > 0 || missingTech.length > 0) && (
-          <div style={{ marginBottom: 10 }}>
-            <span style={{ fontSize: 10, color: T.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Technical skills</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
-              {techSkills.map((s) => (
-                <span key={s} style={{ background: "rgba(29,158,117,0.15)", color: T.green, fontSize: 10, padding: "3px 8px", borderRadius: 4, fontWeight: 500 }}>
-                  {s}
-                </span>
-              ))}
-              {missingTech.map((s) => (
-                <span
-                  key={s}
-                  style={{ background: "rgba(160,160,160,0.1)", color: T.muted, fontSize: 10, padding: "3px 8px", borderRadius: 4, textDecoration: "line-through" }}
-                  title="Found in similar successful hires"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
+        {matchedKw.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+            {matchedKw.map((s) => (
+              <span key={s} style={{ background: "rgba(29,158,117,0.15)", color: T.green, fontSize: 10, padding: "3px 8px", borderRadius: 4, fontWeight: 500 }}>
+                {s}
+              </span>
+            ))}
           </div>
         )}
-
-        {(softSkills.length > 0 || missingSoft.length > 0) && (
-          <div>
-            <span style={{ fontSize: 10, color: T.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Soft skills</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
-              {softSkills.map((s) => (
-                <span key={s} style={{ background: "rgba(29,158,117,0.15)", color: T.green, fontSize: 10, padding: "3px 8px", borderRadius: 4, fontWeight: 500 }}>
-                  {s}
-                </span>
-              ))}
-              {missingSoft.map((s) => (
-                <span
-                  key={s}
-                  style={{ background: "rgba(160,160,160,0.1)", color: T.muted, fontSize: 10, padding: "3px 8px", borderRadius: 4, textDecoration: "line-through" }}
-                  title="Found in similar successful hires"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
+        {missingKw.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {missingKw.map((s) => (
+              <span
+                key={s}
+                style={{ background: "rgba(160,160,160,0.1)", color: T.muted, fontSize: 10, padding: "3px 8px", borderRadius: 4, textDecoration: "line-through" }}
+                title="Found in similar successful hires"
+              >
+                {s}
+              </span>
+            ))}
           </div>
+        )}
+        {matchedKw.length === 0 && missingKw.length === 0 && (
+          <p style={{ fontSize: 11, color: T.muted }}>No keyword data available</p>
         )}
       </div>
 
@@ -606,9 +628,9 @@ function CVPanel({ candidate, onClose, onStatusChange, onPrev, onNext, currentIn
         <h4 style={{ fontSize: 12, fontWeight: 600, color: T.text, margin: "0 0 10px", fontFamily: T.font }}>Work history</h4>
         {workHistory.map((w, i) => (
           <div key={i} style={{ marginBottom: 10 }}>
-            <p style={{ fontSize: 13, color: T.text, margin: 0, fontWeight: 500, fontFamily: T.font }}>{w.title}</p>
+            <p style={{ fontSize: 13, color: T.text, margin: 0, fontWeight: 500, fontFamily: T.font }}>{w.title || w.role}</p>
             <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0", fontFamily: T.font }}>
-              {w.company} · {w.period}
+              {w.company} {w.period ? `· ${w.period}` : ""}
             </p>
           </div>
         ))}
@@ -629,7 +651,7 @@ function CVPanel({ candidate, onClose, onStatusChange, onPrev, onNext, currentIn
         }}
       >
         <a
-          href={`https://wa.me/${candidate.phone || ""}?text=${waMsg}`}
+          href={`https://wa.me/${candidate.candidate_phone || ""}?text=${waMsg}`}
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -645,7 +667,7 @@ function CVPanel({ candidate, onClose, onStatusChange, onPrev, onNext, currentIn
             fontFamily: T.font,
           }}
         >
-          Message {candidate.name?.split(" ")[0]}
+          Message {firstName}
         </a>
         <StatusPill status={candidate.status} onChange={(s) => onStatusChange(candidate.id, s)} />
         <button
@@ -731,8 +753,9 @@ function NotificationsView({ notifications, onMarkAllRead, onClickNotification }
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent, flexShrink: 0 }} />
           )}
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, color: T.text, margin: 0, fontFamily: T.font }}>{n.message}</p>
-            <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0", fontFamily: T.font }}>{n.time_ago}</p>
+            <p style={{ fontSize: 13, color: T.text, margin: 0, fontFamily: T.font }}>{n.title}</p>
+            {n.body && <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0", fontFamily: T.font }}>{n.body}</p>}
+            <p style={{ fontSize: 10, color: T.muted, margin: "2px 0 0", fontFamily: T.font }}>{timeAgo(n.created_at)}</p>
           </div>
         </div>
       ))}
@@ -887,9 +910,16 @@ export default function HRPortal() {
       const { data: { session } } = await supabase.auth.getSession();
       if (cancelled) return;
       if (!session?.user) { navigate("/auth"); return; }
-      const { data: prof } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("user_type, company_name, work_email, email")
+        .eq("id", session.user.id)
+        .single();
       if (cancelled) return;
-      if (prof?.user_type !== "recruiter") { navigate("/dashboard"); return; }
+      if (!prof || !["recruiter", "both"].includes(prof.user_type)) {
+        navigate("/dashboard");
+        return;
+      }
       setUser(session.user);
       setHrProfile(prof);
       setLoading(false);
@@ -897,15 +927,16 @@ export default function HRPortal() {
     return () => { cancelled = true; };
   }, [navigate]);
 
-  // ─── Load jobs ──────────────────────────────────
+  // ─── Load jobs with application count ───────────
   useEffect(() => {
     if (!supabase || !user?.id) return;
     (async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("*")
-        .eq("recruiter_id", user.id)
-        .order("created_at", { ascending: false });
+        .select("*, applications(count)")
+        .eq("hr_id", user.id)
+        .eq("status", "published")
+        .order("posted_at", { ascending: false });
       if (data) setJobs(data);
     })();
   }, [user?.id]);
@@ -920,7 +951,8 @@ export default function HRPortal() {
         .from("applications")
         .select("*")
         .eq("job_id", selectedJob.id)
-        .order("created_at", { ascending: false });
+        .eq("is_visible_to_hr", true)
+        .order("ats_score", { ascending: false });
       if (data) setCandidates(data);
     })();
   }, [selectedJob?.id]);
@@ -930,59 +962,118 @@ export default function HRPortal() {
     if (!supabase || !user?.id) return;
     (async () => {
       const { data } = await supabase
-        .from("notifications")
+        .from("hr_notifications")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("hr_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(20);
       if (data) setNotifications(data);
     })();
   }, [user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
+  const appCount = selectedJob?.applications?.[0]?.count || candidates.length;
+
   // ─── Handlers ───────────────────────────────────
   const handleStatusChange = useCallback(async (applicationId, newStatus) => {
+    const app = candidates.find((c) => c.id === applicationId);
+    const oldStatus = app?.status || "submitted";
+    // Optimistic update
     setCandidates((prev) => prev.map((c) => (c.id === applicationId ? { ...c, status: newStatus } : c)));
-    if (supabase) {
-      await supabase.from("applications").update({ status: newStatus }).eq("id", applicationId);
+    if (panelCandidate?.id === applicationId) {
+      setPanelCandidate((prev) => prev ? { ...prev, status: newStatus } : prev);
     }
-  }, []);
+    if (!supabase || !user?.id) return;
+    await supabase
+      .from("applications")
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq("id", applicationId);
+    // Insert event
+    if (app) {
+      await supabase.from("candidate_events").insert({
+        candidate_id: app.candidate_id,
+        job_id: app.job_id,
+        hr_id: user.id,
+        event_type: newStatus,
+        metadata: { changed_by: user.id, previous_status: oldStatus },
+      });
+    }
+  }, [candidates, panelCandidate, user?.id]);
+
+  // ─── Open CV panel + mark viewed ────────────────
+  const openPanel = useCallback(async (candidate, idx) => {
+    setPanelCandidate(candidate);
+    setPanelIdx(idx);
+    // Mark as viewed if still submitted
+    if (supabase && user?.id && candidate.status === "submitted") {
+      const now = new Date().toISOString();
+      await supabase
+        .from("applications")
+        .update({ status: "viewed", viewed_at: now, updated_at: now })
+        .eq("id", candidate.id)
+        .eq("status", "submitted");
+      await supabase.from("candidate_events").insert({
+        candidate_id: candidate.candidate_id,
+        job_id: candidate.job_id,
+        hr_id: user.id,
+        event_type: "viewed",
+        metadata: { viewed_at: now },
+      });
+      setCandidates((prev) =>
+        prev.map((c) => (c.id === candidate.id && c.status === "submitted" ? { ...c, status: "viewed", viewed_at: now } : c))
+      );
+      setPanelCandidate((prev) =>
+        prev && prev.id === candidate.id && prev.status === "submitted" ? { ...prev, status: "viewed", viewed_at: now } : prev
+      );
+    }
+  }, [user?.id]);
 
   const handlePostJob = useCallback(async (form) => {
-    if (!supabase || !user?.id) return;
+    if (!supabase || !user?.id || !hrProfile) return;
+    const reqLines = form.requirements
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
     const { data } = await supabase.from("jobs").insert({
-      recruiter_id: user.id,
+      hr_id: user.id,
       title: form.title,
+      company: hrProfile.company_name || "",
       department: form.department,
       location: form.location,
-      job_type: form.job_type,
       market: form.market,
+      job_type: form.job_type,
       salary_min: form.salary_min ? Number(form.salary_min) : null,
       salary_max: form.salary_max ? Number(form.salary_max) : null,
-      visa_sponsor: form.visa_sponsor,
+      visa_sponsored: form.visa_sponsored,
       description: form.description,
-      requirements: form.requirements,
+      requirements: reqLines,
+      keywords: [],
       hiring_status: form.hiring_status,
-      paste_jd: form.paste_jd,
-    }).select().single();
+      status: "published",
+      posted_at: new Date().toISOString(),
+    }).select("*, applications(count)").single();
     if (data) {
       setJobs((prev) => [data, ...prev]);
       setSelectedJobIdx(0);
     }
     setShowPostJob(false);
-  }, [user?.id]);
+  }, [user?.id, hrProfile]);
 
   const handleMarkAllRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     if (supabase && user?.id) {
-      await supabase.from("notifications").update({ read: true }).eq("user_id", user.id).eq("read", false);
+      await supabase
+        .from("hr_notifications")
+        .update({ read: true })
+        .eq("hr_id", user.id)
+        .eq("read", false);
     }
   }, [user?.id]);
 
   const handleClickNotification = useCallback((n) => {
     setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-    if (supabase) supabase.from("notifications").update({ read: true }).eq("id", n.id);
+    if (supabase) supabase.from("hr_notifications").update({ read: true }).eq("id", n.id);
     setActiveNav("jobs");
     if (n.application_id) {
       setHighlightId(n.application_id);
@@ -996,18 +1087,14 @@ export default function HRPortal() {
       company_name: form.company_name,
       work_email: form.work_email,
     }).eq("id", user.id);
-    setHrProfile((prev) => ({ ...prev, ...form }));
+    setHrProfile((prev) => ({ ...prev, company_name: form.company_name, work_email: form.work_email }));
   }, [user?.id]);
 
   // ─── Filtered candidates ────────────────────────
-  const tabFiltered = activeTab === "All" ? candidates : candidates.filter((c) => c.status === activeTab);
-  const mainCandidates = tabFiltered.filter((c) => (c.match_score || 0) >= 40);
-  const lowMatchCandidates = tabFiltered.filter((c) => (c.match_score || 0) < 40);
-
-  const openPanel = (candidate, idx) => {
-    setPanelCandidate(candidate);
-    setPanelIdx(idx);
-  };
+  const tabFilterMap = { All: null, Shortlisted: "shortlisted", Reviewing: "viewed", Rejected: "rejected" };
+  const tabFiltered = activeTab === "All" ? candidates : candidates.filter((c) => c.status === tabFilterMap[activeTab]);
+  const mainCandidates = tabFiltered.filter((c) => (c.ats_score || 0) >= 40);
+  const lowMatchCandidates = tabFiltered.filter((c) => (c.ats_score || 0) < 40);
 
   if (loading) {
     return (
@@ -1143,7 +1230,7 @@ export default function HRPortal() {
                 </h1>
                 {selectedJob && (
                   <span style={{ fontSize: 12, color: T.muted, fontFamily: T.font }}>
-                    {candidates.length} applicant{candidates.length !== 1 ? "s" : ""}
+                    {appCount} applicant{appCount !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -1256,7 +1343,7 @@ export default function HRPortal() {
               )}
 
               {mainCandidates.map((c, i) => {
-                const hiring = hiringDot(selectedJob?.created_at);
+                const hiring = getHiringStatus(selectedJob?.posted_at, selectedJob?.hiring_status);
                 const isHighlighted = c.id === highlightId;
                 return (
                   <div
@@ -1272,23 +1359,20 @@ export default function HRPortal() {
                       transition: "background-color 300ms cubic-bezier(0.4,0,0.2,1)",
                     }}
                   >
-                    {/* Candidate */}
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      {initialsAvatar(c.name || c.first_name, 32)}
+                      {initialsAvatar(c.candidate_name, 32)}
                       <div>
                         <p style={{ fontSize: 13, fontWeight: 500, color: T.text, margin: 0, fontFamily: T.font }}>
-                          {c.name || `${c.first_name || ""} ${c.last_name || ""}`.trim()}
+                          {c.candidate_name || "—"}
                         </p>
                         <p style={{ fontSize: 11, color: T.muted, margin: 0, fontFamily: T.font }}>
-                          {c.experience || ""} {c.location ? `· ${c.location}` : ""}
+                          {c.candidate_email || ""}
                         </p>
                       </div>
                     </div>
-                    {/* Match */}
-                    <span style={{ fontSize: 13, fontWeight: 600, color: matchColor(c.match_score || 0), fontFamily: T.font }}>
-                      {c.match_score || 0}%
+                    <span style={{ fontSize: 13, fontWeight: 600, color: matchColor(c.ats_score || 0), fontFamily: T.font }}>
+                      {c.ats_score || 0}%
                     </span>
-                    {/* Visa */}
                     <span
                       style={{
                         fontSize: 11,
@@ -1304,14 +1388,11 @@ export default function HRPortal() {
                     >
                       {c.visa_status || "—"}
                     </span>
-                    {/* Hiring status */}
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ width: 6, height: 6, borderRadius: "50%", background: hiring.color, flexShrink: 0 }} />
                       <span style={{ fontSize: 11, color: T.muted, fontFamily: T.font }}>{hiring.label}</span>
                     </div>
-                    {/* Status */}
-                    <StatusPill status={c.status || "New"} onChange={(s) => handleStatusChange(c.id, s)} />
-                    {/* View CV */}
+                    <StatusPill status={c.status || "submitted"} onChange={(s) => handleStatusChange(c.id, s)} />
                     <button
                       type="button"
                       onClick={() => openPanel(c, i)}
@@ -1328,10 +1409,9 @@ export default function HRPortal() {
                     >
                       View
                     </button>
-                    {/* WhatsApp */}
                     <a
-                      href={`https://wa.me/${c.phone || ""}?text=${encodeURIComponent(
-                        `Hi ${(c.name || c.first_name || "").split(" ")[0]}, I'm ${hrProfile?.company_name ? `from ${hrProfile.company_name}` : "a recruiter"}. I reviewed your CV on CVPassport for the ${selectedJob?.title || "open"} position. Are you available for a quick call?`
+                      href={`https://wa.me/${c.candidate_phone || ""}?text=${encodeURIComponent(
+                        `Hi ${(c.candidate_name || "").split(" ")[0]}, I'm ${hrProfile?.company_name ? `from ${hrProfile.company_name}` : "a recruiter"}. I reviewed your CV on CVPassport for the ${selectedJob?.title || "open"} position. Are you available for a quick call?`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -1393,7 +1473,7 @@ export default function HRPortal() {
                 </button>
                 {lowMatchOpen &&
                   lowMatchCandidates.map((c, i) => {
-                    const hiring = hiringDot(selectedJob?.created_at);
+                    const hiring = getHiringStatus(selectedJob?.posted_at, selectedJob?.hiring_status);
                     return (
                       <div
                         key={c.id}
@@ -1410,23 +1490,23 @@ export default function HRPortal() {
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          {initialsAvatar(c.name || c.first_name, 32, T.muted)}
+                          {initialsAvatar(c.candidate_name, 32, T.muted)}
                           <div>
                             <p style={{ fontSize: 13, fontWeight: 500, color: T.text, margin: 0, fontFamily: T.font }}>
-                              {c.name || `${c.first_name || ""} ${c.last_name || ""}`.trim()}
+                              {c.candidate_name || "—"}
                             </p>
                             <p style={{ fontSize: 11, color: T.muted, margin: 0, fontFamily: T.font }}>
-                              {c.experience || ""} {c.location ? `· ${c.location}` : ""}
+                              {c.candidate_email || ""}
                             </p>
                           </div>
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: T.muted, fontFamily: T.font }}>{c.match_score || 0}%</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: T.muted, fontFamily: T.font }}>{c.ats_score || 0}%</span>
                         <span style={{ fontSize: 11, color: T.muted, fontFamily: T.font }}>{c.visa_status || "—"}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <div style={{ width: 6, height: 6, borderRadius: "50%", background: hiring.color }} />
                           <span style={{ fontSize: 11, color: T.muted, fontFamily: T.font }}>{hiring.label}</span>
                         </div>
-                        <StatusPill status={c.status || "New"} onChange={(s) => handleStatusChange(c.id, s)} />
+                        <StatusPill status={c.status || "submitted"} onChange={(s) => handleStatusChange(c.id, s)} />
                         <button
                           type="button"
                           onClick={() => openPanel(c, mainCandidates.length + i)}

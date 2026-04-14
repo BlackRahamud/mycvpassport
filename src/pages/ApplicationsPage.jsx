@@ -20,11 +20,14 @@ const T = {
 
 const SIDEBAR_W = 220;
 const RIGHT_W = 240;
-const COOLDOWN_DAYS = 7;
 
-function hiringDot(createdAt) {
-  if (!createdAt) return { color: T.muted, label: "Unknown" };
-  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
+function getHiringStatus(postedAt, hiringStatus) {
+  if (hiringStatus === "closed")
+    return { color: T.muted, label: "Applications closed" };
+  if (!postedAt) return { color: T.muted, label: "Unknown" };
+  const days = Math.floor(
+    (Date.now() - new Date(postedAt).getTime()) / 86400000
+  );
   if (days <= 7) return { color: T.green, label: "Actively hiring" };
   if (days <= 21) return { color: T.amber, label: "Few spots left" };
   return { color: T.muted, label: "Applications closing" };
@@ -73,18 +76,28 @@ function initialsAvatar(name, size = 36, hue = 260) {
   );
 }
 
+const STATUS_DISPLAY = {
+  submitted: "Submitted",
+  viewed: "Viewed",
+  shortlisted: "Shortlisted",
+  interviewing: "Interviewing",
+  offered: "Offered",
+  hired: "Hired",
+  rejected: "Not selected",
+};
+
 const statusColors = {
-  New: { bg: "rgba(99,91,255,0.12)", color: T.accent },
-  "In Review": { bg: "rgba(217,119,6,0.12)", color: T.amber },
-  Viewed: { bg: "rgba(55,138,221,0.12)", color: "#378ADD" },
-  Shortlisted: { bg: "rgba(29,158,117,0.12)", color: T.green },
-  Interviewing: { bg: "rgba(99,91,255,0.12)", color: T.accent },
-  Rejected: { bg: "rgba(239,68,68,0.12)", color: T.red },
-  Hired: { bg: "rgba(29,158,117,0.12)", color: T.green },
+  submitted: { bg: "rgba(99,91,255,0.12)", color: T.accent },
+  viewed: { bg: "rgba(55,138,221,0.12)", color: "#378ADD" },
+  shortlisted: { bg: "rgba(29,158,117,0.12)", color: T.green },
+  interviewing: { bg: "rgba(99,91,255,0.12)", color: T.accent },
+  offered: { bg: "rgba(29,158,117,0.12)", color: T.green },
+  hired: { bg: "rgba(29,158,117,0.12)", color: T.green },
+  rejected: { bg: "rgba(239,68,68,0.12)", color: T.red },
 };
 
 function StatusBadge({ status }) {
-  const c = statusColors[status] || statusColors.New;
+  const c = statusColors[status] || statusColors.submitted;
   return (
     <span
       style={{
@@ -97,47 +110,47 @@ function StatusBadge({ status }) {
         fontFamily: T.font,
       }}
     >
-      {status || "New"}
+      {STATUS_DISPLAY[status] || status || "Submitted"}
     </span>
   );
 }
 
 // ─── TIMELINE ────────────────────────────────────────────────────
-function Timeline({ application }) {
+function Timeline({ events, application }) {
+  // Build timeline from candidate_events + application data
   const steps = [
     {
       label: "Applied",
       date: application.applied_at,
-      detail: application.apply_method === "easy_apply" ? "Easy Apply" : "Manual",
+      detail: null,
       done: true,
     },
     {
       label: "Viewed by recruiter",
       date: application.viewed_at,
-      detail: application.view_duration ? `Viewed for ${application.view_duration}s` : null,
+      detail: null,
       done: !!application.viewed_at,
     },
     {
       label: "Shortlisted",
-      date: application.shortlisted_at,
-      detail: application.match_score ? `Score: ${application.match_score}%` : null,
-      done: !!application.shortlisted_at,
+      date: events.find((e) => e.event_type === "shortlisted")?.created_at,
+      detail: application.ats_score ? `Score: ${application.ats_score}%` : null,
+      done: ["shortlisted", "interviewing", "offered", "hired"].includes(application.status),
     },
     {
       label: "Interview scheduled",
-      date: application.interview_at,
+      date: events.find((e) => e.event_type === "interviewing")?.created_at,
       detail: null,
-      done: !!application.interview_at,
+      done: ["interviewing", "offered", "hired"].includes(application.status),
     },
     {
-      label: application.status === "Hired" ? "Hired" : application.status === "Rejected" ? "Not selected" : "Offer",
-      date: application.resolved_at,
+      label: application.status === "hired" ? "Hired" : application.status === "rejected" ? "Not selected" : "Offer",
+      date: events.find((e) => ["hired", "rejected", "offered"].includes(e.event_type))?.created_at,
       detail: null,
-      done: !!application.resolved_at,
+      done: ["offered", "hired", "rejected"].includes(application.status),
     },
   ];
 
-  // Find current step (first not-done)
   const currentIdx = steps.findIndex((s) => !s.done);
 
   return (
@@ -148,7 +161,6 @@ function Timeline({ application }) {
         const isPending = !isDone && !isCurrent;
         return (
           <div key={i} style={{ display: "flex", gap: 12, position: "relative", paddingBottom: i < steps.length - 1 ? 16 : 0 }}>
-            {/* Vertical line */}
             {i < steps.length - 1 && (
               <div
                 style={{
@@ -161,17 +173,15 @@ function Timeline({ application }) {
                 }}
               />
             )}
-            {/* Node */}
             <div style={{ flexShrink: 0, marginTop: 2 }}>
               {isDone ? (
                 <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.green }} />
               ) : isCurrent ? (
-                <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.accent, boxShadow: `0 0 0 4px rgba(99,91,255,0.25)` }} />
+                <div style={{ width: 14, height: 14, borderRadius: "50%", background: T.accent, boxShadow: "0 0 0 4px rgba(99,91,255,0.25)" }} />
               ) : (
                 <div style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${T.border}`, background: "transparent" }} />
               )}
             </div>
-            {/* Content */}
             <div>
               <p
                 style={{
@@ -206,6 +216,7 @@ export default function ApplicationsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
+  const [events, setEvents] = useState([]);
   const [market, setMarket] = useState("gulf");
   const [expandedId, setExpandedId] = useState(null);
   const [sidebarNav, setSidebarNav] = useState("applications");
@@ -217,14 +228,28 @@ export default function ApplicationsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (cancelled) return;
       if (!session?.user) { navigate("/auth"); return; }
-
       // Load applications with job data
-      const { data } = await supabase
+      const { data: apps } = await supabase
         .from("applications")
-        .select("*, jobs(*)")
-        .eq("user_id", session.user.id)
+        .select(`
+          *,
+          jobs (
+            id, title, company, location, market,
+            hiring_status, posted_at, status, hr_id
+          )
+        `)
+        .eq("candidate_id", session.user.id)
         .order("applied_at", { ascending: false });
-      if (!cancelled && data) setApplications(data);
+      if (!cancelled && apps) setApplications(apps);
+
+      // Load all candidate events
+      const { data: evts } = await supabase
+        .from("candidate_events")
+        .select("*")
+        .eq("candidate_id", session.user.id)
+        .order("created_at", { ascending: true });
+      if (!cancelled && evts) setEvents(evts);
+
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -238,20 +263,25 @@ export default function ApplicationsPage() {
   }, [applications, market]);
 
   const gulfCount = applications.filter((a) => (a.jobs?.market || "gulf") === "gulf").length;
-  const indiaCount = applications.filter((a) => (a.jobs?.market) === "india").length;
+  const indiaCount = applications.filter((a) => a.jobs?.market === "india").length;
 
   // Stats
   const totalApplied = applications.length;
-  const viewed = applications.filter((a) => a.viewed_at).length;
-  const shortlisted = applications.filter((a) => a.shortlisted_at || a.status === "Shortlisted").length;
+  const viewed = applications.filter((a) => a.status !== "submitted").length;
+  const shortlisted = applications.filter((a) =>
+    ["shortlisted", "interviewing", "offered", "hired"].includes(a.status)
+  ).length;
 
-  // Cooldown check
-  const getCooldown = (app) => {
-    if (!app.applied_at) return null;
-    const elapsed = Date.now() - new Date(app.applied_at).getTime();
-    const remaining = COOLDOWN_DAYS * 86400000 - elapsed;
+  // Cooldown: use cooldown_expires_at from DB
+  const getCooldownDays = (app) => {
+    if (!app.cooldown_expires_at) return null;
+    const remaining = new Date(app.cooldown_expires_at).getTime() - Date.now();
     if (remaining <= 0) return null;
     return Math.ceil(remaining / 86400000);
+  };
+
+  const getEventsForJob = (jobId) => {
+    return events.filter((e) => e.job_id === jobId);
   };
 
   if (loading) {
@@ -403,10 +433,9 @@ export default function ApplicationsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map((app) => {
             const job = app.jobs || {};
-            const hiring = hiringDot(job.created_at);
+            const hiring = getHiringStatus(job.posted_at, job.hiring_status);
             const expanded = expandedId === app.id;
-            const cooldown = getCooldown(app);
-            const nameHash = (job.company_name || "A").charCodeAt(0) * 7;
+            const nameHash = (job.company || "A").charCodeAt(0) * 7;
 
             return (
               <div key={app.id}>
@@ -424,14 +453,14 @@ export default function ApplicationsPage() {
                     transition: "border-radius 150ms cubic-bezier(0.4,0,0.2,1)",
                   }}
                 >
-                  {initialsAvatar(job.company_name || "?", 36, nameHash % 360)}
+                  {initialsAvatar(job.company || "?", 36, nameHash % 360)}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                       <span style={{ fontSize: 14, fontWeight: 500, color: T.text, fontFamily: T.font }}>{job.title || "Role"}</span>
                       <StatusBadge status={app.status} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 12, color: T.muted, fontFamily: T.font }}>{job.company_name || "Company"}</span>
+                      <span style={{ fontSize: 12, color: T.muted, fontFamily: T.font }}>{job.company || "Company"}</span>
                       {job.location && (
                         <>
                           <span style={{ fontSize: 12, color: T.border }}>·</span>
@@ -442,18 +471,15 @@ export default function ApplicationsPage() {
                       <span style={{ fontSize: 12, color: T.muted, fontFamily: T.font }}>{daysAgo(app.applied_at)}</span>
                     </div>
                   </div>
-                  {/* Match */}
-                  {app.match_score != null && (
-                    <span style={{ fontSize: 14, fontWeight: 600, color: matchColor(app.match_score), fontFamily: T.font }}>
-                      {app.match_score}%
+                  {app.ats_score != null && app.ats_score > 0 && (
+                    <span style={{ fontSize: 14, fontWeight: 600, color: matchColor(app.ats_score), fontFamily: T.font }}>
+                      {app.ats_score}%
                     </span>
                   )}
-                  {/* Hiring dot */}
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: hiring.color }} />
                     <span style={{ fontSize: 10, color: T.muted }}>{hiring.label}</span>
                   </div>
-                  {/* Expand arrow */}
                   <span
                     style={{
                       color: T.muted,
@@ -466,11 +492,10 @@ export default function ApplicationsPage() {
                   </span>
                 </div>
 
-                {/* Expanded timeline */}
-                {expanded && <Timeline application={app} />}
+                {expanded && <Timeline events={getEventsForJob(app.job_id)} application={app} />}
 
-                {/* Cooldown / position filled */}
-                {cooldown && job.status === "closed" && (
+                {/* Position filled */}
+                {job.status === "closed" && (
                   <div
                     style={{
                       background: T.surface,
@@ -481,7 +506,7 @@ export default function ApplicationsPage() {
                     }}
                   >
                     <p style={{ fontSize: 12, color: T.muted, margin: 0, fontFamily: T.font }}>
-                      Your profile saved for future openings at {job.company_name || "this company"}
+                      Your profile saved for future openings at {job.company || "this company"}
                     </p>
                   </div>
                 )}
@@ -505,11 +530,12 @@ export default function ApplicationsPage() {
         {/* Ready to re-engage */}
         <h3 style={{ fontSize: 12, fontWeight: 600, color: T.text, margin: "0 0 12px", fontFamily: T.font }}>Ready to re-engage</h3>
         {applications.length === 0 && (
-          <p style={{ fontSize: 11, color: T.muted, fontFamily: T.font }}>No active cooldowns</p>
+          <p style={{ fontSize: 11, color: T.muted, fontFamily: T.font }}>No applications yet</p>
         )}
         {applications.map((app) => {
-          const cooldown = getCooldown(app);
+          const cooldown = getCooldownDays(app);
           if (!cooldown) {
+            if (!app.cooldown_expires_at) return null;
             return (
               <div
                 key={`cd-${app.id}`}
@@ -528,7 +554,8 @@ export default function ApplicationsPage() {
               </div>
             );
           }
-          const progress = ((COOLDOWN_DAYS - cooldown) / COOLDOWN_DAYS) * 100;
+          const totalDays = 7;
+          const progress = ((totalDays - cooldown) / totalDays) * 100;
           return (
             <div
               key={`cd-${app.id}`}
@@ -574,23 +601,23 @@ export default function ApplicationsPage() {
           </div>
 
           {/* Interview reminder */}
-          {applications.some((a) => a.interview_at && new Date(a.interview_at) > new Date()) && (
+          {applications.some((a) => a.status === "interviewing") && (
             <div
               style={{
                 background: "rgba(29,158,117,0.1)",
-                border: `1px solid rgba(29,158,117,0.2)`,
+                border: "1px solid rgba(29,158,117,0.2)",
                 borderRadius: 8,
                 padding: "10px 12px",
               }}
             >
               <p style={{ fontSize: 11, color: T.green, margin: 0, fontWeight: 600, fontFamily: T.font }}>
-                Upcoming interview
+                Interview stage
               </p>
               {applications
-                .filter((a) => a.interview_at && new Date(a.interview_at) > new Date())
+                .filter((a) => a.status === "interviewing")
                 .map((a) => (
                   <p key={a.id} style={{ fontSize: 10, color: T.muted, margin: "4px 0 0", fontFamily: T.font }}>
-                    {a.jobs?.title} — {new Date(a.interview_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    {a.jobs?.title} at {a.jobs?.company}
                   </p>
                 ))}
             </div>
