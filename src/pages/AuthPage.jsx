@@ -715,6 +715,8 @@ function AuthPage({
                           borderRadius: "10px",
                           padding: "4px",
                           display: "flex",
+                          gap: "3px",
+                          width: "100%",
                         }}
                       >
                         {[
@@ -729,19 +731,20 @@ function AuthPage({
                               onClick={() => setUserType(opt.key)}
                               style={{
                                 flex: 1,
-                                padding: "8px 0",
-                                borderRadius: "8px",
+                                padding: "9px 0",
+                                borderRadius: "7px",
                                 border: active ? "0.5px solid rgba(255,255,255,0.1)" : "none",
                                 background: active ? "#2e2e2e" : "transparent",
                                 color: active ? "#e8e8e8" : "rgba(160,158,152,0.4)",
                                 fontWeight: active ? 500 : 400,
                                 fontSize: "13px",
+                                textAlign: "center",
                                 cursor: "pointer",
                                 fontFamily: AUTH_FONT,
                                 boxShadow: active
                                   ? "0 1px 4px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.07)"
                                   : "none",
-                                transition: "background-color 150ms cubic-bezier(0.4,0,0.2,1), color 150ms cubic-bezier(0.4,0,0.2,1)",
+                                transition: "background 0.18s ease, color 0.18s ease, font-weight 0.18s ease, border 0.18s ease, box-shadow 0.18s ease",
                               }}
                             >
                               {opt.label}
