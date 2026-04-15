@@ -878,6 +878,19 @@ export default function ATSChecker({ onResultsVisible } = {}) {
               </div>
             </div>
           )}
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <p style={{
+              color: "#555",
+              fontSize: "11px",
+              textAlign: "center",
+              marginTop: "16px",
+              maxWidth: "360px",
+              lineHeight: 1.5,
+              letterSpacing: "0.03em",
+            }}>
+              Engineered by Claude 4.5 (Anthropic). Optimized for the Gulf{"'"}s competitive recruitment landscape.
+            </p>
+          </div>
         </div>
       </div>
     </div>
