@@ -145,6 +145,8 @@ function CoverLetterPage({ user, profile, onBack }) {
   const [clTemplateVariant, setClTemplateVariant] = useState(null);
   const [clUnlocking, setClUnlocking] = useState(false);
   const [, setRetryCount] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadDone, setDownloadDone] = useState(false);
   const uploadInputRef = useRef(null);
   const lastClPayloadRef = useRef(null);
   const userTriggeredRef = useRef(false);
@@ -383,6 +385,7 @@ function CoverLetterPage({ user, profile, onBack }) {
   const handleCoverLetterPdfDownload = useCallback(async () => {
     const fullText = fullLetterDisplay;
     if (!String(fullText || "").trim()) return;
+    setIsDownloading(true);
     const companyResolved = clCompanyName.trim() || "your company";
     const roleKey = detectRole(clTargetRole || "");
     const pack = roleKey ? skillSuggestions[roleKey] : null;
@@ -422,8 +425,12 @@ function CoverLetterPage({ user, profile, onBack }) {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      setIsDownloading(false);
+      setDownloadDone(true);
+      setTimeout(() => setDownloadDone(false), 2000);
     } catch (e) {
       console.error(e);
+      setIsDownloading(false);
       alert(e?.message || "Download failed.");
     }
   }, [fullLetterDisplay, resumeForApi, clFullName, clCurrentJobTitle, clTargetRole, clCompanyName]);
@@ -1397,23 +1404,34 @@ function CoverLetterPage({ user, profile, onBack }) {
                   {/* Right: Download pill */}
                   <button
                     type="button"
+                    disabled={isDownloading}
                     onClick={handleCoverLetterPdfDownload}
                     style={{
-                      background: "#D97706",
-                      border: "none",
+                      background: downloadDone ? "#141414" : "#FFFFFF",
+                      border: downloadDone ? "1px solid rgba(34,197,94,0.3)" : "none",
                       borderRadius: 999,
-                      color: "#000",
+                      color: downloadDone ? "#4ADE80" : "#000000",
                       fontSize: 12,
                       fontWeight: 600,
                       padding: "8px 16px",
-                      cursor: "pointer",
+                      cursor: isDownloading ? "wait" : "pointer",
+                      opacity: isDownloading ? 0.75 : 1,
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
                       whiteSpace: "nowrap",
                     }}
                   >
-                    <span style={{ fontSize: 14 }}>{"\u2193"}</span> Download Your Professional Letter
+                    {isDownloading ? (
+                      <>
+                        <div style={{ width: 16, height: 16, border: "2px solid #999", borderTop: "2px solid transparent", borderRadius: "50%", animation: "cvpClSpin 0.7s linear infinite" }} />
+                        Generating PDF...
+                      </>
+                    ) : downloadDone ? (
+                      <>{"\u2713"} Downloaded!</>
+                    ) : (
+                      <><span style={{ fontSize: 14 }}>{"\u2193"}</span> Download Your Professional Letter</>
+                    )}
                   </button>
                 </div>
 
@@ -1432,14 +1450,35 @@ function CoverLetterPage({ user, profile, onBack }) {
                   </span>
                 </div>
 
-                {/* Template wrapper */}
+                {/* Three-column layout: left panel + center content + right panel */}
                 <div style={{
                   display: "flex",
                   justifyContent: "center",
+                  gap: 32,
                   padding: "16px 0 40px",
                   position: "relative",
                   zIndex: 1,
                 }}>
+                  {/* Left Panel */}
+                  <div className="cvp-cl-side-panel" style={{ width: 200, opacity: 0.85, paddingTop: 8, flexShrink: 0 }}>
+                    <div style={{ color: "#555", fontSize: 10, letterSpacing: 1, marginBottom: 16, fontWeight: 600 }}>PREMIUM FEATURES ACTIVE</div>
+                    {[
+                      { label: "ATS-Ready", desc: "Invisible GhostChips injected for role-matching" },
+                      { label: "Gulf-Standard", desc: "Tone optimized for Dubai & Riyadh recruiters" },
+                      { label: "A4 Optimized", desc: "Precision mm-spacing for professional printing" },
+                      { label: "Anthropic Powered", desc: "Built on Haiku 4.5, Anthropic\u2019s latest architecture" },
+                    ].map((item) => (
+                      <div key={item.label} style={{ display: "flex", gap: 10, marginBottom: 14, alignItems: "flex-start" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D97706", marginTop: 5, flexShrink: 0 }} />
+                        <div>
+                          <div style={{ color: "#ccc", fontSize: 12, fontWeight: 500 }}>{item.label}</div>
+                          <div style={{ color: "#555", fontSize: 11, marginTop: 2, lineHeight: 1.4 }}>{item.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Center: A4 card */}
                   <div style={{
                     transform: "scale(0.75)",
                     transformOrigin: "top center",
@@ -1454,6 +1493,33 @@ function CoverLetterPage({ user, profile, onBack }) {
                       resumeForApi={resumeForApi}
                       clTemplateVariant={clTemplateVariant}
                     />
+                  </div>
+
+                  {/* Right Panel */}
+                  <div className="cvp-cl-side-panel" style={{ width: 200, opacity: 0.85, paddingTop: 8, flexShrink: 0 }}>
+                    <div style={{ color: "#555", fontSize: 10, letterSpacing: 1, marginBottom: 16, fontWeight: 600 }}>{"WHAT\u2019S NEXT?"}</div>
+                    <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16 }}>
+                      <div style={{ color: "#ccc", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Build a matching CV</div>
+                      <div style={{ color: "#555", fontSize: 11, lineHeight: 1.4, marginBottom: 10 }}>Use the same professional style for your full application package.</div>
+                      <button
+                        type="button"
+                        onClick={() => { window.location.href = "/builder"; }}
+                        style={{ background: "transparent", border: "1px solid #2A2A2A", borderRadius: 8, color: "#A0A0A0", fontSize: 11, fontWeight: 500, padding: "6px 12px", cursor: "pointer", width: "100%" }}
+                      >
+                        {"Go to CV Builder \u2192"}
+                      </button>
+                    </div>
+                    <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16, marginTop: 12 }}>
+                      <div style={{ color: "#ccc", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Check ATS Score</div>
+                      <div style={{ color: "#555", fontSize: 11, lineHeight: 1.4, marginBottom: 10 }}>See how your CV ranks against this job description.</div>
+                      <button
+                        type="button"
+                        onClick={() => { window.location.href = "/builder?tab=ats"; }}
+                        style={{ background: "transparent", border: "1px solid #2A2A2A", borderRadius: 8, color: "#A0A0A0", fontSize: 11, fontWeight: 500, padding: "6px 12px", cursor: "pointer", width: "100%" }}
+                      >
+                        {"Run ATS Check \u2192"}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1484,6 +1550,21 @@ function CoverLetterPage({ user, profile, onBack }) {
                   >
                     Edit My Details
                   </button>
+                </div>
+
+                {/* AI Trust Statement */}
+                <div style={{ display: "flex", justifyContent: "center", paddingBottom: 32, position: "relative", zIndex: 1 }}>
+                  <p style={{
+                    color: "#666",
+                    fontSize: "11px",
+                    textAlign: "center",
+                    marginTop: "40px",
+                    maxWidth: "400px",
+                    lineHeight: 1.5,
+                    letterSpacing: "0.03em",
+                  }}>
+                    Engineered by Claude 4.5 (Anthropic). Optimized for the Gulf{"'"}s competitive recruitment landscape.
+                  </p>
                 </div>
               </div>
             </>

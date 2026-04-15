@@ -1680,3 +1680,12 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.4); }
 }
+
+.cvp-cl-side-panel {
+  display: none;
+}
+@media (min-width: 1200px) {
+  .cvp-cl-side-panel {
+    display: block;
+  }
+}
