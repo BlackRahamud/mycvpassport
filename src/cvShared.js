@@ -15,14 +15,18 @@ export const TEMPLATES = [
   { id: 12, name: "Flat Split", tier: "premium", color: "#F5E6E0", accent: "#000000", desc: "Flat split layout · beige header, grey sidebar", layout: "flat-split" },
   { id: 13, name: "Finance", tier: "premium", color: "#000000", accent: "#000000", desc: "Dense finance & accounting · UAE banking", layout: "finance", tags: ["ATS Friendly", "Popular in UAE", "Banking & Finance"] },
   { id: 14, name: "Figma Mirror", tier: "premium", color: "#1e293b", accent: "#60a5fa", desc: "2-page Figma mirror · 595×842px", layout: "figma-mirror", tags: ["2 Pages", "Figma Export"] },
+  { id: 15, name: "Slate Carbon", tier: "premium", color: "#111827", accent: "#6B7280", desc: "Dark slate header, clean serif name", layout: "slate-carbon" },
+  { id: 16, name: "Crimson Edge", tier: "premium", color: "#0F0F0F", accent: "#DC2626", desc: "Red accent bar, bold creative edge", layout: "crimson-edge" },
+  { id: 17, name: "Forest Pro", tier: "premium", color: "#14532D", accent: "#16A34A", desc: "Deep green header, modern professional", layout: "forest-pro" },
+  { id: 18, name: "Midnight Gold", tier: "premium", color: "#0A0A0A", accent: "#D97706", desc: "Dark header with amber gold accent", layout: "midnight-gold" },
 ];
 
 /** Filter keys → TEMPLATES[].id (numeric ids 1–14 are the canonical template IDs in this app). */
 export const TEMPLATE_FILTER_IDS = {
   popular: [1, 2, 3, 4, 5],
-  simple: [1, 2, 3, 6, 7],
-  modern: [4, 5, 8, 9, 10],
-  creative: [11, 12, 13, 14],
+  simple: [1, 2, 3, 6, 7, 15],
+  modern: [4, 5, 8, 9, 10, 17],
+  creative: [11, 12, 13, 14, 16, 18],
 };
 
 export const EMPTY_EXP = {

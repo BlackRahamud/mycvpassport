@@ -352,6 +352,10 @@ const TEMPLATE_DUMMY_MAP = {
   8: DUMMY_FATIMA,   // Creative Sidebar — 10pt body, coral sidebar
   13: DUMMY_JAMES,   // Finance — 12.5px body, dense finance
   14: DUMMY_JAMES,   // Figma Mirror — 10.5pt body, 2-page
+  15: DUMMY_SARA,    // Slate Carbon — 10pt body, dark slate header
+  16: DUMMY_JAMES,   // Crimson Edge — 10pt body, red accent bar
+  17: DUMMY_FATIMA,  // Forest Pro — 10pt body, green header
+  18: DUMMY_AHMED,   // Midnight Gold — 10pt body, amber gold accent
 };
 
 /** Get the right dummy profile for a given template, falling back to James Okafor. */
@@ -382,9 +386,9 @@ const AMBER_GLOW_IDS = new Set([3, 4, 5]);
 /** Scroll sections — each template appears exactly once, no duplicates. */
 const SCROLL_SECTIONS = [
   { key: "popular",  label: "POPULAR",  desc: "Engineered for GCC shortlists. ATS-optimised, recruiter-tested.",         ids: [1, 2, 3, 4, 5] },
-  { key: "simple",   label: "SIMPLE",   desc: "Clean, minimal layouts that let your experience speak.",                   ids: [6, 7] },
-  { key: "modern",   label: "MODERN",   desc: "Contemporary designs for competitive, fast-moving industries.",            ids: [8, 9, 10] },
-  { key: "creative", label: "CREATIVE", desc: "Bold formats for roles where presentation signals capability.",            ids: [11, 12, 13, 14] },
+  { key: "simple",   label: "SIMPLE",   desc: "Clean, minimal layouts that let your experience speak.",                   ids: [6, 7, 15] },
+  { key: "modern",   label: "MODERN",   desc: "Contemporary designs for competitive, fast-moving industries.",            ids: [8, 9, 10, 17] },
+  { key: "creative", label: "CREATIVE", desc: "Bold formats for roles where presentation signals capability.",            ids: [11, 12, 13, 14, 16, 18] },
 ];
 
 /**

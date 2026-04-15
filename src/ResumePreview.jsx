@@ -13,6 +13,10 @@ import { PreviewTechITPro } from "./Template11TechITPro";
 import { Template12Split } from "./Template12Split";
 import { PreviewFinance } from "./Template13Finance";
 import { Template14 } from "./Template14";
+import { PreviewSlateCarbon } from "./Template15";
+import { PreviewCrimsonEdge } from "./Template16";
+import { PreviewForestPro } from "./Template17";
+import { PreviewMidnightGold } from "./Template18";
 import { TEMPLATES, cvWithTemplateCertifications } from "./cvShared";
 
 export function ResumePreview({ cv, template, mobileMode = false }) {
@@ -31,6 +35,10 @@ export function ResumePreview({ cv, template, mobileMode = false }) {
   if (t.layout === "flat-split") return <Template12Split cv={cvT} mobileMode={mobileMode} />;
   if (t.layout === "finance") return <PreviewFinance cv={cvT} />;
   if (t.layout === "figma-mirror") return <Template14 cv={cvT} mobileMode={mobileMode} />;
+  if (t.layout === "slate-carbon") return <PreviewSlateCarbon cv={cvT} mobileMode={mobileMode} />;
+  if (t.layout === "crimson-edge") return <PreviewCrimsonEdge cv={cvT} mobileMode={mobileMode} />;
+  if (t.layout === "forest-pro") return <PreviewForestPro cv={cvT} mobileMode={mobileMode} />;
+  if (t.layout === "midnight-gold") return <PreviewMidnightGold cv={cvT} mobileMode={mobileMode} />;
   return <PreviewModernEmerald cv={cvT} mobileMode={mobileMode} />;
 }
 
