@@ -155,8 +155,8 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
       <header
         style={{
           background: HEADER_BG,
-          padding: "12mm 15mm 10mm",
-          marginBottom: "6mm",
+          padding: "8mm 15mm 8mm",
+          marginBottom: "4mm",
         }}
       >
         <h1
@@ -236,7 +236,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
       {experience.some((e) => e.company) && (
         <section data-section="experience">
           <SectionTitle first={!cv.summary}>Professional Experience</SectionTitle>
-          <div style={{ marginTop: "-4mm" }}>
+          <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             {experience
               .filter((e) => e.company)
               .map((e, i) => (
@@ -319,7 +319,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
           >
             Education
           </SectionTitle>
-          <div style={{ marginTop: "-4mm" }}>
+          <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             {education
               .filter((e) => e.school)
               .map((e, i) => (
@@ -380,7 +380,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
           >
             Certifications
           </SectionTitle>
-          <div style={{ marginTop: "-4mm" }}>
+          <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             <EntryWrap>
               <div style={{ position: "relative" }}>
                 <GhostChip>{certList.join(" · ")}</GhostChip>
@@ -406,7 +406,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
           >
             Skills
           </SectionTitle>
-          <div style={{ marginTop: "-4mm" }}>
+          <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             <EntryWrap>
               <div style={{ position: "relative" }}>
                 <GhostChip>{skillCore.join(" · ")}</GhostChip>
@@ -433,7 +433,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
           >
             Languages
           </SectionTitle>
-          <div style={{ marginTop: "-4mm" }}>
+          <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             <EntryWrap>
               <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY_COLOR }}>
                 {langList.join(" · ")}
