@@ -20,12 +20,11 @@ export function CoverLetterTemplate({
   resumeForApi,
   clTemplateVariant,
 }) {
-  const fullName = clFullName || resumeForApi?.name || "Candidate Name";
-  const email = resumeForApi?.email || "";
-  const phone = resumeForApi?.phone || "";
-  const location = resumeForApi?.location || "";
-
-  const contactParts = [email, phone, location].filter(Boolean);
+  const hasRealName = Boolean((clFullName || resumeForApi?.name || "").trim());
+  const fullName = hasRealName ? (clFullName || resumeForApi?.name) : "Your Name";
+  const email = (resumeForApi?.email || "").trim();
+  const phone = (resumeForApi?.phone || "").trim();
+  const location = (resumeForApi?.location || "").trim();
 
   const roleKey = detectRole(clTargetRole || "");
   const pack = roleKey ? skillSuggestions[roleKey] : null;
@@ -64,7 +63,7 @@ export function CoverLetterTemplate({
           marginBottom: 32,
         }}
       >
-        <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.3 }}>
+        <div style={{ fontSize: 22, fontWeight: hasRealName ? 700 : 400, lineHeight: 1.3, color: hasRealName ? "#1a1a1a" : "#999999" }}>
           {fullName}
         </div>
         {clCurrentJobTitle ? (
@@ -72,9 +71,13 @@ export function CoverLetterTemplate({
             {clCurrentJobTitle}
           </div>
         ) : null}
-        {contactParts.length > 0 ? (
+        {(email || phone || location) ? (
           <div style={{ fontSize: 12, color: "#777", marginTop: 6 }}>
-            {contactParts.join(" \u00B7 ")}
+            {email && <span>{email}</span>}
+            {email && phone && <span style={{ margin: "0 6px" }}>&middot;</span>}
+            {phone && <span>{phone}</span>}
+            {(email || phone) && location && <span style={{ margin: "0 6px" }}>&middot;</span>}
+            {location && <span>{location}</span>}
           </div>
         ) : null}
       </div>

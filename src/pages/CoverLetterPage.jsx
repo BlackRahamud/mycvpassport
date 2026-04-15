@@ -144,6 +144,7 @@ function CoverLetterPage({ user, profile, onBack }) {
   const [clFreePreview, setClFreePreview] = useState(false);
   const [clTemplateVariant, setClTemplateVariant] = useState(null);
   const [clUnlocking, setClUnlocking] = useState(false);
+  const [, setRetryCount] = useState(0);
   const uploadInputRef = useRef(null);
   const lastClPayloadRef = useRef(null);
   const userTriggeredRef = useRef(false);
@@ -564,33 +565,43 @@ function CoverLetterPage({ user, profile, onBack }) {
       return;
     }
 
-    setPhase("loading");
-    setLetterBody("");
-    setClFreePreview(false);
-    setClTemplateVariant(null);
-    const minWait = new Promise((r) => setTimeout(r, 5000));
-    const apiCall = fetch("/api/cover-letter", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestPayload),
-    }).then(async (response) => {
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
-      return String(data?.coverLetterBody || "").trim();
-    });
-    try {
-      const [, body] = await Promise.all([minWait, apiCall]);
-      setLetterBody(body);
-      setClFreePreview(false);
-      setClTemplateVariant(null);
-      setPhase("result");
-    } catch (err) {
-      console.error(err);
-      setGenError(err.message || "Generation failed.");
-      setPhase("entry");
-    } finally {
-      userTriggeredRef.current = false;
-    }
+    const attemptGeneration = async (attempt = 0) => {
+      setPhase("loading");
+      if (attempt === 0) {
+        setLetterBody("");
+        setClFreePreview(false);
+        setClTemplateVariant(null);
+      }
+      const minWait = new Promise((r) => setTimeout(r, 5000));
+      const apiCall = fetch("/api/cover-letter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestPayload),
+      }).then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
+        return String(data?.coverLetterBody || "").trim();
+      });
+      try {
+        const [, body] = await Promise.all([minWait, apiCall]);
+        setLetterBody(body);
+        setClFreePreview(false);
+        setClTemplateVariant(null);
+        setPhase("result");
+        setRetryCount(0);
+      } catch (err) {
+        console.error(err);
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
+          return attemptGeneration(attempt + 1);
+        }
+        setGenError(err.message || "Generation failed.");
+        setPhase("error");
+      } finally {
+        userTriggeredRef.current = false;
+      }
+    };
+    attemptGeneration(0);
   };
 
   const handleUnlockFullCoverLetter = async () => {
@@ -1034,6 +1045,58 @@ function CoverLetterPage({ user, profile, onBack }) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {phase === "error" && (
+        <div style={{ marginTop: 32, display: "flex", justifyContent: "center" }}>
+          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 24, maxWidth: 400, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u26A0\uFE0F"}</div>
+            <div style={{ fontSize: 17, fontWeight: 600, color: "#FFF", marginBottom: 8 }}>Our AI is handling high demand right now</div>
+            <div style={{ color: "#A0A0A0", fontSize: 13, marginBottom: 20 }}>Your details are saved. Tap below to try again.</div>
+            <button
+              type="button"
+              onClick={() => {
+                setGenError("");
+                setRetryCount(0);
+                const payload = lastClPayloadRef.current;
+                if (!payload) return;
+                const doRetry = async (attempt = 0) => {
+                  setPhase("loading");
+                  const minWait = new Promise((r) => setTimeout(r, 5000));
+                  const apiCall = fetch("/api/cover-letter", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                  }).then(async (response) => {
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
+                    return String(data?.coverLetterBody || "").trim();
+                  });
+                  try {
+                    const [, body] = await Promise.all([minWait, apiCall]);
+                    setLetterBody(body);
+                    setClFreePreview(false);
+                    setClTemplateVariant(null);
+                    setPhase("result");
+                    setRetryCount(0);
+                  } catch (err) {
+                    console.error(err);
+                    if (attempt < 2) {
+                      await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
+                      return doRetry(attempt + 1);
+                    }
+                    setGenError(err.message || "Generation failed.");
+                    setPhase("error");
+                  }
+                };
+                doRetry(0);
+              }}
+              style={{ background: "#FFFFFF", color: "#000000", border: "none", borderRadius: 8, padding: "12px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
+            >
+              Try Again
+            </button>
           </div>
         </div>
       )}
