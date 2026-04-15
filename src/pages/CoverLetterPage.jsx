@@ -1103,80 +1103,56 @@ function CoverLetterPage({ user, profile, onBack }) {
 
       {phase === "result" && (
         <div style={{ marginTop: 8 }}>
-          {genError ? (
-            <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{genError}</div>
-          ) : null}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Your cover letter</h2>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "4px 10px",
-                borderRadius: 999,
-                background: clFreePreview ? "#2A2A2A" : "#0D2B1F",
-                color: clFreePreview ? "#A0A0A0" : CL_GREEN,
-              }}
-            >
-              {clFreePreview ? "Preview" : "AI Generated"}
-            </span>
-          </div>
-          <div style={{ position: "relative", background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16, marginBottom: 16, overflow: "hidden" }}>
-            {clPreviewParts ? (
-              <>
-                <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>
-                  {clPreviewParts.header}
-                  {"\n\n"}
-                  {clPreviewParts.salutation}
-                  {"\n\n"}
-                  {clPreviewParts.firstPara}
-                </div>
-                <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5", filter: "blur(5px)", marginTop: 12 }}>
-                  {clPreviewParts.restBody}
-                  {clPreviewParts.restBody ? "\n\n" : ""}
-                  {clPreviewParts.closing}
-                </div>
-                <div
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: "55%",
-                    background: "linear-gradient(to bottom, rgba(20,20,20,0), #141414 55%, #141414)",
-                    pointerEvents: "none",
-                  }}
-                />
-              </>
-            ) : (
-              <div style={{
-                background: '#0A0A0A',
-                display: 'flex',
-                justifyContent: 'center',
-                padding: '32px 0 50px',
-                borderRadius: '12px',
-                marginTop: '16px',
-              }}>
-                <div style={{
-                  transform: 'scale(0.75)',
-                  transformOrigin: 'top center',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                }}>
-                  <CoverLetterTemplate
-                    clFullName={clFullName}
-                    clCurrentJobTitle={clCurrentJobTitle}
-                    clTargetRole={clTargetRole}
-                    clCompanyName={clCompanyName.trim() || "your company"}
-                    fullLetterDisplay={fullLetterDisplay}
-                    resumeForApi={resumeForApi}
-                    clTemplateVariant={clTemplateVariant}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
           {clFreePreview ? (
             <>
+              {/* --- FREE PREVIEW: blurred letter + paywall (untouched) --- */}
+              {genError ? (
+                <div style={{ color: "#f87171", fontSize: 13, marginBottom: 12 }}>{genError}</div>
+              ) : null}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Your cover letter</h2>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    background: "#2A2A2A",
+                    color: "#A0A0A0",
+                  }}
+                >
+                  Preview
+                </span>
+              </div>
+              <div style={{ position: "relative", background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16, marginBottom: 16, overflow: "hidden" }}>
+                {clPreviewParts ? (
+                  <>
+                    <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>
+                      {clPreviewParts.header}
+                      {"\n\n"}
+                      {clPreviewParts.salutation}
+                      {"\n\n"}
+                      {clPreviewParts.firstPara}
+                    </div>
+                    <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5", filter: "blur(5px)", marginTop: 12 }}>
+                      {clPreviewParts.restBody}
+                      {clPreviewParts.restBody ? "\n\n" : ""}
+                      {clPreviewParts.closing}
+                    </div>
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: "55%",
+                        background: "linear-gradient(to bottom, rgba(20,20,20,0), #141414 55%, #141414)",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  </>
+                ) : null}
+              </div>
               <div style={{ position: "relative", marginBottom: 12, width: "100%" }}>
                 <div
                   style={{
@@ -1317,38 +1293,201 @@ function CoverLetterPage({ user, profile, onBack }) {
               </button>
               <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
             </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPhase("entry");
+                  setLetterBody("");
+                  setClFreePreview(false);
+                  setClTemplateVariant(null);
+                  setGenError("");
+                  setClFieldErrors({});
+                }}
+                style={{
+                  marginTop: 12,
+                  width: "100%",
+                  padding: 12,
+                  border: "none",
+                  background: "transparent",
+                  color: "#505050",
+                  fontSize: 12,
+                  textAlign: "center",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#505050"; }}
+              >
+                Start over
+              </button>
             </>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              setPhase("entry");
-              setLetterBody("");
-              setClFreePreview(false);
-              setClTemplateVariant(null);
-              setGenError("");
-              setClFieldErrors({});
-            }}
-            style={{
-              marginTop: clFreePreview ? 12 : 16,
-              width: "100%",
-              padding: 12,
-              border: "none",
-              background: "transparent",
-              color: "#505050",
-              fontSize: 12,
-              textAlign: "center",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#A0A0A0";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#505050";
-            }}
-          >
-            Start over
-          </button>
+          ) : (
+            <>
+              {/* --- STUDIO VIEW: paid/generated letter --- */}
+              {/* Animated background paths */}
+              <div style={{ position: "relative", overflow: "hidden", borderRadius: 16, marginBottom: 0 }}>
+                <svg
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 }}
+                  viewBox="0 0 600 800"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path d="M0 200 Q150 100 300 250 T600 200" fill="none" stroke="#1D9E75" strokeWidth="1" strokeDasharray="1000" style={{ animation: "cvpPathFlow 8s linear infinite" }} />
+                  <path d="M0 400 Q200 300 400 450 T600 400" fill="none" stroke="#D97706" strokeWidth="1" strokeDasharray="1000" style={{ animation: "cvpPathFlow 10s linear infinite 2s" }} />
+                  <path d="M0 600 Q250 500 350 650 T600 550" fill="none" stroke="#378ADD" strokeWidth="1" strokeDasharray="1000" style={{ animation: "cvpPathFlow 12s linear infinite 4s" }} />
+                </svg>
+
+                {/* Sticky action bar */}
+                <div style={{
+                  position: "sticky",
+                  top: 56,
+                  zIndex: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 16px",
+                  background: "rgba(10,10,10,0.85)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  borderBottom: "1px solid #2A2A2A",
+                  borderRadius: "12px 12px 0 0",
+                  flexWrap: "wrap",
+                  gap: 8,
+                }}>
+                  {/* Left: Edit Details */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhase("entry");
+                      setLetterBody("");
+                      setClFreePreview(false);
+                      setClTemplateVariant(null);
+                      setGenError("");
+                      setClFieldErrors({});
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 8,
+                      color: "#A0A0A0",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>{"\u2190"}</span> Edit Details
+                  </button>
+                  {/* Center: status */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#D97706",
+                      display: "inline-block",
+                      animation: "cvpPulseDot 2s ease-in-out infinite",
+                    }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#A0A0A0", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                      Cover Letter Ready
+                    </span>
+                  </div>
+                  {/* Right: Download pill */}
+                  <button
+                    type="button"
+                    onClick={handleCoverLetterPdfDownload}
+                    style={{
+                      background: "#D97706",
+                      border: "none",
+                      borderRadius: 999,
+                      color: "#000",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>{"\u2193"}</span> Download Your Professional Letter
+                  </button>
+                </div>
+
+                {/* Green success pill */}
+                <div style={{ display: "flex", justifyContent: "center", padding: "20px 0 8px", position: "relative", zIndex: 1 }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "5px 14px",
+                    borderRadius: 999,
+                    background: "#0D2B1F",
+                    color: CL_GREEN,
+                    border: "1px solid #1a4a30",
+                  }}>
+                    AI Generated
+                  </span>
+                </div>
+
+                {/* Template wrapper */}
+                <div style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  padding: "16px 0 40px",
+                  position: "relative",
+                  zIndex: 1,
+                }}>
+                  <div style={{
+                    transform: "scale(0.75)",
+                    transformOrigin: "top center",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  }}>
+                    <CoverLetterTemplate
+                      clFullName={clFullName}
+                      clCurrentJobTitle={clCurrentJobTitle}
+                      clTargetRole={clTargetRole}
+                      clCompanyName={clCompanyName.trim() || "your company"}
+                      fullLetterDisplay={fullLetterDisplay}
+                      resumeForApi={resumeForApi}
+                      clTemplateVariant={clTemplateVariant}
+                    />
+                  </div>
+                </div>
+
+                {/* Edit My Details ghost pill */}
+                <div style={{ display: "flex", justifyContent: "center", paddingBottom: 24, position: "relative", zIndex: 1 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhase("entry");
+                      setLetterBody("");
+                      setClFreePreview(false);
+                      setClTemplateVariant(null);
+                      setGenError("");
+                      setClFieldErrors({});
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid #2A2A2A",
+                      borderRadius: 999,
+                      color: "#A0A0A0",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      padding: "10px 24px",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#505050"; e.currentTarget.style.color = "#FFF"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}
+                  >
+                    Edit My Details
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
       <FAB

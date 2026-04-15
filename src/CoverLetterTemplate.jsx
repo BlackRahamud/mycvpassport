@@ -22,10 +22,6 @@ export function CoverLetterTemplate({
 }) {
   const hasRealName = Boolean((clFullName || resumeForApi?.name || "").trim());
   const fullName = hasRealName ? (clFullName || resumeForApi?.name) : "Your Name";
-  const email = (resumeForApi?.email || "").trim();
-  const phone = (resumeForApi?.phone || "").trim();
-  const location = (resumeForApi?.location || "").trim();
-
   const roleKey = detectRole(clTargetRole || "");
   const pack = roleKey ? skillSuggestions[roleKey] : null;
   const hardSkills = (pack?.atsKeywords || [])
@@ -71,15 +67,6 @@ export function CoverLetterTemplate({
             {clCurrentJobTitle}
           </div>
         ) : null}
-        {(email || phone || location) ? (
-          <div style={{ fontSize: 12, color: "#777", marginTop: 6 }}>
-            {email && <span>{email}</span>}
-            {email && phone && <span style={{ margin: "0 6px" }}>&middot;</span>}
-            {phone && <span>{phone}</span>}
-            {(email || phone) && location && <span style={{ margin: "0 6px" }}>&middot;</span>}
-            {location && <span>{location}</span>}
-          </div>
-        ) : null}
       </div>
 
       {/* Date + Hiring Manager + Company */}
@@ -116,8 +103,7 @@ export function CoverLetterTemplate({
       <div
         style={{
           whiteSpace: "pre-wrap",
-          maxHeight: 700,
-          overflow: "hidden",
+          overflow: "visible",
           lineHeight: 1.75,
           fontSize: "10.5pt",
           color: "#1a1a1a",

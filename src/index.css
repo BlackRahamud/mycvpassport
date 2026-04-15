@@ -1668,3 +1668,15 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     display: none !important;
   }
 }
+
+@keyframes cvpPathFlow {
+  0% { stroke-dashoffset: 1000; opacity: 0; }
+  10% { opacity: 0.08; }
+  90% { opacity: 0.08; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+@keyframes cvpPulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
