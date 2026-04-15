@@ -46,7 +46,7 @@ Experience highlights:
 ${exp.slice(0, 6000)}
 
 Job title: ${jobTitle || "Role"}
-Company: ${(companyName || "").trim() || "the organisation"}
+${(companyName || "").trim() ? `Company: ${(companyName || "").trim()}` : ""}
 
 Job description:
 ${String(jobDescription || "").slice(0, 8000)}
@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 450,
-        system: "CRITICAL: The cover letter body must not exceed 225 words. This is a hard layout constraint to ensure the document fits on one page. Prioritize impact over length.",
+        system: "CRITICAL: The cover letter body must not exceed 225 words. This is a hard layout constraint to ensure the document fits on one page. Prioritize impact over length. If no company name is provided, do not reference the company name anywhere in the letter. Do not use placeholder text such as 'your company', 'the company', or any generic substitute.",
         messages: [{ role: "user", content: prompt }],
       }),
     });
