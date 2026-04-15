@@ -43,7 +43,7 @@ function buildCoverLetterHtml({
   <style>
     @page { size: A4; margin: 0; }
     html, body { margin: 0; padding: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
-    .cl-page { width: 210mm; min-height: 297mm; padding: 20mm; box-sizing: border-box; position: relative; }
+    .cl-page { width: 210mm; min-height: 297mm; max-height: 297mm; padding: 25.4mm; box-sizing: border-box; position: relative; overflow: hidden; }
     .cl-header { border-bottom: 2px solid #1a1a1a; padding-bottom: 4mm; margin-bottom: 8mm; }
     .cl-name { font-size: 22px; font-weight: 700; line-height: 1.3; color: #1a1a1a; }
     .cl-title { font-size: 14px; color: #555; margin-top: 1mm; }
@@ -51,7 +51,7 @@ function buildCoverLetterHtml({
     .cl-date-block { font-size: 11pt; line-height: 1.75; margin-bottom: 6mm; color: #1a1a1a; }
     .cl-date-block div { margin-bottom: 0.5mm; }
     .cl-subject { font-weight: 700; font-size: 11pt; margin-bottom: 4mm; color: #1a1a1a; }
-    .cl-body { white-space: pre-wrap; line-height: 1.6; color: #1f2937; font-size: 11pt; }
+    .cl-body { white-space: pre-wrap; line-height: 1.4; color: #1f2937; font-size: 11pt; orphans: 3; widows: 3; }
   </style>
 </head>
 <body>
