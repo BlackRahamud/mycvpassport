@@ -2209,6 +2209,7 @@ function ResumeBuilder({
   const mobileCvPreviewRef = useRef(null);
   const [desktopPreviewContainerWidth, setDesktopPreviewContainerWidth] = useState(0);
   const [mobilePreviewContainerWidth, setMobilePreviewContainerWidth] = useState(0);
+  const [desktopPageCount, setDesktopPageCount] = useState(1);
 
   const desktopPreviewScale = useMemo(() => {
     if (!desktopPreviewContainerWidth) return 0.6;
@@ -2523,6 +2524,9 @@ function ResumeBuilder({
     };
     const ro = new ResizeObserver((entries) => {
       apply(entries[0]?.contentRect?.width);
+      if (desktopCvPreviewRef.current) {
+        setDesktopPageCount(Math.ceil(desktopCvPreviewRef.current.scrollHeight / 1123));
+      }
     });
     ro.observe(el);
     apply(el.getBoundingClientRect().width);
@@ -3765,6 +3769,7 @@ function ResumeBuilder({
               fitRef={desktopPreviewFitRef}
               padded={false}
               previewCardRef={desktopCvPreviewRef}
+              pageCount={desktopPageCount}
             />
           </div>
         </div>
