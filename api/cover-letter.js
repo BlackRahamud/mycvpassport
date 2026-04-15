@@ -3,7 +3,24 @@
  * Set ANTHROPIC_API_KEY in project env vars.
  */
 
+export const config = { maxDuration: 60 };
+
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+
+async function fetchWithRetry(url, options, attempts = 3, backoff = 10000) {
+  for (let i = 0; i < attempts; i++) {
+    const response = await fetch(url, options);
+    if (response.ok || (response.status !== 529 && response.status !== 429)) {
+      return response;
+    }
+    if (i < attempts - 1) {
+      console.log(`Anthropic ${response.status}. Attempt ${i + 1} failed. Retrying in ${backoff}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, backoff));
+    } else {
+      return response;
+    }
+  }
+}
 
 function buildPrompt({ cvData, jobTitle, companyName, jobDescription, date, market }) {
   const exp = Array.isArray(cvData?.experience) ? cvData.experience.join("\n") : String(cvData?.experience || "");
@@ -66,7 +83,7 @@ module.exports = async function handler(req, res) {
   const prompt = buildPrompt({ cvData, jobTitle, companyName, jobDescription, date, market });
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetchWithRetry("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

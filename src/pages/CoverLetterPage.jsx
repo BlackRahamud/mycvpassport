@@ -147,6 +147,7 @@ function CoverLetterPage({ user, profile, onBack }) {
   const [, setRetryCount] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
+  const [countdown, setCountdown] = useState(30);
   const uploadInputRef = useRef(null);
   const lastClPayloadRef = useRef(null);
   const userTriggeredRef = useRef(false);
@@ -175,6 +176,57 @@ function CoverLetterPage({ user, profile, onBack }) {
   useEffect(() => {
     writeFabMemory({ hasVisitedCoverLetter: true });
   }, []);
+
+  // Countdown auto-retry when error phase
+  useEffect(() => {
+    if (phase !== "error") return;
+    setCountdown(30);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          // Auto-retry using saved payload
+          setGenError("");
+          const payload = lastClPayloadRef.current;
+          if (payload) {
+            const doAutoRetry = async (attempt = 0) => {
+              setPhase("loading");
+              const minWait = new Promise((r) => setTimeout(r, 5000));
+              const apiCall = fetch("/api/cover-letter", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              }).then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
+                return String(data?.coverLetterBody || "").trim();
+              });
+              try {
+                const [, body] = await Promise.all([minWait, apiCall]);
+                setLetterBody(body);
+                setClFreePreview(false);
+                setClTemplateVariant(null);
+                setPhase("result");
+                setRetryCount(0);
+              } catch (err) {
+                console.error(err);
+                if (attempt < 2) {
+                  await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
+                  return doAutoRetry(attempt + 1);
+                }
+                setGenError(err.message || "Generation failed.");
+                setPhase("error");
+              }
+            };
+            doAutoRetry(0);
+          }
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!user?.id) return;
@@ -1057,54 +1109,94 @@ function CoverLetterPage({ user, profile, onBack }) {
       )}
 
       {phase === "error" && (
-        <div style={{ marginTop: 32, display: "flex", justifyContent: "center" }}>
-          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 24, maxWidth: 400, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u26A0\uFE0F"}</div>
-            <div style={{ fontSize: 17, fontWeight: 600, color: "#FFF", marginBottom: 8 }}>Our AI is handling high demand right now</div>
-            <div style={{ color: "#A0A0A0", fontSize: 13, marginBottom: 20 }}>Your details are saved. Tap below to try again.</div>
-            <button
-              type="button"
-              onClick={() => {
-                setGenError("");
-                setRetryCount(0);
-                const payload = lastClPayloadRef.current;
-                if (!payload) return;
-                const doRetry = async (attempt = 0) => {
-                  setPhase("loading");
-                  const minWait = new Promise((r) => setTimeout(r, 5000));
-                  const apiCall = fetch("/api/cover-letter", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                  }).then(async (response) => {
-                    const data = await response.json().catch(() => ({}));
-                    if (!response.ok) throw new Error(data?.error || "Cover letter generation failed.");
-                    return String(data?.coverLetterBody || "").trim();
-                  });
-                  try {
-                    const [, body] = await Promise.all([minWait, apiCall]);
-                    setLetterBody(body);
-                    setClFreePreview(false);
-                    setClTemplateVariant(null);
-                    setPhase("result");
-                    setRetryCount(0);
-                  } catch (err) {
-                    console.error(err);
-                    if (attempt < 2) {
-                      await new Promise((r) => setTimeout(r, (attempt + 1) * 1000));
-                      return doRetry(attempt + 1);
-                    }
-                    setGenError(err.message || "Generation failed.");
-                    setPhase("error");
-                  }
-                };
-                doRetry(0);
-              }}
-              style={{ background: "#FFFFFF", color: "#000000", border: "none", borderRadius: 8, padding: "12px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
-            >
-              Try Again
-            </button>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "60vh",
+          padding: "40px 24px",
+          textAlign: "center",
+        }}>
+          {/* Countdown ring */}
+          <div style={{ position: "relative", width: 130, height: 130, marginBottom: 32 }}>
+            <svg width="130" height="130" viewBox="0 0 130 130" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="#1C1C1C" strokeWidth="4" />
+              <circle
+                cx="65" cy="65" r="50" fill="none"
+                stroke={countdown <= 10 ? "#22C55E" : "#D97706"}
+                strokeWidth="4"
+                strokeDasharray="314"
+                strokeDashoffset={314 * (countdown / 30)}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dashoffset 1s linear, stroke 0.5s cubic-bezier(0.4,0,0.2,1)" }}
+              />
+            </svg>
+            <div style={{
+              position: "absolute", inset: 0,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+            }}>
+              <span style={{ color: "#fff", fontSize: 32, fontWeight: 700, lineHeight: 1 }}>
+                {countdown > 0 ? countdown : "\u2713"}
+              </span>
+              <span style={{ color: "#555", fontSize: 10, letterSpacing: 1, marginTop: 2 }}>
+                {countdown > 0 ? "seconds" : ""}
+              </span>
+            </div>
           </div>
+
+          {/* Status pill */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ width: 6, height: 6, background: "#D97706", borderRadius: "50%" }} />
+            <span style={{ color: "#D97706", fontSize: 11, letterSpacing: "1.5px", fontWeight: 500 }}>HIGH DEMAND</span>
+            <div style={{ width: 6, height: 6, background: "#D97706", borderRadius: "50%" }} />
+          </div>
+
+          {/* Message */}
+          <h2 style={{ color: "#fff", fontSize: 20, fontWeight: 600, margin: "0 0 12px", lineHeight: 1.4, maxWidth: 340 }}>
+            {countdown > 0
+              ? "Anthropic AI is crafting thousands of cover letters right now"
+              : "Retrying now..."}
+          </h2>
+          <p style={{ color: "#555", fontSize: 13, lineHeight: 1.7, margin: "0 0 8px", maxWidth: 340 }}>
+            {countdown > 0
+              ? `Due to peak US timezone demand, our AI queue is full. Your details are saved \u2014 auto-retrying in ${countdown} seconds.`
+              : "Connecting to Claude AI \u2014 your letter is being generated."}
+          </p>
+          <p style={{ color: "#333", fontSize: 12, margin: "0 0 28px" }}>
+            No action needed. Just wait here.
+          </p>
+
+          {/* Auto retry info card */}
+          <div style={{
+            background: "#141414", border: "1px solid #2A2A2A",
+            borderRadius: 12, padding: "14px 20px",
+            display: "flex", alignItems: "center", gap: 12,
+            marginBottom: 24, maxWidth: 320, width: "100%",
+          }}>
+            <div style={{ width: 8, height: 8, background: "#D97706", borderRadius: "50%", flexShrink: 0 }} />
+            <span style={{ color: "#666", fontSize: 12, textAlign: "left" }}>
+              Auto-retrying when timer ends. You don{"'"}t need to do anything.
+            </span>
+          </div>
+
+          {/* Back button */}
+          <button
+            type="button"
+            onClick={() => { setPhase("entry"); setGenError(""); }}
+            style={{
+              background: "transparent", color: "#555",
+              border: "none", fontSize: 13, cursor: "pointer",
+              padding: "8px 0",
+            }}
+          >
+            {"\u2190"} Go back and edit details
+          </button>
+
+          <p style={{ color: "#2A2A2A", fontSize: 11, letterSpacing: "0.5px", marginTop: 24 }}>
+            Powered by Anthropic Claude 4.5
+          </p>
         </div>
       )}
 
