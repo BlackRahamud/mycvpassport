@@ -87,7 +87,7 @@ export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, pr
       onTouchEnd={onSectionHold ? handleTouchEnd : undefined}
       style={{
         width: "100%",
-        overflow: "hidden",
+        overflowX: "hidden",
         position: "relative",
         display: "flex",
         justifyContent: "center",
@@ -103,7 +103,6 @@ export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, pr
           transform: `scale(${scale})`,
           willChange: "transform",
           transition: "none",
-          marginBottom: `${(scale - 1) * A4_PREVIEW_HEIGHT_PX}px`,
         }}
       >
         <div className="cvp-builder-a4-fit" ref={previewCardRef}>

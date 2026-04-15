@@ -50,7 +50,7 @@ import {
 } from "../cvShared";
 import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI, S } from "../builderStyles";
-import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX, A4_PREVIEW_HEIGHT_PX } from "../ResumePreview";
+import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 import { useCvProgress, SECTIONS as CV_PROGRESS_SECTIONS } from "../hooks/useCvProgress";
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
@@ -3747,8 +3747,11 @@ function ResumeBuilder({
               maxWidth: "794px",
               margin: "0 auto",
               minWidth: 0,
-              overflow: "hidden",
-              height: `${A4_PREVIEW_HEIGHT_PX * desktopPreviewScale}px`,
+              overflowY: "auto",
+              overflowX: "hidden",
+              height: "calc(100vh - 56px)",
+              position: "sticky",
+              top: "56px",
               boxSizing: "border-box",
               display: "flex",
               justifyContent: "center",
