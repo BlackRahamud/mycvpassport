@@ -46,7 +46,7 @@ export function ResumePreview({ cv, template, mobileMode = false }) {
 export const A4_PREVIEW_WIDTH_PX = 794;
 export const A4_PREVIEW_HEIGHT_PX = 1123;
 
-export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionHold, pendingSection, pageCount = 1 }) {
+export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionHold, pendingSection }) {
   const longPressTimer = useRef(null);
   const touchMoved = useRef(false);
   const touchStartPos = useRef({ x: 0, y: 0 });
@@ -103,28 +103,11 @@ export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, pr
           transform: `scale(${scale})`,
           willChange: "transform",
           transition: "none",
-          position: "relative",
         }}
       >
         <div className="cvp-builder-a4-fit" ref={previewCardRef}>
           <ResumePreview cv={cv} template={template} />
         </div>
-        {Array.from({ length: Math.max(0, pageCount - 1) }, (_, i) => (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: "-10px",
-              top: `${(i + 1) * 1123}px`,
-              width: "814px",
-              height: "24px",
-              background: "#0A0A0A",
-              pointerEvents: "none",
-              zIndex: 10,
-              boxShadow: "inset 0 10px 10px -10px rgba(0,0,0,0.8), inset 0 -10px 10px -10px rgba(0,0,0,0.8)",
-            }}
-          />
-        ))}
       </div>
     </div>
   );
