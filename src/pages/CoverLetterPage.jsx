@@ -5,6 +5,10 @@ import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { loadUserResumes } from "../resumeDb";
 import { getPaymentLink, hasFeatureAccess } from "../utils/paywall";
+import { buildCoverLetterHtml } from "../serverLib/coverLetterHtml";
+import { CoverLetterTemplate } from "../CoverLetterTemplate";
+import skillSuggestions from "../data/skillSuggestions";
+import { detectRole } from "../utils/detectRole";
 import "../components/FAB/FAB.css";
 
 const CL_GREEN = "#6EE7B7";
@@ -378,23 +382,25 @@ function CoverLetterPage({ user, profile, onBack }) {
   const handleCoverLetterPdfDownload = useCallback(async () => {
     const fullText = fullLetterDisplay;
     if (!String(fullText || "").trim()) return;
-    const escaped = String(fullText)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <style>
-    html, body { margin: 0; padding: 0; background: #fff; }
-    .cvp-root { width: 794px; padding: 48px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
-  </style>
-</head>
-<body>
-  <div class="cvp-root">${escaped}</div>
-</body>
-</html>`;
+    const companyResolved = clCompanyName.trim() || "your company";
+    const roleKey = detectRole(clTargetRole || "");
+    const pack = roleKey ? skillSuggestions[roleKey] : null;
+    const html = buildCoverLetterHtml({
+      clFullName,
+      clCurrentJobTitle,
+      clTargetRole,
+      clCompanyName: companyResolved,
+      fullLetterDisplay: fullText,
+      resumeForApi,
+      ghostKeywords: [
+        ...(pack?.atsKeywords || [])
+          .slice(0, 3)
+          .map((s) => (typeof s === "string" ? s : s.keyword || "")),
+        "Strategic Leadership",
+        "Cross-functional Collaboration",
+        "Stakeholder Management",
+      ],
+    });
     try {
       const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
         method: "POST",
@@ -419,7 +425,7 @@ function CoverLetterPage({ user, profile, onBack }) {
       console.error(e);
       alert(e?.message || "Download failed.");
     }
-  }, [fullLetterDisplay, resumeForApi]);
+  }, [fullLetterDisplay, resumeForApi, clFullName, clCurrentJobTitle, clTargetRole, clCompanyName]);
 
   const clPreviewParts = useMemo(() => {
     if (!clFreePreview || !letterBody || !resumeForApi) return null;
@@ -1080,7 +1086,30 @@ function CoverLetterPage({ user, profile, onBack }) {
                 />
               </>
             ) : (
-              <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>{fullLetterDisplay}</div>
+              <div style={{
+                background: '#0A0A0A',
+                display: 'flex',
+                justifyContent: 'center',
+                padding: '32px 0 50px',
+                borderRadius: '12px',
+                marginTop: '16px',
+              }}>
+                <div style={{
+                  transform: 'scale(0.75)',
+                  transformOrigin: 'top center',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                }}>
+                  <CoverLetterTemplate
+                    clFullName={clFullName}
+                    clCurrentJobTitle={clCurrentJobTitle}
+                    clTargetRole={clTargetRole}
+                    clCompanyName={clCompanyName.trim() || "your company"}
+                    fullLetterDisplay={fullLetterDisplay}
+                    resumeForApi={resumeForApi}
+                    clTemplateVariant={clTemplateVariant}
+                  />
+                </div>
+              </div>
             )}
           </div>
           {clFreePreview ? (
