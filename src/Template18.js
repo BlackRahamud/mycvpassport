@@ -150,8 +150,8 @@ export function PreviewMidnightGold({ cv, mobileMode = false }) {
         height: "auto",
         background: BG,
         position: "relative",
-        paddingLeft: "15mm",
-        paddingRight: "15mm",
+        paddingLeft: 0,
+        paddingRight: 0,
         paddingTop: 0,
         paddingBottom: "15mm",
         WebkitPrintColorAdjust: "exact",
@@ -166,10 +166,8 @@ export function PreviewMidnightGold({ cv, mobileMode = false }) {
       <header
         style={{
           background: HEADER_BG,
-          marginLeft: "-15mm",
-          marginRight: "-15mm",
-          padding: "20mm 15mm 14mm",
-          marginBottom: "10mm",
+          padding: "12mm 15mm 10mm",
+          marginBottom: "6mm",
         }}
       >
         <h1
@@ -220,6 +218,9 @@ export function PreviewMidnightGold({ cv, mobileMode = false }) {
           </div>
         )}
       </header>
+
+      {/* Body content — 15mm gutters */}
+      <div style={{ paddingLeft: "15mm", paddingRight: "15mm" }}>
 
       {/* Professional Summary */}
       {cv.summary && (
@@ -452,6 +453,7 @@ export function PreviewMidnightGold({ cv, mobileMode = false }) {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }
