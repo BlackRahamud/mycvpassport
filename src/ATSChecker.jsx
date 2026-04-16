@@ -59,116 +59,147 @@ function buildProLoadingSteps(planName) {
   ];
 }
 
-// ─── Score ring — FIX 6: stroke-width min 10, smooth 1.2s ease-out animation ─
-function ScoreRing({ score, size = 190, strokeWidth = 12, animated = false, gradientId = "ring-grad" }) {
-  const r = (size - strokeWidth * 2) / 2;
-  const circ = 2 * Math.PI * r;
-  const targetOffset = circ * (1 - score / 100);
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-      <defs>
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={T.amber} />
-          <stop offset="100%" stopColor={T.green} />
-        </linearGradient>
-      </defs>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={T.border} strokeWidth={strokeWidth} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r}
-        fill="none" stroke={`url(#${gradientId})`}
-        strokeWidth={strokeWidth} strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={animated ? targetOffset : circ}
-        style={animated ? { strokeDashoffset: targetOffset, transition: "stroke-dashoffset 1.2s ease-out" } : { strokeDashoffset: circ }}
-      />
-    </svg>
-  );
-}
-
-// ─── Chip ─────────────────────────────────────────────────────────────────────
-function Chip({ label, variant, flyIn = false, flyIndex = 0, chipsRevealed = true }) {
-  const s = {
-    green: { color: T.green, border: `1px solid rgba(74,222,128,0.35)`, background: "rgba(74,222,128,0.07)" },
-    amber: { color: T.amber, border: `1px solid ${T.amberBorder}`, background: T.amberDim },
-  };
-  const fly = flyIn
-    ? {
-        opacity: chipsRevealed ? 1 : 0,
-        transform: chipsRevealed ? "translateY(0)" : "translateY(20px)",
-        transition: "opacity 0.4s ease, transform 0.4s ease",
-        transitionDelay: `${flyIndex * 50}ms`,
-      }
-    : {};
-  return (
-    <span style={{ ...s[variant], fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 999, cursor: "default", display: "inline-block", lineHeight: "1.4", transition: "background 0.15s", ...fly }}>
-      {label}
-    </span>
-  );
-}
-
-// ─── Sample result card — FIX 2: full content, no cutoff ─────────────────────
+// ─── Sample result card — animated OLED version ─────────────────────────────
+const SAMPLE_STATES = [
+  { score: 42, color: "#F87171", glow: "rgba(248,113,113,0.35)", status: "Needs Improvement", headline: "Below the bar — let\u2019s fix that", pill: "+58 Points within reach", dot: 42, kw: 28, st: 35, ct: 48 },
+  { score: 58, color: "#60A5FA", glow: "rgba(96,165,250,0.35)", status: "Getting There", headline: "Making progress — keep going", pill: "+42 Points within reach", dot: 58, kw: 45, st: 52, ct: 62 },
+  { score: 70, color: "#FBBF24", glow: "rgba(251,191,36,0.35)", status: "On Track", headline: "Solid ground — almost there", pill: "+30 Points within reach", dot: 70, kw: 62, st: 68, ct: 75 },
+  { score: 85, color: "#4ADE80", glow: "rgba(74,222,128,0.35)", status: "Your Foundation is Solid", headline: "Strong — fine-tune for top tier", pill: "+15 Points within reach", dot: 85, kw: 78, st: 82, ct: 90 },
+  { score: 94, color: "#22C55E", glow: "rgba(34,197,94,0.4)", status: "Market Ready", headline: "Elite — you\u2019re in the top 6%", pill: "+6 Points within reach", dot: 94, kw: 90, st: 92, ct: 96 },
+];
 function SampleResultCard({ isMobile = false }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setIdx((i) => (i + 1) % SAMPLE_STATES.length), 2500);
+    return () => clearInterval(id);
+  }, []);
+  const s = SAMPLE_STATES[idx];
+  const ringSize = 140;
+  const sw = 10;
+  const r = (ringSize - sw * 2) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - s.score / 100);
+  const subColors = { kw: { num: "#60A5FA", bar: "#1D4ED8" }, st: { num: "#FBBF24", bar: "#B45309" }, ct: { num: "#4ADE80", bar: "#15803D" } };
+
   return (
-    <div style={{ width: isMobile ? "100%" : 360, maxWidth: isMobile ? "100%" : 360, alignSelf: isMobile ? "stretch" : undefined, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: "24px 22px 26px", position: "relative", flexShrink: 0, boxSizing: "border-box" }}>
-      <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, rgba(217,119,6,0.4), transparent)`, borderRadius: "20px 20px 0 0" }} />
+    <div style={{ width: isMobile ? "100%" : 380, maxWidth: isMobile ? "100%" : 380, alignSelf: isMobile ? "stretch" : undefined, background: "#0A0A0A", border: "1px solid #1A1A1A", borderRadius: 24, padding: "28px 22px 24px", position: "relative", flexShrink: 0, boxSizing: "border-box", overflow: "hidden" }}>
+      <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${s.color}66, transparent)`, transition: "background 0.6s" }} />
 
-      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: T.muted, marginBottom: 18 }}>Sample Result</div>
+      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", color: "#333", marginBottom: 20 }}>Sample Result</div>
 
-      {/* Ring */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ position: "relative", width: 120, height: 120, marginBottom: 10 }}>
-          <ScoreRing score={82} size={120} strokeWidth={10} animated gradientId="sample-grad" />
+      {/* Score ring */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ position: "relative", width: ringSize, height: ringSize, marginBottom: 10 }}>
+          <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`} style={{ transform: "rotate(-90deg)" }}>
+            <circle cx={ringSize / 2} cy={ringSize / 2} r={r} fill="none" stroke="#1A1A1A" strokeWidth={sw} />
+            <circle cx={ringSize / 2} cy={ringSize / 2} r={r} fill="none" stroke={s.color} strokeWidth={sw} strokeLinecap="butt" strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.8s ease-out, stroke 0.6s" }} />
+          </svg>
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 52, fontWeight: 700, lineHeight: 1, letterSpacing: -1, color: T.text }}>82</div>
-            <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>out of 100</div>
+            <div style={{ position: "absolute", inset: sw + 4, borderRadius: "50%", boxShadow: `inset 0 0 30px ${s.glow}`, transition: "box-shadow 0.6s", pointerEvents: "none" }} />
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 52, fontWeight: 800, lineHeight: 1, letterSpacing: -3, color: s.color, transition: "color 0.6s", position: "relative" }}>{s.score}</div>
+            <div style={{ fontSize: 9, color: "#444", marginTop: 3, letterSpacing: 1, textTransform: "uppercase", position: "relative" }}>Score</div>
           </div>
         </div>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: T.text, lineHeight: 1.6 }}>Your Foundation is Solid</div>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 700, color: T.text, letterSpacing: "-0.3px", transition: "color 0.3s" }}>{s.status}</div>
+        <div style={{ fontSize: 11, color: "#444", marginTop: 4 }}>{s.headline}</div>
+        <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 999, padding: "5px 14px", fontSize: 11, fontWeight: 700, color: T.text, marginTop: 10, display: "inline-block" }}>{s.pill}</div>
       </div>
 
-      {/* Progress bar */}
+      {/* Track bar */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ height: 5, borderRadius: 999, background: `linear-gradient(90deg, ${T.red}, ${T.amber} 50%, ${T.green})`, position: "relative", marginBottom: 6 }}>
-          <div style={{ position: "absolute", top: "50%", left: "82%", transform: "translate(-50%,-50%)", width: 11, height: 11, background: T.text, borderRadius: "50%", boxShadow: "0 0 6px rgba(255,255,255,0.5)" }} />
+        <div style={{ height: 4, borderRadius: 999, background: "linear-gradient(90deg, #EF4444 0%, #F59E0B 45%, #22C55E 100%)", position: "relative", marginBottom: 6 }}>
+          <div style={{ position: "absolute", top: "50%", left: `${s.dot}%`, transform: "translate(-50%,-50%)", width: 12, height: 12, borderRadius: "50%", background: "#fff", border: "2px solid #0A0A0A", boxShadow: "0 0 0 2px rgba(255,255,255,0.12), 0 0 8px rgba(255,255,255,0.2)", transition: "left 0.8s ease-out" }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.muted }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#333" }}>
           <span>Needs Work</span><span>On Track</span><span>Market Ready</span>
         </div>
       </div>
 
       {/* Sub-scores */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7, marginBottom: 16 }}>
-        {[["72", "Keywords", T.blue], ["58", "Structure", T.amber], ["85", "Content", T.green]].map(([v, l, c]) => (
-          <div key={l} style={{ background: T.elevated, border: `1px solid ${T.border}`, borderRadius: 11, padding: "12px 8px", textAlign: "center" }}>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 600, lineHeight: 1.2, letterSpacing: -0.5, color: c }}>{v}</div>
-            <div style={{ fontSize: 10, color: T.muted, marginTop: 4, lineHeight: 1.6 }}>{l}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 16 }}>
+        {[{ v: s.kw, l: "Keywords", c: subColors.kw }, { v: s.st, l: "Structure", c: subColors.st }, { v: s.ct, l: "Content", c: subColors.ct }].map(({ v, l, c }) => (
+          <div key={l} style={{ background: "#0F0F0F", border: "1px solid #1A1A1A", borderRadius: 14, padding: "14px 6px 10px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+            <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 14, background: "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, letterSpacing: "-1px", color: c.num, marginBottom: 6, position: "relative", transition: "color 0.6s" }}>{v}</div>
+            <div style={{ height: 2, borderRadius: 999, background: "#1A1A1A", margin: "0 8px 6px", overflow: "hidden", position: "relative" }}>
+              <div style={{ height: "100%", borderRadius: 999, background: c.bar, width: `${v}%`, transition: "width 0.8s ease-out" }} />
+            </div>
+            <div style={{ fontSize: 8, color: "#444", letterSpacing: "1.5px", textTransform: "uppercase", position: "relative" }}>{l}</div>
           </div>
         ))}
       </div>
 
       {/* Visibility Boosters */}
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", color: T.green, marginBottom: 9, display: "flex", alignItems: "center", gap: 5 }}>✦ Visibility Boosters</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-        {["Negotiation", "CRM", "Client Relations", "Lead Generation", "Sales Pipeline"].map((k) => <Chip key={k} label={k} variant="green" />)}
-      </div>
-
-      {/* Rank Triggers */}
-      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", color: T.amber, marginBottom: 9, display: "flex", alignItems: "center", gap: 5 }}>⊕ Rank Triggers</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-        {["RERA Certified", "Off-plan Sales", "KYC", "AML"].map((k) => <Chip key={k} label={k} variant="amber" />)}
-      </div>
-
-      {/* CVPassport Verified */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-        <div style={{ background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.3)", color: "#60A5FA", fontSize: 11, fontWeight: 600, padding: "6px 14px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 5 }}>
-          ✦ CVPassport Verified — Top 15% Ready for GCC Finance
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 22, height: 22, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.18)" }}>
+            <Sparkles size={10} color="#4ADE80" />
+          </div>
+          <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "2.5px", textTransform: "uppercase", color: "#4ADE80" }}>Visibility Boosters</span>
+          <div style={{ height: 1, flex: 1, background: "linear-gradient(90deg, rgba(34,197,94,0.18), transparent)" }} />
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {["Negotiation", "CRM", "Client Relations", "Lead Gen", "Pipeline"].map((k) => (
+            <span key={k} style={{ fontSize: 10, fontWeight: 500, padding: "4px 10px", borderRadius: 999, background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.22)", color: "#4ADE80", position: "relative", overflow: "hidden", display: "inline-block" }}>
+              <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 999, pointerEvents: "none", background: "radial-gradient(ellipse at 50% 0%, rgba(34,197,94,0.12) 0%, transparent 65%)" }} />
+              {k}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Label */}
+      {/* Rank Triggers */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 22, height: 22, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.18)" }}>
+            <Plus size={10} color="#FCD34D" />
+          </div>
+          <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "2.5px", textTransform: "uppercase", color: "#FCD34D" }}>Rank Triggers</span>
+          <div style={{ height: 1, flex: 1, background: "linear-gradient(90deg, rgba(251,191,36,0.18), transparent)" }} />
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {["RERA Certified", "Off-plan Sales", "KYC", "AML"].map((k) => (
+            <span key={k} style={{ fontSize: 10, fontWeight: 500, padding: "4px 10px", borderRadius: 999, background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.20)", color: "#FCD34D", position: "relative", overflow: "hidden", display: "inline-block" }}>
+              <span aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 999, pointerEvents: "none", background: "radial-gradient(ellipse at 50% 0%, rgba(251,191,36,0.10) 0%, transparent 65%)" }} />
+              {k}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Verified badge */}
+      <div style={{ background: "#0D0D0D", border: "1px solid #1A2A3A", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(59,130,246,0.10)", border: "1px solid rgba(59,130,246,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Sparkles size={12} color="#60A5FA" />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#93C5FD", marginBottom: 2 }}>CVPassport Verified</div>
+          <div style={{ fontSize: 9, color: "#2D4A6A" }}>Top 15% Ready · GCC Finance</div>
+        </div>
+      </div>
+
+      {/* Unlock card */}
+      <div style={{ background: "#0A0A0A", borderRadius: 16, padding: "20px 16px", textAlign: "center", position: "relative", overflow: "hidden", marginBottom: 16 }}>
+        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 16, padding: 1, background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", animation: "ats-spin-border 3s linear infinite" }} />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#0A0A0A", border: "1px solid rgba(255,255,255,0.10)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Unlock Full Analysis</div>
+        <div style={{ fontSize: 10, color: "#444", marginBottom: 14, lineHeight: 1.5 }}>AI rewrite suggestions &amp; full ATS breakdown</div>
+        <div style={{ position: "relative", borderRadius: 10, overflow: "hidden" }}>
+          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 10, padding: 1, background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", animation: "ats-spin-border 2s linear infinite" }} />
+          <div style={{ background: "#0A0A0A", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            Unlock Full Analysis — AED 29/mo
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom label */}
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "rgba(160,160,160,0.45)" }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: 2.5, textTransform: "uppercase", color: "rgba(160,160,160,0.3)" }}>
           Your results will appear here
         </div>
       </div>
