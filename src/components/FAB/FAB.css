@@ -194,10 +194,16 @@
 
 .cvp-fab-menu-popin-1 {
   animation: fabMenuPopIn 0.2s ease forwards;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .cvp-fab-menu-popin-2 {
   animation: fabMenuPopIn 0.2s ease 0.06s both;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .cvp-fab-menu-icon-btn {
@@ -211,6 +217,10 @@
   place-items: center;
   padding: 0;
   cursor: pointer;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .cvp-fab-menu-icon-btn--primary {
@@ -227,6 +237,10 @@
   border: 0.5px solid #2a2a2a;
   white-space: nowrap;
   font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: 0.02em;
 }
 
 .cvp-fab-menu-tip {
@@ -238,6 +252,10 @@
   border: 0.5px solid #2a2a2a;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .cvp-fab-menu-tip-headline {
@@ -247,6 +265,9 @@
   line-height: 1.35;
   letter-spacing: 0.01em;
   margin-bottom: 3px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .cvp-fab-menu-tip-body {
@@ -254,6 +275,9 @@
   font-size: 11px;
   font-weight: 400;
   line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .cvp-fab-sheet-overlay {
@@ -405,6 +429,10 @@
   display: grid;
   place-items: center;
   box-sizing: border-box;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .cvp-fab-dot {
