@@ -4,6 +4,7 @@ import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { getPaymentLink } from "../utils/paywall";
 import CVPassportLogo from "../components/CVPassportLogo";
+import NewCvLobby from "../components/NewCvLobby";
 import { TEMPLATES, getStrength } from "../cvShared";
 import { supabase } from "../appSupabaseClient";
 
@@ -153,8 +154,7 @@ export default function DashboardPage({
   const fabRouteTab = location.state?.fabGuideTab === "account" ? "account" : "mycvs";
 
   const [active, setActive] = useState("mycvs");
-  const [newCvChoiceOpen, setNewCvChoiceOpen] = useState(false);
-  const [showTease, setShowTease] = useState(false);
+  const [lobbyOpen, setLobbyOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [cancelStep, setCancelStep] = useState(0);
   const [feedbackText, setFeedbackText] = useState("");
@@ -162,9 +162,17 @@ export default function DashboardPage({
   const [mobileTab, setMobileTab] = useState("mycvs");
 
   useEffect(() => { ensureKeyframes(); }, []);
-  useEffect(() => { if (newCvChoiceOpen) setShowTease(false); }, [newCvChoiceOpen]);
   useEffect(() => { writeFabMemory({ lastTabVisited: active }); }, [active]);
   useEffect(() => { if (planModalOpen) setCancelStep(0); }, [planModalOpen]);
+
+  /* + New CV click — first-CV users see the lobby; returning users jump straight to a blank builder */
+  const handleStartNewCv = () => {
+    if (resumeList.length === 0) {
+      setLobbyOpen(true);
+    } else {
+      onBuildResume();
+    }
+  };
 
   const planLabel = isPro ? "Pro" : "Free";
   const isPaid = isPro;
@@ -454,7 +462,7 @@ export default function DashboardPage({
             </div>
             <button
               type="button"
-              onClick={() => setNewCvChoiceOpen(true)}
+              onClick={handleStartNewCv}
               style={{
                 background: "#fff", color: "#000", border: "none", borderRadius: 10,
                 padding: "10px 20px", fontSize: 13, fontWeight: 700,
@@ -564,8 +572,8 @@ export default function DashboardPage({
                       role="button"
                       tabIndex={0}
                       style={{ fontSize: 10, color: "#FFB300", cursor: "pointer", fontWeight: 500 }}
-                      onClick={() => setNewCvChoiceOpen(true)}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setNewCvChoiceOpen(true); }}
+                      onClick={handleStartNewCv}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleStartNewCv(); }}
                     >
                       + New
                     </span>
@@ -717,7 +725,7 @@ export default function DashboardPage({
                 <button
                   type="button"
                   className="cvp2-start-btn cvp-start-btn"
-                  onClick={() => setNewCvChoiceOpen(true)}
+                  onClick={handleStartNewCv}
                   style={{
                     maxWidth: 480, width: "100%", background: "#fff", color: "#000", border: "none",
                     borderRadius: 14, padding: "18px 24px",
@@ -840,72 +848,13 @@ export default function DashboardPage({
         })}
       </div>
 
-      {/* ═══ NEW CV CHOICE MODAL ═══ */}
-      {newCvChoiceOpen && (
-        <>
-          <div
-            role="presentation"
-            style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
-            onClick={() => setNewCvChoiceOpen(false)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="new-cv-choice-title"
-            style={{
-              position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
-              zIndex: 401, width: "calc(100% - 32px)", maxWidth: 400,
-              background: "#141414", border: "1px solid #2A2A2A", borderRadius: 24, padding: 24,
-              boxSizing: "border-box",
-            }}
-          >
-            <div id="new-cv-choice-title" style={{ fontSize: 18, fontWeight: 600, color: "#fff" }}>Start a new CV</div>
-            <p style={{ margin: "0 0 20px", fontSize: 13, color: "#A0A0A0", lineHeight: 1.45 }}>Choose how you want to begin.</p>
-            <button
-              type="button"
-              onClick={() => { setNewCvChoiceOpen(false); onBuildResume({ openFabGuide: true }); }}
-              style={{
-                width: "100%", background: "#F59E0B", color: "#000", border: "none",
-                borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 600,
-                marginBottom: 10, cursor: "pointer", fontFamily: "inherit",
-                display: "block", textAlign: "center",
-                transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-            >
-              <span style={{ display: "block" }}>Guide me through it</span>
-              <span style={{ display: "block", fontSize: 11, opacity: 0.7, fontWeight: 600, marginTop: 4 }}>Step-by-step · Recommended for new users</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTease(true)}
-              style={{
-                width: "100%", background: "#1C1C1C", border: "1px solid #2A2A2A",
-                borderRadius: 14, padding: 16, cursor: "pointer", fontFamily: "inherit",
-                textAlign: "left", boxSizing: "border-box",
-                transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-            >
-              <span style={{ display: "flex", alignItems: "center", gap: 0 }}>
-                <span style={{ color: "#fff", fontSize: 15, fontWeight: 600 }}>Co-pilot mode</span>
-                <span style={{ fontSize: 9, background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "2px 6px", marginLeft: 8, fontWeight: 600 }}>SOON</span>
-              </span>
-              <div style={{ color: "#606060", fontSize: 11, marginTop: 4, fontWeight: 400 }}>AI assistant · Coming soon</div>
-            </button>
-            {showTease && (
-              <p style={{ fontSize: 12, color: "#A0A0A0", textAlign: "center", marginTop: 12 }}>
-                Co-pilot is in production. Your support helps us ship it faster — try Guide mode meanwhile.
-              </p>
-            )}
-          </div>
-        </>
+      {/* ═══ NEW CV LOBBY — first-CV users only ═══ */}
+      {lobbyOpen && (
+        <NewCvLobby
+          onGuided={() => { setLobbyOpen(false); onBuildResume({ openFabGuide: true }); }}
+          onBuildMyself={() => { setLobbyOpen(false); onBuildResume(); }}
+          onClose={() => setLobbyOpen(false)}
+        />
       )}
 
       {/* ═══ PLAN MANAGEMENT MODAL ═══ */}
