@@ -229,6 +229,33 @@
   font-weight: 500;
 }
 
+.cvp-fab-menu-tip {
+  pointer-events: auto;
+  max-width: 240px;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  background: #0a0a0a;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.cvp-fab-menu-tip-headline {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  margin-bottom: 3px;
+}
+
+.cvp-fab-menu-tip-body {
+  color: #a0a0a0;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
 .cvp-fab-sheet-overlay {
   position: fixed;
   inset: 0;

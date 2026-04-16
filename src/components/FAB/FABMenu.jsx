@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import "./FAB.css";
 
 function MenuIcon({ kind, stroke }) {
@@ -39,7 +39,7 @@ function MenuIcon({ kind, stroke }) {
   );
 }
 
-export default function FABMenu({ open, onClose, options, anchorRef, onSelect }) {
+export default function FABMenu({ open, onClose, options, anchorRef, onSelect, tip }) {
   const [pos, setPos] = useState({ right: 16, bottom: 96 });
 
   useLayoutEffect(() => {
@@ -51,6 +51,15 @@ export default function FABMenu({ open, onClose, options, anchorRef, onSelect })
     const bottom = Math.max(8, window.innerHeight - r.top + 12);
     setPos({ right, bottom });
   }, [open, anchorRef]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -86,6 +95,12 @@ export default function FABMenu({ open, onClose, options, anchorRef, onSelect })
               </div>
             );
           })}
+          {tip ? (
+            <div className="cvp-fab-menu-tip cvp-fab-menu-popin-2" role="note" aria-label="Contextual tip">
+              <div className="cvp-fab-menu-tip-headline">{tip.headline}</div>
+              <div className="cvp-fab-menu-tip-body">{tip.body}</div>
+            </div>
+          ) : null}
         </div>
       </div>
     </>

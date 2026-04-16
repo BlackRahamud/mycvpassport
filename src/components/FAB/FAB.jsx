@@ -6,6 +6,7 @@ import FABMenu from "./FABMenu";
 import FABSheet, { FabSparkIcon } from "./FABSheet";
 import FABMilestonePopup from "./FABMilestonePopup";
 import { getFabTabConfig, ATS_HIGH_SCORE_GUIDE } from "./FABContent";
+import { getContextualTip } from "./FABContextualTips";
 import { computeCvProgress } from "../../hooks/useCvProgress";
 import { splitCommaItems } from "../../cvShared";
 import {
@@ -543,6 +544,11 @@ const FAB = forwardRef(function FAB(
   }, [tabKey]);
 
   const config = getFabTabConfig(tabKey, variant);
+
+  const menuContextualTip = useMemo(() => {
+    if (variant !== "builder") return null;
+    return getContextualTip({ activeSection, tabKey, cvCompletionProgress });
+  }, [variant, activeSection, tabKey, cvCompletionProgress]);
 
   useEffect(() => {
     sheetLayoutKindRef.current = sheetLayoutKind;
@@ -1158,210 +1164,6 @@ const FAB = forwardRef(function FAB(
     [resetSheetLayout, variant, tabKey, atsScore, openGuideSheet, sheetOpen, menuOpen, tryOpenBuilderContentIdleAutoSheet, setIsStandby]
   );
 
-  const openTemplatesSmartSheet = useCallback(() => {
-    const rec = templateRecommendNames.length >= 2 ? templateRecommendNames : ["Modern Emerald", "Dubai Modern"];
-    const mem = getFabMemory();
-    const lastT = mem.lastTemplateId || "your last template";
-
-    if (templatePickPending) {
-      const name = templatePickPending.name || "this template";
-      resetSheetLayout();
-      setSheetTitle("Template preview");
-      setSheetCoachPanelsFlag(false);
-      setSheetShowProgress(false);
-      setSheetShowGate(false);
-      setShowSheetGotIt(false);
-      setSheetPoints([]);
-      setSheetBodySlot(
-        <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary, #A0A0A0)", textAlign: "center", lineHeight: 1.5 }}>
-          Want to see how your CV looks in <span style={{ color: "var(--text-primary, #FFF)", fontWeight: 600 }}>{name}</span>?
-        </p>
-      );
-      setSheetFooterSlot(
-        <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
-          <button
-            type="button"
-            onClick={() => {
-              onPreviewTemplateDraft?.(templatePickPending);
-              closeSheet();
-            }}
-            style={{
-              background: "#fff",
-              color: "#000",
-              borderRadius: 10,
-              padding: 12,
-              width: "100%",
-              fontWeight: 600,
-              fontSize: 14,
-              border: "none",
-              cursor: "pointer",
-              minHeight: 44,
-            }}
-          >
-            Preview
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onApplyTemplateDraft?.(templatePickPending);
-              closeSheet();
-            }}
-            style={{
-              background: "#1C1C1C",
-              color: "#fff",
-              borderRadius: 10,
-              padding: 12,
-              width: "100%",
-              fontWeight: 600,
-              fontSize: 14,
-              border: "1px solid #2A2A2A",
-              cursor: "pointer",
-              minHeight: 44,
-            }}
-          >
-            Apply it
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onClearTemplatePick?.();
-              closeSheet();
-            }}
-            style={{
-              background: "transparent",
-              color: "#A0A0A0",
-              borderRadius: 10,
-              padding: 12,
-              width: "100%",
-              fontWeight: 500,
-              fontSize: 13,
-              border: "1px solid #2A2A2A",
-              cursor: "pointer",
-              minHeight: 44,
-            }}
-          >
-            Keep browsing
-          </button>
-        </div>
-      );
-      setSheetOpen(true);
-      return;
-    }
-
-    if (tplExtendedEligibleRef.current && templateSessionApplyCount === 0) {
-      resetSheetLayout();
-      setSheetTitle("Your template");
-      setSheetCoachPanelsFlag(false);
-      setSheetShowProgress(false);
-      setSheetShowGate(false);
-      setShowSheetGotIt(false);
-      setSheetPoints([]);
-      setSheetBodySlot(
-        <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary, #A0A0A0)", textAlign: "center", lineHeight: 1.5 }}>
-          Your current template is <span style={{ color: "var(--text-primary, #FFF)", fontWeight: 600 }}>{lastT}</span>. It&apos;s performing well for your ATS score. Only switch if you want a different look.
-        </p>
-      );
-      setSheetFooterSlot(
-        <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
-          <button
-            type="button"
-            onClick={closeSheet}
-            style={{
-              background: "#fff",
-              color: "#000",
-              borderRadius: 10,
-              padding: 12,
-              width: "100%",
-              fontWeight: 600,
-              fontSize: 14,
-              border: "none",
-              cursor: "pointer",
-              minHeight: 44,
-            }}
-          >
-            Keep current
-          </button>
-          <button
-            type="button"
-            onClick={closeSheet}
-            style={{
-              background: "transparent",
-              color: "#A0A0A0",
-              borderRadius: 10,
-              padding: 12,
-              width: "100%",
-              fontWeight: 500,
-              fontSize: 13,
-              border: "1px solid #2A2A2A",
-              cursor: "pointer",
-              minHeight: 44,
-            }}
-          >
-            Switch anyway
-          </button>
-        </div>
-      );
-      setSheetOpen(true);
-      return;
-    }
-
-    if (tplIdleEligibleRef.current) {
-      resetSheetLayout();
-      setSheetTitle("Template tips");
-      setSheetCoachPanelsFlag(false);
-      setSheetShowProgress(false);
-      setSheetShowGate(false);
-      setShowSheetGotIt(true);
-      setSheetPoints([]);
-      const a = rec[0] || "Modern Emerald";
-      const b = rec[1] || "Dubai Modern";
-      setSheetBodySlot(
-        <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary, #A0A0A0)", textAlign: "center", lineHeight: 1.5 }}>
-          Not sure which template? Based on your ATS score, we recommend <span style={{ color: "var(--text-primary, #FFF)", fontWeight: 600 }}>{a}</span> and{" "}
-          <span style={{ color: "var(--text-primary, #FFF)", fontWeight: 600 }}>{b}</span>. Tap one to preview with your CV.
-        </p>
-      );
-      setSheetFooterSlot(
-        <button
-          type="button"
-          onClick={() => {
-            closeSheet();
-            setTimeout(() => openGuideSheet(false), 0);
-          }}
-          style={{
-            marginTop: 12,
-            background: "transparent",
-            color: "#A0A0A0",
-            borderRadius: 10,
-            padding: 12,
-            width: "100%",
-            fontWeight: 500,
-            fontSize: 13,
-            border: "1px solid #2A2A2A",
-            cursor: "pointer",
-            minHeight: 44,
-          }}
-        >
-          Open full guide
-        </button>
-      );
-      setSheetOpen(true);
-      return;
-    }
-
-    setMenuOpen(true);
-  }, [
-    templatePickPending,
-    templateRecommendNames,
-    templateSessionApplyCount,
-    closeSheet,
-    openGuideSheet,
-    onPreviewTemplateDraft,
-    onApplyTemplateDraft,
-    onClearTemplatePick,
-    resetSheetLayout,
-  ]);
-
   const handleMenuPick = useCallback(
     (id) => {
       if (id === "guide") {
@@ -1404,20 +1206,12 @@ const FAB = forwardRef(function FAB(
     setTplIdlePulse(false);
     setBuilderIdlePulse(false);
     clearTplTimers();
-    if (variant === "builder" && tabKey === "content" && fabNormalizeSection(activeSection) === "summary") {
-      openSummaryHelperSheet({ fromAutoIdle: false });
-      return;
-    }
-    if (variant === "builder" && tabKey === "templates") {
-      openTemplatesSmartSheet();
-      return;
-    }
     if (variant === "route" && tabKey === "cover-letter") {
       openGuideSheet(false);
       return;
     }
     setMenuOpen(true);
-  }, [variant, tabKey, activeSection, fabMode, openTemplatesSmartSheet, openGuideSheet, openSummaryHelperSheet, clearTplTimers]);
+  }, [variant, tabKey, fabMode, openGuideSheet, clearTplTimers]);
 
   const effectiveSheetBodySlot = useMemo(() => {
     if (sheetLayoutKind === "summary-helper") {
@@ -1726,7 +1520,14 @@ const FAB = forwardRef(function FAB(
         />
       ) : null}
 
-      <FABMenu open={menuOpen} onClose={() => setMenuOpen(false)} options={config?.menuOptions ?? []} anchorRef={anchorRef} onSelect={handleMenuPick} />
+      <FABMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        options={config?.menuOptions ?? []}
+        anchorRef={anchorRef}
+        onSelect={handleMenuPick}
+        tip={menuContextualTip}
+      />
 
       <FABSheet
         open={fabMode === "guide" ? false : sheetOpen}
