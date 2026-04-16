@@ -3082,36 +3082,34 @@ function ResumeBuilder({
               {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
             </button>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ position: "relative", borderRadius: 10 }}>
-                <div aria-hidden style={{
-                  position: "absolute", inset: 0, borderRadius: 10, padding: 1.5,
-                  background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
-                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                  WebkitMaskComposite: "xor",
-                  maskComposite: "exclude",
-                  pointerEvents: "none",
-                  animation: "ats-spin-border 2s linear infinite",
-                }} />
+              <div style={{
+                borderRadius: 10,
+                padding: '1.5px',
+                background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 70%, #1C1C1C 100%)',
+                backgroundSize: '300% 100%',
+                animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2.5s linear infinite',
+                display: 'inline-block',
+              }}>
                 <button
                   type="button"
                   onClick={handleDownload}
                   disabled={downloadState.status === 'generating'}
                   className="cvp-builder-topbar-download"
                   style={{
-                    padding: "10px 16px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: "#0A0A0A",
-                    color: downloadState.status === 'generating' ? "#888" : "#fff",
+                    padding: '10px 16px',
+                    borderRadius: 9,
+                    border: 'none',
+                    background: '#141414',
+                    color: downloadState.status === 'generating' ? '#888' : '#fff',
                     fontSize: 14,
                     fontWeight: 600,
-                    cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
-                    transition: `opacity 150ms ${EASE}, color 150ms ${EASE}`,
-                    display: "inline-flex",
-                    alignItems: "center",
+                    cursor: downloadState.status === 'generating' ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 150ms cubic-bezier(0.4,0,0.2,1)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     gap: 8,
                     minWidth: 0,
-                    position: "relative",
+                    position: 'relative',
                   }}
                   onMouseEnter={(e) => {
                     if (downloadState.status !== 'generating') e.currentTarget.style.opacity = "0.9";
@@ -4297,34 +4295,33 @@ function ResumeBuilder({
             <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto", display: (builderTab === "templates" || builderTab === "ats") ? "none" : undefined }}>
               <div style={{
                 padding: '1.5px',
-                borderRadius: '14px',
-                background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 30%, rgba(255,255,255,0.75) 50%, #1C1C1C 70%, #1C1C1C 100%)',
+                borderRadius: 14,
+                background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 80%, #1C1C1C 100%)',
                 backgroundSize: '300% 100%',
-                animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2s linear infinite',
+                animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2.5s linear infinite',
                 margin: '0 10px',
                 boxSizing: 'border-box',
                 width: 'calc(100% - 20px)',
-              }}
-              >
+              }}>
                 <button
                   type="button"
                   onClick={handleDownload}
                   disabled={downloadState.status !== 'idle'}
                   style={{
                     width: '100%',
-                    height: '54px',
-                    borderRadius: '12px',
+                    height: 54,
+                    borderRadius: 12,
                     border: 'none',
-                    background: downloadState.status === 'generating' ? '#1C1C1C' : '#FFFFFF',
-                    color: downloadState.status === 'generating' ? '#FFFFFF' : '#0A0A0A',
-                    fontSize: '15px',
-                    fontWeight: '600',
+                    background: downloadState.status === 'generating' ? '#1C1C1C' : '#141414',
+                    color: '#fff',
+                    fontSize: 15,
+                    fontWeight: 600,
                     letterSpacing: '-0.01em',
                     cursor: downloadState.status !== 'idle' ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '10px',
+                    gap: 10,
                     fontFamily: 'inherit',
                     transition: 'transform 0.15s ease, background 0.3s ease',
                   }}
@@ -4788,16 +4785,17 @@ function ResumeBuilder({
               </svg>
               Preview CV
             </button>
-            <div style={{ position: "relative", borderRadius: 10, width: "100%", marginBottom: 8 }}>
-              <div aria-hidden style={{
-                position: "absolute", inset: 0, borderRadius: 10, padding: 1.5,
-                background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
-                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                WebkitMaskComposite: "xor",
-                maskComposite: "exclude",
-                pointerEvents: "none",
-                animation: "ats-spin-border 2s linear infinite",
-              }} />
+            <div style={{
+              position: 'relative',
+              borderRadius: 10,
+              width: '100%',
+              marginBottom: 8,
+              padding: '1.5px',
+              background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 80%, #1C1C1C 100%)',
+              backgroundSize: '300% 100%',
+              animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2.5s linear infinite',
+              boxSizing: 'border-box',
+            }}>
               <button
                 type="button"
                 disabled={downloadState.status === 'generating'}
@@ -4806,22 +4804,22 @@ function ResumeBuilder({
                   handleDownload();
                 }}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   gap: 8,
-                  width: "100%",
+                  width: '100%',
                   minHeight: 44,
-                  padding: "10px 9px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: "#0A0A0A",
-                  color: "#fff",
+                  padding: '10px 9px',
+                  borderRadius: 9,
+                  border: 'none',
+                  background: '#141414',
+                  color: '#fff',
                   fontSize: 12,
                   fontWeight: 500,
-                  cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
-                  transition: `color 150ms ${EASE}`,
-                  position: "relative",
+                  cursor: downloadState.status === 'generating' ? 'not-allowed' : 'pointer',
+                  transition: 'color 150ms cubic-bezier(0.4,0,0.2,1)',
+                  position: 'relative',
                 }}
               >
                 {downloadState.status === 'generating' ? <BuilderCvPdfSpinner20 /> : null}
