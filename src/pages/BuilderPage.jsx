@@ -3744,7 +3744,16 @@ function ResumeBuilder({
             </div>
           ) : null}
           {builderTab === "jobmatch" && (
-            <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
+            <JobMatch
+              resume={resume}
+              selectedTemplate={selectedTemplate}
+              isPro={isPro}
+              features={profile?.features}
+              onJobDescriptionChange={setJobHasJd}
+              handleDownload={handleDownload}
+              downloadState={downloadState}
+              onNavigateToContent={() => setBuilderTab("content")}
+            />
           )}
           {builderTab === "coverletter" && guideCoverLetterPreview}
         </aside>
@@ -4288,11 +4297,20 @@ function ResumeBuilder({
             )}
             {builderTab === "jobmatch" && (
               <div style={{ padding: "0 12px 12px" }}>
-                <JobMatch resume={resume} selectedTemplate={selectedTemplate} isPro={isPro} features={profile?.features} onJobDescriptionChange={setJobHasJd} />
+                <JobMatch
+                  resume={resume}
+                  selectedTemplate={selectedTemplate}
+                  isPro={isPro}
+                  features={profile?.features}
+                  onJobDescriptionChange={setJobHasJd}
+                  handleDownload={handleDownload}
+                  downloadState={downloadState}
+                  onNavigateToContent={() => setBuilderTab("content")}
+                />
               </div>
             )}
             {builderTab === "coverletter" && guideCoverLetterPreview}
-            <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto", display: (builderTab === "templates" || builderTab === "ats") ? "none" : undefined }}>
+            <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto", display: (builderTab === "templates" || builderTab === "ats" || builderTab === "jobmatch") ? "none" : undefined }}>
               <div style={{
                 padding: '1.5px',
                 borderRadius: 14,

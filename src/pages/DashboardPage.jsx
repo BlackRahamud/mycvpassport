@@ -404,13 +404,13 @@ export default function DashboardPage({
                 type="button"
               onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
               style={{
-                display: "block", fontSize: 10, color: "#252525", cursor: "pointer",
-                padding: "5px 2px 0", background: "none", border: "none",
-                fontFamily: "inherit", textAlign: "left",
+                display: "block", fontSize: 11, color: "#A0A0A0", cursor: "pointer",
+                padding: "8px 2px 0", background: "none", border: "none",
+                fontFamily: "inherit", textAlign: "left", fontWeight: 500,
                 transition: `color 150ms ${EASE}`,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,179,0,0.7)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#252525"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
             >
               Sign out
             </button>
@@ -799,8 +799,14 @@ export default function DashboardPage({
           )}
 
           {/* Mobile feedback */}
-          <div className="cvp2-mobile-topbar" style={{ display: "none", justifyContent: "center", fontSize: 10, color: "#1a1a1a", padding: 12, marginTop: 24 }}>
-            feedback · <a href="mailto:support@mycvpassport.com" style={{ color: "inherit", textDecoration: "none", marginLeft: 4 }}>support@mycvpassport.com</a>
+          <div className="cvp2-mobile-topbar" style={{ display: "none", justifyContent: "center", fontSize: 11, color: "#555555", padding: 12, marginTop: 24 }}>
+            feedback ·{" "}
+            <a
+              href="mailto:support@mycvpassport.com"
+              style={{ color: "#555555", textDecoration: "underline", marginLeft: 4, padding: "4px 0" }}
+            >
+              support@mycvpassport.com
+            </a>
           </div>
 
           <FAB tabKey={fabRouteTab} />
@@ -813,10 +819,10 @@ export default function DashboardPage({
         onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
         style={{
           position: "fixed", bottom: 64, right: 16,
-          fontSize: 11, color: "rgba(120,118,112,0.4)",
+          fontSize: 12, color: "#A0A0A0", fontWeight: 500,
           cursor: "pointer", zIndex: 201,
           background: "none", border: "none", fontFamily: "inherit",
-          padding: 0,
+          padding: "6px 4px",
         }}
       >
         Sign out
@@ -1032,6 +1038,24 @@ export default function DashboardPage({
                 </div>
               </div>
             )}
+
+            {/* Sign out — bottom of modal */}
+            <div style={{ height: 1, background: "#1a1a1a", margin: "16px 0 4px" }} />
+            <button
+              type="button"
+              onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
+              style={{
+                width: "100%", background: "none", border: "none",
+                color: "#555", fontSize: 13,
+                cursor: "pointer", fontFamily: "inherit",
+                padding: "8px 0", textAlign: "center",
+                transition: `color 150ms ${EASE}`,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#555"; }}
+            >
+              Sign out
+            </button>
           </div>
         </>
       )}

@@ -249,7 +249,18 @@ function CrosshairIcon() {
 
 /* ─── Main component ─── */
 
-export default function JobMatch({ resume, selectedTemplate, isPro = false, features = null, onJobDescriptionChange }) {
+export default function JobMatch({
+  resume,
+  selectedTemplate,
+  isPro = false,
+  features = null,
+  onJobDescriptionChange,
+  handleDownload = null,
+  downloadState = { status: "idle" },
+  onNavigateToContent = null,
+}) {
+  const hasCv = Boolean(resume?.name && String(resume.name).trim());
+  const dlBusy = downloadState?.status === "generating";
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -657,6 +668,40 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
           </div>
         </div>
       ) : null}
+
+      {/* ── Download CV (white shimmer, same pattern as BuilderPage mobile sticky bar) ── */}
+      <div style={{ marginTop: 8 }}>
+        <div style={{
+          borderRadius: 14, padding: "1.5px",
+          background: "linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 80%, #1C1C1C 100%)",
+          backgroundSize: "300% 100%",
+          animation: dlBusy ? "none" : "cvp-dl-shimmer 2.5s linear infinite",
+        }}>
+          <button
+            type="button"
+            onClick={() => {
+              if (hasCv && handleDownload) handleDownload();
+              else if (onNavigateToContent) onNavigateToContent();
+            }}
+            disabled={hasCv && dlBusy}
+            style={{
+              width: "100%", height: 54, borderRadius: 12,
+              border: "none", background: "#141414", color: "#fff",
+              fontSize: 15, fontWeight: 600,
+              cursor: (hasCv && dlBusy) ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              fontFamily: "inherit",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>{hasCv ? (dlBusy ? "Generating your CV..." : "Download CV") : "Start Building"}</span>
+          </button>
+        </div>
+      </div>
 
       <style>{`
         @keyframes jobmatch-skeleton {
