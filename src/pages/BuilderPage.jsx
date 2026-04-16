@@ -2966,6 +2966,7 @@ function ResumeBuilder({
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: ".cvp-cv-finder-input::placeholder{color:rgba(255,255,255,.55)}" }} />
+        <style dangerouslySetInnerHTML={{ __html: "@property --ats-angle{syntax:'<angle>';initial-value:0deg;inherits:false}@keyframes ats-spin-border{to{--ats-angle:360deg}}" }} />
         <div
           style={{
             display: "flex",
@@ -3081,55 +3082,67 @@ function ResumeBuilder({
               {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
             </button>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={downloadState.status === 'generating'}
-                className="cvp-builder-topbar-download"
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: 8,
-                  border: downloadState.status === 'generating' ? "1px solid #2A2A2A" : "none",
-                  background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
-                  color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
-                  transition: `opacity 150ms ${EASE}, background-color 150ms ${EASE}, color 150ms ${EASE}`,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  minWidth: 0,
-                }}
-                onMouseEnter={(e) => {
-                  if (downloadState.status !== 'generating') e.currentTarget.style.opacity = "0.9";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "1";
-                }}
-              >
-                {downloadState.status === 'generating' ? (
-                  <>
-                    <BuilderCvPdfSpinner20 />
-                    <span>Generating your CV...</span>
-                  </>
-                ) : null}
-                {downloadState.status === 'idle' ? <span>Download CV</span> : null}
-                {downloadState.status === 'completed' ? (
-                  <>
-                    <span style={{ color: "#22C55E", fontSize: 16, lineHeight: 1 }} aria-hidden>
-                      ✓
-                    </span>
-                    <span>Download CV</span>
-                  </>
-                ) : null}
-                {downloadState.status === 'error' ? (
-                  <>
-                    <span>Download CV</span>
-                    <span style={{ color: "#EF4444", fontSize: 12, fontWeight: 600 }}>Failed, try again</span>
-                  </>
-                ) : null}
-              </button>
+              <div style={{ position: "relative", borderRadius: 10 }}>
+                <div aria-hidden style={{
+                  position: "absolute", inset: 0, borderRadius: 10, padding: 1.5,
+                  background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                  animation: "ats-spin-border 2s linear infinite",
+                }} />
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  disabled={downloadState.status === 'generating'}
+                  className="cvp-builder-topbar-download"
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "#0A0A0A",
+                    color: downloadState.status === 'generating' ? "#888" : "#fff",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
+                    transition: `opacity 150ms ${EASE}, color 150ms ${EASE}`,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    minWidth: 0,
+                    position: "relative",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (downloadState.status !== 'generating') e.currentTarget.style.opacity = "0.9";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = "1";
+                  }}
+                >
+                  {downloadState.status === 'generating' ? (
+                    <>
+                      <BuilderCvPdfSpinner20 />
+                      <span>Generating your CV...</span>
+                    </>
+                  ) : null}
+                  {downloadState.status === 'idle' ? <span>Download CV</span> : null}
+                  {downloadState.status === 'completed' ? (
+                    <>
+                      <span style={{ color: "#22C55E", fontSize: 16, lineHeight: 1 }} aria-hidden>
+                        ✓
+                      </span>
+                      <span>Download CV</span>
+                    </>
+                  ) : null}
+                  {downloadState.status === 'error' ? (
+                    <>
+                      <span>Download CV</span>
+                      <span style={{ color: "#EF4444", fontSize: 12, fontWeight: 600 }}>Failed, try again</span>
+                    </>
+                  ) : null}
+                </button>
+              </div>
               {downloadState.status === 'generating' ? (
                 <p style={{ fontSize: "12px", color: "#A0A0A0", textAlign: "center", marginTop: "8px" }}>
                   Optimizing for Gulf/Indian ATS standards... almost there
@@ -4319,10 +4332,10 @@ function ResumeBuilder({
                     </>
                   ) : (
                     <>
-                      <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-                        <rect width="22" height="22" rx="6" fill="#F59E0B"/>
-                        <path d="M11 5L17 11L11 17L5 11Z" fill="#0A0A0A"/>
-                        <path d="M11 8.5L13.5 11L11 13.5L8.5 11Z" fill="#F59E0B"/>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
                       </svg>
                       <span>Download CV</span>
                     </>
@@ -4769,42 +4782,53 @@ function ResumeBuilder({
               </svg>
               Preview CV
             </button>
-            <button
-              type="button"
-              disabled={downloadState.status === 'generating'}
-              onClick={() => {
-                setMenuDrawerOpen(false);
-                handleDownload();
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                width: "100%",
-                minHeight: 44,
-                marginBottom: 8,
-                padding: "10px 9px",
-                borderRadius: 8,
-                border: downloadState.status === 'generating' ? "1px solid #2A2A2A" : "none",
-                background: downloadState.status === 'generating' ? "#1C1C1C" : "#fff",
-                color: downloadState.status === 'generating' ? "#fff" : "#000",
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
-                transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
-              }}
-            >
-              {downloadState.status === 'generating' ? <BuilderCvPdfSpinner20 /> : null}
-              {downloadState.status === 'generating' ? null : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-              )}
-              {downloadState.status === 'generating' ? "Generating your CV..." : "Download CV"}
-            </button>
+            <div style={{ position: "relative", borderRadius: 10, width: "100%", marginBottom: 8 }}>
+              <div aria-hidden style={{
+                position: "absolute", inset: 0, borderRadius: 10, padding: 1.5,
+                background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                pointerEvents: "none",
+                animation: "ats-spin-border 2s linear infinite",
+              }} />
+              <button
+                type="button"
+                disabled={downloadState.status === 'generating'}
+                onClick={() => {
+                  setMenuDrawerOpen(false);
+                  handleDownload();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  width: "100%",
+                  minHeight: 44,
+                  padding: "10px 9px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#0A0A0A",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
+                  transition: `color 150ms ${EASE}`,
+                  position: "relative",
+                }}
+              >
+                {downloadState.status === 'generating' ? <BuilderCvPdfSpinner20 /> : null}
+                {downloadState.status === 'generating' ? null : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                )}
+                {downloadState.status === 'generating' ? "Generating your CV..." : "Download CV"}
+              </button>
+            </div>
             <div style={{ flex: 1, minHeight: 8 }} aria-hidden />
             <div style={{ paddingTop: 4 }}>
               <div style={{ background: "#1C1C1C", border: "0.5px solid #333", borderRadius: 8, padding: 8 }}>

@@ -225,9 +225,19 @@ function PremiumScoreCircle({ score }) {
   }, [score]);
 
   const color = scoreColor(display);
+  const glowMap = {
+    "#F87171": "drop-shadow(0 0 12px rgba(248,113,113,0.4))",
+    "#FACC15": "drop-shadow(0 0 12px rgba(250,204,21,0.4))",
+    "#4ADE80": "drop-shadow(0 0 12px rgba(74,222,128,0.4))",
+  };
+  const sublabelMap = {
+    "#F87171": "Needs work",
+    "#FACC15": "On track",
+    "#4ADE80": "Market ready",
+  };
 
   return (
-    <div style={{ position: "relative", width: 140, height: 140, marginBottom: 20 }}>
+    <div style={{ position: "relative", width: 220, height: 220, marginBottom: 20, filter: glowMap[color] || "none", transition: "filter 0.3s" }}>
       {/* Spinning conic border */}
       <div aria-hidden style={{
         position: "absolute", inset: 0, borderRadius: "50%", padding: 2,
@@ -244,10 +254,11 @@ function PremiumScoreCircle({ score }) {
         background: "#0A0A0A",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       }}>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 48, fontWeight: 700, lineHeight: 1, letterSpacing: -1, color, transition: "color 0.15s" }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 72, fontWeight: 800, lineHeight: 1, letterSpacing: -4, color, transition: "color 0.15s" }}>
           {display}
         </div>
-        <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>out of 100</div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>SCORE</div>
+        <div style={{ fontSize: 12, color, marginTop: 2, fontWeight: 600, transition: "color 0.15s" }}>{sublabelMap[color] || ""}</div>
       </div>
     </div>
   );
