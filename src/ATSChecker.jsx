@@ -86,15 +86,6 @@ function ScoreRing({ score, size = 190, strokeWidth = 12, animated = false, grad
   );
 }
 
-function AnimatedScoreRing({ score, size, strokeWidth, gradientId }) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  return <ScoreRing score={score} size={size} strokeWidth={strokeWidth} animated={ready} gradientId={gradientId} />;
-}
-
 // ─── Chip ─────────────────────────────────────────────────────────────────────
 function Chip({ label, variant, flyIn = false, flyIndex = 0, chipsRevealed = true }) {
   const s = {
@@ -207,7 +198,13 @@ function StepRowTick() {
   );
 }
 
-function AnimatedScoreNumber({ value }) {
+function scoreColor(v) {
+  if (v <= 40) return "#F87171";
+  if (v <= 70) return "#FACC15";
+  return "#4ADE80";
+}
+
+function PremiumScoreCircle({ score }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     let cancelled = false;
@@ -220,23 +217,46 @@ function AnimatedScoreNumber({ value }) {
       if (cancelled) return;
       if (start == null) start = now;
       const t = Math.min(1, (now - start) / duration);
-      setDisplay(Math.round(easeOutCubic(t) * value));
+      setDisplay(Math.round(easeOutCubic(t) * score));
       if (t < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-    };
-  }, [value]);
-  return display;
+    return () => { cancelled = true; cancelAnimationFrame(raf); };
+  }, [score]);
+
+  const color = scoreColor(display);
+
+  return (
+    <div style={{ position: "relative", width: 140, height: 140, marginBottom: 20 }}>
+      {/* Spinning conic border */}
+      <div aria-hidden style={{
+        position: "absolute", inset: 0, borderRadius: "50%", padding: 2,
+        background: `conic-gradient(from var(--ats-angle, 0deg), transparent 60%, ${color} 80%, transparent 100%)`,
+        WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+        WebkitMaskComposite: "xor",
+        maskComposite: "exclude",
+        pointerEvents: "none",
+        animation: "ats-spin-border 3s linear infinite",
+      }} />
+      {/* Inner circle */}
+      <div style={{
+        position: "absolute", inset: 2, borderRadius: "50%",
+        background: "#0A0A0A",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 48, fontWeight: 700, lineHeight: 1, letterSpacing: -1, color, transition: "color 0.15s" }}>
+          {display}
+        </div>
+        <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>out of 100</div>
+      </div>
+    </div>
+  );
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ATSChecker({ onResultsVisible } = {}) {
   const [phase, setPhase] = useState("idle");
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [jobDescription, setJobDescription] = useState("");
   const [loadingMeta, setLoadingMeta] = useState(null);
   const [loadingSeconds, setLoadingSeconds] = useState(0);
@@ -330,9 +350,9 @@ export default function ATSChecker({ onResultsVisible } = {}) {
   }, []);
 
   const onFileChange = useCallback((e) => handleFileSelect(e.target.files[0]), [handleFileSelect]);
-  const onDrop = useCallback((e) => { e.preventDefault(); setIsDragging(false); handleFileSelect(e.dataTransfer.files[0]); }, [handleFileSelect]);
-  const onDragOver = useCallback((e) => { e.preventDefault(); setIsDragging(true); }, []);
-  const onDragLeave = useCallback(() => setIsDragging(false), []);
+  const onDrop = useCallback((e) => { e.preventDefault(); handleFileSelect(e.dataTransfer.files[0]); }, [handleFileSelect]);
+  const onDragOver = useCallback((e) => { e.preventDefault(); }, []);
+  const onDragLeave = useCallback(() => {}, []);
 
   // ── Analysis ──────────────────────────────────────────────────────────────
   const handleAnalyze = useCallback(async () => {
@@ -529,39 +549,40 @@ export default function ATSChecker({ onResultsVisible } = {}) {
     const idleFormColumn = (
       <div style={{ minWidth: 0 }}>
         <h1 style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "clamp(34px,4vw,52px)", fontWeight: 700, lineHeight: 1.12, letterSpacing: "-0.5px", marginBottom: 20 }}>
-          Find out why your CV<br />isn&apos;t getting <span style={{ color: "#D97706", fontWeight: 700 }}>callbacks</span>
+          Find out why your CV<br />isn&apos;t getting <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 700, fontStyle: "italic" }}>callbacks</span>
         </h1>
 
         <p style={{ fontSize: 16, lineHeight: 1.75, color: T.muted, maxWidth: 480, marginBottom: 36 }}>
           Upload your CV, paste the job description. Get your score in seconds — based on real regional hiring data.
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 44 }}>
-          {["Upload your CV (PDF or DOCX)", "Paste the target job description", "Get your score + keyword gaps instantly"].map((s, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 15, color: "rgba(255,255,255,0.85)" }}>
-              <div style={{ width: 30, height: 30, background: T.amber, borderRadius: "50%", color: "#000", fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
-              {s}
+        <div style={{ position: "relative", borderRadius: 16, marginBottom: 14 }}>
+          <div aria-hidden style={{
+            position: "absolute", inset: 0, borderRadius: 16, padding: 1,
+            background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            animation: "ats-spin-border 4s linear infinite",
+          }} />
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
+            style={{ position: "relative", background: "#0f0f0f", border: "none", borderRadius: 16, padding: "44px 24px", textAlign: "center", cursor: "pointer", overflow: "hidden" }}
+          >
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} onChange={onFileChange} />
+            <div style={{ width: 52, height: 52, background: uploadedFile ? "rgba(74,222,128,0.1)" : "rgba(255,255,255,0.06)", border: `1px solid ${uploadedFile ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.12)"}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+              {uploadedFile ? <CheckCircle size={22} color={T.green} /> : <Upload size={22} color="rgba(255,255,255,0.5)" />}
             </div>
-          ))}
-        </div>
-
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
-          style={{ position: "relative", background: isDragging ? "rgba(217,119,6,0.05)" : uploadedFile ? "rgba(74,222,128,0.04)" : T.surface, border: `1.5px dashed ${isDragging ? T.amber : uploadedFile ? "rgba(74,222,128,0.4)" : T.border}`, borderRadius: 16, padding: "44px 24px", textAlign: "center", cursor: "pointer", marginBottom: 14, overflow: "hidden", transition: "border-color 0.2s, background 0.2s" }}
-        >
-          <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(217,119,6,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
-          <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} onChange={onFileChange} />
-          <div style={{ width: 52, height: 52, background: uploadedFile ? "rgba(74,222,128,0.1)" : T.amberDim, border: `1px solid ${uploadedFile ? "rgba(74,222,128,0.35)" : T.amberBorder}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
-            {uploadedFile ? <CheckCircle size={22} color={T.green} /> : <Upload size={22} color={T.amber} />}
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: uploadedFile ? T.green : T.text, marginBottom: 6 }}>
+              {uploadedFile ? uploadedFile.name : "Drop your CV here"}
+            </div>
+            <div style={{ fontSize: 13, color: T.muted }}>
+              {uploadedFile ? "File ready · click to replace" : <>or <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>browse your CV</span></>}
+            </div>
+            <div style={{ marginTop: 14, fontSize: 11, color: "rgba(160,160,160,0.5)", letterSpacing: 0.5 }}>PDF · DOCX · Max 10MB</div>
           </div>
-          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: uploadedFile ? T.green : T.text, marginBottom: 6 }}>
-            {uploadedFile ? uploadedFile.name : "Drop your CV here"}
-          </div>
-          <div style={{ fontSize: 13, color: T.muted }}>
-            {uploadedFile ? "File ready · click to replace" : <>or <span style={{ color: T.amber, fontWeight: 500 }}>browse your CV</span></>}
-          </div>
-          <div style={{ marginTop: 14, fontSize: 11, color: "rgba(160,160,160,0.5)", letterSpacing: 0.5 }}>PDF · DOCX · Max 10MB</div>
         </div>
 
         <div style={{ position: "relative", marginBottom: 16 }}>
@@ -581,14 +602,25 @@ export default function ATSChecker({ onResultsVisible } = {}) {
           <div style={{ color: T.red, fontSize: 13, marginBottom: 12, padding: "10px 16px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10 }}>{error}</div>
         )}
 
-        <button
-          onClick={handleAnalyze}
-          style={{ width: "100%", background: T.text, color: "#000", border: "none", borderRadius: 12, padding: "18px 24px", fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: -0.3, transition: "opacity 0.15s, transform 0.15s" }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
-        >
-          Analyze My CV <ArrowRight size={18} />
-        </button>
+        <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
+          <div aria-hidden style={{
+            position: "absolute", inset: 0, borderRadius: 12, padding: 1,
+            background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            animation: "ats-spin-border 4s linear infinite",
+          }} />
+          <button
+            onClick={handleAnalyze}
+            style={{ width: "100%", background: "#0A0A0A", color: "#fff", border: "none", borderRadius: 12, padding: "18px 24px", fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: -0.3, transition: "opacity 0.15s, transform 0.15s", position: "relative" }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+          >
+            Analyze My CV <ArrowRight size={18} />
+          </button>
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 14, fontSize: 12, color: "rgba(160,160,160,0.6)" }}>
           <Lock size={12} color="rgba(160,160,160,0.5)" />
@@ -599,8 +631,16 @@ export default function ATSChecker({ onResultsVisible } = {}) {
 
     return (
       <div ref={outerRef} style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", overflow: "hidden", position: "relative", lineHeight: 1.6 }}>
+        <style>{`
+          @property --ats-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+          }
+          @keyframes ats-spin-border { to { --ats-angle: 360deg; } }
+        `}</style>
         <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-          <div style={{ position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)", width: 800, height: 500, background: "radial-gradient(ellipse at center, rgba(217,119,6,0.08) 0%, transparent 70%)" }} />
+          <div style={{ position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)", width: 800, height: 500, background: "radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)" }} />
         </div>
         <div style={{ position: "relative", zIndex: 1 }}>
           <Nav />
@@ -766,7 +806,7 @@ export default function ATSChecker({ onResultsVisible } = {}) {
         @keyframes ats-spin-check { to { transform: rotate(360deg); } }
       `}</style>
       <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
-        <div style={{ position: "absolute", top: "-10%", left: "50%", transform: "translateX(-50%)", width: 700, height: 400, background: "radial-gradient(ellipse at center, rgba(217,119,6,0.07) 0%, transparent 70%)" }} />
+        <div style={{ position: "absolute", top: "-10%", left: "50%", transform: "translateX(-50%)", width: 700, height: 400, background: "radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)" }} />
       </div>
       <div style={{ position: "relative", zIndex: 1 }}>
         <Nav back={() => { setPhase("idle"); setResults(null); setUploadedFile(null); setJobDescription(""); }} />
@@ -774,17 +814,9 @@ export default function ATSChecker({ onResultsVisible } = {}) {
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "52px 28px 100px" }}>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", marginBottom: 40 }}>
-            <div style={{ position: "relative", width: 190, height: 190, marginBottom: 20 }}>
-              <AnimatedScoreRing score={score} size={190} strokeWidth={12} gradientId="result-ring-main" />
-              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 52, fontWeight: 700, lineHeight: 1, letterSpacing: -1, color: T.text }}>
-                  <AnimatedScoreNumber value={score} />
-                </div>
-                <div style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>out of 100</div>
-              </div>
-            </div>
+            <PremiumScoreCircle score={score} />
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", marginBottom: 14 }}>{getScoreLabel(score)}</div>
-            <div style={{ background: T.amber, color: "#000", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, padding: "7px 20px", borderRadius: 999, marginBottom: 14, display: "inline-block" }}>
+            <div style={{ background: "rgba(255,255,255,0.08)", color: T.text, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, padding: "7px 20px", borderRadius: 999, marginBottom: 14, display: "inline-block", border: "1px solid rgba(255,255,255,0.12)" }}>
               +{100 - score} Points within reach
             </div>
             <div style={{ fontSize: 13, color: T.muted }}>Analyzed against real GCC &amp; India hiring data</div>
