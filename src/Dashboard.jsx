@@ -195,7 +195,13 @@ function ensureKeyframes() {
   0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.08); }
   70% { box-shadow: 0 0 0 5px rgba(255,255,255,0); }
   100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
-}`;
+}
+@property --ats-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes ats-spin-border { to { --ats-angle: 360deg; } }`;
   document.head.appendChild(style);
 }
 
@@ -940,18 +946,26 @@ export default function Dashboard({
             <div style={{ fontSize: 12, color: "#444", marginBottom: 16 }}>Manage your CVPassport subscription.</div>
 
             {/* Current plan card */}
-            <div style={{
-              background: "#141414",
-              border: `1px solid ${isPaid ? "#1D9E75" : "rgba(217,119,6,0.4)"}`,
-              borderRadius: 10, padding: "12px 14px", marginBottom: 12,
-              ...(!isPaid ? { boxShadow: "0 0 12px rgba(217,119,6,0.08)" } : {}),
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: isPaid ? "#fff" : "#D97706" }}>{user?.plan || "Explorer"}</div>
-              <div style={{ fontSize: 11, color: isPaid ? "#1D9E75" : "#555", marginTop: 4 }}>
-                {isPaid
-                  ? `AED 29/mo · Renews ${user?.renewDate || "—"} · Unlimited everything`
-                  : "Limited features · Upgrade to unlock all"
-                }
+            <div style={{ position: "relative", borderRadius: 10, marginBottom: 12 }}>
+              <div aria-hidden style={{
+                position: "absolute", inset: 0, borderRadius: 10, padding: 1,
+                background: isPaid
+                  ? "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(74,222,128,0.8) 80%, transparent 100%)"
+                  : "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)",
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                pointerEvents: "none",
+                animation: "ats-spin-border 3s linear infinite",
+              }} />
+              <div style={{ background: "#0A0A0A", borderRadius: 10, padding: "12px 14px", position: "relative" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{user?.plan || "Explorer"}</div>
+                <div style={{ fontSize: 11, color: isPaid ? "#1D9E75" : "#555", marginTop: 4 }}>
+                  {isPaid
+                    ? `AED 29/mo · Renews ${user?.renewDate || "—"} · Unlimited everything`
+                    : "Limited features · Upgrade to unlock all"
+                  }
+                </div>
               </div>
             </div>
 
@@ -959,24 +973,36 @@ export default function Dashboard({
               <>
                 {!isPaid ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const url = await getPaymentLink("activeHunter");
-                        if (url) window.location.href = url;
-                      }}
-                      style={{
-                        display: "block", width: "100%", background: "#fff", color: "#000",
-                        borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
-                        textAlign: "center", textDecoration: "none", marginBottom: 8,
-                        boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
-                        transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    >
-                      Upgrade to Active Hunter — AED 29/mo →
-                    </button>
+                    <div style={{ position: "relative", borderRadius: 10, marginBottom: 8 }}>
+                      <div aria-hidden style={{
+                        position: "absolute", inset: 0, borderRadius: 10, padding: 1.5,
+                        background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
+                        WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        pointerEvents: "none",
+                        animation: "ats-spin-border 2s linear infinite",
+                      }} />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const url = await getPaymentLink("activeHunter");
+                          if (url) window.location.href = url;
+                        }}
+                        style={{
+                          display: "block", width: "100%", background: "#0A0A0A", color: "#fff",
+                          borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
+                          textAlign: "center", textDecoration: "none",
+                          boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
+                          position: "relative",
+                          transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                      >
+                        Upgrade to Active Hunter — AED 29/mo →
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => { setPlanModalOpen(false); navigate("/pricing"); }}
@@ -996,24 +1022,36 @@ export default function Dashboard({
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const url = await getPaymentLink("careerPro");
-                        if (url) window.location.href = url;
-                      }}
-                      style={{
-                        display: "block", width: "100%", background: "#fff", color: "#000",
-                        borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
-                        textAlign: "center", textDecoration: "none", marginBottom: 12,
-                        boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
-                        transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    >
-                      Upgrade to Career Pro — AED 199/yr →
-                    </button>
+                    <div style={{ position: "relative", borderRadius: 10, marginBottom: 12 }}>
+                      <div aria-hidden style={{
+                        position: "absolute", inset: 0, borderRadius: 10, padding: 1.5,
+                        background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
+                        WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        pointerEvents: "none",
+                        animation: "ats-spin-border 2s linear infinite",
+                      }} />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const url = await getPaymentLink("careerPro");
+                          if (url) window.location.href = url;
+                        }}
+                        style={{
+                          display: "block", width: "100%", background: "#0A0A0A", color: "#fff",
+                          borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
+                          textAlign: "center", textDecoration: "none",
+                          boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
+                          position: "relative",
+                          transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                      >
+                        Upgrade to Career Pro — AED 199/yr →
+                      </button>
+                    </div>
                     <div style={{ height: 1, background: "#1a1a1a", margin: "4px 0 8px" }} />
                     <button
                       type="button"

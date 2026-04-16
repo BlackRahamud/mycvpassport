@@ -89,6 +89,8 @@ export function CoverLetterSpinnerArrow({ size = 48 }) {
       <style>{`
         @keyframes cvpClSpin { to { transform: rotate(360deg); } }
         @keyframes cvpClBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+        @property --ats-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        @keyframes ats-spin-border { to { --ats-angle: 360deg; } }
       `}</style>
       <svg
         width={s}
@@ -1331,68 +1333,85 @@ function CoverLetterPage({ user, profile, onBack }) {
                 <br />
                 ATS cleared — now close it with a letter.
               </p>
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #0D1117, #0D2B1F)",
-                  border: "1px solid #1a4a30",
-                  borderRadius: 16,
-                  padding: 16,
-                }}
-              >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: CL_GREEN,
-                    display: "grid",
-                    placeItems: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.2" strokeLinecap="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 500, color: "#FFF" }}>Unlock full AI cover letter</div>
-                  <div style={{ fontSize: 12, color: CL_GREEN, marginTop: 4, lineHeight: 1.4 }}>
-                    Reveal the rest with a personalised Anthropic-powered letter for this role
+              <div style={{ position: "relative", borderRadius: 16 }}>
+                <div aria-hidden style={{
+                  position: "absolute", inset: 0, borderRadius: 16, padding: 1,
+                  background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)",
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                  animation: "ats-spin-border 3s linear infinite",
+                }} />
+                <div style={{ background: "#0A0A0A", borderRadius: 16, padding: 16, position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: "#0A0A0A",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        display: "grid",
+                        placeItems: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 500, color: "#fff" }}>Unlock full AI cover letter</div>
+                      <div style={{ fontSize: 12, color: "#444", marginTop: 4, lineHeight: 1.4 }}>
+                        Reveal the rest with a personalised Anthropic-powered letter for this role
+                      </div>
+                    </div>
                   </div>
+                  <div style={{ position: "relative", borderRadius: 12 }}>
+                    <div aria-hidden style={{
+                      position: "absolute", inset: 0, borderRadius: 12, padding: 1.5,
+                      background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
+                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                      WebkitMaskComposite: "xor",
+                      maskComposite: "exclude",
+                      pointerEvents: "none",
+                      animation: "ats-spin-border 2s linear infinite",
+                    }} />
+                    <button
+                      type="button"
+                      disabled={clUnlocking}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleUnlockFullCoverLetter();
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        border: "none",
+                        background: "#0A0A0A",
+                        color: "#fff",
+                        fontSize: 15,
+                        fontWeight: 700,
+                        cursor: clUnlocking ? "wait" : "pointer",
+                        opacity: clUnlocking ? 0.75 : 1,
+                        position: "relative",
+                      }}
+                    >
+                      {clUnlocking
+                        ? "Unlocking…"
+                        : getCoverLetterPricingMarket() === "India"
+                          ? "Unlock full letter — ₹49"
+                          : "Unlock full letter — AED 10"}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
                 </div>
               </div>
-              <button
-                type="button"
-                disabled={clUnlocking}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleUnlockFullCoverLetter();
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  border: "none",
-                  background: CL_GREEN,
-                  color: "#000000",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: clUnlocking ? "wait" : "pointer",
-                  opacity: clUnlocking ? 0.75 : 1,
-                }}
-              >
-                {clUnlocking
-                  ? "Unlocking…"
-                  : getCoverLetterPricingMarket() === "India"
-                    ? "Unlock full letter — ₹49"
-                    : "Unlock full letter — AED 10"}
-              </button>
-              <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
-            </div>
               <button
                 type="button"
                 onClick={() => {
