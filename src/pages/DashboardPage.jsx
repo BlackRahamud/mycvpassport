@@ -11,13 +11,6 @@ import { supabase } from "../appSupabaseClient";
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
 /* ─── Icons ─── */
-function IconPlus({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 5v14" /><path d="M5 12h14" />
-    </svg>
-  );
-}
 function IconArrowRight({ size = 14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -130,7 +123,9 @@ function ensureKeyframes() {
   0%{box-shadow:0 0 0 0 rgba(255,179,0,0.25);border-color:#FFB300;}
   70%{box-shadow:0 0 0 6px rgba(255,179,0,0);border-color:#1a1a1a;}
   100%{box-shadow:0 0 0 0 rgba(255,179,0,0);border-color:#1a1a1a;}
-}`;
+}
+@property --ats-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@keyframes ats-spin-border { to { --ats-angle: 360deg; } }`;
   document.head.appendChild(s);
 }
 
@@ -460,23 +455,37 @@ export default function DashboardPage({
               </div>
               <div style={{ fontSize: 12, color: "#2a2a2a", marginTop: 4 }}>{subLine}</div>
             </div>
-            <button
-              type="button"
-              onClick={handleStartNewCv}
+            <div
               style={{
-                background: "#fff", color: "#000", border: "none", borderRadius: 10,
-                padding: "10px 20px", fontSize: 13, fontWeight: 700,
-                display: "flex", alignItems: "center", gap: 6,
-                cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-                transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                display: "inline-block",
+                padding: "1.5px",
+                borderRadius: 12,
+                background: "conic-gradient(from var(--ats-angle, 0deg), transparent 70%, rgba(255,255,255,0.22) 85%, transparent 100%)",
+                animation: "ats-spin-border 4s linear infinite",
+                flexShrink: 0,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-              onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
             >
-              <IconPlus size={14} /> New CV
-            </button>
+              <button
+                type="button"
+                onClick={handleStartNewCv}
+                style={{
+                  background: "#0A0A0A", color: "#fff", border: "none", borderRadius: 11,
+                  padding: "0 20px", height: 44, fontSize: 14, fontWeight: 600,
+                  display: "flex", alignItems: "center", gap: 8,
+                  cursor: "pointer", fontFamily: "inherit",
+                  transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 5v14" /><path d="M5 12h14" />
+                </svg>
+                New CV
+              </button>
+            </div>
           </div>
 
           {/* ═══ STATS STRIP ═══ */}
