@@ -433,6 +433,8 @@ const FAB = forwardRef(function FAB(
     onFabFreeScan = null,
     /** ATS tab: trigger pro analysis with job description */
     onFabProScan = null,
+    /** Route: number of CVs the user has — returning users (>=1) skip intro guides. */
+    cvsCount = 0,
   },
   ref
 ) {
@@ -1296,6 +1298,7 @@ const FAB = forwardRef(function FAB(
   }, [activeSection]);
 
   if (!mobile || hidden) return null;
+  if (variant === "route" && tabKey === "mycvs" && cvsCount >= 1) return null;
   if (!config && fabMode !== "guide") return null;
 
   if (isStandby) return (

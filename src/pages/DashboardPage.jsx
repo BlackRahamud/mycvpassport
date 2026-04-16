@@ -494,7 +494,8 @@ export default function DashboardPage({
             <div className="cvp2-stats-card" style={{
               background: "#111", border: "0.5px solid #1a1a1a",
               borderRadius: "2px 2px 10px 10px", borderTop: "1.5px solid #FFB300",
-              padding: "16px 20px", minHeight: 90,
+              padding: 16, minHeight: 90, overflow: "visible",
+              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
               <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>ATS SCORE</div>
               <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#FFB300", letterSpacing: "-0.5px" }}>
@@ -508,7 +509,8 @@ export default function DashboardPage({
             <div className="cvp2-stats-card" style={{
               background: "#111", border: "0.5px solid #1a1a1a",
               borderRadius: "2px 2px 10px 10px",
-              padding: "16px 20px", minHeight: 90,
+              padding: 16, minHeight: 90, overflow: "visible",
+              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
               <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>CVS BUILT</div>
               <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#ddd", letterSpacing: "-0.5px" }}>{resumeList.length}</div>
@@ -520,7 +522,8 @@ export default function DashboardPage({
             <div className="cvp2-stats-card" style={{
               background: "#111", border: "0.5px solid #1a1a1a",
               borderRadius: "2px 2px 10px 10px",
-              padding: "16px 20px", minHeight: 90,
+              padding: 16, minHeight: 90, overflow: "visible",
+              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
               <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>PLAN</div>
               <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#FFB300", letterSpacing: "-0.5px" }}>{planLabel}</div>
@@ -651,18 +654,22 @@ export default function DashboardPage({
                         { label: "Achievements", value: healthBars.achievements, color: scoreColor(healthBars.achievements) },
                         { label: "Job Match", value: lastResume?.job_match_score ?? null, color: "#378ADD" },
                       ].map((bar) => (
-                        <div key={bar.label}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                            <span style={{ fontSize: 12, color: "#444" }}>{bar.label}</span>
-                            <span style={{ fontSize: 12, color: "#555" }}>{bar.value != null ? bar.value : "—"}</span>
+                        <div key={bar.label} style={{ minHeight: "auto", overflow: "visible" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, overflow: "visible" }}>
+                            <span style={{ fontSize: 12, color: "#444", lineHeight: 1.5 }}>{bar.label}</span>
+                            <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>{bar.value != null ? bar.value : "—"}</span>
                           </div>
-                          <div style={{ height: 5, background: "#141414", borderRadius: 3 }}>
+                          <div style={{ height: 5, background: "#141414", borderRadius: 3, overflow: "hidden" }}>
                             {bar.value != null && (
                               <div style={{
                                 height: "100%", borderRadius: 2,
                                 width: `${Math.min(100, bar.value)}%`,
                                 background: bar.color,
                                 transition: `width 300ms ${EASE}`,
+                                transform: "translate3d(0,0,0)",
+                                WebkitBackfaceVisibility: "hidden",
+                                backfaceVisibility: "hidden",
+                                willChange: "width",
                               }} />
                             )}
                           </div>
@@ -809,7 +816,7 @@ export default function DashboardPage({
             </a>
           </div>
 
-          <FAB tabKey={fabRouteTab} />
+          <FAB tabKey={fabRouteTab} cvsCount={resumeList.length} />
         </main>
 
       {/* ═══ MOBILE SIGN OUT ═══ */}

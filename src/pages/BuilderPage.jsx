@@ -2173,6 +2173,9 @@ function ResumeBuilder({
     };
   });
   const [builderTab, setBuilderTab] = useState("content");
+  const [showSavedBridge, setShowSavedBridge] = useState(false);
+  const saveBridgeRef = useRef(null);
+  const savedBridgeTimerRef = useRef(null);
   const [guidedCoachRequestKey] = useState(0);
   const [openSection, setOpenSection] = useState(null);
   const [activeSection, setActiveSection] = useState(null);
@@ -2419,6 +2422,7 @@ function ResumeBuilder({
     prevBuilderTabRef.current = builderTab;
     if (builderTab === "templates" && prev != null && prev !== "templates") {
       setTemplateSessionApplyCount(0);
+      saveBridgeRef.current?.();
     }
   }, [builderTab]);
 
@@ -2747,6 +2751,18 @@ function ResumeBuilder({
       setSaving(false);
     }
   }, [user, resume, selectedTemplate, resumeId]);
+
+  saveBridgeRef.current = () => {
+    if (!user?.id) return;
+    if (savedBridgeTimerRef.current) clearTimeout(savedBridgeTimerRef.current);
+    handleSave();
+    setShowSavedBridge(true);
+    savedBridgeTimerRef.current = setTimeout(() => setShowSavedBridge(false), 2400);
+  };
+
+  useEffect(() => () => {
+    if (savedBridgeTimerRef.current) clearTimeout(savedBridgeTimerRef.current);
+  }, []);
 
   const finalizeCloseExperienceModal = useCallback(() => {
     setExperienceEditor(null);
@@ -4364,6 +4380,42 @@ function ResumeBuilder({
                 </button>
               </div>
             </div>
+            {showSavedBridge ? (
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  position: "fixed",
+                  right: 20,
+                  bottom: "calc(env(safe-area-inset-bottom, 0px) + 148px)",
+                  zIndex: 60,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 14px",
+                  background: "#0a0a0a",
+                  border: "0.5px solid #2a2a2a",
+                  borderRadius: 999,
+                  color: "#ffffff",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  letterSpacing: "0.01em",
+                  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.6)",
+                  pointerEvents: "none",
+                  animation: "fabSavedPop 2400ms cubic-bezier(0.4, 0, 0.2, 1) forwards",
+                  WebkitFontSmoothing: "antialiased",
+                  MozOsxFontSmoothing: "grayscale",
+                  transform: "translate3d(0,0,0)",
+                  WebkitBackfaceVisibility: "hidden",
+                  backfaceVisibility: "hidden",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M5 13l4 4L19 7" stroke="#1D9E75" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>Progress Auto-Saved</span>
+              </div>
+            ) : null}
             <div style={{ display: fabSheet === "preview" ? "none" : "block" }}>
               <FAB
                 ref={fabRef}
