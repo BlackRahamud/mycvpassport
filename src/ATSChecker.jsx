@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
@@ -104,16 +105,6 @@ function Chip({ label, variant, flyIn = false, flyIndex = 0, chipsRevealed = tru
     <span style={{ ...s[variant], fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 999, cursor: "default", display: "inline-block", lineHeight: "1.4", transition: "background 0.15s", ...fly }}>
       {label}
     </span>
-  );
-}
-
-// ─── Sub-score card ──────────────────────────────────────────────────────────
-function SubCard({ value, label, color }) {
-  return (
-    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: "24px 16px", textAlign: "center", flex: 1 }}>
-      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 28, fontWeight: 600, lineHeight: 1.2, letterSpacing: -0.5, color }}>{value}</div>
-      <div style={{ fontSize: 12, color: T.muted, marginTop: 8, fontWeight: 500, lineHeight: 1.6 }}>{label}</div>
-    </div>
   );
 }
 
@@ -282,6 +273,7 @@ export default function ATSChecker({ onResultsVisible } = {}) {
     window.innerWidth < 768
   );
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
@@ -815,6 +807,7 @@ export default function ATSChecker({ onResultsVisible } = {}) {
         @keyframes ats-spin-border { to { --ats-angle: 360deg; } }
         @keyframes ats-pulse-out { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
         @keyframes ats-spin-check { to { transform: rotate(360deg); } }
+        @keyframes cvp-dl-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
       `}</style>
       <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
         <div style={{ position: "absolute", top: "-10%", left: "50%", transform: "translateX(-50%)", width: 700, height: 400, background: "radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%)" }} />
@@ -830,62 +823,101 @@ export default function ATSChecker({ onResultsVisible } = {}) {
             <div style={{ background: "rgba(255,255,255,0.08)", color: T.text, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, padding: "7px 20px", borderRadius: 999, marginBottom: 14, display: "inline-block", border: "1px solid rgba(255,255,255,0.12)" }}>
               +{100 - score} Points within reach
             </div>
-            <div style={{ fontSize: 13, color: T.muted }}>Analyzed against real GCC &amp; India hiring data</div>
+            <div style={{ fontSize: 12, color: '#444', textAlign: 'center', marginBottom: 16, letterSpacing: '0.3px' }}>Analyzed against real GCC &amp; India hiring data</div>
           </div>
 
-          {/* Gradient bar — unchanged */}
+          {/* Gradient bar */}
           <div style={{ marginBottom: 36 }}>
-            <div style={{ height: 6, borderRadius: 999, background: `linear-gradient(90deg, ${T.red}, ${T.amber} 50%, ${T.green})`, position: "relative", marginBottom: 10 }}>
-              <div style={{ position: "absolute", top: "50%", left: `${score}%`, transform: "translate(-50%,-50%)", width: 14, height: 14, background: T.text, borderRadius: "50%", boxShadow: "0 0 8px rgba(255,255,255,0.6), 0 0 20px rgba(255,255,255,0.2)" }} />
+            <div style={{ height: 5, borderRadius: 999, background: 'linear-gradient(90deg, #EF4444 0%, #F59E0B 45%, #22C55E 100%)', position: "relative", marginBottom: 10 }}>
+              <div style={{ position: "absolute", top: "50%", left: `${score}%`, transform: "translate(-50%,-50%)", width: 16, height: 16, borderRadius: "50%", background: "#fff", border: "2.5px solid #0A0A0A", boxShadow: "0 0 0 2px rgba(255,255,255,0.15), 0 0 12px rgba(255,255,255,0.25)" }} />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.muted }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: '#3A3A3A' }}>
               <span>Needs Work</span><span>On Track</span><span>Market Ready</span>
             </div>
           </div>
 
-          {/* Sub-scores — unchanged */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 36 }}>
-            <SubCard value={keywordsScore} label="Keywords" color={T.blue} />
-            <SubCard value={structureScore} label="Structure" color={T.amber} />
-            <SubCard value={contentScore} label="Content" color={T.green} />
+          {/* Sub-scores */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 36 }}>
+            {[
+              { value: keywordsScore, label: "Keywords", color: "#60A5FA", barColor: "#1D4ED8" },
+              { value: structureScore, label: "Structure", color: "#FBBF24", barColor: "#B45309" },
+              { value: contentScore, label: "Content", color: "#4ADE80", barColor: "#15803D" },
+            ].map(({ value, label, color, barColor }) => (
+              <div key={label} style={{ background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 16, padding: '20px 8px 14px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+                <div aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: 16, background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                <div style={{ fontSize: 38, fontWeight: 700, lineHeight: 1, marginBottom: 10, letterSpacing: '-1px', color, position: 'relative' }}>{value}</div>
+                <div style={{ height: 2, borderRadius: 999, background: '#1A1A1A', margin: '0 10px 10px', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ height: '100%', borderRadius: 999, background: barColor, width: `${value}%` }} />
+                </div>
+                <div style={{ fontSize: 10, color: '#444', letterSpacing: '1.5px', textTransform: 'uppercase', position: 'relative' }}>{label}</div>
+              </div>
+            ))}
           </div>
 
-          {/* Visibility Boosters — unchanged */}
+          {/* Visibility Boosters */}
           <div style={{ marginBottom: 30 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: T.green, marginBottom: 14 }}>
-              <Sparkles size={13} color={T.green} /> Visibility Boosters
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.18)' }}>
+                <Sparkles size={12} color="#4ADE80" />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: '#4ADE80' }}>Visibility Boosters</span>
+              <div style={{ height: 1, flex: 1, background: 'linear-gradient(90deg, rgba(34,197,94,0.18), transparent)' }} />
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {visibilityBoosters.map((kw, i) => (
-                <Chip key={kw} label={kw} variant="green" flyIn flyIndex={i} chipsRevealed={chipsRevealed} />
+                <span
+                  key={kw}
+                  style={{
+                    fontSize: 13, fontWeight: 500, padding: '7px 14px', borderRadius: 999,
+                    background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.22)', color: '#4ADE80',
+                    position: 'relative', overflow: 'hidden', display: 'inline-block',
+                    opacity: chipsRevealed ? 1 : 0, transform: chipsRevealed ? 'translateY(0)' : 'translateY(20px)',
+                    transition: 'opacity 0.4s ease, transform 0.4s ease', transitionDelay: `${i * 50}ms`,
+                  }}
+                >
+                  <span aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: 999, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 0%, rgba(34,197,94,0.12) 0%, transparent 65%)' }} />
+                  {kw}
+                </span>
               ))}
             </div>
           </div>
 
-          {/* Rank Triggers — unchanged */}
+          {/* Rank Triggers */}
           <div style={{ marginBottom: 32 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: T.amber, marginBottom: 14 }}>
-              <Plus size={13} color={T.amber} /> Rank Triggers
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.18)' }}>
+                <Plus size={12} color="#FCD34D" />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', color: '#FCD34D' }}>Rank Triggers</span>
+              <div style={{ height: 1, flex: 1, background: 'linear-gradient(90deg, rgba(251,191,36,0.18), transparent)' }} />
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {rankTriggers.map((kw, i) => (
-                <Chip
+                <span
                   key={kw}
-                  label={kw}
-                  variant="amber"
-                  flyIn
-                  flyIndex={visibilityBoosters.length + i}
-                  chipsRevealed={chipsRevealed}
-                />
+                  style={{
+                    fontSize: 13, fontWeight: 500, padding: '7px 14px', borderRadius: 999,
+                    background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.20)', color: '#FCD34D',
+                    position: 'relative', overflow: 'hidden', display: 'inline-block',
+                    opacity: chipsRevealed ? 1 : 0, transform: chipsRevealed ? 'translateY(0)' : 'translateY(20px)',
+                    transition: 'opacity 0.4s ease, transform 0.4s ease', transitionDelay: `${(visibilityBoosters.length + i) * 50}ms`,
+                  }}
+                >
+                  <span aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: 999, pointerEvents: 'none', background: 'radial-gradient(ellipse at 50% 0%, rgba(251,191,36,0.10) 0%, transparent 65%)' }} />
+                  {kw}
+                </span>
               ))}
             </div>
           </div>
 
-          {/* CVPassport Verified — unchanged */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
-            <div style={{ background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.35)", color: "#60A5FA", fontSize: 13, fontWeight: 600, padding: "9px 22px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Sparkles size={13} color="#60A5FA" />
-              CVPassport Verified — Top {topPercent}% Ready for GCC {industry}
+          {/* CVPassport Verified */}
+          <div style={{ background: '#0D0D0D', border: '1px solid #1A2A3A', borderRadius: 16, padding: '15px 18px', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Sparkles size={15} color="#60A5FA" />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#93C5FD', marginBottom: 3 }}>CVPassport Verified</div>
+              <div style={{ fontSize: 11, color: '#2D4A6A' }}>Top {topPercent}% Ready · GCC {industry}</div>
             </div>
           </div>
 
@@ -993,6 +1025,38 @@ export default function ATSChecker({ onResultsVisible } = {}) {
 
             <div style={{ fontSize: 11, color: '#333' }}>
               Cancel anytime · Instant access · 500+ UAE job seekers
+            </div>
+          </div>
+
+          {/* Download CV */}
+          <div style={{ marginTop: 28 }}>
+            <div style={{
+              borderRadius: 14, padding: '1.5px',
+              background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 80%, #1C1C1C 100%)',
+              backgroundSize: '300% 100%',
+              animation: 'cvp-dl-shimmer 2.5s linear infinite',
+            }}>
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                style={{
+                  width: '100%', height: 54, borderRadius: 12,
+                  border: 'none', background: '#141414', color: '#fff',
+                  fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  fontFamily: 'inherit',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Download CV</span>
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: '#333', textAlign: 'center', marginTop: 10 }}>
+              Optimized for Gulf / Indian ATS standards
             </div>
           </div>
 
