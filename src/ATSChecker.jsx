@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
@@ -89,13 +90,14 @@ function SampleResultCard({ isMobile = false }) {
 
       {/* Score ring */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ position: "relative", width: ringSize, height: ringSize, marginBottom: 10 }}>
-          <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`} style={{ transform: "rotate(-90deg)" }}>
+        <div style={{ position: "relative", width: ringSize, height: ringSize, marginBottom: 10, filter: `drop-shadow(0 0 12px ${s.glow})`, transition: "filter 0.6s" }}>
+          {/* Spinning conic border */}
+          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", padding: 2, background: `conic-gradient(from var(--ats-angle, 0deg), transparent 60%, ${s.color} 80%, transparent 100%)`, WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", animation: "ats-spin-border 3s linear infinite", transition: "background 0.6s" }} />
+          <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`} style={{ transform: "rotate(-90deg)", position: "relative" }}>
             <circle cx={ringSize / 2} cy={ringSize / 2} r={r} fill="none" stroke="#1A1A1A" strokeWidth={sw} />
             <circle cx={ringSize / 2} cy={ringSize / 2} r={r} fill="none" stroke={s.color} strokeWidth={sw} strokeLinecap="butt" strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.8s ease-out, stroke 0.6s" }} />
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ position: "absolute", inset: sw + 4, borderRadius: "50%", boxShadow: `inset 0 0 30px ${s.glow}`, transition: "box-shadow 0.6s", pointerEvents: "none" }} />
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 52, fontWeight: 800, lineHeight: 1, letterSpacing: -3, color: s.color, transition: "color 0.6s", position: "relative" }}>{s.score}</div>
             <div style={{ fontSize: 9, color: "#444", marginTop: 3, letterSpacing: 1, textTransform: "uppercase", position: "relative" }}>Score</div>
           </div>
@@ -175,25 +177,6 @@ function SampleResultCard({ isMobile = false }) {
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#93C5FD", marginBottom: 2 }}>CVPassport Verified</div>
           <div style={{ fontSize: 9, color: "#2D4A6A" }}>Top 15% Ready · GCC Finance</div>
-        </div>
-      </div>
-
-      {/* Unlock card */}
-      <div style={{ background: "#0A0A0A", borderRadius: 16, padding: "20px 16px", textAlign: "center", position: "relative", overflow: "hidden", marginBottom: 16 }}>
-        <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 16, padding: 1, background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", animation: "ats-spin-border 3s linear infinite" }} />
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#0A0A0A", border: "1px solid rgba(255,255,255,0.10)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          </div>
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Unlock Full Analysis</div>
-        <div style={{ fontSize: 10, color: "#444", marginBottom: 14, lineHeight: 1.5 }}>AI rewrite suggestions &amp; full ATS breakdown</div>
-        <div style={{ position: "relative", borderRadius: 10, overflow: "hidden" }}>
-          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 10, padding: 1, background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", animation: "ats-spin-border 2s linear infinite" }} />
-          <div style={{ background: "#0A0A0A", borderRadius: 10, padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            Unlock Full Analysis — AED 29/mo
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </div>
         </div>
       </div>
 
@@ -311,6 +294,7 @@ export default function ATSChecker({
     window.innerWidth < 768
   );
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
@@ -1080,6 +1064,8 @@ export default function ATSChecker({
                     handleDownload();
                   } else if (onNavigateToContent) {
                     onNavigateToContent();
+                  } else {
+                    navigate('/dashboard');
                   }
                 }}
                 disabled={hasCv && downloadStateProp.status !== 'idle'}
