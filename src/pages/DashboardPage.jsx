@@ -964,22 +964,24 @@ export default function DashboardPage({
               <>
                 {!isPaid ? (
                   <>
-                    <a
-                      href={getPaymentLink("activeHunter")}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const url = await getPaymentLink("activeHunter");
+                        if (url) window.location.href = url;
+                      }}
                       style={{
                         display: "block", width: "100%", background: "#fff", color: "#000",
                         borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
                         textAlign: "center", textDecoration: "none", marginBottom: 8,
-                        boxSizing: "border-box",
+                        boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
                         transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                     >
                       Upgrade to Active Hunter — AED 29/mo →
-                    </a>
+                    </button>
                     <button
                       type="button"
                       onClick={() => { setPlanModalOpen(false); navigate("/pricing"); }}
@@ -999,22 +1001,24 @@ export default function DashboardPage({
                   </>
                 ) : (
                   <>
-                    <a
-                      href={getPaymentLink("careerPro")}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const url = await getPaymentLink("careerPro");
+                        if (url) window.location.href = url;
+                      }}
                       style={{
                         display: "block", width: "100%", background: "#fff", color: "#000",
                         borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
                         textAlign: "center", textDecoration: "none", marginBottom: 12,
-                        boxSizing: "border-box",
+                        boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
                         transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                     >
                       Upgrade to Career Pro — AED 199/yr →
-                    </a>
+                    </button>
                     <div style={{ height: 1, background: "#1a1a1a", margin: "4px 0 8px" }} />
                     <button
                       type="button"

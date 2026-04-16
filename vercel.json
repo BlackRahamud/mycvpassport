@@ -9,6 +9,12 @@
     },
     "api/cover-letter.js": {
       "maxDuration": 60
+    },
+    "api/create-ziina-payment.js": {
+      "maxDuration": 15
+    },
+    "api/ziina-webhook.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]

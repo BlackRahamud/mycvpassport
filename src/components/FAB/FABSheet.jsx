@@ -681,10 +681,11 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
               </p>
               <button
                 type="button"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  window.open(getPaymentLink("activeHunter"), "_blank");
+                  const url = await getPaymentLink("activeHunter");
+                  if (url) window.location.href = url;
                 }}
                 style={{
                   background: "var(--text-primary, #FFF)",
@@ -2277,9 +2278,12 @@ export default function FABSheet({
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           if (isPro) setStep8Phase("pro-jd");
-                          else window.open(getPaymentLink("ats"), "_blank");
+                          else {
+                            const url = await getPaymentLink("ats");
+                            if (url) window.location.href = url;
+                          }
                         }}
                         style={{
                           background: "#D97706",
@@ -2351,13 +2355,14 @@ export default function FABSheet({
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!step8Jd.trim()) return;
                         if (isPro) {
                           onFabProScan?.(step8Jd);
                           advanceGuideStep();
                         } else {
-                          window.open(getPaymentLink("ats"), "_blank");
+                          const url = await getPaymentLink("ats");
+                          if (url) window.location.href = url;
                         }
                       }}
                       style={{
@@ -2405,8 +2410,11 @@ export default function FABSheet({
               {step9Phase === "result" && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", animation: "fabFadeIn 0.3s ease" }}>
                   <button type="button"
-                    onClick={() => {
-                      if (!isPro) window.open(getPaymentLink("activeHunter"), "_blank");
+                    onClick={async () => {
+                      if (!isPro) {
+                        const url = await getPaymentLink("activeHunter");
+                        if (url) window.location.href = url;
+                      }
                     }}
                     style={{
                       background: "#D97706", color: "#000", border: "none", borderRadius: 8,
@@ -2436,7 +2444,7 @@ export default function FABSheet({
               }}
             >
               <button type="button"
-                onClick={() => window.open(getPaymentLink("coverLetter"), "_blank")}
+                onClick={async () => { const url = await getPaymentLink("coverLetter"); if (url) window.location.href = url; }}
                 style={{
                   background: "#D97706", color: "#000", border: "none", borderRadius: 8,
                   padding: "6px 14px", fontSize: 11, fontWeight: 700,
@@ -2445,7 +2453,7 @@ export default function FABSheet({
                 Get Cover Letter — AED 10
               </button>
               <button type="button"
-                onClick={() => window.open(getPaymentLink("activeHunter"), "_blank")}
+                onClick={async () => { const url = await getPaymentLink("activeHunter"); if (url) window.location.href = url; }}
                 style={{
                   background: "transparent", color: "#fff", borderRadius: 8,
                   padding: "6px 14px", fontSize: 11, fontWeight: 600,
@@ -2643,13 +2651,14 @@ export default function FABSheet({
     onClose();
   };
 
-  const handlePro = (e) => {
+  const handlePro = async (e) => {
     if (e) {
       e.stopPropagation();
       e.preventDefault();
     }
     if (tabStorageKey === "ats") writeFabSeen("ats");
-    window.open(getPaymentLink("ats"), "_blank");
+    const url = await getPaymentLink("ats");
+    if (url) window.location.href = url;
     onClose();
   };
 
@@ -2729,11 +2738,12 @@ export default function FABSheet({
           </p>
           <button
             type="button"
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
               e.preventDefault();
               if (!hasAccess) {
-                window.open(getPaymentLink("coverLetter"), "_blank");
+                const url = await getPaymentLink("coverLetter");
+                if (url) window.location.href = url;
                 return;
               }
             }}
@@ -3084,10 +3094,11 @@ export default function FABSheet({
         </div>
         <button
           type="button"
-          onClick={(e) => {
+          onClick={async (e) => {
             e.stopPropagation();
             e.preventDefault();
-            window.open(getPaymentLink("activeHunter"), "_blank");
+            const url = await getPaymentLink("activeHunter");
+            if (url) window.location.href = url;
           }}
           style={{
             width: "100%",

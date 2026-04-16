@@ -141,21 +141,16 @@ export default function PricingPage() {
     },
   ];
 
-  const handleCTA = (plan) => {
+  const handleCTA = async (plan) => {
     if (plan.ctaAction === "free") {
       navigate("/dashboard");
       return;
     }
-    if (plan.ctaAction === "express") {
-      window.open(getPaymentLink("expressPass"), "_blank");
-      return;
-    }
-    if (plan.ctaAction === "hunter") {
-      window.open(getPaymentLink("activeHunter"), "_blank");
-      return;
-    }
-    if (plan.ctaAction === "pro") {
-      window.open(getPaymentLink("careerPro"), "_blank");
+    const featureMap = { express: "expressPass", hunter: "activeHunter", pro: "careerPro" };
+    const feature = featureMap[plan.ctaAction];
+    if (feature) {
+      const url = await getPaymentLink(feature);
+      if (url) window.location.href = url;
     }
   };
 

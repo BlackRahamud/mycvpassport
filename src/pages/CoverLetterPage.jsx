@@ -665,7 +665,8 @@ function CoverLetterPage({ user, profile, onBack }) {
 
   const handleUnlockFullCoverLetter = async () => {
     if (!hasFeatureAccess(profile, 'coverLetter')) {
-      window.open(getPaymentLink('coverLetter'), '_blank');
+      const url = await getPaymentLink('coverLetter');
+      if (url) window.location.href = url;
       return;
     }
     const payload = lastClPayloadRef.current;

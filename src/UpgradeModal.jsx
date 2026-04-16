@@ -93,8 +93,9 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
 
         <button
           type="button"
-          onClick={() => {
-            window.open(getPaymentLink(feature), "_blank");
+          onClick={async () => {
+            const url = await getPaymentLink(feature);
+            if (url) window.location.href = url;
           }}
           style={{
             marginTop: 22,

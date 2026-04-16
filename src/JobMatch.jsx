@@ -350,8 +350,9 @@ export default function JobMatch({ resume, selectedTemplate, isPro = false, feat
     }
   }, [hasAccess, jobDescription, templateKey, resume]);
 
-  const handleUpgradeClick = useCallback(() => {
-    window.open(getPaymentLink("jobMatch"), "_blank");
+  const handleUpgradeClick = useCallback(async () => {
+    const url = await getPaymentLink("jobMatch");
+    if (url) window.location.href = url;
   }, []);
 
   /* ── Render ── */
