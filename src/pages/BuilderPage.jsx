@@ -4279,7 +4279,13 @@ function ResumeBuilder({
           ) : null}
             {builderTab === "ats" && (
               <div style={{ minHeight: 400 }}>
-                <ATSChecker />
+                <ATSChecker
+                  resume={resume}
+                  isPro={isPro}
+                  handleDownload={handleDownload}
+                  downloadState={downloadState}
+                  onNavigateToContent={() => setBuilderTab("content")}
+                />
               </div>
             )}
             {builderTab === "jobmatch" && (
@@ -4288,7 +4294,7 @@ function ResumeBuilder({
               </div>
             )}
             {builderTab === "coverletter" && guideCoverLetterPreview}
-            <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto", display: builderTab === "templates" ? "none" : undefined }}>
+            <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto", display: (builderTab === "templates" || builderTab === "ats") ? "none" : undefined }}>
               <div style={{
                 padding: '1.5px',
                 borderRadius: '14px',

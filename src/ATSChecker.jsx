@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
@@ -256,7 +255,15 @@ function PremiumScoreCircle({ score }) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function ATSChecker({ onResultsVisible } = {}) {
+export default function ATSChecker({
+  onResultsVisible,
+  resume: resumeProp = {},
+  isPro: isProProp = false,
+  handleDownload = null,
+  downloadState: downloadStateProp = { status: 'idle' },
+  onNavigateToContent = null,
+} = {}) {
+  const hasCv = resumeProp?.name !== "" && resumeProp?.name !== undefined;
   const [phase, setPhase] = useState("idle");
   const [uploadedFile, setUploadedFile] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
@@ -273,7 +280,6 @@ export default function ATSChecker({ onResultsVisible } = {}) {
     window.innerWidth < 768
   );
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
@@ -1038,11 +1044,18 @@ export default function ATSChecker({ onResultsVisible } = {}) {
             }}>
               <button
                 type="button"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => {
+                  if (hasCv && handleDownload) {
+                    handleDownload();
+                  } else if (onNavigateToContent) {
+                    onNavigateToContent();
+                  }
+                }}
+                disabled={hasCv && downloadStateProp.status !== 'idle'}
                 style={{
                   width: '100%', height: 54, borderRadius: 12,
                   border: 'none', background: '#141414', color: '#fff',
-                  fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                  fontSize: 15, fontWeight: 600, cursor: (hasCv && downloadStateProp.status !== 'idle') ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                   fontFamily: 'inherit',
                 }}
@@ -1052,7 +1065,7 @@ export default function ATSChecker({ onResultsVisible } = {}) {
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                <span>Download CV</span>
+                <span>{hasCv ? (downloadStateProp.status === 'generating' ? 'Generating your CV...' : 'Download CV') : 'Start Building'}</span>
               </button>
             </div>
             <div style={{ fontSize: 11, color: '#333', textAlign: 'center', marginTop: 10 }}>
