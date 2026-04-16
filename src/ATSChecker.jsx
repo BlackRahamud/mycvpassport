@@ -735,8 +735,6 @@ export default function ATSChecker({ onResultsVisible } = {}) {
   const rankTriggers = results?.rankTriggers ?? ["RERA Certified", "Off-plan Sales", "KYC", "AML"];
   const industry = results?.industry ?? "Finance";
   const topPercent = results?.topPercent ?? 15;
-  const missingCount = results?.missingCount ?? 100 - score;
-
   const handleUnlock = async () => {
     if (paymentLoading) return;
     setPaymentLoading(true);
