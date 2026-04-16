@@ -90,9 +90,9 @@ function SampleResultCard({ isMobile = false }) {
 
       {/* Score ring */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ position: "relative", width: ringSize, height: ringSize, marginBottom: 10, filter: `drop-shadow(0 0 12px ${s.glow})`, transition: "filter 0.6s" }}>
-          {/* Spinning conic border */}
-          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", padding: 2, background: `conic-gradient(from var(--ats-angle, 0deg), transparent 60%, ${s.color} 80%, transparent 100%)`, WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", animation: "ats-spin-border 3s linear infinite", transition: "background 0.6s" }} />
+        <div style={{ position: "relative", width: ringSize, height: ringSize, marginBottom: 10, filter: `drop-shadow(0 0 12px ${s.glow})`, transition: "filter 0.3s" }}>
+          {/* Spinning conic border — color-reactive, matches PremiumScoreCircle */}
+          <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "50%", padding: 2, background: `conic-gradient(from var(--ats-angle, 0deg), transparent 60%, ${s.color} 80%, transparent 100%)`, WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", animation: "ats-spin-border 3s linear infinite" }} />
           <svg width={ringSize} height={ringSize} viewBox={`0 0 ${ringSize} ${ringSize}`} style={{ transform: "rotate(-90deg)", position: "relative" }}>
             <circle cx={ringSize / 2} cy={ringSize / 2} r={r} fill="none" stroke="#1A1A1A" strokeWidth={sw} />
             <circle cx={ringSize / 2} cy={ringSize / 2} r={r} fill="none" stroke={s.color} strokeWidth={sw} strokeLinecap="butt" strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.8s ease-out, stroke 0.6s" }} />
