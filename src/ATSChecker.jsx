@@ -4,6 +4,7 @@ import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
 import { detectRole } from "./utils/detectRole";
 import skillSuggestions from "./data/skillSuggestions";
+import { getPaymentLink } from "./utils/paywall";
 
 // ─── Design tokens — FIX 1: amber #F59E0B → #D97706 ─────────────────────────
 const T = {
@@ -249,6 +250,7 @@ export default function ATSChecker({ onResultsVisible } = {}) {
   const [isMobile, setIsMobile] = useState(
     window.innerWidth < 768
   );
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
@@ -735,10 +737,35 @@ export default function ATSChecker({ onResultsVisible } = {}) {
   const topPercent = results?.topPercent ?? 15;
   const missingCount = results?.missingCount ?? 100 - score;
 
+  const handleUnlock = async () => {
+    if (paymentLoading) return;
+    setPaymentLoading(true);
+    try {
+      const url = await getPaymentLink('ats', user?.id, user?.email);
+      if (url) {
+        window.location.href = url;
+      } else {
+        alert('Payment initialization failed. Please try again.');
+      }
+    } catch {
+      alert('Payment initialization failed. Please try again.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   return (
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
       <style>{`
+        @property --ats-angle {
+          syntax: '<angle>';
+          initial-value: 0deg;
+          inherits: false;
+        }
         @keyframes ats-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+        @keyframes ats-spin-border { to { --ats-angle: 360deg; } }
+        @keyframes ats-pulse-out { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
+        @keyframes ats-spin-check { to { transform: rotate(360deg); } }
       `}</style>
       <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
         <div style={{ position: "absolute", top: "-10%", left: "50%", transform: "translateX(-50%)", width: 700, height: 400, background: "radial-gradient(ellipse at center, rgba(217,119,6,0.07) 0%, transparent 70%)" }} />
@@ -821,23 +848,111 @@ export default function ATSChecker({ onResultsVisible } = {}) {
             </div>
           </div>
 
-          {/* Conversion card — unchanged */}
-          <div style={{ background: T.elevated, border: `1px solid ${T.border}`, borderRadius: 20, padding: "32px 28px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-            <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent)" }} />
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 18, fontWeight: 800, lineHeight: 1.4, marginBottom: 12 }}>
-              You&apos;re missing {missingCount} Rank Triggers for this role
+          {/* Conversion card — premium redesign */}
+          <div style={{
+            background: '#0A0A0A',
+            borderRadius: 20,
+            padding: '32px 24px',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Running white light border */}
+            <div aria-hidden style={{
+              position: 'absolute', inset: 0, borderRadius: 20, padding: 1,
+              background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+              pointerEvents: 'none',
+              animation: 'ats-spin-border 3s linear infinite',
+            }} />
+
+            {/* Pulsing lock circle */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <div style={{
+                background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 70%, rgba(255,255,255,0.8) 85%, transparent 100%)',
+                borderRadius: '50%',
+                padding: 1.5,
+                display: 'inline-block',
+                animation: 'ats-spin-border 3s linear infinite',
+              }}>
+                <div style={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  background: '#0A0A0A',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative',
+                }}>
+                  <div aria-hidden style={{
+                    position: 'absolute', inset: -6, borderRadius: '50%',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    animation: 'ats-pulse-out 2.5s ease-out infinite',
+                  }} />
+                  <div aria-hidden style={{
+                    position: 'absolute', inset: -6, borderRadius: '50%',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    animation: 'ats-pulse-out 2.5s ease-out infinite 0.8s',
+                  }} />
+                  {paymentLoading ? (
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%',
+                      border: '2px solid rgba(255,255,255,0.2)',
+                      borderTopColor: '#fff',
+                      animation: 'ats-spin-check 0.8s linear infinite',
+                    }} />
+                  ) : (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                  )}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.7, marginBottom: 22, maxWidth: 340, marginLeft: "auto", marginRight: "auto" }}>
-              Unlock your full gap + AI rewrite suggestions built on real GCC hiring data
+
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.4, marginBottom: 8 }}>
+              {paymentLoading ? 'Preparing checkout...' : "You\u2019re ranked below 60% of applicants"}
             </div>
-            <button
-              style={{ width: "100%", background: T.text, color: "#000", border: "none", borderRadius: 12, padding: "17px 24px", fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: -0.3, marginBottom: 14, transition: "opacity 0.15s, transform 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
-            >
-              Unlock Full Analysis <ArrowRight size={16} />
-            </button>
-            <div style={{ fontSize: 11, color: "rgba(160,160,160,0.5)" }}>Trusted by job seekers across UAE, Saudi Arabia &amp; India</div>
+            <div style={{ fontSize: 13, color: '#666', lineHeight: 1.65, marginBottom: 24, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
+              {paymentLoading ? 'Connecting to secure payment...' : 'Get your full keyword gap, AI rewrite suggestions, and ATS score breakdown \u2014 built on real GCC hiring data'}
+            </div>
+
+            {/* Unlock button with running border */}
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12, marginBottom: 12 }}>
+              <button
+                onClick={handleUnlock}
+                disabled={paymentLoading}
+                style={{
+                  width: '100%', background: '#0A0A0A', color: '#fff',
+                  border: 'none', borderRadius: 12,
+                  padding: '16px 24px', fontSize: 15, fontWeight: 600,
+                  cursor: paymentLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: 8, letterSpacing: -0.3, opacity: paymentLoading ? 0.6 : 1,
+                  transition: 'opacity 0.15s',
+                }}
+              >
+                <div aria-hidden style={{
+                  position: 'absolute', inset: 0, borderRadius: 12, padding: 1,
+                  background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)',
+                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  WebkitMaskComposite: 'xor',
+                  maskComposite: 'exclude',
+                  pointerEvents: 'none',
+                  animation: 'ats-spin-border 2s linear infinite',
+                }} />
+                {paymentLoading ? 'Preparing checkout...' : 'Unlock Full Analysis \u2014 AED 29/mo'}
+                {!paymentLoading && (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+
+            <div style={{ fontSize: 11, color: '#333' }}>
+              Cancel anytime · Instant access · 500+ UAE job seekers
+            </div>
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
