@@ -20,7 +20,14 @@ function buildCoverLetterHtml({
   const location = esc(resumeForApi?.location || "");
   const company = esc(clCompanyName || "");
   const targetRole = esc(clTargetRole || "");
-  const bodyEscaped = esc(fullLetterDisplay);
+  // Strip the contact line that defaultLetterTemplateForCL prepends
+  // (e.g. "Name | email | phone | location") — the header already renders it
+  let bodyText = fullLetterDisplay || "";
+  const firstLine = bodyText.split("\n")[0] || "";
+  if (firstLine.includes("|") && (firstLine.includes("@") || firstLine.includes(String(resumeForApi?.name || "\0")))) {
+    bodyText = bodyText.slice(firstLine.length).replace(/^\n/, "");
+  }
+  const bodyEscaped = esc(bodyText);
 
   const contactParts = [email, phone, location].filter(Boolean).join(" &middot; ");
 

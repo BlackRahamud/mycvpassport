@@ -129,7 +129,7 @@ export default function CompletionScreen({ atsScore, userName, onDashboard }) {
           </div>
 
           <p style={{ margin:'0 0 4px', fontSize:10, fontWeight:500, color:'rgba(255,255,255,0.25)', letterSpacing:'0.1em', textTransform:'uppercase' }}>Support the build</p>
-          <a href="https://mycvpassport.com/support" target="_blank" rel="noreferrer" style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderTop:'0.5px solid rgba(255,255,255,0.06)', textDecoration:'none' }}>
+          <a href="https://pay.ziina.com/mycvpassport/WNqwzohwg" target="_blank" rel="noreferrer" style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderTop:'0.5px solid rgba(255,255,255,0.06)', textDecoration:'none' }}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 14s-6-3.5-6-7.5a3.5 3.5 0 017 0 3.5 3.5 0 017 0C16 10.5 8 14 8 14z" fill="#E24B4A"/></svg>
             <span style={{ fontSize:13, color:'rgba(255,255,255,0.6)', flex:1 }}>Buy me a coffee — <span style={{ color:'#F59E0B' }}>keep this free</span></span>
             <span style={{ fontSize:12, color:'rgba(245,158,11,0.6)' }}>→</span>
