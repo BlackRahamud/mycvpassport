@@ -21,7 +21,6 @@ import ResetPassword from "./pages/ResetPassword";
 import HRPortal from "./pages/HRPortal";
 import JobPage from "./pages/JobPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
-import MobileTabBar from "./components/MobileTabBar";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 
@@ -95,7 +94,6 @@ export default function App() {
     handleLogout,
     handleEditResume,
     handleNewResume,
-    currentPath,
   } = useCvpAuth();
 
   const searchParams = new URLSearchParams(location.search);
@@ -229,7 +227,6 @@ export default function App() {
               <Route path="/dashboard/applications" element={user ? <ApplicationsPage /> : <Navigate to="/auth" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-            <MobileTabBar currentPath={currentPath} onNavigate={navigate} user={user} fabGuideTab={location.state?.fabGuideTab} />
             <Analytics />
           </div>
         }
