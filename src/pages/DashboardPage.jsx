@@ -777,22 +777,6 @@ export default function DashboardPage({
           <FAB tabKey={fabRouteTab} cvsCount={resumeList.length} />
         </main>
 
-      {/* ═══ MOBILE SIGN OUT ═══ */}
-      <button
-        type="button"
-        className="cvp-mobile-signout"
-        onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
-        style={{
-          position: "fixed", bottom: 64, right: 16,
-          fontSize: 12, color: "#A0A0A0", fontWeight: 500,
-          cursor: "pointer", zIndex: 201,
-          background: "none", border: "none", fontFamily: "inherit",
-          padding: "6px 4px",
-        }}
-      >
-        Sign out
-      </button>
-
       {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
       <div
         className="cvp-tab-bar"
