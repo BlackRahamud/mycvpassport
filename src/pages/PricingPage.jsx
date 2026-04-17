@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
+import PaymentTrustBar from "../components/PaymentTrustBar";
+
+function LockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "-2px" }}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
 
 const PLAN_MAP = {
   explorer: "FREE",
@@ -540,16 +550,17 @@ export default function PricingPage() {
             gap: isMobile ? "16px" : "48px",
             marginBottom: "20px",
           }}>
-            {[
-              "Secured by Ziina 🔒",
-              "Cancel Anytime ↩",
-              "No Hidden Fees ✓",
-            ].map((item) => (
-              <span key={item} style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
-                {item}
-              </span>
-            ))}
+            <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              Secured by Ziina <LockIcon />
+            </span>
+            <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
+              Cancel Anytime ↩
+            </span>
+            <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
+              No Hidden Fees ✓
+            </span>
           </div>
+          <PaymentTrustBar style={{ marginTop: 20, marginBottom: 20 }} />
           <div style={{ textAlign: "center", fontSize: "13px", color: "#A0A0A0" }}>
             Join 2,400+ job seekers across UAE and India
           </div>
