@@ -29,7 +29,7 @@
   .dashboard-root .cvp2-start-btn { padding: 16px 20px !important; }
   .dashboard-root .cvp2-start-btn-label { font-size: 13px !important; }
   .dashboard-root .cvp2-main { padding: 24px 16px !important; }
-  .dashboard-root .cvp2-card { padding: 16px !important; box-sizing: border-box; }
+  .dashboard-root .cvp2-card { padding: 16px !important; box-sizing: border-box; overflow: hidden; }
   .dashboard-root .cvp2-cv-item { padding: 10px 0 !important; }
 }
 
