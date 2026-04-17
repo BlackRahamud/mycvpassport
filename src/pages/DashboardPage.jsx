@@ -7,6 +7,7 @@ import CVPassportLogo from "../components/CVPassportLogo";
 import NewCvLobby from "../components/NewCvLobby";
 import { TEMPLATES, getStrength } from "../cvShared";
 import { supabase } from "../appSupabaseClient";
+import "./DashboardPage.css";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
@@ -111,24 +112,6 @@ function getNudge(resumeList) {
   return null;
 }
 
-/* ─── Keyframes ─── */
-const KF_ID = "cvp-dash2-kf";
-function ensureKeyframes() {
-  if (typeof document === "undefined") return;
-  if (document.getElementById(KF_ID)) return;
-  const s = document.createElement("style");
-  s.id = KF_ID;
-  s.textContent = `
-@keyframes cvp-pulse-new2 {
-  0%{box-shadow:0 0 0 0 rgba(255,179,0,0.25);border-color:#FFB300;}
-  70%{box-shadow:0 0 0 6px rgba(255,179,0,0);border-color:#1a1a1a;}
-  100%{box-shadow:0 0 0 0 rgba(255,179,0,0);border-color:#1a1a1a;}
-}
-@property --ats-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-@keyframes ats-spin-border { to { --ats-angle: 360deg; } }`;
-  document.head.appendChild(s);
-}
-
 /* ═══════════════════════════════════════════════════════════════════
    DASHBOARD PAGE — redesigned
    ═══════════════════════════════════════════════════════════════════ */
@@ -156,7 +139,6 @@ export default function DashboardPage({
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [mobileTab, setMobileTab] = useState("mycvs");
 
-  useEffect(() => { ensureKeyframes(); }, []);
   useEffect(() => { writeFabMemory({ lastTabVisited: active }); }, [active]);
   useEffect(() => { if (planModalOpen) setCancelStep(0); }, [planModalOpen]);
 
@@ -239,32 +221,8 @@ export default function DashboardPage({
     return { keywords, format, achievements };
   }, [firstCv]);
 
-  /* ─── Inline responsive styles ─── */
-  const responsiveCSS = `
-    .cvp2-sidebar { display: flex; }
-    .cvp2-mobile-topbar { display: none; }
-    .cvp2-two-col { grid-template-columns: 1fr 1fr; }
-    .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr); }
-    @media (max-width: 1023px) {
-      .cvp2-mobile-topbar { display: flex !important; }
-      .cvp2-two-col { grid-template-columns: 1fr !important; }
-      .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr) !important; }
-      .cvp2-greeting { font-size: 22px !important; }
-      .cvp2-stats-card { padding: 12px 14px !important; min-height: auto !important; }
-      .cvp2-stats-val { font-size: 18px !important; }
-      .cvp2-hero-heading { font-size: 26px !important; }
-      .cvp2-hero-sub { font-size: 14px !important; }
-      .cvp2-start-btn { padding: 16px 20px !important; }
-      .cvp2-start-btn-label { font-size: 13px !important; }
-      .cvp2-card { padding: 16px !important; }
-      .cvp2-cv-item { padding: 10px 0 !important; }
-    }
-  `;
-
   return (
-    <div style={{ "--sb-width": "196px", background: "#0A0A0A", color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh" }}>
-      <style>{responsiveCSS}</style>
-
+    <div className="dashboard-root" style={{ "--sb-width": "196px", background: "#0A0A0A", color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh", overflowX: "hidden" }}>
         {/* ═══ SIDEBAR ═══ */}
         <aside
           className="cvp2-sidebar cvp-sidebar"
@@ -427,7 +385,7 @@ export default function DashboardPage({
             style={{
               justifyContent: "space-between", alignItems: "center",
               height: 52, padding: "0 16px",
-              borderBottom: "1px solid #0e0e0e", margin: "-24px -28px 16px",
+              borderBottom: "1px solid #0e0e0e", margin: "0 0 16px",
             }}
           >
             <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", color: "#fff" }}>

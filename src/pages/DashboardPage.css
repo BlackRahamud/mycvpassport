@@ -1,0 +1,44 @@
+/* Dashboard-scoped styles — all rules scoped to .dashboard-root to avoid
+   global leakage. Loaded via import in DashboardPage.jsx so styles are
+   parsed before first paint (prevents iOS Safari FOUC race). */
+
+.dashboard-root .cvp2-sidebar { display: flex; }
+.dashboard-root .cvp2-mobile-topbar { display: none; }
+.dashboard-root .cvp2-two-col { grid-template-columns: 1fr 1fr; }
+.dashboard-root .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 1023px) {
+  /* Kill the sidebar CSS variable on mobile so <main> marginLeft
+     resolves to 0 even if inline style wins a specificity race. */
+  .dashboard-root { --sb-width: 0 !important; }
+
+  .dashboard-root .cvp2-mobile-topbar { display: flex !important; }
+  .dashboard-root .cvp2-two-col { grid-template-columns: 1fr !important; }
+  .dashboard-root .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr) !important; }
+  .dashboard-root .cvp2-greeting { font-size: 22px !important; }
+  .dashboard-root .cvp2-stats-card { padding: 12px 14px !important; min-height: auto !important; }
+  .dashboard-root .cvp2-stats-val { font-size: 18px !important; }
+  .dashboard-root .cvp2-hero-heading { font-size: 26px !important; }
+  .dashboard-root .cvp2-hero-sub { font-size: 14px !important; }
+  .dashboard-root .cvp2-start-btn { padding: 16px 20px !important; }
+  .dashboard-root .cvp2-start-btn-label { font-size: 13px !important; }
+  .dashboard-root .cvp2-card { padding: 16px !important; }
+  .dashboard-root .cvp2-cv-item { padding: 10px 0 !important; }
+}
+
+/* Keyframes moved out of runtime DOM injection — parsed before first paint. */
+@keyframes cvp-pulse-new2 {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 179, 0, 0.25); border-color: #FFB300; }
+  70%  { box-shadow: 0 0 0 6px rgba(255, 179, 0, 0); border-color: #1a1a1a; }
+  100% { box-shadow: 0 0 0 0 rgba(255, 179, 0, 0); border-color: #1a1a1a; }
+}
+
+@property --ats-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes ats-spin-border {
+  to { --ats-angle: 360deg; }
+}
