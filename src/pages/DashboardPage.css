@@ -2,6 +2,11 @@
    global leakage. Loaded via import in DashboardPage.jsx so styles are
    parsed before first paint (prevents iOS Safari FOUC race). */
 
+.dashboard-root {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
 .dashboard-root .cvp2-sidebar { display: flex; }
 .dashboard-root .cvp2-mobile-topbar { display: none; }
 .dashboard-root .cvp2-main { max-width: 100%; }
