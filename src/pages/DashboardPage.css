@@ -4,6 +4,7 @@
 
 .dashboard-root .cvp2-sidebar { display: flex; }
 .dashboard-root .cvp2-mobile-topbar { display: none; }
+.dashboard-root .cvp2-main { max-width: 100%; }
 .dashboard-root .cvp2-two-col { grid-template-columns: 1fr 1fr; }
 .dashboard-root .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr); }
 
