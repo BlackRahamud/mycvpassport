@@ -55,6 +55,36 @@ NEVER stack multiple changes in one Cursor chat — one fix at a time.
 
 ---
 
+## iOS Safari Mobile CSS Rules (learned Apr 17 2026)
+
+### The dashboard mobile overflow fix
+- Root cause: `.cvp2-main` had `padding: 24px 28px` — 28px horizontal was too wide for 393px iPhone viewport
+- Fix: mobile media query override to `padding: 24px 16px`
+- Also: `.cvp2-card` needs `box-sizing: border-box` + `overflow: hidden` to contain progress bars and long content
+
+### iOS Safari rules — never break these
+1. Never use `100vw` — it includes scrollbar width (~15-20px). Always use `100%` instead.
+2. `overflow-x: hidden` on a wrapper div does NOT stop fixed-position children from overflowing. Fixed elements escape to the viewport directly.
+3. `contain: paint` causes aggressive paint clipping on Safari — avoid it on any component that has fixed-position children.
+4. `translateZ(0)` forces GPU compositing but makes the element the containing block for ALL fixed-position descendants — they anchor to the element, not the viewport.
+5. `DevTools mobile emulation lies.` Chrome hides scrollbar width and handles paint differently. Always test on a real device before merging CSS fixes.
+6. When stuck: measure actual pixel widths in DevTools by hovering elements. Don't theorize — the numbers tell the truth.
+
+### Debug method for mobile overflow
+1. Open DevTools → iPhone emulation
+2. Hover over the overflowing element
+3. Read the computed width in the tooltip
+4. Compare to viewport width (393px iPhone 14, 375px iPhone SE)
+5. The difference = your overflow amount
+6. Find which parent's padding + child's padding is stacking
+
+### War Room method for CSS bugs
+Claude.ai = strategy + diagnosis
+Gemini = CSS/Safari domain expertise (ask for one fix, one element, one property)
+Claude Code = executor
+
+---
+
 ## File Architecture
 - src/LandingPage.jsx — 1779 lines, main landing page
 - src/HowItWorks.jsx — How It Works section (separate component)
