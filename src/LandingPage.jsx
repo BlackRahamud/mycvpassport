@@ -8,6 +8,7 @@ import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
 import { CvTemplateThumb } from './pages/TemplatesPage';
 import HowItWorks from './HowItWorks';
 import CookieBanner from './components/CookieBanner';
+import PaymentTrustBar from './components/PaymentTrustBar';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
 function SunIcon() {
@@ -1604,6 +1605,8 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <p style={{ fontSize: '12px', color: isDark ? '#333' : '#999', marginTop: 4 }}>
                 {geo.anxietyKiller}
               </p>
+
+              <PaymentTrustBar style={{ marginTop: 20, alignItems: 'flex-start' }} align="left" />
             </div>
 
             {/* Right — Bento cards (desktop only) */}
@@ -2098,6 +2101,11 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 </div>
               </nav>
             </div>
+            {/* Payment trust bar */}
+            <div style={{ marginTop: 24, marginBottom: 16 }}>
+              <PaymentTrustBar />
+            </div>
+
             {/* Trust row */}
             <div className="lp-footer-trust">
               <span>Ziina</span>
