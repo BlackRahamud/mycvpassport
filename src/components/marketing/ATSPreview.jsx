@@ -27,8 +27,6 @@ function scoreColor(v) {
 }
 
 // ── Local free-tier scan — mirror of ATSChecker.jsx free-tier (no JD) ───
-// Uses detectRole on the filename when possible; otherwise the cross-pack
-// pool fallback. Zero network calls, zero Anthropic usage.
 function computeFreeScan(filename) {
   const baseText = String(filename || "")
     .replace(/\.[a-z0-9]+$/i, "")
@@ -104,6 +102,19 @@ function isAcceptedFile(file) {
   if (!file) return false;
   if (ACCEPTED_MIME.includes(file.type)) return true;
   return /\.(pdf|docx)$/i.test(file.name || "");
+}
+
+// Single source of truth for the desktop/mobile boundary.
+function useIsMobile(breakpoint = 981) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return isMobile;
 }
 
 function usePhase({ fileKey, loop }) {
@@ -197,20 +208,26 @@ function ArrowIcon({ size = 14, color = "#000" }) {
 // ── Conversion-moment CTA — white fill, black bold text, spinning conic
 // halo ring that reuses the --ats-angle variable and ats-spin-border
 // keyframes from the score ring. White-glow drop-shadow on hover.
+// fullWidth + isMobile drive the mobile tap-target sizing without touching desktop.
 function ConicCtaButton({
   onClick,
   children,
   size = "md",
   leadingIcon = null,
+  fullWidth = false,
+  isMobile = false,
 }) {
   const [hover, setHover] = useState(false);
-  const pad = size === "lg" ? "16px 22px" : "14px 22px";
-  const fs = size === "lg" ? 15 : 14.5;
+  const pad = size === "lg"
+    ? "16px 22px"
+    : (isMobile ? "14px 20px" : "14px 22px");
+  const fs = size === "lg" ? 15 : (isMobile ? 14 : 14.5);
   return (
     <span
       style={{
         position: "relative",
-        display: "inline-flex",
+        display: fullWidth ? "flex" : "inline-flex",
+        width: fullWidth ? "100%" : "auto",
         borderRadius: 12,
         filter: hover
           ? "drop-shadow(0 0 18px rgba(255,255,255,0.55)) drop-shadow(0 0 4px rgba(255,255,255,0.35))"
@@ -244,6 +261,8 @@ function ConicCtaButton({
         onBlur={() => setHover(false)}
         style={{
           position: "relative",
+          width: fullWidth ? "100%" : "auto",
+          minHeight: isMobile ? 52 : undefined,
           background: "#ffffff",
           color: "#000000",
           border: "none",
@@ -269,7 +288,7 @@ function ConicCtaButton({
   );
 }
 
-function XRayDropzone({ file, onPick, phaseIdx }) {
+function XRayDropzone({ file, onPick, phaseIdx, isMobile }) {
   const inputRef = useRef(null);
   const scanning = phaseIdx >= 0 && phaseIdx < PHASES.length - 1;
   return (
@@ -286,10 +305,11 @@ function XRayDropzone({ file, onPick, phaseIdx }) {
         background: "#0B0B0B",
         border: `1.5px dashed ${file ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.22)"}`,
         borderRadius: 16,
-        padding: "28px 22px 24px",
+        padding: isMobile ? "24px 18px 20px" : "28px 22px 24px",
         textAlign: "center",
         cursor: "pointer",
         overflow: "hidden",
+        minHeight: isMobile ? 220 : undefined,
         transition: "border-color 300ms ease",
       }}
     >
@@ -304,39 +324,54 @@ function XRayDropzone({ file, onPick, phaseIdx }) {
         }}
       />
 
-      {["tl", "tr", "bl", "br"].map((c) => (
-        <span
-          key={c}
-          aria-hidden
-          style={{
-            position: "absolute",
-            width: 14,
-            height: 14,
-            borderColor: "rgba(255,255,255,0.35)",
-            borderStyle: "solid",
-            borderWidth: 0,
-            ...(c === "tl" && { top: 10, left: 10,  borderTopWidth: 1, borderLeftWidth: 1 }),
-            ...(c === "tr" && { top: 10, right: 10, borderTopWidth: 1, borderRightWidth: 1 }),
-            ...(c === "bl" && { bottom: 10, left: 10,  borderBottomWidth: 1, borderLeftWidth: 1 }),
-            ...(c === "br" && { bottom: 10, right: 10, borderBottomWidth: 1, borderRightWidth: 1 }),
-          }}
-        />
-      ))}
+      {["tl", "tr", "bl", "br"].map((c) => {
+        const offset = isMobile ? 8 : 10;
+        const dim = isMobile ? 12 : 14;
+        return (
+          <span
+            key={c}
+            aria-hidden
+            style={{
+              position: "absolute",
+              width: dim,
+              height: dim,
+              borderColor: "rgba(255,255,255,0.35)",
+              borderStyle: "solid",
+              borderWidth: 0,
+              ...(c === "tl" && { top: offset, left: offset,  borderTopWidth: 1, borderLeftWidth: 1 }),
+              ...(c === "tr" && { top: offset, right: offset, borderTopWidth: 1, borderRightWidth: 1 }),
+              ...(c === "bl" && { bottom: offset, left: offset,  borderBottomWidth: 1, borderLeftWidth: 1 }),
+              ...(c === "br" && { bottom: offset, right: offset, borderBottomWidth: 1, borderRightWidth: 1 }),
+            }}
+          />
+        );
+      })}
 
       {scanning && <div className="atsxr-sweep" />}
 
-      <div style={{ position: "absolute", top: 14, left: 22, display: "flex", alignItems: "center", gap: 8 }}>
-        <Crosshair />
-        <Mono style={{ fontSize: 9, color: "#fff", opacity: 0.55 }}>DEPTH · 00 / 03</Mono>
+      <div style={{
+        position: "absolute",
+        top: isMobile ? 12 : 14,
+        left: isMobile ? 14 : 22,
+        display: "flex", alignItems: "center", gap: isMobile ? 6 : 8,
+      }}>
+        <Crosshair size={isMobile ? 8 : 10} />
+        <Mono style={{ fontSize: isMobile ? 8 : 9, color: "#fff", opacity: 0.55 }}>DEPTH · 00 / 03</Mono>
       </div>
-      <div style={{ position: "absolute", top: 14, right: 22 }}>
-        <Mono style={{ fontSize: 9, color: "#fff", opacity: 0.55 }}>λ 0.4s</Mono>
+      <div style={{
+        position: "absolute",
+        top: isMobile ? 12 : 14,
+        right: isMobile ? 14 : 22,
+      }}>
+        <Mono style={{ fontSize: isMobile ? 8 : 9, color: "#fff", opacity: 0.55 }}>λ 0.4s</Mono>
       </div>
 
       <div
         style={{
-          width: 58, height: 58, margin: "20px auto 14px",
-          borderRadius: 14,
+          width: isMobile ? 48 : 58,
+          height: isMobile ? 48 : 58,
+          margin: isMobile ? "18px auto 12px" : "20px auto 14px",
+          borderRadius: isMobile ? 12 : 14,
           background: "#0A0A0A",
           border: "1px solid rgba(255,255,255,0.14)",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -345,51 +380,76 @@ function XRayDropzone({ file, onPick, phaseIdx }) {
       >
         {!file && (
           <>
-            <span className="atsxr-halo"   style={{ position: "absolute", inset: -1, borderRadius: 14, border: "1px solid rgba(255,255,255,0.35)" }} />
-            <span className="atsxr-halo atsxr-halo-d" style={{ position: "absolute", inset: -1, borderRadius: 14, border: "1px solid rgba(255,255,255,0.18)" }} />
+            <span className="atsxr-halo"   style={{ position: "absolute", inset: -1, borderRadius: isMobile ? 12 : 14, border: "1px solid rgba(255,255,255,0.35)" }} />
+            <span className="atsxr-halo atsxr-halo-d" style={{ position: "absolute", inset: -1, borderRadius: isMobile ? 12 : 14, border: "1px solid rgba(255,255,255,0.18)" }} />
           </>
         )}
-        <UploadIcon size={22} />
+        <UploadIcon size={isMobile ? 20 : 22} />
       </div>
 
-      <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>
+      <div style={{
+        fontSize: isMobile ? 15 : 17,
+        fontWeight: 700,
+        color: "#fff",
+        letterSpacing: "-0.3px",
+        padding: isMobile ? "0 4px" : undefined,
+        lineHeight: isMobile ? 1.3 : undefined,
+      }}>
         {file ? file.name : "Reveal the Hidden Flaws Holding You Back"}
       </div>
-      <div style={{ marginTop: 6, fontSize: 13, color: "#fff", opacity: 0.65, fontWeight: 500 }}>
-        {file ? "Document acquired. Exposure in progress." : "Drop your CV — or click to browse."}
+      <div style={{
+        marginTop: isMobile ? 5 : 6,
+        fontSize: isMobile ? 12 : 13,
+        color: "#fff",
+        opacity: 0.65,
+        fontWeight: 500,
+      }}>
+        {file
+          ? "Document acquired. Exposure in progress."
+          : (isMobile ? "Tap to upload — or drop your CV." : "Drop your CV — or click to browse.")}
       </div>
 
-      <div style={{ marginTop: 14, display: "inline-flex", gap: 14, alignItems: "center", paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-        <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6 }}>PDF</Mono>
+      <div style={{
+        marginTop: isMobile ? 12 : 14,
+        display: "inline-flex",
+        gap: isMobile ? 10 : 14,
+        alignItems: "center",
+        paddingTop: 10,
+        borderTop: "1px solid rgba(255,255,255,0.08)",
+      }}>
+        <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.6 }}>PDF</Mono>
         <span style={{ width: 3, height: 3, background: "rgba(255,255,255,0.3)", borderRadius: "50%" }} />
-        <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6 }}>DOCX</Mono>
+        <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.6 }}>DOCX</Mono>
         <span style={{ width: 3, height: 3, background: "rgba(255,255,255,0.3)", borderRadius: "50%" }} />
-        <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6 }}>≤ 10MB</Mono>
+        <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.6 }}>≤ 10MB</Mono>
       </div>
     </div>
   );
 }
 
-function PhaseLog({ phaseIdx, done }) {
+function PhaseLog({ phaseIdx, done, isMobile }) {
   return (
     <div
       style={{
         background: "#0B0B0B",
         border: "1px solid rgba(255,255,255,0.08)",
         borderRadius: 12,
-        padding: "12px 14px",
+        padding: isMobile ? "11px 12px" : "12px 14px",
       }}
     >
       <div
         style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          paddingBottom: 10, marginBottom: 10,
+          paddingBottom: isMobile ? 9 : 10, marginBottom: isMobile ? 9 : 10,
           borderBottom: "1px solid rgba(255,255,255,0.06)",
+          gap: 8,
         }}
       >
-        <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6 }}>X-RAY · SEQUENCE</Mono>
-        <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6 }}>
-          {done ? "04 / 04 · COMPLETE" : `${Math.max(0, phaseIdx + 1)} / 04 · LIVE`}
+        <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.6 }}>X-RAY · SEQUENCE</Mono>
+        <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.6 }}>
+          {done
+            ? (isMobile ? "04/04 · COMPLETE" : "04 / 04 · COMPLETE")
+            : (isMobile ? `${Math.max(0, phaseIdx + 1)}/04 · LIVE` : `${Math.max(0, phaseIdx + 1)} / 04 · LIVE`)}
         </Mono>
       </div>
 
@@ -403,28 +463,36 @@ function PhaseLog({ phaseIdx, done }) {
               key={p.key}
               style={{
                 display: "grid",
-                gridTemplateColumns: "14px 16px 1fr auto",
+                gridTemplateColumns: isMobile ? "14px 14px 1fr auto" : "14px 16px 1fr auto",
                 alignItems: "center",
-                gap: 10,
+                gap: isMobile ? 8 : 10,
                 opacity: isPending ? 0.3 : 1,
                 transition: "opacity 200ms ease",
+                minWidth: 0,
               }}
             >
-              <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.5 }}>0{i + 1}</Mono>
+              <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.5 }}>0{i + 1}</Mono>
               <span
                 style={{
-                  width: 8, height: 8, borderRadius: 2,
+                  width: isMobile ? 7 : 8, height: isMobile ? 7 : 8, borderRadius: 2,
                   background: isDone || isActive ? "#fff" : "transparent",
                   border: isPending ? "1px solid rgba(255,255,255,0.25)" : "none",
                   boxShadow: isActive ? "0 0 8px rgba(255,255,255,0.6)" : "none",
                   animation: isActive ? "atsxr-pulse 0.9s ease-in-out infinite" : "none",
                 }}
               />
-              <Mono style={{ fontSize: 11.5, color: "#fff", fontWeight: isActive ? 600 : 500 }}>
+              <Mono style={{
+                fontSize: isMobile ? 10.5 : 11.5,
+                color: "#fff",
+                fontWeight: isActive ? 600 : 500,
+                whiteSpace: isMobile ? "nowrap" : undefined,
+                overflow: isMobile ? "hidden" : undefined,
+                textOverflow: isMobile ? "ellipsis" : undefined,
+              }}>
                 {p.label}
                 {isActive && <span className="atsxr-ellip" />}
               </Mono>
-              <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.45 }}>
+              <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.45 }}>
                 {isDone ? "OK" : isActive ? "···" : "—"}
               </Mono>
             </div>
@@ -435,7 +503,7 @@ function PhaseLog({ phaseIdx, done }) {
   );
 }
 
-function MarketReadinessRing({ score, revealed }) {
+function MarketReadinessRing({ score, revealed, isMobile }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     if (!revealed) { setDisplay(0); return; }
@@ -468,10 +536,12 @@ function MarketReadinessRing({ score, revealed }) {
     "#4ADE80": "Market ready",
   };
 
+  const dim = isMobile ? 144 : 220;
+
   return (
     <div
       style={{
-        position: "relative", width: 220, height: 220,
+        position: "relative", width: dim, height: dim,
         filter: revealed ? (glowMap[color] || "none") : "none",
         transition: "filter 0.3s",
       }}
@@ -498,16 +568,32 @@ function MarketReadinessRing({ score, revealed }) {
         <div
           style={{
             fontFamily: "'DM Sans', sans-serif",
-            fontSize: 72, fontWeight: 800, lineHeight: 1,
-            letterSpacing: -4, color, transition: "color 0.15s",
+            fontSize: isMobile ? 48 : 72,
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: isMobile ? -2.5 : -4,
+            color,
+            transition: "color 0.15s",
           }}
         >
           {display}
         </div>
-        <div style={{ fontSize: 11, color: "#A0A0A0", marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>
+        <div style={{
+          fontSize: isMobile ? 9 : 11,
+          color: "#A0A0A0",
+          marginTop: 4,
+          letterSpacing: isMobile ? 2.5 : 3,
+          textTransform: "uppercase",
+        }}>
           SCORE
         </div>
-        <div style={{ fontSize: 12, color, marginTop: 2, fontWeight: 600, transition: "color 0.15s" }}>
+        <div style={{
+          fontSize: isMobile ? 11 : 12,
+          color,
+          marginTop: isMobile ? 3 : 2,
+          fontWeight: 600,
+          transition: "color 0.15s",
+        }}>
           {sublabelMap[color] || ""}
         </div>
       </div>
@@ -515,7 +601,7 @@ function MarketReadinessRing({ score, revealed }) {
   );
 }
 
-function CostlyKeywords({ revealed, missing }) {
+function CostlyKeywords({ revealed, missing, isMobile }) {
   const items = (missing || []).slice(0, 5);
   return (
     <div style={{ display: "grid", gap: 6 }}>
@@ -527,14 +613,15 @@ function CostlyKeywords({ revealed, missing }) {
             style={{
               position: "relative",
               display: "grid",
-              gridTemplateColumns: "18px 1fr auto",
+              gridTemplateColumns: isMobile ? "16px 1fr auto" : "18px 1fr auto",
               alignItems: "center",
-              gap: 12,
-              padding: "11px 14px",
+              gap: isMobile ? 10 : 12,
+              padding: isMobile ? "10px 12px" : "11px 14px",
               background: "#0B0B0B",
               border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 8,
               overflow: "hidden",
+              minWidth: 0,
               opacity: revealed ? 1 : 0,
               transform: revealed ? "translateY(0)" : "translateY(8px)",
               transition: `opacity 320ms ease ${i * 70 + 200}ms, transform 320ms ease ${i * 70 + 200}ms`,
@@ -542,29 +629,42 @@ function CostlyKeywords({ revealed, missing }) {
           >
             <span
               style={{
-                width: 18, height: 18, borderRadius: 4,
+                width: isMobile ? 16 : 18,
+                height: isMobile ? 16 : 18,
+                borderRadius: 4,
                 background: "rgba(239,68,68,0.12)",
                 border: "1px solid rgba(239,68,68,0.35)",
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
                 filter: locked ? "blur(4px)" : "none",
               }}
             >
-              <CrossIcon size={8} />
+              <CrossIcon size={isMobile ? 7 : 8} />
             </span>
             <span
               style={{
-                fontSize: 14, color: "#fff", fontWeight: 500, letterSpacing: "-0.1px",
+                fontSize: isMobile ? 13 : 14,
+                color: "#fff",
+                fontWeight: 500,
+                letterSpacing: "-0.1px",
                 filter: locked ? "blur(6px)" : "none",
                 userSelect: locked ? "none" : "auto",
+                whiteSpace: isMobile ? "nowrap" : undefined,
+                overflow: isMobile ? "hidden" : undefined,
+                textOverflow: isMobile ? "ellipsis" : undefined,
+                minWidth: 0,
               }}
             >
               {kw}
             </span>
             <Mono
               style={{
-                fontSize: 11, color: "#fff", fontWeight: 600, opacity: 0.8,
+                fontSize: isMobile ? 10.5 : 11,
+                color: "#fff",
+                fontWeight: 600,
+                opacity: 0.8,
                 filter: locked ? "blur(5px)" : "none",
                 userSelect: locked ? "none" : "auto",
+                flexShrink: 0,
               }}
             >
               {COSTS[i] || "−5 pts"}
@@ -574,17 +674,19 @@ function CostlyKeywords({ revealed, missing }) {
                 aria-hidden
                 style={{
                   position: "absolute",
-                  right: 10,
+                  right: isMobile ? 9 : 10,
                   top: "50%",
                   transform: "translateY(-50%)",
-                  width: 22, height: 22, borderRadius: 6,
+                  width: isMobile ? 20 : 22,
+                  height: isMobile ? 20 : 22,
+                  borderRadius: 6,
                   background: "#0A0A0A",
                   border: "1px solid rgba(255,255,255,0.22)",
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                   boxShadow: "0 0 0 3px rgba(10,10,10,0.8)",
                 }}
               >
-                <LockIcon size={10} />
+                <LockIcon size={isMobile ? 9 : 10} />
               </span>
             )}
           </div>
@@ -594,7 +696,7 @@ function CostlyKeywords({ revealed, missing }) {
   );
 }
 
-function LockedFixes({ revealed, score, onCta }) {
+function LockedFixes({ revealed, score, onCta, isMobile }) {
   const scoreC = scoreColor(score);
   return (
     <div
@@ -603,19 +705,20 @@ function LockedFixes({ revealed, score, onCta }) {
         background: "#0B0B0B",
         border: "1px solid rgba(255,255,255,0.08)",
         borderRadius: 14,
-        padding: "14px 14px 16px",
+        padding: isMobile ? "12px 12px 14px" : "14px 14px 16px",
         overflow: "hidden",
+        minHeight: isMobile ? 260 : undefined,
         opacity: revealed ? 1 : 0,
         transform: revealed ? "translateY(0)" : "translateY(12px)",
         transition: "opacity 500ms ease 400ms, transform 500ms ease 400ms",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6, letterSpacing: "0.18em" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, marginBottom: isMobile ? 10 : 12 }}>
+        <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.6, letterSpacing: isMobile ? "0.16em" : "0.18em" }}>
           THE FIX · 9 ACTIONS
         </Mono>
         <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
-        <Mono style={{ fontSize: 10, color: "#fff", fontWeight: 600 }}>RESTRICTED</Mono>
+        <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", fontWeight: 600 }}>RESTRICTED</Mono>
       </div>
 
       <div
@@ -624,7 +727,7 @@ function LockedFixes({ revealed, score, onCta }) {
           pointerEvents: "none",
           userSelect: "none",
           display: "grid",
-          gap: 8,
+          gap: isMobile ? 7 : 8,
         }}
       >
         {FIX_LINES.map((l, i) => (
@@ -632,21 +735,21 @@ function LockedFixes({ revealed, score, onCta }) {
             key={l.head}
             style={{
               display: "grid",
-              gridTemplateColumns: "26px 1fr auto",
-              gap: 12,
+              gridTemplateColumns: isMobile ? "22px 1fr auto" : "26px 1fr auto",
+              gap: isMobile ? 10 : 12,
               alignItems: "start",
-              padding: "12px 14px",
+              padding: isMobile ? "10px 12px" : "12px 14px",
               background: "#121212",
               border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 10,
             }}
           >
-            <Mono style={{ fontSize: 11, color: "#fff", fontWeight: 600 }}>0{i + 1}</Mono>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{l.head}</div>
-              <div style={{ fontSize: 12, color: "#fff", opacity: 0.7, marginTop: 4 }}>{l.body}</div>
+            <Mono style={{ fontSize: isMobile ? 10 : 11, color: "#fff", fontWeight: 600 }}>0{i + 1}</Mono>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 600, color: "#fff" }}>{l.head}</div>
+              <div style={{ fontSize: isMobile ? 11 : 12, color: "#fff", opacity: 0.7, marginTop: isMobile ? 3 : 4 }}>{l.body}</div>
             </div>
-            <Mono style={{ fontSize: 11, color: "#fff", fontWeight: 600 }}>+7 PTS</Mono>
+            <Mono style={{ fontSize: isMobile ? 10 : 11, color: "#fff", fontWeight: 600, flexShrink: 0 }}>+7 PTS</Mono>
           </div>
         ))}
       </div>
@@ -655,7 +758,8 @@ function LockedFixes({ revealed, score, onCta }) {
         style={{
           position: "absolute", inset: 0,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: "24px 20px", textAlign: "center",
+          padding: isMobile ? "20px 16px" : "24px 20px",
+          textAlign: "center",
           background: "linear-gradient(180deg, rgba(10,10,10,0.55) 0%, rgba(10,10,10,0.92) 60%, rgba(10,10,10,0.98) 100%)",
           backdropFilter: "blur(3px)",
           WebkitBackdropFilter: "blur(3px)",
@@ -663,30 +767,39 @@ function LockedFixes({ revealed, score, onCta }) {
       >
         <div
           style={{
-            width: 46, height: 46, borderRadius: 12,
+            width: isMobile ? 40 : 46,
+            height: isMobile ? 40 : 46,
+            borderRadius: isMobile ? 11 : 12,
             background: "#0A0A0A",
             border: "1px solid rgba(255,255,255,0.22)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            marginBottom: 14,
+            marginBottom: isMobile ? 12 : 14,
             boxShadow: "0 0 0 4px rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.5)",
           }}
         >
-          <LockIcon size={18} />
+          <LockIcon size={isMobile ? 16 : 18} />
         </div>
         <div style={{
-          fontSize: 22, fontWeight: 800, color: "#fff",
-          letterSpacing: "-0.02em", lineHeight: 1.2,
+          fontSize: isMobile ? 18 : 22,
+          fontWeight: 800,
+          color: "#fff",
+          letterSpacing: "-0.02em",
+          lineHeight: isMobile ? 1.25 : 1.2,
         }}>
           Your CV scored <span style={{ color: scoreC }}>{score}</span>/100
         </div>
         <div style={{
-          fontSize: 13.5, color: "#fff", opacity: 0.75,
-          marginTop: 8, maxWidth: 340, lineHeight: 1.5,
+          fontSize: isMobile ? 12.5 : 13.5,
+          color: "#fff",
+          opacity: 0.75,
+          marginTop: isMobile ? 7 : 8,
+          maxWidth: isMobile ? 300 : 340,
+          lineHeight: 1.5,
         }}>
           Sign up free to see the full report — no credit card, ever.
         </div>
-        <div style={{ marginTop: 16 }}>
-          <ConicCtaButton onClick={onCta} size="md">
+        <div style={{ marginTop: isMobile ? 14 : 16, width: isMobile ? "100%" : undefined, maxWidth: isMobile ? 320 : undefined }}>
+          <ConicCtaButton onClick={onCta} size="md" fullWidth={isMobile} isMobile={isMobile}>
             See My Full Report — It&apos;s Free
           </ConicCtaButton>
         </div>
@@ -695,7 +808,7 @@ function LockedFixes({ revealed, score, onCta }) {
   );
 }
 
-function SubStrip({ revealed, subs }) {
+function SubStrip({ revealed, subs, isMobile }) {
   const rows = [
     { v: subs?.keywordsScore  ?? 0, l: "Keyword density",  note: SUB_NOTES[0] },
     { v: subs?.structureScore ?? 0, l: "Structure parse",  note: SUB_NOTES[1] },
@@ -706,7 +819,7 @@ function SubStrip({ revealed, subs }) {
       <div
         style={{
           display: "grid",
-          gap: 8,
+          gap: isMobile ? 7 : 8,
           filter: "blur(6px) saturate(0.6)",
           pointerEvents: "none",
           userSelect: "none",
@@ -718,31 +831,48 @@ function SubStrip({ revealed, subs }) {
             key={r.l}
             style={{
               display: "grid",
-              gridTemplateColumns: "56px 1fr auto",
-              gap: 12,
+              gridTemplateColumns: isMobile ? "48px 1fr" : "56px 1fr auto",
+              gap: isMobile ? 10 : 12,
               alignItems: "center",
-              padding: "10px 12px",
+              padding: isMobile ? "9px 11px" : "10px 12px",
               background: "#0B0B0B",
               border: "1px solid rgba(255,255,255,0.07)",
               borderRadius: 8,
+              minWidth: 0,
               opacity: revealed ? 1 : 0,
               transform: revealed ? "translateX(0)" : "translateX(-6px)",
               transition: `opacity 320ms ease ${i * 60 + 200}ms, transform 320ms ease ${i * 60 + 200}ms`,
             }}
           >
-            <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1 }}>
+            <div style={{
+              fontSize: isMobile ? 18 : 20,
+              fontWeight: 700,
+              color: "#fff",
+              letterSpacing: "-0.04em",
+              lineHeight: 1,
+            }}>
               {r.v}
-              <Mono style={{ fontSize: 10, opacity: 0.55, marginLeft: 2 }}>/100</Mono>
+              <Mono style={{ fontSize: isMobile ? 9 : 10, opacity: 0.55, marginLeft: 2 }}>/100</Mono>
             </div>
-            <div>
-              <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 500 }}>{r.l}</div>
+            <div style={{ minWidth: 0 }}>
+              {isMobile ? (
+                <div style={{
+                  fontSize: 11.5, color: "#fff", fontWeight: 500,
+                  display: "flex", justifyContent: "space-between", gap: 8,
+                }}>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.l}</span>
+                  <Mono style={{ fontSize: 9, color: "#fff", opacity: 0.55, flexShrink: 0 }}>{r.note}</Mono>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 500 }}>{r.l}</div>
+              )}
               <div
                 style={{
                   position: "relative",
                   height: 2,
                   background: "rgba(255,255,255,0.08)",
                   borderRadius: 2,
-                  marginTop: 6,
+                  marginTop: isMobile ? 5 : 6,
                   overflow: "hidden",
                 }}
               >
@@ -757,7 +887,9 @@ function SubStrip({ revealed, subs }) {
                 />
               </div>
             </div>
-            <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.55 }}>{r.note}</Mono>
+            {!isMobile && (
+              <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.55 }}>{r.note}</Mono>
+            )}
           </div>
         ))}
       </div>
@@ -776,8 +908,8 @@ function SubStrip({ revealed, subs }) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 8,
-            padding: "7px 12px",
+            gap: isMobile ? 7 : 8,
+            padding: isMobile ? "6px 11px" : "7px 12px",
             borderRadius: 999,
             background: "rgba(10,10,10,0.85)",
             border: "1px solid rgba(255,255,255,0.22)",
@@ -786,8 +918,8 @@ function SubStrip({ revealed, subs }) {
             transition: "opacity 400ms ease 500ms",
           }}
         >
-          <LockIcon size={12} />
-          <Mono style={{ fontSize: 10.5, color: "#fff", letterSpacing: "0.16em", fontWeight: 600 }}>
+          <LockIcon size={isMobile ? 11 : 12} />
+          <Mono style={{ fontSize: isMobile ? 9.5 : 10.5, color: "#fff", letterSpacing: isMobile ? "0.14em" : "0.16em", fontWeight: 600 }}>
             FULL BREAKDOWN LOCKED
           </Mono>
         </div>
@@ -798,6 +930,7 @@ function SubStrip({ revealed, subs }) {
 
 export default function ATSPreview() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile(981);
   const [file, setFile] = useState(null);
   const [userUploaded, setUserUploaded] = useState(false);
   const [scanResult, setScanResult] = useState(null);
@@ -910,24 +1043,27 @@ export default function ATSPreview() {
         }
         .atsxr-glow { animation: atsxr-drift 16s ease-in-out infinite; }
 
+        /* ── Mobile-first layout (< 981px). ────────────────────────────
+           Desktop (≥ 981px) overrides at the bottom restore the original
+           CVPassport landing-page layout untouched. */
         .atsxr-container {
           position: relative;
           max-width: 1280px;
           margin: 0 auto;
-          padding: 72px 48px 96px;
+          padding: 40px 20px 56px;
         }
         .atsxr-grid {
           display: grid;
-          grid-template-columns: 1.05fr 1fr;
-          gap: 72px;
-          align-items: center;
+          grid-template-columns: 1fr;
+          gap: 32px;
+          align-items: start;
         }
         .atsxr-h1 {
-          font-size: 72px;
+          font-size: clamp(32px, 8.6vw, 44px);
           font-weight: 800;
-          letter-spacing: -0.04em;
-          line-height: 0.98;
-          margin: 0 0 28px;
+          letter-spacing: -0.035em;
+          line-height: 1.04;
+          margin: 0 0 22px;
           color: #fff;
           font-family: 'DM Sans', system-ui, sans-serif;
         }
@@ -937,10 +1073,116 @@ export default function ATSPreview() {
           font-style: italic;
           letter-spacing: -0.02em;
         }
-        @media (max-width: 980px) {
-          .atsxr-container { padding: 40px 20px 64px; }
-          .atsxr-grid { grid-template-columns: 1fr; gap: 44px; }
-          .atsxr-h1 { font-size: 44px; line-height: 1.04; }
+        .atsxr-eyebrow {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 20px;
+          min-width: 0;
+        }
+        .atsxr-instrument {
+          position: relative;
+          background: #0A0A0A;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 16px;
+          padding: 14px;
+          display: grid;
+          gap: 10px;
+          box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02) inset;
+          min-width: 0;
+        }
+        .atsxr-scoreblock {
+          background: #0B0B0B;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 14px;
+          padding: 18px 14px 16px;
+          display: grid;
+          grid-template-columns: 1fr;
+          justify-items: center;
+          gap: 16px;
+        }
+        .atsxr-metricstrip {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 12px;
+          overflow: hidden;
+          margin-bottom: 22px;
+          width: 100%;
+        }
+        .atsxr-metric {
+          padding: 12px 10px;
+          background: rgba(255,255,255,0.015);
+          min-width: 0;
+        }
+        .atsxr-metric + .atsxr-metric { border-left: 1px solid rgba(255,255,255,0.12); }
+        .atsxr-metric-v {
+          font-size: 18px; font-weight: 800; color: #fff;
+          letter-spacing: -0.03em; line-height: 1;
+        }
+        .atsxr-metric-l {
+          font-size: 8px; color: #fff; opacity: 0.6;
+          letter-spacing: 0.12em; margin-top: 6px; display: block;
+          font-family: 'JetBrains Mono', ui-monospace, monospace;
+        }
+        .atsxr-footer {
+          margin-top: 40px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          align-items: flex-start;
+          border-top: 1px solid rgba(255,255,255,0.08);
+          padding-top: 16px;
+        }
+
+        /* ≥ 640px — small-tablet polish */
+        @media (min-width: 640px) {
+          .atsxr-container { padding: 56px 28px 72px; }
+          .atsxr-h1 { font-size: 52px; }
+          .atsxr-scoreblock {
+            grid-template-columns: auto 1fr;
+            justify-items: start;
+            gap: 20px;
+            padding: 20px 18px 18px;
+          }
+          .atsxr-metric-v { font-size: 22px; }
+          .atsxr-metric-l { font-size: 9px; }
+          .atsxr-footer { flex-direction: row; gap: 14px; align-items: center; padding-top: 18px; }
+        }
+
+        /* ≥ 981px — DESKTOP (unchanged from the original). */
+        @media (min-width: 981px) {
+          .atsxr-container { padding: 72px 48px 96px; }
+          .atsxr-grid {
+            grid-template-columns: 1.05fr 1fr;
+            gap: 72px;
+            align-items: center;
+          }
+          .atsxr-h1 {
+            font-size: 72px;
+            line-height: 0.98;
+            letter-spacing: -0.04em;
+            margin: 0 0 28px;
+          }
+          .atsxr-eyebrow { gap: 10px; margin-bottom: 28px; }
+          .atsxr-instrument { padding: 18px; gap: 12px; border-radius: 18px; }
+          .atsxr-scoreblock {
+            padding: 20px 18px 18px;
+            gap: 24px;
+            grid-template-columns: auto 1fr;
+            justify-items: start;
+          }
+          .atsxr-metricstrip { max-width: 540px; border-radius: 14px; }
+          .atsxr-metric { padding: 14px 16px; }
+          .atsxr-metric-v { font-size: 24px; }
+          .atsxr-metric-l { font-size: 9.5px; letter-spacing: 0.14em; margin-top: 8px; }
+          .atsxr-footer {
+            margin-top: 64px;
+            flex-direction: row;
+            align-items: center;
+            gap: 14px;
+            padding-top: 18px;
+          }
         }
       `}</style>
 
@@ -959,16 +1201,16 @@ export default function ATSPreview() {
         }}
       />
 
-      {/* Ambient red-glow */}
+      {/* Ambient red-glow — desktop dimensions preserved, mobile shrunk to avoid overflow */}
       <div
         className="atsxr-glow"
         aria-hidden
         style={{
           position: "absolute",
-          width: 820,
-          height: 520,
-          top: -220,
-          right: -180,
+          width: isMobile ? 520 : 820,
+          height: isMobile ? 360 : 520,
+          top: isMobile ? -140 : -220,
+          right: isMobile ? -120 : -180,
           background: "radial-gradient(ellipse at center, rgba(239,68,68,0.10), transparent 60%)",
           filter: "blur(10px)",
           pointerEvents: "none",
@@ -978,10 +1220,10 @@ export default function ATSPreview() {
         aria-hidden
         style={{
           position: "absolute",
-          width: 620,
-          height: 420,
-          bottom: -180,
-          left: -140,
+          width: isMobile ? 420 : 620,
+          height: isMobile ? 300 : 420,
+          bottom: isMobile ? -120 : -180,
+          left: isMobile ? -100 : -140,
           background: "radial-gradient(ellipse at center, rgba(255,255,255,0.04), transparent 70%)",
           filter: "blur(10px)",
           pointerEvents: "none",
@@ -991,14 +1233,28 @@ export default function ATSPreview() {
       <div className="atsxr-container">
         <div className="atsxr-grid">
           {/* LEFT — Editorial */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-              <Crosshair size={12} />
-              <Mono style={{ fontSize: 10.5, color: "#fff", letterSpacing: "0.24em", fontWeight: 600 }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="atsxr-eyebrow">
+              <Crosshair size={isMobile ? 11 : 12} />
+              <Mono style={{
+                fontSize: isMobile ? 9.5 : 10.5,
+                color: "#fff",
+                letterSpacing: isMobile ? "0.2em" : "0.24em",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+              }}>
                 SECTION 01 · THE X-RAY
               </Mono>
-              <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.12)" }} />
-              <Mono style={{ fontSize: 10.5, color: "#fff", opacity: 0.55, letterSpacing: "0.2em" }}>λ 0.4s</Mono>
+              <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.12)", minWidth: 20 }} />
+              <Mono style={{
+                fontSize: isMobile ? 9.5 : 10.5,
+                color: "#fff",
+                opacity: 0.55,
+                letterSpacing: isMobile ? "0.18em" : "0.2em",
+                flexShrink: 0,
+              }}>
+                λ 0.4s
+              </Mono>
             </div>
 
             <h2 className="atsxr-h1">
@@ -1008,115 +1264,121 @@ export default function ATSPreview() {
             </h2>
 
             <p style={{
-              fontSize: 18,
-              lineHeight: 1.65,
+              fontSize: isMobile ? 15 : 18,
+              lineHeight: isMobile ? 1.6 : 1.65,
               color: "#fff",
               fontWeight: 400,
-              margin: "0 0 32px",
-              maxWidth: 520,
+              margin: isMobile ? "0 0 24px" : "0 0 32px",
+              maxWidth: isMobile ? undefined : 520,
             }}>
               You spent hours perfecting your experience. A robot binned it in{" "}
               <span style={{ fontWeight: 700 }}>0.4 seconds</span> for a missing keyword.
-              Stop shouting into the void. See exactly where you're being filtered out — before you hit submit again.
+              Stop shouting into the void. See exactly where you&apos;re being filtered out — before you hit submit again.
             </p>
 
             {/* Metric strip — process-claim compliant */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 14,
-              overflow: "hidden",
-              marginBottom: 28,
-              maxWidth: 540,
-            }}>
+            <div className="atsxr-metricstrip">
               {[
-                { v: "0.4s",      l: "MACHINE DECISION TIME" },
-                { v: "ATS",       l: "ENGINEERED SCORING"    },
-                { v: "GCC + IND", l: "MARKET TUNED"          },
-              ].map((m, i) => (
-                <div
-                  key={m.l}
-                  style={{
-                    padding: "14px 16px",
-                    borderRight: i < 2 ? "1px solid rgba(255,255,255,0.12)" : "none",
-                    background: "rgba(255,255,255,0.015)",
-                  }}
-                >
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1 }}>
-                    {m.v}
-                  </div>
-                  <Mono style={{ fontSize: 9.5, color: "#fff", opacity: 0.6, letterSpacing: "0.14em", marginTop: 8, display: "block" }}>
-                    {m.l}
-                  </Mono>
+                { v: "0.4s",      lDesktop: "MACHINE DECISION TIME", lMobile: "DECISION TIME" },
+                { v: "ATS",       lDesktop: "ENGINEERED SCORING",    lMobile: "ENGINEERED SCORING" },
+                { v: "GCC + IND", lDesktop: "MARKET TUNED",          lMobile: "MARKET TUNED" },
+              ].map((m) => (
+                <div key={m.lDesktop} className="atsxr-metric">
+                  <div className="atsxr-metric-v">{m.v}</div>
+                  <span className="atsxr-metric-l">{isMobile ? m.lMobile : m.lDesktop}</span>
                 </div>
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 22 }}>
-              <ConicCtaButton onClick={goSignup} size="lg">
+            {isMobile ? (
+              <ConicCtaButton onClick={goSignup} size="lg" fullWidth isMobile>
                 Stop Being Ignored. Fix It Now.
               </ConicCtaButton>
-            </div>
-            <div style={{ fontSize: 13, color: "#fff", opacity: 0.7, marginBottom: 28 }}>
+            ) : (
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 22 }}>
+                <ConicCtaButton onClick={goSignup} size="lg">
+                  Stop Being Ignored. Fix It Now.
+                </ConicCtaButton>
+              </div>
+            )}
+            <div style={{
+              fontSize: isMobile ? 12.5 : 13,
+              color: "#fff",
+              opacity: 0.7,
+              margin: isMobile ? "14px 0 22px" : undefined,
+              marginBottom: isMobile ? 22 : 28,
+            }}>
               2 minutes to fix. Lifetime to benefit.
             </div>
 
             <div style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 10,
-              padding: "8px 14px",
+              gap: isMobile ? 8 : 10,
+              padding: isMobile ? "7px 12px" : "8px 14px",
               borderRadius: 999,
               border: "1px solid rgba(255,255,255,0.14)",
               background: "rgba(255,255,255,0.02)",
+              maxWidth: "100%",
             }}>
               <span style={{
                 width: 6, height: 6, borderRadius: "50%",
                 background: "#fff",
                 boxShadow: "0 0 8px rgba(255,255,255,0.6)",
+                flexShrink: 0,
               }} />
-              <Mono style={{ fontSize: 11, color: "#fff", fontWeight: 600, letterSpacing: "0.1em" }}>
-                TUNED FOR THE GCC JOB MARKET &amp; INDIAN MARKETS
+              <Mono style={{
+                fontSize: isMobile ? 10 : 11,
+                color: "#fff",
+                fontWeight: 600,
+                letterSpacing: isMobile ? "0.08em" : "0.1em",
+              }}>
+                {isMobile ? "TUNED FOR GCC & INDIAN MARKETS" : "TUNED FOR THE GCC JOB MARKET & INDIAN MARKETS"}
               </Mono>
             </div>
           </div>
 
           {/* RIGHT — The Instrument */}
-          <div style={{
-            position: "relative",
-            background: "#0A0A0A",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 18,
-            padding: 18,
-            display: "grid",
-            gap: 12,
-            boxShadow: "0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02) inset",
-          }}>
+          <div className="atsxr-instrument">
             <div style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              paddingBottom: 12,
+              gap: isMobile ? 8 : 10,
+              paddingBottom: isMobile ? 10 : 12,
               borderBottom: "1px solid rgba(255,255,255,0.08)",
+              minWidth: 0,
             }}>
-              <Crosshair size={11} />
-              <Mono style={{ fontSize: 10.5, color: "#fff", letterSpacing: "0.18em", fontWeight: 600 }}>
+              <Crosshair size={isMobile ? 10 : 11} />
+              <Mono style={{
+                fontSize: isMobile ? 9.5 : 10.5,
+                color: "#fff",
+                letterSpacing: isMobile ? "0.14em" : "0.18em",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                minWidth: 0,
+              }}>
                 X-RAY · SUBJECT 00421
               </Mono>
-              <span style={{ flex: 1 }} />
-              <Mono style={{ fontSize: 10.5, color: "#fff", opacity: 0.55 }}>
-                {done ? "VERDICT READY" : phaseIdx < 0 ? "AWAITING DOC" : "EXPOSING"}
+              <span style={{ flex: 1, minWidth: 4 }} />
+              <Mono style={{ fontSize: isMobile ? 9.5 : 10.5, color: "#fff", opacity: 0.55, flexShrink: 0 }}>
+                {done
+                  ? (isMobile ? "VERDICT" : "VERDICT READY")
+                  : phaseIdx < 0
+                    ? (isMobile ? "AWAITING" : "AWAITING DOC")
+                    : "EXPOSING"}
               </Mono>
               <span style={{
                 width: 7, height: 7, borderRadius: "50%",
                 background: done ? "#EF4444" : "#fff",
                 boxShadow: done ? "0 0 10px rgba(239,68,68,0.6)" : "0 0 10px #fff",
                 animation: !done && phaseIdx >= 0 ? "atsxr-pulse 0.9s ease-in-out infinite" : "none",
+                flexShrink: 0,
               }} />
             </div>
 
-            <XRayDropzone file={file} onPick={handleUserPick} phaseIdx={phaseIdx} />
+            <XRayDropzone file={file} onPick={handleUserPick} phaseIdx={phaseIdx} isMobile={isMobile} />
 
             {uploadError && (
               <div style={{
@@ -1131,71 +1393,70 @@ export default function ATSPreview() {
               </div>
             )}
 
-            <PhaseLog phaseIdx={phaseIdx} done={done} />
+            <PhaseLog phaseIdx={phaseIdx} done={done} isMobile={isMobile} />
 
-            <div style={{
-              background: "#0B0B0B",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 14,
-              padding: "20px 18px 18px",
-              display: "grid",
-              gridTemplateColumns: "auto 1fr",
-              gap: 24,
-              alignItems: "center",
-            }}>
-              <MarketReadinessRing score={displayScore} revealed={done} />
-              <div style={{ display: "grid", gap: 14 }}>
-                <div>
-                  <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6, letterSpacing: "0.2em" }}>
+            <div className="atsxr-scoreblock">
+              <MarketReadinessRing score={displayScore} revealed={done} isMobile={isMobile} />
+              <div style={{ display: "grid", gap: isMobile ? 12 : 14, width: isMobile ? "100%" : undefined, minWidth: 0 }}>
+                <div style={{ textAlign: isMobile ? "center" : "left" }}>
+                  <Mono style={{
+                    fontSize: isMobile ? 9.5 : 10,
+                    color: "#fff",
+                    opacity: 0.6,
+                    letterSpacing: isMobile ? "0.18em" : "0.2em",
+                  }}>
                     VERDICT · THE MACHINE
                   </Mono>
                   <div style={{
-                    fontSize: 19,
+                    fontSize: isMobile ? 15 : 19,
                     fontWeight: 700,
                     color: "#fff",
                     letterSpacing: "-0.02em",
-                    marginTop: 6,
-                    lineHeight: 1.25,
+                    marginTop: isMobile ? 5 : 6,
+                    lineHeight: isMobile ? 1.3 : 1.25,
                     opacity: done ? 1 : 0.25,
                     transition: "opacity 400ms ease",
                   }}>
                     {done ? "You're being filtered out before a human sees you." : "Exposing hidden layers…"}
                   </div>
                 </div>
-                <SubStrip revealed={done} subs={scanResult} />
+                <SubStrip revealed={done} subs={scanResult} isMobile={isMobile} />
               </div>
             </div>
 
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <Mono style={{ fontSize: 10.5, color: "#fff", letterSpacing: "0.18em", fontWeight: 600 }}>
-                  THE KEYWORDS COSTING YOU THE INTERVIEW
+              <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, marginBottom: isMobile ? 9 : 10, minWidth: 0 }}>
+                <Mono style={{
+                  fontSize: isMobile ? 9 : 10.5,
+                  color: "#fff",
+                  letterSpacing: isMobile ? "0.14em" : "0.18em",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  flex: "0 1 auto",
+                  minWidth: 0,
+                }}>
+                  {isMobile ? "KEYWORDS COSTING YOU THE INTERVIEW" : "THE KEYWORDS COSTING YOU THE INTERVIEW"}
                 </Mono>
-                <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
-                <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.55 }}>
+                <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)", minWidth: 8 }} />
+                <Mono style={{ fontSize: isMobile ? 9 : 10, color: "#fff", opacity: 0.55, flexShrink: 0 }}>
                   {String(missingKeywords.length).padStart(2, "0")} HITS
                 </Mono>
               </div>
-              <CostlyKeywords revealed={done} missing={missingKeywords} />
+              <CostlyKeywords revealed={done} missing={missingKeywords} isMobile={isMobile} />
             </div>
 
-            <LockedFixes revealed={done} score={displayScore} onCta={goSignup} />
+            <LockedFixes revealed={done} score={displayScore} onCta={goSignup} isMobile={isMobile} />
           </div>
         </div>
 
-        <div style={{
-          marginTop: 64,
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          paddingTop: 18,
-        }}>
-          <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.5, letterSpacing: "0.18em" }}>
+        <div className="atsxr-footer">
+          <Mono style={{ fontSize: isMobile ? 9.5 : 10, color: "#fff", opacity: 0.5, letterSpacing: isMobile ? "0.16em" : "0.18em" }}>
             CVPASSPORT · X-RAY INSTRUMENT
           </Mono>
           <span style={{ flex: 1 }} />
-          <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.5, letterSpacing: "0.18em" }}>
+          <Mono style={{ fontSize: isMobile ? 9.5 : 10, color: "#fff", opacity: 0.5, letterSpacing: isMobile ? "0.16em" : "0.18em" }}>
             NO CREDIT CARD · NO SIGNUP
           </Mono>
         </div>
