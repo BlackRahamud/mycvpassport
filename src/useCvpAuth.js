@@ -35,10 +35,25 @@ export function useCvpAuth() {
   const [authError, setAuthError] = useState(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState(null);
   const authLoginSuccessHoldRef = useRef(false);
+  const [postAuthIntermission, setPostAuthIntermission] = useState(false);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
   const [, setResume] = useState(EMPTY_RESUME);
   const [, setSelectedTemplate] = useState(TEMPLATES[0]);
+
+  // Breathing room after any auth-triggered navigate — gives Supabase session,
+  // storage reads, and the destination's on-mount effects time to settle so
+  // the user never sees a half-populated page flash. 1500ms matches the
+  // FAB tab-switch breathing pattern (spinner then destination).
+  const INTERMISSION_MS = 1500;
+  const runPostAuthNavigate = useCallback((dest, opts = { replace: true }) => {
+    setPostAuthIntermission(true);
+    setTimeout(() => {
+      navigate(dest, opts);
+      // Let the destination paint once before tearing down the overlay.
+      setTimeout(() => setPostAuthIntermission(false), 320);
+    }, INTERMISSION_MS);
+  }, [navigate]);
 
   const ensureProfileRow = async (authUser) => {
     if (!supabase || !authUser?.id) return;
@@ -150,14 +165,14 @@ export function useCvpAuth() {
           if (prof?.user_type === "recruiter") dest = "/hr";
         } catch { /* default to /dashboard */ }
         const stored = consumePostAuthRedirect();
-        navigate(stored || dest, { replace: true });
+        runPostAuthNavigate(stored || dest, { replace: true });
       })();
       return;
     }
     if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates", "/hr", "/dashboard/applications"].includes(clean) && !clean.startsWith("/jobs/")) {
       navigate("/dashboard", { replace: true });
     }
-  }, [authReady, user, location.pathname, navigate]);
+  }, [authReady, user, location.pathname, navigate, runPostAuthNavigate]);
 
   const handleAuth = async (userData, modeOverride) => {
     if (!supabase) return { ok: false };
@@ -225,7 +240,7 @@ export function useCvpAuth() {
           // destination URL (not /auth or /register) and skips naturally.
           const stored = consumePostAuthRedirect();
           const dest = stored || (trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true");
-          navigate(dest, { replace: true });
+          runPostAuthNavigate(dest, { replace: true });
           authLoginSuccessHoldRef.current = false;
           return { ok: true };
         }
@@ -332,7 +347,7 @@ export function useCvpAuth() {
     onDelayedLoginNavigate: (path) => {
       authLoginSuccessHoldRef.current = false;
       const stored = consumePostAuthRedirect();
-      navigate(stored || path || "/dashboard", { replace: true });
+      runPostAuthNavigate(stored || path || "/dashboard", { replace: true });
     },
     onResendVerification: handleResendVerification,
     onForgotPassword: handleForgotPassword,
@@ -370,5 +385,6 @@ export function useCvpAuth() {
     handleEditResume,
     handleNewResume,
     currentPath,
+    postAuthIntermission,
   };
 }

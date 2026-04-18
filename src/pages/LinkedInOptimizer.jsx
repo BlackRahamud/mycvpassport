@@ -953,6 +953,7 @@ export default function LinkedInOptimizer() {
       // headline + styles + selected card + payment intent in one shot.
       try {
         const journeyState = {
+          path: "/linkedin-optimizer",
           step: currentStep,
           data: { headline, apiResponse, selectedStyle },
           intent: "OPEN_ZIINA",

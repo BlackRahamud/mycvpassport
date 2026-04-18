@@ -164,6 +164,24 @@ export default function DashboardPage({
   const location = useLocation();
   const fabRouteTab = location.state?.fabGuideTab === "account" ? "account" : "mycvs";
 
+  // Glovebox interceptor — if the user landed on /dashboard because the
+  // useCvpAuth allow-list defaulted here, but they actually had a pending
+  // journey (e.g. LinkedIn unlock), bounce them to the correct lane before
+  // the dashboard paints. Does not clear sessionStorage — the destination
+  // component owns consumption so its layout-effect can restore state.
+  useEffect(() => {
+    let saved;
+    try { saved = sessionStorage.getItem("cvp_pending_journey"); } catch { saved = null; }
+    if (!saved) return;
+    try {
+      const journey = JSON.parse(saved);
+      if (journey?.path === "/linkedin-optimizer") {
+        navigate("/linkedin-optimizer", { replace: true });
+      }
+    } catch { /* corrupt payload — let the destination clean it up */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [active, setActive] = useState("mycvs");
   const [lobbyOpen, setLobbyOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);

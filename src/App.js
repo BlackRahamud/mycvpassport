@@ -95,6 +95,7 @@ export default function App() {
     handleLogout,
     handleEditResume,
     handleNewResume,
+    postAuthIntermission,
   } = useCvpAuth();
 
   const searchParams = new URLSearchParams(location.search);
@@ -104,6 +105,8 @@ export default function App() {
     : (newSessionId ? `new-${newSessionId}` : "new-default");
 
   return (
+    <>
+      <PostAuthIntermission active={postAuthIntermission} />
     <Routes>
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
@@ -234,5 +237,86 @@ export default function App() {
         }
       />
     </Routes>
+    </>
+  );
+}
+
+/**
+ * OLED breathing-room overlay shown for ~1.5s after any auth-triggered
+ * navigate. Lets Supabase settle, storage reads complete, and the
+ * destination's mount effects fire before the user sees the final UI.
+ * Reuses the @property --ats-angle + conic-gradient pattern already live
+ * in ATSChecker / PaymentSuccess — no new CSS introduced.
+ */
+function PostAuthIntermission({ active }) {
+  if (!active) return null;
+  return (
+    <>
+      <style>{`
+        @property --ats-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        @keyframes ats-spin-border { to { --ats-angle: 360deg; } }
+        @keyframes cvp-intermission-fade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 10000,
+          background: "rgba(10,10,10,0.94)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 18,
+          animation: "cvp-intermission-fade 260ms cubic-bezier(0.4,0,0.2,1) both",
+        }}
+      >
+        <div style={{ position: "relative", width: 96, height: 96, filter: "drop-shadow(0 0 18px rgba(255,255,255,0.18))" }}>
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              padding: 2,
+              background: "conic-gradient(from var(--ats-angle, 0deg), transparent 55%, rgba(255,255,255,0.75) 82%, transparent 100%)",
+              WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+              WebkitMaskComposite: "xor",
+              maskComposite: "exclude",
+              pointerEvents: "none",
+              animation: "ats-spin-border 1.4s linear infinite",
+              willChange: "transform",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 10,
+              borderRadius: "50%",
+              background: "#0A0A0A",
+              border: "1px solid #2A2A2A",
+            }}
+          />
+        </div>
+        <div
+          style={{
+            color: "#A0A0A0",
+            fontFamily: "'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace",
+            fontSize: 12,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+          }}
+        >
+          Setting up your session…
+        </div>
+      </div>
+    </>
   );
 }
