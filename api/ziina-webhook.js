@@ -65,6 +65,34 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No user ID' });
   }
 
+  // A-la-carte unlocks encode service via "userId|service" in external_reference.
+  // These flip a row in `permissions` instead of profiles.is_pro so the user can
+  // keep a free plan while unlocking a single tool (e.g. linkedin_optimizer).
+  const pipeIdx = external_reference.indexOf('|');
+  if (pipeIdx !== -1) {
+    const userId = external_reference.slice(0, pipeIdx);
+    const service = external_reference.slice(pipeIdx + 1);
+
+    const { error: permErr } = await supabase
+      .from('permissions')
+      .upsert(
+        { user_id: userId, service, status: 'unlocked', unlocked_at: new Date().toISOString() },
+        { onConflict: 'user_id,service' }
+      );
+
+    if (permErr) {
+      console.error('Supabase permissions upsert failed', {
+        error: permErr.message,
+        userId,
+        service,
+      });
+      return res.status(500).json({ error: permErr.message });
+    }
+
+    console.log('Service unlocked', { userId, service });
+    return res.status(200).json({ success: true });
+  }
+
   const upgrade = PLAN_MAP[amount] || { plan: 'active_hunter', is_pro: true };
 
   const { error } = await supabase

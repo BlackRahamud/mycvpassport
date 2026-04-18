@@ -21,6 +21,7 @@ import ResetPassword from "./pages/ResetPassword";
 import HRPortal from "./pages/HRPortal";
 import JobPage from "./pages/JobPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
+import LinkedInOptimizer from "./pages/LinkedInOptimizer";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 
@@ -220,6 +221,7 @@ export default function App() {
                 }
               />
               <Route path="/ats" element={<ATSPage onBack={() => navigate(user ? "/dashboard" : "/")} />} />
+              <Route path="/linkedin-optimizer" element={<LinkedInOptimizer />} />
               <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} profile={profile} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
               <Route path="/templates" element={<TemplatesBrowseLayout />} />
               <Route path="/terms" element={<TermsPage />} />

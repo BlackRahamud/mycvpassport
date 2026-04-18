@@ -15,6 +15,9 @@
     },
     "api/ziina-webhook.js": {
       "maxDuration": 15
+    },
+    "api/generate-linkedin-headline.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
