@@ -65,6 +65,39 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No user ID' });
   }
 
+  // Audit-log helper — inserts into the payments table if it exists.
+  // Safe to call from either code path; failure is logged but never aborts
+  // the webhook (the primary unlock flip must not be blocked by a missing
+  // audit table on a fresh environment).
+  async function recordPayment(fields) {
+    try {
+      let email = null;
+      if (fields.user_id) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', fields.user_id)
+          .maybeSingle();
+        email = prof?.email || null;
+      }
+      const { error: payErr } = await supabase.from('payments').insert({
+        user_id: fields.user_id || null,
+        email,
+        // Ziina amounts come in fils — store the major-unit equivalent.
+        amount: Number(amount || 0) / 100,
+        currency: 'AED',
+        status: 'succeeded',
+        provider: 'ziina',
+        service: fields.service || null,
+        external_ref: external_reference,
+        payment_intent_id: payment_intent_id || null,
+      });
+      if (payErr) console.error('payments insert skipped', { error: payErr.message });
+    } catch (e) {
+      console.error('payments insert threw', { error: e?.message || String(e) });
+    }
+  }
+
   // A-la-carte unlocks encode service via "userId|service" in external_reference.
   // These flip a row in `permissions` instead of profiles.is_pro so the user can
   // keep a free plan while unlocking a single tool (e.g. linkedin_optimizer).
@@ -89,6 +122,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: permErr.message });
     }
 
+    await recordPayment({ user_id: userId, service });
+
     console.log('Service unlocked', { userId, service });
     return res.status(200).json({ success: true });
   }
@@ -107,6 +142,8 @@ export default async function handler(req, res) {
     });
     return res.status(500).json({ error: error.message });
   }
+
+  await recordPayment({ user_id: external_reference, service: upgrade.plan });
 
   console.log('User upgraded successfully', {
     userId: external_reference,

@@ -28,11 +28,13 @@ const ADMIN_EMAIL = "connectingjunaidkhan@gmail.com";
 const PRO_PLANS = ["PRO", "MAX_PRO", "EXPRESS_PASS", "ACTIVE_HUNTER"];
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
-// ——— Pricing defaults (AED one-time) ———
-const PRICE_EXPRESS_PASS_AED = 49;
-const PRICE_ACTIVE_HUNTER_AED = 99;
-const PRICE_EXPRESS_PASS_INR = 999;
-const PRICE_ACTIVE_HUNTER_INR = 1999;
+// ——— Pricing defaults ———
+// Per admin spec: is_pro=true contributes AED 29 (Active Hunter monthly),
+// each linkedin_optimizer unlock contributes AED 49 (one-time).
+const PRICE_PRO_AED = 29;
+const PRICE_PRO_INR = 199;
+const PRICE_LINKEDIN_AED = 49;
+const PRICE_LINKEDIN_INR = 399;
 
 // ——— Tokens ———
 const tokens = (dark) =>
@@ -234,28 +236,73 @@ export default function AdminPanelV2() {
   }, []);
 
   // ——— Fetch all ———
+  // Real tables: profiles, cvs, downloads, ats_results, permissions, payments.
+  // Cover letter + LinkedIn per-generation logs are not persisted anywhere —
+  // we flag those sections as "Not tracked" in the UI.
+  const [perms, setPerms] = useState([]);
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
-    const [p, c, d, a, cl, li, py] = await Promise.all([
+    const [p, c, d, a, perm, py] = await Promise.all([
       safeSelect("profiles", "id, email, plan, expiry, flagged, features, created_at, last_active_at, is_pro, linkedin_unlocked", "created_at"),
-      safeSelect("cvs", "id, user_id, created_at", "created_at"),
+      safeSelect("cvs", "id, user_id, created_at, updated_at", "updated_at"),
       safeSelect("downloads", "id, user_id, created_at", "created_at"),
-      safeSelect("ats_scans", "id, user_id, created_at", "created_at"),
-      safeSelect("cover_letters", "id, user_id, created_at", "created_at"),
-      safeSelect("linkedin_optimizations", "id, user_id, created_at", "created_at"),
-      safeSelect("payments", "id, user_id, email, amount, currency, status, provider, created_at", "created_at"),
+      safeSelect("ats_results", "id, user_id, score, created_at", "created_at"),
+      safeSelect("permissions", "user_id, service, status, unlocked_at", "unlocked_at"),
+      safeSelect("payments", "id, user_id, email, amount, currency, status, provider, service, created_at", "created_at"),
     ]);
     setUsers(p.data);
     setCvs(c.data);
     setDownloads(d.data);
     setAtsScans(a.data);
-    setCoverLetters(cl.data);
-    setLinkedinOpts(li.data);
-    setPayments(py.data);
+    setPerms(perm.data);
+    // Synthesise payments from the permissions table when the audit table
+    // is empty (or missing) — gives the admin a view of every recorded
+    // unlock even before the payments migration runs.
+    if (py.data.length > 0) {
+      setPayments(py.data);
+    } else {
+      const emailMap = {};
+      p.data.forEach((u) => { emailMap[u.id] = u.email; });
+      const synthetic = [];
+      perm.data.forEach((pr) => {
+        synthetic.push({
+          id: `perm:${pr.user_id}:${pr.service}`,
+          user_id: pr.user_id,
+          email: emailMap[pr.user_id] || null,
+          amount: pr.service === "linkedin_optimizer" ? PRICE_LINKEDIN_AED : PRICE_PRO_AED,
+          currency: "AED",
+          status: "succeeded",
+          provider: "ziina",
+          service: pr.service,
+          created_at: pr.unlocked_at,
+        });
+      });
+      p.data.forEach((u) => {
+        if (u.is_pro) {
+          synthetic.push({
+            id: `ispro:${u.id}`,
+            user_id: u.id,
+            email: u.email,
+            amount: PRICE_PRO_AED,
+            currency: "AED",
+            status: "succeeded",
+            provider: "ziina",
+            service: u.plan || "is_pro",
+            created_at: u.created_at,
+          });
+        }
+      });
+      synthetic.sort((x, y) => new Date(y.created_at || 0) - new Date(x.created_at || 0));
+      setPayments(synthetic);
+    }
+    // Cover letters + per-generation LinkedIn runs are not logged at all —
+    // surface that so the admin can see what needs instrumentation.
+    setCoverLetters([]);
+    setLinkedinOpts([]);
     setMissingTables({
       ats_scans: a.missing,
-      cover_letters: cl.missing,
-      linkedin_optimizations: li.missing,
+      cover_letters: true,              // tracking doesn't exist anywhere
+      linkedin_optimizations: true,     // per-generation; unlock state lives in permissions
       payments: py.missing,
     });
     setLastSync(new Date());
@@ -275,9 +322,16 @@ export default function AdminPanelV2() {
     const expressPass = users.filter((u) => String(u.plan || "").toUpperCase() === "EXPRESS_PASS").length;
     const proAny = users.filter((u) => PRO_PLANS.includes(String(u.plan || "").toUpperCase()) || u.is_pro).length;
 
-    // Revenue — prefer live payments table, fall back to plan-based estimate
+    // Revenue — per spec: is_pro × AED 29 + linkedin_optimizer unlocks × AED 49.
+    // This is an ESTIMATE because we don't always have a payments audit row
+    // (webhook wasn't writing payments before this migration). Switches to
+    // the real payments table once that's populated.
+    const linkedinUnlocks = perms.filter((p) => p.service === "linkedin_optimizer" && p.status === "unlocked").length;
+    const succ = payments.filter((p) => {
+      const s = String(p.status || "").toLowerCase();
+      return ["succeeded", "success", "completed", "paid"].includes(s) && !String(p.id || "").startsWith("perm:") && !String(p.id || "").startsWith("ispro:");
+    });
     let revAED = 0, revINR = 0;
-    const succ = payments.filter((p) => ["succeeded", "success", "completed", "paid"].includes(String(p.status || "").toLowerCase()));
     if (succ.length) {
       succ.forEach((p) => {
         const amt = Number(p.amount || 0);
@@ -286,8 +340,8 @@ export default function AdminPanelV2() {
         else revAED += amt;
       });
     } else {
-      revAED = activeHunters * PRICE_ACTIVE_HUNTER_AED + expressPass * PRICE_EXPRESS_PASS_AED;
-      revINR = activeHunters * PRICE_ACTIVE_HUNTER_INR + expressPass * PRICE_EXPRESS_PASS_INR;
+      revAED = proAny * PRICE_PRO_AED + linkedinUnlocks * PRICE_LINKEDIN_AED;
+      revINR = proAny * PRICE_PRO_INR + linkedinUnlocks * PRICE_LINKEDIN_INR;
     }
 
     const cvsTotal = cvs.length;
@@ -295,7 +349,8 @@ export default function AdminPanelV2() {
     const atsToday = atsScans.filter((d) => isTodayISO(d.created_at)).length;
     const coverToday = coverLetters.filter((d) => isTodayISO(d.created_at)).length;
 
-    const linkedinUsage = linkedinOpts.length;
+    // linkedinUsage = distinct unlocks from permissions (per-generation isn't logged).
+    const linkedinUsage = linkedinUnlocks;
     const atsUsage = atsScans.length;
     const coverUsage = coverLetters.length;
 
@@ -309,7 +364,7 @@ export default function AdminPanelV2() {
       linkedinUsage, atsUsage, coverUsage,
       failedPayments,
     };
-  }, [users, cvs, downloads, atsScans, coverLetters, linkedinOpts, payments]);
+  }, [users, cvs, downloads, atsScans, coverLetters, payments, perms]);
 
   // ——— 14-day signup sparkline ———
   const signupSeries = useMemo(() => {
