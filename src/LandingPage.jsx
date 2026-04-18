@@ -7,6 +7,7 @@ import { useGeoContent } from './hooks/useGeoContent';
 import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
 import { CvTemplateThumb } from './pages/TemplatesPage';
 import HowItWorks from './HowItWorks';
+import TestimonialsGrid from './components/marketing/TestimonialsGrid';
 import ATSPreview from './components/marketing/ATSPreview';
 import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
@@ -1815,6 +1816,9 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             ))}
           </div>
         </section>
+
+        {/* ── TESTIMONIALS GRID (warm-lounge v2) ───────────────────── */}
+        <TestimonialsGrid />
 
         {/* ── HOW IT WORKS ───────────────────────────────────────── */}
         <HowItWorks />
