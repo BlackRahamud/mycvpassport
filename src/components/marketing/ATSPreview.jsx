@@ -960,7 +960,7 @@ export default function ATSPreview() {
 
   const goSignup = () => {
     try {
-      localStorage.setItem("postAuthRedirect", "/dashboard?tab=ats");
+      localStorage.setItem("postAuthRedirect", "/ats");
     } catch {
       /* localStorage unavailable — proceed without the redirect hint */
     }

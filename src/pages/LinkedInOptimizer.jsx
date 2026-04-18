@@ -13,7 +13,7 @@
  *   onUnlock:     () => void    // POSTs to /api/create-ziina-payment, redirects to Ziina
  */
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import { useCvpAuth } from "../useCvpAuth";
@@ -862,11 +862,21 @@ export default function LinkedInOptimizer() {
   const [linkedinUnlocked, setLinkedinUnlocked] = useState(false);
   const [payingIntent, setPayingIntent] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [resuming, setResuming] = useState(false);
+  const [resumingFading, setResumingFading] = useState(false);
 
   const userStatus = useMemo(
-    () => ({ isUnlocked: !!(isPro || linkedinUnlocked) }),
-    [isPro, linkedinUnlocked],
+    () => ({
+      isUnlocked: !!(isPro || linkedinUnlocked),
+      isAuthenticated: !!user?.id,
+    }),
+    [isPro, linkedinUnlocked, user?.id],
   );
+
+  // Refs let the Glovebox timeout read fresh values without re-running the
+  // restore effect on every identity change (would double-fire the overlay).
+  const onUnlockRef = useRef(null);
+  const isUnlockedRef = useRef(userStatus.isUnlocked);
 
   const m = MARKETS[market];
 
@@ -939,7 +949,17 @@ export default function LinkedInOptimizer() {
     if (payingIntent) return;
     setErrorMsg(null);
     if (!user?.id) {
-      try { localStorage.setItem("postAuthRedirect", "/linkedin-optimizer"); } catch { /* noop */ }
+      // Glovebox: stash the full journey so the post-auth return can restore
+      // headline + styles + selected card + payment intent in one shot.
+      try {
+        const journeyState = {
+          step: currentStep,
+          data: { headline, apiResponse, selectedStyle },
+          intent: "OPEN_ZIINA",
+        };
+        sessionStorage.setItem("cvp_pending_journey", JSON.stringify(journeyState));
+        localStorage.setItem("postAuthRedirect", "/linkedin-optimizer");
+      } catch { /* storage unavailable — still proceed to auth */ }
       navigate("/register");
       return;
     }
@@ -961,7 +981,56 @@ export default function LinkedInOptimizer() {
     } finally {
       setPayingIntent(false);
     }
-  }, [user?.id, user?.email, payingIntent, navigate]);
+  }, [user?.id, user?.email, payingIntent, navigate, currentStep, headline, apiResponse, selectedStyle]);
+
+  // Keep refs aligned with latest callback + unlock state so the deferred
+  // Glovebox timeout can safely call the current onUnlock and skip the
+  // payment if permissions flipped unlocked while the overlay was showing.
+  useLayoutEffect(() => { onUnlockRef.current = onUnlock; });
+  useLayoutEffect(() => { isUnlockedRef.current = userStatus.isUnlocked; });
+
+  // Glovebox restore — runs when auth flips authenticated. Must be layout
+  // effect so restored state paints before the browser composites the next
+  // frame (prevents a flash of idle state on return from auth).
+  useLayoutEffect(() => {
+    if (!userStatus.isAuthenticated) return undefined;
+    let saved;
+    try { saved = sessionStorage.getItem("cvp_pending_journey"); } catch { return undefined; }
+    if (!saved) return undefined;
+
+    let parsed;
+    try { parsed = JSON.parse(saved); } catch { /* corrupt */ parsed = null; }
+    try { sessionStorage.removeItem("cvp_pending_journey"); } catch { /* noop */ }
+    if (!parsed) return undefined;
+
+    const { step, data, intent } = parsed;
+    if (data?.headline) setHeadline(data.headline);
+    if (data?.apiResponse) setApiResponse(data.apiResponse);
+    if (data?.selectedStyle) setSelectedStyle(data.selectedStyle);
+    if (step) setCurrentStep(step);
+
+    if (intent === "OPEN_ZIINA" && !userStatus.isUnlocked) {
+      setResuming(true);
+      setResumingFading(false);
+      const fadeTimer = setTimeout(() => setResumingFading(true), 800);
+      const fireTimer = setTimeout(() => {
+        if (isUnlockedRef.current) return;
+        const cb = onUnlockRef.current;
+        if (typeof cb === "function") cb();
+      }, 1000);
+      const cleanupTimer = setTimeout(() => {
+        setResuming(false);
+        setResumingFading(false);
+      }, 2000);
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(fireTimer);
+        clearTimeout(cleanupTimer);
+      };
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userStatus.isAuthenticated]);
 
   const onSeeMore = useCallback(() => setCurrentStep("locked"), []);
   const onBackToResults = useCallback(() => setCurrentStep("results"), []);
@@ -1028,6 +1097,34 @@ export default function LinkedInOptimizer() {
           />
         )}
       </main>
+
+      {resuming && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(10,10,10,0.92)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 18,
+            opacity: resumingFading ? 0 : 1,
+            transition: `opacity 300ms ${EASE}`,
+            pointerEvents: resumingFading ? "none" : "auto",
+          }}
+        >
+          <RingCanvas color={m.ringTint} intensity="high" size={96} />
+          <div className="lio-mono" style={{ color: T.dim, fontSize: 12 }}>
+            RESUMING YOUR CHECKOUT…
+          </div>
+        </div>
+      )}
     </div>
   );
 }
