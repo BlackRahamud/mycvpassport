@@ -62,6 +62,39 @@ function IconTable({ size = 13 }) {
     </svg>
   );
 }
+function IconHelp({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 4" />
+      <circle cx="12" cy="17" r="0.6" fill="currentColor" />
+    </svg>
+  );
+}
+function IconGear({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9 1.65 1.65 0 004.27 7.18l-.06-.06A2 2 0 117.04 4.29l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+    </svg>
+  );
+}
+function IconSpark({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2l1.9 5.8L20 10l-6.1 2.2L12 18l-1.9-5.8L4 10l6.1-2.2L12 2z" />
+    </svg>
+  );
+}
+function IconSignOut({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
 
 /* ─── Helpers ─── */
 function timeAgo(iso) {
@@ -135,9 +168,38 @@ export default function DashboardPage({
   const [lobbyOpen, setLobbyOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [cancelStep, setCancelStep] = useState(0);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState("mycvs");
+  const userCardRef = useRef(null);
+  const userPopoverRef = useRef(null);
+
+  // Outside-click + Escape close for the user popover
+  useEffect(() => {
+    if (!userPopoverOpen) return undefined;
+    function onDoc(e) {
+      if (userPopoverRef.current?.contains(e.target)) return;
+      if (userCardRef.current?.contains(e.target)) return;
+      setUserPopoverOpen(false);
+    }
+    function onKey(e) { if (e.key === "Escape") setUserPopoverOpen(false); }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [userPopoverOpen]);
+
+  // Escape closes the feedback modal
+  useEffect(() => {
+    if (!feedbackOpen) return undefined;
+    function onKey(e) { if (e.key === "Escape") setFeedbackOpen(false); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [feedbackOpen]);
 
   useEffect(() => { writeFabMemory({ lastTabVisited: active }); }, [active]);
   useEffect(() => { if (planModalOpen) setCancelStep(0); }, [planModalOpen]);
@@ -184,7 +246,15 @@ export default function DashboardPage({
     if (!feedbackText.trim()) return;
     setFeedbackText("");
     setFeedbackSent(true);
-    setTimeout(() => setFeedbackSent(false), 2000);
+    setTimeout(() => {
+      setFeedbackSent(false);
+      setFeedbackOpen(false);
+    }, 1200);
+  };
+
+  const handleSignOut = async () => {
+    if (supabase) await supabase.auth.signOut();
+    navigate("/");
   };
 
   /* ─── Nav items ─── */
@@ -251,14 +321,38 @@ export default function DashboardPage({
             zIndex: 100,
           }}
         >
-          {/* Section 1 — Logo */}
-          <div style={{ flexShrink: 0, padding: 16 }}>
+          {/* Section 1 — Logo + Help */}
+          <div style={{ flexShrink: 0, padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <Link
               to="/"
               style={{ display: "flex", alignItems: "center", padding: "4px 0 0", color: "#fff", textDecoration: "none" }}
             >
               <CVPassportLogo height={20} />
             </Link>
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen(true)}
+              aria-label="Help & feedback"
+              style={{
+                width: 24, height: 24, borderRadius: 6,
+                background: "transparent", border: "1px solid transparent",
+                color: "#3a3a3a", cursor: "pointer",
+                display: "grid", placeItems: "center",
+                transition: `background 150ms ${EASE}, color 150ms ${EASE}, border-color 150ms ${EASE}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#0e0e0e";
+                e.currentTarget.style.borderColor = "#1a1a1a";
+                e.currentTarget.style.color = "#bbb";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.borderColor = "transparent";
+                e.currentTarget.style.color = "#3a3a3a";
+              }}
+            >
+              <IconHelp size={13} />
+            </button>
           </div>
 
           {/* Section 2 — Nav container */}
@@ -298,92 +392,170 @@ export default function DashboardPage({
             </div>
           </nav>
 
-          {/* Section 3 — Bottom (feedback + user + signout) */}
-          <div style={{ flexShrink: 0, padding: 12 }}>
-            {/* Feedback panel */}
-            <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: "#666", letterSpacing: "0.02em", marginBottom: 2 }}>Help us improve</div>
-              <div style={{ fontSize: 10, fontWeight: 400, color: "#333", marginBottom: 8 }}>What would make CVPassport better?</div>
-              <textarea
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="Your thoughts..."
-                style={{
-                  width: "100%", background: "#0e0e0e", border: "1px solid #222",
-                  borderRadius: 6, padding: "7px 9px", fontSize: 10, color: "#aaa",
-                  fontFamily: "inherit", resize: "none", height: 52, boxSizing: "border-box", outline: "none",
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleFeedbackSend}
-                style={{
-                  width: "100%", background: "#ffffff", border: "none", color: "#000000",
-                  borderRadius: 6, padding: 8, fontSize: 11, fontWeight: 600,
-                  cursor: "pointer", marginTop: 6, fontFamily: "inherit",
-                  transition: `background 150ms ${EASE}`,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#f0f0f0"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "#ffffff"; }}
-              >
-                {feedbackSent ? "Sent ✓" : "Send feedback"}
-              </button>
-              <div style={{ textAlign: "center", marginTop: 8 }}>
-                <a
-                  href="mailto:support@mycvpassport.com"
-                  style={{ fontSize: 10, color: "#333", textDecoration: "none", transition: `color 150ms ${EASE}` }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "#333"; }}
-                >
-                  support@mycvpassport.com
-                </a>
-              </div>
-            </div>
-
-            {/* User row */}
-            <div style={{ marginTop: 12 }}>
+          {/* Section 3 — Bottom (user card + popover) */}
+          <div style={{ flexShrink: 0, padding: 12, position: "relative" }}>
+            {/* Popover (above the card) */}
+            {userPopoverOpen && (
               <div
+                ref={userPopoverRef}
+                role="menu"
                 style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
-                  background: "#111", borderRadius: 8, border: "0.5px solid #1a1a1a",
+                  position: "absolute",
+                  left: 12, right: 12,
+                  bottom: "calc(100% - 4px)",
+                  background: "#141414",
+                  border: "1px solid #2A2A2A",
+                  borderRadius: 10,
+                  padding: 6,
+                  boxShadow: "0 16px 40px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4)",
+                  zIndex: 50,
                 }}
               >
+                {/* Identity header */}
                 <div style={{
-                  width: 28, height: 28, borderRadius: 999, flexShrink: 0,
-                  background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
-                  display: "grid", placeItems: "center",
-                  fontSize: 10, fontWeight: 700, color: "#FFB300",
+                  padding: "10px 10px 12px",
+                  borderBottom: "1px solid #1a1a1a",
+                  marginBottom: 4,
+                  display: "flex", alignItems: "center", gap: 10,
                 }}>
-                  {initials}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {getDisplayName(user)}
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 999, flexShrink: 0,
+                    background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
+                    display: "grid", placeItems: "center",
+                    fontSize: 10, fontWeight: 700, color: "#FFB300",
+                  }}>
+                    {initials}
                   </div>
-                  <span style={{
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {getDisplayName(user)}
+                    </div>
+                    {user?.email && (
+                      <div style={{ fontSize: 10, color: "#666", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {user.email}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setUserPopoverOpen(false); setPlanModalOpen(true); }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 10px", background: "transparent",
+                    border: "none", borderRadius: 6,
+                    color: "#fff", fontSize: 12, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                    transition: `background 120ms ${EASE}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#1C1C1C"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ width: 18, display: "grid", placeItems: "center", color: "#FFB300" }}>
+                    <IconSpark size={13} />
+                  </span>
+                  <span>Upgrade Plan</span>
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setUserPopoverOpen(false); navigate("/account"); }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 10px", background: "transparent",
+                    border: "none", borderRadius: 6,
+                    color: "#fff", fontSize: 12, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                    transition: `background 120ms ${EASE}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#1C1C1C"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ width: 18, display: "grid", placeItems: "center", color: "#888" }}>
+                    <IconGear size={13} />
+                  </span>
+                  <span>Account Settings</span>
+                </button>
+
+                <div style={{ height: 1, background: "#1a1a1a", margin: "4px 6px" }} />
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setUserPopoverOpen(false); handleSignOut(); }}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 10px", background: "transparent",
+                    border: "none", borderRadius: 6,
+                    color: "#D85A30", fontSize: 12, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                    transition: `background 120ms ${EASE}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(216,90,48,0.08)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ width: 18, display: "grid", placeItems: "center", color: "#D85A30" }}>
+                    <IconSignOut size={13} />
+                  </span>
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+
+            {/* User card (clickable) */}
+            <button
+              ref={userCardRef}
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={userPopoverOpen}
+              onClick={() => setUserPopoverOpen((v) => !v)}
+              style={{
+                width: "100%",
+                display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+                background: "#111", borderRadius: 8,
+                border: "0.5px solid " + (userPopoverOpen ? "#2A2A2A" : "#1a1a1a"),
+                cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                color: "#fff",
+                transition: `border-color 150ms ${EASE}`,
+              }}
+            >
+              <div style={{
+                width: 28, height: 28, borderRadius: 999, flexShrink: 0,
+                background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
+                display: "grid", placeItems: "center",
+                fontSize: 10, fontWeight: 700, color: "#FFB300",
+              }}>
+                {initials}
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {getDisplayName(user)}
+                </div>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Open plan options"
+                  onClick={(e) => { e.stopPropagation(); setPlanModalOpen(true); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setPlanModalOpen(true);
+                    }
+                  }}
+                  style={{
                     display: "inline-block", fontSize: 9, color: "#FFB300",
                     background: "rgba(255,179,0,0.08)", border: "0.5px solid rgba(255,179,0,0.2)",
-                    borderRadius: 4, padding: "1px 5px", marginTop: 2,
-                  }}>
-                    {planLabel}
-                  </span>
-                </div>
+                    borderRadius: 4, padding: "1px 5px", marginTop: 2, cursor: "pointer",
+                  }}
+                >
+                  {planLabel}
+                </span>
               </div>
-              <button
-                type="button"
-              onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
-              style={{
-                display: "block", fontSize: 11, color: "#A0A0A0", cursor: "pointer",
-                padding: "8px 2px 0", background: "none", border: "none",
-                fontFamily: "inherit", textAlign: "left", fontWeight: 500,
-                transition: `color 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
-            >
-              Sign out
             </button>
-            </div>
           </div>
         </aside>
 
@@ -1016,6 +1188,99 @@ export default function DashboardPage({
             >
               Sign out
             </button>
+          </div>
+        </>
+      )}
+
+      {/* ═══ FEEDBACK MODAL ═══ */}
+      {feedbackOpen && (
+        <>
+          <div
+            role="presentation"
+            style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+            onClick={() => setFeedbackOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Send feedback"
+            style={{
+              position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
+              zIndex: 501, width: "calc(100% - 32px)", maxWidth: 420,
+              background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 20,
+              boxSizing: "border-box",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen(false)}
+              aria-label="Close"
+              style={{
+                position: "absolute", top: 12, right: 12,
+                background: "none", border: "none", color: "#666",
+                cursor: "pointer", padding: 4,
+                transition: `color 150ms ${EASE}`,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; }}
+            >
+              <IconX />
+            </button>
+
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>How can we improve?</div>
+            <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 6, lineHeight: 1.5 }}>
+              Tell us what&apos;s working, what isn&apos;t, or what you&apos;d love to see next.
+            </div>
+
+            <textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Your feedback…"
+              style={{
+                width: "100%", marginTop: 14,
+                minHeight: 110, resize: "vertical",
+                background: "#0A0A0A", border: "1px solid #2A2A2A",
+                borderRadius: 8, padding: "10px 12px",
+                color: "#fff", fontSize: 13, fontFamily: "inherit",
+                lineHeight: 1.5, outline: "none", boxSizing: "border-box",
+              }}
+            />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, gap: 8 }}>
+              <a
+                href="mailto:support@mycvpassport.com"
+                style={{ fontSize: 11, color: "#666", textDecoration: "none" }}
+              >
+                support@mycvpassport.com
+              </a>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackOpen(false)}
+                  style={{
+                    padding: "8px 14px", borderRadius: 8,
+                    background: "transparent", border: "1px solid #2A2A2A",
+                    color: "#A0A0A0", fontSize: 12, fontWeight: 500,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFeedbackSend}
+                  disabled={!feedbackText.trim() && !feedbackSent}
+                  style={{
+                    padding: "8px 16px", borderRadius: 8,
+                    background: "#fff", border: "none", color: "#000",
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    opacity: feedbackText.trim() || feedbackSent ? 1 : 0.5,
+                  }}
+                >
+                  {feedbackSent ? "Sent ✓" : "Send feedback"}
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
