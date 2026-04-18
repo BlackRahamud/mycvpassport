@@ -5,7 +5,7 @@ import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
 import PricingPage from "./pages/PricingPage";
 import LandingPage from "./LandingPage";
-import AdminPanel from "./AdminPanel";
+import AdminPanelV2 from "./AdminPanelV2";
 import AuthPage from "./pages/AuthPage";
 import CoverLetterPage from "./pages/CoverLetterPage";
 import BuilderPage from "./pages/BuilderPage";
@@ -177,7 +177,7 @@ export default function App() {
               />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/signin" element={<Navigate to="/auth" replace />} />
-              <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanel /> : <Navigate to="/" replace />} />
+              <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanelV2 /> : <Navigate to="/" replace />} />
               <Route
                 path="/dashboard"
                 element={
