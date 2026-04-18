@@ -8,6 +8,7 @@ import { TEMPLATES, EMPTY_RESUME, EMPTY_EXP } from './cvShared';
 import { CvTemplateThumb } from './pages/TemplatesPage';
 import HowItWorks from './HowItWorks';
 import TestimonialsGrid from './components/marketing/TestimonialsGrid';
+import RejectionReel from './components/marketing/RejectionReel';
 import ATSPreview from './components/marketing/ATSPreview';
 import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
@@ -1822,6 +1823,9 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
         {/* ── HOW IT WORKS ───────────────────────────────────────── */}
         <HowItWorks />
+
+        {/* ── REJECTION REEL (live ATS feed) ─────────────────────── */}
+        <RejectionReel />
 
         {/* ── ATS PREVIEW (The X-Ray) ─────────────────────────────── */}
         <ATSPreview />
