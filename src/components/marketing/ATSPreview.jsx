@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { detectRole } from "../../utils/detectRole";
+import skillSuggestions from "../../data/skillSuggestions";
 
 const PHASES = [
   { key: "acquiring",   label: "ACQUIRING DOCUMENT",    t: 900 },
@@ -8,25 +10,14 @@ const PHASES = [
   { key: "verdict",     label: "VERDICT RENDERED",      t: 600 },
 ];
 
-const MISSING = [
-  { kw: "Stakeholder Management", cost: "−12 pts" },
-  { kw: "Power BI",               cost: "−9 pts"  },
-  { kw: "SAP S/4HANA",            cost: "−8 pts"  },
-  { kw: "Revenue Forecasting",    cost: "−7 pts"  },
-  { kw: "Vendor Negotiation",     cost: "−6 pts"  },
-  { kw: "Arabic (conversational)", cost: "−5 pts" },
-];
+const COSTS = ["−12 pts", "−9 pts", "−8 pts", "−7 pts", "−6 pts"];
+
+const SUB_NOTES = ["Below floor", "2 blocks lost", "Too generic"];
 
 const FIX_LINES = [
   { head: "Rebuild opening 3 lines with quantified wins", body: "Inject revenue, team size, retention % — first-pass ATS weight is 2.4× on early bullets." },
   { head: "Rewire Experience with GCC keyword mapping",   body: "6 role-critical terms missing from Dubai finance listings (last 90 days sample)." },
   { head: "Collapse multi-column template into single flow", body: "Parsers drop sidebar data 38% of the time. You're losing your Skills block silently." },
-];
-
-const SUB_ROWS = [
-  { v: 38, l: "Keyword density",  note: "Below floor"   },
-  { v: 52, l: "Structure parse",  note: "2 blocks lost" },
-  { v: 61, l: "Content strength", note: "Too generic"   },
 ];
 
 function scoreColor(v) {
@@ -35,16 +26,97 @@ function scoreColor(v) {
   return "#4ADE80";
 }
 
-function usePhase({ hasFile, loop }) {
+// ── Local free-tier scan — mirror of ATSChecker.jsx free-tier (no JD) ───
+// Uses detectRole on the filename when possible; otherwise the cross-pack
+// pool fallback. Zero network calls, zero Anthropic usage.
+function computeFreeScan(filename) {
+  const baseText = String(filename || "")
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[_\-.]+/g, " ")
+    .trim();
+
+  const roleKey = detectRole(baseText);
+  const rolePack = roleKey ? skillSuggestions[roleKey] : null;
+
+  const keywordsScore = 65;
+  const structureScore = 70;
+  const contentScore = 75;
+  const score = Math.round((keywordsScore + structureScore + contentScore) / 3);
+
+  const dedupe = (rows, cap) => {
+    const seen = new Set();
+    const out = [];
+    for (const row of rows) {
+      const keyword = row?.keyword?.trim();
+      if (!keyword) continue;
+      const k = keyword.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(keyword);
+      if (out.length >= cap) break;
+    }
+    return out;
+  };
+
+  if (rolePack) {
+    const list = rolePack?.atsKeywords ?? [];
+    const pool = dedupe(list, 10);
+    return {
+      score,
+      keywordsScore,
+      structureScore,
+      contentScore,
+      found: pool.slice(0, 5),
+      missing: pool.slice(5, 10),
+      industry: (rolePack.jobTitles && rolePack.jobTitles[0]) || roleKey,
+    };
+  }
+
+  const crossPool = [];
+  const seen = new Set();
+  crossLoop: for (const pack of Object.values(skillSuggestions)) {
+    for (const row of pack?.atsKeywords ?? []) {
+      if (crossPool.length >= 30) break crossLoop;
+      const keyword = row?.keyword?.trim();
+      if (!keyword) continue;
+      const k = keyword.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      crossPool.push(keyword);
+    }
+  }
+  return {
+    score,
+    keywordsScore,
+    structureScore,
+    contentScore,
+    found: crossPool.slice(0, 5),
+    missing: crossPool.slice(5, 10),
+    industry: "General GCC Market",
+  };
+}
+
+const ACCEPTED_MIME = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+function isAcceptedFile(file) {
+  if (!file) return false;
+  if (ACCEPTED_MIME.includes(file.type)) return true;
+  return /\.(pdf|docx)$/i.test(file.name || "");
+}
+
+function usePhase({ fileKey, loop }) {
   const [phaseIdx, setPhaseIdx] = useState(-1);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    if (!hasFile) { setPhaseIdx(-1); setDone(false); return; }
+    if (!fileKey) { setPhaseIdx(-1); setDone(false); return; }
     let cancelled = false;
     let timer;
     async function run() {
       setDone(false);
+      setPhaseIdx(-1);
       for (let i = 0; i < PHASES.length; i++) {
         if (cancelled) return;
         setPhaseIdx(i);
@@ -61,7 +133,7 @@ function usePhase({ hasFile, loop }) {
     }
     run();
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [hasFile, loop]);
+  }, [fileKey, loop]);
 
   return { phaseIdx, done };
 }
@@ -368,45 +440,87 @@ function MarketReadinessRing({ score, revealed }) {
   );
 }
 
-function CostlyKeywords({ revealed }) {
+function CostlyKeywords({ revealed, missing }) {
+  const items = (missing || []).slice(0, 5);
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      {MISSING.map((m, i) => (
-        <div
-          key={m.kw}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "18px 1fr auto",
-            alignItems: "center",
-            gap: 12,
-            padding: "11px 14px",
-            background: "#0B0B0B",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 8,
-            opacity: revealed ? 1 : 0,
-            transform: revealed ? "translateY(0)" : "translateY(8px)",
-            transition: `opacity 320ms ease ${i * 70 + 200}ms, transform 320ms ease ${i * 70 + 200}ms`,
-          }}
-        >
-          <span
+      {items.map((kw, i) => {
+        const locked = i >= 2;
+        return (
+          <div
+            key={`${kw}-${i}`}
             style={{
-              width: 18, height: 18, borderRadius: 4,
-              background: "rgba(239,68,68,0.12)",
-              border: "1px solid rgba(239,68,68,0.35)",
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              position: "relative",
+              display: "grid",
+              gridTemplateColumns: "18px 1fr auto",
+              alignItems: "center",
+              gap: 12,
+              padding: "11px 14px",
+              background: "#0B0B0B",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 8,
+              overflow: "hidden",
+              opacity: revealed ? 1 : 0,
+              transform: revealed ? "translateY(0)" : "translateY(8px)",
+              transition: `opacity 320ms ease ${i * 70 + 200}ms, transform 320ms ease ${i * 70 + 200}ms`,
             }}
           >
-            <CrossIcon size={8} />
-          </span>
-          <span style={{ fontSize: 14, color: "#fff", fontWeight: 500, letterSpacing: "-0.1px" }}>{m.kw}</span>
-          <Mono style={{ fontSize: 11, color: "#fff", fontWeight: 600, opacity: 0.8 }}>{m.cost}</Mono>
-        </div>
-      ))}
+            <span
+              style={{
+                width: 18, height: 18, borderRadius: 4,
+                background: "rgba(239,68,68,0.12)",
+                border: "1px solid rgba(239,68,68,0.35)",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                filter: locked ? "blur(4px)" : "none",
+              }}
+            >
+              <CrossIcon size={8} />
+            </span>
+            <span
+              style={{
+                fontSize: 14, color: "#fff", fontWeight: 500, letterSpacing: "-0.1px",
+                filter: locked ? "blur(6px)" : "none",
+                userSelect: locked ? "none" : "auto",
+              }}
+            >
+              {kw}
+            </span>
+            <Mono
+              style={{
+                fontSize: 11, color: "#fff", fontWeight: 600, opacity: 0.8,
+                filter: locked ? "blur(5px)" : "none",
+                userSelect: locked ? "none" : "auto",
+              }}
+            >
+              {COSTS[i] || "−5 pts"}
+            </Mono>
+            {locked && (
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 22, height: 22, borderRadius: 6,
+                  background: "#0A0A0A",
+                  border: "1px solid rgba(255,255,255,0.22)",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0 0 0 3px rgba(10,10,10,0.8)",
+                }}
+              >
+                <LockIcon size={10} />
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function LockedFixes({ revealed }) {
+function LockedFixes({ revealed, score, onCta }) {
+  const scoreC = scoreColor(score);
   return (
     <div
       style={{
@@ -466,8 +580,8 @@ function LockedFixes({ revealed }) {
         style={{
           position: "absolute", inset: 0,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: 20, textAlign: "center",
-          background: "linear-gradient(180deg, rgba(10,10,10,0.55) 0%, rgba(10,10,10,0.92) 70%, rgba(10,10,10,0.98) 100%)",
+          padding: "24px 20px", textAlign: "center",
+          background: "linear-gradient(180deg, rgba(10,10,10,0.55) 0%, rgba(10,10,10,0.92) 60%, rgba(10,10,10,0.98) 100%)",
           backdropFilter: "blur(3px)",
           WebkitBackdropFilter: "blur(3px)",
         }}
@@ -478,73 +592,148 @@ function LockedFixes({ revealed }) {
             background: "#0A0A0A",
             border: "1px solid rgba(255,255,255,0.22)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            marginBottom: 12,
+            marginBottom: 14,
             boxShadow: "0 0 0 4px rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.5)",
           }}
         >
           <LockIcon size={18} />
         </div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>
-          9 fixes waiting behind this wall
+        <div style={{
+          fontSize: 22, fontWeight: 800, color: "#fff",
+          letterSpacing: "-0.02em", lineHeight: 1.2,
+        }}>
+          Your CV scored <span style={{ color: scoreC }}>{score}</span>/100
         </div>
-        <div style={{ fontSize: 13, color: "#fff", opacity: 0.7, marginTop: 6, maxWidth: 320, lineHeight: 1.5 }}>
-          The exact rewrites that turn a binned CV into a callback. Unlock to see what the machine wants.
+        <div style={{
+          fontSize: 13.5, color: "#fff", opacity: 0.75,
+          marginTop: 8, maxWidth: 340, lineHeight: 1.5,
+        }}>
+          Sign up free to see the full report — no credit card, ever.
         </div>
+        <button
+          type="button"
+          onClick={onCta}
+          style={{
+            marginTop: 16,
+            background: "#fff", color: "#000",
+            border: "none", borderRadius: 12,
+            padding: "14px 22px",
+            fontSize: 14.5, fontWeight: 700,
+            letterSpacing: "-0.1px",
+            fontFamily: "inherit",
+            cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 10,
+            boxShadow: "0 0 0 1px rgba(255,255,255,0.14), 0 12px 36px rgba(0,0,0,0.55)",
+            transition: "opacity 150ms ease, transform 150ms ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+        >
+          See My Full Report — It&apos;s Free
+          <ArrowIcon />
+        </button>
       </div>
     </div>
   );
 }
 
-function SubStrip({ revealed }) {
+function SubStrip({ revealed, subs }) {
+  const rows = [
+    { v: subs?.keywordsScore  ?? 0, l: "Keyword density",  note: SUB_NOTES[0] },
+    { v: subs?.structureScore ?? 0, l: "Structure parse",  note: SUB_NOTES[1] },
+    { v: subs?.contentScore   ?? 0, l: "Content strength", note: SUB_NOTES[2] },
+  ];
   return (
-    <div style={{ display: "grid", gap: 8 }}>
-      {SUB_ROWS.map((r, i) => (
-        <div
-          key={r.l}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "56px 1fr auto",
-            gap: 12,
-            alignItems: "center",
-            padding: "10px 12px",
-            background: "#0B0B0B",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 8,
-            opacity: revealed ? 1 : 0,
-            transform: revealed ? "translateX(0)" : "translateX(-6px)",
-            transition: `opacity 320ms ease ${i * 60 + 200}ms, transform 320ms ease ${i * 60 + 200}ms`,
-          }}
-        >
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1 }}>
-            {r.v}
-            <Mono style={{ fontSize: 10, opacity: 0.55, marginLeft: 2 }}>/100</Mono>
-          </div>
-          <div>
-            <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 500 }}>{r.l}</div>
-            <div
-              style={{
-                position: "relative",
-                height: 2,
-                background: "rgba(255,255,255,0.08)",
-                borderRadius: 2,
-                marginTop: 6,
-                overflow: "hidden",
-              }}
-            >
+    <div style={{ position: "relative" }}>
+      <div
+        style={{
+          display: "grid",
+          gap: 8,
+          filter: "blur(6px) saturate(0.6)",
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+        aria-hidden
+      >
+        {rows.map((r, i) => (
+          <div
+            key={r.l}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "56px 1fr auto",
+              gap: 12,
+              alignItems: "center",
+              padding: "10px 12px",
+              background: "#0B0B0B",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 8,
+              opacity: revealed ? 1 : 0,
+              transform: revealed ? "translateX(0)" : "translateX(-6px)",
+              transition: `opacity 320ms ease ${i * 60 + 200}ms, transform 320ms ease ${i * 60 + 200}ms`,
+            }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1 }}>
+              {r.v}
+              <Mono style={{ fontSize: 10, opacity: 0.55, marginLeft: 2 }}>/100</Mono>
+            </div>
+            <div>
+              <div style={{ fontSize: 12.5, color: "#fff", fontWeight: 500 }}>{r.l}</div>
               <div
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: revealed ? `${r.v}%` : 0,
-                  background: "linear-gradient(90deg, #EF4444, #F5B544)",
-                  transition: `width 900ms ease ${i * 80 + 400}ms`,
+                  position: "relative",
+                  height: 2,
+                  background: "rgba(255,255,255,0.08)",
+                  borderRadius: 2,
+                  marginTop: 6,
+                  overflow: "hidden",
                 }}
-              />
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: revealed ? `${r.v}%` : 0,
+                    background: "linear-gradient(90deg, #EF4444, #F5B544)",
+                    transition: `width 900ms ease ${i * 80 + 400}ms`,
+                  }}
+                />
+              </div>
             </div>
+            <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.55 }}>{r.note}</Mono>
           </div>
-          <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.55 }}>{r.note}</Mono>
+        ))}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "7px 12px",
+            borderRadius: 999,
+            background: "rgba(10,10,10,0.85)",
+            border: "1px solid rgba(255,255,255,0.22)",
+            boxShadow: "0 0 0 4px rgba(10,10,10,0.5), 0 8px 24px rgba(0,0,0,0.5)",
+            opacity: revealed ? 1 : 0,
+            transition: "opacity 400ms ease 500ms",
+          }}
+        >
+          <LockIcon size={12} />
+          <Mono style={{ fontSize: 10.5, color: "#fff", letterSpacing: "0.16em", fontWeight: 600 }}>
+            FULL BREAKDOWN LOCKED
+          </Mono>
         </div>
-      ))}
+      </div>
     </div>
   );
 }
@@ -552,14 +741,43 @@ function SubStrip({ revealed }) {
 export default function ATSPreview() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
-  const gaugeScore = 47;
+  const [userUploaded, setUserUploaded] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
 
+  // Auto-demo seed so the section doesn't look dead on first paint.
   useEffect(() => {
-    const t = setTimeout(() => setFile({ name: "Ahmed_AlMansouri_CV.pdf" }), 900);
+    if (userUploaded) return;
+    const t = setTimeout(() => {
+      setFile({ name: "Ahmed_AlMansouri_CV.pdf" });
+    }, 900);
     return () => clearTimeout(t);
-  }, []);
+  }, [userUploaded]);
 
-  const { phaseIdx, done } = usePhase({ hasFile: !!file, loop: true });
+  // Run the local free-tier scan whenever the active file changes.
+  useEffect(() => {
+    if (!file) { setScanResult(null); return; }
+    setScanResult(computeFreeScan(file.name));
+  }, [file]);
+
+  const { phaseIdx, done } = usePhase({
+    fileKey: file?.name ?? null,
+    loop: !userUploaded,
+  });
+
+  const handleUserPick = (f) => {
+    if (!f) return;
+    if (!isAcceptedFile(f)) {
+      setUploadError("Please upload a PDF or DOCX file.");
+      return;
+    }
+    setUploadError(null);
+    setUserUploaded(true);
+    setFile({ name: f.name });
+  };
+
+  const displayScore = scanResult?.score ?? 0;
+  const missingKeywords = scanResult?.missing ?? [];
 
   const goSignup = () => navigate("/signup");
 
@@ -856,7 +1074,20 @@ export default function ATSPreview() {
               }} />
             </div>
 
-            <XRayDropzone file={file} onPick={setFile} phaseIdx={phaseIdx} />
+            <XRayDropzone file={file} onPick={handleUserPick} phaseIdx={phaseIdx} />
+
+            {uploadError && (
+              <div style={{
+                fontSize: 12,
+                color: "#F87171",
+                padding: "8px 12px",
+                background: "rgba(248,113,113,0.08)",
+                border: "1px solid rgba(248,113,113,0.3)",
+                borderRadius: 8,
+              }}>
+                {uploadError}
+              </div>
+            )}
 
             <PhaseLog phaseIdx={phaseIdx} done={done} />
 
@@ -870,7 +1101,7 @@ export default function ATSPreview() {
               gap: 24,
               alignItems: "center",
             }}>
-              <MarketReadinessRing score={gaugeScore} revealed={done} />
+              <MarketReadinessRing score={displayScore} revealed={done} />
               <div style={{ display: "grid", gap: 14 }}>
                 <div>
                   <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.6, letterSpacing: "0.2em" }}>
@@ -889,7 +1120,7 @@ export default function ATSPreview() {
                     {done ? "You're being filtered out before a human sees you." : "Exposing hidden layers…"}
                   </div>
                 </div>
-                <SubStrip revealed={done} />
+                <SubStrip revealed={done} subs={scanResult} />
               </div>
             </div>
 
@@ -899,49 +1130,14 @@ export default function ATSPreview() {
                   THE KEYWORDS COSTING YOU THE INTERVIEW
                 </Mono>
                 <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
-                <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.55 }}>06 HITS</Mono>
+                <Mono style={{ fontSize: 10, color: "#fff", opacity: 0.55 }}>
+                  {String(missingKeywords.length).padStart(2, "0")} HITS
+                </Mono>
               </div>
-              <CostlyKeywords revealed={done} />
+              <CostlyKeywords revealed={done} missing={missingKeywords} />
             </div>
 
-            <LockedFixes revealed={done} />
-
-            <button
-              type="button"
-              onClick={goSignup}
-              style={{
-                position: "relative",
-                background: "#fff",
-                color: "#000",
-                border: "none",
-                borderRadius: 12,
-                padding: "16px 18px",
-                fontSize: 15,
-                fontWeight: 700,
-                letterSpacing: "-0.1px",
-                fontFamily: "inherit",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                boxShadow: "0 0 0 1px rgba(255,255,255,0.14), 0 12px 36px rgba(0,0,0,0.55)",
-                overflow: "hidden",
-                transition: "opacity 150ms ease",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.92"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-            >
-              <LockIcon size={15} color="#000" />
-              Stop Being Ignored. Fix It Now.
-              <ArrowIcon />
-            </button>
-
-            <div style={{ textAlign: "center", marginTop: -2 }}>
-              <Mono style={{ fontSize: 10.5, color: "#fff", opacity: 0.7, letterSpacing: "0.14em" }}>
-                2 MINUTES TO FIX · LIFETIME TO BENEFIT
-              </Mono>
-            </div>
+            <LockedFixes revealed={done} score={displayScore} onCta={goSignup} />
           </div>
         </div>
 
