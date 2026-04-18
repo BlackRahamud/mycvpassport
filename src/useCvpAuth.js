@@ -178,6 +178,11 @@ export function useCvpAuth() {
       const emailRedirectTo = origin ? `${origin}/auth` : undefined;
 
       if (isSignup) {
+        // Claim the post-auth redirect hold BEFORE any awaits so the
+        // auth-state-change useEffect doesn't race us and consume the
+        // stored postAuthRedirect first (which would leave handleAuth
+        // with no redirect target and bounce the user to "/?welcome=true").
+        authLoginSuccessHoldRef.current = true;
         const { data, error } = await supabase.auth.signUp({
           email: trimmed.email,
           password: trimmed.password,
@@ -187,6 +192,7 @@ export function useCvpAuth() {
           },
         });
         if (error) {
+          authLoginSuccessHoldRef.current = false;
           setAuthError(mapAuthError(error));
           return { ok: false };
         }
@@ -212,15 +218,23 @@ export function useCvpAuth() {
           setUser({ name: trimmed.name || extractName(data.user), email: data.user.email, id: data.user.id });
           setIsPro(false);
           setPendingVerificationEmail(null);
+          // Read postAuthRedirect, remove it immediately, then navigate.
+          // No other redirect logic must fire after this — the hold ref
+          // gates the auth-state useEffect, and we release it AFTER the
+          // navigate has committed so the next render lands on the
+          // destination URL (not /auth or /register) and skips naturally.
           const stored = consumePostAuthRedirect();
           const dest = stored || (trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true");
           navigate(dest, { replace: true });
+          authLoginSuccessHoldRef.current = false;
           return { ok: true };
         }
         if (data.user && !data.session) {
+          authLoginSuccessHoldRef.current = false;
           setPendingVerificationEmail(trimmed.email);
           return { ok: true };
         }
+        authLoginSuccessHoldRef.current = false;
         setAuthError("Signup could not be completed. Try again or use a different email.");
         return { ok: false };
       }

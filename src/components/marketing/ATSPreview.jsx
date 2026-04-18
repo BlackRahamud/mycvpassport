@@ -205,10 +205,11 @@ function ArrowIcon({ size = 14, color = "#000" }) {
   );
 }
 
-// ── Conversion-moment CTA — white fill, black bold text, spinning conic
-// halo ring that reuses the --ats-angle variable and ats-spin-border
-// keyframes from the score ring. White-glow drop-shadow on hover.
-// fullWidth + isMobile drive the mobile tap-target sizing without touching desktop.
+// ── Conversion-moment CTA — white fill, black bold text, with a 2px
+// spinning conic-gradient ring around it. Implemented as a wrapper div
+// whose padding shows through as the ring, with the inner button covering
+// the centre. Same technique as the Dashboard "New CV" button — reliable
+// across browsers (no WebKit mask support quirks). White-glow on hover.
 function ConicCtaButton({
   onClick,
   children,
@@ -223,35 +224,22 @@ function ConicCtaButton({
     : (isMobile ? "14px 20px" : "14px 22px");
   const fs = size === "lg" ? 15 : (isMobile ? 14 : 14.5);
   return (
-    <span
+    <div
       style={{
         position: "relative",
-        display: fullWidth ? "flex" : "inline-flex",
+        display: fullWidth ? "block" : "inline-block",
         width: fullWidth ? "100%" : "auto",
-        borderRadius: 12,
+        padding: 2,
+        borderRadius: 14,
+        background:
+          "conic-gradient(from var(--ats-angle, 0deg), rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.18) 55%, #ffffff 75%, #ffffff 88%, rgba(255,255,255,0.18) 100%)",
+        animation: "ats-spin-border 3s linear infinite",
         filter: hover
           ? "drop-shadow(0 0 18px rgba(255,255,255,0.55)) drop-shadow(0 0 4px rgba(255,255,255,0.35))"
           : "none",
         transition: "filter 220ms cubic-bezier(0.4,0,0.2,1)",
       }}
     >
-      <span
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: -2,
-          borderRadius: 14,
-          padding: 2,
-          background:
-            "conic-gradient(from var(--ats-angle, 0deg), transparent 55%, #ffffff 80%, transparent 100%)",
-          WebkitMask:
-            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-          pointerEvents: "none",
-          animation: "ats-spin-border 3s linear infinite",
-        }}
-      />
       <button
         type="button"
         onClick={onClick}
@@ -284,7 +272,7 @@ function ConicCtaButton({
         {children}
         <ArrowIcon />
       </button>
-    </span>
+    </div>
   );
 }
 
