@@ -280,6 +280,17 @@ export function useCvpAuth() {
           .single();
         if (prof?.user_type === "recruiter") loginRoute = "/hr";
       } catch { /* default to /dashboard */ }
+      // Admin-email override: if the intended destination is /admin
+      // (stashed in postAuthRedirect or the current URL), skip /hr and
+      // go to /admin. Keeps /hr as the default for the same account
+      // when no admin intent is signalled.
+      if (trimmed.email === "connectingjunaidkhan@gmail.com") {
+        let stored = null;
+        try { stored = window.localStorage.getItem("postAuthRedirect"); } catch { /* noop */ }
+        if (stored === "/admin" || (typeof window !== "undefined" && window.location.pathname === "/admin")) {
+          loginRoute = "/admin";
+        }
+      }
       return { ok: true, loginShowSuccess: true, loginRoute };
     } catch (err) {
       console.error("handleAuth:", err);
