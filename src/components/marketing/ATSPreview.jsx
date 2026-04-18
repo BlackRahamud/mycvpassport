@@ -194,6 +194,81 @@ function ArrowIcon({ size = 14, color = "#000" }) {
   );
 }
 
+// ── Conversion-moment CTA — white fill, black bold text, spinning conic
+// halo ring that reuses the --ats-angle variable and ats-spin-border
+// keyframes from the score ring. White-glow drop-shadow on hover.
+function ConicCtaButton({
+  onClick,
+  children,
+  size = "md",
+  leadingIcon = null,
+}) {
+  const [hover, setHover] = useState(false);
+  const pad = size === "lg" ? "16px 22px" : "14px 22px";
+  const fs = size === "lg" ? 15 : 14.5;
+  return (
+    <span
+      style={{
+        position: "relative",
+        display: "inline-flex",
+        borderRadius: 12,
+        filter: hover
+          ? "drop-shadow(0 0 18px rgba(255,255,255,0.55)) drop-shadow(0 0 4px rgba(255,255,255,0.35))"
+          : "none",
+        transition: "filter 220ms cubic-bezier(0.4,0,0.2,1)",
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: -2,
+          borderRadius: 14,
+          padding: 2,
+          background:
+            "conic-gradient(from var(--ats-angle, 0deg), transparent 55%, #ffffff 80%, transparent 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          animation: "ats-spin-border 3s linear infinite",
+        }}
+      />
+      <button
+        type="button"
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        onFocus={() => setHover(true)}
+        onBlur={() => setHover(false)}
+        style={{
+          position: "relative",
+          background: "#ffffff",
+          color: "#000000",
+          border: "none",
+          borderRadius: 12,
+          padding: pad,
+          fontSize: fs,
+          fontWeight: 700,
+          letterSpacing: "-0.1px",
+          fontFamily: "inherit",
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          boxShadow: "0 12px 36px rgba(0,0,0,0.55)",
+        }}
+      >
+        {leadingIcon}
+        {children}
+        <ArrowIcon />
+      </button>
+    </span>
+  );
+}
+
 function XRayDropzone({ file, onPick, phaseIdx }) {
   const inputRef = useRef(null);
   const scanning = phaseIdx >= 0 && phaseIdx < PHASES.length - 1;
@@ -610,28 +685,11 @@ function LockedFixes({ revealed, score, onCta }) {
         }}>
           Sign up free to see the full report — no credit card, ever.
         </div>
-        <button
-          type="button"
-          onClick={onCta}
-          style={{
-            marginTop: 16,
-            background: "#fff", color: "#000",
-            border: "none", borderRadius: 12,
-            padding: "14px 22px",
-            fontSize: 14.5, fontWeight: 700,
-            letterSpacing: "-0.1px",
-            fontFamily: "inherit",
-            cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 10,
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.14), 0 12px 36px rgba(0,0,0,0.55)",
-            transition: "opacity 150ms ease, transform 150ms ease",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
-        >
-          See My Full Report — It&apos;s Free
-          <ArrowIcon />
-        </button>
+        <div style={{ marginTop: 16 }}>
+          <ConicCtaButton onClick={onCta} size="md">
+            See My Full Report — It&apos;s Free
+          </ConicCtaButton>
+        </div>
       </div>
     </div>
   );
@@ -779,7 +837,14 @@ export default function ATSPreview() {
   const displayScore = scanResult?.score ?? 0;
   const missingKeywords = scanResult?.missing ?? [];
 
-  const goSignup = () => navigate("/signup");
+  const goSignup = () => {
+    try {
+      localStorage.setItem("postAuthRedirect", "/dashboard?tab=ats");
+    } catch {
+      /* localStorage unavailable — proceed without the redirect hint */
+    }
+    navigate("/register");
+  };
 
   return (
     <section
@@ -989,32 +1054,9 @@ export default function ATSPreview() {
             </div>
 
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 22 }}>
-              <button
-                type="button"
-                onClick={goSignup}
-                style={{
-                  background: "#fff",
-                  color: "#000",
-                  border: "none",
-                  borderRadius: 12,
-                  padding: "16px 22px",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  letterSpacing: "-0.1px",
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  boxShadow: "0 0 0 1px rgba(255,255,255,0.12), 0 10px 30px rgba(0,0,0,0.4)",
-                  transition: "transform 150ms ease",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
-              >
+              <ConicCtaButton onClick={goSignup} size="lg">
                 Stop Being Ignored. Fix It Now.
-                <ArrowIcon />
-              </button>
+              </ConicCtaButton>
             </div>
             <div style={{ fontSize: 13, color: "#fff", opacity: 0.7, marginBottom: 28 }}>
               2 minutes to fix. Lifetime to benefit.

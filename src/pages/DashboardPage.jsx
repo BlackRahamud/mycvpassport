@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
@@ -141,6 +141,17 @@ export default function DashboardPage({
 
   useEffect(() => { writeFabMemory({ lastTabVisited: active }); }, [active]);
   useEffect(() => { if (planModalOpen) setCancelStep(0); }, [planModalOpen]);
+
+  // Honor ?tab=ats from post-auth redirects (e.g. ATSPreview CTA on landing)
+  const atsDeeplinkHandledRef = useRef(false);
+  useEffect(() => {
+    if (atsDeeplinkHandledRef.current) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get("tab") === "ats") {
+      atsDeeplinkHandledRef.current = true;
+      onRunATS();
+    }
+  }, [location.search, onRunATS]);
 
   /* + New CV click — first-CV users see the lobby; returning users jump straight to a blank builder */
   const handleStartNewCv = () => {

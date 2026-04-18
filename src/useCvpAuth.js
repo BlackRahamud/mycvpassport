@@ -7,6 +7,22 @@ import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 
 const extractName = (u) => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
+// ── Post-auth redirect pickup ───────────────────────────────────────────────
+// Landing-page CTAs (e.g. ATSPreview) may stash an intended destination
+// under `postAuthRedirect` before sending the user to /register. After a
+// successful signup/login we consume that value once and route there.
+const POST_AUTH_REDIRECT_KEY = "postAuthRedirect";
+function consumePostAuthRedirect() {
+  if (typeof window === "undefined" || !window.localStorage) return null;
+  try {
+    const v = window.localStorage.getItem(POST_AUTH_REDIRECT_KEY);
+    if (v) window.localStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+    return v || null;
+  } catch {
+    return null;
+  }
+}
+
 export function useCvpAuth() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,7 +137,8 @@ export function useCvpAuth() {
     const clean = location.pathname.replace(/\/$/, "") || "/";
     if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) return;
     if (clean === "/auth" || clean === "/register") {
-      // Route based on user_type from profile
+      // Route based on user_type from profile, unless a landing-page CTA
+      // stashed an explicit postAuthRedirect target (e.g. ATSPreview).
       (async () => {
         let dest = "/dashboard";
         try {
@@ -132,7 +149,8 @@ export function useCvpAuth() {
             .single();
           if (prof?.user_type === "recruiter") dest = "/hr";
         } catch { /* default to /dashboard */ }
-        navigate(dest, { replace: true });
+        const stored = consumePostAuthRedirect();
+        navigate(stored || dest, { replace: true });
       })();
       return;
     }
@@ -194,7 +212,8 @@ export function useCvpAuth() {
           setUser({ name: trimmed.name || extractName(data.user), email: data.user.email, id: data.user.id });
           setIsPro(false);
           setPendingVerificationEmail(null);
-          const dest = trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true";
+          const stored = consumePostAuthRedirect();
+          const dest = stored || (trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true");
           navigate(dest, { replace: true });
           return { ok: true };
         }
@@ -298,7 +317,8 @@ export function useCvpAuth() {
     onClearAuthError: () => setAuthError(null),
     onDelayedLoginNavigate: (path) => {
       authLoginSuccessHoldRef.current = false;
-      navigate(path || "/dashboard", { replace: true });
+      const stored = consumePostAuthRedirect();
+      navigate(stored || path || "/dashboard", { replace: true });
     },
     onResendVerification: handleResendVerification,
     onForgotPassword: handleForgotPassword,
