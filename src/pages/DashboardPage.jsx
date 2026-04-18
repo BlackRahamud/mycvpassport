@@ -196,6 +196,7 @@ export default function DashboardPage({
     try {
       const journey = JSON.parse(saved);
       if (journey?.path === "/linkedin-optimizer") {
+        sessionStorage.removeItem("cvp_pending_journey");
         navigate("/linkedin-optimizer", { replace: true });
       }
     } catch { /* corrupt payload — let the destination clean it up */ }
