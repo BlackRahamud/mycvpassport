@@ -62,6 +62,26 @@ function IconTable({ size = 13 }) {
     </svg>
   );
 }
+function IconLinkedIn({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <circle cx="8" cy="9" r="0.6" fill="currentColor" />
+      <path d="M8 11.5v5.5" />
+      <path d="M12 11.5v5.5" />
+      <path d="M12 14a2.5 2.5 0 0 1 5 0v3" />
+    </svg>
+  );
+}
+function IconMore({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="6" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="18" cy="12" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
 function IconHelp({ size = 14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -191,6 +211,7 @@ export default function DashboardPage({
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState("mycvs");
+  const [moreOpen, setMoreOpen] = useState(false);
   const userCardRef = useRef(null);
   const userPopoverRef = useRef(null);
 
@@ -279,18 +300,26 @@ export default function DashboardPage({
   const navItems = [
     { id: "mycvs", label: "My CVs", icon: IconGrid, iconColor: "#ffffff", action: () => setActive("mycvs") },
     { id: "ats", label: "ATS Check", icon: IconTarget, iconColor: "#1D9E75", action: () => { setActive("ats"); onRunATS(); } },
+    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, iconColor: "#ffffff", action: () => { setActive("linkedin"); navigate("/linkedin-optimizer"); } },
     { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: "#D97706", action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
     { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: "#D85A30", action: () => { setActive("walkin"); onWalkIn(); } },
     { id: "templates", label: "Templates", icon: IconTable, iconColor: "#378ADD", action: () => { setActive("templates"); onTemplates(); } },
   ];
 
   /* ─── Mobile tabs ─── */
+  /* LinkedIn lives at center (position 3). Templates moved into the More
+     overflow menu; tapping the More tab opens an upward popover. */
   const mobileTabs = [
     { id: "mycvs", label: "My CVs", icon: IconGrid, action: () => setMobileTab("mycvs") },
     { id: "ats", label: "ATS Check", icon: IconTarget, action: () => { setMobileTab("ats"); onRunATS(); } },
+    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, activeColor: "#ffffff", action: () => { setMobileTab("linkedin"); navigate("/linkedin-optimizer"); } },
     { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, action: () => { setMobileTab("coverletter"); navigate("/cover-letter"); } },
     { id: "walkin", label: "Walk-In", icon: IconBolt, action: () => { setMobileTab("walkin"); onWalkIn(); } },
-    { id: "templates", label: "Templates", icon: IconTable, action: () => { setMobileTab("templates"); onTemplates(); } },
+    { id: "more", label: "More", icon: IconMore, isMore: true, action: () => setMoreOpen((v) => !v) },
+  ];
+
+  const moreItems = [
+    { id: "templates", label: "Templates", icon: IconTable, action: () => { setMoreOpen(false); setMobileTab("templates"); onTemplates(); } },
   ];
 
   const lastResume = resumeList[0];
@@ -990,28 +1019,83 @@ export default function DashboardPage({
         }}
       >
         {mobileTabs.map((t) => {
-          const isAct = mobileTab === t.id;
+          const isAct = t.isMore ? moreOpen : mobileTab === t.id;
           const Icon = t.icon;
+          const activeColor = t.activeColor || "#FFB300";
           return (
             <button
               key={t.id}
               type="button"
               onClick={t.action}
+              aria-expanded={t.isMore ? moreOpen : undefined}
+              aria-haspopup={t.isMore ? "menu" : undefined}
               style={{
                 background: "transparent", border: "none",
-                minHeight: 44, minWidth: 44,
+                minHeight: 48, minWidth: 48,
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                 gap: 3, cursor: "pointer", fontFamily: "inherit",
               }}
             >
-              <span style={{ display: "flex", color: isAct ? "#FFB300" : "#333", width: 20, height: 20 }}>
+              <span style={{ display: "flex", color: isAct ? activeColor : "#333", width: 20, height: 20 }}>
                 <Icon size={20} />
               </span>
-              <span style={{ fontSize: 10, color: isAct ? "#FFB300" : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
+              <span style={{ fontSize: 10, color: isAct ? activeColor : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
             </button>
           );
         })}
       </div>
+
+      {/* ═══ MOBILE MORE OVERFLOW ═══ */}
+      {moreOpen && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setMoreOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 199, background: "transparent" }}
+          />
+          <div
+            role="menu"
+            className="cvp-tab-bar"
+            style={{
+              position: "fixed", right: 8, bottom: 66,
+              zIndex: 201, minWidth: 176,
+              background: "#1C1C1C", border: "1px solid #2A2A2A",
+              borderRadius: 14, padding: 6,
+              boxShadow: "0 12px 32px rgba(0,0,0,0.55)",
+              display: "flex", flexDirection: "column", gap: 2,
+            }}
+          >
+            {moreItems.map((m) => {
+              const Icon = m.icon;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="menuitem"
+                  onClick={m.action}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    background: "transparent", border: "none",
+                    color: "#FFFFFF", fontFamily: "inherit",
+                    fontSize: 13, fontWeight: 600,
+                    padding: "12px 14px", minHeight: 48,
+                    borderRadius: 10, cursor: "pointer",
+                    transition: `background-color 150ms ${EASE}`,
+                    textAlign: "left",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                >
+                  <span style={{ display: "flex", width: 18, height: 18, color: "#A0A0A0" }}>
+                    <Icon size={18} />
+                  </span>
+                  <span>{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* ═══ NEW CV LOBBY — first-CV users only ═══ */}
       {lobbyOpen && (
