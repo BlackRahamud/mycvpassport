@@ -2232,6 +2232,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   <p className="lp-site-footer-col-h">Legal</p>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/terms')}>Terms of Service</span>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/privacy')}>Privacy Policy</span>
+                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/refund')}>Refund Policy</span>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Support</p>

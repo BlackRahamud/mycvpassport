@@ -17,6 +17,7 @@ import AccountPage from "./pages/AccountPage";
 import TemplatesPage from "./pages/TemplatesPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import RefundPage from "./pages/RefundPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import ResetPassword from "./pages/ResetPassword";
 import HRPortal from "./pages/HRPortal";
@@ -238,6 +239,7 @@ export default function App() {
               <Route path="/templates" element={<TemplatesBrowseLayout />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/refund" element={<RefundPage />} />
               <Route path="/dashboard/applications" element={user ? <ApplicationsPage /> : <Navigate to="/auth" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
