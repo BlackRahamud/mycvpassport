@@ -1337,6 +1337,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               { label: 'Job Match', route: '/builder?tab=jobmatch' },
               { label: 'Cover Letter', route: '/cover-letter' },
               { label: 'Walk-In Mode', route: '/walkin' },
+              { label: 'Salary Switcher', route: '/salary-switcher', badge: 'Free Tool' },
             ].map(item => (
               <button
                 key={item.label}
@@ -1344,7 +1345,26 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 className="lp-hamburger-link"
                 onClick={() => { closeMobileMenu(); navigate(item.route); }}
               >
-                <span>{item.label}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  {item.label}
+                  {item.badge && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: '#1D9E75',
+                        background: 'rgba(29,158,117,0.12)',
+                        border: '1px solid rgba(29,158,117,0.3)',
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                      }}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
                 <ChevronRightIcon />
               </button>
             ))}
@@ -2101,6 +2121,28 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=ats')}>ATS Score</span>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/cover-letter')}>Cover Letter</span>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/walkin')}>Walk-In Mode</span>
+                  <span
+                    className="lp-site-footer-link"
+                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => navigate('/salary-switcher')}
+                  >
+                    Salary Switcher
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: '#1D9E75',
+                        background: 'rgba(29,158,117,0.12)',
+                        border: '1px solid rgba(29,158,117,0.3)',
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                      }}
+                    >
+                      Free Tool
+                    </span>
+                  </span>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Legal</p>
