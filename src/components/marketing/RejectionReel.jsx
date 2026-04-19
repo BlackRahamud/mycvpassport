@@ -14,6 +14,7 @@
    ═════════════════════════════════════════════════════════════════ */
 
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const T = {
   ease: "cubic-bezier(0.4,0,0.2,1)",
@@ -120,6 +121,7 @@ function LiveCounter({ base, perSec }) {
 
 /* ── Main ─────────────────────────────────────────────────────────── */
 export default function RejectionReel() {
+  const navigate = useNavigate();
   const poolRef = useRef(null);
   const [rows, setRows] = useState([]); // [{c, state, id, age}]
   const [tickCount, setTickCount] = useState(0);
@@ -290,15 +292,15 @@ export default function RejectionReel() {
             <span className="rr-mono rr-fix-eyebrow">THE FIX · 60 SECONDS</span>
             <h3 className="rr-fix-title">Find out <em>before</em> you apply.</h3>
             <p className="rr-fix-desc">
-              Upload your CV. We'll scan it through the same filters <span className="rr-fix-strong">a leading UAE bank, a Gulf airline and a Mumbai startup</span> use — and show you exactly what breaks before a recruiter ever sees silence.
+              Upload your CV. We&apos;ll run it through ATS logic built from thousands of real GCC and India job postings — and show you exactly what breaks before a recruiter ever sees your name.
             </p>
             <div className="rr-fix-ctas">
-              <button className="rr-btn rr-btn-primary" type="button">
+              <button className="rr-btn rr-btn-primary" type="button" onClick={() => navigate("/ats")}>
                 <span className="rr-btn-beam" aria-hidden />
                 <span>Scan My CV — Free</span>
                 <span className="rr-btn-arrow" aria-hidden>→</span>
               </button>
-              <button className="rr-btn rr-btn-ghost" type="button">See a sample report</button>
+              <button className="rr-btn rr-btn-ghost" type="button" onClick={() => navigate("/ats?sample=true")}>See a sample report</button>
             </div>
             <div className="rr-fix-trust">
               <span className="rr-trust-item"><span className="rr-trust-check" aria-hidden /> No sign-up to scan</span>
