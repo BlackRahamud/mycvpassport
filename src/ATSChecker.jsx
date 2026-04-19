@@ -610,17 +610,18 @@ export default function ATSChecker({
         </div>
 
         <div style={{ position: "relative", marginBottom: 16 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: T.muted, marginBottom: 8, display: "block" }}>Target Job Description</label>
+          <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: T.muted, marginBottom: 6, display: "block" }}>Target Job Description</label>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>Paste the full job posting — role, requirements, responsibilities.</div>
           <textarea
             value={jobDescription} onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the full job description here — the more detail, the sharper your analysis..."
+            placeholder="e.g. We are hiring a Customer Service Executive in Dubai. Requirements: 2+ years experience, fluent English, banking background preferred..."
             style={{ width: "100%", background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: 16, padding: "18px 20px", fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: T.text, resize: "none", height: 130, outline: "none", lineHeight: 1.6, transition: "border-color 0.2s", boxSizing: "border-box" }}
             onFocus={(e) => { e.target.style.borderColor = T.amberBorder; }}
             onBlur={(e) => { e.target.style.borderColor = T.border; }}
           />
           <div style={{ position: "absolute", bottom: 14, right: 16, fontSize: 11, color: "rgba(160,160,160,0.4)", pointerEvents: "none" }}>{jobDescription.length} chars</div>
         </div>
-        <div style={{ fontSize: 12, color: T.muted, marginBottom: 16 }}>Optional — add a job description for a targeted score</div>
+        <div style={{ fontSize: 12, color: T.muted, marginBottom: 16 }}>Tip: Copy directly from LinkedIn, Bayt, or Indeed.</div>
 
         {error && (
           <div style={{ color: T.red, fontSize: 13, marginBottom: 12, padding: "10px 16px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10 }}>{error}</div>
