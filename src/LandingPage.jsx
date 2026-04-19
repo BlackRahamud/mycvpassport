@@ -12,6 +12,7 @@ import RejectionReel from './components/marketing/RejectionReel';
 import ATSPreview from './components/marketing/ATSPreview';
 import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
+import MiniToolCard, { MINI_TOOL_CSS } from './components/MiniToolCard';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
 function SunIcon() {
@@ -1846,6 +1847,81 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
         {/* ── HOW IT WORKS ───────────────────────────────────────── */}
         <HowItWorks />
+
+        {/* ── MINI TOOLS TEASER (bento · links to /tools suite) ──── */}
+        <section
+          className="lp-mini-tools"
+          aria-label="Free GCC career tools"
+          style={{
+            background:    '#070707',
+            borderTop:     `1px solid ${T.border}`,
+            borderBottom:  `1px solid ${T.border}`,
+            padding:       '72px 24px',
+          }}
+        >
+          <style>{MINI_TOOL_CSS}</style>
+          <style>{`
+            .lp-mini-tools-wrap { max-width: 1200px; margin: 0 auto; }
+            .lp-mini-tools-head { text-align: center; margin-bottom: 44px; }
+            .lp-mini-tools-eyebrow-line { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+            .lp-mini-tools-eyebrow-marker { width: 28px; height: 1px; background: linear-gradient(90deg, transparent, rgba(217,119,6,0.5), transparent); }
+            .lp-mini-tools-eyebrow { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 600; color: #D97706; letter-spacing: 0.22em; }
+            .lp-mini-tools-title { font-family: 'DM Sans', sans-serif; font-size: clamp(26px, 3.4vw, 40px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.14; color: #fff; margin: 0 auto 14px; max-width: 760px; }
+            .lp-mini-tools-sub { font-family: 'DM Sans', sans-serif; font-size: clamp(14px, 1.3vw, 16px); color: #A0A0A0; line-height: 1.5; margin: 0 auto; max-width: 560px; }
+            .lp-mini-tools-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 350px)); gap: 24px; justify-content: center; align-items: stretch; }
+            .lp-mini-tools-grid > * { justify-self: center; height: 100%; }
+            @media (max-width: 880px) {
+              .lp-mini-tools { padding: 56px 18px; }
+              .lp-mini-tools-grid { grid-template-columns: 1fr; max-width: 360px; margin: 0 auto; }
+            }
+          `}</style>
+
+          <div className="lp-mini-tools-wrap">
+            <header className="lp-mini-tools-head">
+              <span className="lp-mini-tools-eyebrow-line">
+                <span aria-hidden className="lp-mini-tools-eyebrow-marker" />
+                <span className="lp-mini-tools-eyebrow">[ POPULAR WITH INDIAN EXPATS ]</span>
+                <span aria-hidden className="lp-mini-tools-eyebrow-marker" />
+              </span>
+              <h2 className="lp-mini-tools-title">
+                Built for the answers you&rsquo;re already Googling at 2am.
+              </h2>
+              <p className="lp-mini-tools-sub">
+                Free. No signup. GCC-tuned tools to win your next interview.
+              </p>
+            </header>
+
+            <div className="lp-mini-tools-grid">
+              <MiniToolCard
+                to="/salary-switcher"
+                glyph="₹/AED"
+                title="Salary Switcher"
+                snippet="Know your INR worth."
+                ring="#D97706"
+                bleedRGB="217,119,6"
+                metric={{ type: 'text', value: 'AED 15,000 → ₹3.4L' }}
+              />
+              <MiniToolCard
+                to="/ats"
+                glyph="ATS"
+                title="ATS Checker"
+                snippet="Scan your CV readiness."
+                ring="#378ADD"
+                bleedRGB="55,138,221"
+                metric={{ type: 'ring', percent: 82 }}
+              />
+              <MiniToolCard
+                to="/linkedin-optimizer"
+                glyph="in"
+                title="LinkedIn Optimizer"
+                snippet="Fix your UAE keywords."
+                ring="#1D9E75"
+                bleedRGB="29,158,117"
+                metric={{ type: 'pills', items: ['KSA Market', 'Project Mgmt', 'Golden Visa'] }}
+              />
+            </div>
+          </div>
+        </section>
 
         {/* ── REJECTION REEL (live ATS feed) ─────────────────────── */}
         <RejectionReel />
