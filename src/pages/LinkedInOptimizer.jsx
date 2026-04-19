@@ -18,6 +18,7 @@
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "../supabaseClient";
 import { useCvpAuth } from "../useCvpAuth";
 
@@ -640,6 +641,19 @@ export default function LinkedInOptimizer() {
   const m = MARKETS[market];
 
   return (
+    <>
+      <Helmet>
+        <title>LinkedIn Profile Optimizer for UAE &amp; GCC Job Seekers — CVPassport</title>
+        <meta name="description" content="Generate a LinkedIn About section built for UAE & GCC recruiters. AI-powered, Gulf job market ready. Free to start." />
+        <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://mycvpassport.com/linkedin-optimizer" />
+        <meta property="og:title" content="LinkedIn Profile Optimizer for UAE &amp; GCC Job Seekers — CVPassport" />
+        <meta property="og:description" content="Generate a LinkedIn About section built for UAE & GCC recruiters. AI-powered, Gulf job market ready. Free to start." />
+        <meta property="og:url" content="https://mycvpassport.com/linkedin-optimizer" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_AE" />
+      </Helmet>
     <div className="lio-root">
       <style>{CSS_TEXT}</style>
       <div className="lio-field" aria-hidden />
@@ -798,6 +812,7 @@ export default function LinkedInOptimizer() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

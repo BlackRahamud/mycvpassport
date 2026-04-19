@@ -755,20 +755,21 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
   return (
     <>
       <Helmet>
-        <title>CVPassport — Build ATS-Friendly Resumes for UAE &amp; Gulf Jobs</title>
-        <meta name="description" content="Build ATS-optimised resumes for UAE, Saudi Arabia and GCC job markets. Free templates, ATS score checker, and Walk-In CV builder for Gulf job seekers." />
-        <meta name="keywords" content="resume builder UAE, CV builder Dubai, ATS resume Gulf, Gulf job CV, Saudi Arabia resume, GCC job seeker, Indian expat CV Dubai" />
+        <title>CVPassport — ATS-Optimised CV Builder for UAE, GCC &amp; India Job Seekers</title>
+        <meta name="description" content="Build a job-winning CV in minutes. ATS-optimised templates for Dubai, UAE, GCC & India. Free to start — no credit card required." />
+        <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
         <meta name="author" content="CVPassport" />
         <link rel="canonical" href="https://mycvpassport.com" />
-        <meta property="og:title" content="CVPassport — ATS-Friendly Resume Builder for Gulf Jobs" />
-        <meta property="og:description" content="Free resume builder for UAE, Saudi &amp; GCC job markets. ATS score checker, professionally designed templates, Walk-In CV mode." />
+        <meta property="og:title" content="CVPassport — ATS-Optimised CV Builder for UAE, GCC &amp; India Job Seekers" />
+        <meta property="og:description" content="Build a job-winning CV in minutes. ATS-optimised templates for Dubai, UAE, GCC & India. Free to start — no credit card required." />
         <meta property="og:url" content="https://mycvpassport.com" />
         <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_AE" />
         <meta property="og:image" content="https://mycvpassport.com/images/falcon-icon.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="CVPassport — Resume Builder for Gulf Jobs" />
-        <meta name="twitter:description" content="ATS-optimised CVs for UAE, Saudi &amp; GCC. Free to build, free to download." />
+        <meta name="twitter:title" content="CVPassport — ATS-Optimised CV Builder for UAE, GCC &amp; India Job Seekers" />
+        <meta name="twitter:description" content="Build a job-winning CV in minutes. ATS-optimised templates for Dubai, UAE, GCC & India. Free to start — no credit card required." />
         <meta name="twitter:image" content="https://mycvpassport.com/images/falcon-icon.png" />
       </Helmet>
 

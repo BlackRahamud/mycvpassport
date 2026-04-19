@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, useReducer, Fragment } from "react";
 import { flushSync, createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import {
   AlertCircle,
   AlertTriangle,
@@ -5892,5 +5893,21 @@ function AccordionSection({
   );
 }
 export default function BuilderPage(props) {
-  return <ResumeBuilder {...props} />;
+  return (
+    <>
+      <Helmet>
+        <title>Build Your CV Online — ATS-Ready for UAE &amp; GCC Jobs | CVPassport</title>
+        <meta name="description" content="Create a Gulf-ready ATS-optimised CV in minutes. Built for Indian expats and job seekers in Dubai, UAE & GCC. Free to start." />
+        <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://mycvpassport.com/builder" />
+        <meta property="og:title" content="Build Your CV Online — ATS-Ready for UAE &amp; GCC Jobs | CVPassport" />
+        <meta property="og:description" content="Create a Gulf-ready ATS-optimised CV in minutes. Built for Indian expats and job seekers in Dubai, UAE & GCC. Free to start." />
+        <meta property="og:url" content="https://mycvpassport.com/builder" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_AE" />
+      </Helmet>
+      <ResumeBuilder {...props} />
+    </>
+  );
 }

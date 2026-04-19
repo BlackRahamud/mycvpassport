@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import ATSChecker from "../ATSChecker";
 import { detectRole } from "../utils/detectRole";
 import { getFabMemory } from "../components/FAB/FABLogic";
@@ -27,6 +28,19 @@ export default function ATSPage({ onBack }) {
   }, []);
 
   return (
+    <>
+      <Helmet>
+        <title>Free ATS CV Checker for UAE &amp; GCC Jobs — CVPassport</title>
+        <meta name="description" content="Check if your CV beats the bots used by top Dubai & GCC employers. Free ATS scanner — no signup required." />
+        <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://mycvpassport.com/ats" />
+        <meta property="og:title" content="Free ATS CV Checker for UAE &amp; GCC Jobs — CVPassport" />
+        <meta property="og:description" content="Check if your CV beats the bots used by top Dubai & GCC employers. Free ATS scanner — no signup required." />
+        <meta property="og:url" content="https://mycvpassport.com/ats" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_AE" />
+      </Helmet>
     <div style={{ position: "relative", background: "#0A0A0A", minHeight: "100vh" }}>
       <button
         type="button"
@@ -120,5 +134,6 @@ export default function ATSPage({ onBack }) {
         </div>
       ) : null}
     </div>
+    </>
   );
 }

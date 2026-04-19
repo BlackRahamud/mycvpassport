@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, memo, useMemo, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { TEMPLATES, isCvDataEmptyForTemplateApply, EMPTY_RESUME, EMPTY_EXP } from "../cvShared";
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 
@@ -847,5 +848,21 @@ function BuilderTemplatesTab({
 }
 export { BuilderTemplatesTab };
 export default function TemplatesPage(props) {
-  return <BuilderTemplatesTab {...props} />;
+  return (
+    <>
+      <Helmet>
+        <title>Free ATS CV Templates for UAE &amp; GCC Jobs — CVPassport</title>
+        <meta name="description" content="18 ATS-optimised CV templates built for Dubai, UAE & GCC jobs. Free to start. Download your Gulf-ready CV instantly." />
+        <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://mycvpassport.com/templates" />
+        <meta property="og:title" content="Free ATS CV Templates for UAE &amp; GCC Jobs — CVPassport" />
+        <meta property="og:description" content="18 ATS-optimised CV templates built for Dubai, UAE & GCC jobs. Free to start. Download your Gulf-ready CV instantly." />
+        <meta property="og:url" content="https://mycvpassport.com/templates" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_AE" />
+      </Helmet>
+      <BuilderTemplatesTab {...props} />
+    </>
+  );
 }
