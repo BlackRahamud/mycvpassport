@@ -749,6 +749,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
   const handleLandingNav = (item) => {
     if (item === 'Templates') scrollToLandingSection('templates');
     else if (item === 'ATS Check') navigate('/ats');
+    else if (item === 'Free Tools') navigate('/tools');
     else if (item === 'Pricing') navigate('/pricing');
   };
 
@@ -1120,7 +1121,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               padding:        '5px 10px',
             }}
           >
-            {['Templates', 'ATS Check', 'Pricing'].map(item => (
+            {['Templates', 'ATS Check', 'Free Tools', 'Pricing'].map(item => (
               <button
                 key={item}
                 type="button"
@@ -1332,6 +1333,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           >
             {/* Nav links */}
             {[
+              { label: 'Free Tools', route: '/tools', badge: 'New' },
               { label: 'Templates', route: '/builder?tab=templates' },
               { label: 'ATS Check', route: '/ats' },
               { label: 'Job Match', route: '/builder?tab=jobmatch' },
