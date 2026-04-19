@@ -800,6 +800,8 @@ export default function ATSChecker({
   const rankTriggers = results?.rankTriggers ?? ["RERA Certified", "Off-plan Sales", "KYC", "AML"];
   const industry = results?.industry ?? "Finance";
   const topPercent = results?.topPercent ?? 15;
+  const isFreeTier = !isPro;
+  const isMonthlyPro = isPro && gatePlanName === "Active Hunter";
   return (
     <>
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
@@ -927,7 +929,8 @@ export default function ATSChecker({
             </div>
           </div>
 
-          {/* Conversion card — premium redesign */}
+          {/* Conversion card — shown to free users only */}
+          {isFreeTier && (
           <div style={{
             background: '#0A0A0A',
             borderRadius: 20,
@@ -981,10 +984,10 @@ export default function ATSChecker({
             </div>
 
             <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.4, marginBottom: 8 }}>
-              {"You\u2019re ranked below 60% of applicants"}
+              Your CV was filtered out by the ATS.
             </div>
             <div style={{ fontSize: 13, color: '#666', lineHeight: 1.65, marginBottom: 24, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
-              Get your full keyword gap, AI rewrite suggestions, and ATS score breakdown &mdash; built on real GCC hiring data
+              {"You\u2019re in the bottom 40% of applicants for this role. Unlock the exact keyword gaps and AI-rewrite suggestions \u2014 analyzed against live UAE & Gulf job listings."}
             </div>
 
             {/* Unlock button with running border */}
@@ -1010,7 +1013,7 @@ export default function ATSChecker({
                   pointerEvents: 'none',
                   animation: 'ats-spin-border 2s linear infinite',
                 }} />
-                {'Unlock Full Analysis \u2014 AED 29/mo'}
+                {'Get to the Top 10% \u2014 AED 29/mo'}
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M5 12h14M12 5l7 7-7 7"/>
                 </svg>
@@ -1021,6 +1024,29 @@ export default function ATSChecker({
               Cancel anytime · Instant access · 500+ UAE job seekers
             </div>
           </div>
+          )}
+
+          {isMonthlyPro && (
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setShowPaywall(true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '6px 4px',
+                  color: T.muted,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  textDecoration: 'underline',
+                  textDecorationColor: 'rgba(160,160,160,0.25)',
+                }}
+              >
+                {"You\u2019re on Active Hunter. Switch to Career Pro annual and save AED 149/yr \u2192"}
+              </button>
+            </div>
+          )}
 
           {/* Download CV */}
           <div style={{ marginTop: 28 }}>
