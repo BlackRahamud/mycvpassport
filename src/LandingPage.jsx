@@ -1798,56 +1798,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </section>
 
-        {/* ── PROBLEM SECTION ─────────────────────────────────────── */}
-        <section className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '11px', letterSpacing: '3px', color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px' }}>
-            The problem
-          </p>
-          <h2 style={{
-            fontSize:     'clamp(26px, 4vw, 44px)',
-            fontWeight:   '800',
-            letterSpacing:'-1px',
-            marginBottom: '16px',
-            color:        T.textPrimary,
-            fontFamily:   "'DM Sans', sans-serif",
-          }}>
-            Why most CVs get rejected
-          </h2>
-          <p style={{ fontSize: '17px', color: T.textSecondary, marginBottom: '52px', maxWidth: '560px', margin: '0 auto 52px' }}>
-            80% of resumes never make it past ATS screening. Here&apos;s why.
-          </p>
-          <div
-            className="lp-problem-grid"
-            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}
-          >
-            {PROBLEM_CARDS.map((card, i) => (
-              <div
-                key={i}
-                className="lp-card"
-                style={{
-                  background:   T.bgSurface,
-                  border:       `1px solid ${T.border}`,
-                  borderRadius: '16px',
-                  padding:      '16px',
-                  textAlign:    'left',
-                }}
-              >
-                <div className="lp-problem-card-header" style={{ color: T.textPrimary }}>
-                  <div className="lp-problem-card-icon">{card.icon}</div>
-                  <h3 className="lp-problem-card-title">{card.title}</h3>
-                </div>
-                <p className="lp-problem-card-desc">{card.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── TESTIMONIALS GRID (warm-lounge v2) ───────────────────── */}
-        <TestimonialsGrid />
-
-        {/* ── HOW IT WORKS ───────────────────────────────────────── */}
-        <HowItWorks />
-
         {/* ── MINI TOOLS TEASER (bento · links to /tools suite) ──── */}
         <section
           className="lp-mini-tools"
@@ -1870,6 +1820,8 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             .lp-mini-tools-sub { font-family: 'DM Sans', sans-serif; font-size: clamp(14px, 1.3vw, 16px); color: #A0A0A0; line-height: 1.5; margin: 0 auto; max-width: 560px; }
             .lp-mini-tools-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 350px)); gap: 24px; justify-content: center; align-items: stretch; }
             .lp-mini-tools-grid > * { justify-self: center; height: 100%; }
+            .lp-mini-tools-ghost { display: block; text-align: center; margin: 32px auto 0; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: #6A6A6A; text-decoration: none; letter-spacing: 0.01em; transition: color 180ms cubic-bezier(0.4,0,0.2,1); }
+            .lp-mini-tools-ghost:hover { color: #A0A0A0; }
             @media (max-width: 880px) {
               .lp-mini-tools { padding: 56px 18px; }
               .lp-mini-tools-grid { grid-template-columns: 1fr; max-width: 360px; margin: 0 auto; }
@@ -1920,8 +1872,62 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 metric={{ type: 'pills', items: ['KSA Market', 'Project Mgmt', 'Golden Visa'] }}
               />
             </div>
+
+            <Link to="/tools" className="lp-mini-tools-ghost">
+              Explore the full Career Lab &rarr;
+            </Link>
           </div>
         </section>
+
+        {/* ── PROBLEM SECTION ─────────────────────────────────────── */}
+        <section className="lp-sec" style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ fontSize: '11px', letterSpacing: '3px', color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px' }}>
+            The problem
+          </p>
+          <h2 style={{
+            fontSize:     'clamp(26px, 4vw, 44px)',
+            fontWeight:   '800',
+            letterSpacing:'-1px',
+            marginBottom: '16px',
+            color:        T.textPrimary,
+            fontFamily:   "'DM Sans', sans-serif",
+          }}>
+            Why most CVs get rejected
+          </h2>
+          <p style={{ fontSize: '17px', color: T.textSecondary, marginBottom: '52px', maxWidth: '560px', margin: '0 auto 52px' }}>
+            80% of resumes never make it past ATS screening. Here&apos;s why.
+          </p>
+          <div
+            className="lp-problem-grid"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}
+          >
+            {PROBLEM_CARDS.map((card, i) => (
+              <div
+                key={i}
+                className="lp-card"
+                style={{
+                  background:   T.bgSurface,
+                  border:       `1px solid ${T.border}`,
+                  borderRadius: '16px',
+                  padding:      '16px',
+                  textAlign:    'left',
+                }}
+              >
+                <div className="lp-problem-card-header" style={{ color: T.textPrimary }}>
+                  <div className="lp-problem-card-icon">{card.icon}</div>
+                  <h3 className="lp-problem-card-title">{card.title}</h3>
+                </div>
+                <p className="lp-problem-card-desc">{card.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── TESTIMONIALS GRID (warm-lounge v2) ───────────────────── */}
+        <TestimonialsGrid />
+
+        {/* ── HOW IT WORKS ───────────────────────────────────────── */}
+        <HowItWorks />
 
         {/* ── REJECTION REEL (live ATS feed) ─────────────────────── */}
         <RejectionReel />
