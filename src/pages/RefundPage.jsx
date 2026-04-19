@@ -7,7 +7,7 @@ const TOKENS = {
   "--border-default": "#2A2A2A",
 };
 
-function LegalPageLayout({ title, effectiveDate, children }) {
+function LegalPageLayout({ title, lastUpdated, children }) {
   const [backHover, setBackHover] = useState(false);
   return (
     <div
@@ -58,7 +58,7 @@ function LegalPageLayout({ title, effectiveDate, children }) {
             margin: "0 0 48px",
           }}
         >
-          Effective Date: {effectiveDate}
+          Last Updated: {lastUpdated}
         </p>
         {children}
         <footer
@@ -89,66 +89,54 @@ const p = {
   lineHeight: 1.7,
   margin: "0 0 16px",
 };
+const bullet = {
+  ...p,
+  paddingLeft: 18,
+  position: "relative",
+};
+const bulletLabel = { color: "var(--text-primary)", fontWeight: 600 };
 const link = { color: "#FFF", textDecoration: "underline" };
 const divider = { border: "none", borderTop: "1px solid var(--border-default)", margin: "32px 0" };
 
 export default function RefundPage() {
   return (
-    <LegalPageLayout title="Refund Policy" effectiveDate="March 31, 2026">
-      <h2 style={h2}>No-Refund Policy</h2>
+    <LegalPageLayout title="Refund Policy" lastUpdated="April 20, 2026">
       <p style={p}>
-        All payments made to CVPassport are strictly non-refundable. By completing payment you acknowledge that CVPassport provides immediate access to digital templates, ATS tooling, and professional
-        formatting utilities. Once access has been granted no refund will be issued under any circumstances, including dissatisfaction with job search outcomes, accidental purchase, or change of mind.
+        At MyCVPassport, we want you to be confident in your career journey. Since our platform provides instant access to premium digital tools and downloadable assets, our policy is designed to be
+        fair to both our users and our mission.
       </p>
       <hr style={divider} />
-      <h2 style={h2}>Our Commitment To You</h2>
-      <p style={p}>
-        We don&apos;t leave you stuck. If you are unhappy with your CV, cover letter, or ATS results, reach out to us at{" "}
-        <a href="mailto:support@mycvpassport.com" style={link}>
-          support@mycvpassport.com
-        </a>
-        . We will personally review your document, guide you on improvements, and do everything within our power to help you put your best foot forward. We cannot refund your payment but we will stand
-        behind you until you are confident in your application.
+      <h2 style={h2}>1. Career Pro (Annual Subscription)</h2>
+      <p style={bullet}>
+        <span style={{ position: "absolute", left: 0 }}>•</span>
+        <span style={bulletLabel}>14-Day Money-Back Guarantee:</span> If you are not satisfied with your Annual Subscription, you are eligible for a full refund within 14 days of your original purchase
+        date.
+      </p>
+      <p style={bullet}>
+        <span style={{ position: "absolute", left: 0 }}>•</span>
+        <span style={bulletLabel}>After 14 Days:</span> Annual payments are non-refundable. You will continue to have premium access until the end of your billing cycle, and no further charges will be
+        made.
       </p>
       <hr style={divider} />
-      <h2 style={h2}>Proof of Delivery</h2>
-      <p style={p}>
-        We log every successful PDF download and every completed ATS or cover letter generation. These server logs serve as final proof of delivery in any payment dispute raised with Ziina, your bank,
-        or your card issuer.
+      <h2 style={h2}>2. One-Time Purchases &amp; Monthly Plans</h2>
+      <p style={bullet}>
+        <span style={{ position: "absolute", left: 0 }}>•</span>
+        <span style={bulletLabel}>Express Pass (One-Time):</span> Due to the nature of digital downloads, the Express Pass is non-refundable once a CV has been generated or downloaded.
+      </p>
+      <p style={bullet}>
+        <span style={{ position: "absolute", left: 0 }}>•</span>
+        <span style={bulletLabel}>Active Hunter (Monthly):</span> Monthly subscriptions are non-refundable. You may cancel at any time to prevent future billing, and you will retain access until the
+        end of the current 30-day period.
       </p>
       <hr style={divider} />
-      <h2 style={h2}>Scope of Product</h2>
+      <h2 style={h2}>3. How to Request a Refund</h2>
       <p style={p}>
-        A &quot;functional product&quot; is defined as a machine-readable PDF matching your chosen template, a generated cover letter, or a completed ATS score report. Lack of job interviews, visa
-        approvals, or salary outcomes does not constitute a product defect and is not grounds for a refund.
-      </p>
-      <hr style={divider} />
-      <h2 style={h2}>Merchant of Record</h2>
-      <p style={p}>
-        All transactions are processed via Ziina. When you complete a payment, your bank or card statement will show &apos;Ziina&apos; or &apos;Ziina CVPassport&apos; as the charge description.
-        Chargebacks filed without first contacting{" "}
+        Email{" "}
         <a href="mailto:support@mycvpassport.com" style={link}>
           support@mycvpassport.com
         </a>{" "}
-        will be contested using our delivery logs.
-      </p>
-      <hr style={divider} />
-      <h2 style={h2}>Account Abuse</h2>
-      <p style={p}>
-        Creating multiple accounts to bypass free-tier limits or sharing paid login credentials with third parties is strictly prohibited. We use IP and device fingerprinting to monitor for abuse;
-        clusters of accounts identified as abusing the platform will be terminated without notice or refund.
-      </p>
-      <hr style={divider} />
-      <h2 style={h2}>Governing Law</h2>
-      <p style={p}>This policy is governed by the laws of the United Arab Emirates. Any disputes shall be settled exclusively in the Courts of Dubai.</p>
-      <hr style={divider} />
-      <h2 style={h2}>Contact</h2>
-      <p style={p}>
-        Questions about this policy? Email{" "}
-        <a href="mailto:support@mycvpassport.com" style={link}>
-          support@mycvpassport.com
-        </a>
-        .
+        with: your account email, receipt or transaction ID, and a brief note on why the service didn&apos;t meet your needs. Refunds are processed within 5–10 business days depending on your payment
+        provider.
       </p>
     </LegalPageLayout>
   );
