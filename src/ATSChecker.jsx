@@ -5,7 +5,7 @@ import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
 import { detectRole } from "./utils/detectRole";
 import skillSuggestions from "./data/skillSuggestions";
-import { getPaymentLink } from "./utils/paywall";
+import UpgradeModal from "./UpgradeModal";
 
 // ─── Design tokens — FIX 1: amber #F59E0B → #D97706 ─────────────────────────
 const T = {
@@ -293,7 +293,7 @@ export default function ATSChecker({
   const [isMobile, setIsMobile] = useState(
     window.innerWidth < 768
   );
-  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
@@ -799,24 +799,8 @@ export default function ATSChecker({
   const rankTriggers = results?.rankTriggers ?? ["RERA Certified", "Off-plan Sales", "KYC", "AML"];
   const industry = results?.industry ?? "Finance";
   const topPercent = results?.topPercent ?? 15;
-  const handleUnlock = async () => {
-    if (paymentLoading) return;
-    setPaymentLoading(true);
-    try {
-      const url = await getPaymentLink('ats', user?.id, user?.email);
-      if (url) {
-        window.location.href = url;
-      } else {
-        alert('Payment initialization failed. Please try again.');
-      }
-    } catch {
-      alert('Payment initialization failed. Please try again.');
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
   return (
+    <>
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
       <style>{`
         @property --ats-angle {
@@ -987,42 +971,32 @@ export default function ATSChecker({
                     border: '1px solid rgba(255,255,255,0.08)',
                     animation: 'ats-pulse-out 2.5s ease-out infinite 0.8s',
                   }} />
-                  {paymentLoading ? (
-                    <div style={{
-                      width: 24, height: 24, borderRadius: '50%',
-                      border: '2px solid rgba(255,255,255,0.2)',
-                      borderTopColor: '#fff',
-                      animation: 'ats-spin-check 0.8s linear infinite',
-                    }} />
-                  ) : (
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2"/>
-                      <path d="M7 11V7a5 5 0 0110 0v4"/>
-                    </svg>
-                  )}
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0110 0v4"/>
+                  </svg>
                 </div>
               </div>
             </div>
 
             <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.4, marginBottom: 8 }}>
-              {paymentLoading ? 'Preparing checkout...' : "You\u2019re ranked below 60% of applicants"}
+              {"You\u2019re ranked below 60% of applicants"}
             </div>
             <div style={{ fontSize: 13, color: '#666', lineHeight: 1.65, marginBottom: 24, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
-              {paymentLoading ? 'Connecting to secure payment...' : 'Get your full keyword gap, AI rewrite suggestions, and ATS score breakdown \u2014 built on real GCC hiring data'}
+              Get your full keyword gap, AI rewrite suggestions, and ATS score breakdown &mdash; built on real GCC hiring data
             </div>
 
             {/* Unlock button with running border */}
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12, marginBottom: 12 }}>
               <button
-                onClick={handleUnlock}
-                disabled={paymentLoading}
+                onClick={() => setShowPaywall(true)}
                 style={{
                   width: '100%', background: '#0A0A0A', color: '#fff',
                   border: 'none', borderRadius: 12,
                   padding: '16px 24px', fontSize: 15, fontWeight: 600,
-                  cursor: paymentLoading ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  gap: 8, letterSpacing: -0.3, opacity: paymentLoading ? 0.6 : 1,
+                  gap: 8, letterSpacing: -0.3,
                   transition: 'opacity 0.15s',
                 }}
               >
@@ -1035,12 +1009,10 @@ export default function ATSChecker({
                   pointerEvents: 'none',
                   animation: 'ats-spin-border 2s linear infinite',
                 }} />
-                {paymentLoading ? 'Preparing checkout...' : 'Unlock Full Analysis \u2014 AED 29/mo'}
-                {!paymentLoading && (
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                )}
+                {'Unlock Full Analysis \u2014 AED 29/mo'}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
               </button>
             </div>
 
@@ -1144,5 +1116,7 @@ export default function ATSChecker({
         </div>
       </div>
     </div>
+    <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" />
+    </>
   );
 }

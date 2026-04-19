@@ -36,7 +36,12 @@ export default async function handler(req, res) {
       .createHmac('sha256', secret)
       .update(rawBody)
       .digest('hex');
-    if (expected !== signature) {
+    const expectedBuf = Buffer.from(expected, 'hex');
+    const signatureBuf = Buffer.from(String(signature), 'hex');
+    if (
+      expectedBuf.length !== signatureBuf.length ||
+      !crypto.timingSafeEqual(expectedBuf, signatureBuf)
+    ) {
       return res.status(401).json({ error: 'Invalid signature' });
     }
   }

@@ -290,7 +290,7 @@ export default function RejectionReel() {
             <span className="rr-mono rr-fix-eyebrow">THE FIX · 60 SECONDS</span>
             <h3 className="rr-fix-title">Find out <em>before</em> you apply.</h3>
             <p className="rr-fix-desc">
-              Upload your CV. We'll scan it through the same filters <span className="rr-fix-strong">Emirates NBD, Etihad, Careem, Swiggy and Razorpay</span> use — and show you exactly what breaks before a recruiter ever sees silence.
+              Upload your CV. We'll scan it through the same filters <span className="rr-fix-strong">a leading UAE bank, a Gulf airline and a Mumbai startup</span> use — and show you exactly what breaks before a recruiter ever sees silence.
             </p>
             <div className="rr-fix-ctas">
               <button className="rr-btn rr-btn-primary" type="button">

@@ -78,7 +78,7 @@ export default function AccountPage() {
     () => ({
       s1: "free",
       s2: currency === "IN" ? "₹399" : "AED 49",
-      s3: currency === "IN" ? "₹599/yr" : "AED 199/yr",
+      s3: currency === "IN" ? "₹999/yr" : "AED 199/yr",
     }),
     [currency],
   );

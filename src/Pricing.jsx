@@ -244,7 +244,7 @@ const PLANS_IN = [
   },
   {
     name: "Career Pro",
-    price: "₹599/year",
+    price: "₹999/year",
     priceSubtext: "Save 66% vs monthly",
     tagline: "Invest in yourself.",
     cta: "Go Pro",

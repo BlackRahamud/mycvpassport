@@ -428,6 +428,13 @@ export default function PricingPage() {
                   )}
                 </div>
 
+                {/* Annual savings callout */}
+                {isHunter && billing === "annual" && (
+                  <div style={{ fontSize: "12px", color: "#A0A0A0", marginBottom: "6px" }}>
+                    {currency === "AED" ? "Save AED 144/year" : "Save ₹960/year"}
+                  </div>
+                )}
+
                 {/* Description */}
                 <div style={{ fontSize: "13px", color: "#A0A0A0", marginBottom: "24px" }}>
                   {plan.description}
