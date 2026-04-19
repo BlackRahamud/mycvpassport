@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
+import ReactGA from "react-ga4";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
@@ -99,6 +100,10 @@ export default function App() {
     handleNewResume,
     postAuthIntermission,
   } = useCvpAuth();
+
+  useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
+  }, [location.pathname, location.search]);
 
   const searchParams = new URLSearchParams(location.search);
   const newSessionId = searchParams.get("new");

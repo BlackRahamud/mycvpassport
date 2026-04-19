@@ -1,10 +1,13 @@
 import React from 'react';
 import { hydrateRoot, createRoot } from 'react-dom/client';
+import ReactGA from 'react-ga4';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
+
+ReactGA.initialize('G-2NCBR90DMK');
 
 const rootElement = document.getElementById('root');
 
