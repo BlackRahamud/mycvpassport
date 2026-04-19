@@ -516,7 +516,7 @@ export default function SalarySwitcher() {
             </div>
 
             <p className="ss-disclaimer">
-              Based on 2026 UAE/GCC &amp; India market data from Bayt, LinkedIn, GulfTalent. INR figures are pre-tax; AED figures are tax-free. Take-home basis uses a ~15% effective Indian income tax and AED @ ₹22.99.
+              All salary figures provided are estimates based on 2026 Gulf and Indian market trends and are intended for informational purposes only. While Indian Rupee (INR) values are calculated pre-tax and UAE Dirham (AED) values are tax-free, we take no responsibility for the accuracy of these benchmarks or any subsequent financial or career decisions made using this data. Use of this free tool does not constitute professional financial advice and is provided without liability.
             </p>
           </div>
         </div>
