@@ -1,6 +1,7 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { hasFeatureAccess, getPaymentLink } from "./utils/paywall";
 import { useGeoContent } from "./hooks/useGeoContent";
+import { supabase } from "./appSupabaseClient";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
@@ -285,11 +286,14 @@ export default function JobMatch({
     return getGeoSubheadingGlobal();
   }, [isIndia, geo?.currency]);
 
+  const inFlightRef = useRef(false);
+
   useEffect(() => {
     onJobDescriptionChange?.(jobDescription.trim().length >= 40);
   }, [jobDescription, onJobDescriptionChange]);
 
   const handleAnalyse = useCallback(async () => {
+    if (inFlightRef.current) return;
     if (!hasAccess) {
       setShowPaywall(true);
       setPaywallDismissed(false);
@@ -301,12 +305,19 @@ export default function JobMatch({
       return;
     }
 
+    inFlightRef.current = true;
     setLoading(true);
     setError("");
     setResult(null);
     setShowPaywall(false);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError("Sign in to use Job Match.");
+        return;
+      }
+
       const response = await fetch(BANK_FILE, { cache: "no-store" });
       if (!response.ok) throw new Error("Keyword bank file not found.");
       const bank = await response.json();
@@ -324,22 +335,30 @@ export default function JobMatch({
       let suggestion = "";
 
       if (missing.length > 0) {
-        const aiRes = await fetch("/api/job-match-suggestion", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            unmatchedKeywords: missing,
-            jobDescription: jobDescription.trim(),
-            cvSummary: buildCvSummary(resume),
-          }),
-        });
+        try {
+          const aiRes = await fetch("/api/job-match-suggestion", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              unmatchedKeywords: missing,
+              jobDescription: jobDescription.trim(),
+              cvSummary: buildCvSummary(resume),
+            }),
+          });
 
-        if (aiRes.ok) {
-          const aiData = await aiRes.json();
-          aiMissing = Array.isArray(aiData?.additionalMissingKeywords)
-            ? aiData.additionalMissingKeywords.map((k) => String(k).trim()).filter(Boolean)
-            : [];
-          suggestion = String(aiData?.suggestion || "").trim();
+          if (aiRes.ok) {
+            const aiData = await aiRes.json();
+            aiMissing = Array.isArray(aiData?.additionalMissingKeywords)
+              ? aiData.additionalMissingKeywords.map((k) => String(k).trim()).filter(Boolean)
+              : [];
+            suggestion = String(aiData?.suggestion || "").trim();
+          }
+          // Non-OK responses are absorbed — never retry, never throw.
+        } catch {
+          /* AI suggestion is enrichment, not required — silently fall back. */
         }
       }
 
@@ -357,6 +376,7 @@ export default function JobMatch({
     } catch (e) {
       setError(e.message || "Analysis failed.");
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [hasAccess, jobDescription, templateKey, resume]);
