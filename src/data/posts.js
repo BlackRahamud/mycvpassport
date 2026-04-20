@@ -48,7 +48,7 @@ const rawPosts = [
     image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800",
   },
   {
-    title: "How to Beat the LinkedIn ATS in 2024",
+    title: "How to Beat the LinkedIn ATS in 2026",
     author: "@CVPassportTeam",
     date: "Friday, 6 Mar 2026",
     readTime: "5 min read",
@@ -68,7 +68,7 @@ const rawPosts = [
     image: "https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=800",
   },
   {
-    title: "Walk-In Interview Guide: Dubai 2024",
+    title: "Walk-In Interview Guide: Dubai 2026",
     author: "@CVPassportTeam",
     date: "Saturday, 28 Mar 2026",
     readTime: "5 min read",
@@ -78,7 +78,7 @@ const rawPosts = [
     image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800",
   },
   {
-    title: "Cover Letter for UAE Jobs: What Works in 2024",
+    title: "Cover Letter for UAE Jobs: What Works in 2026",
     author: "@CVPassportTeam",
     date: "Wednesday, 1 Apr 2026",
     readTime: "4 min read",
@@ -98,7 +98,7 @@ const rawPosts = [
     image: "https://images.unsplash.com/photo-1586282391129-76a6df230234?w=800",
   },
   {
-    title: "GCC Job Market 2024: Where the Opportunities Are",
+    title: "GCC Job Market 2026: Where the Opportunities Are",
     author: "@CVPassportTeam",
     date: "Friday, 18 Apr 2026",
     readTime: "8 min read",
