@@ -271,6 +271,7 @@ function PremiumScoreCircle({ score }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ATSChecker({
   onResultsVisible,
+  onBack = null,
   resume: resumeProp = {},
   isPro: isProProp = false,
   handleDownload = null,
@@ -555,7 +556,16 @@ export default function ATSChecker({
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (
-    <nav style={{ padding: "22px 44px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+    <nav style={{ width: "100%", padding: "16px 24px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0, boxSizing: "border-box" }}>
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          style={{ background: "transparent", border: "none", padding: "6px 8px", color: "#A0A0A0", fontSize: 14, fontWeight: 500, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}
+        >
+          ← Back
+        </button>
+      )}
       <span style={{ fontFamily: "'DM Sans', monospace", fontSize: 18, display: "inline-flex", alignItems: "baseline", gap: 0, whiteSpace: "nowrap" }}>
         <span style={{ color: "#F59E0B", fontWeight: 800, letterSpacing: "-2px" }}>{">>>"}</span>
         <span style={{ color: "#FFFFFF", fontWeight: 600 }}> CVPassport</span>

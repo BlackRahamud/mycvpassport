@@ -42,29 +42,6 @@ export default function ATSPage({ onBack }) {
         <meta property="og:locale" content="en_AE" />
       </Helmet>
     <div style={{ position: "relative", background: "#0A0A0A", minHeight: "100vh" }}>
-      <button
-        type="button"
-        onClick={onBack}
-        style={{
-          position: "absolute",
-          top: 16,
-          left: 16,
-          zIndex: 10,
-          background: "none",
-          border: "none",
-          padding: "6px 8px",
-          color: "#A0A0A0",
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: "pointer",
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-          transition: `color 150ms ${EASE}`,
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
-      >
-        ← Back
-      </button>
       <ATSChecker onBack={onBack} detectRole={detectRole} onResultsVisible={handleResultsVisible} />
 
       {showCoverLetterJourney ? (
