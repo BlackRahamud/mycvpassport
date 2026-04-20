@@ -104,30 +104,19 @@ export default function BlogPostPage() {
           <div className="blog-post__body">
             <p className="blog-post__lead">{post.excerpt}</p>
 
-            <h2 className="blog-post__h2">What most people get wrong</h2>
-            <p>
-              The short version: ATS software reads your CV before any
-              recruiter does. If your formatting is off, your keywords don&rsquo;t
-              match the job description, or your file type isn&rsquo;t parseable,
-              you are filtered out before a human sees it.
-            </p>
-
-            <blockquote className="blog-post__quote">
-              If the ATS can&rsquo;t parse your CV in 2&nbsp;seconds, a recruiter
-              won&rsquo;t spend the 20&nbsp;seconds they usually give one either.
-            </blockquote>
-
-            <h2 className="blog-post__h2">What to do instead</h2>
-            <p>
-              Run your CV through a Gulf-tuned ATS scan. Fix the warnings. Keep
-              the structure clean, stick to standard section headings, and
-              mirror the exact keywords the job description uses.
-            </p>
-            <p>
-              CVPassport&rsquo;s free ATS check takes under a minute and tells
-              you exactly which lines are hurting your score before you hit
-              apply.
-            </p>
+            {post.body
+              ? post.body.map((block, i) => {
+                  if (block.type === "h2") {
+                    return <h2 key={i} className="blog-post__h2">{block.text}</h2>;
+                  }
+                  if (block.type === "quote") {
+                    return <blockquote key={i} className="blog-post__quote">{block.text}</blockquote>;
+                  }
+                  return <p key={i}>{block.text}</p>;
+                })
+              : (
+                <p>Full article coming soon. In the meantime, the summary above captures the key takeaway.</p>
+              )}
           </div>
 
           <Link to="/blog" className="blog-post__back">← Back to Blog</Link>
