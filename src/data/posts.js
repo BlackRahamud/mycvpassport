@@ -28,7 +28,7 @@ const rawPosts = [
     image: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800",
     body: [
       { type: "p", text: "Most Indian professionals applying for jobs in Dubai make the same mistake within the first 10 seconds of building their CV — they copy their Indian bio-data format and paste it into a UAE application. Passport number included. This single decision can get your CV flagged, ignored, or worse, put your identity at risk." },
-      { type: "p", text: "The UAE job market moves fast. Recruiters at Emirates NBD, ADNOC, and Majid Al Futtaim receive hundreds of applications daily. They are not reading your passport number — they are scanning your professional value. Here is exactly what to include and what to leave out." },
+      { type: "p", text: "The UAE job market moves fast. Recruiters at leading UAE banks, major regional energy entities, and top retail conglomerates receive hundreds of applications daily. They are not reading your passport number — they are scanning your professional value. Here is exactly what to include and what to leave out." },
       { type: "h2", text: "Why Indian Professionals Include Passport Details (And Why It Backfires)" },
       { type: "p", text: "In India, the bio-data tradition treats a passport number as a trust signal — proof that you are ready to travel and join immediately. In the UAE, this logic works against you. Recruiters in Dubai and Abu Dhabi consider your passport number to be sensitive Personal Identifiable Information (PII). Sharing it on a document uploaded to job portals like Bayt, LinkedIn, or GulfTalent exposes you to identity theft risk." },
       { type: "p", text: "Top-tier firms and multinational corporations operating in the GCC only request government ID details at two stages: the offer letter stage or the security clearance stage. Before that, your passport number adds zero value and several risks." },
@@ -54,7 +54,7 @@ const rawPosts = [
     badges: [{ label: "ATS", tone: "purple" }, { label: "Research", tone: "pink" }],
     image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800",
     body: [
-      { type: "p", text: "You applied to 50 jobs in Dubai. You got zero callbacks. Your experience is solid. Your skills are relevant. So what is actually happening? The answer, in almost every case, is your ATS score. Before a single human recruiter at Emirates Group, Aldar Properties, or First Abu Dhabi Bank opens your file, an algorithm has already ranked you against every other candidate — and quietly moved you to the bottom of the pile." },
+      { type: "p", text: "You applied to 50 jobs in Dubai. You got zero callbacks. Your experience is solid. Your skills are relevant. So what is actually happening? The answer, in almost every case, is your ATS score. Before a single human recruiter at a major UAE airline, a leading property developer, or a top-tier UAE bank opens your file, an algorithm has already ranked you against every other candidate — and quietly moved you to the bottom of the pile." },
       { type: "p", text: "Understanding how ATS scoring works in the GCC is not optional for Indian expats applying from abroad. It is the difference between getting interviews and getting silence." },
       { type: "h2", text: "What Recruiters Actually See When You Apply" },
       { type: "p", text: "When a UAE recruiter opens their hiring dashboard, they do not see a list of names. They see a ranked list of match percentages. An ATS system like Taleo or Workday assigns a score to your CV based on how precisely your document aligns with the job description. In the GCC, recruiters typically only open CVs with a score of 80% or above. If your formatting is broken or your keywords are missing, your score can drop to 40% — making you invisible before anyone has read a single line." },
@@ -62,7 +62,7 @@ const rawPosts = [
       { type: "h2", text: "The 85-95% Green Zone: Your Real Target" },
       { type: "p", text: "Many job seekers make the mistake of chasing a 100% match score. A perfect score can actually raise flags with human recruiters — it suggests keyword stuffing rather than genuine experience. Your real target is the Green Zone: 85% to 95%. This range tells the algorithm you are a strong match and tells the human recruiter your CV reads naturally." },
       { type: "quote", text: "An ATS score is not a grade of your talent. It is a measure of your CV's readability against a specific algorithm. Optimise the document, not the experience." },
-      { type: "p", text: "Keyword density is the primary driver of your score. Repeating \"Project Manager\" forty times triggers spam filters. Instead, use natural variations: \"led cross-functional teams,\" \"delivered project milestones,\" \"stakeholder reporting.\" GCC-specific terms like \"VAT Compliance,\" \"ADNOC-approved,\" or \"Bilingual Arabic-English environment\" carry additional weight in regional ATS systems." },
+      { type: "p", text: "Keyword density is the primary driver of your score. Repeating \"Project Manager\" forty times triggers spam filters. Instead, use natural variations: \"led cross-functional teams,\" \"delivered project milestones,\" \"stakeholder reporting.\" GCC-specific terms like \"VAT Compliance,\" \"government-approved vendor,\" or \"Bilingual Arabic-English environment\" carry additional weight in regional ATS systems." },
       { type: "h2", text: "Why Indian CV Formats Break GCC Parsers" },
       { type: "p", text: "The most common reason Indian professionals score below 50% on UAE ATS systems is not missing keywords — it is broken formatting. Standard Indian bio-data layouts use tables, text boxes, columns, and embedded images. When an ATS parser encounters these elements, it cannot extract the text correctly. The result is a score of zero regardless of your qualifications." },
       { type: "p", text: "A UAE-optimised CV uses a single-column layout, standard section headings (Work Experience, Education, Skills — not \"My Journey\" or \"Professional Portfolio\"), and ATS-safe fonts like Arial, Calibri, or Georgia at 10-12pt. No graphics. No icons next to skills. No progress bars showing expertise levels. These elements look impressive to humans but are invisible or harmful to parsers." },
@@ -92,7 +92,7 @@ const rawPosts = [
     image: "https://images.unsplash.com/photo-1611944212129-29977ae1398c?w=800",
   },
   {
-    title: "Banking Jobs in UAE: What ADIB and FAB Actually Want",
+    title: "Banking Jobs in UAE: What Top UAE Banks Actually Want",
     author: "@CVPassportTeam",
     date: "Tuesday, 17 Mar 2026",
     readTime: "7 min read",
