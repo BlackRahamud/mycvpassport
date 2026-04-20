@@ -190,6 +190,12 @@
   gap: 32px;
 }
 
+.blog-card-link {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
 .blog-card {
   background: transparent;
   display: flex;
