@@ -1018,7 +1018,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         }
         .lp-footer-trust {
           display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-          font-size: 11px; color: #555; margin-top: 16px;
+          font-size: 12px; font-weight: 500; color: #FFFFFF; opacity: 1; margin-top: 16px;
         }
 
         .lp-footer-disclaimer { text-align: center; padding: 24px; border-top: 1px solid var(--border-default); }
@@ -2248,19 +2248,19 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
             {/* Trust row */}
             <div className="lp-footer-trust">
+              <span>Apple Pay</span>
+              <span>&middot;</span>
               <span>Ziina</span>
               <span>&middot;</span>
               <span>Visa</span>
               <span>&middot;</span>
               <span>Mastercard</span>
               <span>&middot;</span>
-              <span>Supabase</span>
-              <span>&middot;</span>
               <span>Operated by JMK, Dubai UAE</span>
             </div>
             <div className="lp-site-footer-row2">
               <p>&copy; 2026 CVPassport. All rights reserved.</p>
-              <p>Payments by Ziina &middot; Infrastructure by Supabase</p>
+              <p>Payments by Ziina</p>
             </div>
           </div>
         </footer>

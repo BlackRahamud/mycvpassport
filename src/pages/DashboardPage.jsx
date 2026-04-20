@@ -7,6 +7,7 @@ import CVPassportLogo from "../components/CVPassportLogo";
 import NewCvLobby from "../components/NewCvLobby";
 import { TEMPLATES, getStrength } from "../cvShared";
 import { supabase } from "../appSupabaseClient";
+import { loadUserResumes } from "../resumeDb";
 import "./DashboardPage.css";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -172,7 +173,7 @@ export default function DashboardPage({
   user,
   isPro = false,
   profile,
-  resumeList = [],
+  resumeList: resumeListProp = [],
   onBuildResume = () => {},
   onEditResume = () => {},
   onDelete = null,
@@ -180,6 +181,29 @@ export default function DashboardPage({
   onWalkIn = () => {},
   onTemplates = () => {},
 }) {
+  const [resumeList, setResumeList] = useState(resumeListProp);
+
+  useEffect(() => { setResumeList(resumeListProp); }, [resumeListProp]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let cancelled = false;
+    const refetch = async () => {
+      try {
+        const data = await loadUserResumes(user.id);
+        if (!cancelled) setResumeList(data || []);
+      } catch (err) {
+        console.error("[Dashboard] refetch failed", err);
+      }
+    };
+    refetch();
+    const onVis = () => { if (document.visibilityState === "visible") refetch(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [user?.id]);
   const navigate = useNavigate();
   const location = useLocation();
   const fabRouteTab = location.state?.fabGuideTab === "account" ? "account" : "mycvs";
@@ -780,7 +804,8 @@ export default function DashboardPage({
                     </span>
                   </div>
                   {resumeList.slice(0, 3).map((r, idx) => {
-                    const title = r?.title || r?.cv_data?.personalInfo?.fullName || r?.cv_data?.name || r?.name || "My CV";
+                    const rawTitle = r?.title || r?.cv_data?.personalInfo?.fullName || r?.cv_data?.name || r?.name || "My CV";
+                    const title = rawTitle.length > 20 ? `${rawTitle.slice(0, 20)}…` : rawTitle;
                     const strength = getStrength(r?.cv_data || r);
                     const isLast = idx === Math.min(2, resumeList.length - 1);
                     return (
@@ -810,7 +835,7 @@ export default function DashboardPage({
                           <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, width: "70%" }} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: "#bbb", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#bbb", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{title}</div>
                           <div style={{ fontSize: 11, color: "#2a2a2a", marginTop: 2 }}>{timeAgo(r?.updated_at)}</div>
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: scoreColor(strength), flexShrink: 0 }}>

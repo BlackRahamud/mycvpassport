@@ -143,7 +143,6 @@ function buildTemplateSummaryLines(resume) {
  */
 function pickContentIdleNudge(resume) {
   if (resume == null || typeof resume !== "object") return null;
-  const progress = computeCvProgress(resume);
   const summaryEmpty = String(resume.summary ?? "").trim().length === 0;
   const noExp = !Array.isArray(resume.experience) || resume.experience.length === 0;
   const skillsWeak = skillsCountFromResume(resume) < 3;
@@ -170,15 +169,6 @@ function pickContentIdleNudge(resume) {
       message: "Add skills to pass ATS filters",
       ctaLabel: "Add skills",
       navKey: "skills",
-    };
-  }
-  if (progress.percent >= 80) {
-    return {
-      kind: "nudge-ats",
-      message: "Almost done! Check your ATS score",
-      ctaLabel: "View ATS score",
-      navKey: null,
-      atsCta: true,
     };
   }
   return null;
