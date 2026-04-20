@@ -706,8 +706,8 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
     textPrimary:  '#FFFFFF',
     textSecondary:'#A0A0A0',
     border:       '#2A2A2A',
-    navBg:        'rgba(10,10,10,0.92)',
-    navBorder:    '#1E1E1E',
+    navBg:        'rgba(10,10,10,0.6)',
+    navBorder:    'rgba(255,255,255,0.08)',
     btnPrimary:   '#FFFFFF',
     btnPrimaryTxt:'#000000',
     btnGhostBorder:'#333333',
@@ -822,14 +822,15 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         /* Hover states */
         .lp-btn:hover      { opacity: 0.85; transform: translateY(-1px); }
         .lp-ghost-btn:hover{ opacity: 0.75; }
-        .lp-nav-link:hover { color: #fff !important; }
+        .lp-nav-link:hover,
+        .lp-nav-link.is-active { background: rgba(255,255,255,0.1) !important; color: #FFFFFF !important; }
         .lp-card:hover     { border-color: ${isDark ? 'rgba(255,255,255,0.14)' : '#BBBBBB'} !important; transform: translateY(-2px); }
         .lp-theme-btn:hover{ opacity: 0.8; }
 
         /* Transitions */
         .lp-btn       { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-ghost-btn { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
-        .lp-nav-link  { transition: color 0.2s cubic-bezier(0.4,0,0.2,1); }
+        .lp-nav-link  { transition: background 0.2s ease, color 0.2s ease; }
         .lp-card      { transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-theme-btn { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1); }
 
@@ -1113,13 +1114,15 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           <div
             className="lp-nav-center"
             style={{
-              display:        'flex',
-              alignItems:     'center',
-              gap:            '2px',
-              background:     isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-              border:         `1px solid ${T.border}`,
-              borderRadius:   '100px',
-              padding:        '5px 10px',
+              display:              'flex',
+              alignItems:           'center',
+              gap:                  '2px',
+              background:           isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+              border:               `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : T.border}`,
+              borderRadius:         '100px',
+              padding:              '6px 8px',
+              backdropFilter:       'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
             }}
           >
             {['Templates', 'ATS Check', 'Free Tools', 'Pricing'].map(item => (
@@ -1129,12 +1132,12 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 className="lp-nav-link"
                 onClick={() => handleLandingNav(item)}
                 style={{
-                  background:   'none',
+                  background:   'transparent',
                   border:       'none',
-                  color:        T.textSecondary,
-                  fontSize:     '13px',
-                  fontWeight:   '500',
-                  padding:      '6px 14px',
+                  color:        isDark ? '#A0A0A0' : T.textSecondary,
+                  fontSize:     '14px',
+                  fontWeight:   500,
+                  padding:      '6px 16px',
                   borderRadius: '100px',
                   cursor:       'pointer',
                   fontFamily:   'inherit',
