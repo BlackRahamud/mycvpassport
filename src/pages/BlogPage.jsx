@@ -5,7 +5,7 @@ import "./BlogPage.css";
 const POSTS = [
   {
     title: "Should You Put Passport Details on Your UAE CV?",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "Most Indian professionals make this mistake on their UAE CV. Here's what ATS systems actually want.",
     badges: [{ label: "UAE Jobs", tone: "purple" }, { label: "ATS Tips", tone: "blue" }],
@@ -13,7 +13,7 @@ const POSTS = [
   },
   {
     title: "ATS Score Guide for GCC Jobs: What Recruiters See",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "We scanned 500 CVs through UAE ATS systems. Here's exactly what kills your score.",
     badges: [{ label: "ATS", tone: "purple" }, { label: "Research", tone: "pink" }],
@@ -21,7 +21,7 @@ const POSTS = [
   },
   {
     title: "Salary Switcher: AED to INR — What Your Offer Really Means",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "Before you accept that AED 8,000 offer, run these numbers.",
     badges: [{ label: "Salary", tone: "green" }, { label: "UAE", tone: "purple" }],
@@ -29,7 +29,7 @@ const POSTS = [
   },
   {
     title: "How to Beat the LinkedIn ATS in 2024",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "LinkedIn's algorithm is different from job portal ATS. Here's how to optimise for both.",
     badges: [{ label: "LinkedIn", tone: "blue" }, { label: "ATS", tone: "purple" }],
@@ -37,7 +37,7 @@ const POSTS = [
   },
   {
     title: "Banking Jobs in UAE: What ADIB and FAB Actually Want",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "Applied to 6 UAE banks. Here's what I learned about their hiring process.",
     badges: [{ label: "Banking", tone: "slate" }, { label: "UAE Jobs", tone: "purple" }],
@@ -45,7 +45,7 @@ const POSTS = [
   },
   {
     title: "Walk-In Interview Guide: Dubai 2024",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "Walk-in interviews are still a thing in Dubai. Here's how to show up and stand out.",
     badges: [{ label: "Interviews", tone: "orange" }, { label: "Dubai", tone: "purple" }],
@@ -53,7 +53,7 @@ const POSTS = [
   },
   {
     title: "Cover Letter for UAE Jobs: What Works in 2024",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "UAE recruiters read cover letters differently. This template gets responses.",
     badges: [{ label: "Cover Letter", tone: "pink" }, { label: "UAE", tone: "purple" }],
@@ -61,7 +61,7 @@ const POSTS = [
   },
   {
     title: "Indian CV vs UAE CV: Key Differences",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "Your Indian CV format will get rejected in the UAE. Here's exactly what to change.",
     badges: [{ label: "CV Tips", tone: "green" }, { label: "India", tone: "purple" }],
@@ -69,7 +69,7 @@ const POSTS = [
   },
   {
     title: "GCC Job Market 2024: Where the Opportunities Are",
-    author: "Junaid Khan",
+    author: "@CVPassportTeam",
     date: "Sunday, 1 Jan 2024",
     excerpt: "Saudi, Qatar, Bahrain — which GCC market is hottest for Indian professionals right now.",
     badges: [{ label: "GCC", tone: "blue" }, { label: "Career", tone: "purple" }],
@@ -169,7 +169,6 @@ export default function BlogPage() {
         <div className="blog-hero__inner">
           <h1 className="blog-hero__title">THE BLOG</h1>
           <div className="blog-hero__art">
-            <div className="blog-hero__glow" aria-hidden />
             <img
               src="/images/blog/passport-mockup.png"
               alt="CVPassport passport mockup"

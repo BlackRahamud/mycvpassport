@@ -136,23 +136,25 @@
 }
 
 .blog-hero__art {
+  background: #090D1F;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 320px;
+  overflow: hidden;
+  min-height: 420px;
+  width: 100%;
+  height: 100%;
 }
 
-.blog-hero__glow {
+.blog-hero__art::before {
+  content: '';
   position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    55% 55% at 50% 50%,
-    rgba(217, 119, 6, 0.55) 0%,
-    rgba(245, 158, 11, 0.28) 35%,
-    rgba(217, 119, 6, 0) 72%
-  );
-  filter: blur(36px);
+  width: 400px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(180, 130, 40, 0.2) 0%, transparent 70%);
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  filter: blur(40px);
   pointer-events: none;
   z-index: 0;
 }
@@ -160,12 +162,11 @@
 .blog-hero__passport {
   position: relative;
   z-index: 1;
-  max-width: 100%;
-  width: min(100%, 460px);
-  height: auto;
-  display: block;
   mix-blend-mode: multiply;
-  filter: contrast(1.05) saturate(1.1);
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* ---------- Section containers ---------- */
