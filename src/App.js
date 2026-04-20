@@ -26,6 +26,7 @@ import ApplicationsPage from "./pages/ApplicationsPage";
 import LinkedInOptimizer from "./pages/LinkedInOptimizer";
 import SalarySwitcher from "./pages/SalarySwitcher";
 import ToolsPage from "./pages/ToolsPage";
+import BlogPage from "./pages/BlogPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 
@@ -235,6 +236,7 @@ export default function App() {
               <Route path="/linkedin-optimizer" element={<LinkedInOptimizer />} />
               <Route path="/salary-switcher" element={<SalarySwitcher />} />
               <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/blog" element={<BlogPage />} />
               <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} profile={profile} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
               <Route path="/templates" element={<TemplatesBrowseLayout />} />
               <Route path="/terms" element={<TermsPage />} />
