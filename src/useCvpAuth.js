@@ -169,7 +169,7 @@ export function useCvpAuth() {
       })();
       return;
     }
-    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates", "/hr", "/dashboard/applications", "/linkedin-optimizer", "/terms", "/privacy", "/refund"].includes(clean) && !clean.startsWith("/jobs/")) {
+    if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates", "/tools", "/hr", "/dashboard/applications", "/linkedin-optimizer", "/terms", "/privacy", "/refund"].includes(clean) && !clean.startsWith("/jobs/")) {
       navigate("/dashboard", { replace: true });
     }
   }, [authReady, user, location.pathname, navigate, runPostAuthNavigate]);

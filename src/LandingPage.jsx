@@ -1123,6 +1123,9 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               padding:              '6px 8px',
               backdropFilter:       'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
+              boxShadow:            isDark
+                ? 'inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)'
+                : 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.05)',
             }}
           >
             {['Templates', 'ATS Check', 'Free Tools', 'Pricing'].map(item => (

@@ -7,11 +7,12 @@ import { getFabMemory } from "../components/FAB/FABLogic";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
-export default function ATSPage({ onBack }) {
+export default function ATSPage() {
   const navigate = useNavigate();
   const enteredAtRef = useRef(typeof Date !== "undefined" ? Date.now() : 0);
   const [showCoverLetterJourney, setShowCoverLetterJourney] = useState(false);
 
+  const handleBackToLanding = useCallback(() => navigate("/"), [navigate]);
   const handleResultsVisible = useCallback(() => {}, []);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function ATSPage({ onBack }) {
         <meta property="og:locale" content="en_AE" />
       </Helmet>
     <div style={{ position: "relative", background: "#0A0A0A", minHeight: "100vh" }}>
-      <ATSChecker onBack={onBack} detectRole={detectRole} onResultsVisible={handleResultsVisible} />
+      <ATSChecker onBack={handleBackToLanding} detectRole={detectRole} onResultsVisible={handleResultsVisible} />
 
       {showCoverLetterJourney ? (
         <div
