@@ -791,9 +791,48 @@ export default function LinkedInOptimizer() {
         </div>
 
         <div className="lio-trust">
-          <span>OpenAI-class model</span>
-          <span>Private — your text never trains a public model</span>
-          <span>Ziina · Tabby · UPI</span>
+          <span className="lio-trust-item lio-trust-claude">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                fill="#FFFFFF"
+                d="M5.6 17.5L11 6.5h2L18.4 17.5h-2.1l-1.3-2.7H9l-1.3 2.7H5.6zm4.1-4.4h4.6L12 8.4l-2.3 4.7z"
+              />
+            </svg>
+            <span>POWERED BY ANTHROPIC CLAUDE</span>
+          </span>
+          <span className="lio-trust-item">
+            <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>PRIVATE — YOUR TEXT NEVER TRAINS ANY AI MODEL</span>
+          </span>
+          <span className="lio-trust-item lio-trust-pay">
+            <svg width="32" height="18" viewBox="0 0 44 20" aria-label="Apple Pay" role="img">
+              <rect width="44" height="20" rx="4" fill="#FFFFFF" />
+              <path
+                d="M12.04 7.5c-.28-.35-.76-.65-1.25-.63-.06.58.18 1.14.47 1.48.28.34.74.6 1.21.58.08-.55-.18-1.1-.43-1.43zM14.2 13.8c-.26.38-.51.74-.92.75-.4.01-.53-.24-.99-.24-.46 0-.6.23-.98.25-.4.01-.7-.42-.96-.8-.53-.77-.93-2.17-.38-3.12.27-.47.75-.76 1.27-.77.38-.01.74.26.97.26.23 0 .67-.32 1.13-.27.19.01.73.08 1.08.58-.03.02-.64.38-.63 1.12.01.89.79 1.18.8 1.19-.01.03-.12.42-.39.79z"
+                fill="#000"
+              />
+              <text x="17" y="14" fill="#000" fontFamily="Arial, sans-serif" fontSize="10" fontWeight="600">Pay</text>
+            </svg>
+            <img src="/ziina-logo.png" alt="Ziina" style={{ height: 18, width: "auto", display: "block" }} />
+            <svg width="32" height="18" viewBox="0 0 44 20" aria-label="Visa" role="img">
+              <rect width="44" height="20" rx="3" fill="#1A1F71" />
+              <text x="22" y="14" fill="#fff" fontFamily="Arial, sans-serif" fontSize="10" fontWeight="900" textAnchor="middle" letterSpacing="1">VISA</text>
+            </svg>
+            <svg width="32" height="18" viewBox="0 0 44 20" aria-label="Mastercard" role="img">
+              <circle cx="17" cy="10" r="7" fill="#EB001B" />
+              <circle cx="27" cy="10" r="7" fill="#F79E1B" fillOpacity="0.85" />
+            </svg>
+            <svg width="32" height="18" viewBox="0 0 44 20" aria-label="Google Pay" role="img">
+              <rect width="44" height="20" rx="4" fill="#FFFFFF" />
+              <text x="22" y="14" fill="#5F6368" fontFamily="Arial, sans-serif" fontSize="9" fontWeight="700" textAnchor="middle">G Pay</text>
+            </svg>
+            <svg width="36" height="18" viewBox="0 0 48 20" aria-label="UPI" role="img">
+              <rect width="48" height="20" rx="3" fill="#FFFFFF" />
+              <text x="24" y="14" fill="#0F2C5C" fontFamily="Arial, sans-serif" fontSize="10" fontWeight="800" textAnchor="middle" letterSpacing="1">UPI</text>
+            </svg>
+          </span>
         </div>
       </div>
 
@@ -1085,9 +1124,11 @@ const CSS_TEXT = `
 .lio-how-step b { color: var(--text); font-weight: 600; display: block; font-size: 13px; margin-bottom: 2px; }
 
 /* Trust */
-.lio-trust { margin-top: 40px; padding: 20px 0; border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2); display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; font-size: 11px; color: var(--mute); font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; position: relative; z-index: 2; }
-.lio-trust span { display: inline-flex; align-items: center; gap: 8px; }
-.lio-trust span:before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--good); }
+.lio-trust { margin-top: 40px; padding: 14px 32px; background: rgba(255,255,255,0.04); border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; font-size: 13px; font-weight: 600; color: #FFFFFF; font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; position: relative; z-index: 2; }
+.lio-trust .lio-trust-item { display: inline-flex; align-items: center; gap: 8px; color: #FFFFFF; }
+.lio-trust .lio-trust-claude { text-shadow: 0 0 12px rgba(255,255,255,0.3); }
+.lio-trust .lio-trust-pay { gap: 10px; }
+.lio-trust .lio-trust-pay svg, .lio-trust .lio-trust-pay img { display: block; }
 
 /* State mount transition */
 .lio-state-mount { animation: lio-mount .5s var(--ease) both; }
