@@ -1639,7 +1639,53 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 {geo.anxietyKiller}
               </p>
 
-              <PaymentTrustBar style={{ marginTop: 20, alignItems: 'flex-start' }} align="left" />
+              <div
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  marginTop: 20,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="11" rx="2" stroke="white" strokeWidth="1.5" />
+                  <path d="M7 11V7a5 5 0 0110 0v4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <span style={{ fontSize: '12px', fontWeight: 500, color: '#FFFFFF', letterSpacing: '0.05em' }}>
+                  Secure payments via
+                </span>
+
+                <span style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 6, padding: '3px 10px', height: 26, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
+                  <svg width="36" height="16" viewBox="0 0 44 20" aria-label="Apple Pay" role="img">
+                    <rect width="44" height="20" rx="4" fill="#000" />
+                    <path d="M12.04 7.5c-.28-.35-.76-.65-1.25-.63-.06.58.18 1.14.47 1.48.28.34.74.6 1.21.58.08-.55-.18-1.1-.43-1.43zM14.2 13.8c-.26.38-.51.74-.92.75-.4.01-.53-.24-.99-.24-.46 0-.6.23-.98.25-.4.01-.7-.42-.96-.8-.53-.77-.93-2.17-.38-3.12.27-.47.75-.76 1.27-.77.38-.01.74.26.97.26.23 0 .67-.32 1.13-.27.19.01.73.08 1.08.58-.03.02-.64.38-.63 1.12.01.89.79 1.18.8 1.19-.01.03-.12.42-.39.79z" fill="#fff" />
+                    <text x="17" y="14" fill="#fff" fontFamily="Arial, sans-serif" fontSize="10" fontWeight="600">Pay</text>
+                  </svg>
+                </span>
+                <span style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 6, padding: '3px 10px', height: 26, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
+                  <img src="/ziina-logo.png" alt="Ziina" style={{ height: 14, width: 'auto', display: 'block' }} />
+                </span>
+                <span style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 6, padding: '3px 10px', height: 26, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
+                  <svg width="36" height="16" viewBox="0 0 44 20" aria-label="Visa" role="img">
+                    <rect width="44" height="20" rx="3" fill="#1A1F71" />
+                    <text x="22" y="14" fill="#fff" fontFamily="Arial, sans-serif" fontSize="10" fontWeight="900" textAnchor="middle" letterSpacing="1">VISA</text>
+                  </svg>
+                </span>
+                <span style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 6, padding: '3px 10px', height: 26, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
+                  <svg width="36" height="16" viewBox="0 0 44 20" aria-label="Mastercard" role="img">
+                    <circle cx="17" cy="10" r="7" fill="#EB001B" />
+                    <circle cx="27" cy="10" r="7" fill="#F79E1B" fillOpacity="0.85" />
+                  </svg>
+                </span>
+
+                <span style={{ color: '#444', fontSize: 14 }}>·</span>
+                <span style={{ fontSize: '12px', fontWeight: 500, color: '#A0A0A0' }}>
+                  Operated by JMK, Dubai UAE 🇦🇪
+                </span>
+              </div>
             </div>
 
             {/* Right — Bento cards (desktop only) */}
