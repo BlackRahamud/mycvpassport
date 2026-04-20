@@ -1872,10 +1872,13 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             .lp-mini-tools-eyebrow { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; font-weight: 600; color: #D97706; letter-spacing: 0.22em; }
             .lp-mini-tools-title { font-family: 'DM Sans', sans-serif; font-size: clamp(26px, 3.4vw, 40px); font-weight: 800; letter-spacing: -0.025em; line-height: 1.14; color: #fff; margin: 0 auto 14px; max-width: 760px; }
             .lp-mini-tools-sub { font-family: 'DM Sans', sans-serif; font-size: clamp(14px, 1.3vw, 16px); color: #A0A0A0; line-height: 1.5; margin: 0 auto; max-width: 560px; }
-            .lp-mini-tools-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 350px)); gap: 24px; justify-content: center; align-items: stretch; }
+            .lp-mini-tools-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 280px)); gap: 24px; justify-content: center; align-items: stretch; }
             .lp-mini-tools-grid > * { justify-self: center; height: 100%; }
             .lp-mini-tools-ghost { display: block; text-align: center; margin: 32px auto 0; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: #6A6A6A; text-decoration: none; letter-spacing: 0.01em; transition: color 180ms cubic-bezier(0.4,0,0.2,1); }
             .lp-mini-tools-ghost:hover { color: #A0A0A0; }
+            @media (max-width: 1200px) {
+              .lp-mini-tools-grid { grid-template-columns: repeat(2, minmax(0, 320px)); }
+            }
             @media (max-width: 880px) {
               .lp-mini-tools { padding: 56px 18px; }
               .lp-mini-tools-grid { grid-template-columns: 1fr; max-width: 360px; margin: 0 auto; }
@@ -1924,6 +1927,15 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 ring="#1D9E75"
                 bleedRGB="29,158,117"
                 metric={{ type: 'pills', items: ['KSA Market', 'Project Mgmt', 'Golden Visa'] }}
+              />
+              <MiniToolCard
+                to="/blog"
+                glyph="✎"
+                title="Gulf Career Blog"
+                snippet="Stories from the corridor."
+                ring="#B48228"
+                bleedRGB="180,130,40"
+                metric={{ type: 'pills', items: ['UAE Jobs', 'ATS Tips', 'Salary'] }}
               />
             </div>
 
