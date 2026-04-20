@@ -111,21 +111,61 @@
 .blog-hero {
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 48px 112px 64px;
-  display: flex;
+  padding: 64px 112px;
+  overflow: hidden;
+}
+
+.blog-hero__inner {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
   align-items: center;
-  justify-content: center;
+  gap: 48px;
+  max-width: 1440px;
+  margin: 0 auto;
 }
 
 .blog-hero__title {
   font-family: "Inter", sans-serif;
   font-weight: 900;
-  font-size: clamp(80px, 16vw, 220px);
-  line-height: 1;
+  font-size: clamp(80px, 13vw, 200px);
+  line-height: 0.92;
   letter-spacing: -0.04em;
   color: var(--text);
   margin: 0;
-  text-align: center;
+  text-align: left;
+}
+
+.blog-hero__art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.blog-hero__glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    55% 55% at 50% 50%,
+    rgba(217, 119, 6, 0.55) 0%,
+    rgba(245, 158, 11, 0.28) 35%,
+    rgba(217, 119, 6, 0) 72%
+  );
+  filter: blur(36px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blog-hero__passport {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  width: min(100%, 460px);
+  height: auto;
+  display: block;
+  mix-blend-mode: multiply;
+  filter: contrast(1.05) saturate(1.1);
 }
 
 /* ---------- Section containers ---------- */
@@ -546,9 +586,23 @@
     padding: 32px 20px 40px;
   }
 
+  .blog-hero__inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
   .blog-hero__title {
     font-size: clamp(56px, 20vw, 96px);
     letter-spacing: -0.03em;
+    text-align: center;
+  }
+
+  .blog-hero__art {
+    min-height: 220px;
+  }
+
+  .blog-hero__passport {
+    width: min(80%, 320px);
   }
 
   .blog-section {

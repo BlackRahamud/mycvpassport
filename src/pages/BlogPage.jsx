@@ -166,7 +166,17 @@ export default function BlogPage() {
 
       {/* Hero */}
       <section className="blog-hero">
-        <h1 className="blog-hero__title">THE BLOG</h1>
+        <div className="blog-hero__inner">
+          <h1 className="blog-hero__title">THE BLOG</h1>
+          <div className="blog-hero__art">
+            <div className="blog-hero__glow" aria-hidden />
+            <img
+              src="/images/blog/passport-mockup.png"
+              alt="CVPassport passport mockup"
+              className="blog-hero__passport"
+            />
+          </div>
+        </div>
       </section>
 
       {/* Recent blog posts */}
