@@ -14,6 +14,7 @@ import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
 import MiniToolCard, { MINI_TOOL_CSS } from './components/MiniToolCard';
 import MobileNav from './components/navigation/MobileNav';
+import DesktopNav from './components/navigation/DesktopNav';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
 function SunIcon() {
@@ -740,14 +741,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  const handleLandingNav = (item) => {
-    if (item === 'Templates') scrollToLandingSection('templates');
-    else if (item === 'ATS Check') navigate('/ats');
-    else if (item === 'Free Tools') navigate('/tools');
-    else if (item === 'Blog') navigate('/blog');
-    else if (item === 'Pricing') navigate('/pricing');
-  };
-
   return (
     <>
       <Helmet>
@@ -1104,46 +1097,9 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             <CVPassportLogo height={40} />
           </Link>
 
-          {/* Center nav — desktop only */}
-          <div
-            className="lp-nav-center"
-            style={{
-              display:              'flex',
-              alignItems:           'center',
-              gap:                  '2px',
-              background:           isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              border:               `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : T.border}`,
-              borderRadius:         '100px',
-              padding:              '6px 8px',
-              backdropFilter:       'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              boxShadow:            isDark
-                ? 'inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)'
-                : 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.05)',
-            }}
-          >
-            {['Templates', 'ATS Check', 'Free Tools', 'Blog', 'Pricing'].map(item => (
-              <button
-                key={item}
-                type="button"
-                className="lp-nav-link"
-                onClick={() => handleLandingNav(item)}
-                style={{
-                  background:   'transparent',
-                  border:       'none',
-                  color:        isDark ? '#A0A0A0' : T.textSecondary,
-                  fontSize:     '14px',
-                  fontWeight:   500,
-                  padding:      '6px 16px',
-                  borderRadius: '100px',
-                  cursor:       'pointer',
-                  fontFamily:   'inherit',
-                }}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
+          {/* Desktop nav — section-grouped dropdowns (freebie-first).
+              See src/components/navigation/DesktopNav.jsx + src/config/navItems.js. */}
+          <DesktopNav user={user} />
 
           {/* Right actions — desktop only */}
           <div className="lp-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
