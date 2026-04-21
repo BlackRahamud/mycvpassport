@@ -13,6 +13,8 @@ import ATSPreview from './components/marketing/ATSPreview';
 import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
 import MiniToolCard, { MINI_TOOL_CSS } from './components/MiniToolCard';
+import MobileNav from './components/navigation/MobileNav';
+import DesktopNav from './components/navigation/DesktopNav';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
 function SunIcon() {
@@ -108,14 +110,6 @@ function WhatsAppIcon({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-    </svg>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6"/>
     </svg>
   );
 }
@@ -747,14 +741,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  const handleLandingNav = (item) => {
-    if (item === 'Templates') scrollToLandingSection('templates');
-    else if (item === 'ATS Check') navigate('/ats');
-    else if (item === 'Free Tools') navigate('/tools');
-    else if (item === 'Blog') navigate('/blog');
-    else if (item === 'Pricing') navigate('/pricing');
-  };
-
   return (
     <>
       <Helmet>
@@ -1111,46 +1097,9 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             <CVPassportLogo height={40} />
           </Link>
 
-          {/* Center nav — desktop only */}
-          <div
-            className="lp-nav-center"
-            style={{
-              display:              'flex',
-              alignItems:           'center',
-              gap:                  '2px',
-              background:           isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              border:               `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : T.border}`,
-              borderRadius:         '100px',
-              padding:              '6px 8px',
-              backdropFilter:       'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              boxShadow:            isDark
-                ? 'inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)'
-                : 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(0,0,0,0.05)',
-            }}
-          >
-            {['Templates', 'ATS Check', 'Free Tools', 'Blog', 'Pricing'].map(item => (
-              <button
-                key={item}
-                type="button"
-                className="lp-nav-link"
-                onClick={() => handleLandingNav(item)}
-                style={{
-                  background:   'transparent',
-                  border:       'none',
-                  color:        isDark ? '#A0A0A0' : T.textSecondary,
-                  fontSize:     '14px',
-                  fontWeight:   500,
-                  padding:      '6px 16px',
-                  borderRadius: '100px',
-                  cursor:       'pointer',
-                  fontFamily:   'inherit',
-                }}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
+          {/* Desktop nav — section-grouped dropdowns (freebie-first).
+              See src/components/navigation/DesktopNav.jsx + src/config/navItems.js. */}
+          <DesktopNav user={user} />
 
           {/* Right actions — desktop only */}
           <div className="lp-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1321,195 +1270,18 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           </div>
         </nav>
 
-        {/* ── MOBILE MENU (Task 5 — rebuilt hamburger panel) ────── */}
-        {mobileMenuOpen && (
-          <div
-            className="lp-mobile-menu"
-            style={{
-              position:   'fixed',
-              top:        '64px',
-              left:       0,
-              right:      0,
-              bottom:     0,
-              zIndex:     99,
-              background: T.bgSurface,
-              padding:    '24px 20px',
-              display:    'flex',
-              flexDirection: 'column',
-              overflowY:  'auto',
-            }}
-          >
-            {/* Nav links */}
-            {[
-              { label: 'Free Tools', route: '/tools', badge: 'New' },
-              { label: 'Blog', route: '/blog' },
-              { label: 'Templates', route: '/builder?tab=templates' },
-              { label: 'ATS Check', route: '/ats' },
-              { label: 'Job Match', route: '/builder?tab=jobmatch' },
-              { label: 'Cover Letter', route: '/cover-letter' },
-              { label: 'Walk-In Mode', route: '/walkin' },
-              { label: 'Salary Switcher', route: '/salary-switcher', badge: 'Free Tool' },
-            ].map(item => (
-              <button
-                key={item.label}
-                type="button"
-                className="lp-hamburger-link"
-                onClick={() => { closeMobileMenu(); navigate(item.route); }}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  {item.label}
-                  {item.badge && (
-                    <span
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        color: '#1D9E75',
-                        background: 'rgba(29,158,117,0.12)',
-                        border: '1px solid rgba(29,158,117,0.3)',
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                      }}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </span>
-                <ChevronRightIcon />
-              </button>
-            ))}
-
-            {/* Pricing CTA */}
-            <button
-              type="button"
-              onClick={() => { closeMobileMenu(); navigate('/pricing'); }}
-              style={{
-                width: '100%',
-                background: '#111',
-                border: `1px solid ${T.border}`,
-                borderRadius: 12,
-                padding: '16px 20px',
-                fontSize: 15,
-                fontWeight: 600,
-                color: '#fff',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                marginTop: 24,
-                position: 'relative',
-                overflow: 'hidden',
-                textAlign: 'left',
-              }}
-            >
-              <BeamBorder />
-              View Pricing Plans &rarr;
-            </button>
-
-            {/* Auth section */}
-            <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {user ? (
-                <>
-                  <button
-                    onClick={() => { closeMobileMenu(); navigate(avatarDest); }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      background: 'none',
-                      border: `1px solid ${T.border}`,
-                      color: T.textPrimary,
-                      borderRadius: 10,
-                      padding: 13,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <span style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      background: '#1a1a1a',
-                      border: '1px solid rgba(255,179,0,0.3)',
-                      color: '#FFB300',
-                      fontSize: 11,
-                      fontWeight: 500,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      {userInitials}
-                    </span>
-                    Go to {userType === 'recruiter' ? 'Hiring Portal' : 'Dashboard'}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      closeMobileMenu();
-                      if (supabase) await supabase.auth.signOut();
-                      navigate('/');
-                    }}
-                    style={{
-                      padding: '16px 0',
-                      borderTop: '0.5px solid #1a1a1a',
-                      fontSize: 14,
-                      color: 'rgba(160,158,152,0.5)',
-                      cursor: 'pointer',
-                      width: '100%',
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      borderTopStyle: 'solid',
-                      borderTopWidth: '0.5px',
-                      borderTopColor: '#1a1a1a',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    Sign out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => { closeMobileMenu(); onLogin(); }}
-                    style={{
-                      background: 'none',
-                      border: `1px solid ${T.border}`,
-                      color: T.textPrimary,
-                      borderRadius: 10,
-                      padding: 13,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => { closeMobileMenu(); onSignup(); }}
-                    style={{
-                      background: T.btnPrimary,
-                      border: 'none',
-                      color: T.btnPrimaryTxt,
-                      borderRadius: 10,
-                      padding: 13,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Get Started &mdash; Free &rarr;
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Mobile nav drawer — freebie-first sections, routes only real paths.
+            See src/components/navigation/MobileNav.jsx + src/config/navItems.js. */}
+        <MobileNav
+          isOpen={mobileMenuOpen}
+          onClose={closeMobileMenu}
+          user={user}
+          userType={userType}
+          avatarDest={avatarDest}
+          onLogin={onLogin}
+          onSignup={onSignup}
+          onSignOut={onSignOut}
+        />
 
         {/* ── HERO (Task 3) ──────────────────────────────────────── */}
         <section
