@@ -201,31 +201,160 @@ export default function HeroSection() {
         aria-hidden="true"
       >
         <div className="cvp-hero-preview-sheet">
-          <h3
-            style={{
-              fontSize: 22,
+          {(() => {
+            const ink = 'var(--color-surface-00)';
+            const inkMuted = 'var(--color-surface-02)';
+            const sectionLabel = {
+              fontSize: 7,
               fontWeight: 700,
-              letterSpacing: '-0.01em',
-              lineHeight: 1.15,
-              color: 'var(--color-surface-00)',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: inkMuted,
+              opacity: 0.72,
+              margin: '0 0 4px',
+              fontFamily: 'inherit',
+            };
+            const entryTitle = {
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '-0.005em',
+              lineHeight: 1.3,
+              color: ink,
               margin: 0,
               fontFamily: 'inherit',
-            }}
-          >
-            Layla Al-Hashimi
-          </h3>
-          <p
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              lineHeight: 1.5,
-              color: 'var(--color-surface-02)',
-              margin: '8px 0 0',
+            };
+            const entryMeta = {
+              fontSize: 7.5,
+              lineHeight: 1.3,
+              color: inkMuted,
+              opacity: 0.7,
+              margin: '1px 0 2px',
               fontFamily: 'inherit',
-            }}
-          >
-            Senior Marketing Manager · Dubai, UAE
-          </p>
+            };
+            const entryBody = {
+              fontSize: 8,
+              lineHeight: 1.4,
+              color: ink,
+              margin: 0,
+              fontFamily: 'inherit',
+            };
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }}>
+                {/* Header — avatar + identity stack */}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #F3C178 0%, #D97706 100%)',
+                      color: '#0A0A0A',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '-0.01em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontFamily: 'inherit',
+                      flexShrink: 0,
+                    }}
+                  >
+                    LA
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        letterSpacing: '-0.01em',
+                        lineHeight: 1.1,
+                        color: ink,
+                        margin: 0,
+                        fontFamily: 'inherit',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      Layla Al-Hashimi
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 500,
+                        lineHeight: 1.3,
+                        color: ink,
+                        margin: '2px 0 0',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Senior Marketing Manager <span style={{ color: inkMuted, opacity: 0.6 }}>|</span> MENA &amp; GCC
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 7.5,
+                        fontWeight: 400,
+                        lineHeight: 1.3,
+                        color: inkMuted,
+                        opacity: 0.7,
+                        margin: '1px 0 0',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Dubai, UAE
+                    </p>
+                  </div>
+                </div>
+
+                {/* Hairline divider */}
+                <div style={{ height: 1, background: inkMuted, opacity: 0.1 }} />
+
+                {/* Summary */}
+                <div>
+                  <p style={sectionLabel}>Summary</p>
+                  <p style={{ ...entryBody, fontWeight: 500 }}>
+                    8 years scaling Gulf-market brands through data-driven omnichannel growth across UAE and KSA.
+                  </p>
+                </div>
+
+                {/* Experience */}
+                <div>
+                  <p style={sectionLabel}>Experience</p>
+                  <div style={{ marginBottom: 8 }}>
+                    <p style={entryTitle}>Head of Marketing · MENA Digital Group</p>
+                    <p style={entryMeta}>Dubai, UAE · 2022 – Present</p>
+                    <p style={entryBody}>
+                      Drove AED 8M revenue lift and 340% organic growth via programmatic paid media and full-funnel SEO.
+                    </p>
+                  </div>
+                  <div>
+                    <p style={entryTitle}>Marketing Manager · UAE Retail Group</p>
+                    <p style={entryMeta}>Dubai, UAE · 2018 – 2022</p>
+                    <p style={entryBody}>
+                      Delivered AED 2M YoY growth across 6 regional retail lines; launched two brands into KSA.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <p style={sectionLabel}>Skills</p>
+                  <p style={{ ...entryBody, fontSize: 7.5, lineHeight: 1.5 }}>
+                    Omnichannel Strategy · Programmatic Advertising · MENA Market Penetration · Brand Positioning · Stakeholder Management · ROI-Driven Growth
+                  </p>
+                </div>
+
+                {/* Languages — pinned to bottom via marginTop:auto */}
+                <div style={{ marginTop: 'auto' }}>
+                  <p style={sectionLabel}>Languages</p>
+                  <p style={{ ...entryBody, fontSize: 7.5 }}>
+                    English (Fluent) · Arabic (Native)
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </motion.div>
     </section>
