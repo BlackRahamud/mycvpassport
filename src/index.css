@@ -44,6 +44,19 @@ html {
   --nav-z-header: 100;
   --nav-z-drawer: 80;
   --nav-z-scrim: 70;
+
+  /* W18 landing-page tokens — additive, --color-* prefix per
+     [READY]_landing_page_conversion_rewrite_W18.json tokens_required.
+     Existing tokens above are untouched. --radius-md already present
+     at 12px — kept as-is (spec does not mandate a value). */
+  --color-surface-00: #0A0A0A;
+  --color-surface-01: #141414;
+  --color-surface-02: #1D1D1F;
+  --color-border: #2A2A2A;
+  --color-accent: #D97706;
+  --color-text-primary: #F5F5F7;
+  --color-text-secondary: #A0A0A0;
+  --radius-pill: 9999px;
 }
 
 .cvp-theme-light {
