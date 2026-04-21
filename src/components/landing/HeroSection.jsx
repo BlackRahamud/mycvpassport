@@ -10,17 +10,6 @@ const PRIMARY_LABEL = 'Try it free';
 const SECONDARY_LABEL = 'See how it works';
 const PRIMARY_HREF = '/builder';
 
-// Faint amber dots hinting at GhostChip keyword positions.
-// Coordinates chosen to feel like word-level highlights on a CV,
-// not a grid. If a future revision tunes positions, update here.
-const KEYWORD_DOTS = [
-  { top: '17%', left: '30%' },
-  { top: '34%', left: '56%' },
-  { top: '52%', left: '22%' },
-  { top: '63%', left: '62%' },
-  { top: '78%', left: '38%' },
-];
-
 const FADE_UP = {
   hidden: { opacity: 0, y: 24 },
   show: (i = 0) => ({
@@ -174,54 +163,6 @@ export default function HeroSection() {
           box-sizing: border-box;
           overflow: hidden;
         }
-        .cvp-hero-preview-name {
-          width: 60%;
-          height: 14px;
-          background: var(--color-surface-00);
-          opacity: 0.82;
-          border-radius: 3px;
-          margin-bottom: 8px;
-        }
-        .cvp-hero-preview-title-line {
-          width: 40%;
-          height: 8px;
-          background: var(--color-surface-02);
-          opacity: 0.6;
-          border-radius: 2px;
-          margin-bottom: 24px;
-        }
-        .cvp-hero-preview-section { margin-bottom: 18px; }
-        .cvp-hero-preview-heading {
-          width: 30%;
-          height: 9px;
-          background: var(--color-surface-00);
-          opacity: 0.7;
-          border-radius: 2px;
-          margin-bottom: 10px;
-        }
-        .cvp-hero-preview-line {
-          height: 6px;
-          background: var(--color-surface-02);
-          opacity: 0.38;
-          border-radius: 2px;
-          margin-bottom: 6px;
-        }
-        .cvp-hero-preview-line--100 { width: 100%; }
-        .cvp-hero-preview-line--90  { width: 90%; }
-        .cvp-hero-preview-line--85  { width: 85%; }
-        .cvp-hero-preview-line--80  { width: 80%; }
-        .cvp-hero-preview-line--70  { width: 70%; }
-        .cvp-hero-preview-line--60  { width: 60%; }
-        .cvp-hero-preview-dot {
-          position: absolute;
-          width: 8px;
-          height: 8px;
-          background: var(--color-accent);
-          opacity: 0.42;
-          border-radius: var(--radius-pill);
-          transform: translate(-50%, -50%);
-          pointer-events: none;
-        }
       `}</style>
 
       <motion.div
@@ -260,27 +201,31 @@ export default function HeroSection() {
         aria-hidden="true"
       >
         <div className="cvp-hero-preview-sheet">
-          <div className="cvp-hero-preview-name" />
-          <div className="cvp-hero-preview-title-line" />
-          <div className="cvp-hero-preview-section">
-            <div className="cvp-hero-preview-heading" />
-            <div className="cvp-hero-preview-line cvp-hero-preview-line--100" />
-            <div className="cvp-hero-preview-line cvp-hero-preview-line--85" />
-            <div className="cvp-hero-preview-line cvp-hero-preview-line--70" />
-          </div>
-          <div className="cvp-hero-preview-section">
-            <div className="cvp-hero-preview-heading" />
-            <div className="cvp-hero-preview-line cvp-hero-preview-line--90" />
-            <div className="cvp-hero-preview-line cvp-hero-preview-line--60" />
-            <div className="cvp-hero-preview-line cvp-hero-preview-line--80" />
-          </div>
-          {KEYWORD_DOTS.map((pos, i) => (
-            <span
-              key={`dot-${i}`}
-              className="cvp-hero-preview-dot"
-              style={{ top: pos.top, left: pos.left }}
-            />
-          ))}
+          <h3
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              lineHeight: 1.15,
+              color: 'var(--color-surface-00)',
+              margin: 0,
+              fontFamily: 'inherit',
+            }}
+          >
+            Layla Al-Hashimi
+          </h3>
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              lineHeight: 1.5,
+              color: 'var(--color-surface-02)',
+              margin: '8px 0 0',
+              fontFamily: 'inherit',
+            }}
+          >
+            Senior Marketing Manager · Dubai, UAE
+          </p>
         </div>
       </motion.div>
     </section>
