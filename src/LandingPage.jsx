@@ -14,6 +14,10 @@ import ShowSection from './components/landing/ShowSection';
 import FeatureCardGrid from './components/landing/FeatureCardGrid';
 import FoundersNoteSection from './components/landing/FoundersNoteSection';
 import FinalCTASection from './components/landing/FinalCTASection';
+// W18 reinforcements — free-tools bar above the fold and real
+// testimonials row above the Founder's Note.
+import FreeToolsBar from './components/marketing/FreeToolsBar';
+import TestimonialsRow from './components/marketing/TestimonialsRow';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
 function SunIcon() {
@@ -769,8 +773,10 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
         {/* ── W18 LANDING — 5-block conversion layout ───────────── */}
         <HeroSection />
+        <FreeToolsBar />
         <ShowSection />
         <FeatureCardGrid />
+        <TestimonialsRow />
         <FoundersNoteSection />
         <FinalCTASection />
 
@@ -830,7 +836,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
             <div className="lp-site-footer-row1">
               <div>
                 <p className="lp-site-footer-brand-title">CVPassport</p>
-                <p className="lp-site-footer-brand-tag">Built for South Asian job seekers in the Gulf.</p>
+                <p className="lp-site-footer-brand-tag">Built for job seekers in the Gulf.</p>
               </div>
               <nav className="lp-site-footer-cols" aria-label="Footer">
                 <div>
