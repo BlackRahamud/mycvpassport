@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 // iPhone 15 Pro-proportioned frame. Hardware-accurate radii (44/38) and
 // titanium-dark bezel (#1C1C1E). Dynamic Island sits on top of the screen
 // content. No side buttons (omitted per spec).
 //
-// Content: the founder drops a CV image at public/img/layla-cv-template.png.
-// If it's missing, the frame falls back to a styled "CV_PLACEHOLDER" panel
-// so the composition still renders correctly.
+// Content: the CV PNG at public/img/layla-cv-template.png, exported from
+// Figma at 516×1168 (2× the 258×584 screen area). Mounted edge-to-edge
+// with object-fit: cover so the screen fills without letterbox.
 
 const DEFAULT_SRC = '/img/layla-cv-template.png';
 
@@ -16,7 +16,6 @@ export default function IPhoneFrame({
   className,
   style,
 }) {
-  const [imgFailed, setImgFailed] = useState(false);
   const rootClass = className ? `cvp-iphone-frame ${className}` : 'cvp-iphone-frame';
 
   return (
@@ -59,49 +58,22 @@ export default function IPhoneFrame({
           z-index: 2;
           pointer-events: none;
         }
-        .cvp-iphone-content {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          object-position: top center;
-          background: #ffffff;
-          display: block;
-          border-radius: 38px;
-        }
-        .cvp-iphone-placeholder {
-          width: 100%;
-          height: 100%;
-          background: #f5f5f5;
-          border-radius: 38px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.18em;
-          color: #6E6E73;
-          text-align: center;
-          padding: 24px;
-          box-sizing: border-box;
-        }
       `}</style>
 
       <div className="cvp-iphone-screen">
         <div className="cvp-iphone-island" aria-hidden="true" />
-        {imgFailed ? (
-          <div className="cvp-iphone-placeholder" role="img" aria-label={alt}>
-            CV_PLACEHOLDER
-          </div>
-        ) : (
-          <img
-            className="cvp-iphone-content"
-            src={src}
-            alt={alt}
-            onError={() => setImgFailed(true)}
-            draggable="false"
-          />
-        )}
+        <img
+          src={src}
+          alt={alt}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'top center',
+            borderRadius: '38px',
+            display: 'block',
+          }}
+        />
       </div>
     </div>
   );
