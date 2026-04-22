@@ -212,7 +212,7 @@ function scoreColor(v) {
   return "#4ADE80";
 }
 
-function PremiumScoreCircle({ score }) {
+export function PremiumScoreCircle({ score }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     let cancelled = false;

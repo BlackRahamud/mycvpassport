@@ -57,7 +57,7 @@ export default function HeroSection() {
           margin: 0 auto;
           padding: 96px 24px 120px;
           display: grid;
-          grid-template-columns: 3fr 2fr;
+          grid-template-columns: 1fr 1.4fr;
           gap: 48px;
           align-items: center;
           color: var(--color-text-primary);
