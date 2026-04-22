@@ -2,13 +2,17 @@ import React, { useCallback } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
-// V8 copy — Founder-locked 2026-04-21 in
-// /3-MARKETING/GhostChip/[READY]_ghostchip_one_liner.md. Do not paraphrase.
-const H1 = "Built to pass the filter you can't see.";
-const H2 = 'GhostChip injects the ATS keywords your CV needs — invisibly. You write the story. We handle the scan.';
+// W18 copy rewrite v2 — Founder-locked 2026-04-22 in
+// /5-HANDOFF/[READY]_hero_headline_rewrite_W18.json. Do not paraphrase.
+const H1 = 'Get More Interviews.';
+const H2 = 'Same experience. Better CV.';
+const SUB =
+  "Across the Gulf and India, qualified candidates are filtered out every day — not because they're underqualified, but because their CV wasn't built to pass the system that reads it first. CVPassport fixes that.";
 const PRIMARY_LABEL = 'Try it free';
 const SECONDARY_LABEL = 'See how it works';
-const PRIMARY_HREF = '/builder';
+const PRIMARY_HREF = '/ats';
+const TRUST_LINE_1 = 'Free to start. No signup required.';
+const TRUST_LINE_2 = 'Used across UAE, India & beyond.';
 
 const FADE_UP = {
   hidden: { opacity: 0, y: 24 },
@@ -68,32 +72,76 @@ export default function HeroSection() {
           }
         }
         .cvp-hero-h1 {
-          font-size: clamp(36px, 5.4vw, 60px);
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          line-height: 1.05;
+          font-size: 64px;
+          font-weight: 510;
+          letter-spacing: -1.408px;
+          line-height: 1.0;
           margin: 0;
           color: var(--color-text-primary);
           font-family: inherit;
         }
         .cvp-hero-h2 {
-          font-size: clamp(16px, 1.6vw, 19px);
+          font-size: 48px;
+          font-weight: 510;
+          letter-spacing: -1.056px;
+          line-height: 1.0;
+          margin: 16px 0 0;
+          color: var(--color-text-primary);
+          font-family: inherit;
+        }
+        .cvp-hero-sub {
+          font-size: 17px;
           font-weight: 400;
-          line-height: 1.6;
+          letter-spacing: -0.374px;
+          line-height: 1.47;
           color: var(--color-text-secondary);
-          margin: 24px 0 0;
-          max-width: 560px;
+          margin: 32px 0 0;
+          max-width: 520px;
           font-family: inherit;
         }
         @media (max-width: 900px) {
-          .cvp-hero-h2 { margin-left: auto; margin-right: auto; }
+          .cvp-hero-h1 {
+            font-size: 40px;
+            letter-spacing: -0.880px;
+          }
+          .cvp-hero-h2 {
+            font-size: 32px;
+            letter-spacing: -0.640px;
+          }
+          .cvp-hero-sub {
+            font-size: 16px;
+            letter-spacing: -0.176px;
+            margin-left: auto;
+            margin-right: auto;
+          }
         }
         .cvp-hero-ctas {
-          display: flex; flex-wrap: wrap; gap: 12px;
-          margin-top: 40px;
+          display: flex; flex-wrap: wrap; gap: 16px;
+          margin-top: 32px;
         }
         @media (max-width: 900px) {
           .cvp-hero-ctas { justify-content: center; }
+        }
+        @media (max-width: 640px) {
+          .cvp-hero-ctas { flex-direction: column; align-items: stretch; }
+        }
+        .cvp-hero-trust {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 24px;
+        }
+        .cvp-hero-trust-line {
+          font-size: 14px;
+          font-weight: 500;
+          letter-spacing: 0;
+          line-height: 1.4;
+          color: var(--color-text-secondary);
+          margin: 0;
+          font-family: inherit;
+        }
+        @media (max-width: 900px) {
+          .cvp-hero-trust { align-items: center; }
         }
         .cvp-hero-cta-primary {
           background: var(--color-accent);
@@ -174,10 +222,13 @@ export default function HeroSection() {
         <motion.h1 id="cvp-hero-h1" className="cvp-hero-h1" variants={variants} custom={0}>
           {H1}
         </motion.h1>
-        <motion.p className="cvp-hero-h2" variants={variants} custom={1}>
+        <motion.h2 className="cvp-hero-h2" variants={variants} custom={1}>
           {H2}
+        </motion.h2>
+        <motion.p className="cvp-hero-sub" variants={variants} custom={2}>
+          {SUB}
         </motion.p>
-        <motion.div className="cvp-hero-ctas" variants={variants} custom={2}>
+        <motion.div className="cvp-hero-ctas" variants={variants} custom={3}>
           <button type="button" className="cvp-hero-cta-primary" onClick={onPrimary}>
             {PRIMARY_LABEL}
           </button>
@@ -188,6 +239,10 @@ export default function HeroSection() {
           >
             {SECONDARY_LABEL}
           </a>
+        </motion.div>
+        <motion.div className="cvp-hero-trust" variants={variants} custom={4}>
+          <p className="cvp-hero-trust-line">{TRUST_LINE_1}</p>
+          <p className="cvp-hero-trust-line">{TRUST_LINE_2}</p>
         </motion.div>
       </motion.div>
 
