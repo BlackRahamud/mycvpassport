@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import HeroDualTablet from '../marketing/HeroDualTablet';
 
 // W18 copy rewrite v2 — Founder-locked 2026-04-22 in
 // /5-HANDOFF/[READY]_hero_headline_rewrite_W18.json. Do not paraphrase.
@@ -56,7 +57,7 @@ export default function HeroSection() {
           margin: 0 auto;
           padding: 96px 24px 120px;
           display: grid;
-          grid-template-columns: 3fr 2fr;
+          grid-template-columns: 1fr 1.4fr;
           gap: 48px;
           align-items: center;
           color: var(--color-text-primary);
@@ -193,23 +194,12 @@ export default function HeroSection() {
           .cvp-hero-cta-primary:active { transform: none; }
         }
 
-        .cvp-hero-preview {
-          position: relative;
-          aspect-ratio: 3 / 4;
-          max-width: 360px;
-          margin: 0 auto;
-          width: 100%;
-        }
-        .cvp-hero-preview-sheet {
+        .cvp-hero-visual {
           position: relative;
           width: 100%;
-          height: 100%;
-          background: var(--color-text-primary);
-          border-radius: var(--radius-md);
-          border: 1px solid var(--color-border);
-          padding: 28px 24px;
-          box-sizing: border-box;
-          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
       `}</style>
 
@@ -247,7 +237,7 @@ export default function HeroSection() {
       </motion.div>
 
       <motion.div
-        className="cvp-hero-preview"
+        className="cvp-hero-visual"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={reduce
@@ -255,162 +245,7 @@ export default function HeroSection() {
           : { duration: 0.48, delay: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
         aria-hidden="true"
       >
-        <div className="cvp-hero-preview-sheet">
-          {(() => {
-            const ink = 'var(--color-surface-00)';
-            const inkMuted = 'var(--color-surface-02)';
-            const sectionLabel = {
-              fontSize: 7,
-              fontWeight: 700,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: inkMuted,
-              opacity: 0.72,
-              margin: '0 0 4px',
-              fontFamily: 'inherit',
-            };
-            const entryTitle = {
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '-0.005em',
-              lineHeight: 1.3,
-              color: ink,
-              margin: 0,
-              fontFamily: 'inherit',
-            };
-            const entryMeta = {
-              fontSize: 7.5,
-              lineHeight: 1.3,
-              color: inkMuted,
-              opacity: 0.7,
-              margin: '1px 0 2px',
-              fontFamily: 'inherit',
-            };
-            const entryBody = {
-              fontSize: 8,
-              lineHeight: 1.4,
-              color: ink,
-              margin: 0,
-              fontFamily: 'inherit',
-            };
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }}>
-                {/* Header — avatar + identity stack */}
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #F3C178 0%, #D97706 100%)',
-                      color: '#0A0A0A',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: '-0.01em',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontFamily: 'inherit',
-                      flexShrink: 0,
-                    }}
-                  >
-                    LA
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        letterSpacing: '-0.01em',
-                        lineHeight: 1.1,
-                        color: ink,
-                        margin: 0,
-                        fontFamily: 'inherit',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      Layla Al-Hashimi
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: 8,
-                        fontWeight: 500,
-                        lineHeight: 1.3,
-                        color: ink,
-                        margin: '2px 0 0',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      Senior Marketing Manager <span style={{ color: inkMuted, opacity: 0.6 }}>|</span> MENA &amp; GCC
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 7.5,
-                        fontWeight: 400,
-                        lineHeight: 1.3,
-                        color: inkMuted,
-                        opacity: 0.7,
-                        margin: '1px 0 0',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      Dubai, UAE
-                    </p>
-                  </div>
-                </div>
-
-                {/* Hairline divider */}
-                <div style={{ height: 1, background: inkMuted, opacity: 0.1 }} />
-
-                {/* Summary */}
-                <div>
-                  <p style={sectionLabel}>Summary</p>
-                  <p style={{ ...entryBody, fontWeight: 500 }}>
-                    8 years scaling Gulf-market brands through data-driven omnichannel growth across UAE and KSA.
-                  </p>
-                </div>
-
-                {/* Experience */}
-                <div>
-                  <p style={sectionLabel}>Experience</p>
-                  <div style={{ marginBottom: 8 }}>
-                    <p style={entryTitle}>Head of Marketing · MENA Digital Group</p>
-                    <p style={entryMeta}>Dubai, UAE · 2022 – Present</p>
-                    <p style={entryBody}>
-                      Drove AED 8M revenue lift and 340% organic growth via programmatic paid media and full-funnel SEO.
-                    </p>
-                  </div>
-                  <div>
-                    <p style={entryTitle}>Marketing Manager · UAE Retail Group</p>
-                    <p style={entryMeta}>Dubai, UAE · 2018 – 2022</p>
-                    <p style={entryBody}>
-                      Delivered AED 2M YoY growth across 6 regional retail lines; launched two brands into KSA.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Skills */}
-                <div>
-                  <p style={sectionLabel}>Skills</p>
-                  <p style={{ ...entryBody, fontSize: 7.5, lineHeight: 1.5 }}>
-                    Omnichannel Strategy · Programmatic Advertising · MENA Market Penetration · Brand Positioning · Stakeholder Management · ROI-Driven Growth
-                  </p>
-                </div>
-
-                {/* Languages — pinned to bottom via marginTop:auto */}
-                <div style={{ marginTop: 'auto' }}>
-                  <p style={sectionLabel}>Languages</p>
-                  <p style={{ ...entryBody, fontSize: 7.5 }}>
-                    English (Fluent) · Arabic (Native)
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+        <HeroDualTablet />
       </motion.div>
     </section>
   );

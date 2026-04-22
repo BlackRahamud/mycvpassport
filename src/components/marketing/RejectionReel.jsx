@@ -120,7 +120,7 @@ function LiveCounter({ base, perSec }) {
 }
 
 /* ── Main ─────────────────────────────────────────────────────────── */
-export default function RejectionReel() {
+export default function RejectionReel({ compact = false }) {
   const navigate = useNavigate();
   const poolRef = useRef(null);
   const [rows, setRows] = useState([]); // [{c, state, id, age}]
@@ -168,57 +168,72 @@ export default function RejectionReel() {
   const rejectedIn7 = rows.filter((r) => r.state === "rejected").length;
 
   return (
-    <section className="rr-section" aria-label="The silent CV rejection reel">
+    <section
+      className="rr-section"
+      aria-label="The silent CV rejection reel"
+      style={compact ? { padding: 0, background: "transparent", minHeight: 0 } : undefined}
+    >
       <style>{CSS_TEXT}</style>
 
-      {/* Ambient */}
-      <div aria-hidden className="rr-bg-grid" />
-      <div aria-hidden className="rr-bg-vignette" />
-      <div aria-hidden className="rr-bg-scanline" />
+      {!compact && (
+        <>
+          {/* Ambient */}
+          <div aria-hidden className="rr-bg-grid" />
+          <div aria-hidden className="rr-bg-vignette" />
+          <div aria-hidden className="rr-bg-scanline" />
+        </>
+      )}
 
-      <div className="rr-wrap">
-        {/* ── Header ───────────────────────────────────────────── */}
-        <header className="rr-header">
-          <div className="rr-tag-line">
-            <span className="rr-tag-pulse" aria-hidden />
-            <span className="rr-mono rr-tag-live">LIVE · DUBAI / MUMBAI / BENGALURU FEED</span>
-          </div>
-          <h2 className="rr-title">
-            <span className="rr-title-strong">Right now,</span>
-            <span className="rr-title-main">a CV is being rejected</span>
-            <span className="rr-title-main"><span className="rr-underline">before anyone reads it.</span></span>
-          </h2>
-          <p className="rr-subtitle">
-            Every minute, hundreds of applications across the GCC and India get filtered out by ATS software. No rejection email. No feedback. <span className="rr-sub-strong">Just silence.</span>
-          </p>
-        </header>
+      <div
+        className="rr-wrap"
+        style={compact ? { margin: 0, maxWidth: "none", padding: 0 } : undefined}
+      >
+        {!compact && (
+          <>
+            {/* ── Header ───────────────────────────────────────────── */}
+            <header className="rr-header">
+              <div className="rr-tag-line">
+                <span className="rr-tag-pulse" aria-hidden />
+                <span className="rr-mono rr-tag-live">LIVE · DUBAI / MUMBAI / BENGALURU FEED</span>
+              </div>
+              <h2 className="rr-title">
+                <span className="rr-title-strong">Right now,</span>
+                <span className="rr-title-main">a CV is being rejected</span>
+                <span className="rr-title-main"><span className="rr-underline">before anyone reads it.</span></span>
+              </h2>
+              <p className="rr-subtitle">
+                Every minute, hundreds of applications across the GCC and India get filtered out by ATS software. No rejection email. No feedback. <span className="rr-sub-strong">Just silence.</span>
+              </p>
+            </header>
 
-        {/* ── Stat bar ─────────────────────────────────────────── */}
-        <div className="rr-statbar">
-          <div className="rr-stat">
-            <span className="rr-mono rr-stat-label rr-stat-label-primary">REJECTED TODAY · GCC + IN</span>
-            <div className="rr-stat-num-row">
-              <LiveCounter base={214673} perSec={2.3} />
-              <span className="rr-stat-trend">▲ 4.8% WoW</span>
+            {/* ── Stat bar ─────────────────────────────────────────── */}
+            <div className="rr-statbar">
+              <div className="rr-stat">
+                <span className="rr-mono rr-stat-label rr-stat-label-primary">REJECTED TODAY · GCC + IN</span>
+                <div className="rr-stat-num-row">
+                  <LiveCounter base={214673} perSec={2.3} />
+                  <span className="rr-stat-trend">▲ 4.8% WoW</span>
+                </div>
+              </div>
+              <div className="rr-stat-sep" />
+              <div className="rr-stat rr-stat-mid">
+                <span className="rr-mono rr-stat-label">NEVER REACH A HUMAN</span>
+                <div className="rr-stat-num-row">
+                  <span className="rr-counter-num">75<span className="rr-pct">%</span></span>
+                  <span className="rr-stat-note">of all applications</span>
+                </div>
+              </div>
+              <div className="rr-stat-sep" />
+              <div className="rr-stat">
+                <span className="rr-mono rr-stat-label">AVG SECONDS TO REJECT</span>
+                <div className="rr-stat-num-row">
+                  <span className="rr-counter-num">7.4<span className="rr-pct">s</span></span>
+                  <span className="rr-stat-note">automated scan</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="rr-stat-sep" />
-          <div className="rr-stat rr-stat-mid">
-            <span className="rr-mono rr-stat-label">NEVER REACH A HUMAN</span>
-            <div className="rr-stat-num-row">
-              <span className="rr-counter-num">75<span className="rr-pct">%</span></span>
-              <span className="rr-stat-note">of all applications</span>
-            </div>
-          </div>
-          <div className="rr-stat-sep" />
-          <div className="rr-stat">
-            <span className="rr-mono rr-stat-label">AVG SECONDS TO REJECT</span>
-            <div className="rr-stat-num-row">
-              <span className="rr-counter-num">7.4<span className="rr-pct">s</span></span>
-              <span className="rr-stat-note">automated scan</span>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
 
         {/* ── The Reel ─────────────────────────────────────────── */}
         <div
@@ -273,21 +288,23 @@ export default function RejectionReel() {
           </div>
         </div>
 
-        {/* ── Emotional bridge ─────────────────────────────────── */}
-        <div className="rr-bridge">
-          <div className="rr-bridge-line" aria-hidden />
-          <div className="rr-bridge-body">
-            <span className="rr-mono rr-bridge-eyebrow">THE QUIET TRUTH</span>
-            <p className="rr-bridge-copy">
-              If you've applied to <span className="rr-bridge-n">20+</span> jobs this month and heard <span className="rr-bridge-n">nothing</span> back,<br/>
-              <span className="rr-bridge-em">your CV is probably already on this reel.</span>
-            </p>
-          </div>
-          <div className="rr-bridge-line" aria-hidden />
-        </div>
+        {!compact && (
+          <>
+            {/* ── Emotional bridge ─────────────────────────────────── */}
+            <div className="rr-bridge">
+              <div className="rr-bridge-line" aria-hidden />
+              <div className="rr-bridge-body">
+                <span className="rr-mono rr-bridge-eyebrow">THE QUIET TRUTH</span>
+                <p className="rr-bridge-copy">
+                  If you've applied to <span className="rr-bridge-n">20+</span> jobs this month and heard <span className="rr-bridge-n">nothing</span> back,<br/>
+                  <span className="rr-bridge-em">your CV is probably already on this reel.</span>
+                </p>
+              </div>
+              <div className="rr-bridge-line" aria-hidden />
+            </div>
 
-        {/* ── The fix — inline CTA ─────────────────────────────── */}
-        <div className="rr-fix">
+            {/* ── The fix — inline CTA ─────────────────────────────── */}
+            <div className="rr-fix">
           <div className="rr-fix-left">
             <span className="rr-mono rr-fix-eyebrow">THE FIX · 60 SECONDS</span>
             <h3 className="rr-fix-title">Find out <em>before</em> you apply.</h3>
@@ -341,6 +358,8 @@ export default function RejectionReel() {
             </div>
           </aside>
         </div>
+          </>
+        )}
       </div>
     </section>
   );

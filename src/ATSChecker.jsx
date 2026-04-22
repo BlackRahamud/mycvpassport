@@ -68,12 +68,16 @@ const SAMPLE_STATES = [
   { score: 85, color: "#4ADE80", glow: "rgba(74,222,128,0.35)", status: "Your Foundation is Solid", headline: "Strong — fine-tune for top tier", pill: "+15 Points within reach", dot: 85, kw: 78, st: 82, ct: 90 },
   { score: 94, color: "#22C55E", glow: "rgba(34,197,94,0.4)", status: "Market Ready", headline: "Elite — you\u2019re in the top 6%", pill: "+6 Points within reach", dot: 94, kw: 90, st: 92, ct: 96 },
 ];
-function SampleResultCard({ isMobile = false }) {
-  const [idx, setIdx] = useState(0);
+export function SampleResultCard({ isMobile = false, pinnedScore = null }) {
+  const pinnedIdx = pinnedScore != null
+    ? SAMPLE_STATES.findIndex((state) => state.score === pinnedScore)
+    : -1;
+  const [idx, setIdx] = useState(pinnedIdx >= 0 ? pinnedIdx : 0);
   useEffect(() => {
+    if (pinnedIdx >= 0) return undefined;
     const id = setInterval(() => setIdx((i) => (i + 1) % SAMPLE_STATES.length), 2500);
     return () => clearInterval(id);
-  }, []);
+  }, [pinnedIdx]);
   const s = SAMPLE_STATES[idx];
   const ringSize = 140;
   const sw = 10;
@@ -208,7 +212,7 @@ function scoreColor(v) {
   return "#4ADE80";
 }
 
-function PremiumScoreCircle({ score }) {
+export function PremiumScoreCircle({ score }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     let cancelled = false;
