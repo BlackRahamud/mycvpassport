@@ -83,6 +83,8 @@ export default function TestimonialsRow() {
           gap: 16px;
           font-family: inherit;
           box-sizing: border-box;
+          transition: transform 300ms cubic-bezier(0.16,1,0.3,1),
+                      box-shadow 300ms cubic-bezier(0.16,1,0.3,1);
         }
         .cvp-testimonials-card::before {
           content: "";
@@ -102,6 +104,7 @@ export default function TestimonialsRow() {
           pointer-events: none;
           animation: tl-spin 5.4s linear infinite;
           filter: drop-shadow(0 0 10px rgba(var(--card-bleed), 0.45));
+          transition: filter 300ms cubic-bezier(0.16,1,0.3,1);
           z-index: 1;
         }
         .cvp-testimonials-card::after {
@@ -115,7 +118,22 @@ export default function TestimonialsRow() {
             rgba(var(--card-bleed), 0.06) 0%,
             transparent 55%
           );
+          transition: background 300ms cubic-bezier(0.16,1,0.3,1);
           z-index: 0;
+        }
+        .cvp-testimonials-card:hover {
+          transform: translateY(-4px) scale(1.015);
+          box-shadow: 0 22px 48px -18px rgba(var(--card-bleed), 0.38);
+        }
+        .cvp-testimonials-card:hover::before {
+          filter: drop-shadow(0 0 18px rgba(var(--card-bleed), 0.75));
+        }
+        .cvp-testimonials-card:hover::after {
+          background: radial-gradient(
+            circle at 20% 20%,
+            rgba(var(--card-bleed), 0.14) 0%,
+            transparent 55%
+          );
         }
         .cvp-testimonials-quote {
           position: relative;

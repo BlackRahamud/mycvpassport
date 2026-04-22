@@ -10,18 +10,24 @@ const TOOLS = [
     title: 'ATS Score Checker',
     desc: 'See where your CV fails the scan before you apply.',
     href: '/ats',
+    ring: '#6FA8FF',
+    bleedRGB: '59,130,246',
   },
   {
     id: 'salary',
     title: 'Salary Switcher',
     desc: 'Convert offers across UAE, Saudi, India in seconds.',
     href: '/salary-switcher',
+    ring: '#E5B24D',
+    bleedRGB: '217,117,6',
   },
   {
     id: 'linkedin',
     title: 'LinkedIn Optimizer',
     desc: 'Score your profile and get specific line-by-line fixes.',
     href: '/linkedin-optimizer',
+    ring: '#46C99A',
+    bleedRGB: '16,185,129',
   },
 ];
 
@@ -40,6 +46,9 @@ export default function FreeToolsBar() {
   return (
     <section className="cvp-free-tools" aria-label="Free tools — no signup">
       <style>{`
+        @property --tl-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        @keyframes tl-spin { to { --tl-angle: 360deg; } }
+
         .cvp-free-tools {
           padding: 72px 24px;
           background: #0A0A0A;
@@ -75,6 +84,8 @@ export default function FreeToolsBar() {
         }
         .cvp-free-tools-card {
           position: relative;
+          isolation: isolate;
+          overflow: hidden;
           display: flex;
           flex-direction: column;
           align-items: stretch;
@@ -88,11 +99,60 @@ export default function FreeToolsBar() {
           text-align: left;
           cursor: pointer;
           transition: border-color 160ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                      background-color 160ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                      background-color 160ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                      transform 300ms cubic-bezier(0.16,1,0.3,1),
+                      box-shadow 300ms cubic-bezier(0.16,1,0.3,1);
+        }
+        .cvp-free-tools-card::before {
+          content: "";
+          position: absolute;
+          inset: -1px;
+          border-radius: var(--radius-md);
+          padding: 1.5px;
+          background: conic-gradient(
+            from var(--tl-angle, 0deg),
+            transparent 60%,
+            var(--card-ring) 84%,
+            transparent 100%
+          );
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+          animation: tl-spin 5.4s linear infinite;
+          filter: drop-shadow(0 0 10px rgba(var(--card-bleed), 0.45));
+          transition: filter 300ms cubic-bezier(0.16,1,0.3,1);
+          z-index: 1;
+        }
+        .cvp-free-tools-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: var(--radius-md);
+          pointer-events: none;
+          background: radial-gradient(
+            circle at 20% 20%,
+            rgba(var(--card-bleed), 0.06) 0%,
+            transparent 55%
+          );
+          transition: background 300ms cubic-bezier(0.16,1,0.3,1);
+          z-index: 0;
         }
         .cvp-free-tools-card:hover {
           border-color: rgba(255, 255, 255, 0.18);
           background: var(--color-surface-01);
+          transform: translateY(-4px) scale(1.015);
+          box-shadow: 0 22px 48px -18px rgba(var(--card-bleed), 0.38);
+        }
+        .cvp-free-tools-card:hover::before {
+          filter: drop-shadow(0 0 18px rgba(var(--card-bleed), 0.75));
+        }
+        .cvp-free-tools-card:hover::after {
+          background: radial-gradient(
+            circle at 20% 20%,
+            rgba(var(--card-bleed), 0.14) 0%,
+            transparent 55%
+          );
         }
         .cvp-free-tools-card:focus-visible {
           outline: 2px solid var(--color-accent);
@@ -102,6 +162,8 @@ export default function FreeToolsBar() {
           .cvp-free-tools-card { transition: none; }
         }
         .cvp-free-tools-card-row {
+          position: relative;
+          z-index: 2;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -131,6 +193,8 @@ export default function FreeToolsBar() {
           flex-shrink: 0;
         }
         .cvp-free-tools-card-desc {
+          position: relative;
+          z-index: 2;
           font-size: 13px;
           line-height: 1.55;
           color: var(--color-text-secondary);
@@ -138,6 +202,8 @@ export default function FreeToolsBar() {
           font-family: inherit;
         }
         .cvp-free-tools-card-arrow {
+          position: relative;
+          z-index: 2;
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -164,6 +230,7 @@ export default function FreeToolsBar() {
               key={tool.id}
               type="button"
               className="cvp-free-tools-card"
+              style={{ '--card-ring': tool.ring, '--card-bleed': tool.bleedRGB }}
               onClick={() => navigate(tool.href)}
               aria-label={`${tool.title} — free tool, no signup`}
             >

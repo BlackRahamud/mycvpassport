@@ -7,11 +7,11 @@ import { motion, useReducedMotion } from 'framer-motion';
 
 const AVATAR_SRC = '/img/founder-jacky.jpg';
 const INITIALS = 'J';
-const NAME = 'Jacky';
+const NAME = 'JMK';
 const TITLE = 'Founder, CVPassport';
 const LOCATION = 'Dubai';
 const NOTE =
-  "I built GhostChip because I watched too many good CVs get filtered out by a robot that couldn't see past a missing keyword. Your story deserves to reach a human. This is the tool that gets it there. — Jacky";
+  "I built GhostChip because I watched too many good CVs get filtered out by a robot that couldn't see past a missing keyword. Your story deserves to reach a human. This is the tool that gets it there. — JMK";
 
 export default function FoundersNoteSection() {
   const reduce = useReducedMotion();
