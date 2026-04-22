@@ -10,6 +10,8 @@ const TESTIMONIALS = [
     location: 'Dubai, UAE',
     quote:
       "I applied to 6 companies in one week. Three called me back. I hadn't changed anything except my CV.",
+    ring: '#E5B24D',
+    bleedRGB: '217,117,6',
   },
   {
     id: 't2',
@@ -17,6 +19,8 @@ const TESTIMONIALS = [
     location: 'Abu Dhabi, UAE',
     quote:
       "Didn't expect much but the ATS score alone showed me exactly what was wrong. Fixed it in 20 minutes.",
+    ring: '#6FA8FF',
+    bleedRGB: '59,130,246',
   },
   {
     id: 't3',
@@ -24,6 +28,8 @@ const TESTIMONIALS = [
     location: 'Sharjah, UAE',
     quote:
       'Sent the same CV for months with no response. Updated it here, got an interview within 4 days.',
+    ring: '#E0604A',
+    bleedRGB: '220,38,38',
   },
   {
     id: 't4',
@@ -31,6 +37,8 @@ const TESTIMONIALS = [
     location: 'Bangalore → Dubai',
     quote:
       'Every CV I sent before felt like shouting into a void. This one actually got read.',
+    ring: '#46C99A',
+    bleedRGB: '16,185,129',
   },
 ];
 
@@ -38,6 +46,9 @@ export default function TestimonialsRow() {
   return (
     <section className="cvp-testimonials" aria-label="What job seekers say">
       <style>{`
+        @property --tl-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        @keyframes tl-spin { to { --tl-angle: 360deg; } }
+
         .cvp-testimonials {
           padding: 96px 24px;
           background: var(--color-surface-00);
@@ -60,6 +71,9 @@ export default function TestimonialsRow() {
           .cvp-testimonials-grid { grid-template-columns: 1fr; gap: 16px; }
         }
         .cvp-testimonials-card {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
           background: #141414;
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 16px;
@@ -70,7 +84,42 @@ export default function TestimonialsRow() {
           font-family: inherit;
           box-sizing: border-box;
         }
+        .cvp-testimonials-card::before {
+          content: "";
+          position: absolute;
+          inset: -1px;
+          border-radius: 16px;
+          padding: 1.5px;
+          background: conic-gradient(
+            from var(--tl-angle, 0deg),
+            transparent 60%,
+            var(--card-ring) 84%,
+            transparent 100%
+          );
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+          animation: tl-spin 5.4s linear infinite;
+          filter: drop-shadow(0 0 10px rgba(var(--card-bleed), 0.45));
+          z-index: 1;
+        }
+        .cvp-testimonials-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          pointer-events: none;
+          background: radial-gradient(
+            circle at 20% 20%,
+            rgba(var(--card-bleed), 0.06) 0%,
+            transparent 55%
+          );
+          z-index: 0;
+        }
         .cvp-testimonials-quote {
+          position: relative;
+          z-index: 2;
           font-style: italic;
           font-size: 15px;
           line-height: 1.6;
@@ -79,6 +128,8 @@ export default function TestimonialsRow() {
           font-family: inherit;
         }
         .cvp-testimonials-attribution {
+          position: relative;
+          z-index: 2;
           display: flex;
           flex-direction: column;
           gap: 2px;
@@ -104,7 +155,11 @@ export default function TestimonialsRow() {
       <div className="cvp-testimonials-inner">
         <div className="cvp-testimonials-grid">
           {TESTIMONIALS.map((t) => (
-            <figure key={t.id} className="cvp-testimonials-card">
+            <figure
+              key={t.id}
+              className="cvp-testimonials-card"
+              style={{ '--card-ring': t.ring, '--card-bleed': t.bleedRGB }}
+            >
               <blockquote className="cvp-testimonials-quote">{t.quote}</blockquote>
               <figcaption className="cvp-testimonials-attribution">
                 <p className="cvp-testimonials-name">{t.name}</p>
