@@ -30,6 +30,15 @@ export default function PricingPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  // GA4: view_pricing_plan
+  useEffect(() => {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "view_pricing_plan", {
+        page_title: "Pricing",
+      });
+    }
+  }, []);
+
   // Geo detection
   useEffect(() => {
     fetch("https://ipapi.co/json/")
@@ -153,6 +162,11 @@ export default function PricingPage() {
   ];
 
   const handleCTA = async (plan) => {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "begin_checkout", {
+        plan_name: plan.name,
+      });
+    }
     if (plan.ctaAction === "free") {
       navigate("/dashboard");
       return;
