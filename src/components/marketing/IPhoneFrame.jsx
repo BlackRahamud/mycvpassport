@@ -62,8 +62,9 @@ export default function IPhoneFrame({
         .cvp-iphone-content {
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          object-position: top;
+          object-fit: contain;
+          object-position: top center;
+          background: #ffffff;
           display: block;
           border-radius: 38px;
         }
