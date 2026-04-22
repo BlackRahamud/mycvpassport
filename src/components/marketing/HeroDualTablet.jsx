@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import TabletFrame from './TabletFrame';
-import LaylaCV from './LaylaCV';
+import IPhoneFrame from './IPhoneFrame';
 import RejectionReel from './RejectionReel';
 import { PremiumScoreCircle } from '../../ATSChecker';
 
-// Hero visual: two tablets, no tilt.
-//   LEFT  — static <LaylaCV /> on white paper. The "who".
-//   RIGHT — bigger tablet; plays a 9s silent loop:
-//             t=0–4s   Phase 1: <RejectionReel compact /> — the fear
-//             t=4–5s   Phase 2: 1s crossfade
-//             t=5–9s   Phase 3: <PremiumScoreCircle score={94} /> counts
-//                      up, colour shifts to green, "PASSING", holds
-//             Silent reset, loop.
-// Behind both tablets: ambient amber radial OLED glow. prefers-reduced-motion
-// freezes the loop at phase 3.
+// Hero visual v3 — iPhone (front, taller) + iPad (behind, wider, shorter).
+//   LEFT/FRONT  — <IPhoneFrame />: portrait, Layla CV PNG mounted as image.
+//                 Static throughout.
+//   RIGHT/BEHIND — <TabletFrame />: iPad-proportioned, plays the locked 9s
+//                  loop (reel → crossfade → score ring → hold).
+//   Overlap: iPhone at z-index 2 with margin-right: -40px, iPad at z-index 1
+//   with margin-top: 40px. iPhone is taller and vertically centred, so it
+//   extends above and below the iPad — hardware layering effect.
+//
+// THE ANIMATION SEQUENCE IS LOCKED. Do not modify LoopSequencer logic.
 
 const CYCLE_MS = 9000;
-const REEL_END = 4000;   // phase 1 → 2
-const XFADE_END = 5000;  // phase 2 → 3
+const REEL_END = 4000;
+const XFADE_END = 5000;
 
 function LoopSequencer() {
   const [cycle, setCycle] = useState(0);
@@ -127,6 +127,7 @@ export default function HeroDualTablet() {
         .cvp-hdt-root {
           position: relative;
           width: 100%;
+          height: 640px;
           isolation: isolate;
           box-sizing: border-box;
         }
@@ -134,58 +135,86 @@ export default function HeroDualTablet() {
           position: absolute;
           top: 50%;
           left: 50%;
-          width: 800px;
+          width: 700px;
           max-width: 120%;
           height: 500px;
           transform: translate(-50%, -50%);
           background: radial-gradient(
             ellipse at center,
-            rgba(217, 119, 6, 0.10) 0%,
-            rgba(217, 119, 6, 0.04) 40%,
+            rgba(217, 119, 6, 0.07) 0%,
             transparent 70%
           );
-          filter: blur(60px);
+          filter: blur(80px);
           pointer-events: none;
           z-index: 0;
         }
         .cvp-hdt-stage {
           position: relative;
           z-index: 1;
+          width: 100%;
+          height: 100%;
           display: flex;
           flex-direction: row;
-          align-items: stretch;
-          gap: 20px;
+          align-items: flex-end;
+          justify-content: center;
+          gap: 0;
+        }
+        .cvp-hdt-iphone {
+          position: relative;
+          z-index: 2;
+          margin-right: -40px;
+          align-self: center;
+          flex-shrink: 0;
+        }
+        .cvp-hdt-ipad {
+          position: relative;
+          z-index: 1;
+          margin-top: 40px;
+          align-self: flex-start;
+          width: 380px;
+          height: 520px;
+          flex-shrink: 0;
+          display: flex;
+        }
+        .cvp-hdt-ipad > .cvp-tablet-frame {
           width: 100%;
+          height: 100%;
         }
-        .cvp-hdt-left {
-          flex: 1 1 0;
-          min-width: 0;
-          display: flex;
-        }
-        .cvp-hdt-right {
-          flex: 1.4 1 0;
-          min-width: 0;
-          display: flex;
-        }
-        .cvp-hdt-left .cvp-tablet-screen,
-        .cvp-hdt-right .cvp-tablet-screen {
+        .cvp-hdt-ipad .cvp-tablet-screen {
           display: flex;
           flex-direction: column;
         }
-        .cvp-hdt-left .cvp-tablet-screen > *,
-        .cvp-hdt-right .cvp-tablet-screen > * {
+        .cvp-hdt-ipad .cvp-tablet-screen > * {
           flex: 1;
           min-height: 0;
         }
+
+        @media (max-width: 1100px) {
+          .cvp-hdt-iphone { transform: scale(0.88); transform-origin: center right; }
+          .cvp-hdt-ipad { width: 340px; height: 468px; }
+        }
+        @media (max-width: 900px) and (min-width: 769px) {
+          .cvp-hdt-iphone { transform: scale(0.76); transform-origin: center right; }
+          .cvp-hdt-ipad { width: 300px; height: 420px; }
+        }
         @media (max-width: 768px) {
+          .cvp-hdt-root { height: auto; }
           .cvp-hdt-stage {
             flex-direction: column;
-            gap: 16px;
+            align-items: center;
+            gap: 24px;
           }
-          .cvp-hdt-left,
-          .cvp-hdt-right {
-            flex: 1 1 auto;
+          .cvp-hdt-iphone {
+            margin-right: 0;
+            transform: none;
+            align-self: center;
+          }
+          .cvp-hdt-ipad {
+            margin-top: 0;
+            align-self: center;
             width: 100%;
+            max-width: 380px;
+            height: 460px;
           }
         }
       `}</style>
@@ -193,13 +222,15 @@ export default function HeroDualTablet() {
       <div className="cvp-hdt-glow" aria-hidden />
 
       <div className="cvp-hdt-stage">
-        <TabletFrame className="cvp-hdt-left">
-          <LaylaCV />
-        </TabletFrame>
+        <div className="cvp-hdt-iphone">
+          <IPhoneFrame />
+        </div>
 
-        <TabletFrame className="cvp-hdt-right">
-          <LoopSequencer />
-        </TabletFrame>
+        <div className="cvp-hdt-ipad">
+          <TabletFrame>
+            <LoopSequencer />
+          </TabletFrame>
+        </div>
       </div>
     </div>
   );

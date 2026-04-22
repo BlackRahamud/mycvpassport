@@ -1,7 +1,8 @@
 import React from 'react';
 
-// Premium tablet bezel wrapper. Shell only — no animation of its own.
-// Children fill the screen area. See HeroDualTablet for composition.
+// iPad-proportioned tablet bezel wrapper. Shell only — no animation.
+// Hardware-accurate dark bezel (#1C1C1E) and tight corner radius to match
+// Apple's iPad Pro language, not a generic soft mockup.
 
 export default function TabletFrame({ children, width, className, style }) {
   return (
@@ -13,28 +14,28 @@ export default function TabletFrame({ children, width, className, style }) {
         .cvp-tablet-frame {
           position: relative;
           box-sizing: border-box;
-          background: #141414;
-          border: 0.5px solid rgba(255, 255, 255, 0.08);
-          border-radius: 32px;
-          padding: 20px 12px 24px 12px;
+          background: #1C1C1E;
+          border: 1px solid rgba(255, 255, 255, 0.10);
+          border-radius: 20px;
+          padding: 12px;
           box-shadow:
-            0 2px 4px rgba(0, 0, 0, 0.3),
-            0 8px 32px rgba(0, 0, 0, 0.4),
-            0 32px 80px rgba(0, 0, 0, 0.5);
+            0 4px 8px rgba(0, 0, 0, 0.4),
+            0 16px 48px rgba(0, 0, 0, 0.5),
+            0 48px 96px rgba(0, 0, 0, 0.4);
           -webkit-font-smoothing: antialiased;
           transform: translateZ(0);
         }
         .cvp-tablet-frame::before {
           content: "";
           position: absolute;
-          top: 8px;
+          top: 5px;
           left: 50%;
           transform: translateX(-50%);
-          width: 6px;
-          height: 6px;
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
-          background: #1D1D1F;
-          box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+          background: #000;
+          box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.06);
           pointer-events: none;
         }
         .cvp-tablet-screen {
@@ -42,7 +43,7 @@ export default function TabletFrame({ children, width, className, style }) {
           width: 100%;
           height: 100%;
           background: #0A0A0A;
-          border-radius: 24px;
+          border-radius: 10px;
           overflow: hidden;
           box-sizing: border-box;
         }
