@@ -388,6 +388,12 @@ export default function ATSChecker({
     if (!uploadedFile) { setError("Please upload your CV."); return; }
     setError(null);
 
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "lead_capture", {
+        source: "ats_checker",
+      });
+    }
+
     let paidUser = false;
     if (user?.id) {
       const gate = await getGatekeeperData();
