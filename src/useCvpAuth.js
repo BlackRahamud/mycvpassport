@@ -159,25 +159,14 @@ export function useCvpAuth() {
     const clean = location.pathname.replace(/\/$/, "") || "/";
     if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) return;
     const isAuthReturnPath = clean === "/auth" || clean === "/register" || clean === "/auth/callback";
-    // Fresh OAuth SIGNED_IN landing on "/" means Supabase fell back to the
-    // Site URL instead of honoring redirectTo — recover from localStorage.
-    // If OAuth landed on a valid content page (e.g. /pricing?resume=X
-    // direct-URL redirect), leave the user there so the page can handle
-    // its own resume logic.
+    // OAuth providers can drop the user at "/" (Site URL) instead of the
+    // requested redirectTo — if we just observed a fresh SIGNED_IN event,
+    // treat that as an auth return from wherever we are.
     const isFreshOAuthSignIn = justSignedInRef.current && !authLoginSuccessHoldRef.current;
-    const onTransitPath = clean === "/";
-    const willRoute = isAuthReturnPath || (isFreshOAuthSignIn && onTransitPath);
-    if (isFreshOAuthSignIn) {
-      justSignedInRef.current = false;
-      if (!willRoute) {
-        // Clear the stashed fallback so it doesn't fire on a future auth
-        // event after the content page has already handled the return.
-        consumePostAuthRedirect();
-      }
-    }
-    if (willRoute) {
+    if (isAuthReturnPath || isFreshOAuthSignIn) {
       // Route based on user_type from profile, unless a landing-page CTA
       // stashed an explicit postAuthRedirect target (e.g. ATSPreview).
+      justSignedInRef.current = false;
       (async () => {
         let dest = "/dashboard";
         try {

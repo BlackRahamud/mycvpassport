@@ -96,19 +96,10 @@ export default function CheckoutAuthSheet({ open, onClose, planId, priceLabel, i
     setNotice(null);
     setLoading(true);
     try {
-      // Encode the plan directly into the OAuth redirectTo so it survives
-      // the round-trip as URL state. localStorage writes made right before
-      // a synchronous navigate are not guaranteed to flush (iOS Safari
-      // especially), which was stranding returning users on /dashboard.
-      // PricingPage.jsx already auto-fires Ziina when it sees ?resume=.
-      const redirectTarget = `${window.location.origin}/pricing?resume=${encodeURIComponent(planId)}`;
-      // Stash the same destination in localStorage as a fallback — if
-      // Supabase's Site URL override drops the callback at "/" instead of
-      // honoring redirectTo, useCvpAuth will recover from here.
       localStorage.setItem("postAuthRedirect", `/pricing?resume=${planId}`);
       const { error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: redirectTarget },
+        options: { redirectTo: `${window.location.origin}/auth` },
       });
       if (oauthErr) {
         localStorage.removeItem("postAuthRedirect");
