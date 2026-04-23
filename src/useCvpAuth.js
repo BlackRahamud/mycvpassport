@@ -39,6 +39,11 @@ export function useCvpAuth() {
   // login/signup path (i.e. OAuth callbacks). Lets the post-auth useEffect
   // route the user even if Supabase drops them at "/" instead of /auth.
   const justSignedInRef = useRef(false);
+  // Previous session user id. Supabase fires SIGNED_IN on browser tab
+  // focus / token refresh for already-authenticated sessions; we gate
+  // justSignedInRef on a real null → user transition so those spurious
+  // events never trigger the post-auth redirect branch.
+  const prevSessionUserIdRef = useRef(null);
   const [postAuthIntermission, setPostAuthIntermission] = useState(false);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
@@ -108,24 +113,46 @@ export function useCvpAuth() {
       if (cancelled) return;
       if (session?.user) {
         ensureProfileRow(session.user).catch((e) => console.error("ensureProfileRow:", e));
-        setUser({ name: extractName(session.user), email: session.user.email, id: session.user.id });
+        const nextName = extractName(session.user);
+        const nextEmail = session.user.email;
+        const nextId = session.user.id;
+        // Preserve reference when identity is unchanged so downstream
+        // effects keyed on `user` don't re-fire on tab-focus SIGNED_IN.
+        setUser((prev) => {
+          if (prev && prev.id === nextId && prev.email === nextEmail && prev.name === nextName) return prev;
+          return { name: nextName, email: nextEmail, id: nextId };
+        });
         fetchProStatus(session.user.id);
       } else {
-        setUser(null);
-        setIsPro(false);
-        setProfile({ is_pro: false, plan: "FREE", features: {} });
+        setUser((prev) => (prev === null ? prev : null));
+        setIsPro((prev) => (prev === false ? prev : false));
+        setProfile((prev) => {
+          if (prev && prev.is_pro === false && prev.plan === "FREE" && Object.keys(prev.features || {}).length === 0) return prev;
+          return { is_pro: false, plan: "FREE", features: {} };
+        });
       }
       setAuthReady(true);
     };
-    supabase.auth.getSession().then(({ data: { session } }) => applySession(session)).catch((e) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      prevSessionUserIdRef.current = session?.user?.id || null;
+      applySession(session);
+    }).catch((e) => {
       console.error("getSession:", e);
       if (!cancelled) setAuthReady(true);
     });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      const prevId = prevSessionUserIdRef.current;
+      const nextId = session?.user?.id || null;
+      prevSessionUserIdRef.current = nextId;
       applySession(session);
-      if (event === "SIGNED_IN" && !authLoginSuccessHoldRef.current) {
+      // Only treat SIGNED_IN as a fresh auth event when there's a real
+      // null → authenticated transition. Supabase also fires SIGNED_IN on
+      // tab focus / token refresh for already-authenticated users — those
+      // must NOT flip justSignedInRef, or the post-auth redirect branch
+      // can bounce the user off whatever page they were on.
+      if (event === "SIGNED_IN" && !authLoginSuccessHoldRef.current && prevId === null && nextId) {
         justSignedInRef.current = true;
       }
     });
@@ -163,6 +190,17 @@ export function useCvpAuth() {
     // requested redirectTo — if we just observed a fresh SIGNED_IN event,
     // treat that as an auth return from wherever we are.
     const isFreshOAuthSignIn = justSignedInRef.current && !authLoginSuccessHoldRef.current;
+    // Authenticated user is already on a content route (e.g. /builder,
+    // /dashboard, /account). Never redirect — clear any leftover fresh-
+    // sign-in state and bail. Defensive guard against tab-focus
+    // SIGNED_IN events bouncing users off the page they were on.
+    if (!isAuthReturnPath && clean !== "/") {
+      if (isFreshOAuthSignIn) {
+        justSignedInRef.current = false;
+        consumePostAuthRedirect();
+      }
+      return;
+    }
     if (isAuthReturnPath || isFreshOAuthSignIn) {
       // Route based on user_type from profile, unless a landing-page CTA
       // stashed an explicit postAuthRedirect target (e.g. ATSPreview).
