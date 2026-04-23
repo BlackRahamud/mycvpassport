@@ -28,3 +28,9 @@ yarn-error.log*
 
 # src/coverLetterDataBank.generated.js is required at runtime and must stay tracked - do not ignore.
 ghost-audit/
+
+# Supabase CLI scratch dir — machine-specific link/version cache
+supabase/.temp/
+
+# Claude Code local permission cache — machine-specific
+.claude/settings.local.json
