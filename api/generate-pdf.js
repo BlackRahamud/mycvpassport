@@ -124,8 +124,35 @@ module.exports = async (req, res) => {
       const rootEl = document.querySelector(".cvp-builder-a4-fit") || document.body;
       trace.initialRootHeight = Math.round(rootEl.getBoundingClientRect().height);
       trace.initialBlockCount = document.querySelectorAll("[data-block]").length;
+
+      // Relaxation pass — runs for ALL templates (client-rendered HTML has
+      // no .cvp-main so the pagination logic below is a no-op). Every
+      // template wraps entries in EntryWrap with inline
+      // `break-inside: avoid`, which Chromium respects during page.pdf()
+      // even with screen media emulation. When an entry would straddle a
+      // page boundary, Chromium pushes the whole entry to the next page —
+      // leaving whitespace behind and inflating the page count. Strip the
+      // constraint from any element large enough that keeping it intact
+      // would blow a full page of whitespace; small entries keep the
+      // constraint so single-job blocks still stay together.
+      const PAGE_USABLE_PX = 1028; // A4 @ 96dpi minus 10mm top + 15mm bottom margins
+      const SPLIT_THRESHOLD = PAGE_USABLE_PX * 0.35;
+      let relaxedCount = 0;
+      document
+        .querySelectorAll('[style*="break-inside"], [style*="page-break-inside"]')
+        .forEach((el) => {
+          const h = el.getBoundingClientRect().height;
+          if (h > SPLIT_THRESHOLD) {
+            el.style.removeProperty("break-inside");
+            el.style.removeProperty("page-break-inside");
+            el.style.removeProperty("-webkit-column-break-inside");
+            relaxedCount += 1;
+          }
+        });
+      trace.breakInsideRelaxed = relaxedCount;
+
       if (!main) {
-        trace.finalRootHeight = trace.initialRootHeight;
+        trace.finalRootHeight = Math.round(rootEl.getBoundingClientRect().height);
         return trace;
       }
 
