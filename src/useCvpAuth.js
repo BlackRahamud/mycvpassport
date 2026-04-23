@@ -146,13 +146,22 @@ export function useCvpAuth() {
       const prevId = prevSessionUserIdRef.current;
       const nextId = session?.user?.id || null;
       prevSessionUserIdRef.current = nextId;
+      const willSetFreshSignIn = event === "SIGNED_IN" && !authLoginSuccessHoldRef.current && prevId === null && nextId;
+      console.log("[cvp-auth-trace] onAuthStateChange", {
+        event,
+        prevId,
+        nextId,
+        hold: authLoginSuccessHoldRef.current,
+        willSetFreshSignIn,
+        path: typeof window !== "undefined" ? window.location.pathname : null,
+      });
       applySession(session);
       // Only treat SIGNED_IN as a fresh auth event when there's a real
       // null → authenticated transition. Supabase also fires SIGNED_IN on
       // tab focus / token refresh for already-authenticated users — those
       // must NOT flip justSignedInRef, or the post-auth redirect branch
       // can bounce the user off whatever page they were on.
-      if (event === "SIGNED_IN" && !authLoginSuccessHoldRef.current && prevId === null && nextId) {
+      if (willSetFreshSignIn) {
         justSignedInRef.current = true;
       }
     });
@@ -182,19 +191,38 @@ export function useCvpAuth() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!authReady || !user) return;
+    console.log("[cvp-auth-trace] postAuth useEffect fired", {
+      authReady,
+      userId: user?.id || null,
+      pathname: location.pathname,
+      justSignedIn: justSignedInRef.current,
+      hold: authLoginSuccessHoldRef.current,
+    });
+    if (!authReady || !user) {
+      console.log("[cvp-auth-trace] postAuth bail — not ready or no user");
+      return;
+    }
     const clean = location.pathname.replace(/\/$/, "") || "/";
-    if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) return;
+    if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) {
+      console.log("[cvp-auth-trace] postAuth bail — login hold active on", clean);
+      return;
+    }
     const isAuthReturnPath = clean === "/auth" || clean === "/register" || clean === "/auth/callback";
     // OAuth providers can drop the user at "/" (Site URL) instead of the
     // requested redirectTo — if we just observed a fresh SIGNED_IN event,
     // treat that as an auth return from wherever we are.
     const isFreshOAuthSignIn = justSignedInRef.current && !authLoginSuccessHoldRef.current;
+    console.log("[cvp-auth-trace] postAuth decision inputs", {
+      clean,
+      isAuthReturnPath,
+      isFreshOAuthSignIn,
+    });
     // Authenticated user is already on a content route (e.g. /builder,
     // /dashboard, /account). Never redirect — clear any leftover fresh-
     // sign-in state and bail. Defensive guard against tab-focus
     // SIGNED_IN events bouncing users off the page they were on.
     if (!isAuthReturnPath && clean !== "/") {
+      console.log("[cvp-auth-trace] postAuth early-return (on content route)", { clean });
       if (isFreshOAuthSignIn) {
         justSignedInRef.current = false;
         consumePostAuthRedirect();
@@ -202,25 +230,40 @@ export function useCvpAuth() {
       return;
     }
     if (isAuthReturnPath || isFreshOAuthSignIn) {
+      console.log("[cvp-auth-trace] postAuth REDIRECT branch entered", {
+        isAuthReturnPath,
+        isFreshOAuthSignIn,
+        queryUserId: user.id,
+      });
       // Route based on user_type from profile, unless a landing-page CTA
       // stashed an explicit postAuthRedirect target (e.g. ATSPreview).
       justSignedInRef.current = false;
       (async () => {
         let dest = "/dashboard";
         try {
-          const { data: prof } = await supabase
+          const { data: prof, error: profErr } = await supabase
             .from("profiles")
             .select("user_type")
             .eq("id", user.id)
             .single();
+          console.log("[cvp-auth-trace] postAuth profile query result", {
+            userId: user.id,
+            prof,
+            profErr,
+          });
           if (prof?.user_type === "recruiter") dest = "/hr";
-        } catch { /* default to /dashboard */ }
+        } catch (e) {
+          console.log("[cvp-auth-trace] postAuth profile query threw", e);
+          /* default to /dashboard */
+        }
         const stored = consumePostAuthRedirect();
+        console.log("[cvp-auth-trace] postAuth navigating", { dest: stored || dest, stored });
         runPostAuthNavigate(stored || dest, { replace: true });
       })();
       return;
     }
     if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates", "/tools", "/hr", "/dashboard/applications", "/linkedin-optimizer", "/terms", "/privacy", "/refund"].includes(clean) && !clean.startsWith("/jobs/")) {
+      console.log("[cvp-auth-trace] postAuth allow-list fallback → /dashboard", { clean });
       navigate("/dashboard", { replace: true });
     }
   }, [authReady, user, location.pathname, navigate, runPostAuthNavigate]);
