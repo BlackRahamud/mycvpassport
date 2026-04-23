@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
 import PaymentTrustBar from "../components/PaymentTrustBar";
+import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
 
 function LockIcon() {
   return (
@@ -29,6 +30,10 @@ export default function PricingPage() {
   const [userPlan, setUserPlan] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [authUser, setAuthUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [checkoutSheet, setCheckoutSheet] = useState({ open: false, planId: null, priceLabel: "" });
+  const [checkoutError, setCheckoutError] = useState(null);
 
   // GA4: view_pricing_plan
   useEffect(() => {
@@ -47,14 +52,27 @@ export default function PricingPage() {
       .catch(() => setCurrency("AED"));
   }, []);
 
-  // Current plan detection
+  // Auth state + current plan detection
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) {
-        supabase.from("profiles").select("plan").eq("id", data.user.id).single()
-          .then(({ data: p }) => { if (p) setUserPlan(p.plan); });
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      const u = data?.session?.user || null;
+      setAuthUser(u);
+      setAuthReady(true);
+      if (u) {
+        supabase.from("profiles").select("plan").eq("id", u.id).single()
+          .then(({ data: p }) => { if (!cancelled && p) setUserPlan(p.plan); });
       }
     });
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (cancelled) return;
+      setAuthUser(session?.user || null);
+    });
+    return () => {
+      cancelled = true;
+      sub?.subscription?.unsubscribe?.();
+    };
   }, []);
 
   // Success screen
@@ -161,6 +179,27 @@ export default function PricingPage() {
     },
   ];
 
+  const priceLabelFor = useCallback((plan) => {
+    if (plan.id === "explorer") return "Free";
+    if (plan.id === "pro") return currency === "AED" ? "AED 199/yr" : "₹999/yr";
+    const prices = currency === "AED" ? plan.priceAED : plan.priceINR;
+    const price = billing === "monthly" ? prices.monthly : prices.annual;
+    return currency === "AED" ? `AED ${price}/mo` : `₹${price}/mo`;
+  }, [currency, billing]);
+
+  const fireZiina = useCallback(async (planAction) => {
+    const featureMap = { express: "expressPass", hunter: "activeHunter", pro: "careerPro" };
+    const feature = featureMap[planAction];
+    if (!feature) return;
+    setCheckoutError(null);
+    const url = await getPaymentLink(feature);
+    if (url) {
+      window.location.href = url;
+    } else {
+      setCheckoutError("Couldn't start checkout. Please try again in a moment.");
+    }
+  }, []);
+
   const handleCTA = async (plan) => {
     if (typeof window.gtag === "function") {
       window.gtag("event", "begin_checkout", {
@@ -171,13 +210,28 @@ export default function PricingPage() {
       navigate("/dashboard");
       return;
     }
-    const featureMap = { express: "expressPass", hunter: "activeHunter", pro: "careerPro" };
-    const feature = featureMap[plan.ctaAction];
-    if (feature) {
-      const url = await getPaymentLink(feature);
-      if (url) window.location.href = url;
+    if (!authUser) {
+      setCheckoutSheet({
+        open: true,
+        planId: plan.ctaAction,
+        priceLabel: priceLabelFor(plan),
+      });
+      return;
     }
+    await fireZiina(plan.ctaAction);
   };
+
+  // Resume checkout after OAuth return: /pricing?resume=<plan>
+  useEffect(() => {
+    if (!authReady || !authUser) return;
+    const params = new URLSearchParams(window.location.search);
+    const resume = params.get("resume");
+    if (!resume) return;
+    params.delete("resume");
+    const qs = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    fireZiina(resume);
+  }, [authReady, authUser, fireZiina]);
 
   const isCurrentPlan = (plan) => userPlan && userPlan === PLAN_MAP[plan.id];
 
@@ -364,6 +418,46 @@ export default function PricingPage() {
             </button>
           </div>
         </div>
+
+        {/* CHECKOUT ERROR BANNER */}
+        {checkoutError ? (
+          <div
+            role="alert"
+            style={{
+              maxWidth: 520,
+              margin: "0 auto 24px",
+              background: "rgba(239,68,68,0.08)",
+              border: "1px solid rgba(239,68,68,0.3)",
+              borderRadius: 12,
+              padding: "12px 16px",
+              fontSize: 13,
+              color: "#FCA5A5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              lineHeight: 1.5,
+            }}
+          >
+            <span>{checkoutError}</span>
+            <button
+              type="button"
+              onClick={() => setCheckoutError(null)}
+              aria-label="Dismiss"
+              style={{
+                background: "none",
+                border: "none",
+                color: "#FCA5A5",
+                fontSize: 16,
+                lineHeight: 1,
+                cursor: "pointer",
+                padding: "0 4px",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
 
         {/* PLAN CARDS */}
         <div style={{
@@ -603,6 +697,14 @@ export default function PricingPage() {
 
       </div>
     </div>
+
+    <CheckoutAuthSheet
+      open={checkoutSheet.open}
+      onClose={() => setCheckoutSheet((s) => ({ ...s, open: false }))}
+      planId={checkoutSheet.planId}
+      priceLabel={checkoutSheet.priceLabel}
+      isMobile={isMobile}
+    />
     </>
   );
 }
