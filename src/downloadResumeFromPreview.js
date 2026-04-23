@@ -52,7 +52,30 @@ export async function downloadResumeFromPreview(cvInput, captureElement, opts = 
     await document.fonts.ready.catch(() => {});
   }
 
-  const html = buildCvPdfHtmlDocument(cvElement.outerHTML);
+  // Trace what's actually being captured. If PDF page count doesn't shrink
+  // when content is trimmed, this tells us whether the capture itself is
+  // stale (same HTML size, same block count, same rendered height) or if
+  // the server-side pagination is introducing breaks that don't collapse.
+  const capturedFragment = cvElement.outerHTML;
+  const rect = cvElement.getBoundingClientRect();
+  const blockCount = cvElement.querySelectorAll("[data-block]").length;
+  const explicitBreaks = cvElement.querySelectorAll(".cvp-page-break, .cvp-new-page-start").length;
+  const inlineHeightNodes = cvElement.querySelectorAll("[style*='height']").length;
+  console.log("[cvp-pdf-trace] capture snapshot", {
+    htmlLength: capturedFragment.length,
+    renderedHeightPx: Math.round(rect.height),
+    renderedWidthPx: Math.round(rect.width),
+    blockCount,
+    explicitBreaks,
+    inlineHeightNodes,
+    experienceEntries: Array.isArray(cv.experience) ? cv.experience.length : null,
+    educationEntries: Array.isArray(cv.education) ? cv.education.length : null,
+    skillsChars: typeof cv.skills === "string" ? cv.skills.length : null,
+    summaryChars: typeof cv.summary === "string" ? cv.summary.length : null,
+    maxPages: opts.maxPages ?? "unset",
+  });
+
+  const html = buildCvPdfHtmlDocument(capturedFragment);
   const baseName = `${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport`;
 
   const maxPages = opts.maxPages === 1 ? 1 : opts.maxPages === 2 ? 2 : undefined;

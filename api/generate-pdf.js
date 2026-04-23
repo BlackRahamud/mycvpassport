@@ -111,10 +111,23 @@ module.exports = async (req, res) => {
       `,
     });
 
-    await page.evaluate((ats) => {
+    const layoutTrace = await page.evaluate((ats) => {
       // Only run if templates implement semantic layout markers
       const main = document.querySelector(".cvp-main");
-      if (!main) return;
+      const trace = {
+        sawCvpMain: !!main,
+        initialRootHeight: 0,
+        initialBlockCount: 0,
+        breaksInserted: 0,
+        finalRootHeight: 0,
+      };
+      const rootEl = document.querySelector(".cvp-builder-a4-fit") || document.body;
+      trace.initialRootHeight = Math.round(rootEl.getBoundingClientRect().height);
+      trace.initialBlockCount = document.querySelectorAll("[data-block]").length;
+      if (!main) {
+        trace.finalRootHeight = trace.initialRootHeight;
+        return trace;
+      }
 
       const PAGE_HEIGHT = 1122; // ~A4 @ 96dpi (794x1123)
       const SAFE_MARGIN = 40;
@@ -247,10 +260,18 @@ module.exports = async (req, res) => {
 
       applyATSMode();
       optimizeSpacing();
+      const breaksBefore = document.querySelectorAll(".cvp-page-break").length;
       runSmartPagination();
+      trace.breaksInserted = document.querySelectorAll(".cvp-page-break").length - breaksBefore;
       markPageStarts();
       autoScaleTypography();
+      trace.finalRootHeight = Math.round(rootEl.getBoundingClientRect().height);
+      return trace;
     }, Boolean(atsMode));
+    console.log("[cvp-pdf-trace] server layout", {
+      ...layoutTrace,
+      maxPagesRequested: maxPages,
+    });
 
     const maxPagesN = Number(maxPages);
     let pdfBuffer = await page.pdf({
