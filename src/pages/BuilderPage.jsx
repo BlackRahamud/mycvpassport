@@ -1303,6 +1303,54 @@ function snapshotResumeForDiscard(r) {
   }
 }
 
+// ── CV draft persistence ──────────────────────────────────────────────────
+// Tab focus, token refresh, or accidental refresh can remount BuilderPage
+// and wipe in-memory resume state. We mirror the working draft to
+// localStorage so the user never loses unsaved work. Cleared on explicit
+// save or discard; otherwise kept until the TTL elapses.
+const CVP_DRAFT_PREFIX = "cvp_cv_draft";
+const CVP_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getDraftStorageKey(initialResumeId, locationSearch) {
+  if (initialResumeId) return `${CVP_DRAFT_PREFIX}:edit:${initialResumeId}`;
+  let sessionId = "default";
+  try {
+    const params = new URLSearchParams(locationSearch || "");
+    sessionId = params.get("new") || "default";
+  } catch { /* noop */ }
+  return `${CVP_DRAFT_PREFIX}:new:${sessionId}`;
+}
+
+function readCvDraft(key) {
+  if (!key || typeof window === "undefined" || !window.localStorage) return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.cv) return null;
+    const age = Date.now() - (Number(parsed.updatedAt) || 0);
+    if (age > CVP_DRAFT_TTL_MS) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCvDraft(key, payload) {
+  if (!key || typeof window === "undefined" || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ ...payload, updatedAt: Date.now() }));
+  } catch { /* quota / private mode */ }
+}
+
+function clearCvDraft(key) {
+  if (!key || typeof window === "undefined" || !window.localStorage) return;
+  try { window.localStorage.removeItem(key); } catch { /* noop */ }
+}
+
 /** @param {{ title: string, subtitle: string, onRowClick: () => void, onMoveUp: () => void, onMoveDown: () => void, disableUp: boolean, disableDown: boolean, onEdit: () => void, onDelete: () => void }} props */
 function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {
   const iconBtn = {
@@ -2149,12 +2197,37 @@ function ResumeBuilder({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES.find(t => t.id === initialTemplateId) || TEMPLATES[0]);
+  const draftStorageKey = useMemo(
+    () => getDraftStorageKey(initialResumeId, location.search),
+    [initialResumeId, location.search]
+  );
+  const initialDraftRef = useRef(readCvDraft(draftStorageKey));
+
+  const [selectedTemplate, setSelectedTemplate] = useState(() => {
+    const draft = initialDraftRef.current;
+    if (draft?.templateId) {
+      const t = TEMPLATES.find((x) => x.id === draft.templateId);
+      if (t) return t;
+    }
+    return TEMPLATES.find((t) => t.id === initialTemplateId) || TEMPLATES[0];
+  });
   const [downloadState, dispatch] = useReducer(downloadReducer, initialDownloadState);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
-  const [resumeId, setResumeId] = useState(initialResumeId || null);
+  const [resumeId, setResumeId] = useState(() => {
+    const draft = initialDraftRef.current;
+    if (draft?.resumeId) return draft.resumeId;
+    return initialResumeId || null;
+  });
   const [resume, setResume] = useState(() => {
+    const draft = initialDraftRef.current;
+    if (draft?.cv) {
+      const base = normalizeResumeForBuilder(draft.cv);
+      return {
+        ...base,
+        technicalSkills: normalizeTechnicalSkillsState(draft.cv.technicalSkills ?? base.technicalSkills),
+      };
+    }
     if (isNew) {
       return {
         ...normalizeResumeForBuilder({ ...EMPTY_RESUME }),
@@ -2364,6 +2437,21 @@ function ResumeBuilder({
     }
     setShowUnsavedBanner(JSON.stringify(resume) !== JSON.stringify(lastSavedSnapshotRef.current));
   }, [resume, isNew]);
+
+  // Debounced mirror of the working CV to localStorage. Survives tab-focus
+  // remounts, token-refresh cascades, and accidental reloads.
+  useEffect(() => {
+    if (!draftStorageKey) return undefined;
+    const timer = setTimeout(() => {
+      writeCvDraft(draftStorageKey, {
+        version: 1,
+        cv: { ...resume, technicalSkills: sanitizeTechnicalSkillsForPersist(resume.technicalSkills) },
+        templateId: selectedTemplate?.id || null,
+        resumeId: resumeId || null,
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [resume, selectedTemplate?.id, resumeId, draftStorageKey]);
 
   useEffect(() => {
     if (savedAtMs == null) {
@@ -2743,6 +2831,7 @@ function ResumeBuilder({
       setShowUnsavedBanner(false);
       setSavedAtMs(Date.now());
       setSaveSuccessTick((t) => t + 1);
+      clearCvDraft(draftStorageKey);
       setTimeout(() => setSaveStatus(null), 3000);
       // TODO: wire cv_edited on section save — writeFabMemory({ lastAction: "cv_edited", lastActionAt: new Date().toISOString() })
     } catch(e) {
@@ -2751,7 +2840,7 @@ function ResumeBuilder({
     } finally {
       setSaving(false);
     }
-  }, [user, resume, selectedTemplate, resumeId]);
+  }, [user, resume, selectedTemplate, resumeId, draftStorageKey]);
 
   saveBridgeRef.current = () => {
     if (!user?.id) return;
@@ -5412,6 +5501,7 @@ function ResumeBuilder({
                     technicalSkills: normalizeTechnicalSkillsState(snap.technicalSkills),
                   });
                 }
+                clearCvDraft(draftStorageKey);
                 setShowUnsavedBanner(false);
               }}
               style={{
