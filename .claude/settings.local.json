@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npm run:*)",
-      "Bash(awk 'NR>=100 && NR<=130')"
+      "Bash(awk 'NR>=100 && NR<=130')",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "PowerShell(npm run *)",
+      "PowerShell(git add *)"
     ]
   }
 }

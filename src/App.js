@@ -8,6 +8,7 @@ import PricingPage from "./pages/PricingPage";
 import LandingPage from "./LandingPage";
 import AdminPanelV2 from "./AdminPanelV2";
 import AuthPage from "./pages/AuthPage";
+import AuthCallback from "./pages/AuthCallback";
 import CoverLetterPage from "./pages/CoverLetterPage";
 import BuilderPage from "./pages/BuilderPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -186,6 +187,7 @@ export default function App() {
                 }
               />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/signin" element={<Navigate to="/auth" replace />} />
               <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanelV2 /> : <Navigate to="/" replace />} />
               <Route

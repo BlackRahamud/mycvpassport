@@ -198,6 +198,9 @@ Pricing:
 - Every CTA must have a working navigate() or onClick — zero dead buttons
 - Hero CTA always → /signup for new users
 
+### Copy / Legal
+- Never reference specific institutions, banks, or government-affiliated entities by name or strong implication (e.g. "a leading UAE bank", "a national airline"). Generic industry terms are acceptable (e.g. "aviation", "banking sector", "tech hiring"). This applies to all marketing copy, landing pages, and UI text. UAE and GCC markets carry legal risk for implied partnerships.
+
 ---
 
 ## Session Rules

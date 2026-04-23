@@ -35,6 +35,10 @@ export function useCvpAuth() {
   const [authError, setAuthError] = useState(null);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState(null);
   const authLoginSuccessHoldRef = useRef(false);
+  // Set when onAuthStateChange fires SIGNED_IN outside of the email
+  // login/signup path (i.e. OAuth callbacks). Lets the post-auth useEffect
+  // route the user even if Supabase drops them at "/" instead of /auth.
+  const justSignedInRef = useRef(false);
   const [postAuthIntermission, setPostAuthIntermission] = useState(false);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
@@ -119,8 +123,11 @@ export function useCvpAuth() {
     });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       applySession(session);
+      if (event === "SIGNED_IN" && !authLoginSuccessHoldRef.current) {
+        justSignedInRef.current = true;
+      }
     });
     return () => {
       cancelled = true;
@@ -151,9 +158,15 @@ export function useCvpAuth() {
     if (!authReady || !user) return;
     const clean = location.pathname.replace(/\/$/, "") || "/";
     if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) return;
-    if (clean === "/auth" || clean === "/register") {
+    const isAuthReturnPath = clean === "/auth" || clean === "/register" || clean === "/auth/callback";
+    // OAuth providers can drop the user at "/" (Site URL) instead of the
+    // requested redirectTo — if we just observed a fresh SIGNED_IN event,
+    // treat that as an auth return from wherever we are.
+    const isFreshOAuthSignIn = justSignedInRef.current && !authLoginSuccessHoldRef.current;
+    if (isAuthReturnPath || isFreshOAuthSignIn) {
       // Route based on user_type from profile, unless a landing-page CTA
       // stashed an explicit postAuthRedirect target (e.g. ATSPreview).
+      justSignedInRef.current = false;
       (async () => {
         let dest = "/dashboard";
         try {
