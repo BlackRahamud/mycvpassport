@@ -7,36 +7,44 @@ const TESTIMONIALS = [
   {
     id: 't1',
     name: 'Omar Al Rashidi',
+    role: 'Senior Sales Manager',
     location: 'Dubai, UAE',
     quote:
-      "I applied to 6 companies in one week. Three called me back. I hadn't changed anything except my CV.",
+      "I'd been applying for 3 months with zero callbacks. Ran my CV through the ATS checker — it scored 31. Fixed what it flagged, rebuilt with CVPassport. Within 10 days I had 3 interviews lined up. Same experience, completely different result.",
+    badge: { text: 'Got interviews', bg: '#EAF3DE', color: '#3B6D11' },
     ring: '#E5B24D',
     bleedRGB: '217,117,6',
   },
   {
     id: 't2',
     name: 'James Mitchell',
+    role: 'Finance Analyst',
     location: 'Abu Dhabi, UAE',
     quote:
-      "Didn't expect much but the ATS score alone showed me exactly what was wrong. Fixed it in 20 minutes.",
+      "My CV was scoring 23. I thought it was fine & it looked good. The checker showed me I was missing 14 keywords recruiters search for. Fixed it in 20 minutes. Next application got a call the same day.",
+    badge: { text: 'Score: 23 → 91', bg: '#E6F1FB', color: '#185FA5' },
     ring: '#6FA8FF',
     bleedRGB: '59,130,246',
   },
   {
     id: 't3',
     name: 'Fatima Al Mansoori',
+    role: 'HR Business Partner',
     location: 'Sharjah, UAE',
     quote:
-      'Sent the same CV for months with no response. Updated it here, got an interview within 4 days.',
+      "7 months sending the same CV. Nothing. A friend told me about CVPassport. I rebuilt my CV in under an hour  it felt tailored to how Gulf recruiters actually think. Got my first interview call 4 days later. I wish I found this earlier.",
+    badge: { text: 'Interview in 4 days', bg: '#EAF3DE', color: '#3B6D11' },
     ring: '#E0604A',
     bleedRGB: '220,38,38',
   },
   {
     id: 't4',
     name: 'Rahul Sengupta',
+    role: 'Product Manager',
     location: 'Bangalore → Dubai',
     quote:
-      'Every CV I sent before felt like shouting into a void. This one actually got read.',
+      "Moving from Bangalore to Dubai means competing with candidates who know the local market. CVPassport understood that  the templates are built for Gulf employers, not generic Western formats. My CV finally looked like it belonged here.",
+    badge: { text: 'Relocated to Dubai', bg: '#E6F1FB', color: '#185FA5' },
     ring: '#46C99A',
     bleedRGB: '16,185,129',
   },
@@ -61,6 +69,40 @@ export default function TestimonialsRow() {
         .cvp-testimonials-inner {
           max-width: 1100px;
           margin: 0 auto;
+        }
+        .cvp-testimonials-header {
+          text-align: center;
+          margin: 0 auto 48px;
+          max-width: 640px;
+        }
+        .cvp-testimonials-header-title {
+          font-size: 48px;
+          font-weight: 510;
+          letter-spacing: -1.056px;
+          line-height: 1.0;
+          color: var(--color-text-primary);
+          margin: 0;
+          font-family: inherit;
+        }
+        .cvp-testimonials-header-sub {
+          font-size: 17px;
+          font-weight: 400;
+          letter-spacing: -0.374px;
+          line-height: 1.47;
+          color: var(--color-text-secondary);
+          margin: 16px auto 0;
+          max-width: 520px;
+          font-family: inherit;
+        }
+        @media (max-width: 900px) {
+          .cvp-testimonials-header-title {
+            font-size: 32px;
+            letter-spacing: -0.640px;
+          }
+          .cvp-testimonials-header-sub {
+            font-size: 16px;
+            letter-spacing: -0.176px;
+          }
         }
         .cvp-testimonials-grid {
           display: grid;
@@ -135,6 +177,28 @@ export default function TestimonialsRow() {
             transparent 55%
           );
         }
+        .cvp-testimonials-badge {
+          position: absolute;
+          top: 24px;
+          right: 24px;
+          z-index: 3;
+          font-size: 10px;
+          font-weight: 500;
+          line-height: 1.2;
+          padding: 4px 10px;
+          border-radius: 999px;
+          white-space: nowrap;
+          font-family: inherit;
+        }
+        .cvp-testimonials-stars {
+          position: relative;
+          z-index: 2;
+          color: #EF9F27;
+          font-size: 13px;
+          letter-spacing: 2px;
+          line-height: 1;
+          font-family: inherit;
+        }
         .cvp-testimonials-quote {
           position: relative;
           z-index: 2;
@@ -162,6 +226,12 @@ export default function TestimonialsRow() {
           letter-spacing: -0.01em;
           font-family: inherit;
         }
+        .cvp-testimonials-role {
+          font-size: 12px;
+          color: #555555;
+          margin: 0;
+          font-family: inherit;
+        }
         .cvp-testimonials-location {
           font-size: 12px;
           color: #555555;
@@ -171,6 +241,13 @@ export default function TestimonialsRow() {
       `}</style>
 
       <div className="cvp-testimonials-inner">
+        <header className="cvp-testimonials-header">
+          <h2 className="cvp-testimonials-header-title">Real people. Real results.</h2>
+          <p className="cvp-testimonials-header-sub">
+            67% of our users are based in the UAE — built for the Gulf job market, not adapted for it.
+          </p>
+        </header>
+
         <div className="cvp-testimonials-grid">
           {TESTIMONIALS.map((t) => (
             <figure
@@ -178,9 +255,19 @@ export default function TestimonialsRow() {
               className="cvp-testimonials-card"
               style={{ '--card-ring': t.ring, '--card-bleed': t.bleedRGB }}
             >
+              <span
+                className="cvp-testimonials-badge"
+                style={{ background: t.badge.bg, color: t.badge.color }}
+              >
+                {t.badge.text}
+              </span>
+              <div className="cvp-testimonials-stars" aria-label="5 out of 5 stars">
+                ★★★★★
+              </div>
               <blockquote className="cvp-testimonials-quote">{t.quote}</blockquote>
               <figcaption className="cvp-testimonials-attribution">
                 <p className="cvp-testimonials-name">{t.name}</p>
+                <p className="cvp-testimonials-role">{t.role}</p>
                 <p className="cvp-testimonials-location">{t.location}</p>
               </figcaption>
             </figure>

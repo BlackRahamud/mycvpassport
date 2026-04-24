@@ -11,7 +11,7 @@ const NAME = 'JMK';
 const TITLE = 'Founder, CVPassport';
 const LOCATION = 'Dubai';
 const NOTE =
-  "I built GhostChip because I watched too many good CVs get filtered out by a robot that couldn't see past a missing keyword. Your story deserves to reach a human. This is the tool that gets it there. — JMK";
+  "If you've ever sent 100 applications and heard nothing back I've been there. Dubai, same frustration, same silence, same email every time. 'Unfortunately we will not be moving forward.' I wasn't underqualified. My ATS score wasn't the problem. But something was swallowing my applications whole. I spent months figuring out why  then emptied every dirham I had saved to build the fix. CVPassport is what I wish had existed when I needed it most. You deserve a fair shot. This gives you one. JMK, Founder · Dubai";
 
 export default function FoundersNoteSection() {
   const reduce = useReducedMotion();
