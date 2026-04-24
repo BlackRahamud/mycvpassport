@@ -24,13 +24,11 @@
     "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.13.2",
     "react-scripts": "^5.0.1",
-    "react-snap": "^1.23.0",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "prerender": "react-snap",
     "lint": "eslint src --ext .js,.jsx",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -60,37 +58,9 @@
       "last 1 safari version"
     ]
   },
-  "reactSnap": {
-    "source": "build",
-    "destination": "build",
-    "include": [
-      "/",
-      "/pricing",
-      "/builder",
-      "/blog",
-      "/templates",
-      "/walk-in",
-      "/ats",
-      "/linkedin-optimizer",
-      "/salary-switcher",
-      "/tools",
-      "/terms",
-      "/privacy",
-      "/about",
-      "/india-to-uae",
-      "/blog/uae-cv-format-2026",
-      "/blog/walk-in-interview-guide-dubai-2026",
-      "/blog/indian-cv-vs-uae-cv-key-differences",
-      "/blog/ats-score-guide-for-gcc-jobs-what-recruiters-see"
-    ],
-    "puppeteerArgs": ["--no-sandbox", "--disable-setuid-sandbox"],
-    "inlineCss": true,
-    "skipThirdPartyRequests": true
-  },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "dotenv": "^17.4.1",
-    "husky": "^9.1.7",
-    "puppeteer": "^22.0.0"
+    "husky": "^9.1.7"
   }
 }
