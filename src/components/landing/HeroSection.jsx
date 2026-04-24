@@ -9,8 +9,7 @@ const H1 = 'Get More Interviews.';
 const H2 = 'Same experience. Better CV.';
 const SUB =
   "Across the Gulf and India, qualified candidates are filtered out every day — not because they're underqualified, but because their CV wasn't built to pass the system that reads it first. CVPassport fixes that.";
-const PRIMARY_LABEL = 'Try it free';
-const SECONDARY_LABEL = 'See how it works';
+const PRIMARY_LABEL = 'Try it free →';
 const PRIMARY_HREF = '/ats';
 const TRUST_LINE_1 = 'Free to start. No signup required.';
 const TRUST_LINE_2 = 'Used across UAE, India & beyond.';
@@ -38,13 +37,6 @@ export default function HeroSection() {
   const variants = reduce ? INSTANT : FADE_UP;
 
   const onPrimary = useCallback(() => { navigate(PRIMARY_HREF); }, [navigate]);
-  const onSecondary = useCallback((e) => {
-    e.preventDefault();
-    const el = typeof document !== 'undefined' ? document.getElementById('show') : null;
-    if (el) {
-      el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-    }
-  }, [reduce]);
 
   const contentMotionStyle = reduce ? undefined : { y: parallaxY, opacity: parallaxOpacity };
 
@@ -125,6 +117,66 @@ export default function HeroSection() {
         }
         @media (max-width: 640px) {
           .cvp-hero-ctas { flex-direction: column; align-items: stretch; }
+        }
+
+        @keyframes shimmer {
+          0%   { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+        .cvp-hero-uae-line {
+          font-size: 13px;
+          color: rgba(255,255,255,0.5);
+          text-align: center;
+          margin: 12px 0 20px;
+          line-height: 1.4;
+          font-family: inherit;
+        }
+        .cvp-hero-uae-percent {
+          font-weight: 800;
+          font-size: 16px;
+          background: linear-gradient(90deg, #3B82F6, #EF4444, #FFD700, #22C55E, #3B82F6);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: shimmer 3s linear infinite;
+          text-shadow: none;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cvp-hero-uae-percent { animation: none; }
+        }
+
+        .cvp-hero-trustbar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 20px;
+          padding: 14px 20px;
+          background: rgba(255,255,255,0.02);
+          border-top: 1px solid rgba(255,255,255,0.05);
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          margin-top: 20px;
+        }
+        .cvp-hero-trustbar-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          color: rgba(255,255,255,0.4);
+          line-height: 1.2;
+          font-family: inherit;
+        }
+        .cvp-hero-trustbar-dot {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.15);
+          flex-shrink: 0;
+        }
+        .cvp-hero-trustbar-strong {
+          color: rgba(255,255,255,0.8);
+          font-weight: 600;
         }
         .cvp-hero-trust {
           display: flex;
@@ -218,19 +270,70 @@ export default function HeroSection() {
         <motion.p className="cvp-hero-sub" variants={variants} custom={2}>
           {SUB}
         </motion.p>
-        <motion.div className="cvp-hero-ctas" variants={variants} custom={3}>
+        <motion.p className="cvp-hero-uae-line" variants={variants} custom={3}>
+          ✦ <span className="cvp-hero-uae-percent">67%</span> of our users are UAE-based — built for this market, not adapted for it
+        </motion.p>
+        <motion.div className="cvp-hero-ctas" variants={variants} custom={4}>
           <button type="button" className="cvp-hero-cta-primary" onClick={onPrimary}>
             {PRIMARY_LABEL}
           </button>
-          <a
-            className="cvp-hero-cta-secondary"
-            href="#show"
-            onClick={onSecondary}
-          >
-            {SECONDARY_LABEL}
-          </a>
         </motion.div>
-        <motion.div className="cvp-hero-trust" variants={variants} custom={4}>
+        <motion.div className="cvp-hero-trustbar" variants={variants} custom={5}>
+          <div className="cvp-hero-trustbar-item">
+            <svg width="72" height="14" viewBox="0 0 72 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <filter id="sglow">
+                  <feGaussianBlur stdDeviation="1.2" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <g filter="url(#sglow)">
+                <path d="M6.5 0.5l1.6 4H13l-3.5 2.6 1.3 4.1L6.5 9l-4.3 2.2 1.3-4.1L0 4.5h4.9z" fill="#FFD700" />
+                <path d="M6.5 0.5l1.6 4H13l-3.5 2.6 1.3 4.1L6.5 9l-4.3 2.2 1.3-4.1L0 4.5h4.9z" fill="#FFD700" transform="translate(15,0)" />
+                <path d="M6.5 0.5l1.6 4H13l-3.5 2.6 1.3 4.1L6.5 9l-4.3 2.2 1.3-4.1L0 4.5h4.9z" fill="#FFD700" transform="translate(30,0)" />
+                <path d="M6.5 0.5l1.6 4H13l-3.5 2.6 1.3 4.1L6.5 9l-4.3 2.2 1.3-4.1L0 4.5h4.9z" fill="#FFD700" transform="translate(45,0)" />
+                <path d="M6.5 0.5l1.6 4H13l-3.5 2.6 1.3 4.1L6.5 9l-4.3 2.2 1.3-4.1L0 4.5h4.9z" fill="#FFD700" transform="translate(60,0)" />
+              </g>
+            </svg>
+            <span className="cvp-hero-trustbar-strong">4.8</span>
+            <span>&nbsp;from early users</span>
+          </div>
+          <span className="cvp-hero-trustbar-dot" aria-hidden="true" />
+          <div className="cvp-hero-trustbar-item">
+            <span aria-hidden="true">🇦🇪</span>
+            <span className="cvp-hero-trustbar-strong">67%</span>
+            <span>&nbsp;UAE-based users</span>
+          </div>
+          <span className="cvp-hero-trustbar-dot" aria-hidden="true" />
+          <div className="cvp-hero-trustbar-item">
+            <span>✓ Free to start. </span>
+            <span className="cvp-hero-trustbar-strong">No card required.</span>
+          </div>
+          <span className="cvp-hero-trustbar-dot" aria-hidden="true" />
+          <div className="cvp-hero-trustbar-item">
+            <svg width="14" height="16" viewBox="0 0 14 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <filter id="shglow">
+                  <feGaussianBlur stdDeviation="1.2" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <g filter="url(#shglow)">
+                <path d="M7 1L1.5 3.5V8c0 3 2.5 5.5 5.5 6.5C9 13.5 12.5 11 12.5 8V3.5L7 1z" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" fill="none" />
+                <path d="M4.5 8l2 2 3-3" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+              </g>
+            </svg>
+            <span className="cvp-hero-trustbar-strong">ATS-optimised</span>
+            <span>&nbsp;for Gulf recruiters</span>
+          </div>
+        </motion.div>
+        <motion.div className="cvp-hero-trust" variants={variants} custom={6}>
           <p className="cvp-hero-trust-line">{TRUST_LINE_1}</p>
           <p className="cvp-hero-trust-line">{TRUST_LINE_2}</p>
         </motion.div>
