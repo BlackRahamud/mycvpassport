@@ -5,7 +5,6 @@ import HeroDualTablet from '../marketing/HeroDualTablet';
 
 // W18 copy rewrite v2 — Founder-locked 2026-04-22 in
 // /5-HANDOFF/[READY]_hero_headline_rewrite_W18.json. Do not paraphrase.
-const H1 = 'Get More Interviews.';
 const H2 = 'Same experience. Better CV.';
 const SUB =
   "Across the Gulf and India, qualified candidates are filtered out every day — not because they're underqualified, but because their CV wasn't built to pass the system that reads it first. CVPassport fixes that.";
@@ -123,6 +122,19 @@ export default function HeroSection() {
           0%   { background-position: 0% center; }
           100% { background-position: 200% center; }
         }
+        @keyframes headlineShimmer {
+          0%   { background-position: 0% center; }
+          100% { background-position: 300% center; }
+        }
+        .hero-headline-shimmer {
+          background: linear-gradient(90deg, #ffffff, #3B82F6, #EF4444, #FFD700, #22C55E, #A855F7, #ffffff);
+          background-size: 300% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          filter: drop-shadow(0 0 12px rgba(255,255,255,0.4)) drop-shadow(0 0 30px rgba(99,102,241,0.35)) drop-shadow(0 0 60px rgba(251,191,36,0.2));
+          animation: headlineShimmer 4s linear infinite;
+        }
         .cvp-hero-uae-line {
           font-size: 13px;
           color: rgba(255,255,255,0.5);
@@ -144,6 +156,12 @@ export default function HeroSection() {
         }
         @media (prefers-reduced-motion: reduce) {
           .cvp-hero-uae-percent { animation: none; }
+          .hero-headline-shimmer {
+            animation: none;
+            background: #ffffff;
+            -webkit-text-fill-color: #ffffff;
+            filter: none;
+          }
         }
 
         .cvp-hero-trustbar {
@@ -262,7 +280,7 @@ export default function HeroSection() {
         animate="show"
       >
         <motion.h1 id="cvp-hero-h1" className="cvp-hero-h1" variants={variants} custom={0}>
-          {H1}
+          Get More <span className="hero-headline-shimmer">Interviews.</span>
         </motion.h1>
         <motion.h2 className="cvp-hero-h2" variants={variants} custom={1}>
           {H2}
