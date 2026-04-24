@@ -21,9 +21,26 @@
     }
   },
   "redirects": [
-    { "source": "/walk-in-cv",   "destination": "/walk-in", "permanent": true },
-    { "source": "/ats-checker",  "destination": "/ats",     "permanent": true },
-    { "source": "/indian-cv-uae","destination": "/india-to-uae", "permanent": true }
+    { "source": "/walk-in-cv",    "destination": "/walk-in",      "permanent": true },
+    { "source": "/ats-checker",   "destination": "/ats",          "permanent": true },
+    { "source": "/indian-cv-uae", "destination": "/india-to-uae", "permanent": true }
   ],
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(googlebot|google-inspectiontool|google page speed|developers\\.google\\.com|yahoo! slurp|bingbot|bingpreview|yandex|baiduspider|facebookexternalhit|twitterbot|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest|pinterestbot|slackbot|vkshare|w3c_validator|redditbot|applebot|whatsapp|flipboard|tumblr|bitlybot|skypeuripreview|nuzzel|discordbot|qwantify|bitrix link preview|chrome-lighthouse|telegrambot|ia_archiver|screaming frog|ahrefsbot|semrushbot|mj12bot|dotbot|chatgpt-user|gptbot|claudebot|anthropic-ai).*"
+        }
+      ],
+      "missing": [
+        { "type": "header", "key": "x-prerender-bypass" },
+        { "type": "query",  "key": "__cvp_spa" }
+      ],
+      "destination": "/api/_prerender"
+    },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }

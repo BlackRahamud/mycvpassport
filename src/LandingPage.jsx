@@ -911,6 +911,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   <Link className="lp-site-footer-link" to="/about">About</Link>
                   <Link className="lp-site-footer-link" to="/india-to-uae">India to UAE</Link>
                   <Link className="lp-site-footer-link" to="/blog">Blog</Link>
+                  <Link className="lp-site-footer-link" to="/blog/uae-cv-format-2026">UAE CV Format Guide</Link>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Legal</p>
