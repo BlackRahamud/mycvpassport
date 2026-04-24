@@ -29,6 +29,8 @@ import SalarySwitcher from "./pages/SalarySwitcher";
 import ToolsPage from "./pages/ToolsPage";
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
+import AboutPage from "./pages/AboutPage";
+import IndiaToUaePage from "./pages/IndiaToUaePage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 
@@ -246,6 +248,8 @@ export default function App() {
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} profile={profile} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
               <Route path="/templates" element={<TemplatesBrowseLayout />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/india-to-uae" element={<IndiaToUaePage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/refund" element={<RefundPage />} />
