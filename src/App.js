@@ -189,6 +189,9 @@ export default function App() {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/signin" element={<Navigate to="/auth" replace />} />
+              <Route path="/walk-in-cv" element={<Navigate to="/walk-in" replace />} />
+              <Route path="/ats-checker" element={<Navigate to="/ats" replace />} />
+              <Route path="/indian-cv-uae" element={<Navigate to="/india-to-uae" replace />} />
               <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanelV2 /> : <Navigate to="/" replace />} />
               <Route
                 path="/dashboard"

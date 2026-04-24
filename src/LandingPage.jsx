@@ -232,22 +232,60 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
   return (
     <>
       <Helmet>
-        <title>CVPassport — ATS-Optimised CV Builder for UAE, GCC &amp; India Job Seekers</title>
-        <meta name="description" content="Build a job-winning CV in minutes. ATS-optimised templates for Dubai, UAE, GCC & India. Free to start — no credit card required." />
+        <title>CVPassport — Free ATS CV Builder for UAE, Gulf &amp; India Jobs</title>
+        <meta name="description" content="Build ATS-optimised CVs for UAE, Gulf and India job markets. Free ATS score checker, Walk-In CV builder, and Gulf-ready templates. Used by job seekers across Dubai, Abu Dhabi, Mumbai and Bangalore. Free to start." />
         <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
         <meta name="author" content="CVPassport" />
-        <link rel="canonical" href="https://mycvpassport.com" />
-        <meta property="og:title" content="CVPassport — ATS-Optimised CV Builder for UAE, GCC &amp; India Job Seekers" />
-        <meta property="og:description" content="Build a job-winning CV in minutes. ATS-optimised templates for Dubai, UAE, GCC & India. Free to start — no credit card required." />
-        <meta property="og:url" content="https://mycvpassport.com" />
+        <link rel="canonical" href="https://www.mycvpassport.com/" />
+        <meta property="og:title" content="CVPassport — Free ATS CV Builder for UAE, Gulf &amp; India Jobs" />
+        <meta property="og:description" content="Build ATS-optimised CVs for UAE, Gulf and India job markets. Free ATS score checker, Walk-In CV builder, and Gulf-ready templates. Free to start." />
+        <meta property="og:url" content="https://www.mycvpassport.com/" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
-        <meta property="og:image" content="https://mycvpassport.com/images/falcon-icon.png" />
+        <meta property="og:image" content="https://www.mycvpassport.com/images/falcon-icon.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="CVPassport — ATS-Optimised CV Builder for UAE, GCC &amp; India Job Seekers" />
-        <meta name="twitter:description" content="Build a job-winning CV in minutes. ATS-optimised templates for Dubai, UAE, GCC & India. Free to start — no credit card required." />
-        <meta name="twitter:image" content="https://mycvpassport.com/images/falcon-icon.png" />
+        <meta name="twitter:title" content="CVPassport — Free ATS CV Builder for UAE, Gulf &amp; India Jobs" />
+        <meta name="twitter:description" content="Build ATS-optimised CVs for UAE, Gulf and India job markets. Free ATS score checker, Walk-In CV builder, and Gulf-ready templates. Free to start." />
+        <meta name="twitter:image" content="https://www.mycvpassport.com/images/falcon-icon.png" />
+        <script type="application/ld+json">{`
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is an ATS-friendly CV?",
+      "acceptedAnswer": { "@type": "Answer", "text": "An ATS-friendly CV is a document formatted so that Applicant Tracking Systems — software used by UAE, Gulf, and Indian employers to filter applications automatically — can correctly parse and score it. This means single-column layout, standard fonts, no tables or text boxes, correct section labelling, and the right keywords for the target role and job market. CVPassport checks your CV against the ATS systems UAE and Indian employers actually use." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I build a CV for a walk-in interview in Dubai?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Use CVPassport's Walk-In CV builder to create a clean, single-page ATS-safe CV in under 5 minutes. Walk-in interviews in Dubai and the UAE typically involve direct submission to a recruiter or HR team on the day — bring multiple printed copies. Your CV should be one page, easy to scan in 6 seconds, and include your visa status prominently so the recruiter knows your availability immediately." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is CVPassport free to use?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. CVPassport is free to start — build your CV, check your ATS score, and download your PDF at no cost. Premium features are available for advanced templates and detailed ATS scoring." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does CVPassport work for Indian domestic job applications?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. CVPassport is built for both Gulf and Indian job markets. Our ATS checker is calibrated for Indian portals including Naukri, Shine, and LinkedIn India, as well as Gulf platforms like Bayt, GulfTalent, and Naukrigulf. Build your profile once and generate optimised versions for both markets." }
+    },
+    {
+      "@type": "Question",
+      "name": "Should I include a photo on my UAE CV?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Only if the job posting explicitly asks for one, or for customer-facing roles like hospitality or aviation where some employers request it. For most corporate, tech, finance, and engineering roles, skip the photo. ATS systems cannot read images, and an unsolicited photo can disrupt document parsing." }
+    },
+    {
+      "@type": "Question",
+      "name": "Which Gulf countries does CVPassport support?",
+      "acceptedAnswer": { "@type": "Answer", "text": "CVPassport templates and ATS scoring cover the full GCC: UAE, Saudi Arabia, Qatar, Kuwait, Bahrain, and Oman. The Gulf-standard format works across all six countries." }
+    }
+  ]
+}
+        `}</script>
       </Helmet>
 
       <style>{`
@@ -841,14 +879,14 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <nav className="lp-site-footer-cols" aria-label="Footer">
                 <div>
                   <p className="lp-site-footer-col-h">Product</p>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=templates')}>Templates</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/builder?tab=ats')}>ATS Score</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/cover-letter')}>Cover Letter</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/walkin')}>Walk-In Mode</span>
-                  <span
+                  <Link className="lp-site-footer-link" to="/builder?tab=templates">Templates</Link>
+                  <Link className="lp-site-footer-link" to="/ats">ATS Score</Link>
+                  <Link className="lp-site-footer-link" to="/cover-letter">Cover Letter</Link>
+                  <Link className="lp-site-footer-link" to="/walk-in">Walk-In Mode</Link>
+                  <Link
                     className="lp-site-footer-link"
-                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    onClick={() => navigate('/salary-switcher')}
+                    to="/salary-switcher"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     Salary Switcher
                     <span
@@ -866,17 +904,23 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                     >
                       Free Tool
                     </span>
-                  </span>
+                  </Link>
+                </div>
+                <div>
+                  <p className="lp-site-footer-col-h">Company</p>
+                  <Link className="lp-site-footer-link" to="/about">About</Link>
+                  <Link className="lp-site-footer-link" to="/india-to-uae">India to UAE</Link>
+                  <Link className="lp-site-footer-link" to="/blog">Blog</Link>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Legal</p>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/terms')}>Terms of Service</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/privacy')}>Privacy Policy</span>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/refund')}>Refund Policy</span>
+                  <Link className="lp-site-footer-link" to="/terms">Terms of Service</Link>
+                  <Link className="lp-site-footer-link" to="/privacy">Privacy Policy</Link>
+                  <Link className="lp-site-footer-link" to="/refund">Refund Policy</Link>
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Support</p>
-                  <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => { window.location.href = 'mailto:support@mycvpassport.com'; }}>support@mycvpassport.com</span>
+                  <a className="lp-site-footer-link" href="mailto:support@mycvpassport.com">support@mycvpassport.com</a>
                   <span className="lp-site-footer-link" style={{ cursor: 'pointer' }} onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}>FAQ</span>
                 </div>
               </nav>

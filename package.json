@@ -61,29 +61,36 @@
     ]
   },
   "reactSnap": {
-    "puppeteerArgs": [
-      "--no-sandbox",
-      "--disable-setuid-sandbox"
-    ],
-    "skipThirdPartyRequests": true,
-    "inlineCss": false,
+    "source": "build",
+    "destination": "build",
     "include": [
-      "/"
-    ],
-    "exclude": [
-      "/dashboard",
-      "/builder",
-      "/ats-checker",
+      "/",
       "/pricing",
-      "/login",
-      "/signup"
+      "/builder",
+      "/blog",
+      "/templates",
+      "/walk-in",
+      "/ats",
+      "/linkedin-optimizer",
+      "/salary-switcher",
+      "/tools",
+      "/terms",
+      "/privacy",
+      "/about",
+      "/india-to-uae",
+      "/blog/uae-cv-format-2026",
+      "/blog/walk-in-interview-guide-dubai-2026",
+      "/blog/indian-cv-vs-uae-cv-key-differences",
+      "/blog/ats-score-guide-for-gcc-jobs-what-recruiters-see"
     ],
-    "timeout": 10000,
-    "waitFor": 2000
+    "puppeteerArgs": ["--no-sandbox", "--disable-setuid-sandbox"],
+    "inlineCss": true,
+    "skipThirdPartyRequests": true
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "dotenv": "^17.4.1",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "puppeteer": "^22.0.0"
   }
 }

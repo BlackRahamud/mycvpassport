@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import POSTS from "../data/posts";
 import "./BlogPage.css";
 import "./BlogPostPage.css";
@@ -32,16 +32,15 @@ function RelatedCard({ post }) {
 }
 
 function BlogNav({ onHamburger }) {
-  const navigate = useNavigate();
   return (
     <nav className="blog-nav">
-      <button className="blog-nav__logo" onClick={() => navigate("/")}>CVPassport</button>
+      <Link className="blog-nav__logo" to="/">CVPassport</Link>
       <div className="blog-nav__right">
         <div className="blog-nav__links">
-          <button className="blog-nav__link is-active" type="button" onClick={() => navigate("/blog")}>Blog</button>
-          <button className="blog-nav__link" type="button" onClick={() => navigate("/tools")}>Tools</button>
-          <button className="blog-nav__link" type="button" onClick={() => navigate("/pricing")}>Pricing</button>
-          <button className="blog-nav__link" type="button" onClick={() => navigate("/#newsletter")}>Newsletter</button>
+          <Link className="blog-nav__link is-active" to="/blog">Blog</Link>
+          <Link className="blog-nav__link" to="/tools">Tools</Link>
+          <Link className="blog-nav__link" to="/pricing">Pricing</Link>
+          <Link className="blog-nav__link" to="/#newsletter">Newsletter</Link>
         </div>
       </div>
       <button
@@ -75,7 +74,6 @@ function NotFound() {
 
 export default function BlogPostPage() {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const post = POSTS.find((p) => p.slug === slug);
@@ -126,13 +124,9 @@ export default function BlogPostPage() {
           <div className="blog-post__cta-card">
             <h3 className="blog-post__cta-title">Ready to build your UAE CV?</h3>
             <p className="blog-post__cta-sub">Get your ATS score in 60 seconds.</p>
-            <button
-              type="button"
-              className="blog-post__cta-btn"
-              onClick={() => navigate("/signup")}
-            >
+            <Link to="/builder" className="blog-post__cta-btn">
               Get Started Free →
-            </button>
+            </Link>
           </div>
         </aside>
       </div>
@@ -151,9 +145,9 @@ export default function BlogPostPage() {
       {menuOpen && (
         <div className="blog-mobile-menu" role="dialog" aria-modal="true">
           <div className="blog-mobile-menu__logo">CVPassport</div>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => { setMenuOpen(false); navigate("/blog"); }}>Blog</button>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => { setMenuOpen(false); navigate("/tools"); }}>Tools</button>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => { setMenuOpen(false); navigate("/pricing"); }}>Pricing</button>
+          <Link className="blog-mobile-menu__link" to="/blog" onClick={() => setMenuOpen(false)}>Blog</Link>
+          <Link className="blog-mobile-menu__link" to="/tools" onClick={() => setMenuOpen(false)}>Tools</Link>
+          <Link className="blog-mobile-menu__link" to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link>
           <button className="blog-mobile-menu__link" type="button" onClick={() => setMenuOpen(false)}>Newsletter</button>
           <button
             className="blog-mobile-menu__close"

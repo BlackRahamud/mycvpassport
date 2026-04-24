@@ -20,5 +20,10 @@
       "maxDuration": 30
     }
   },
+  "redirects": [
+    { "source": "/walk-in-cv",   "destination": "/walk-in", "permanent": true },
+    { "source": "/ats-checker",  "destination": "/ats",     "permanent": true },
+    { "source": "/indian-cv-uae","destination": "/india-to-uae", "permanent": true }
+  ],
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
 }
