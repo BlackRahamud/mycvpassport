@@ -13,6 +13,7 @@ import HeroSection from './components/landing/HeroSection';
 import ShowSection from './components/landing/ShowSection';
 import FeatureCardGrid from './components/landing/FeatureCardGrid';
 import FoundersNoteSection from './components/landing/FoundersNoteSection';
+import PricingAnchorSection from './components/landing/PricingAnchorSection';
 import FinalCTASection from './components/landing/FinalCTASection';
 // W18 reinforcements — free-tools bar above the fold and real
 // testimonials row above the Founder's Note.
@@ -721,18 +722,18 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                   className="lp-btn"
                   onClick={onSignup}
                   style={{
-                    background:   T.btnPrimary,
+                    background:   '#D4860A',
                     border:       'none',
-                    color:        T.btnPrimaryTxt,
-                    borderRadius: '8px',
+                    color:        '#000000',
+                    borderRadius: '20px',
                     padding:      '8px 18px',
                     fontSize:     '13px',
-                    fontWeight:   '700',
+                    fontWeight:   '600',
                     cursor:       'pointer',
                     fontFamily:   'inherit',
                   }}
                 >
-                  Get Started
+                  Build my CV free →
                 </button>
               </>
             )}
@@ -778,6 +779,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         <FeatureCardGrid />
         <TestimonialsRow />
         <FoundersNoteSection />
+        <PricingAnchorSection />
         <FinalCTASection />
 
         <footer className="lp-footer-disclaimer">
