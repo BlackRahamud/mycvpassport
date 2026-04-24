@@ -14,6 +14,8 @@ import CardHoverLift from '../motion/CardHoverLift';
 //   badge    : string | undefined — shown only on the primary card
 //   href     : string — route to navigate on CTA click (verified in App.js)
 //   ctaLabel : string
+//   widget   : ReactNode | undefined — floats above the title, no wrapper box
+//   tintRGB  : string | undefined — "r,g,b" for a radial-gradient card tint
 
 export default function FeatureCard({
   variant = 'default',
@@ -22,12 +24,18 @@ export default function FeatureCard({
   badge,
   href,
   ctaLabel,
+  widget,
+  tintRGB,
 }) {
   const navigate = useNavigate();
   const onCta = (e) => {
     e.stopPropagation();
     if (href) navigate(href);
   };
+
+  const cardStyle = tintRGB
+    ? { backgroundImage: `radial-gradient(ellipse at 50% 0%, rgba(${tintRGB}, 0.10) 0%, transparent 60%)` }
+    : undefined;
 
   return (
     <>
@@ -129,8 +137,9 @@ export default function FeatureCard({
         }
       `}</style>
       <CardHoverLift variant={variant} className="cvp-feature-card-wrap">
-        <div className="cvp-feature-card">
+        <div className="cvp-feature-card" style={cardStyle}>
           {badge && <span className="cvp-feature-card-badge">{badge}</span>}
+          {widget}
           <h3 className="cvp-feature-card-title">{title}</h3>
           <p className="cvp-feature-card-tagline">{tagline}</p>
           <div className="cvp-feature-card-cta-row">
