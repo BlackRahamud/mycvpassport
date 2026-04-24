@@ -17,7 +17,6 @@ import PricingAnchorSection from './components/landing/PricingAnchorSection';
 import FinalCTASection from './components/landing/FinalCTASection';
 // W18 reinforcements — free-tools bar above the fold and real
 // testimonials row above the Founder's Note.
-import FreeToolsBar from './components/marketing/FreeToolsBar';
 import TestimonialsRow from './components/marketing/TestimonialsRow';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
@@ -774,7 +773,6 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
         {/* ── W18 LANDING — 5-block conversion layout ───────────── */}
         <HeroSection />
-        <FreeToolsBar />
         <ShowSection />
         <FeatureCardGrid />
         <TestimonialsRow />
