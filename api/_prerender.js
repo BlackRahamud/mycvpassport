@@ -7,11 +7,17 @@
  *   human request → vercel.json's second rewrite sends /index.html (SPA)
  *                   — this function never runs for them
  *
- * Defence in depth: the function re-validates the UA in JS. If for some
- * reason a non-bot reaches the function, or the bypass header / query
- * param is set, or Prerender.io fails, it responds with a 302 redirect
- * to the same URL + `__cvp_spa=1` so vercel.json's SPA-fallback rewrite
- * serves /index.html. The site never breaks.
+ * Every response carries an `x-cvp-prerender` header so a `curl -I` reveals
+ * exactly which branch fired. Values:
+ *   hit                     — proxied response from Prerender.io
+ *   miss:not-bot            — UA didn't match the allowlist
+ *   miss:bypass-header      — X-Prerender-Bypass set
+ *   miss:api-path           — /api/* never proxied
+ *   miss:static-ext         — asset extension, never proxied
+ *   miss:loop-guard         — hit the __cvp_spa param a second time
+ *   miss:no-token           — PRERENDER_TOKEN env var missing or empty
+ *   miss:upstream-5xx       — Prerender returned 5xx, serving SPA instead
+ *   miss:exception          — fetch threw (network, parse, etc.)
  */
 
 export const config = { runtime: 'edge' };
@@ -34,10 +40,16 @@ const BOT_AGENTS = [
 
 const STATIC_EXT_RE = /\.(?:js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|map|json|xml|txt)$/i;
 
-function fallbackToSpa(requestUrl) {
+function fallbackToSpa(requestUrl, reason) {
   const u = new URL(requestUrl);
   u.searchParams.set('__cvp_spa', '1');
-  return Response.redirect(u.toString(), 302);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: u.toString(),
+      'x-cvp-prerender': `miss:${reason}`,
+    },
+  });
 }
 
 export default async function handler(request) {
@@ -45,32 +57,33 @@ export default async function handler(request) {
   try {
     url = new URL(request.url);
   } catch {
-    return fallbackToSpa(request.url || 'https://www.mycvpassport.com/');
+    return fallbackToSpa(request.url || 'https://www.mycvpassport.com/', 'bad-url');
   }
 
-  // Loop guard — if we've already redirected with the bypass param,
-  // the vercel.json rewrite should have skipped us. If it didn't, bail.
   if (url.searchParams.get('__cvp_spa') === '1') {
-    return new Response(null, { status: 204 });
+    return new Response(null, {
+      status: 204,
+      headers: { 'x-cvp-prerender': 'miss:loop-guard' },
+    });
   }
 
   const ua = (request.headers.get('user-agent') || '').toLowerCase();
   const isBot = BOT_AGENTS.some((bot) => ua.includes(bot));
 
-  // Skip conditions — all hand control back to the SPA rewrite.
-  if (!isBot) return fallbackToSpa(request.url);
-  if (request.headers.get('x-prerender-bypass')) return fallbackToSpa(request.url);
-  if (url.pathname.startsWith('/api/')) return fallbackToSpa(request.url);
-  if (STATIC_EXT_RE.test(url.pathname)) return fallbackToSpa(request.url);
+  if (!isBot) return fallbackToSpa(request.url, 'not-bot');
+  if (request.headers.get('x-prerender-bypass')) return fallbackToSpa(request.url, 'bypass-header');
+  if (url.pathname.startsWith('/api/')) return fallbackToSpa(request.url, 'api-path');
+  if (STATIC_EXT_RE.test(url.pathname)) return fallbackToSpa(request.url, 'static-ext');
 
   const host = request.headers.get('host') || 'www.mycvpassport.com';
-  const fullTargetUrl = `https://${host}${url.pathname}${url.search}`;
-  const prerenderUrl = `https://service.prerender.io/${fullTargetUrl}`;
   const token = process.env.PRERENDER_TOKEN;
 
   if (!token) {
-    return fallbackToSpa(request.url);
+    return fallbackToSpa(request.url, 'no-token');
   }
+
+  const fullTargetUrl = `https://${host}${url.pathname}${url.search}`;
+  const prerenderUrl = `https://service.prerender.io/${fullTargetUrl}`;
 
   try {
     const upstream = await fetch(prerenderUrl, {
@@ -87,8 +100,8 @@ export default async function handler(request) {
       },
     });
 
-    if (!upstream.ok && upstream.status >= 500) {
-      return fallbackToSpa(request.url);
+    if (upstream.status >= 500) {
+      return fallbackToSpa(request.url, 'upstream-5xx');
     }
 
     const html = await upstream.text();
@@ -101,6 +114,6 @@ export default async function handler(request) {
       },
     });
   } catch {
-    return fallbackToSpa(request.url);
+    return fallbackToSpa(request.url, 'exception');
   }
 }
