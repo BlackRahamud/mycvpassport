@@ -1,8 +1,40 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import POSTS from "../data/posts";
 import "./BlogPage.css";
 import "./BlogPostPage.css";
+
+// Inline parser for blog body text. Supports:
+//   **bold**        → <strong>
+//   [label](/path)  → <Link> (internal) or <a> (external)
+// Unmatched text passes through untouched.
+function renderInline(text) {
+  const tokenRegex = /(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g;
+  const out = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+  while ((match = tokenRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) out.push(text.slice(lastIndex, match.index));
+    const tok = match[0];
+    if (tok.startsWith("**")) {
+      out.push(<strong key={`b-${key++}`}>{tok.slice(2, -2)}</strong>);
+    } else {
+      const linkMatch = /\[([^\]]+)\]\(([^)]+)\)/.exec(tok);
+      const label = linkMatch[1];
+      const href = linkMatch[2];
+      if (href.startsWith("/")) {
+        out.push(<Link key={`l-${key++}`} to={href}>{label}</Link>);
+      } else {
+        out.push(<a key={`l-${key++}`} href={href} target="_blank" rel="noopener noreferrer">{label}</a>);
+      }
+    }
+    lastIndex = tokenRegex.lastIndex;
+  }
+  if (lastIndex < text.length) out.push(text.slice(lastIndex));
+  return out;
+}
 
 function Badges({ items }) {
   return (
@@ -80,9 +112,26 @@ export default function BlogPostPage() {
   if (!post) return <NotFound />;
 
   const related = POSTS.filter((p) => p.slug !== slug).slice(0, 2);
+  const canonical = `https://www.mycvpassport.com/blog/${post.slug}`;
+  const metaTitle = post.metaTitle || `${post.title} | CVPassport`;
+  const metaDesc = post.metaDescription || post.excerpt;
 
   return (
     <div className="blog-page blog-post-page">
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDesc} />
+        <link rel="canonical" href={canonical} />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDesc} />
+        <meta property="og:url" content={canonical} />
+        {post.image && <meta property="og:image" content={post.image} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDesc} />
+        {post.image && <meta name="twitter:image" content={post.image} />}
+      </Helmet>
       <BlogNav onHamburger={() => setMenuOpen(true)} />
 
       <div className="blog-post__layout">
@@ -107,10 +156,46 @@ export default function BlogPostPage() {
                   if (block.type === "h2") {
                     return <h2 key={i} className="blog-post__h2">{block.text}</h2>;
                   }
-                  if (block.type === "quote") {
-                    return <blockquote key={i} className="blog-post__quote">{block.text}</blockquote>;
+                  if (block.type === "h3") {
+                    return <h3 key={i} className="blog-post__h3">{block.text}</h3>;
                   }
-                  return <p key={i}>{block.text}</p>;
+                  if (block.type === "quote") {
+                    return <blockquote key={i} className="blog-post__quote">{renderInline(block.text)}</blockquote>;
+                  }
+                  if (block.type === "ul") {
+                    return (
+                      <ul key={i} className="blog-post__ul">
+                        {block.items.map((it, j) => <li key={j}>{renderInline(it)}</li>)}
+                      </ul>
+                    );
+                  }
+                  if (block.type === "table") {
+                    return (
+                      <div key={i} className="blog-post__table-wrap">
+                        <table className="blog-post__table">
+                          <thead>
+                            <tr>{block.headers.map((h, j) => <th key={j}>{h}</th>)}</tr>
+                          </thead>
+                          <tbody>
+                            {block.rows.map((row, j) => (
+                              <tr key={j}>{row.map((cell, k) => <td key={k}>{cell}</td>)}</tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  }
+                  if (block.type === "cta") {
+                    return (
+                      <p key={i} className="blog-post__cta-row">
+                        <Link to={block.href} className="blog-post__cta-inline">{block.label}</Link>
+                      </p>
+                    );
+                  }
+                  if (block.type === "hr") {
+                    return <hr key={i} className="blog-post__hr" />;
+                  }
+                  return <p key={i}>{renderInline(block.text)}</p>;
                 })
               : (
                 <p>Full article coming soon. In the meantime, the summary above captures the key takeaway.</p>

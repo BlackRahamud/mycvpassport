@@ -18,6 +18,169 @@ export function slugify(title) {
 
 const rawPosts = [
   {
+    title: "UAE CV Format 2026: The Complete Guide",
+    slug: "uae-cv-format-2026",
+    metaTitle: "UAE CV Format 2026: The Complete Guide for Gulf Job Seekers | CVPassport",
+    metaDescription: "The definitive guide to UAE CV format in 2026. Correct section order, ATS formatting rules, what Gulf recruiters actually read, common mistakes Indians and expats make, and free ATS-ready templates.",
+    author: "@CVPassportTeam",
+    date: "Friday, 24 Apr 2026",
+    readTime: "8 min read",
+    category: "UAE CV Format",
+    excerpt: "8 min read · Updated April 2026. Everything Gulf job seekers need to know about UAE CV format in 2026 — section order, length, ATS rules, and the mistakes that quietly kill response rates.",
+    badges: [{ label: "UAE CV Format", tone: "purple" }, { label: "ATS Tips", tone: "blue" }],
+    image: "https://images.unsplash.com/photo-1586282391129-76a6df230234?w=800",
+    body: [
+      { type: "p", text: "Getting a job in Dubai, Abu Dhabi or anywhere in the Gulf starts with one document: a CV that clears the ATS filter and earns 6 seconds of a recruiter's attention. The problem is that most CV advice online is written for UK or US hiring markets. The UAE operates differently — and in 2026, with Emiratisation quotas reshaping hiring, AI-powered ATS becoming standard across companies of all sizes, and competition for roles tighter than ever, format is no longer optional. It is the first test your application faces." },
+      { type: "p", text: "This guide covers everything: section order, length, ATS rules, what to include that most people miss, and what to cut that is quietly killing your response rate." },
+      { type: "hr" },
+
+      { type: "h2", text: "The Gulf CV Checklist: At a Glance" },
+      { type: "p", text: "Before we go deep, here's the summary every UAE job seeker needs:" },
+      { type: "ul", items: [
+        "**Length**: 1 page for under 5 years experience. 2 pages maximum for experienced professionals. Senior executives: up to 3 pages only if every line earns its place.",
+        "**Font**: Calibri 11pt body, Calibri 13–14pt bold for section headers. The most universally ATS-safe combination across Taleo, Workday, SAP SuccessFactors, Bayt, GulfTalent, Dubai Careers, and TAMM.",
+        "**Format**: Single-column PDF. Never two columns. Never tables. Never text boxes.",
+        "**File name**: FirstName-LastName-CV-2026.pdf — not CV_final_v3.pdf.",
+        "**Photo**: Only include if the job posting explicitly requests it, or for customer-facing roles in hospitality/aviation. ATS systems cannot parse images — an unsolicited photo can break parsing.",
+        "**Personal details**: Nationality, visa status, and current location are required — not optional — in the UAE.",
+      ] },
+      { type: "hr" },
+
+      { type: "h2", text: "Section Order: The UAE Standard" },
+      { type: "p", text: "Gulf ATS systems — particularly Taleo, Workday, and SAP SuccessFactors, which power hiring at most large UAE employers — are calibrated to expect a specific section order. Deviating from it reduces your ATS score even if your content is strong." },
+
+      { type: "h3", text: "1. Personal Information (top of the document)" },
+      { type: "p", text: "Include: Full name · Phone with country code · Professional email · LinkedIn URL · City of residence (not full address) · Nationality · Visa status · Current location." },
+      { type: "p", text: "**Visa status matters more than most people realise.** Recruiters use it to assess: whether you need sponsorship, whether your visa is transferable, and how quickly you can start. Use specific language:" },
+      { type: "ul", items: [
+        "\"Employment Visa – Transferable\" (strongest signal — no wait time, no NOC needed)",
+        "\"Visit Visa – Available Immediately\"",
+        "\"Spouse/Dependent Visa – NOC Available\"",
+        "\"Own Visa / Freelance Permit\"",
+      ] },
+      { type: "p", text: "Vague entries like \"UAE Resident\" tell the recruiter nothing useful." },
+      { type: "p", text: "**On marital status and date of birth:** Many UAE CV guides tell you to include these. In practice: marital status is optional and declining in relevance for private sector roles. Date of birth is similarly optional unless the role or company specifically requests it. Include nationality and visa status — those are non-negotiable. The rest is your call." },
+
+      { type: "h3", text: "2. Professional Summary (3–5 lines)" },
+      { type: "p", text: "This is the most important section on your CV and the one most people waste. A UAE professional summary should do three things in five lines or fewer: state who you are (job title + years of experience); name your 2–3 strongest skills relevant to the target role; signal what you're targeting and where." },
+      { type: "p", text: "Example (Finance): \"Finance Manager with 9 years of experience in UAE banking and fintech. Specialist in IFRS financial reporting, VAT compliance, and cross-functional team leadership. Seeking a Head of Finance role within Dubai's financial services sector.\"" },
+      { type: "p", text: "Example (IT/Tech applying from India): \"Full-Stack Developer with 6 years of experience across Indian fintech and e-commerce. Proficient in React, Node.js, and AWS. Targeting software engineering roles in Dubai's tech sector. Available on visit visa, immediate joiner.\"" },
+      { type: "p", text: "The \"available on visit visa, immediate joiner\" line at the end of a summary is a small detail that consistently gets callbacks — it removes friction for the recruiter before they've even finished reading your name." },
+
+      { type: "h3", text: "3. Work Experience (reverse chronological)" },
+      { type: "p", text: "For each role include: job title (match the exact wording used in UAE/Gulf job postings); company name + industry context if company is not well known; dates in Month + Year format; location (city, country); 3–5 bullet points per role." },
+      { type: "p", text: "**Write bullets that pass the 6-second scan.** UAE recruiters spend an average of 6 seconds on initial CV review. Your bullets need to deliver value in the first three words." },
+      { type: "p", text: "Bad: \"Responsible for managing a team and improving performance metrics.\"" },
+      { type: "p", text: "Good: \"Led 14-person sales team to 138% of annual target in FY2025, generating AED 4.2M in new revenue.\"" },
+      { type: "p", text: "Every bullet should answer one question: what happened because you were there?" },
+      { type: "p", text: "**On job title keywords:** Match the exact format UAE job postings use. \"Sales Executive – FMCG\" not \"Business Development Professional\". \"Admin Assistant\" not \"Administrative Coordinator\". \"PRO – Public Relations Officer\" for visa/government roles. ATS systems at Bayt and GulfTalent score keyword density at 40% of total ATS score — using the wrong job title format costs you." },
+
+      { type: "h3", text: "4. Education" },
+      { type: "ul", items: [
+        "Degree name",
+        "Institution name — full name; UAE employers know IIT, IIM, BITS Pilani, NIT; spell out less well-known institutions",
+        "Year of graduation",
+        "Location",
+        "CGPA/percentage if above 3.0/60% and graduated within 5 years",
+      ] },
+
+      { type: "h3", text: "5. Skills" },
+      { type: "p", text: "Hard skills only in this section. Soft skills belong inside your work experience bullets — not as a standalone list. A bullet point that says \"Demonstrated strong leadership skills by building and managing a cross-functional team of 8 across 3 departments\" is worth 20 times more than \"Leadership\" in a skills list." },
+      { type: "p", text: "Include Gulf-relevant hard skills where applicable:" },
+      { type: "ul", items: [
+        "VAT compliance / UAE VAT law",
+        "GCC labour law",
+        "Tally ERP, SAP, Oracle (common in UAE accounting/finance roles)",
+        "Arabic language ability (even basic — write \"Arabic: Conversational\")",
+        "MOHRE, DIFC, ADGM regulatory knowledge (for legal/HR roles)",
+      ] },
+
+      { type: "h3", text: "6. Certifications" },
+      { type: "p", text: "Include: Certification name · Issuing body · Year. Prioritise: PMP, CPA, ACCA, CIMA, CFA, AWS, Azure, Google certifications, Six Sigma, NEBOSH, IELTS/TOEFL scores." },
+
+      { type: "h3", text: "7. Languages" },
+      { type: "p", text: "Essential in the UAE's multinational workforce. Format: English (Fluent) · Arabic (Conversational) · Hindi (Native). Even basic Arabic is worth listing — it is a differentiator in most UAE roles outside pure tech and finance." },
+      { type: "hr" },
+
+      { type: "h2", text: "ATS in the UAE: What You're Actually Being Scored Against" },
+      { type: "p", text: "Nearly 60% of Gulf organisations use AI-based ATS software in 2026. The platforms most commonly running at large UAE employers are: Taleo, Workday, SAP SuccessFactors, and for SMEs and regional companies, the built-in ATS layers on Bayt.com and GulfTalent. Understanding how they score you changes how you write." },
+      { type: "p", text: "**The ATS scoring formula:** Keyword match 40% · Format parseability 40% · Section completeness 20%." },
+
+      { type: "h3", text: "Keyword match (40%)" },
+      { type: "p", text: "Modern Gulf ATS platforms use semantic AI — not just exact keyword matching. But the safest approach in 2026 is still to mirror the exact language from the job description, not synonyms. If the JD says \"VAT compliance\" — write \"VAT compliance\", not \"tax management\". If it says \"project management\" — write \"project management\", not \"project coordination\". Pull the job description into CVPassport's ATS checker and it will show you the specific keyword gaps before you submit." },
+      { type: "cta", label: "Check my ATS score free →", href: "/ats" },
+
+      { type: "h3", text: "Format parseability (40%)" },
+      { type: "p", text: "This is where most CVs fail silently. The ATS cannot tell you it couldn't read your document — it just scores you zero on the sections it couldn't parse." },
+      { type: "p", text: "**What kills parseability:**" },
+      { type: "ul", items: [
+        "Two-column layouts — ATS reads left-to-right across the full width. Two columns get scrambled: your skills column gets read in the middle of your work history. The parser produces disordered, unscorable output.",
+        "Tables — frequently skipped entirely by Taleo and Workday parsers.",
+        "Text boxes — 100% invisible to ATS. If your contact details are in a header text box (common in designed templates), the ATS doesn't know your name, email, or phone number.",
+        "Headers and footers — most ATS parsers skip these.",
+        "Graphics, icons, profile picture frames — unreadable, and can corrupt the text content around them.",
+        "Fancy fonts — stick to Calibri, Arial, or Helvetica.",
+      ] },
+      { type: "p", text: "**The safe structure**: single-column, clearly labelled section headings, plain paragraph text and bullet points, standard fonts, saved as PDF. CVPassport templates are built to this specification — tested against the ATS systems UAE employers actually use." },
+
+      { type: "h3", text: "Section completeness (20%)" },
+      { type: "p", text: "An ATS that cannot find a Professional Summary section, or cannot identify your Work Experience section because it's labelled \"Professional History\", scores you down on completeness. Use standard section labels: Professional Summary / Work Experience / Education / Skills / Certifications / Languages." },
+      { type: "hr" },
+
+      { type: "h2", text: "UAE CV vs Indian Resume: The Key Differences" },
+      { type: "p", text: "If you're applying from India to UAE roles, your standard Indian resume format will need adjustment." },
+      { type: "table", headers: ["", "Indian Resume", "UAE CV"], rows: [
+        ["Photo", "Usually excluded", "Optional — skip unless requested"],
+        ["Nationality", "Not included", "Required"],
+        ["Visa status", "N/A", "Required — be specific"],
+        ["Marital status", "Sometimes included", "Optional"],
+        ["Length standard", "2–3 pages common", "1–2 pages max"],
+        ["Opening section", "Objective statement", "Professional Summary"],
+        ["Column layout", "Two-column common", "Single-column only"],
+        ["Keywords", "Naukri/LinkedIn India", "Bayt/GulfTalent/LinkedIn UAE"],
+      ] },
+      { type: "p", text: "Full guide: [How to Convert Your Indian Resume for UAE Jobs](/india-to-uae)." },
+      { type: "hr" },
+
+      { type: "h2", text: "The 6 Mistakes That Kill UAE Job Applications" },
+      { type: "p", text: "**Mistake 1: Objective Statement instead of Professional Summary.** \"I am a hardworking professional seeking a challenging role…\" signals to UAE recruiters that your CV is outdated. Replace every Objective Statement with a tight, keyword-rich Professional Summary." },
+      { type: "p", text: "**Mistake 2: Two-column or table-based layout.** The most dangerous thing on your CV. Looks professional to the human eye, invisible or scrambled to the ATS. Use single-column." },
+      { type: "p", text: "**Mistake 3: Contact details in a header or text box.** If the ATS cannot find your email and phone number, your application is processed without contact information. Put personal details in the main body of the document." },
+      { type: "p", text: "**Mistake 4: Sending the same CV to every role.** ATS systems score keyword density at 40% of total score. A CV not tailored to the job description will consistently score lower than a tailored one — even if your experience is stronger. Use CVPassport's ATS checker to identify keyword gaps for each specific role before applying." },
+      { type: "cta", label: "Check my ATS score →", href: "/ats" },
+      { type: "p", text: "**Mistake 5: Vague visa status.** \"UAE Resident\" tells a recruiter nothing. \"Employment Visa – Transferable\" tells them you can start without paperwork delays. That distinction alone changes whether they call you or the next candidate." },
+      { type: "p", text: "**Mistake 6: Wrong file name.** Name your file: FirstName-LastName-CV.pdf — not resume_FINAL_v2_updated_MARCH.pdf." },
+      { type: "hr" },
+
+      { type: "h2", text: "Free ATS-Ready UAE CV Templates" },
+      { type: "p", text: "CVPassport's templates are single-column, Calibri-based, tested against Taleo, Workday, SAP SuccessFactors, Bayt, and GulfTalent. Free to use — build your CV, check your ATS score, and download your PDF in one session." },
+      { type: "cta", label: "Build my UAE CV free →", href: "/builder" },
+      { type: "hr" },
+
+      { type: "h2", text: "Frequently Asked Questions" },
+      { type: "h3", text: "Should I include a photo on my UAE CV?" },
+      { type: "p", text: "Only if the job posting specifically asks for one, or for customer-facing roles (hospitality, cabin crew, front desk) where some employers request it. For the vast majority of roles — tech, finance, engineering, operations, healthcare — leave it out. ATS systems cannot read images and an unsolicited photo can disrupt document parsing. Even among human recruiters, the trend in UAE private sector hiring is moving away from photos to reduce bias." },
+      { type: "h3", text: "How long should my UAE CV be?" },
+      { type: "p", text: "1 page for under 5 years experience. 2 pages maximum for experienced professionals. Senior executives may go to 3 pages only if every section is directly relevant to the target role. A 3-page CV from a mid-level candidate signals a lack of editorial judgment to a UAE recruiter." },
+      { type: "h3", text: "Should I include salary expectations on my UAE CV?" },
+      { type: "p", text: "No. Salary is negotiated during interviews or in a cover letter only if the employer explicitly asks. Never include it on the CV." },
+      { type: "h3", text: "Do UAE employers care about ATS scores?" },
+      { type: "p", text: "Nearly 60% of Gulf companies use ATS software in 2026 — including most companies with 50+ employees, all major multinationals, banks, government-linked entities, and companies hiring through Bayt or GulfTalent (which have their own ATS layer). Your CV must clear the ATS filter before a human sees it." },
+      { type: "h3", text: "Is Arabic required on a UAE CV?" },
+      { type: "p", text: "Not for most private sector roles — English is the primary business language in the UAE. However, noting Arabic proficiency at any level (\"Arabic: Basic\", \"Arabic: Conversational\") is consistently a positive signal to UAE recruiters, particularly for roles involving any government entity interaction." },
+      { type: "h3", text: "Does the same format work for Saudi Arabia and Qatar?" },
+      { type: "p", text: "Yes. The Gulf-standard single-column ATS-safe format works across the GCC — UAE, Saudi Arabia, Qatar, Kuwait, Bahrain, and Oman. Personal detail requirements (nationality, visa status) are consistent across all six countries." },
+      { type: "hr" },
+
+      { type: "h2", text: "Keep reading" },
+      { type: "ul", items: [
+        "[Walk-in interview CV guide](/blog/walk-in-interview-guide-dubai-2026)",
+        "[Convert your Indian resume for UAE](/india-to-uae)",
+        "[Free UAE CV templates](/templates)",
+      ] },
+    ],
+  },
+  {
     title: "Should You Put Passport Details on Your UAE CV?",
     author: "@CVPassportTeam",
     date: "Monday, 3 Feb 2026",
@@ -46,6 +209,8 @@ const rawPosts = [
   },
   {
     title: "ATS Score Guide for GCC Jobs: What Recruiters See",
+    metaTitle: "ATS Score Guide for GCC Jobs: What Recruiters Actually See | CVPassport",
+    metaDescription: "How ATS systems score your CV in UAE, Saudi Arabia and GCC. Taleo, Workday, SAP SuccessFactors, Bayt — what they look for and how to score higher. Free ATS checker included.",
     author: "@CVPassportTeam",
     date: "Wednesday, 12 Feb 2026",
     readTime: "6 min read",
@@ -103,6 +268,8 @@ const rawPosts = [
   },
   {
     title: "Walk-In Interview Guide: Dubai 2026",
+    metaTitle: "Walk-In Interview CV Guide Dubai 2026: What to Bring & How to Prepare | CVPassport",
+    metaDescription: "Everything you need for a walk-in interview in Dubai or UAE in 2026. What CV to bring, how to format it, what recruiters look for on the day — and a free one-page CV builder.",
     author: "@CVPassportTeam",
     date: "Saturday, 28 Mar 2026",
     readTime: "5 min read",
@@ -123,6 +290,8 @@ const rawPosts = [
   },
   {
     title: "Indian CV vs UAE CV: Key Differences",
+    metaTitle: "Indian CV vs UAE CV: Key Differences Every Gulf Job Seeker Must Know | CVPassport",
+    metaDescription: "Side-by-side comparison of Indian resume format vs UAE CV requirements. Section order, personal details, ATS differences, and how to convert yours free.",
     author: "@CVPassportTeam",
     date: "Sunday, 12 Apr 2026",
     readTime: "6 min read",
@@ -161,6 +330,6 @@ const rawPosts = [
   },
 ];
 
-const posts = rawPosts.map((p) => ({ ...p, slug: slugify(p.title) }));
+const posts = rawPosts.map((p) => ({ ...p, slug: p.slug || slugify(p.title) }));
 
 export default posts;
