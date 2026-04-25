@@ -24,46 +24,49 @@ const T = {
 
 const TOOLS = [
   {
-    id: "salary",
+    id: "gulf-career",
     number: "01",
+    name: "Gulf Career Intelligence",
+    tagline: "Discover what your CV is actually worth in the Gulf.",
+    long: "Live UAE and Saudi salary bands, keyword density and recruiter signals, mapped to your role and years of experience. Know where you sit before you apply.",
+    route: "/gulf-career",
+    cta: "Open Career Intelligence",
+    ring: "#D97706",
+    bleedRGB: "217,119,6",
+    glyph: "GCI",
+    tag: "FLAGSHIP",
+    flagship: true,
+    sample: "Senior Analyst \u00B7 DXB \u2192 AED 28\u201342K",
+  },
+  {
+    id: "salary",
+    number: "02",
     name: "Salary Switcher",
-    tagline: "Calculate your real worth in Dubai vs India.",
+    tagline: "See your offer reframed across UAE, Saudi and India.",
     long: "Pick your role, pick your experience, see the real multiplier between a pre-tax INR salary and a tax-free AED package. Share a brag card in one tap.",
     route: "/salary-switcher",
     cta: "Open Salary Switcher",
-    ring: "#D97706",
-    bleedRGB: "217,119,6",
+    ring: "#378ADD",
+    bleedRGB: "55,138,221",
     glyph: "\u20B9/AED",
-    tag: "FLAGSHIP",
-    flagship: true,
+    tag: "LIVE",
+    flagship: false,
+    sample: "\u20B98 LPA \u2192 AED 38,000",
   },
   {
     id: "ats",
-    number: "02",
-    name: "ATS Checker",
-    tagline: "See if your CV passes Gulf ATS filters.",
+    number: "03",
+    name: "ATS Score Checker",
+    tagline: "See exactly how recruiters screen your CV.",
     long: "Upload your CV and see exactly where the bots will reject you — missing keywords, bad formatting, weak headlines. Built on real GCC job description data.",
     route: "/ats",
     cta: "Run ATS Check",
-    ring: "#378ADD",
-    bleedRGB: "55,138,221",
+    ring: "#1D9E75",
+    bleedRGB: "29,158,117",
     glyph: "ATS",
     tag: "LIVE",
     flagship: false,
-  },
-  {
-    id: "linkedin",
-    number: "03",
-    name: "LinkedIn Optimizer",
-    tagline: "Get noticed by UAE & GCC recruiters.",
-    long: "AI-rewritten headline and About section, tuned for how Gulf recruiters search. Free to try, no signup required to see the first draft.",
-    route: "/linkedin-optimizer",
-    cta: "Optimize LinkedIn",
-    ring: "#1D9E75",
-    bleedRGB: "29,158,117",
-    glyph: "in",
-    tag: "LIVE",
-    flagship: false,
+    sample: "Sales Manager \u2192 72/100",
   },
 ];
 
@@ -236,6 +239,14 @@ function ActiveCardContent({ data, onOpen }) {
           &lsaquo;/&rsaquo;
         </div>
         <p className="tp-active-long">{data.long}</p>
+        {data.sample && (
+          <span className="tp-sample-chip" aria-label={`Live sample: ${data.sample}`}>
+            <span aria-hidden className="tp-sample-dot" />
+            <Mono className="tp-sample-label">SAMPLE</Mono>
+            <span className="tp-sample-text">{data.sample}</span>
+            <span aria-hidden className="tp-sample-beam" />
+          </span>
+        )}
         <div className="tp-active-foot">
           <button
             type="button"
@@ -343,6 +354,15 @@ function MobileFeed({ activeIdx, setActiveIdx, onOpen }) {
             </header>
 
             <p className="tp-feed-long">{c.long}</p>
+
+            {c.sample && (
+              <span className="tp-sample-chip" aria-label={`Live sample: ${c.sample}`}>
+                <span aria-hidden className="tp-sample-dot" />
+                <Mono className="tp-sample-label">SAMPLE</Mono>
+                <span className="tp-sample-text">{c.sample}</span>
+                <span aria-hidden className="tp-sample-beam" />
+              </span>
+            )}
 
             <footer className="tp-feed-foot">
               <button
@@ -454,7 +474,7 @@ export default function ToolsPage() {
               <span className="tp-title-strong">Career Engineering Suite</span>
             </h1>
             <p className="tp-subtitle">
-              Precision tools to calculate your worth, optimize your profile, and hack the GCC job market.
+              Free tools built for Gulf job seekers — ATS-engineered for UAE, Saudi &amp; India hiring.
             </p>
             <div className="tp-statsbar">
               <Mono>
@@ -624,6 +644,14 @@ const CSS_TEXT = `
 .tp-verified { display: inline-flex; align-items: center; gap: 8px; }
 .tp-verified-dot { width: 6px; height: 6px; border-radius: 50%; background: #46C99A; box-shadow: 0 0 6px rgba(70,201,154,0.65); flex-shrink: 0; }
 .tp-verified-text { font-size: 9.5px; color: ${T.mutedDim}; font-weight: 600; letter-spacing: 0.18em; }
+
+/* Live sample chip */
+.tp-sample-chip { position: relative; display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; padding: 9px 14px; border-radius: 999px; border: 1px solid rgba(var(--tp-bleed),0.4); background: rgba(var(--tp-bleed),0.08); overflow: hidden; max-width: 100%; }
+.tp-sample-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tp-ring); box-shadow: 0 0 8px rgba(var(--tp-bleed),0.85); flex-shrink: 0; animation: tp-pulse-ambient 1.6s ease-in-out infinite; }
+.tp-sample-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: 0.22em; flex-shrink: 0; }
+.tp-sample-text { font-size: 12.5px; font-weight: 700; color: #fff; letter-spacing: -0.005em; font-family: ${T.mono}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tp-sample-beam { position: absolute; top: 0; left: 0; right: 0; height: 1px; pointer-events: none; overflow: hidden; }
+.tp-sample-beam::before { content: ""; position: absolute; inset: 0; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent); animation: tp-beam 3.2s ${T.ease} infinite; will-change: transform; }
 
 /* Rail */
 .tp-rail { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; max-width: 720px; margin: 30px auto 0; padding: 16px 0 0; border-top: 1px solid rgba(255,255,255,0.06); }
