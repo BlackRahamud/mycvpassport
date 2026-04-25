@@ -23,6 +23,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import ResetPassword from "./pages/ResetPassword";
 import HRPortal from "./pages/HRPortal";
 import JobPage from "./pages/JobPage";
+import JobsListPage from "./pages/JobsListPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
 import LinkedInOptimizer from "./pages/LinkedInOptimizer";
 import SalarySwitcher from "./pages/SalarySwitcher";
@@ -125,6 +126,7 @@ export default function App() {
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/hr" element={<HRPortal />} />
+      <Route path="/jobs" element={<JobsListPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />
       <Route
         path="*"
