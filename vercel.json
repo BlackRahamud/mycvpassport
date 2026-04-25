@@ -32,7 +32,7 @@
         { "type": "header", "key": "x-prerender-bypass" },
         { "type": "query",  "key": "__cvp_spa" }
       ],
-      "destination": "/api/_prerender"
+      "destination": "/api/prerender"
     },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
