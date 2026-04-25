@@ -31,6 +31,7 @@ import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import AboutPage from "./pages/AboutPage";
 import IndiaToUaePage from "./pages/IndiaToUaePage";
+import GulfCareerPage from "./pages/GulfCareerPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 
@@ -243,6 +244,8 @@ export default function App() {
               <Route path="/ats" element={<ATSPage onBack={() => navigate(user ? "/dashboard" : "/")} />} />
               <Route path="/linkedin-optimizer" element={<LinkedInOptimizer />} />
               <Route path="/salary-switcher" element={<SalarySwitcher />} />
+              <Route path="/gulf-career" element={<GulfCareerPage />} />
+              <Route path="/gulf/:reportId" element={<GulfCareerPage />} />
               <Route path="/tools" element={<ToolsPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
