@@ -1447,6 +1447,32 @@ function CVPanel({ candidate, hrCompany, jobTitle, onClose, onStatusChange, onPr
   const waMsg = encodeURIComponent(
     `Hi ${firstName}, I'm reaching out${hrCompany ? ` from ${hrCompany}` : ""} regarding your application${jobTitle ? ` for ${jobTitle}` : ""}. Are you available for a quick call?`
   );
+  // wa.me requires bare digits (no +, dashes, spaces). Demo data ships
+  // with formatted phones like "+971-50-555-1101" → strip everything that
+  // isn't a digit before building the URL.
+  const waDigits = String(candidate.candidate_phone || "").replace(/\D/g, "");
+  const waHref = waDigits ? `https://wa.me/${waDigits}?text=${waMsg}` : null;
+  // mailto: subject + body — encoded so spaces and the explicit %0D%0A
+  // line breaks survive into the user's mail client.
+  const emailSubject = encodeURIComponent(`Re: Your application for ${jobTitle || "this role"}`);
+  const emailBody = encodeURIComponent(
+    `Hi ${firstName || "there"},\r\n\r\nWe reviewed your application for ${jobTitle || "this role"}${hrCompany ? ` at ${hrCompany}` : ""} and would like to...`
+  );
+  const emailHref = candidate.candidate_email
+    ? `mailto:${candidate.candidate_email}?subject=${emailSubject}&body=${emailBody}`
+    : null;
+  // Status select — only the three options the demo wires (Shortlisted,
+  // Reviewing, Rejected). If the candidate's current status is anything
+  // else (New, Interviewing, etc.) we still surface it as a disabled
+  // first option so the select shows truth.
+  const PANEL_STATUS_OPTIONS = [
+    { value: "shortlisted", label: "Shortlisted" },
+    { value: "viewed",      label: "Reviewing" },
+    { value: "rejected",    label: "Rejected" },
+  ];
+  const currentStatus = candidate.status || "submitted";
+  const knownStatusValues = PANEL_STATUS_OPTIONS.map((o) => o.value);
+  const showFallbackStatusOption = !knownStatusValues.includes(currentStatus);
 
   return (
     <div
@@ -1573,19 +1599,68 @@ function CVPanel({ candidate, hrCompany, jobTitle, onClose, onStatusChange, onPr
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
       }}>
         <a
-          href={`https://wa.me/${candidate.candidate_phone || ""}?text=${waMsg}`}
+          href={waHref || undefined}
           target="_blank"
           rel="noopener noreferrer"
+          aria-disabled={!waHref}
+          onClick={(e) => { if (!waHref) e.preventDefault(); }}
           style={{
             background: T.success, color: "#fff",
             border: "none", borderRadius: T.radius,
             padding: "8px 14px", fontSize: 12, fontWeight: 500,
-            cursor: "pointer", textDecoration: "none", fontFamily: T.font,
+            cursor: waHref ? "pointer" : "not-allowed",
+            opacity: waHref ? 1 : 0.5,
+            textDecoration: "none", fontFamily: T.font,
           }}
         >
           Message {firstName || "candidate"}
         </a>
-        <StatusDropdown status={candidate.status} onChange={(s) => onStatusChange(candidate.id, s)} />
+        <a
+          href={emailHref || undefined}
+          aria-disabled={!emailHref}
+          onClick={(e) => { if (!emailHref) e.preventDefault(); }}
+          style={{
+            background: "#fff", color: T.text,
+            border: `1px solid ${T.border}`, borderRadius: T.radius,
+            padding: "7px 14px", fontSize: 12, fontWeight: 500,
+            cursor: emailHref ? "pointer" : "not-allowed",
+            opacity: emailHref ? 1 : 0.5,
+            textDecoration: "none", fontFamily: T.font,
+            display: "inline-flex", alignItems: "center", gap: 6,
+          }}
+          onMouseEnter={(e) => { if (emailHref) e.currentTarget.style.background = T.hover; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
+        >
+          Email {firstName || "candidate"}
+        </a>
+        <label style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 11, color: T.muted, fontFamily: T.font,
+          letterSpacing: 0.2, textTransform: "uppercase", fontWeight: 500,
+        }}>
+          Status
+          <select
+            value={currentStatus}
+            onChange={(e) => onStatusChange(candidate.id, e.target.value)}
+            style={{
+              background: statusColor(STATUS_DISPLAY[currentStatus] || "New").bg,
+              color: statusColor(STATUS_DISPLAY[currentStatus] || "New").fg,
+              border: `1px solid ${T.border}`, borderRadius: 999,
+              padding: "5px 10px", fontSize: 12, fontWeight: 500,
+              cursor: "pointer", fontFamily: T.font,
+              appearance: "auto",
+            }}
+          >
+            {showFallbackStatusOption && (
+              <option value={currentStatus} disabled>
+                {STATUS_DISPLAY[currentStatus] || "New"}
+              </option>
+            )}
+            {PANEL_STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </label>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
           <button
             type="button"
