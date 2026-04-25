@@ -68,6 +68,21 @@ const TOOLS = [
     flagship: false,
     sample: "Sales Manager \u2192 72/100",
   },
+  {
+    id: "linkedin",
+    number: "04",
+    name: "LinkedIn Optimizer",
+    tagline: "Optimise your LinkedIn profile for Gulf recruiter searches.",
+    long: "AI-rewritten headline and About section, tuned for how UAE and GCC recruiters search. Free to try; no signup required to see the first draft.",
+    route: "/linkedin-optimizer",
+    cta: "Optimise LinkedIn",
+    ring: "#06B6D4",
+    bleedRGB: "6,182,212",
+    glyph: "in",
+    tag: "LIVE",
+    flagship: false,
+    sample: "Profile Strength \u00b7 DXB visibility \u2192 Top 10%",
+  },
 ];
 
 const COMING_SOON = [
@@ -136,9 +151,11 @@ function DesktopStage({ activeIdx, setActiveIdx, onOpen }) {
   }, [paused, setActiveIdx]);
 
   const orderedSlots = useMemo(() => {
+    // 3 symmetric orbit slots (1 active + 3 orbit = 4 total tools)
     const slots = [
-      { x: -340, z: -160, scale: 0.72, rotY: 18 },
-      { x: 340, z: -160, scale: 0.72, rotY: -18 },
+      { x: -300, z: -140, scale: 0.74, rotY: 16 },  // near-left
+      { x: 300,  z: -140, scale: 0.74, rotY: -16 }, // near-right
+      { x: 0,    z: -380, scale: 0.5,  rotY: 0 },   // back-center
     ];
     const others = orbits.filter((c) => !c.isActive);
     const assigned = {};
@@ -654,7 +671,7 @@ const CSS_TEXT = `
 .tp-sample-beam::before { content: ""; position: absolute; inset: 0; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent); animation: tp-beam 3.2s ${T.ease} infinite; will-change: transform; }
 
 /* Rail */
-.tp-rail { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; max-width: 720px; margin: 30px auto 0; padding: 16px 0 0; border-top: 1px solid rgba(255,255,255,0.06); }
+.tp-rail { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; max-width: 880px; margin: 30px auto 0; padding: 16px 0 0; border-top: 1px solid rgba(255,255,255,0.06); }
 .tp-rail-node { position: relative; background: none; border: none; padding: 14px 10px 12px; cursor: pointer; color: ${T.muted}; text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; transition: color 240ms ${T.ease}; font-family: inherit; }
 .tp-rail-node:hover { color: #fff; }
 .tp-rail-node.is-on { color: #fff; }
@@ -674,7 +691,7 @@ const CSS_TEXT = `
   border-radius: 18px;
 }
 .tp-feed-nav-label { font-size: 9.5px; color: ${T.muted}; font-weight: 600; letter-spacing: 0.2em; text-align: center; }
-.tp-feed-orbits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; place-items: center; }
+.tp-feed-orbits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; place-items: center; }
 .tp-feed-orb { background: none; border: none; padding: 4px; cursor: pointer; opacity: 0.45; transition: opacity 240ms ${T.ease}, transform 240ms ${T.ease}; }
 .tp-feed-orb.is-on { opacity: 1; transform: scale(1.08); }
 

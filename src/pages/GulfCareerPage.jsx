@@ -995,6 +995,7 @@ function DarkReport({
   state, setState, result,
   stage, email,
   reportId, onUnlock, onExport, onToast, onReset,
+  onBuilderCta,
   isShared,
 }) {
   return (
@@ -1051,10 +1052,7 @@ function DarkReport({
 
             {!isShared && <RefineSection state={state} setState={setState} />}
 
-            <GapCloser
-              result={result}
-              onCta={() => onToast(`Heading to the builder · let's close that <b>${fmtAED(result.gap)}/mo</b> gap`)}
-            />
+            <GapCloser result={result} onCta={onBuilderCta} />
 
             <p className="gci-legal">
               This is an AI-powered peer-benchmarking tool based on community data and current Gulf market sentiment. Values are estimates for guidance only and do not constitute legal, financial, or recruitment advice. MyCVPassport is an independent platform not affiliated with any government or regulatory body. Pre-tax INR figures convert at AED 1 ≈ ₹22.99; AED is shown tax-free.
@@ -1150,6 +1148,13 @@ export default function GulfCareerPage() {
     setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
   }, [navigate]);
 
+  const onBuilderCta = useCallback(() => {
+    if (result) {
+      showToast(`Heading to the builder · let's close that <b>${fmtAED(result.gap)}/mo</b> gap`);
+    }
+    setTimeout(() => navigate("/builder"), 600);
+  }, [navigate, result, showToast]);
+
   const showLight = stage === "intake";
   const showCurtain = stage === "curtain";
   const showFlashOrReport = stage === "flash" || stage === "report";
@@ -1195,6 +1200,7 @@ export default function GulfCareerPage() {
           onUnlock={onUnlock} onExport={onExport}
           onToast={showToast}
           onReset={onReset}
+          onBuilderCta={onBuilderCta}
           isShared={isShared}
         />
       )}

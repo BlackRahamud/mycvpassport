@@ -8,10 +8,11 @@ export const NAV_SECTIONS = [
     id: 'free-tools',
     label: 'Free Tools',
     items: [
-      { label: 'ATS CV Checker',    href: '/ats',                badge: 'FREE TOOL', requiresAuth: false },
-      { label: 'All Free Tools',    href: '/tools',              badge: 'FREE TOOL', requiresAuth: false },
-      { label: 'Salary Switcher',   href: '/salary-switcher',    badge: 'FREE TOOL', requiresAuth: false },
-      { label: 'LinkedIn Optimizer',href: '/linkedin-optimizer', badge: 'FREE TOOL', requiresAuth: false },
+      { label: 'Gulf Career Intelligence', href: '/gulf-career',        badge: 'FREE TOOL', requiresAuth: false },
+      { label: 'ATS CV Checker',           href: '/ats',                badge: 'FREE TOOL', requiresAuth: false },
+      { label: 'All Free Tools',           href: '/tools',              badge: 'FREE TOOL', requiresAuth: false },
+      { label: 'Salary Switcher',          href: '/salary-switcher',    badge: 'FREE TOOL', requiresAuth: false },
+      { label: 'LinkedIn Optimizer',       href: '/linkedin-optimizer', badge: 'FREE TOOL', requiresAuth: false },
     ],
   },
   {
