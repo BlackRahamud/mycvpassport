@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { BadgeCheck, Check, ChevronDown, Upload, Zap } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
 import CVPassportLogo from "../components/CVPassportLogo";
 
@@ -62,6 +63,161 @@ function initialsAvatar(name, size = 40) {
       }}
     >
       {initials}
+    </div>
+  );
+}
+
+// ─── VISA SELECT ─────────────────────────────────────────────────
+// Headless custom dropdown — replaces native <select> for full theme
+// control (dark surface, amber chevron, deep elevation shadow,
+// keyboard nav). Trigger occupies the full container width; popover
+// fades+slides in over 150ms.
+function VisaSelect({ value, onChange, options, placeholder = "Select…" }) {
+  const [open, setOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const [focused, setFocused] = useState(false);
+  const wrapRef = useRef(null);
+  const current = options.find((o) => o.value === value);
+
+  // Click-outside + keyboard handling.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDoc = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.min(i < 0 ? 0 : i + 1, options.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveIdx((i) => Math.max(i - 1, 0));
+      } else if (e.key === "Enter") {
+        if (activeIdx >= 0 && activeIdx < options.length) {
+          e.preventDefault();
+          onChange(options[activeIdx].value);
+          setOpen(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, activeIdx, options, onChange]);
+
+  // Reset hover when reopening.
+  useEffect(() => {
+    if (open) {
+      const idx = options.findIndex((o) => o.value === value);
+      setActiveIdx(idx);
+    }
+  }, [open, options, value]);
+
+  const triggerBorder = focused || open ? T.amber : T.border;
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          background: T.surface,
+          border: `1px solid ${triggerBorder}`,
+          borderRadius: 8,
+          color: current ? T.text : T.muted,
+          fontSize: 13,
+          fontFamily: T.font,
+          outline: "none",
+          cursor: "pointer",
+          textAlign: "left",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          boxSizing: "border-box",
+          transition: "border-color 150ms ease-in-out, box-shadow 150ms ease-in-out",
+          boxShadow: focused || open ? "0 0 0 3px rgba(217,119,6,0.18)" : "none",
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {current ? current.label : placeholder}
+        </span>
+        <ChevronDown
+          size={18}
+          strokeWidth={2}
+          color={T.amber}
+          style={{
+            flexShrink: 0,
+            transition: "transform 150ms ease-in-out",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+
+      <div
+        role="listbox"
+        aria-hidden={!open}
+        style={{
+          position: "absolute",
+          top: "calc(100% + 6px)",
+          left: 0,
+          right: 0,
+          background: T.surface,
+          border: `1px solid ${T.border}`,
+          borderRadius: 10,
+          padding: 6,
+          zIndex: 50,
+          opacity: open ? 1 : 0,
+          transform: open ? "translateY(0)" : "translateY(-4px)",
+          pointerEvents: open ? "auto" : "none",
+          transition: "opacity 150ms ease-in-out, transform 150ms ease-in-out",
+          boxShadow:
+            "0 24px 48px rgba(0,0,0,0.55), 0 6px 16px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02)",
+        }}
+      >
+        {options.map((o, i) => {
+          const isSel = o.value === value;
+          const isActive = i === activeIdx;
+          return (
+            <div
+              role="option"
+              aria-selected={isSel}
+              key={o.value}
+              onMouseEnter={() => setActiveIdx(i)}
+              onMouseLeave={() => setActiveIdx(-1)}
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: 13,
+                fontFamily: T.font,
+                background: isSel ? T.amber : isActive ? T.elevated : "transparent",
+                color: isSel ? "#fff" : "rgba(255,255,255,0.92)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                transition: "background-color 120ms ease-in-out, color 120ms ease-in-out",
+              }}
+            >
+              <span>{o.label}</span>
+              {isSel && <Check size={14} strokeWidth={2.5} color="#fff" />}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -335,9 +491,7 @@ function ApplyForm({ job, user }) {
                   gap: 8,
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
+                <Zap size={16} strokeWidth={2} />
                 {submitting ? "Applying..." : "Easy Apply with my CVPassport CV"}
               </button>
               <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0" }}>
@@ -393,11 +547,7 @@ function ApplyForm({ job, user }) {
                 <span style={{ fontSize: 13, color: T.green, fontWeight: 500, fontFamily: T.font }}>{form.cv_filename}</span>
               ) : (
                 <>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={T.muted} strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
+                  <Upload size={24} strokeWidth={1.75} color={T.muted} />
                   <span style={{ fontSize: 12, color: T.muted, marginTop: 8, fontFamily: T.font }}>Click to upload CV (PDF, DOC)</span>
                 </>
               )}
@@ -406,13 +556,17 @@ function ApplyForm({ job, user }) {
 
           <div style={{ marginBottom: 20 }}>
             <label style={labelStyle}>Visa status</label>
-            <select style={fieldStyle} value={form.visa_status} onChange={(e) => set("visa_status", e.target.value)}>
-              <option value="">Select visa status</option>
-              <option value="Sponsored">Need sponsorship</option>
-              <option value="Own visa">Own visa / residency</option>
-              <option value="Visit visa">Visit visa</option>
-              <option value="Freelance">Freelance permit</option>
-            </select>
+            <VisaSelect
+              value={form.visa_status}
+              onChange={(v) => set("visa_status", v)}
+              placeholder="Select visa status"
+              options={[
+                { value: "Sponsored",     label: "Need sponsorship" },
+                { value: "Own visa",      label: "Own visa / residency" },
+                { value: "Visit visa",    label: "Visit visa" },
+                { value: "Freelance",     label: "Freelance permit" },
+              ]}
+            />
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
@@ -470,9 +624,7 @@ function ApplyForm({ job, user }) {
               margin: "0 auto 16px",
             }}
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={T.green} strokeWidth="2.5">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
+            <Check size={28} strokeWidth={2.5} color={T.green} />
           </div>
           <h3 style={{ fontSize: 18, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>
             You&apos;re in the pipeline
@@ -643,9 +795,7 @@ export default function JobPage() {
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <span style={{ fontSize: 13, color: T.muted }}>{job.company || "Company"}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill={T.green} stroke="none">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
+                <BadgeCheck size={14} strokeWidth={2} color={T.green} fill="none" />
               </div>
               <h1 style={{ fontSize: 22, fontWeight: 500, color: T.text, margin: "0 0 10px", fontFamily: T.font }}>
                 {job.title}

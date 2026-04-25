@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
 import CVPassportLogo from "../components/CVPassportLogo";
 
@@ -339,10 +340,15 @@ export default function JobsListPage() {
 
         {/* Search bar */}
         <div style={{ maxWidth: 520, margin: "0 auto", position: "relative" }}>
-          <span style={{
-            position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
-            fontSize: 16, color: T.muted, pointerEvents: "none",
-          }}>🔍</span>
+          <Search
+            size={18}
+            strokeWidth={2}
+            color={T.muted}
+            style={{
+              position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
+              pointerEvents: "none",
+            }}
+          />
           <input
             type="text"
             placeholder="Search job title, company, location…"
