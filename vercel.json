@@ -28,13 +28,6 @@
   "rewrites": [
     {
       "source": "/((?!api/).*)",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*([Gg]ooglebot|[Gg]oogle-[Ii]nspection[Tt]ool|[Gg]oogle [Pp]age [Ss]peed|[Dd]evelopers\\.google\\.com|[Yy]ahoo! [Ss]lurp|[Bb]ingbot|[Bb]ing[Pp]review|[Yy]andex|[Bb]aiduspider|[Ff]acebookexternalhit|[Tt]witterbot|[Rr]ogerbot|[Ll]inked[Ii]n[Bb]ot|[Ee]mbedly|[Qq]uora [Ll]ink [Pp]review|[Ss]howyoubot|[Oo]utbrain|[Pp]interest|[Ss]lackbot|[Vv][Kk][Ss]hare|[Ww]3[Cc]_[Vv]alidator|[Rr]edditbot|[Aa]pplebot|[Ww]hats[Aa]pp|[Ff]lipboard|[Tt]umblr|[Bb]itlybot|[Ss]kype[Uu]ri[Pp]review|[Nn]uzzel|[Dd]iscordbot|[Qq]wantify|[Bb]itrix [Ll]ink [Pp]review|[Cc]hrome-[Ll]ighthouse|[Tt]elegram[Bb]ot|[Ii][Aa]_archiver|[Ss]creaming [Ff]rog|[Aa]hrefs[Bb]ot|[Ss]emrush[Bb]ot|[Mm][Jj]12[Bb]ot|[Dd]ot[Bb]ot|[Cc]hat[Gg][Pp][Tt]-[Uu]ser|[Gg][Pp][Tt][Bb]ot|[Cc]laude[Bb]ot|[Aa]nthropic-[Aa][Ii]).*"
-        }
-      ],
       "missing": [
         { "type": "header", "key": "x-prerender-bypass" },
         { "type": "query",  "key": "__cvp_spa" }
