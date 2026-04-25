@@ -318,6 +318,50 @@ function JobCardSkeleton() {
   );
 }
 
+// Light-theme toast: bottom-centred pill, auto-dismissed by parent.
+// kind: 'success' (green) | 'warning' (amber) | 'error' (red).
+function Toast({ text, kind = "success" }) {
+  const palette = {
+    success: { bg: T.successBg, fg: T.successFg, border: "#A7F3D0" },
+    warning: { bg: T.warningBg, fg: T.warningFg, border: "#FCD34D" },
+    error:   { bg: T.dangerBg,  fg: T.dangerFg,  border: "#FCA5A5" },
+  }[kind] || { bg: "#FFFFFF", fg: T.text, border: T.border };
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: "fixed", bottom: 24, left: "50%",
+        transform: "translateX(-50%)",
+        background: palette.bg, color: palette.fg,
+        border: `1px solid ${palette.border}`,
+        padding: "10px 18px", borderRadius: 999,
+        fontSize: 13, fontWeight: 500, fontFamily: T.font,
+        boxShadow: "0 8px 24px rgba(17,24,39,0.08)",
+        zIndex: 2000, maxWidth: "calc(100vw - 32px)",
+      }}
+    >
+      {text}
+    </div>
+  );
+}
+
+// Format a note timestamp as a short relative string ("just now", "5m ago",
+// "3h ago"), falling back to a short absolute date for older notes.
+function formatNoteTime(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return "";
+  const diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) return "just now";
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1)   return "just now";
+  if (mins < 60)  return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 function Toggle({ value, onChange }) {
   return (
     <button
@@ -1425,7 +1469,9 @@ function PostJobModal({ open, onClose, onSubmit, job }) {
 }
 
 // ─── CV side panel (white restyle) ───────────────────────────────
-function CVPanel({ candidate, hrCompany, jobTitle, onClose, onStatusChange, onPrev, onNext, currentIndex, totalCount }) {
+function CVPanel({ candidate, hrCompany, jobTitle, onClose, onStatusChange, onSaveNote, onPrev, onNext, currentIndex, totalCount }) {
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
   useEffect(() => {
     if (!candidate) return undefined;
     const handler = (e) => {
@@ -1575,7 +1621,7 @@ function CVPanel({ candidate, hrCompany, jobTitle, onClose, onStatusChange, onPr
         )}
       </div>
 
-      <div style={{ padding: "0 20px 100px" }}>
+      <div style={{ padding: "0 20px 20px" }}>
         <h4 style={{ fontSize: 12, fontWeight: 600, color: T.text, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.3 }}>
           Work history
         </h4>
@@ -1590,6 +1636,92 @@ function CVPanel({ candidate, hrCompany, jobTitle, onClose, onStatusChange, onPr
             </p>
           </div>
         ))}
+      </div>
+
+      {/* ── Recruiter notes ─────────────────────────────────────── */}
+      <div style={{ padding: "0 20px 100px" }}>
+        <h4 style={{ fontSize: 12, fontWeight: 600, color: T.text, margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.3 }}>
+          Recruiter Notes
+        </h4>
+        {(() => {
+          const raw = Array.isArray(candidate.recruiter_notes) ? candidate.recruiter_notes : [];
+          const notes = [...raw].sort(
+            (a, b) => new Date(b?.ts || 0).getTime() - new Date(a?.ts || 0).getTime()
+          );
+          if (notes.length === 0) {
+            return (
+              <p style={{ fontSize: 12, color: T.muted, margin: "0 0 12px" }}>
+                No notes yet. Add one below to track decisions.
+              </p>
+            );
+          }
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+              {notes.map((n, i) => (
+                <div
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={`${n?.ts || "note"}-${i}`}
+                  style={{
+                    background: T.panel,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: T.radius,
+                    padding: "10px 12px",
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: 13, color: T.text, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>
+                    {n?.text || ""}
+                  </p>
+                  <div style={{ marginTop: 6, fontSize: 11, color: T.muted, fontFamily: T.font }}>
+                    {n?.author || "HR"} · {formatNoteTime(n?.ts)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        <textarea
+          rows={3}
+          value={noteDraft}
+          onChange={(e) => setNoteDraft(e.target.value)}
+          placeholder="Add a note…"
+          disabled={savingNote}
+          style={{
+            width: "100%", padding: "10px 12px",
+            border: `1px solid ${T.border}`, borderRadius: T.radius,
+            fontSize: 13, color: T.text, background: "#fff",
+            fontFamily: T.font, resize: "vertical", lineHeight: 1.4,
+            outline: "none", boxSizing: "border-box",
+            marginBottom: 8,
+          }}
+        />
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={async () => {
+              const trimmed = noteDraft.trim();
+              if (!trimmed || savingNote) return;
+              setSavingNote(true);
+              const result = await onSaveNote(candidate.id, trimmed);
+              setSavingNote(false);
+              if (result?.ok) setNoteDraft("");
+            }}
+            disabled={!noteDraft.trim() || savingNote}
+            style={{
+              background: T.accent, color: "#fff",
+              border: "none", borderRadius: T.radius,
+              padding: "8px 16px", fontSize: 13, fontWeight: 500,
+              cursor: noteDraft.trim() && !savingNote ? "pointer" : "not-allowed",
+              opacity: noteDraft.trim() && !savingNote ? 1 : 0.5,
+              fontFamily: T.font,
+              transition: "background 150ms cubic-bezier(0.4,0,0.2,1)",
+            }}
+            onMouseEnter={(e) => { if (!savingNote && noteDraft.trim()) e.currentTarget.style.background = T.accentHover; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = T.accent; }}
+          >
+            {savingNote ? "Saving…" : "Save Note"}
+          </button>
+        </div>
       </div>
 
       <div style={{
@@ -1704,6 +1836,18 @@ export default function HRPortal() {
   const [panelIdx, setPanelIdx] = useState(-1);
   const [showPostJob, setShowPostJob] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = useCallback((text, kind = "success") => {
+    setToast({ text, kind });
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  useEffect(() => () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  }, []);
   const [notifications, setNotifications] = useState([]);
   const [highlightId, setHighlightId] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -1808,7 +1952,60 @@ export default function HRPortal() {
         metadata: { changed_by: user.id, previous_status: oldStatus },
       });
     }
-  }, [candidates, panelCandidate, user?.id]);
+
+    // Side effect: shortlist email via Resend. Best-effort — never blocks
+    // the status update. Failures surface as a yellow toast.
+    if (newStatus === "shortlisted" && app?.candidate_email) {
+      const jobTitle = jobs.find((j) => j.id === app.job_id)?.title || "your application";
+      try {
+        const r = await fetch("/api/notify-candidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            applicationId,
+            candidateEmail: app.candidate_email,
+            candidateName: app.candidate_name,
+            jobTitle,
+          }),
+        });
+        const json = await r.json().catch(() => ({}));
+        if (r.ok && json.ok) {
+          showToast(`Shortlist email sent to ${app.candidate_email}`, "success");
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn("[shortlist-email] failed:", json?.error || r.status);
+          showToast("Status saved, but email failed to send", "warning");
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[shortlist-email] threw:", e);
+        showToast("Status saved, but email failed to send", "warning");
+      }
+    }
+  }, [candidates, panelCandidate, user?.id, jobs, showToast]);
+
+  const handleSaveNote = useCallback(async (applicationId, noteText) => {
+    const trimmed = String(noteText || "").trim();
+    if (!trimmed || !supabase) return { ok: false };
+    const { data: newNotes, error } = await supabase.rpc("append_recruiter_note", {
+      p_app_id: applicationId,
+      p_text: trimmed,
+    });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.warn("[append_recruiter_note]", error.message);
+      showToast(error.message || "Failed to save note", "error");
+      return { ok: false };
+    }
+    setCandidates((prev) =>
+      prev.map((c) => (c.id === applicationId ? { ...c, recruiter_notes: newNotes } : c))
+    );
+    if (panelCandidate?.id === applicationId) {
+      setPanelCandidate((prev) => (prev ? { ...prev, recruiter_notes: newNotes } : prev));
+    }
+    showToast("Note saved", "success");
+    return { ok: true };
+  }, [panelCandidate?.id, showToast]);
 
   const openPanel = useCallback(async (candidate, idx) => {
     setPanelCandidate(candidate);
@@ -2042,6 +2239,7 @@ export default function HRPortal() {
           jobTitle={selectedJob?.title}
           onClose={() => setPanelCandidate(null)}
           onStatusChange={handleStatusChange}
+          onSaveNote={handleSaveNote}
           currentIndex={panelIdx}
           totalCount={tabFiltered.length || 1}
           onPrev={() => {
@@ -2066,6 +2264,8 @@ export default function HRPortal() {
         onClose={() => { setShowPostJob(false); setEditingJob(null); }}
         onSubmit={editingJob ? handleEditJob : handlePostJob}
       />
+
+      {toast && <Toast text={toast.text} kind={toast.kind} />}
 
       <style>{`
         @keyframes hr-shimmer {
