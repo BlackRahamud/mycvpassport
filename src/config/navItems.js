@@ -28,8 +28,9 @@ export const NAV_SECTIONS = [
     id: 'explore',
     label: 'Explore',
     items: [
-      { label: 'Blog',    href: '/blog',    requiresAuth: false },
-      { label: 'Pricing', href: '/pricing', requiresAuth: false },
+      { label: 'Browse Jobs', href: '/jobs',    badge: 'NEW', requiresAuth: false },
+      { label: 'Blog',        href: '/blog',    requiresAuth: false },
+      { label: 'Pricing',     href: '/pricing', requiresAuth: false },
     ],
   },
 ];

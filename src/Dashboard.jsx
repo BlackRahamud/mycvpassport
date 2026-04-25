@@ -66,6 +66,17 @@ function IconBolt({ size = 13 }) {
   );
 }
 
+function IconBriefcase({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+      <line x1="12" y1="12" x2="12" y2="12" />
+      <path d="M2 12h20" />
+    </svg>
+  );
+}
+
 function IconTable({ size = 13 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -290,8 +301,7 @@ export default function Dashboard({
     { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: "#D97706", action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
     { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: "#D85A30", action: () => { setActive("walkin"); onWalkIn(); } },
     { id: "templates", label: "Templates", icon: IconTable, iconColor: "#378ADD", action: () => { setActive("templates"); onTemplates(); } },
-    // { id: 'jobs', label: 'CVPassport Jobs', icon: IconBriefcase, action: () => navigate('/jobs'), badge: 'Soon' }
-    // Uncomment when /jobs route is built
+    { id: "jobs", label: "Browse Jobs", icon: IconBriefcase, iconColor: "#635bff", action: () => navigate("/jobs") },
   ];
 
   /* ─── Mobile tabs ─── */

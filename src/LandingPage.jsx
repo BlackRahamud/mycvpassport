@@ -881,6 +881,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
               <nav className="lp-site-footer-cols" aria-label="Footer">
                 <div>
                   <p className="lp-site-footer-col-h">Product</p>
+                  <Link className="lp-site-footer-link" to="/jobs">Browse Jobs</Link>
                   <Link className="lp-site-footer-link" to="/builder?tab=templates">Templates</Link>
                   <Link className="lp-site-footer-link" to="/ats">ATS Score</Link>
                   <Link className="lp-site-footer-link" to="/cover-letter">Cover Letter</Link>
