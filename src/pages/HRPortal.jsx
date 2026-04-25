@@ -259,7 +259,7 @@ function StatusDropdown({ status, onChange }) {
   );
 }
 
-function Stat({ label, value, delta, accent }) {
+function Stat({ label, value, delta, accent, loading }) {
   return (
     <div style={{
       background: T.card, border: `1px solid ${T.border}`,
@@ -268,12 +268,51 @@ function Stat({ label, value, delta, accent }) {
     }}>
       <div style={{ fontSize: 12, color: T.muted, marginBottom: 6, fontWeight: 500 }}>{label}</div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <div style={{ fontSize: 26, fontWeight: 600, color: accent || T.text, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
-        {delta && (
+        {loading ? (
+          <div className="hr-skeleton" style={{ width: 56, height: 26, borderRadius: 6 }} aria-hidden />
+        ) : (
+          <div style={{ fontSize: 26, fontWeight: 600, color: accent || T.text, letterSpacing: -0.5, lineHeight: 1 }}>{value}</div>
+        )}
+        {delta && !loading && (
           <div style={{ fontSize: 11, color: T.success, fontWeight: 500, display: "flex", alignItems: "center", gap: 2 }}>
             <Ic.TrendUp /> {delta}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Shimmer placeholder card matching the JobCard footprint, shown while
+// jobs are loading from Supabase.
+function JobCardSkeleton() {
+  return (
+    <div
+      aria-hidden
+      style={{
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: T.radius,
+        padding: 20,
+        fontFamily: T.font,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div className="hr-skeleton" style={{ width: 200, height: 18, borderRadius: 6 }} />
+            <div className="hr-skeleton" style={{ width: 70, height: 18, borderRadius: 999 }} />
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div className="hr-skeleton" style={{ width: 120, height: 13, borderRadius: 4 }} />
+            <div className="hr-skeleton" style={{ width: 90,  height: 13, borderRadius: 4 }} />
+            <div className="hr-skeleton" style={{ width: 80,  height: 13, borderRadius: 4 }} />
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div className="hr-skeleton" style={{ width: 36, height: 28, borderRadius: 6 }} />
+          <div className="hr-skeleton" style={{ width: 130, height: 32, borderRadius: T.radius }} />
+        </div>
       </div>
     </div>
   );
@@ -486,7 +525,7 @@ function Sidebar({ active, onNav, unread, onPostJob, openOnMobile, onCloseMobile
 }
 
 // ─── Jobs page ───────────────────────────────────────────────────
-function JobsPage({ jobs, onPostJob, onViewApplicants, isLoading }) {
+function JobsPage({ jobs, onPostJob, onViewApplicants, onEditJob, isLoading }) {
   const totalJobs = jobs.length;
   const active = jobs.filter((j) => j.hiring_status !== "closed").length;
   const applicants = jobs.reduce((sum, j) => sum + (j.applications?.[0]?.count || 0), 0);
@@ -522,20 +561,18 @@ function JobsPage({ jobs, onPostJob, onViewApplicants, isLoading }) {
         gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
         gap: 12, marginBottom: 24,
       }}>
-        <Stat label="Total Jobs" value={totalJobs} />
-        <Stat label="Active" value={active} />
-        <Stat label="Total Applicants" value={applicants} />
-        <Stat label="Avg Match" value={jobs.length ? "—" : 0} accent={T.success} />
+        <Stat label="Total Jobs" value={totalJobs} loading={isLoading} />
+        <Stat label="Active" value={active} loading={isLoading} />
+        <Stat label="Total Applicants" value={applicants} loading={isLoading} />
+        <Stat label="Avg Match" value={jobs.length ? "—" : 0} accent={T.success} loading={isLoading} />
       </div>
 
       {/* Jobs list */}
       {isLoading ? (
-        <div style={{
-          background: T.card, border: `1px solid ${T.border}`,
-          borderRadius: T.radius, padding: "40px 20px", textAlign: "center",
-          color: T.muted, fontSize: 13,
-        }}>
-          Loading jobs…
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <JobCardSkeleton />
+          <JobCardSkeleton />
+          <JobCardSkeleton />
         </div>
       ) : jobs.length === 0 ? (
         <div style={{
@@ -564,21 +601,39 @@ function JobsPage({ jobs, onPostJob, onViewApplicants, isLoading }) {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {jobs.map((j) => <JobCard key={j.id} job={j} onView={() => onViewApplicants(j.id)} />)}
+          {jobs.map((j) => (
+            <JobCard
+              key={j.id}
+              job={j}
+              onView={() => onViewApplicants(j.id)}
+              onEdit={() => onEditJob(j)}
+            />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function JobCard({ job, onView }) {
+function JobCard({ job, onView, onEdit }) {
   const [hover, setHover] = useState(false);
   const status = jobStatusLabel(job);
   const applicants = job.applications?.[0]?.count ?? 0;
+  const onCardKey = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onEdit && onEdit();
+    }
+  };
   return (
     <div
+      role={onEdit ? "button" : undefined}
+      tabIndex={onEdit ? 0 : undefined}
+      onClick={() => onEdit && onEdit()}
+      onKeyDown={onEdit ? onCardKey : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      aria-label={onEdit ? `Edit job: ${job.title}` : undefined}
       style={{
         background: T.card,
         border: `1px solid ${hover ? T.borderStrong : T.border}`,
@@ -587,6 +642,7 @@ function JobCard({ job, onView }) {
         boxShadow: hover ? "0 1px 3px rgba(0,0,0,0.04)" : "none",
         transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1), box-shadow 150ms cubic-bezier(0.4,0,0.2,1)",
         fontFamily: T.font,
+        cursor: onEdit ? "pointer" : "default",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
@@ -608,7 +664,7 @@ function JobCard({ job, onView }) {
           </div>
           <button
             type="button"
-            onClick={onView}
+            onClick={(e) => { e.stopPropagation(); onView(); }}
             style={{
               background: "#fff", color: T.text,
               border: `1px solid ${T.border}`, borderRadius: T.radius,
@@ -1127,22 +1183,46 @@ function SettingsPage({ profile, onSave, onSwitchCandidate, onSignOut }) {
   );
 }
 
-// ─── Post Job modal ──────────────────────────────────────────────
-function PostJobModal({ open, onClose, onSubmit }) {
-  const [form, setForm] = useState({
-    paste_jd: "",
-    title: "",
-    department: "",
-    location: "",
-    job_type: "full-time",
-    market: "gulf",
-    visa_sponsored: true,
-    salary_min: "",
-    salary_max: "",
-    description: "",
-    requirements: "",
-    hiring_status: "active",
-  });
+// ─── Post Job modal (handles both create and edit) ───────────────
+// AI parse-JD removed Apr 25 2026 — field was UI-only with no backing
+// API; client paste was silently discarded on submit. Real parse path is
+// a Q2 task (new edge function + JD-shaped JSON output schema).
+function buildJobForm(job) {
+  if (!job) {
+    return {
+      title: "",
+      department: "",
+      location: "",
+      job_type: "full-time",
+      market: "gulf",
+      visa_sponsored: true,
+      salary_min: "",
+      salary_max: "",
+      description: "",
+      requirements: "",
+      hiring_status: "active",
+    };
+  }
+  return {
+    title: job.title || "",
+    department: job.department || "",
+    location: job.location || "",
+    job_type: job.job_type || "full-time",
+    market: job.market || "gulf",
+    visa_sponsored: !!job.visa_sponsored,
+    salary_min: job.salary_min != null ? String(job.salary_min) : "",
+    salary_max: job.salary_max != null ? String(job.salary_max) : "",
+    description: job.description || "",
+    requirements: Array.isArray(job.requirements) ? job.requirements.join("\n") : "",
+    hiring_status: job.hiring_status || "active",
+  };
+}
+
+function PostJobModal({ open, onClose, onSubmit, job }) {
+  const isEdit = !!job;
+  const [form, setForm] = useState(() => buildJobForm(job));
+  // Reset form whenever the modal switches between jobs (or between create/edit).
+  useEffect(() => { setForm(buildJobForm(job)); }, [job?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -1195,9 +1275,13 @@ function PostJobModal({ open, onClose, onSubmit }) {
           padding: "18px 24px", borderBottom: `1px solid ${T.border}`,
         }}>
           <div>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: T.text, margin: 0 }}>Post a Job</h2>
+            <h2 style={{ fontSize: 17, fontWeight: 600, color: T.text, margin: 0 }}>
+              {isEdit ? "Edit Job" : "Post a Job"}
+            </h2>
             <p style={{ fontSize: 12, color: T.muted, margin: "3px 0 0" }}>
-              Fill in the details below. You can edit after publishing.
+              {isEdit
+                ? "Update any field below. Changes save back to the live posting."
+                : "Fill in the details below. You can edit after publishing."}
             </p>
           </div>
           <button
@@ -1211,16 +1295,6 @@ function PostJobModal({ open, onClose, onSubmit }) {
         </div>
 
         <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>Paste job description (optional — we&apos;ll parse it)</label>
-            <textarea
-              style={{ ...inputStyle, minHeight: 70, resize: "vertical", lineHeight: 1.5 }}
-              value={form.paste_jd}
-              onChange={(e) => set("paste_jd", e.target.value)}
-              placeholder="Paste an existing job description to auto-fill the fields below…"
-            />
-          </div>
-
           <div className="hr-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>Job title *</label>
@@ -1342,7 +1416,7 @@ function PostJobModal({ open, onClose, onSubmit }) {
             onMouseEnter={(e) => { e.currentTarget.style.background = T.accentHover; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = T.accent; }}
           >
-            Post Job
+            {isEdit ? "Save Changes" : "Post Job"}
           </button>
         </div>
       </div>
@@ -1554,6 +1628,7 @@ export default function HRPortal() {
   const [panelCandidate, setPanelCandidate] = useState(null);
   const [panelIdx, setPanelIdx] = useState(-1);
   const [showPostJob, setShowPostJob] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [highlightId, setHighlightId] = useState(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -1714,6 +1789,28 @@ export default function HRPortal() {
     setShowPostJob(false);
   }, [user?.id, hrProfile]);
 
+  const handleEditJob = useCallback(async (form) => {
+    if (!supabase || !editingJob?.id) return;
+    const reqLines = (form.requirements || "").split("\n").map((l) => l.trim()).filter(Boolean);
+    const { data } = await supabase.from("jobs").update({
+      title: form.title,
+      department: form.department,
+      location: form.location,
+      market: form.market,
+      job_type: form.job_type,
+      salary_min: form.salary_min ? Number(form.salary_min) : null,
+      salary_max: form.salary_max ? Number(form.salary_max) : null,
+      visa_sponsored: form.visa_sponsored,
+      description: form.description,
+      requirements: reqLines,
+      hiring_status: form.hiring_status,
+    }).eq("id", editingJob.id).select("*, applications(count)").single();
+    if (data) {
+      setJobs((prev) => prev.map((j) => (j.id === data.id ? data : j)));
+    }
+    setEditingJob(null);
+  }, [editingJob]);
+
   const handleMarkAllRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     if (supabase && user?.id) {
@@ -1828,6 +1925,7 @@ export default function HRPortal() {
               isLoading={jobsLoading}
               onPostJob={() => setShowPostJob(true)}
               onViewApplicants={handleViewApplicants}
+              onEditJob={(job) => setEditingJob(job)}
             />
           )}
           {activeNav === "candidates" && (
@@ -1886,9 +1984,28 @@ export default function HRPortal() {
         />
       )}
 
-      <PostJobModal open={showPostJob} onClose={() => setShowPostJob(false)} onSubmit={handlePostJob} />
+      <PostJobModal
+        key={editingJob?.id || "new"}
+        open={showPostJob || !!editingJob}
+        job={editingJob}
+        onClose={() => { setShowPostJob(false); setEditingJob(null); }}
+        onSubmit={editingJob ? handleEditJob : handlePostJob}
+      />
 
       <style>{`
+        @keyframes hr-shimmer {
+          0%   { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .hr-skeleton {
+          background: linear-gradient(90deg, #f1f3f6 0%, #e3e6ec 50%, #f1f3f6 100%);
+          background-size: 200% 100%;
+          animation: hr-shimmer 1.4s linear infinite;
+          flex-shrink: 0;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hr-skeleton { animation: none; background: #eceef2; }
+        }
         @media (max-width: ${MOBILE_BP}px) {
           .hr-sb {
             position: fixed !important;
