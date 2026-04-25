@@ -81,6 +81,15 @@ export default function HeroSection() {
           color: var(--color-text-primary);
           font-family: inherit;
         }
+        .cvp-hero-seo-h2 {
+          font-size: 24px;
+          font-weight: 400;
+          letter-spacing: -0.264px;
+          line-height: 1.3;
+          margin: 14px 0 0;
+          color: var(--color-text-primary);
+          font-family: inherit;
+        }
         .cvp-hero-sub {
           font-size: 17px;
           font-weight: 400;
@@ -99,6 +108,10 @@ export default function HeroSection() {
           .cvp-hero-h2 {
             font-size: 32px;
             letter-spacing: -0.640px;
+          }
+          .cvp-hero-seo-h2 {
+            font-size: 18px;
+            letter-spacing: -0.198px;
           }
           .cvp-hero-sub {
             font-size: 16px;
@@ -142,6 +155,11 @@ export default function HeroSection() {
           margin: 12px 0 20px;
           line-height: 1.4;
           font-family: inherit;
+        }
+        @media (min-width: 640px) {
+          .cvp-hero-uae-line {
+            white-space: nowrap;
+          }
         }
         .cvp-hero-uae-percent {
           font-weight: 800;
@@ -282,21 +300,24 @@ export default function HeroSection() {
         <motion.h1 id="cvp-hero-h1" className="cvp-hero-h1" variants={variants} custom={0}>
           Get More <span className="hero-headline-shimmer">Interviews.</span>
         </motion.h1>
-        <motion.h2 className="cvp-hero-h2" variants={variants} custom={1}>
+        <motion.h2 className="cvp-hero-seo-h2" variants={variants} custom={1}>
+          Build ATS-Friendly CVs for UAE, Gulf &amp; India Jobs
+        </motion.h2>
+        <motion.h2 className="cvp-hero-h2" variants={variants} custom={2}>
           {H2}
         </motion.h2>
-        <motion.p className="cvp-hero-sub" variants={variants} custom={2}>
+        <motion.p className="cvp-hero-sub" variants={variants} custom={3}>
           {SUB}
         </motion.p>
-        <motion.p className="cvp-hero-uae-line" variants={variants} custom={3}>
+        <motion.p className="cvp-hero-uae-line" variants={variants} custom={4}>
           ✦ <span className="cvp-hero-uae-percent">67%</span> of our users are UAE-based — built for this market, not adapted for it
         </motion.p>
-        <motion.div className="cvp-hero-ctas" variants={variants} custom={4}>
+        <motion.div className="cvp-hero-ctas" variants={variants} custom={5}>
           <button type="button" className="cvp-hero-cta-primary" onClick={onPrimary}>
             {PRIMARY_LABEL}
           </button>
         </motion.div>
-        <motion.div className="cvp-hero-trustbar" variants={variants} custom={5}>
+        <motion.div className="cvp-hero-trustbar" variants={variants} custom={6}>
           <div className="cvp-hero-trustbar-item">
             <svg width="72" height="14" viewBox="0 0 72 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <defs>
@@ -351,7 +372,7 @@ export default function HeroSection() {
             <span>&nbsp;for Gulf recruiters</span>
           </div>
         </motion.div>
-        <motion.div className="cvp-hero-trust" variants={variants} custom={6}>
+        <motion.div className="cvp-hero-trust" variants={variants} custom={7}>
           <p className="cvp-hero-trust-line">{TRUST_LINE_1}</p>
           <p className="cvp-hero-trust-line">{TRUST_LINE_2}</p>
         </motion.div>
