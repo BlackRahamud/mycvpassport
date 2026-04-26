@@ -34,6 +34,7 @@ import { invalidateGatekeeperCache } from "../services/gatekeeper";
 import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
 import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
+import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
   TEMPLATES,
@@ -2197,6 +2198,22 @@ function ResumeBuilder({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Phase A analytics: builder_loaded fires once on first mount.
+  // Ref guard prevents StrictMode dev double-invocation from firing twice.
+  const didFireBuilderLoadedRef = useRef(false);
+  useEffect(() => {
+    if (didFireBuilderLoadedRef.current) return;
+    didFireBuilderLoadedRef.current = true;
+    logEvent("builder_loaded", {
+      template_id: selectedTemplate?.id ?? null,
+      is_new_cv: isNew,
+      cv_id: resumeId ?? null,
+      is_mobile: isMobile,
+      time_to_first_paint_ms: Math.round(performance.now()),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const draftStorageKey = useMemo(
     () => getDraftStorageKey(initialResumeId, location.search),
     [initialResumeId, location.search]
@@ -2775,6 +2792,22 @@ function ResumeBuilder({
     };
   }, [fabSheet]);
 
+  // Phase A analytics: preview_clicked fires once per non→'preview' transition.
+  // Single-source detection covers all 5 setFabSheet("preview") call sites.
+  // has_user_edited_yet is a stable-shape placeholder until Phase B wires it.
+  const prevFabSheetRef = useRef(null);
+  useEffect(() => {
+    const prev = prevFabSheetRef.current;
+    prevFabSheetRef.current = fabSheet;
+    if (fabSheet === "preview" && prev !== "preview") {
+      logEvent("preview_clicked", {
+        cv_id: resumeId ?? null,
+        is_mobile: isMobile,
+        has_user_edited_yet: false,
+      });
+    }
+  }, [fabSheet, resumeId, isMobile]);
+
   useEffect(() => {
     const full = fabSheet === "preview" || previewFadeOut;
     if (full) document.body.classList.add("cvp-builder-full-preview");
@@ -2816,7 +2849,16 @@ function ResumeBuilder({
   const journeyStepActive = !cvJourney.templateChosen ? 1 : !cvJourney.atsChecked ? 2 : !cvJourney.coverLetterSeen ? 3 : 4;
 
   const handleSave = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      logEvent("save_attempted_unauthed", {
+        had_typed_name: !!resume.name,
+        had_typed_email: !!resume.email,
+        had_typed_phone: !!resume.phone,
+        route_query_params: typeof window !== "undefined" ? window.location.search : "",
+        is_mobile: isMobile,
+      }, { userId: null });
+      return;
+    }
     setSaving(true);
     try {
       const saved = await saveResume(
@@ -2840,7 +2882,7 @@ function ResumeBuilder({
     } finally {
       setSaving(false);
     }
-  }, [user, resume, selectedTemplate, resumeId, draftStorageKey]);
+  }, [user, resume, selectedTemplate, resumeId, draftStorageKey, isMobile]);
 
   saveBridgeRef.current = () => {
     if (!user?.id) return;
@@ -2869,6 +2911,12 @@ function ResumeBuilder({
   }, [expModalHighEffortDirty, finalizeCloseExperienceModal]);
 
   const handleDownload = async (opts = {}) => {
+    logEvent("download_clicked", {
+      cv_id: resumeId ?? null,
+      format: "pdf",
+      is_authenticated: !!user?.id,
+      is_mobile: isMobile,
+    });
     if (opts.skipSynthesis) {
       dispatch({ type: 'BEGIN_GENERATION' });
       try {
