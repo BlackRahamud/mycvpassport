@@ -34,3 +34,8 @@ supabase/.temp/
 
 # Claude Code local permission cache — machine-specific
 .claude/settings.local.json
+
+# Pagination / PDF debug output (scripts/debug-t11-pagination.js,
+# scripts/render-t11-real.js). Local diagnostics only — do not commit
+# rendered PDFs or trace logs.
+/out/
