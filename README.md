@@ -39,6 +39,80 @@ Instead, it will copy all the configuration files and the transitive dependencie
 
 You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
+## Analytics
+
+Three sinks fan out from a single helper: `logEvent(eventType, metadata?, options?)` in `src/lib/analytics/logEvent.js`.
+
+- **Microsoft Clarity** — heatmaps + session replay (all users)
+- **PostHog** — funnels + product analytics (all users)
+- **Supabase `candidate_events`** — durable event log (authenticated users only — RLS blocks anon inserts)
+
+Each sink has its own try/catch. Failure of one never blocks the others. All calls are fire-and-forget; `logEvent` returns synchronously.
+
+### Setup
+
+Required env vars (placeholders in `.env.example`):
+
+```
+REACT_APP_CLARITY_PROJECT_ID=...
+REACT_APP_POSTHOG_KEY=...
+REACT_APP_POSTHOG_HOST=https://eu.i.posthog.com
+```
+
+Production env vars are configured in the Vercel project dashboard (Production + Preview environments).
+
+### Disabling in development
+
+Both Clarity and PostHog are **disabled by default** in non-production builds — heatmaps and event streams stay clean during local development.
+
+To force-enable them locally for QA, add to `.env.local`:
+
+```
+REACT_APP_ANALYTICS_FORCE=true
+```
+
+This flag should never be set in production (production runs analytics by default).
+
+### Phase A — events shipped (8)
+
+| Event | Fires when |
+|---|---|
+| `builder_loaded` | BuilderPage mounts (once per session, ref-guarded) |
+| `preview_clicked` | CV preview opens (on `fabSheet` transition to `'preview'`) |
+| `download_clicked` | First line of `handleDownload`, before any conditional logic |
+| `save_attempted_unauthed` | Unauthenticated user hits Save — captures intent. PostHog + Clarity only (Supabase write skipped due to RLS) |
+| `auth_page_loaded` | `/auth` or `/register` mounts. `route_origin` prop distinguishes |
+| `homepage_cta_clicked` | Hero or Final-CTA "Try it free" clicked. `cta_section` prop distinguishes |
+| `template_card_clicked` | Any template card picked. `source` prop: `'templates_page'` \| `'builder_tab'` |
+| `template_applied` | "Use This Template" modal commit. `source` prop as above |
+
+### Phase B — events deferred (4)
+
+These are spec'd but not yet shipped, pending Clarity recording review and overnight data:
+
+- `field_focused` — needs throttling logic across 38 input handlers
+- `experience_added` — fires on Add-Experience commit
+- `tab_switched` — couples with the ghost-row autosave fix
+- `mobile_preview_opened` — couples with mobile UX investigation
+
+The **exit-intent micro-survey** + `cv_exit_feedback` table migration is also Phase B.
+
+### User identification
+
+`useCvpAuth.applySession` calls `identifyClarity(userId, traits)` and `identifyPostHog(userId, traits)` once per identity transition, guarded by `lastIdentifiedIdRef` against tab-focus SIGNED_IN re-fires. After `fetchProStatus` resolves, both are re-identified with `{ plan: 'free' | 'pro' }`. Sign-out triggers `resetPostHog()`.
+
+A synchronous `currentAuthUserId()` cache (`src/lib/analytics/authState.js`) lets `logEvent` attach `candidate_id` without going async.
+
+### `cvp_returning_user` localStorage flag
+
+Drives the `/auth` page default mode (signup for first-time visitors, signin for returners).
+
+- **Set** by `useCvpAuth.applySession` on every authed-session observation. Wrapped in try/catch — Safari private-browsing throws on `setItem`.
+- **Read** by the `useState` initializer for `authMode` and by the `auth_page_loaded` event for `is_first_time_visitor`.
+- **Override** with `?mode=signin` URL param to force signin regardless of flag state.
+
+For deeper detail (architecture, commit history, Phase B trigger criteria), see [`docs/analytics-day2-prep.md`](docs/analytics-day2-prep.md).
+
 ## Learn More
 
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
