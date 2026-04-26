@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import CVPassportLogo from "../components/CVPassportLogo";
+import { logEvent } from "../lib/analytics/logEvent";
 
 const AUTH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
@@ -137,6 +138,7 @@ function AuthLogoBlock() {
 
 function AuthPage({
   mode,
+  user,
   onAuth,
   onToggle,
   loading,
@@ -246,6 +248,25 @@ function AuthPage({
     setForgotMessage(null);
     setForgotPanel(false);
   }, [mode]);
+
+  // Fires once on first mount. Captures the mode the visitor LANDED on,
+  // not subsequent toggles. Ref guard handles StrictMode dev double-invoke.
+  const didFireAuthPageLoadedRef = useRef(false);
+  useEffect(() => {
+    if (didFireAuthPageLoadedRef.current) return;
+    didFireAuthPageLoadedRef.current = true;
+    let isReturning = false;
+    try { isReturning = window.localStorage?.getItem("cvp_returning_user") === "true"; } catch { /* private mode */ }
+    logEvent("auth_page_loaded", {
+      mode_shown: mode === "login" ? "signin" : "signup",
+      is_first_time_visitor: !isReturning,
+      has_session: !!user?.id,
+      referrer: (typeof document !== "undefined" && document.referrer) || null,
+      route_origin: typeof window !== "undefined" ? window.location.pathname : "",
+      route_query_params: typeof window !== "undefined" ? window.location.search : "",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const errText = resolveErrorText();
   const pwInputType = showPassword ? "text" : "password";
@@ -488,10 +509,10 @@ function AuthPage({
                 fontFamily: AUTH_FONT,
               }}
             >
-              {mode === "login" ? "Welcome back" : "Create your account"}
+              {mode === "login" ? "Welcome back" : "Create your CVPassport account"}
             </h2>
             <p style={{ color: "#555", marginBottom: "24px", fontSize: "13px", fontFamily: AUTH_FONT }}>
-              {mode === "login" ? "Sign in to your CVPassport account" : "Free to start — no credit card needed"}
+              {mode === "login" ? "Sign in to your CVPassport account" : "Free to start. No credit card required."}
             </p>
 
             {errText ? (
@@ -848,7 +869,7 @@ function AuthPage({
                   ) : mode === "login" ? (
                     "Sign in"
                   ) : (
-                    "Create Account"
+                    "Create account"
                   )}
                 </span>
                 {!loading && !loginUiSuccess ? <span className="cvp-auth-btn-shimmer" aria-hidden /> : null}

@@ -29,7 +29,15 @@ function consumePostAuthRedirect() {
 export function useCvpAuth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [authMode, setAuthMode] = useState("login");
+  const [authMode, setAuthMode] = useState(() => {
+    if (typeof window === "undefined") return "signup";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("mode") === "signin") return "login";
+      if (window.localStorage?.getItem("cvp_returning_user") === "true") return "login";
+    } catch { /* fall through to default */ }
+    return "signup";
+  });
   const [user, setUser] = useState(null);
   const [isPro, setIsPro] = useState(false);
   const [profile, setProfile] = useState({ is_pro: false, plan: "FREE", features: {} });
@@ -137,6 +145,11 @@ export function useCvpAuth() {
           identifyPostHog(nextId, { email: nextEmail });
           setCurrentAuthUserId(nextId);
           lastIdentifiedIdRef.current = nextId;
+          // Mark this browser as a returning user. Drives the /auth default
+          // mode (signup for first-timers, signin for returners). Set on
+          // every auth observation so users with active sessions on first
+          // deploy get flagged on their next page load.
+          try { window.localStorage?.setItem("cvp_returning_user", "true"); } catch { /* private mode */ }
         }
         fetchProStatus(session.user.id, { email: nextEmail });
       } else {
@@ -466,6 +479,7 @@ export function useCvpAuth() {
 
   const authPageSharedProps = {
     onAuth: handleAuth,
+    user,
     loading: authLoading,
     error: authError,
     pendingVerificationEmail,
