@@ -184,7 +184,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(hasTechnicalSkills || isEmpty) && (
-        <section data-section="competencies" style={{ position: "relative" }}>
+        <section data-section="competencies">
           <SectionTitle>Technical Skills</SectionTitle>
           <div style={{ fontSize: pt(10), lineHeight: 1.8, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
             {isEmpty ? (

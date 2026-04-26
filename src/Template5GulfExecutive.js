@@ -211,7 +211,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
 
         {/* Technical Skills */}
         {(hasTechnicalSkills || isEmpty) && (
-          <section data-section="competencies" style={{ position: "relative" }}>
+          <section data-section="competencies">
             <SectionTitle>Technical Skills</SectionTitle>
             <div style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
               {isEmpty ? (

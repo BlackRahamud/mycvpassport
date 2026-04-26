@@ -159,7 +159,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(hasTechnicalSkills || isPlaceholder) && (
-        <section data-section="competencies" style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="competencies" style={{ pageBreakInside: "avoid" }}>
           <SectionTitle>Technical Skills</SectionTitle>
           <div style={{ fontSize: pt(10), color: textColor, margin: 0, lineHeight: 1.5 }}>
             {isPlaceholder ? (

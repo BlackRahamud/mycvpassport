@@ -162,7 +162,7 @@ export function Template12Split({ cv, mobileMode = false }) {
           )}
 
           {hasTechnicalSkills && (
-            <div data-section="competencies" style={{ marginTop: "40px", position: "relative" }}>
+            <div data-section="competencies" style={{ marginTop: "40px" }}>
               <h3
                 style={{
                   fontSize: "11pt",

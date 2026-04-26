@@ -181,7 +181,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Technical Skills */}
       {(hasTechnicalSkills || isPlaceholder) && (
-        <section data-section="competencies" style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="competencies" style={{ pageBreakInside: "avoid" }}>
           <SectionTitle>Technical Skills</SectionTitle>
           <div style={{ fontSize: pt(10), margin: 0, color: isPlaceholder ? "#D1D5DB" : "#333" }}>
             {isPlaceholder ? (

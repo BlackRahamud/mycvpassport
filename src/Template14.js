@@ -235,7 +235,7 @@ export function Template14({ cv, mobileMode = false }) {
             )}
 
             {hasTechnicalSkills && (
-              <section data-section="competencies" style={{ position: "relative", marginTop: skillsItems.length > 0 ? "24px" : 0 }}>
+              <section data-section="competencies" style={{ marginTop: skillsItems.length > 0 ? "24px" : 0 }}>
                 <h2
                   style={{
                     fontSize: "12pt",

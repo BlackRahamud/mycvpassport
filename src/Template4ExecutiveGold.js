@@ -232,7 +232,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
         {/* Technical Skills */}
         {(hasTechnicalSkills || isEmpty) && (
-          <section data-section="competencies" style={{ position: "relative" }}>
+          <section data-section="competencies">
             <SectionBand>Technical Skills</SectionBand>
             <div style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
               {isEmpty ? (

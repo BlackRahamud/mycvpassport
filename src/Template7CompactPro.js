@@ -152,7 +152,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
             </div>
           )}
           {hasTechnicalSkills && (
-            <div data-section="competencies" style={{ flex: 1, position: "relative" }}>
+            <div data-section="competencies" style={{ flex: 1 }}>
               <SectionTitle>Technical Skills</SectionTitle>
               <div style={{ fontSize: pt(10), color: BODY_TEXT, margin: 0, lineHeight: 1.5 }}>
                 {(() => {
