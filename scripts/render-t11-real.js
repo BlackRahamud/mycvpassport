@@ -8,6 +8,9 @@
  *   node scripts/render-t11-real.js tier-b   # 1 job
  *   node scripts/render-t11-real.js tier-c   # 3 jobs
  *   node scripts/render-t11-real.js tier-d   # 5 jobs (forces a real page 2)
+ *
+ * Requires devDependency `pdf-parse` for PDF text-stream inspection used by
+ * the Round 2 regression check (verifies stream order matches visual order).
  */
 
 const fs = require("fs");
@@ -155,30 +158,37 @@ const ETIHAD_JOB = {
   ].join("\n"),
 };
 
+// Real Hammad data extracted verbatim from
+// Hammad_Hassan_CVPassport (4).pdf — the Round 2 failing case.
+// 6 bullets each (was 5 + 4 in the synthetic Round 1 fixture, which
+// was light enough that all 3 jobs fit on page 1 → bug couldn't repro).
 const CRONYSOFT_JOB = {
-  company: "Cronysoft Solutions",
-  role: "IT Support Specialist",
-  location: "Karachi",
-  period: "06/2021 – 08/2023",
+  company: "Cronysoft",
+  role: "Technical Support Engineer",
+  location: "Karachi, Pakistan",
+  period: "01/2023 – 06/2023",
   points: [
-    "Provided L1/L2 support to 200+ enterprise users across hybrid Windows/Linux environments.",
-    "Maintained Active Directory and group policy across two domain forests.",
-    "Owned the on-call rotation for production incidents, averaging 12-min response time.",
-    "Built PowerShell automation that reduced new-hire provisioning from 4 hours to 25 minutes.",
-    "Coordinated with vendors on hardware refreshes for 80 endpoints.",
+    "Provided technical support for POS systems, printers, scanners, and connectivity",
+    "Diagnosed and resolved software, database, and hardware issues",
+    "Delivered remote support to UK, Canada, and USA clients",
+    "Managed SQL Server installation, database restoration, and user access control",
+    "Installed and configured POS printers from Dymo, Epson, and Rongta",
+    "Handled L1 and L2 support via calls, emails, and ticketing systems",
   ].join("\n"),
 };
 
 const SUPERNET_JOB = {
-  company: "Supernet (Pvt) Ltd",
-  role: "Network Operations Engineer",
-  location: "Karachi",
-  period: "09/2019 – 05/2021",
+  company: "Supernet Limited",
+  role: "Network Support Engineer",
+  location: "Karachi, Pakistan",
+  period: "09/2022 – 01/2023",
   points: [
-    "Monitored MPLS and WAN links across 40 branch sites; maintained 99.92% uptime.",
-    "Configured Cisco routers/switches and Fortinet firewalls per change-control standards.",
-    "Resolved L2/L3 connectivity escalations within SLA, primary on-call for night shift.",
-    "Authored runbooks for common failure modes adopted across the NOC team.",
+    "Installed and configured network equipment and infrastructure for enterprise clients",
+    "Diagnosed and resolved client technical issues efficiently using structured methodologies",
+    "Provided remote technical support via calls and remote desktop tools",
+    "Maintained client communication and escalated critical incidents to senior engineers",
+    "Coordinated with vendors for hardware procurement and warranty claims",
+    "Documented network configurations and maintained inventory records",
   ].join("\n"),
 };
 
@@ -222,6 +232,13 @@ const LOCAL_CHROME =
 
 async function main() {
   const tier = (process.argv[2] || "tier-b").toLowerCase();
+  // Optional flags: "trace" enables full DOM-order + visual-rect dump.
+  // "out=<filename>" overrides the output PDF filename.
+  const flags = process.argv.slice(3).reduce((acc, a) => {
+    if (a === "trace") acc.trace = true;
+    else if (a.startsWith("out=")) acc.outName = a.slice(4);
+    return acc;
+  }, {});
   const cv = FIXTURES[tier];
   if (!cv) {
     console.error(`Bad tier: ${tier} (expected tier-b, tier-c, or tier-d)`);
@@ -266,7 +283,205 @@ async function main() {
     `,
   });
 
-  // Post-fix Puppeteer config for T11.
+  // ─── Mirror api/generate-pdf.js smart-pagination JS pass ──────────────────
+  // (relaxation pass + T11 page-break insertion + markPageStarts)
+  // PLUS extra trace dump that captures DOM order + visual rects BEFORE and
+  // AFTER the pass, so we can prove whether smart-pagination is mutating
+  // sibling order or whether Chromium itself is paginating out of order.
+  const trace = await page.evaluate(() => {
+    const PX_PER_MM = 96 / 25.4;
+
+    function describeNode(el) {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const text = (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80);
+      const ds = el.getAttribute("data-section");
+      const db = el.getAttribute("data-block");
+      const tag = el.tagName.toLowerCase();
+      return {
+        tag,
+        dataSection: ds,
+        dataBlock: db,
+        topPx: Math.round(r.top),
+        bottomPx: Math.round(r.bottom),
+        heightPx: Math.round(r.height),
+        snippet: text,
+      };
+    }
+
+    function takeOrderedSnapshot(label) {
+      // T11's React render places experience entries inside
+      // <section data-section="experience"> > <div style="margin-top:-4mm">
+      // > many EntryWrap divs. Each EntryWrap is the outer "atomic" entry.
+      const rootSections = Array.from(
+        document.querySelectorAll("section[data-section]"),
+      );
+      const sectionOrder = rootSections.map((s) => ({
+        ...describeNode(s),
+        children: Array.from(s.children).map(describeNode),
+      }));
+
+      // Drill into the experience section and list each entry.
+      const expSection = document.querySelector(
+        'section[data-section="experience"]',
+      );
+      const expEntries = [];
+      if (expSection) {
+        // Walk to the entries — they're inside the wrapper div.
+        const entryWrappers = expSection.querySelectorAll(
+          'div[style*="break-inside"]',
+        );
+        entryWrappers.forEach((entry, i) => {
+          const desc = describeNode(entry);
+          // For each entry, capture the role span + bullets count.
+          const role = entry.querySelector("span");
+          const bullets = entry.querySelectorAll(".cvp-preview-exp-t11-line");
+          desc.indexInExperience = i;
+          desc.role = role ? role.textContent.trim() : null;
+          desc.bulletCount = bullets.length;
+          desc.firstBulletTopPx = bullets[0]
+            ? Math.round(bullets[0].getBoundingClientRect().top)
+            : null;
+          desc.lastBulletBottomPx = bullets[bullets.length - 1]
+            ? Math.round(
+                bullets[bullets.length - 1].getBoundingClientRect().bottom,
+              )
+            : null;
+          expEntries.push(desc);
+        });
+      }
+
+      return { label, sectionOrder, expEntries };
+    }
+
+    const before = takeOrderedSnapshot("BEFORE smart-pagination pass");
+
+    // ─── Smart-pagination pass — verbatim from api/generate-pdf.js ────────
+    // (relaxation + T11 page-break insertion + markPageStarts)
+    const PAGE_USABLE_PX = 1028;
+    const SPLIT_THRESHOLD = PAGE_USABLE_PX * 0.35;
+    const relaxedNodes = [];
+    document
+      .querySelectorAll('[style*="break-inside"], [style*="page-break-inside"]')
+      .forEach((el) => {
+        const h = el.getBoundingClientRect().height;
+        if (h > SPLIT_THRESHOLD) {
+          el.style.removeProperty("break-inside");
+          el.style.removeProperty("page-break-inside");
+          el.style.removeProperty("-webkit-column-break-inside");
+          relaxedNodes.push({
+            heightPx: Math.round(h),
+            snippet: (el.textContent || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 60),
+          });
+        }
+      });
+
+    // T11 Round 2 fix: insert .cvp-page-break before any [data-block="job"]
+    // that would straddle a page boundary, to sidestep Chromium's
+    // text-stream reorder bug when an element with break-inside: avoid is
+    // deferred to the next page. Mirrors the production fix in
+    // api/generate-pdf.js (templateId === 11 branch).
+    const T11_PAGE_USABLE_PX_FOR_BREAKS = Math.round((267 * 96) / 25.4);
+    const t11BreakInserts = [];
+    Array.from(document.querySelectorAll('[data-block="job"]')).forEach(
+      (el) => {
+        const r = el.getBoundingClientRect();
+        const pageOfTop = Math.floor(r.top / T11_PAGE_USABLE_PX_FOR_BREAKS);
+        const pageOfBottom = Math.floor(
+          (r.bottom - 1) / T11_PAGE_USABLE_PX_FOR_BREAKS,
+        );
+        if (pageOfTop !== pageOfBottom && el.parentNode) {
+          const brk = document.createElement("div");
+          brk.className = "cvp-page-break";
+          el.parentNode.insertBefore(brk, el);
+          t11BreakInserts.push({
+            topPx: Math.round(r.top),
+            bottomPx: Math.round(r.bottom),
+            heightPx: Math.round(r.height),
+            snippet: (el.textContent || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 60),
+          });
+        }
+      },
+    );
+
+    // markPageStarts (mirrors generate-pdf.js:255-269)
+    const markedAsPageStart = [];
+    const PAGE_HEIGHT_FOR_STARTS = 1027;
+    document.querySelectorAll("[data-block]").forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const pageIndex = Math.floor(rect.top / PAGE_HEIGHT_FOR_STARTS);
+      if (pageIndex > 0) {
+        const distanceIntoPage = rect.top % PAGE_HEIGHT_FOR_STARTS;
+        if (distanceIntoPage < 20) {
+          el.classList.add("cvp-new-page-start");
+          markedAsPageStart.push({
+            dataBlock: el.getAttribute("data-block"),
+            topPx: Math.round(rect.top),
+            snippet: (el.textContent || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 60),
+          });
+        }
+      }
+    });
+
+    const after = takeOrderedSnapshot("AFTER smart-pagination pass");
+
+    // T11 specific: enumerate Supernet header + bullets + EDU + LANG order.
+    const supernet = after.expEntries.find(
+      (e) => (e.role || "").toLowerCase().includes("network support engineer"),
+    );
+    const eduSection = document.querySelector(
+      'section[data-section="education"]',
+    );
+    const langSection = document.querySelector(
+      'section[data-section="languages"]',
+    );
+
+    const orderingProof = {
+      supernet: supernet
+        ? {
+            entryTopPx: supernet.topPx,
+            firstBulletTopPx: supernet.firstBulletTopPx,
+            lastBulletBottomPx: supernet.lastBulletBottomPx,
+            bulletCount: supernet.bulletCount,
+          }
+        : null,
+      education: eduSection
+        ? {
+            topPx: Math.round(eduSection.getBoundingClientRect().top),
+            heightPx: Math.round(eduSection.getBoundingClientRect().height),
+          }
+        : null,
+      languages: langSection
+        ? {
+            topPx: Math.round(langSection.getBoundingClientRect().top),
+            heightPx: Math.round(langSection.getBoundingClientRect().height),
+          }
+        : null,
+    };
+
+    return {
+      docHeightPx: document.documentElement.scrollHeight,
+      pageBoundary1Px: Math.round(15 * PX_PER_MM + (297 - 30) * PX_PER_MM), // 15mm + 267mm
+      pageUsablePerPagePx: Math.round((297 - 30) * PX_PER_MM),
+      relaxedNodes,
+      t11BreakInserts,
+      markedAsPageStart,
+      before,
+      after,
+      orderingProof,
+    };
+  });
+
+  // ─── Render PDF ────────────────────────────────────────────────────────────
   const pdfBuffer = await page.pdf({
     format: "A4",
     printBackground: true,
@@ -280,7 +495,9 @@ async function main() {
       </div>`,
   });
 
-  const outName = tier === "tier-d" ? "t11-tier-d-stress.pdf" : `t11-${tier}-after.pdf`;
+  const defaultOutName =
+    tier === "tier-d" ? "t11-tier-d-stress.pdf" : `t11-${tier}-after.pdf`;
+  const outName = flags.outName || defaultOutName;
   const pdfPath = path.join(outDir, outName);
   fs.writeFileSync(pdfPath, pdfBuffer);
 
@@ -292,6 +509,135 @@ async function main() {
   } catch (_) {}
 
   console.log(`Wrote ${pdfPath}  pages=${pageCount}  bytes=${pdfBuffer.length}`);
+
+  if (flags.trace) {
+    const traceLines = [];
+    traceLines.push(
+      `# T11 ${tier} reorder trace — render-t11-real.js (real React SSR)`,
+    );
+    traceLines.push("");
+    traceLines.push(`PDF written:        ${pdfPath}`);
+    traceLines.push(`PDF page count:     ${pageCount}`);
+    traceLines.push(`PDF size:           ${pdfBuffer.length} bytes`);
+    traceLines.push(`Document height:    ${trace.docHeightPx} px`);
+    traceLines.push(
+      `Page-1 boundary:    ${trace.pageBoundary1Px} px (after 15mm top + 267mm usable)`,
+    );
+    traceLines.push(
+      `Usable per page:    ${trace.pageUsablePerPagePx} px (= 297mm - 30mm margins)`,
+    );
+    traceLines.push("");
+    traceLines.push(
+      `Relaxation pass — nodes that had break-inside stripped (height > ${Math.round(
+        1028 * 0.35,
+      )} px):`,
+    );
+    if (trace.relaxedNodes.length === 0) {
+      traceLines.push("  (none)");
+    } else {
+      trace.relaxedNodes.forEach((n) =>
+        traceLines.push(`  height=${n.heightPx} px  "${n.snippet}"`),
+      );
+    }
+    traceLines.push("");
+    traceLines.push(
+      `T11 page-break inserts — [data-block="job"] entries that straddle a page boundary:`,
+    );
+    if (trace.t11BreakInserts.length === 0) {
+      traceLines.push("  (none — no insertion needed)");
+    } else {
+      trace.t11BreakInserts.forEach((n) =>
+        traceLines.push(
+          `  inserted .cvp-page-break before entry  top=${n.topPx} bottom=${n.bottomPx} height=${n.heightPx}  "${n.snippet}"`,
+        ),
+      );
+    }
+    traceLines.push("");
+    traceLines.push(
+      `markPageStarts — nodes tagged .cvp-new-page-start (top within 20px of page boundary):`,
+    );
+    if (trace.markedAsPageStart.length === 0) {
+      traceLines.push("  (none)");
+    } else {
+      trace.markedAsPageStart.forEach((n) =>
+        traceLines.push(
+          `  data-block="${n.dataBlock}" top=${n.topPx} "${n.snippet}"`,
+        ),
+      );
+    }
+    traceLines.push("");
+    traceLines.push(`Section-by-section order (AFTER pagination pass):`);
+    trace.after.sectionOrder.forEach((s) => {
+      traceLines.push(
+        `  <section data-section="${s.dataSection}"> top=${s.topPx} bottom=${s.bottomPx} height=${s.heightPx}`,
+      );
+    });
+    traceLines.push("");
+    traceLines.push(
+      `Experience entries (AFTER pass) — DOM sibling order, visual rects:`,
+    );
+    trace.after.expEntries.forEach((e, i) => {
+      traceLines.push(
+        `  Entry #${i} role="${e.role}"  outer top=${e.topPx} bottom=${e.bottomPx} height=${e.heightPx}  bulletCount=${e.bulletCount}  firstBulletTop=${e.firstBulletTopPx}  lastBulletBottom=${e.lastBulletBottomPx}`,
+      );
+    });
+    traceLines.push("");
+    traceLines.push(`Ordering-proof (the four elements in question):`);
+    if (trace.orderingProof.supernet) {
+      const s = trace.orderingProof.supernet;
+      traceLines.push(
+        `  Supernet entry:    outer top=${s.entryTopPx}  firstBullet top=${s.firstBulletTopPx}  lastBullet bottom=${s.lastBulletBottomPx}`,
+      );
+    } else {
+      traceLines.push(`  Supernet entry: NOT FOUND`);
+    }
+    if (trace.orderingProof.education) {
+      const e = trace.orderingProof.education;
+      traceLines.push(
+        `  EDUCATION section: top=${e.topPx} height=${e.heightPx}`,
+      );
+    }
+    if (trace.orderingProof.languages) {
+      const l = trace.orderingProof.languages;
+      traceLines.push(
+        `  LANGUAGES section: top=${l.topPx} height=${l.heightPx}`,
+      );
+    }
+    traceLines.push("");
+    traceLines.push(`Diagnosis hint:`);
+    if (
+      trace.orderingProof.supernet &&
+      trace.orderingProof.education &&
+      trace.orderingProof.supernet.entryTopPx <
+        trace.orderingProof.education.topPx
+    ) {
+      traceLines.push(
+        `  DOM is in correct order (Supernet entry top=${trace.orderingProof.supernet.entryTopPx}`,
+      );
+      traceLines.push(
+        `  < EDU top=${trace.orderingProof.education.topPx}). If the rendered PDF`,
+      );
+      traceLines.push(
+        `  shows them out of order, this is a Chromium PAGINATION bug, not a DOM bug.`,
+      );
+    } else if (trace.orderingProof.supernet && trace.orderingProof.education) {
+      traceLines.push(
+        `  DOM IS OUT OF ORDER: Supernet entry top=${trace.orderingProof.supernet.entryTopPx}`,
+      );
+      traceLines.push(
+        `  >= EDU top=${trace.orderingProof.education.topPx}. The smart-pagination pass`,
+      );
+      traceLines.push(`  is mutating sibling order — find the offending operation.`);
+    }
+
+    const tracePath = path.join(
+      outDir,
+      `${path.basename(outName, ".pdf")}-trace.txt`,
+    );
+    fs.writeFileSync(tracePath, traceLines.join("\n"));
+    console.log(`Wrote ${tracePath}`);
+  }
+
   await browser.close();
 }
 
