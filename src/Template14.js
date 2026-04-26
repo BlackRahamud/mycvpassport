@@ -86,7 +86,7 @@ export function Template14({ cv, mobileMode = false }) {
 
       <div style={{ padding: "40px 50px" }}>
         {/* SUMMARY */}
-        <section data-section="summary" style={{ marginBottom: "35px", position: "relative" }}>
+        <section data-section="summary" style={{ marginBottom: "35px" }}>
           <GhostChip>{cv.summary}</GhostChip>
           <h2
             style={{
@@ -117,6 +117,7 @@ export function Template14({ cv, mobileMode = false }) {
           >
             Experience
           </h2>
+          {/* KEEP position:relative — timeline container; the borderLeft IS the timeline, and per-entry absolute Timeline Dots + Date/Location labels anchor here transitively (Phase 3 audit) */}
           <div
             style={{
               position: "relative",
@@ -127,6 +128,7 @@ export function Template14({ cv, mobileMode = false }) {
           >
             {cv.experience &&
               cv.experience.map((exp, idx) => (
+                // KEEP position:relative — anchors absolute Timeline Dot (left:-37px) and absolute Date/Location label (left:-170px) per entry; removing scrambles the timeline geometry (Phase 3 audit)
                 <div key={idx} style={{ marginBottom: "30px", position: "relative" }}>
                   <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
                   {/* Timeline Dot */}
@@ -215,7 +217,7 @@ export function Template14({ cv, mobileMode = false }) {
           </section>
           <div>
             {skillsItems.length > 0 && (
-              <section data-section="competencies" style={{ position: "relative" }}>
+              <section data-section="competencies">
                 <GhostChip>
                   {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
                 </GhostChip>
