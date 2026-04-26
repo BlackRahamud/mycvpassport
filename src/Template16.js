@@ -142,6 +142,7 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
 
   return (
+    // KEEP position:relative on outer template root — conservative bias against future absolute descendants re-anchoring (Phase 3 audit)
     <div
       style={{
         width: mobileMode ? "100%" : "210mm",
@@ -163,6 +164,7 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
       }}
     >
       {/* Header */}
+      {/* KEEP position:relative on header — anchors the absolute red Left accent bar (T16's signature visual). Removing would float the bar to the template root and stretch full document height. (Phase 3 audit) */}
       <header
         style={{
           background: HEADER_BG,
@@ -236,7 +238,7 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
       {cv.summary && (
         <section data-section="summary">
           <SectionTitle first>Professional Summary</SectionTitle>
-          <div style={{ position: "relative" }}>
+          <div>
             <GhostChip>{cv.summary}</GhostChip>
             <p
               style={{
@@ -262,7 +264,7 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
               .filter((e) => e.company)
               .map((e, i) => (
                 <EntryWrap key={i}>
-                  <div style={{ position: "relative" }}>
+                  <div>
                     <GhostChip>
                       {e.role} at {e.company} {e.period}
                     </GhostChip>
@@ -403,7 +405,7 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
           </SectionTitle>
           <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             <EntryWrap>
-              <div style={{ position: "relative" }}>
+              <div>
                 <GhostChip>{skillCore.join(" · ")}</GhostChip>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                   {skillCore.map((skill, i) => (
@@ -443,7 +445,7 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
           </SectionTitle>
           <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             <EntryWrap>
-              <div style={{ position: "relative" }}>
+              <div>
                 <GhostChip>{certList.join(" · ")}</GhostChip>
                 <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY_COLOR }}>
                   {certList.join(" · ")}
