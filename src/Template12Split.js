@@ -36,6 +36,7 @@ export function Template12Split({ cv, mobileMode = false }) {
     : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
+  // KEEP position:relative on containerStyle — outermost template root, conservative bias against future absolute descendants re-anchoring (Phase 3 audit)
   const containerStyle = {
     width: mobileMode ? "100%" : "210mm",
     maxWidth: "100%",
@@ -116,7 +117,7 @@ export function Template12Split({ cv, mobileMode = false }) {
             boxSizing: "border-box",
           }}
         >
-          <div data-section="summary" style={{ position: "relative" }}>
+          <div data-section="summary">
             <GhostChip>
               {cv.summary || "Add your professional summary here."}
             </GhostChip>
@@ -139,7 +140,7 @@ export function Template12Split({ cv, mobileMode = false }) {
           </div>
 
           {skillItems.length > 0 && (
-            <div data-section="competencies" style={{ marginTop: "40px", position: "relative" }}>
+            <div data-section="competencies" style={{ marginTop: "40px" }}>
               <GhostChip>
                 {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills}
               </GhostChip>
@@ -219,7 +220,6 @@ export function Template12Split({ cv, mobileMode = false }) {
                   marginBottom: "30px",
                   pageBreakInside: "avoid",
                   display: "block",
-                  position: "relative",
                 }}
               >
                 <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
