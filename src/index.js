@@ -7,9 +7,11 @@ import reportWebVitals from './reportWebVitals';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
 import { initClarity } from './lib/analytics/clarity';
+import { initPostHog } from './lib/analytics/posthog';
 
 ReactGA.initialize('G-2NCBR90DMK');
 initClarity();
+initPostHog();
 
 const rootElement = document.getElementById('root');
 

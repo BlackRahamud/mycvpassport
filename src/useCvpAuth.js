@@ -4,6 +4,9 @@ import { supabase } from "./appSupabaseClient";
 import { mapAuthError, trimAuthFields, classifySignInError } from "./authUtils";
 import { loadUserResumes } from "./resumeDb";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
+import { identifyClarity } from "./lib/analytics/clarity";
+import { identifyPostHog, resetPostHog } from "./lib/analytics/posthog";
+import { setCurrentAuthUserId } from "./lib/analytics/authState";
 
 const extractName = (u) => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
@@ -44,6 +47,9 @@ export function useCvpAuth() {
   // justSignedInRef on a real null → user transition so those spurious
   // events never trigger the post-auth redirect branch.
   const prevSessionUserIdRef = useRef(null);
+  // Last user id we've called identifyClarity / identifyPostHog for.
+  // Guards against re-identifying on every tab-focus SIGNED_IN.
+  const lastIdentifiedIdRef = useRef(null);
   const [postAuthIntermission, setPostAuthIntermission] = useState(false);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
@@ -91,7 +97,7 @@ export function useCvpAuth() {
   useEffect(() => {
     if (!supabase) return;
     let cancelled = false;
-    const fetchProStatus = async (userId) => {
+    const fetchProStatus = async (userId, traits = {}) => {
       try {
         const { data: row } = await supabase.from("profiles").select("is_pro, plan, features").eq("id", userId).single();
         if (!cancelled) {
@@ -101,6 +107,10 @@ export function useCvpAuth() {
             plan: row?.plan || "FREE",
             features: row?.features || {},
           });
+          // Re-identify with plan trait now that we know it.
+          const planTrait = row?.is_pro ? "pro" : "free";
+          identifyClarity(userId, { ...traits, plan: planTrait });
+          identifyPostHog(userId, { ...traits, plan: planTrait });
         }
       } catch {
         if (!cancelled) {
@@ -122,7 +132,13 @@ export function useCvpAuth() {
           if (prev && prev.id === nextId && prev.email === nextEmail && prev.name === nextName) return prev;
           return { name: nextName, email: nextEmail, id: nextId };
         });
-        fetchProStatus(session.user.id);
+        if (lastIdentifiedIdRef.current !== nextId) {
+          identifyClarity(nextId, { email: nextEmail });
+          identifyPostHog(nextId, { email: nextEmail });
+          setCurrentAuthUserId(nextId);
+          lastIdentifiedIdRef.current = nextId;
+        }
+        fetchProStatus(session.user.id, { email: nextEmail });
       } else {
         setUser((prev) => (prev === null ? prev : null));
         setIsPro((prev) => (prev === false ? prev : false));
@@ -130,6 +146,11 @@ export function useCvpAuth() {
           if (prev && prev.is_pro === false && prev.plan === "FREE" && Object.keys(prev.features || {}).length === 0) return prev;
           return { is_pro: false, plan: "FREE", features: {} };
         });
+        if (lastIdentifiedIdRef.current != null) {
+          resetPostHog();
+          setCurrentAuthUserId(null);
+          lastIdentifiedIdRef.current = null;
+        }
       }
       setAuthReady(true);
     };
