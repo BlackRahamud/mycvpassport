@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { logEvent } from '../../lib/analytics/logEvent';
 
 // Block 5 per spec — the closing conversion moment. Identical
 // primary CTA (copy + href) as Hero, per the Stripe/Linear pattern
@@ -9,15 +10,23 @@ import { useNavigate } from 'react-router-dom';
 const SUPPORTING_LINE =
   'Your CV, built to pass. Start for free — no signup required.';
 const PRIMARY_LABEL = 'Try it free';
-const PRIMARY_HREF = '/builder';
 const SECONDARY_LABEL = 'See pricing';
 const SECONDARY_HREF = '/pricing';
 
-export default function FinalCTASection() {
+export default function FinalCTASection({ onSignup, user }) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
 
-  const onPrimary = useCallback(() => { navigate(PRIMARY_HREF); }, [navigate]);
+  const onPrimary = useCallback(() => {
+    logEvent('homepage_cta_clicked', {
+      cta_text: PRIMARY_LABEL,
+      cta_section: 'final_cta',
+      cta_destination_before: '/builder',
+      cta_destination_after: '/auth?mode=signup',
+      is_authenticated: !!user?.id,
+    });
+    onSignup?.();
+  }, [onSignup, user?.id]);
   const onSecondary = useCallback(() => { navigate(SECONDARY_HREF); }, [navigate]);
 
   return (

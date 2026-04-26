@@ -811,14 +811,14 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         />
 
         {/* ── W18 LANDING — 5-block conversion layout ───────────── */}
-        <HeroSection />
+        <HeroSection onSignup={onSignup} user={user} />
         <GulfBillboardCard />
         <ShowSection />
         <FeatureCardGrid />
         <TestimonialsRow />
         <FoundersNoteSection />
         <PricingAnchorSection />
-        <FinalCTASection />
+        <FinalCTASection onSignup={onSignup} user={user} />
 
         <footer className="lp-footer-disclaimer">
           <p>

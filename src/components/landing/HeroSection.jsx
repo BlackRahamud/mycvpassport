@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import HeroDualTablet from '../marketing/HeroDualTablet';
+import { logEvent } from '../../lib/analytics/logEvent';
 
 // W18 copy rewrite v2 — Founder-locked 2026-04-22 in
 // /5-HANDOFF/[READY]_hero_headline_rewrite_W18.json. Do not paraphrase.
@@ -9,7 +9,6 @@ const H2 = 'Same experience. Better CV.';
 const SUB =
   "Across the Gulf and India, qualified candidates are filtered out every day — not because they're underqualified, but because their CV wasn't built to pass the system that reads it first. CVPassport fixes that.";
 const PRIMARY_LABEL = 'Try it free →';
-const PRIMARY_HREF = '/ats';
 const TRUST_LINE_1 = 'Free to start. No signup required.';
 const TRUST_LINE_2 = 'Used across UAE, India & beyond.';
 
@@ -27,15 +26,23 @@ const INSTANT = {
   show: { opacity: 1, y: 0 },
 };
 
-export default function HeroSection() {
-  const navigate = useNavigate();
+export default function HeroSection({ onSignup, user }) {
   const reduce = useReducedMotion();
   const { scrollY } = useScroll();
   const parallaxY = useTransform(scrollY, [0, 480], [0, -20]);
   const parallaxOpacity = useTransform(scrollY, [0, 480], [1, 0.88]);
   const variants = reduce ? INSTANT : FADE_UP;
 
-  const onPrimary = useCallback(() => { navigate(PRIMARY_HREF); }, [navigate]);
+  const onPrimary = useCallback(() => {
+    logEvent('homepage_cta_clicked', {
+      cta_text: PRIMARY_LABEL,
+      cta_section: 'hero',
+      cta_destination_before: '/ats',
+      cta_destination_after: '/auth?mode=signup',
+      is_authenticated: !!user?.id,
+    });
+    onSignup?.();
+  }, [onSignup, user?.id]);
 
   const contentMotionStyle = reduce ? undefined : { y: parallaxY, opacity: parallaxOpacity };
 
