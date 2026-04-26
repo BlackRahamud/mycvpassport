@@ -131,6 +131,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
   const education = Array.isArray(cv.education) ? cv.education : [];
 
   return (
+    // KEEP position:relative on outer template root — conservative bias against future absolute descendants re-anchoring (Phase 3 audit)
     <div
       style={{
         width: mobileMode ? "100%" : "210mm",
@@ -215,7 +216,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
       {cv.summary && (
         <section data-section="summary">
           <SectionTitle first>Professional Summary</SectionTitle>
-          <div style={{ position: "relative" }}>
+          <div>
             <GhostChip>{cv.summary}</GhostChip>
             <p
               style={{
@@ -241,7 +242,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
               .filter((e) => e.company)
               .map((e, i) => (
                 <EntryWrap key={i}>
-                  <div style={{ position: "relative" }}>
+                  <div>
                     <GhostChip>
                       {e.role} at {e.company} {e.period}
                     </GhostChip>
@@ -382,7 +383,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
           </SectionTitle>
           <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             <EntryWrap>
-              <div style={{ position: "relative" }}>
+              <div>
                 <GhostChip>{certList.join(" · ")}</GhostChip>
                 <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY_COLOR }}>
                   {certList.join(" · ")}
@@ -408,7 +409,7 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
           </SectionTitle>
           <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
             <EntryWrap>
-              <div style={{ position: "relative" }}>
+              <div>
                 <GhostChip>{skillCore.join(" · ")}</GhostChip>
                 <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY_COLOR }}>
                   {skillCore.join(" · ")}
