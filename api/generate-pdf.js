@@ -111,7 +111,7 @@ module.exports = async (req, res) => {
       `,
     });
 
-    const layoutTrace = await page.evaluate((ats) => {
+    const layoutTrace = await page.evaluate(({ ats, templateId }) => {
       // Only run if templates implement semantic layout markers
       const main = document.querySelector(".cvp-main");
       const trace = {
@@ -150,6 +150,47 @@ module.exports = async (req, res) => {
           }
         });
       trace.breakInsideRelaxed = relaxedCount;
+
+      // ─── T11 ROUND 2 FIX: text-stream reorder workaround ──────────────────
+      // When Chromium has to defer an element with break-inside: avoid that
+      // would straddle a page boundary, it emits subsequent siblings first
+      // in the PDF content stream and emits the deferred element LAST.
+      // The visual layout is correct (positions are computed once and
+      // honored), but the text stream reads:
+      //   bullets → EDUCATION → LANGUAGES → header
+      // ATS readers parse text in stream order and see orphaned bullets
+      // followed by a header at the end — destroying job-context for that
+      // entry. Sidestep the deferral entirely by inserting an explicit
+      // .cvp-page-break before any [data-block="job"] that would straddle.
+      // The injected @media print rule (lines 102-103) turns
+      // .cvp-page-break into break-before: page, forcing a clean page
+      // start. T11-only because (a) only T11 has captured DOM with
+      // [data-block="job"] but no .cvp-main wrapper to drive the existing
+      // runSmartPagination, and (b) other templates either go through
+      // runSmartPagination already (T12/T14) or have no [data-block="job"].
+      let t11BreaksInserted = 0;
+      if (Number(templateId) === 11) {
+        // After the T11 staged-rollout fix (commit 18df25a) the page is
+        // rendered with @page margin: 15mm + preferCSSPageSize, so usable
+        // per page = 297mm - 30mm = 267mm = ~1009px @ 96dpi.
+        const T11_PAGE_USABLE_PX = Math.round((267 * 96) / 25.4);
+        const jobs = Array.from(
+          document.querySelectorAll('[data-block="job"]'),
+        );
+        jobs.forEach((el) => {
+          const r = el.getBoundingClientRect();
+          // Subtract 1 from bottom to handle exact-boundary equality.
+          const pageOfTop = Math.floor(r.top / T11_PAGE_USABLE_PX);
+          const pageOfBottom = Math.floor((r.bottom - 1) / T11_PAGE_USABLE_PX);
+          if (pageOfTop !== pageOfBottom && el.parentNode) {
+            const brk = document.createElement("div");
+            brk.className = "cvp-page-break";
+            el.parentNode.insertBefore(brk, el);
+            t11BreaksInserted += 1;
+          }
+        });
+      }
+      trace.t11BreaksInserted = t11BreaksInserted;
 
       if (!main) {
         trace.finalRootHeight = Math.round(rootEl.getBoundingClientRect().height);
@@ -294,7 +335,7 @@ module.exports = async (req, res) => {
       autoScaleTypography();
       trace.finalRootHeight = Math.round(rootEl.getBoundingClientRect().height);
       return trace;
-    }, Boolean(atsMode));
+    }, { ats: Boolean(atsMode), templateId });
     console.log("[cvp-pdf-trace] server layout", {
       ...layoutTrace,
       maxPagesRequested: maxPages,

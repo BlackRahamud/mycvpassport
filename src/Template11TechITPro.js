@@ -4,7 +4,6 @@
 //  align on timeline + typography; jsPDF path unchanged below.
 // ─────────────────────────────────────────────────────────────────
 
-import GhostChip from "./components/GhostChip";
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
 import {
   PDF_CONTENT_BOTTOM_Y,
@@ -14,6 +13,49 @@ import {
   pdfDrawWrappedText,
   pdfSplitText,
 } from "./pdfA4Layout";
+
+// ─── T11-local ghost chip (Round 2 fix) ─────────────────────────────────────
+// The shared GhostChip uses position: absolute + scale(0.01) to keep ATS
+// keywords invisible. In T11, that triggered a Chromium PDF-print quirk: any
+// content inside a `position: relative` parent (which is required to anchor
+// the absolutely-positioned ghost chip) was emitted at the END of the page's
+// text stream — section titles → bullets → body text → entry headers — even
+// though the visual layout was correct. ATS readers parsing in stream order
+// saw orphaned bullets followed by a header at the end, destroying the
+// role↔company association.
+//
+// T11GhostChip stays in normal flow as an inline-block sized 0x0, so it
+// requires no positioned parent and does not create a stacking context.
+// Same ATS payload, no stream-order side effect.
+//
+// IMPORTANT: do NOT use overflow: hidden here. Chromium's PDF print pipeline
+// drops clipped text from the content stream, which would silently delete
+// the ATS keyword payload. Instead, the element is sized 0x0 with the text
+// content rendered (invisibly via color: transparent + scale(0.01)) outside
+// the box. The text remains in the PDF stream for ATS readers and the user
+// sees nothing.
+//
+// T11-local on purpose: other templates still use the shared GhostChip and
+// haven't shown this stream-order bug in production.
+const T11GhostChip = ({ children }) => (
+  <span
+    aria-hidden="true"
+    style={{
+      display: "inline-block",
+      width: 0,
+      height: 0,
+      fontSize: "12px",
+      color: "transparent",
+      transform: "scale(0.01)",
+      transformOrigin: "top left",
+      pointerEvents: "none",
+      whiteSpace: "nowrap",
+      verticalAlign: "top",
+    }}
+  >
+    {children}
+  </span>
+);
 
 const NAVY = "#1E2D45";
 const ACCENT = "#4A90D9";
@@ -112,9 +154,20 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
   const linkedIn =
     cv.linkedin || cv.linkedIn || cv.linkedInUrl || cv.linkedinUrl || "";
 
-  const EntryWrap = ({ children }) => (
+  // dataBlock is opt-in. For T11 experience entries we pass "job" so the
+  // server-side smart-pagination pass in api/generate-pdf.js can find the
+  // atomic entry and insert an explicit .cvp-page-break before any entry
+  // that would straddle a page boundary. This prevents the Chromium
+  // text-stream reorder bug (Round 2): when an element with break-inside:
+  // avoid is "deferred" to the next page, Chromium emits subsequent
+  // siblings' text-stream operators first and the deferred element's
+  // operators last, scrambling the PDF text stream even though the
+  // visual layout is correct. Inserting a clean .cvp-page-break before
+  // the straddling entry sidesteps the deferral entirely.
+  const EntryWrap = ({ children, dataBlock }) => (
     <div style={{ display: "block" }}>
       <div
+        data-block={dataBlock}
         style={{
           display: "block",
           breakInside: "avoid-page",
@@ -259,8 +312,8 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
       {cv.summary && (
         <section data-section="summary">
           <SectionTitle first>Professional Summary</SectionTitle>
-          <div style={{ position: "relative" }}>
-            <GhostChip>{cv.summary}</GhostChip>
+          <div>
+            <T11GhostChip>{cv.summary}</T11GhostChip>
             <p
               style={{
                 fontSize: pt(10),
@@ -283,8 +336,8 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
           <SectionTitle first={!cv.summary}>Skills</SectionTitle>
           <div style={{ marginTop: "-4mm" }}>
             <EntryWrap>
-              <div style={{ position: "relative" }}>
-                <GhostChip>{skillCore.join(" · ")}</GhostChip>
+              <div>
+                <T11GhostChip>{skillCore.join(" · ")}</T11GhostChip>
                 <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: BODY }}>
                   {skillCore.join(" · ")}
                 </p>
@@ -331,11 +384,11 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
             {experience
               .filter((e) => e.company)
               .map((e, i) => (
-                <EntryWrap key={i}>
-                  <div style={{ position: "relative" }}>
-                    <GhostChip>
+                <EntryWrap key={i} dataBlock="job">
+                  <div>
+                    <T11GhostChip>
                       {e.role} at {e.company} {e.period}
-                    </GhostChip>
+                    </T11GhostChip>
                     <div
                       style={{
                         display: "flex",
