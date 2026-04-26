@@ -206,7 +206,10 @@ function buildTechITProTemplate11Html(rawCv) {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
     * { box-sizing: border-box; }
-    @page { size: A4; margin: 0; }
+    /* T11 staged rollout: @page owns the page margin (was margin: 0, dead).
+       Matches src/downloadResumeFromPreview.js#buildCvPdfHtmlDocument and the
+       per-template branch in api/generate-pdf.js (margin:0, preferCSSPageSize:true). */
+    @page { size: A4; margin: 15mm; }
     html, body { margin: 0; padding: 0; }
     body {
       font-family: Arial, Helvetica, sans-serif;

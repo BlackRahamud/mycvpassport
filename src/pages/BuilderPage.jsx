@@ -2878,7 +2878,10 @@ function ResumeBuilder({
         await new Promise((r) => setTimeout(r, 500));
         const el = isMobile ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
         if (!el) throw new Error('Preview not ready');
-        await downloadResumeFromPreview(resume, el, { maxPages: pdfTargetPages });
+        await downloadResumeFromPreview(resume, el, {
+          maxPages: pdfTargetPages,
+          templateId: selectedTemplate?.id,
+        });
         writeFabMemory({
           lastAction: 'downloaded',
           lastActionAt: new Date().toISOString(),
@@ -3370,7 +3373,7 @@ function ResumeBuilder({
       >
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
       {!isMobile ? (
-      <div className={`cvp-builder-desktop desktop-preview-panel${builderTab === 'jobmatch' ? ' cvp-jobmatch-active' : ''}${builderTab === 'templates' ? ' cvp-templates-active' : ''}`} style={{ minHeight: 'calc(100vh - 56px)', height: 'auto', opacity: downloadState.status !== 'idle' ? 0 : 1, pointerEvents: downloadState.status !== 'idle' ? 'none' : 'auto', transition: 'opacity 0.3s ease' }}>
+      <div className={`cvp-builder-desktop cvp-builder-mode desktop-preview-panel${builderTab === 'jobmatch' ? ' cvp-jobmatch-active' : ''}${builderTab === 'templates' ? ' cvp-templates-active' : ''}`} style={{ minHeight: 'calc(100vh - 56px)', height: 'auto', opacity: downloadState.status !== 'idle' ? 0 : 1, pointerEvents: downloadState.status !== 'idle' ? 'none' : 'auto', transition: 'opacity 0.3s ease' }}>
         {/* Left panel — Editor */}
         <aside
           className="cvp-builder-left"
@@ -3899,7 +3902,7 @@ function ResumeBuilder({
 
       {/* Mobile: single column (default until viewport is at least 768px) */}
       <div
-        className="cvp-builder-mobile"
+        className="cvp-builder-mobile cvp-builder-mode"
         style={{
           display: isMobile ? "flex" : "none",
           flexDirection: "column",

@@ -301,24 +301,56 @@ module.exports = async (req, res) => {
     });
 
     const maxPagesN = Number(maxPages);
-    let pdfBuffer = await page.pdf({
+
+    // ─── T11 STAGED ROLLOUT ─────────────────────────────────────────────────
+    // Template 11 (Tech & IT Pro) is the only template currently routed
+    // through a CSS-driven page-margin model. The captured T11 DOM applies
+    // padding-top/bottom: 15mm and min-height: 297mm on its root; stacked on
+    // top of the global Puppeteer margin: { top: 10mm, bottom: 15mm }, the
+    // doubled top padding eats ~95px of page-1 usable area and the min-height
+    // forces the document past the page boundary even for short CVs — which
+    // orphans the LANGUAGES section onto a near-empty page 2.
+    //
+    // Fix: when templateId === 11, set Puppeteer margin to 0 and let the
+    // wrapper-injected `@page { size: A4; margin: 15mm }` (see
+    // src/downloadResumeFromPreview.js#buildCvPdfHtmlDocument) own the
+    // page margin. Combined with the wrapper's strip of T11 root padding +
+    // min-height, this collapses the duplicated whitespace and the orphan
+    // disappears for light CVs.
+    //
+    // Templates 1-10 and 12-18 keep the existing config byte-for-byte.
+    const isT11 = Number(templateId) === 11;
+
+    const sharedPdfOpts = {
       format: "A4",
       printBackground: true,
-      preferCSSPageSize: false,
       displayHeaderFooter: true,
       headerTemplate: "<div></div>",
       footerTemplate: `
     <div style="font-family: 'Inter', sans-serif; font-size: 9px; color: #94A3B8; width: 100%; text-align: center; margin-bottom: 5mm;">
       Page <span class="pageNumber"></span> of <span class="totalPages"></span>
     </div>`,
-      margin: {
-        top: "10mm",
-        bottom: "15mm",
-        left: "0mm",
-        right: "0mm",
-      },
       ...(maxPagesN === 1 ? { pageRanges: "1" } : {}),
-    });
+    };
+
+    let pdfBuffer = await page.pdf(
+      isT11
+        ? {
+            ...sharedPdfOpts,
+            preferCSSPageSize: true,
+            margin: { top: 0, right: 0, bottom: 0, left: 0 },
+          }
+        : {
+            ...sharedPdfOpts,
+            preferCSSPageSize: false,
+            margin: {
+              top: "10mm",
+              bottom: "15mm",
+              left: "0mm",
+              right: "0mm",
+            },
+          },
+    );
 
     // Template 11: repaint sidebar with a subtle per-page visual reset.
     // if (Number(templateId) === 11) {

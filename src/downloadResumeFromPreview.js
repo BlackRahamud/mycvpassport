@@ -3,7 +3,33 @@ import { supabase } from "./appSupabaseClient";
 import { cvWithTemplateCertifications } from "./cvShared";
 
 /** Full HTML document for iLovePDF (fonts + A4 preview shell; mirrors index.css .cvp-builder-a4-fit desktop rules). */
-function buildCvPdfHtmlDocument(cvFragmentHtml) {
+function buildCvPdfHtmlDocument(cvFragmentHtml, templateId) {
+  // ─── T11 STAGED ROLLOUT ─────────────────────────────────────────────────────
+  // Template 11 (Tech & IT Pro) is the only template currently routed through a
+  // CSS-driven page-margin model. The captured T11 DOM has its own
+  // padding-top/bottom: 15mm and min-height: 297mm — when stacked on top of the
+  // global Puppeteer margin: { top: 10mm, bottom: 15mm }, the doubled top
+  // padding eats ~95px of page-1 usable area and the min-height forces the
+  // document past the page boundary even for short CVs, orphaning the last
+  // section (the "LANGUAGES on a blank page 2" bug). Strip those for T11 and
+  // let @page { margin: 15mm } own the margins; the matching server change is
+  // page.pdf({ margin: 0, preferCSSPageSize: true }) in api/generate-pdf.js.
+  // No @media print wrapper: this CSS only ever runs in the download path
+  // (never the live preview), so unconditional rules are safe and avoid the
+  // page.emulateMediaType('screen') interaction that would mask print rules.
+  const t11Css =
+    Number(templateId) === 11
+      ? `
+    @page { size: A4; margin: 15mm; }
+    .cvp-builder-a4-fit { padding: 0 !important; }
+    .cvp-builder-a4-fit > div {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      min-height: 0 !important;
+    }
+  `
+      : "";
+
   const style = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: #ffffff; }
@@ -18,6 +44,7 @@ function buildCvPdfHtmlDocument(cvFragmentHtml) {
       box-shadow: none;
       box-sizing: border-box;
     }
+    ${t11Css}
   `;
   return `<!DOCTYPE html>
 <html lang="en">
@@ -27,7 +54,7 @@ function buildCvPdfHtmlDocument(cvFragmentHtml) {
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"/>
 <style>${style}</style>
 </head>
-<body>
+<body${templateId ? ` data-template-id="${Number(templateId)}"` : ""}>
 ${cvFragmentHtml}
 </body>
 </html>`;
@@ -37,7 +64,10 @@ ${cvFragmentHtml}
 /**
  * @param {object} cvInput
  * @param {HTMLElement} captureElement
- * @param {{ maxPages?: 1 | 2 }} [opts] When maxPages is 1, PDF is clipped to the first page (server-side).
+ * @param {{ maxPages?: 1 | 2, templateId?: number }} [opts]
+ *   - maxPages: when 1, PDF is clipped to the first page (server-side).
+ *   - templateId: passed to the server so per-template Puppeteer config can
+ *     be applied. Used for the T11 staged rollout (see api/generate-pdf.js).
  */
 export async function downloadResumeFromPreview(cvInput, captureElement, opts = {}) {
   const cv = cvWithTemplateCertifications(cvInput);
@@ -75,7 +105,11 @@ export async function downloadResumeFromPreview(cvInput, captureElement, opts = 
     maxPages: opts.maxPages ?? "unset",
   });
 
-  const html = buildCvPdfHtmlDocument(capturedFragment);
+  const templateId =
+    opts.templateId != null && Number.isFinite(Number(opts.templateId))
+      ? Number(opts.templateId)
+      : undefined;
+  const html = buildCvPdfHtmlDocument(capturedFragment, templateId);
   const baseName = `${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport`;
 
   const maxPages = opts.maxPages === 1 ? 1 : opts.maxPages === 2 ? 2 : undefined;
@@ -86,6 +120,7 @@ export async function downloadResumeFromPreview(cvInput, captureElement, opts = 
       html,
       filename: baseName,
       cv,
+      ...(templateId != null ? { templateId } : {}),
       ...(maxPages != null ? { maxPages } : {}),
     }),
   });
