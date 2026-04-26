@@ -54,7 +54,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
 
   const EntryWrap = ({ children }) => (
     <div
-      style={{ marginBottom: "5mm", breakInside: "avoid", pageBreakInside: "avoid", position: "relative" }}
+      style={{ marginBottom: "5mm", breakInside: "avoid", pageBreakInside: "avoid" }}
     >
       {children}
     </div>
@@ -119,7 +119,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       </header>
 
       {/* Summary */}
-      <section data-section="summary" style={{ position: "relative" }}>
+      <section data-section="summary">
         <SectionTitle first>Executive Summary</SectionTitle>
         <GhostChip>
           {cv.summary ||
@@ -166,7 +166,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isEmpty) && (
-        <section data-section="competencies" style={{ position: "relative" }}>
+        <section data-section="competencies">
           <SectionTitle>Skills</SectionTitle>
           <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
           <div

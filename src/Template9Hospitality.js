@@ -97,7 +97,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isPlaceholder) && (
-        <section data-section="summary" style={{ pageBreakInside: "avoid", position: "relative" }}>
+        <section data-section="summary" style={{ pageBreakInside: "avoid" }}>
           <GhostChip>
             {cv.summary || "Enter your professional summary here..."}
           </GhostChip>
@@ -113,7 +113,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
         <section data-section="experience">
           <SectionTitle>Experience</SectionTitle>
           {experience.map((exp, i) => (
-            <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid", position: "relative" }}>
+            <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid" }}>
               <GhostChip>{`${exp.role || ""} ${exp.company || ""}`.trim()}</GhostChip>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                 <div style={{ fontSize: pt(11) }}>
@@ -147,7 +147,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isPlaceholder) && (
-        <section data-section="competencies" style={{ pageBreakInside: "avoid", position: "relative" }}>
+        <section data-section="competencies" style={{ pageBreakInside: "avoid" }}>
           <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
           <SectionTitle>Skills</SectionTitle>
           <div style={{ fontSize: pt(10), color: textColor, lineHeight: 1.8 }}>

@@ -128,7 +128,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
       <div style={{ padding: "0 15mm" }}>
         {/* Profile */}
-        <section data-section="summary" style={{ position: "relative" }}>
+        <section data-section="summary">
           <GhostChip>
             {cv.summary ||
               "Strategically-minded professional with 10+ years of experience..."}
@@ -154,7 +154,6 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
             <div
               key={i}
               style={{
-                position: "relative",
                 marginBottom: "6mm",
                 breakInside: "avoid",
                 pageBreakInside: "avoid",
@@ -199,7 +198,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
         {/* Skills */}
         {(skillsCells.length > 0 || isEmpty) && (
-          <section data-section="competencies" style={{ position: "relative" }}>
+          <section data-section="competencies">
             <SectionBand>Skills</SectionBand>
             <GhostChip>
               {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}

@@ -103,7 +103,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
       <div style={{ padding: "0 15mm" }}>
         {/* Summary */}
         {cv.summary && (
-          <section data-section="summary" style={{ position: "relative" }}>
+          <section data-section="summary">
             <SectionTitle>Professional Profile</SectionTitle>
             <p style={{ fontSize: pt(10), margin: 0, textAlign: "justify", color: BODY_TEXT }}>{cv.summary}</p>
             <GhostChip>{cv.summary}</GhostChip>
@@ -115,7 +115,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
           <section data-section="experience">
             <SectionTitle>Experience</SectionTitle>
             {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid", position: "relative" }}>
+              <div key={i} style={{ marginBottom: "6mm", pageBreakInside: "avoid" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <span style={{ fontSize: pt(11), fontWeight: "bold", color: navyColor }}>
                     {exp.role} <span style={{ fontWeight: "bold", color: "#000" }}>— {exp.company}</span>
@@ -139,7 +139,7 @@ export function PreviewCompactPro({ cv, mobileMode = false }) {
         {/* Skills & Languages - Parallel Columns */}
         <div style={{ display: "flex", gap: "15mm", marginTop: "4mm", pageBreakInside: "avoid" }}>
           {skills.length > 0 && (
-            <div data-section="competencies" style={{ flex: 1, position: "relative" }}>
+            <div data-section="competencies" style={{ flex: 1 }}>
               <SectionTitle>Skills</SectionTitle>
               <div style={{ fontSize: pt(10), color: BODY_TEXT }}>
                 {skills.map((s, i) => (

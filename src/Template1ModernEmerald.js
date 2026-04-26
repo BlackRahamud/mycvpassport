@@ -108,7 +108,6 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
               fontSize: pt(10.5),
               lineHeight: 1.6,
               margin: 0,
-              position: "relative",
             }}
           >
             <GhostChip>{summaryDisplay}</GhostChip>
@@ -121,7 +120,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
       {(skillList.length > 0 || isEmpty) && (
         <section data-section="competencies">
           <SectionTitle>Skills</SectionTitle>
-          <div style={{ fontSize: pt(10.5), lineHeight: 1.5, position: "relative" }}>
+          <div style={{ fontSize: pt(10.5), lineHeight: 1.5 }}>
             <GhostChip>
               {isEmpty ? "Skill One, Skill Two, Skill Three" : skillList.join(", ")}
             </GhostChip>
@@ -138,7 +137,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
       {(technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0 || isEmpty) && (
         <section data-section="competencies">
           <SectionTitle>Technical Skills</SectionTitle>
-          <div style={{ fontSize: pt(10.5), lineHeight: 1.6, margin: 0, position: "relative" }}>
+          <div style={{ fontSize: pt(10.5), lineHeight: 1.6, margin: 0 }}>
             <GhostChip>
               {isEmpty
                 ? "Tool Name, Software Expertise"
@@ -173,7 +172,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
           <SectionTitle>Professional Experience</SectionTitle>
           {isEmpty ? (
             <EntryWrap>
-              <div style={{ position: "relative" }}>
+              <div>
                 <GhostChip>Job Role / Position Company Name | Location</GhostChip>
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
                   <span style={{ color: SKELETON }}>Job Role / Position</span>
@@ -187,7 +186,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
           ) : (
             cv.experience.map((e, i) => (
               <EntryWrap key={i}>
-                <div style={{ position: "relative" }}>
+                <div>
                   <GhostChip>
                     {e.role} {e.company}
                   </GhostChip>

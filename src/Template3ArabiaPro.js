@@ -119,7 +119,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
       </header>
 
       {/* Profile */}
-      <section data-section="summary" style={{ position: "relative" }}>
+      <section data-section="summary">
         <SectionHeader>Professional Profile</SectionHeader>
         <GhostChip>
           {cv.summary ||
@@ -152,7 +152,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
           (cv.experience || [])
             .filter((e) => e.company)
             .map((e, i) => (
-              <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid", position: "relative" }}>
+              <div key={i} style={{ marginBottom: "6mm", breakInside: "avoid" }}>
                 <GhostChip>{`${e.role} ${e.company}`}</GhostChip>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "2px" }}>
                   <span style={{ fontWeight: "bold", fontSize: pt(11), color: PRIMARY }}>{e.company}</span>
@@ -221,7 +221,6 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
                 fontSize: pt(9.5),
                 color: TEXT_BODY,
                 textAlign: "center",
-                position: "relative",
               }}
             >
               <GhostChip>

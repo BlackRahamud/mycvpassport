@@ -125,7 +125,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
       <div style={{ padding: "0 15mm" }}>
         {/* Profile */}
         {cv.summary && (
-          <section data-section="summary" style={{ position: "relative" }}>
+          <section data-section="summary">
             <GhostChip>{cv.summary}</GhostChip>
             <SectionTitle>Profile</SectionTitle>
             <p
@@ -149,7 +149,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
             .map((e, i) => (
               <div
                 key={i}
-                style={{ marginBottom: "6mm", breakInside: "avoid", pageBreakInside: "avoid", position: "relative" }}
+                style={{ marginBottom: "6mm", breakInside: "avoid", pageBreakInside: "avoid" }}
               >
                 <GhostChip>{`${e.role} ${e.company}`}</GhostChip>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -183,7 +183,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
 
         {/* Skills */}
         {(skillsCells.length > 0 || isEmpty) && (
-          <section style={{ position: "relative" }}>
+          <section>
             <SectionTitle>Skills</SectionTitle>
             <GhostChip>
               {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}

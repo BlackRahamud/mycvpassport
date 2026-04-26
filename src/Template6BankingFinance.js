@@ -91,7 +91,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Summary */}
       {(cv.summary || isPlaceholder) && (
-        <section data-section="summary" style={{ position: "relative" }}>
+        <section data-section="summary">
           <GhostChip>
             {cv.summary ||
               "Strategically-minded professional with 10+ years of experience..."}
@@ -125,7 +125,6 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
               <div
                 key={i}
                 style={{
-                  position: "relative",
                   display: "flex",
                   marginBottom: "6mm",
                   pageBreakInside: "avoid",
@@ -168,7 +167,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
 
       {/* Skills */}
       {(skills.length > 0 || isPlaceholder) && (
-        <section data-section="competencies" style={{ position: "relative", pageBreakInside: "avoid" }}>
+        <section data-section="competencies" style={{ pageBreakInside: "avoid" }}>
           <GhostChip>
             {Array.isArray(skills) ? skills.join(" ") : cv.skills}
           </GhostChip>
