@@ -6,8 +6,10 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
+import { initClarity } from './lib/analytics/clarity';
 
 ReactGA.initialize('G-2NCBR90DMK');
+initClarity();
 
 const rootElement = document.getElementById('root');
 
