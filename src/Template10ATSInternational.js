@@ -86,6 +86,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
         WebkitPrintColorAdjust: "exact",
       }}
     >
+      {/* KEEP position:relative — outermost template root, conservative bias against future absolute descendants re-anchoring (Phase 3 audit) */}
       <div
         className="main-container"
         style={{
@@ -97,6 +98,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
         }}
       >
         {/* TOP HEADER SECTION */}
+        {/* KEEP position:relative — anchors 2 absolute decorative circles (lines below) AND establishes stacking context for the z-indexed title */}
         <header
           style={{
             backgroundColor: COLORS.HEADER_BG,
@@ -131,6 +133,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
             }}
           />
 
+          {/* KEEP position:relative — required for zIndex:1 to lift title above the decorative circles above */}
           <div style={{ position: "relative", zIndex: 1, textAlign: "left" }}>
             <h1 style={{ fontSize: "30px", fontWeight: "bold", color: COLORS.TEXT_MAIN, margin: 0, letterSpacing: "-0.02em" }}>
               {cv.name.toUpperCase()}
@@ -161,7 +164,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
             <div data-section="experience">
             <SectionHeading>Experience</SectionHeading>
             {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "24px", pageBreakInside: "avoid", position: "relative" }}>
+              <div key={i} style={{ marginBottom: "24px", pageBreakInside: "avoid" }}>
                 <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
                 <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "14px" }}>{exp.role}</div>
                 <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "12px", marginBottom: "8px" }}>
@@ -193,7 +196,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
             {skills.length > 0 && (
               <div data-section="competencies">
                 <SectionHeading>Skills</SectionHeading>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
                   {skills.map((skill, i) => (
                     <span
@@ -239,7 +242,7 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
           <div style={{ flex: "1" }}>
             <div data-section="summary">
             <SectionHeading>Summary</SectionHeading>
-            <div style={{ position: "relative" }}>
+            <div>
               <GhostChip>{cv.summary}</GhostChip>
               <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", margin: "0 0 28px 0" }}>
                 {cv.summary}
