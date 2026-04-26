@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { TEMPLATES, isCvDataEmptyForTemplateApply, EMPTY_RESUME, EMPTY_EXP } from "../cvShared";
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
+import { logEvent } from "../lib/analytics/logEvent";
 
 /*──────────────────────────────────────────────────────────────────────────────
  * Per-template dummy profiles — each person's data density is tuned to fill
@@ -532,6 +533,8 @@ function BuilderTemplatesTab({
   showAtsJourneyPrompt = false,
   onAtsJourneyNavigate,
   onAtsJourneySkipDownload,
+  source = "builder_tab",
+  user,
 }) {
   const navigate = useNavigate();
   const [bannerExpanded, setBannerExpanded] = useState(false);
@@ -711,6 +714,13 @@ function BuilderTemplatesTab({
                     sheetHighlight={confirmOpen && pendingTemplate?.id === t.id}
                     resume={userCvEmpty ? getDummyForTemplate(t.id) : resume}
                     onPick={(tpl) => {
+                      logEvent("template_card_clicked", {
+                        template_id: tpl.id,
+                        template_name: tpl.name,
+                        template_tier: tpl.tier,
+                        source,
+                        is_authenticated: !!user?.id,
+                      });
                       onTemplatesFabInteract?.();
                       onPendingTemplateChange(tpl);
                       onConfirmOpenChange(true);
@@ -831,6 +841,14 @@ function BuilderTemplatesTab({
                     key={previewBounceKey}
                     className="cvp-templates-preview-use-btn"
                     onClick={() => {
+                      if (pendingTemplate) {
+                        logEvent("template_applied", {
+                          template_id: pendingTemplate.id,
+                          template_tier: pendingTemplate.tier,
+                          source,
+                          is_authenticated: !!user?.id,
+                        });
+                      }
                       onApplyTemplateAndGoToContent(pendingTemplate);
                       closePreviewModal();
                     }}

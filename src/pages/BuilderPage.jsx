@@ -2951,6 +2951,7 @@ function ResumeBuilder({
   const templatesPanel = (
     <BuilderTemplatesTab
       resume={resume}
+      user={user}
       selectedTemplate={selectedTemplate}
       onApplyTemplate={setSelectedTemplate}
       onApplyTemplateAndGoToContent={(tpl) => {

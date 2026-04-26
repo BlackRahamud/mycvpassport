@@ -40,7 +40,7 @@ const S = {
   app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
 };
 
-function TemplatesBrowseLayout() {
+function TemplatesBrowseLayout({ user }) {
   const navigate = useNavigate();
   const [resume] = useState(() => ({ ...EMPTY_RESUME }));
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
@@ -78,6 +78,8 @@ function TemplatesBrowseLayout() {
           confirmOpen={confirmOpen}
           onPendingTemplateChange={setPending}
           onConfirmOpenChange={setConfirmOpen}
+          source="templates_page"
+          user={user}
         />
       </div>
     </div>
@@ -252,7 +254,7 @@ export default function App() {
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} profile={profile} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
-              <Route path="/templates" element={<TemplatesBrowseLayout />} />
+              <Route path="/templates" element={<TemplatesBrowseLayout user={user} />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/india-to-uae" element={<IndiaToUaePage />} />
               <Route path="/terms" element={<TermsPage />} />
