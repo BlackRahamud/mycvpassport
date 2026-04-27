@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { motion, useReducedMotion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, FileText } from 'lucide-react';
 import OLEDScoreRing, { OLEDRingStyles } from './OLEDScoreRing';
 
 const STEPS = [
@@ -22,23 +23,35 @@ function Glyph({ kind }) {
   return (<svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 3v11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><path d="M6.5 9.5L11 14l4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><path d="M4 18h14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>);
 }
 
-/* ── Payment card stack (move 3) ─────────────────────────────────
-   Replaces the flat PayMark chip row with a layered Apple-Wallet style fan.
-   Apple Pay on top with a 3-arc NFC ripple emanating from the upper-right
-   corner. Cards collapse stacked at 0°/0,0 and fan out on viewport-enter
-   over 700ms with a small overshoot. Hover spreads them another notch.
-   Reduced-motion: skip fan animation, render at final positions immediately.
-*/
-const PAY_CARDS = [
-  // Order is render order (back → front). Higher z-index wins.
-  { kind: 'mc',       z: 2, finalX: -28, finalY: -10, finalRotate: -2,  shadow: '0 6px 14px rgba(0,0,0,0.32)',  opacity: 1 },
-  { kind: 'upi',      z: 3, finalX:  28, finalY: -10, finalRotate:  6,  shadow: '0 4px 10px rgba(0,0,0,0.22)',  opacity: 0.5 },
-  { kind: 'ziina',    z: 4, finalX: -14, finalY:  -6, finalRotate: -4,  shadow: '0 10px 22px rgba(0,0,0,0.42)', opacity: 0.95 },
-  { kind: 'visa',     z: 5, finalX:  14, finalY:  -4, finalRotate:  4,  shadow: '0 10px 22px rgba(0,0,0,0.42)', opacity: 1 },
-  { kind: 'applepay', z: 6, finalX:   0, finalY:   0, finalRotate:  0,  shadow: '0 18px 36px -8px rgba(0,0,0,0.6), 0 4px 10px rgba(0,0,0,0.4)', opacity: 1 },
-];
+/* ── Payment card stack (move 3 + round 3 / fix 3) ────────────────
+   Layered Apple-Wallet style fan. Auto-shuffles every 3.5s so each card
+   gets hero time. UPI lightens 0.5 → 0.8 when it rotates to front.
+   Apple Pay NFC ripple only fires while Apple Pay is the front card.
+   Hover pauses the cycle so visitors can read the active card.
+   Reduced-motion: skip the cycle entirely, keep Apple Pay on top.
 
-function PayCardFace({ kind }) {
+   PAY_CARDS is the canonical card list. PAY_SLOTS is the geometry —
+   index 0 is furthest back, last index is front. distanceFromFront
+   maps each card into a slot every cycle. */
+const PAY_CARDS = [
+  { kind: 'mc' },
+  { kind: 'upi' },
+  { kind: 'ziina' },
+  { kind: 'visa' },
+  { kind: 'applepay' },
+];
+const APPLEPAY_INDEX = PAY_CARDS.findIndex((c) => c.kind === 'applepay');
+const PAY_SLOTS = [
+  // back → front
+  { z: 2, x: -28, y: -10, rotate: -2, shadow: '0 6px 14px rgba(0,0,0,0.32)' },
+  { z: 3, x:  28, y: -10, rotate:  6, shadow: '0 4px 10px rgba(0,0,0,0.22)' },
+  { z: 4, x: -14, y:  -6, rotate: -4, shadow: '0 10px 22px rgba(0,0,0,0.42)' },
+  { z: 5, x:  14, y:  -4, rotate:  4, shadow: '0 10px 22px rgba(0,0,0,0.42)' },
+  { z: 6, x:   0, y:   0, rotate:  0, shadow: '0 18px 36px -8px rgba(0,0,0,0.6), 0 4px 10px rgba(0,0,0,0.4)' },
+];
+const SHUFFLE_INTERVAL_MS = 3500;
+
+function PayCardFace({ kind, isFront }) {
   if (kind === 'applepay') {
     return (
       <div className="cvp-paycard cvp-paycard--apple" aria-label="Apple Pay">
@@ -47,9 +60,13 @@ function PayCardFace({ kind }) {
           <span>Pay</span>
         </span>
         <span className="cvp-paycard-chip" aria-hidden="true" />
-        <span className="cvp-paycard-nfc cvp-paycard-nfc-1" aria-hidden="true" />
-        <span className="cvp-paycard-nfc cvp-paycard-nfc-2" aria-hidden="true" />
-        <span className="cvp-paycard-nfc cvp-paycard-nfc-3" aria-hidden="true" />
+        {isFront && (
+          <>
+            <span className="cvp-paycard-nfc cvp-paycard-nfc-1" aria-hidden="true" />
+            <span className="cvp-paycard-nfc cvp-paycard-nfc-2" aria-hidden="true" />
+            <span className="cvp-paycard-nfc cvp-paycard-nfc-3" aria-hidden="true" />
+          </>
+        )}
       </div>
     );
   }
@@ -101,6 +118,40 @@ function PayCardFace({ kind }) {
     );
   }
   return null;
+}
+
+/* ── Value-unlocks panel for Step 03 (round 3 / fix 2) ────────────
+   Soft upsell that fills the gap between the PDF chip and the wallet
+   stack. Three rows fade in 0.6 → 1.0 sequentially on viewport-enter
+   (100ms stagger). Mono eyebrow stays — it's a scaffolding label,
+   not marketing copy. */
+const UNLOCK_ROWS = [
+  'Premium templates · Banking, Healthcare, Aviation',
+  'Unlimited downloads · revisit and re-export anytime',
+  'Priority ATS scoring · re-score against any job description',
+];
+function ValueUnlocksPanel() {
+  const reduce = useReducedMotion();
+  return (
+    <div className="cvp-hiw-unlocks">
+      <div className="cvp-hiw-unlocks-eyebrow">WITH UPGRADE</div>
+      {UNLOCK_ROWS.map((line, i) => (
+        <motion.div
+          key={i}
+          className="cvp-hiw-unlocks-row"
+          initial={reduce ? false : { opacity: 0.6 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={reduce
+            ? { duration: 0.01 }
+            : { duration: 0.4, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          <CheckCircle2 size={14} color="#4ade80" strokeWidth={2.2} aria-hidden="true" />
+          <span>{line}</span>
+        </motion.div>
+      ))}
+    </div>
+  );
 }
 
 /* ── Fanned thumbnail stack for Step 01 (move 3-fix-2) ────────────
@@ -188,69 +239,139 @@ function FannedThumbStack({ revealed }) {
   );
 }
 
-/* ── Live ATS demo for Step 02 (move 3-fix-3) ─────────────────────
-   Fake input field types out a sample CV line char-by-char (60ms/char).
-   When typing completes, the OLED ring reseeds at the higher score and
-   re-fills, reading as "live ATS scoring." Cycles every ~4s and pauses
-   when not in view. Reduced-motion: render at the final state. */
+/* ── Step 02 stage: scanning CV doc + OLED ring + typing input ─────
+   (round 3 / fix 1)
+
+   Master cycle (4s = 3s scan + 1s hold). Drives three things in sync:
+     1. A green scan line travelling top→bottom of a fake CV doc.
+        Content lines below the scan stay dim (0.2); lines above fade up
+        to 1.0 over 200ms via CSS transition.
+     2. The OLED ring's score: 84 during scan, reseeds 84 → 89 at scan
+        complete, holds at 89 for the 1s "hold" phase, then resets.
+        (OLEDScoreRing always animates from 0 → score on score change —
+        that ring-refire visual is intentional, reads as "live re-scoring.")
+     3. The fake-input typing line ("Senior Marketing Lead, Dub_") types
+        char-by-char over ~1.6s starting each cycle.
+
+   Reduced motion: render at the final state, no scan, no typing, score 89. */
 const TYPING_TEXT = 'Senior Marketing Lead, Dub';
-function LiveScoreDemo({ revealed }) {
+const DOC_LINE_WIDTHS = [90, 70, 85, 50, 75, 90, 60, 80, 65];
+const SCAN_MS = 3000;
+const HOLD_MS = 1000;
+const CYCLE_MS = SCAN_MS + HOLD_MS;
+
+function Step02Stage({ revealed }) {
   const reduce = useReducedMotion();
-  const [typed, setTyped] = useState(reduce ? TYPING_TEXT.length : 0);
+  const [scanT, setScanT] = useState(reduce ? 1 : 0);
   const [score, setScore] = useState(reduce ? 89 : 84);
+  const [typed, setTyped] = useState(reduce ? TYPING_TEXT.length : 0);
 
   useEffect(() => {
     if (!revealed || reduce) return;
     let cancelled = false;
-    let timer;
+    let raf;
+    let typingTimer;
+    let lastCycleNum = -1;
+    const startedAt = performance.now();
 
-    const cycle = () => {
-      if (cancelled) return;
+    const startTyping = () => {
+      clearTimeout(typingTimer);
       setTyped(0);
-      setScore(84);
       let i = 0;
       const typeChar = () => {
         if (cancelled) return;
         i += 1;
         setTyped(i);
         if (i < TYPING_TEXT.length) {
-          timer = setTimeout(typeChar, 60);
-        } else {
-          // Typing finished — bump score, hold, then restart cycle.
-          timer = setTimeout(() => {
-            if (cancelled) return;
-            setScore(89);
-            timer = setTimeout(cycle, 1800);
-          }, 240);
+          typingTimer = setTimeout(typeChar, 60);
         }
       };
-      timer = setTimeout(typeChar, 360);
+      typingTimer = setTimeout(typeChar, 360);
     };
 
-    cycle();
-    return () => { cancelled = true; clearTimeout(timer); };
+    const tick = (now) => {
+      if (cancelled) return;
+      const elapsed = now - startedAt;
+      const cycleNum = Math.floor(elapsed / CYCLE_MS);
+      const inCycle = elapsed - cycleNum * CYCLE_MS;
+
+      // New cycle starting? Restart typing + reset score.
+      if (cycleNum !== lastCycleNum) {
+        lastCycleNum = cycleNum;
+        startTyping();
+      }
+
+      if (inCycle < SCAN_MS) {
+        setScanT(inCycle / SCAN_MS);
+        setScore(84);
+      } else {
+        setScanT(1);
+        setScore(89);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(typingTimer);
+    };
   }, [revealed, reduce]);
 
   return (
-    <div className="cvp-hiw-score" aria-live="polite">
-      <OLEDScoreRing score={score} revealed={revealed} size={92} showLabel={false} duration={900} />
-      <div className="cvp-hiw-score-meta">
-        <div className="cvp-hiw-score-label">ATS · Live</div>
-        <div className="cvp-hiw-typing-input" aria-hidden="true">
-          <span className="cvp-hiw-typing-text">{TYPING_TEXT.slice(0, typed)}</span>
-          <span className="cvp-hiw-typing-cursor" />
+    <div className="cvp-hiw-stage">
+      <div className="cvp-hiw-doc-glow" aria-hidden="true" />
+      <div className="cvp-hiw-doc" aria-hidden="true">
+        <div className="cvp-hiw-doc-head">
+          <FileText size={14} color="rgba(255,255,255,0.55)" strokeWidth={2} />
+          <div className="cvp-hiw-doc-head-meta">
+            <div className="cvp-hiw-doc-head-name" />
+            <div className="cvp-hiw-doc-head-role" />
+          </div>
         </div>
-        <div className="cvp-hiw-score-checks">
-          {['Keywords matched', 'Format integrity', 'Section order'].map((t) => (
-            <div className="cvp-hiw-score-check" key={t}>
-              <span className="cvp-hiw-score-tick">
-                <svg width="7" height="7" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                  <path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              {t}
-            </div>
-          ))}
+        <div className="cvp-hiw-doc-lines">
+          {DOC_LINE_WIDTHS.map((w, i) => {
+            const linePos = (i + 0.5) / DOC_LINE_WIDTHS.length;
+            const lit = reduce || scanT > linePos;
+            return (
+              <div
+                key={i}
+                className="cvp-hiw-doc-line"
+                style={{ width: `${w}%`, opacity: lit ? 1 : 0.2 }}
+              />
+            );
+          })}
+        </div>
+        <div
+          className="cvp-hiw-doc-scan"
+          style={{
+            top: `${scanT * 100}%`,
+            opacity: !reduce && scanT > 0.005 && scanT < 0.99 ? 1 : 0,
+          }}
+        />
+      </div>
+      <div className="cvp-hiw-score" aria-live="polite">
+        <OLEDScoreRing score={score} revealed={revealed} size={92} showLabel={false} duration={900} />
+        <div className="cvp-hiw-score-meta">
+          <div className="cvp-hiw-score-label">ATS · Live</div>
+          <div className="cvp-hiw-typing-input" aria-hidden="true">
+            <span className="cvp-hiw-typing-text">{TYPING_TEXT.slice(0, typed)}</span>
+            <span className="cvp-hiw-typing-cursor" />
+          </div>
+          <div className="cvp-hiw-score-checks">
+            {['Keywords matched', 'Format integrity', 'Section order'].map((t) => (
+              <div className="cvp-hiw-score-check" key={t}>
+                <span className="cvp-hiw-score-tick">
+                  <svg width="7" height="7" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                    <path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                {t}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -259,35 +380,53 @@ function LiveScoreDemo({ revealed }) {
 
 function PaymentCardStack({ revealed }) {
   const reduce = useReducedMotion();
+  // Apple Pay starts on top (matches the "fanned card stack with one prominent" intent).
+  const [frontIndex, setFrontIndex] = useState(APPLEPAY_INDEX);
+  const [hovering, setHovering] = useState(false);
+
+  // Auto-shuffle: every 3.5s, advance frontIndex so the next card rotates to the front.
+  // Pause on hover (visitors get to read the active card) and skip entirely on reduced motion.
+  useEffect(() => {
+    if (!revealed || reduce || hovering) return;
+    const id = setInterval(() => {
+      setFrontIndex((prev) => (prev + 1) % PAY_CARDS.length);
+    }, SHUFFLE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [revealed, reduce, hovering]);
+
+  const effectiveFront = reduce ? APPLEPAY_INDEX : frontIndex;
+
   return (
-    <div className="cvp-paystack" aria-label="Accepted payment methods">
+    <div
+      className="cvp-paystack"
+      aria-label="Accepted payment methods"
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
       <div className="cvp-paystack-stage">
-        {PAY_CARDS.map((c) => {
-          const initial = reduce
-            ? { x: c.finalX, y: c.finalY, rotate: c.finalRotate, opacity: c.opacity }
-            : { x: 0, y: 0, rotate: 0, opacity: c.opacity };
-          const animate = revealed
-            ? { x: c.finalX, y: c.finalY, rotate: c.finalRotate, opacity: c.opacity }
-            : initial;
+        {PAY_CARDS.map((c, i) => {
+          const distance = (i - effectiveFront + PAY_CARDS.length) % PAY_CARDS.length;
+          const slot = PAY_SLOTS[PAY_SLOTS.length - 1 - distance];
+          const isFront = distance === 0;
+          // UPI: 0.5 normally, 0.8 when it rotates to front. Other cards: full opacity.
+          const opacity = c.kind === 'upi' ? (isFront ? 0.8 : 0.5) : 1;
+          const target = { x: slot.x, y: slot.y, rotate: slot.rotate, opacity };
+          const initial = revealed && !reduce
+            ? { x: 0, y: 0, rotate: 0, opacity }
+            : target;
           return (
             <motion.div
               key={c.kind}
               className="cvp-paystack-slot"
               data-kind={c.kind}
-              style={{ zIndex: c.z, boxShadow: c.shadow }}
+              style={{ zIndex: slot.z, boxShadow: slot.shadow }}
               initial={initial}
-              animate={animate}
-              whileHover={reduce ? undefined : {
-                x: c.finalX * 1.45,
-                y: c.finalY,
-                rotate: c.finalRotate * 1.35,
-                transition: { duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] },
-              }}
+              animate={target}
               transition={reduce
                 ? { duration: 0.01 }
-                : { duration: 0.7, ease: [0.34, 1.18, 0.64, 1], delay: c.z * 0.04 }}
+                : { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <PayCardFace kind={c.kind} />
+              <PayCardFace kind={c.kind} isFront={isFront} />
             </motion.div>
           );
         })}
@@ -331,7 +470,7 @@ export default function HowItWorksSection() {
         .cvp-hiw-rail::after { content: ""; position: absolute; top: 50%; left: 0; height: 1px; width: 0; background: linear-gradient(90deg, rgba(217,119,6,0.0), rgba(217,119,6,0.85), rgba(217,119,6,0.0)); transform: translateY(-50%); transition: width 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         .cvp-hiw[data-in-view="true"] .cvp-hiw-rail::after { width: 100%; }
         @media (max-width: 880px) { .cvp-hiw-rail { display: none; } }
-        .cvp-hiw-step { position: relative; background: var(--color-surface-01, #141414); border: 1px solid color-mix(in srgb, var(--color-border, #2a2a2a), transparent 30%); border-radius: var(--radius-md, 18px); padding: 32px 28px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 460px; isolation: isolate; overflow: hidden; transition: border-color 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        .cvp-hiw-step { position: relative; background: var(--color-surface-01, #141414); border: 1px solid color-mix(in srgb, var(--color-border, #2a2a2a), transparent 30%); border-radius: var(--radius-md, 18px); padding: 32px 28px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 520px; isolation: isolate; overflow: hidden; transition: border-color 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         .cvp-hiw-step:hover { border-color: color-mix(in srgb, var(--color-accent, #D97706), transparent 55%); transform: translateY(-2px); box-shadow: 0 18px 36px -16px rgba(0,0,0,0.55); }
         .cvp-hiw-step.is-final { background: radial-gradient(120% 80% at 100% 0%, rgba(217,119,6,0.10), transparent 60%), var(--color-surface-01, #141414); border-color: color-mix(in srgb, var(--color-accent, #D97706), transparent 55%); }
         @media (prefers-reduced-motion: reduce) { .cvp-hiw-step { transition: border-color 100ms linear; } .cvp-hiw-step:hover { transform: none; } }
@@ -369,7 +508,56 @@ export default function HowItWorksSection() {
         .cvp-hiw-thumb-rule { height: 1.4px; width: 65%; background: currentColor; opacity: 0.55; margin-bottom: 4px; border-radius: 1px; }
         .cvp-hiw-thumb-bar { height: 3.2px; border-radius: 1.5px; background: rgba(0,0,0,0.09); }
         .cvp-hiw-thumb-bar.w70 { width: 70%; } .cvp-hiw-thumb-bar.w50 { width: 50%; } .cvp-hiw-thumb-bar.w90 { width: 90%; } .cvp-hiw-thumb-bar.w40 { width: 40%; } .cvp-hiw-thumb-bar.w85 { width: 85%; }
-        .cvp-hiw-score { margin-top: auto; display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }
+        /* Step 02 stage — wraps doc + score panel with an amber atmospheric
+           glow behind both (round 3 / fix 1). */
+        .cvp-hiw-stage {
+          position: relative; margin-top: auto;
+          display: flex; flex-direction: column; gap: 14px;
+          isolation: isolate;
+        }
+        .cvp-hiw-doc-glow {
+          position: absolute; inset: -8px -4px;
+          background: radial-gradient(ellipse at bottom, rgba(217,119,6,0.10), transparent 60%);
+          pointer-events: none; z-index: 0;
+        }
+        .cvp-hiw-doc {
+          position: relative; z-index: 1;
+          padding: 12px 14px;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: var(--radius-md, 12px);
+          overflow: hidden;
+          display: flex; flex-direction: column; gap: 7px;
+          min-height: 170px;
+        }
+        .cvp-hiw-doc-head {
+          display: flex; align-items: center; gap: 8px;
+          padding-bottom: 7px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .cvp-hiw-doc-head-meta { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+        .cvp-hiw-doc-head-name { height: 6px; width: 60%; border-radius: 1px; background: rgba(255,255,255,0.18); }
+        .cvp-hiw-doc-head-role { height: 4px; width: 40%; border-radius: 1px; background: rgba(255,255,255,0.10); }
+        .cvp-hiw-doc-lines { display: flex; flex-direction: column; gap: 6px; }
+        .cvp-hiw-doc-line {
+          height: 2px;
+          background: rgba(255,255,255,0.10);
+          border-radius: 1px;
+          transition: opacity 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .cvp-hiw-doc-scan {
+          position: absolute; left: 0; right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #4ade80, transparent);
+          box-shadow: 0 0 12px rgba(74,222,128,0.4);
+          pointer-events: none;
+          z-index: 2;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cvp-hiw-doc-line { transition: none; }
+          .cvp-hiw-doc-scan { display: none; }
+        }
+        .cvp-hiw-score { position: relative; z-index: 1; display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }
         .cvp-hiw-score-meta { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
         .cvp-hiw-score-label { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.5); font-weight: 600; }
         .cvp-hiw-score-checks { display: flex; flex-direction: column; gap: 3px; }
@@ -409,8 +597,38 @@ export default function HowItWorksSection() {
         .cvp-hiw-pdf-chip { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(217,119,6,0.10); border: 1px solid rgba(217,119,6,0.28); border-radius: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #fde68a; letter-spacing: 0.04em; align-self: flex-start; }
         .cvp-hiw-pdf-chip b { color: #fff; font-weight: 700; }
         .cvp-hiw-pdf-pill { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: rgba(34,197,94,0.18); color: #4ade80; font-weight: 700; }
+        /* "WITH UPGRADE" panel — soft upsell between PDF chip and wallet stack (round 3 / fix 2). */
+        .cvp-hiw-unlocks {
+          padding: 14px 16px;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 12px;
+          margin: 12px 0;
+          display: flex; flex-direction: column; gap: 6px;
+        }
+        .cvp-hiw-unlocks-eyebrow {
+          font-family: ui-monospace, "SF Mono", Menlo, monospace;
+          font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase;
+          color: rgba(255,255,255,0.45); font-weight: 600;
+          margin-bottom: 2px;
+        }
+        .cvp-hiw-unlocks-row {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 12px; line-height: 1.45;
+          color: rgba(255,255,255,0.78);
+        }
+        .cvp-hiw-unlocks-row svg { flex-shrink: 0; }
+
         .cvp-hiw-paywall { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.08); }
-        .cvp-hiw-paywall-label { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; }
+        /* Marketing copy — body sans, sentence case, italicised so it reads as a human voice
+           rather than a mono scaffolding label (round 3 / fix 4). */
+        .cvp-hiw-paywall-label {
+          font-family: inherit;
+          font-size: 13px; font-weight: 500; font-style: italic;
+          letter-spacing: 0; text-transform: none;
+          color: rgba(255,255,255,0.6);
+          line-height: 1.4;
+        }
 
         /* ── Payment card stack (move 3) ─────────────────────────── */
         .cvp-paystack { width: 100%; display: flex; align-items: center; justify-content: center; padding: 6px 0 12px; }
@@ -584,7 +802,7 @@ export default function HowItWorksSection() {
 
             {s.n === '01' && <FannedThumbStack revealed={inView} />}
 
-            {s.n === '02' && <LiveScoreDemo revealed={inView} />}
+            {s.n === '02' && <Step02Stage revealed={inView} />}
 
             {s.n === '03' && (
               <div className="cvp-hiw-pdf">
@@ -594,6 +812,7 @@ export default function HowItWorksSection() {
                   <span>184 KB</span>
                   <span className="cvp-hiw-pdf-pill">FREE</span>
                 </div>
+                <ValueUnlocksPanel />
                 <div className="cvp-hiw-paywall">
                   <div className="cvp-hiw-paywall-label">Pay in AED only when you’re winning</div>
                   <PaymentCardStack revealed={inView} />
