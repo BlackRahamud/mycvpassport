@@ -32,7 +32,10 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "prestart": "node scripts/build-attestation-content.mjs",
     "build": "react-scripts build",
+    "prebuild": "node scripts/build-attestation-content.mjs",
+    "build:content": "node scripts/build-attestation-content.mjs",
     "lint": "eslint src --ext .js,.jsx",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

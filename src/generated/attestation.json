@@ -1,0 +1,540 @@
+{
+  "india__bahrain": {
+    "from": "india",
+    "to": "bahrain",
+    "status": "stub",
+    "key_fact": "Bahrain is NOT a Hague Apostille signatory. Full embassy attestation\nrequired, then MOFA attestation in Bahrain after document arrives.\n",
+    "document_types": {
+      "educational_certificates": {
+        "fastest_route": {
+          "name": "SDM route",
+          "total_days": null,
+          "total_fees_inr": null,
+          "steps": [
+            {
+              "step": 1,
+              "name": "Notary attestation",
+              "authority": "Local notary",
+              "days": 1,
+              "fees_inr": [
+                200,
+                500
+              ]
+            },
+            {
+              "step": 2,
+              "name": "SDM attestation",
+              "authority": "Sub-Divisional Magistrate",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 3,
+              "name": "MEA attestation",
+              "authority": "Ministry of External Affairs, GoI",
+              "days": 5,
+              "fees_inr": [
+                50,
+                500
+              ],
+              "link": "https://www.mea.gov.in/apostille.htm"
+            },
+            {
+              "step": 4,
+              "name": "Bahrain Embassy attestation",
+              "authority": "Embassy of Bahrain in India",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 5,
+              "name": "MOFA attestation",
+              "authority": "Bahrain Ministry of Foreign Affairs (post-arrival)",
+              "days": null,
+              "fees_bhd": null,
+              "location": "After document arrives in Bahrain"
+            }
+          ]
+        },
+        "alternative_route": {
+          "name": "HRD route",
+          "total_days": null,
+          "notes": "Slower than SDM, required for some state universities."
+        }
+      },
+      "commercial_certificates": {
+        "notes": "Chamber of Commerce → MEA → Bahrain Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      },
+      "personal_certificates": {
+        "sub_types": [
+          "marriage",
+          "birth",
+          "death",
+          "divorce"
+        ],
+        "notes": "SDM → MEA → Bahrain Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      }
+    },
+    "private_agency_markup_inr": [
+      3000,
+      10000
+    ]
+  },
+  "india__ksa": {
+    "from": "india",
+    "to": "ksa",
+    "status": "stub",
+    "key_fact": "Saudi Arabia is NOT a Hague Apostille signatory. Full embassy\nattestation required, then MOFA attestation in Saudi Arabia after\ndocument arrives. Saudi Cultural Attaché involvement required for\neducational certificates.\n",
+    "document_types": {
+      "educational_certificates": {
+        "fastest_route": {
+          "name": "SDM route",
+          "total_days": null,
+          "total_fees_inr": null,
+          "steps": [
+            {
+              "step": 1,
+              "name": "Notary attestation",
+              "authority": "Local notary",
+              "days": 1,
+              "fees_inr": [
+                200,
+                500
+              ]
+            },
+            {
+              "step": 2,
+              "name": "SDM attestation",
+              "authority": "Sub-Divisional Magistrate",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 3,
+              "name": "MEA attestation",
+              "authority": "Ministry of External Affairs, GoI",
+              "days": 5,
+              "fees_inr": [
+                50,
+                500
+              ],
+              "link": "https://www.mea.gov.in/apostille.htm"
+            },
+            {
+              "step": 4,
+              "name": "Saudi Cultural Attaché attestation",
+              "authority": "Saudi Cultural Attaché in Delhi (educational only)",
+              "days": null,
+              "fees_inr": null,
+              "notes": "Only required for educational certificates"
+            },
+            {
+              "step": 5,
+              "name": "Saudi Embassy attestation",
+              "authority": "Royal Embassy of Saudi Arabia, India",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 6,
+              "name": "MOFA attestation",
+              "authority": "Saudi Ministry of Foreign Affairs (post-arrival)",
+              "days": null,
+              "fees_sar": null,
+              "location": "After document arrives in KSA"
+            }
+          ]
+        },
+        "alternative_route": {
+          "name": "HRD route",
+          "total_days": null,
+          "notes": "Slower than SDM, required for some state universities."
+        }
+      },
+      "commercial_certificates": {
+        "notes": "Chamber of Commerce → MEA → Saudi Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      },
+      "personal_certificates": {
+        "sub_types": [
+          "marriage",
+          "birth",
+          "death",
+          "divorce"
+        ],
+        "notes": "SDM → MEA → Saudi Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      }
+    },
+    "private_agency_markup_inr": [
+      3000,
+      10000
+    ]
+  },
+  "india__kuwait": {
+    "from": "india",
+    "to": "kuwait",
+    "status": "stub",
+    "key_fact": "Kuwait is NOT a Hague Apostille signatory. Full embassy attestation\nrequired, then MOFA attestation in Kuwait after document arrives.\n",
+    "document_types": {
+      "educational_certificates": {
+        "fastest_route": {
+          "name": "SDM route",
+          "total_days": null,
+          "total_fees_inr": null,
+          "steps": [
+            {
+              "step": 1,
+              "name": "Notary attestation",
+              "authority": "Local notary",
+              "days": 1,
+              "fees_inr": [
+                200,
+                500
+              ]
+            },
+            {
+              "step": 2,
+              "name": "SDM attestation",
+              "authority": "Sub-Divisional Magistrate",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 3,
+              "name": "MEA attestation",
+              "authority": "Ministry of External Affairs, GoI",
+              "days": 5,
+              "fees_inr": [
+                50,
+                500
+              ],
+              "link": "https://www.mea.gov.in/apostille.htm"
+            },
+            {
+              "step": 4,
+              "name": "Kuwait Embassy attestation",
+              "authority": "Embassy of Kuwait in India",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 5,
+              "name": "MOFA attestation",
+              "authority": "Kuwait Ministry of Foreign Affairs (post-arrival)",
+              "days": null,
+              "fees_kwd": null,
+              "location": "After document arrives in Kuwait"
+            }
+          ]
+        },
+        "alternative_route": {
+          "name": "HRD route",
+          "total_days": null,
+          "notes": "Slower than SDM, required for some state universities."
+        }
+      },
+      "commercial_certificates": {
+        "notes": "Chamber of Commerce → MEA → Kuwait Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      },
+      "personal_certificates": {
+        "sub_types": [
+          "marriage",
+          "birth",
+          "death",
+          "divorce"
+        ],
+        "notes": "SDM → MEA → Kuwait Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      }
+    },
+    "private_agency_markup_inr": [
+      3000,
+      10000
+    ]
+  },
+  "india__oman": {
+    "from": "india",
+    "to": "oman",
+    "status": "stub",
+    "key_fact": "Oman is NOT a Hague Apostille signatory. Full embassy attestation\nrequired, then MOFA attestation in Oman after document arrives.\n",
+    "document_types": {
+      "educational_certificates": {
+        "fastest_route": {
+          "name": "SDM route",
+          "total_days": null,
+          "total_fees_inr": null,
+          "steps": [
+            {
+              "step": 1,
+              "name": "Notary attestation",
+              "authority": "Local notary",
+              "days": 1,
+              "fees_inr": [
+                200,
+                500
+              ]
+            },
+            {
+              "step": 2,
+              "name": "SDM attestation",
+              "authority": "Sub-Divisional Magistrate",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 3,
+              "name": "MEA attestation",
+              "authority": "Ministry of External Affairs, GoI",
+              "days": 5,
+              "fees_inr": [
+                50,
+                500
+              ],
+              "link": "https://www.mea.gov.in/apostille.htm"
+            },
+            {
+              "step": 4,
+              "name": "Oman Embassy attestation",
+              "authority": "Embassy of Oman in India",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 5,
+              "name": "MOFA attestation",
+              "authority": "Oman Ministry of Foreign Affairs (post-arrival)",
+              "days": null,
+              "fees_omr": null,
+              "location": "After document arrives in Oman"
+            }
+          ]
+        },
+        "alternative_route": {
+          "name": "HRD route",
+          "total_days": null,
+          "notes": "Slower than SDM, required for some state universities."
+        }
+      },
+      "commercial_certificates": {
+        "notes": "Chamber of Commerce → MEA → Oman Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      },
+      "personal_certificates": {
+        "sub_types": [
+          "marriage",
+          "birth",
+          "death",
+          "divorce"
+        ],
+        "notes": "SDM → MEA → Oman Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      }
+    },
+    "private_agency_markup_inr": [
+      3000,
+      10000
+    ]
+  },
+  "india__qatar": {
+    "from": "india",
+    "to": "qatar",
+    "status": "stub",
+    "key_fact": "Qatar is NOT a Hague Apostille signatory. Full embassy attestation\nrequired, then MOFA attestation in Qatar after document arrives.\n",
+    "document_types": {
+      "educational_certificates": {
+        "fastest_route": {
+          "name": "SDM route",
+          "total_days": null,
+          "total_fees_inr": null,
+          "steps": [
+            {
+              "step": 1,
+              "name": "Notary attestation",
+              "authority": "Local notary",
+              "days": 1,
+              "fees_inr": [
+                200,
+                500
+              ]
+            },
+            {
+              "step": 2,
+              "name": "SDM attestation",
+              "authority": "Sub-Divisional Magistrate",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 3,
+              "name": "MEA attestation",
+              "authority": "Ministry of External Affairs, GoI",
+              "days": 5,
+              "fees_inr": [
+                50,
+                500
+              ],
+              "link": "https://www.mea.gov.in/apostille.htm"
+            },
+            {
+              "step": 4,
+              "name": "Qatar Embassy attestation",
+              "authority": "Embassy of Qatar in India",
+              "days": null,
+              "fees_inr": null
+            },
+            {
+              "step": 5,
+              "name": "MOFA attestation",
+              "authority": "Qatar Ministry of Foreign Affairs (post-arrival)",
+              "days": null,
+              "fees_qar": null,
+              "location": "After document arrives in Qatar"
+            }
+          ]
+        },
+        "alternative_route": {
+          "name": "HRD route",
+          "total_days": null,
+          "notes": "Slower than SDM, required for some state universities."
+        }
+      },
+      "commercial_certificates": {
+        "notes": "Chamber of Commerce → MEA → Qatar Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      },
+      "personal_certificates": {
+        "sub_types": [
+          "marriage",
+          "birth",
+          "death",
+          "divorce"
+        ],
+        "notes": "SDM → MEA → Qatar Embassy → MOFA.",
+        "days": null,
+        "fees_inr": null
+      }
+    },
+    "private_agency_markup_inr": [
+      3000,
+      10000
+    ]
+  },
+  "india__uae": {
+    "from": "india",
+    "to": "uae",
+    "key_fact": "UAE is NOT a Hague Apostille signatory. Full embassy attestation\nrequired, then MOFA attestation in UAE after document arrives.\n",
+    "document_types": {
+      "educational_certificates": {
+        "fastest_route": {
+          "name": "SDM route",
+          "total_days": 16,
+          "total_fees_inr": 8450,
+          "steps": [
+            {
+              "step": 1,
+              "name": "Notary attestation",
+              "authority": "Local notary",
+              "days": 1,
+              "fees_inr": [
+                200,
+                500
+              ]
+            },
+            {
+              "step": 2,
+              "name": "SDM attestation",
+              "authority": "Sub-Divisional Magistrate",
+              "days": 4,
+              "fees_inr": [
+                500,
+                1500
+              ]
+            },
+            {
+              "step": 3,
+              "name": "MEA attestation",
+              "authority": "Ministry of External Affairs, GoI",
+              "days": 5,
+              "fees_inr": [
+                50,
+                500
+              ],
+              "link": "https://www.mea.gov.in/apostille.htm"
+            },
+            {
+              "step": 4,
+              "name": "UAE Embassy attestation",
+              "authority": "UAE Embassy in India",
+              "days": 7,
+              "fees_inr": [
+                4000,
+                6000
+              ]
+            },
+            {
+              "step": 5,
+              "name": "MOFA attestation",
+              "authority": "UAE Ministry of Foreign Affairs (post-arrival)",
+              "days": 1,
+              "fees_aed": [
+                150,
+                250
+              ],
+              "location": "After document arrives in UAE"
+            }
+          ]
+        },
+        "alternative_route": {
+          "name": "HRD route",
+          "total_days": 30,
+          "notes": "HRD = State Education Dept. Slower than SDM but required for some states/universities."
+        }
+      },
+      "commercial_certificates": {
+        "notes": "Different chain — Chamber of Commerce instead of SDM/HRD.",
+        "days": [
+          10,
+          18
+        ],
+        "fees_inr": [
+          3000,
+          12000
+        ]
+      },
+      "personal_certificates": {
+        "sub_types": [
+          "marriage",
+          "birth",
+          "death",
+          "divorce"
+        ],
+        "notes": "Same SDM/MEA/UAE Embassy/MOFA chain as educational.",
+        "days": [
+          12,
+          18
+        ],
+        "fees_inr": [
+          3500,
+          6000
+        ]
+      }
+    },
+    "private_agency_markup_inr": [
+      3000,
+      10000
+    ]
+  }
+}
