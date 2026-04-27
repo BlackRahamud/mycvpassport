@@ -1,0 +1,756 @@
+{
+  "generatedAt": "2026-04-27T18:41:11.719Z",
+  "totalFixtures": 30,
+  "invariants": [
+    {
+      "name": "Adversarial variance",
+      "metric": "0/5 JD groups",
+      "pass": false,
+      "detail": "Same JD → different CVs produce identical output. Free-tier scoring is a pure function of JD; CV bytes are ignored."
+    },
+    {
+      "name": "Field accuracy",
+      "metric": "46.7%  (13 silent fallbacks)",
+      "pass": false,
+      "detail": "13 fixtures silently fell back to \"sales_real_estate\" (detectRole did not recognise the JD)."
+    },
+    {
+      "name": "Score band hit rate",
+      "metric": "100.0%  (30/30)",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "name": "Paid prompt integrity",
+      "metric": "2/30 prompts contain CV",
+      "pass": false,
+      "detail": "supabase/functions/analyze-cv/index.ts:23 sends only fileBase64.substring(0, 500); the model never sees the full CV text"
+    }
+  ],
+  "overallPass": false,
+  "details": {
+    "adversarial": {
+      "totalGroups": 5,
+      "groupsWithVariance": 0,
+      "pass": false,
+      "perGroup": [
+        {
+          "jdId": "01-gcc-national-banking-uae",
+          "jdLabel": "Emirati Senior RM Private Banking, Abu Dhabi",
+          "cvCount": 10,
+          "distinctScores": 1,
+          "distinctOutputs": 1,
+          "pass": false,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "score": 48,
+              "keywordsScore": 0,
+              "boostersFingerprint": ""
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "score": 48,
+              "keywordsScore": 0,
+              "boostersFingerprint": ""
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "score": 48,
+              "keywordsScore": 0,
+              "boostersFingerprint": ""
+            }
+          ]
+        },
+        {
+          "jdId": "02-gcc-national-hr-ksa",
+          "jdLabel": "Saudi HR Business Partner, Riyadh",
+          "cvCount": 10,
+          "distinctScores": 1,
+          "distinctOutputs": 1,
+          "pass": false,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "score": 48,
+              "keywordsScore": 0,
+              "boostersFingerprint": ""
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "score": 48,
+              "keywordsScore": 0,
+              "boostersFingerprint": ""
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "score": 48,
+              "keywordsScore": 0,
+              "boostersFingerprint": ""
+            }
+          ]
+        },
+        {
+          "jdId": "03-gcc-national-accountant-qatar",
+          "jdLabel": "Qatari Senior Accountant, Doha",
+          "cvCount": 10,
+          "distinctScores": 1,
+          "distinctOutputs": 1,
+          "pass": false,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "score": 50,
+              "keywordsScore": 4,
+              "boostersFingerprint": "IFRS Reporting|SAP FICO"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "score": 50,
+              "keywordsScore": 4,
+              "boostersFingerprint": "IFRS Reporting|SAP FICO"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "score": 50,
+              "keywordsScore": 4,
+              "boostersFingerprint": "IFRS Reporting|SAP FICO"
+            }
+          ]
+        },
+        {
+          "jdId": "04-gcc-national-itsupport-bahrain",
+          "jdLabel": "Bahraini IT Desktop Support Engineer, Manama",
+          "cvCount": 10,
+          "distinctScores": 1,
+          "distinctOutputs": 1,
+          "pass": false,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "score": 52,
+              "keywordsScore": 12,
+              "boostersFingerprint": "Active Directory|Office 365 Administration|Troubleshooting|VPN Configuration|End-user Support"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "score": 52,
+              "keywordsScore": 12,
+              "boostersFingerprint": "Active Directory|Office 365 Administration|Troubleshooting|VPN Configuration|End-user Support"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "score": 52,
+              "keywordsScore": 12,
+              "boostersFingerprint": "Active Directory|Office 365 Administration|Troubleshooting|VPN Configuration|End-user Support"
+            }
+          ]
+        },
+        {
+          "jdId": "05-gcc-national-hospitality-oman",
+          "jdLabel": "Omani F&B Outlet Manager, Muscat",
+          "cvCount": 10,
+          "distinctScores": 1,
+          "distinctOutputs": 1,
+          "pass": false,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "score": 50,
+              "keywordsScore": 6,
+              "boostersFingerprint": "Guest Experience|Food Safety|Menu Engineering"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "score": 50,
+              "keywordsScore": 6,
+              "boostersFingerprint": "Guest Experience|Food Safety|Menu Engineering"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "score": 50,
+              "keywordsScore": 6,
+              "boostersFingerprint": "Guest Experience|Food Safety|Menu Engineering"
+            }
+          ]
+        }
+      ]
+    },
+    "fieldAccuracy": {
+      "totalLabelled": 30,
+      "correct": 14,
+      "silentFallbacks": 13,
+      "rate": 0.4666666666666667,
+      "pass": false,
+      "perFixture": [
+        {
+          "id": "01-gcc-national-banking-uae",
+          "persona": "gcc_national",
+          "expected": "banking_finance",
+          "actual": "banking_finance",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "02-gcc-national-hr-ksa",
+          "persona": "gcc_national",
+          "expected": "hr_recruitment",
+          "actual": "hr_recruitment",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "03-gcc-national-accountant-qatar",
+          "persona": "gcc_national",
+          "expected": "accounting_finance",
+          "actual": "accounting_finance",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "04-gcc-national-itsupport-bahrain",
+          "persona": "gcc_national",
+          "expected": "it_support",
+          "actual": "it_support",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "05-gcc-national-hospitality-oman",
+          "persona": "gcc_national",
+          "expected": "hospitality",
+          "actual": "hospitality",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "06-gulf-expat-swe-dubai",
+          "persona": "gulf_expat",
+          "expected": null,
+          "actual": "hr_recruitment",
+          "fallbackUsed": false,
+          "correct": false,
+          "silentFallback": false
+        },
+        {
+          "id": "07-gulf-expat-accountant-qatar",
+          "persona": "gulf_expat",
+          "expected": "accounting_finance",
+          "actual": "accounting_finance",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "08-gulf-expat-nurse-ksa",
+          "persona": "gulf_expat",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "09-gulf-expat-marketing-auh",
+          "persona": "gulf_expat",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "10-gulf-expat-sales-bahrain",
+          "persona": "gulf_expat",
+          "expected": "sales_real_estate",
+          "actual": "sales_real_estate",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "11-india-bfsi-mumbai",
+          "persona": "india_based",
+          "expected": "banking_finance",
+          "actual": "banking_finance",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "12-india-backend-kerala",
+          "persona": "india_based",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "13-india-datasci-bangalore",
+          "persona": "india_based",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "14-india-pharmacist-chennai",
+          "persona": "india_based",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "15-india-realestate-hyderabad",
+          "persona": "india_based",
+          "expected": "sales_real_estate",
+          "actual": "sales_real_estate",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "16-fresh-btech-india",
+          "persona": "fresh_grad",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "17-fresh-mba-marketing-india",
+          "persona": "fresh_grad",
+          "expected": null,
+          "actual": "hr_recruitment",
+          "fallbackUsed": false,
+          "correct": false,
+          "silentFallback": false
+        },
+        {
+          "id": "18-fresh-hospitality-uae",
+          "persona": "fresh_grad",
+          "expected": "hospitality",
+          "actual": "hospitality",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "19-fresh-business-ksa",
+          "persona": "fresh_grad",
+          "expected": "sales_real_estate",
+          "actual": "sales_real_estate",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "20-fresh-bcom-india-banking",
+          "persona": "fresh_grad",
+          "expected": "banking_finance",
+          "actual": "banking_finance",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "21-senior-vp-banking",
+          "persona": "senior_exec",
+          "expected": "banking_finance",
+          "actual": "banking_finance",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "22-senior-cfo-manufacturing",
+          "persona": "senior_exec",
+          "expected": "accounting_finance",
+          "actual": "banking_finance",
+          "fallbackUsed": false,
+          "correct": false,
+          "silentFallback": false
+        },
+        {
+          "id": "23-senior-hr-director",
+          "persona": "senior_exec",
+          "expected": "hr_recruitment",
+          "actual": "hr_recruitment",
+          "fallbackUsed": false,
+          "correct": true,
+          "silentFallback": false
+        },
+        {
+          "id": "24-senior-coo-retail",
+          "persona": "senior_exec",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "25-senior-head-engineering",
+          "persona": "senior_exec",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "26-blue-welder-india-ksa",
+          "persona": "blue_collar",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "27-blue-driver-india-uae",
+          "persona": "blue_collar",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "28-blue-actech-india-qatar",
+          "persona": "blue_collar",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "29-blue-electrician-india-ksa",
+          "persona": "blue_collar",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        },
+        {
+          "id": "30-blue-supervisor-india-uae",
+          "persona": "blue_collar",
+          "expected": null,
+          "actual": "sales_real_estate",
+          "fallbackUsed": true,
+          "correct": false,
+          "silentFallback": true
+        }
+      ]
+    },
+    "scoreBand": {
+      "totalLabelled": 30,
+      "hit": 30,
+      "rate": 1,
+      "pass": true,
+      "perFixture": [
+        {
+          "id": "01-gcc-national-banking-uae",
+          "score": 48,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "02-gcc-national-hr-ksa",
+          "score": 48,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "03-gcc-national-accountant-qatar",
+          "score": 50,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "04-gcc-national-itsupport-bahrain",
+          "score": 52,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "05-gcc-national-hospitality-oman",
+          "score": 50,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "06-gulf-expat-swe-dubai",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "07-gulf-expat-accountant-qatar",
+          "score": 50,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "08-gulf-expat-nurse-ksa",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "09-gulf-expat-marketing-auh",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "10-gulf-expat-sales-bahrain",
+          "score": 49,
+          "band": [
+            35,
+            70
+          ],
+          "inBand": true
+        },
+        {
+          "id": "11-india-bfsi-mumbai",
+          "score": 48,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "12-india-backend-kerala",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "13-india-datasci-bangalore",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "14-india-pharmacist-chennai",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "15-india-realestate-hyderabad",
+          "score": 49,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "16-fresh-btech-india",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "17-fresh-mba-marketing-india",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "18-fresh-hospitality-uae",
+          "score": 49,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "19-fresh-business-ksa",
+          "score": 49,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "20-fresh-bcom-india-banking",
+          "score": 48,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "21-senior-vp-banking",
+          "score": 48,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "22-senior-cfo-manufacturing",
+          "score": 48,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "23-senior-hr-director",
+          "score": 50,
+          "band": [
+            40,
+            75
+          ],
+          "inBand": true
+        },
+        {
+          "id": "24-senior-coo-retail",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "25-senior-head-engineering",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "26-blue-welder-india-ksa",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "27-blue-driver-india-uae",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "28-blue-actech-india-qatar",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "29-blue-electrician-india-ksa",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        },
+        {
+          "id": "30-blue-supervisor-india-uae",
+          "score": 48,
+          "band": [
+            40,
+            60
+          ],
+          "inBand": true
+        }
+      ]
+    },
+    "paidPromptIntegrity": {
+      "total": 30,
+      "passed": 2,
+      "rate": 0.06666666666666667,
+      "pass": false,
+      "sampleFailure": {
+        "id": "01-gcc-national-banking-uae",
+        "persona": "gcc_national",
+        "cvLength": 572,
+        "base64Length": 768,
+        "base64SentLength": 500,
+        "decodedSentLength": 371,
+        "promptLength": 1366,
+        "promptContainsRawCv": false,
+        "decodedCoversFullCv": false,
+        "pass": false,
+        "failureReason": "supabase/functions/analyze-cv/index.ts:23 sends only fileBase64.substring(0, 500); the model never sees the full CV text"
+      }
+    }
+  }
+}

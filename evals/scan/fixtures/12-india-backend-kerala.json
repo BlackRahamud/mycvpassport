@@ -1,0 +1,14 @@
+{
+  "id": "12-india-backend-kerala",
+  "persona": "india_based",
+  "subPersona": "kerala_backend",
+  "label": "Kerala Backend Engineer targeting Riyadh",
+  "synthetic": true,
+  "cv": "ARUN NAIR · Backend Engineer · Kochi, Kerala · Indian national, ECNR passport, 7 yrs experience\n\nUST Global (2020-present): Senior Backend Engineer. Java Spring Boot, microservices, Kafka, PostgreSQL, AWS. Lead 6-engineer team.\nInfosys Trivandrum (2017-2020): Software Engineer. Java, Oracle DB.\n\nEDUCATION: BTech CSE, NIT Calicut (2017)\nCERTS: AWS Solutions Architect, OCJP\nLANGUAGES: English (fluent), Malayalam (native), Hindi (conversational), Tamil (basic)",
+  "jd": "Senior Backend Engineer - Riyadh, KSA.\nBuild microservices with Java Spring Boot or Node.js. Kafka, PostgreSQL, AWS. Lead a small team. Open to relocation from India. Saudi MOFA-attested degree required at offer stage.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Backend engineering not in 6-role taxonomy. Silent fallback. Also note Malayalam capture is critical for Indian regional language gap (Phase 3) — current product captures none of this."
+  }
+}

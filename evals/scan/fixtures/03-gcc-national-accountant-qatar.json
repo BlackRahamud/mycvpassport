@@ -1,0 +1,14 @@
+{
+  "id": "03-gcc-national-accountant-qatar",
+  "persona": "gcc_national",
+  "subPersona": "qatar_accounting",
+  "label": "Qatari Senior Accountant, Doha",
+  "synthetic": true,
+  "cv": "KHALID AL-THANI · Senior Accountant · Doha · Qatari national · QID 28612345678\n\nQatar Energy (2016-present): Senior Accountant. GL, AP/AR, monthly close, VAT filings, audit liaison. Tally and SAP FICO power user. Internal controls, IFRS reporting.\nDoha Bank (2011-2016): Accountant. Reconciliations, treasury, fixed assets, tax filings.\n\nEDUCATION: BCom Accounting, Qatar University (2011)\nCERTS: ACCA Member, QFMA Compliance\nLANGUAGES: Arabic (native), English (fluent)",
+  "jd": "Senior Accountant - Doha, Qatar.\nManage GL, AP/AR, month-end close, VAT, IFRS reporting, and audit liaison. SAP FICO experience required. ACCA or CPA preferred. Tally proficiency a plus. Qatari nationals strongly preferred (Qatarization).",
+  "groundTruth": {
+    "expectedDetectedRole": "accounting_finance",
+    "expectedScoreBand": [40, 75],
+    "notes": "detectRole regex /account|audit|tax|finance|bookkeep|vat|gst|tally/ should match cleanly."
+  }
+}

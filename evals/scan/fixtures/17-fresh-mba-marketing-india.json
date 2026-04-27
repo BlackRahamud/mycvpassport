@@ -1,0 +1,14 @@
+{
+  "id": "17-fresh-mba-marketing-india",
+  "persona": "fresh_grad",
+  "subPersona": "india_mba_marketing",
+  "label": "India MBA fresh, marketing track",
+  "synthetic": true,
+  "cv": "NEHA KAPOOR · MBA Marketing Final Year · New Delhi · Indian national\n\nINTERNSHIPS:\nUnilever, Summer 2025: brand management intern, Surf Excel digital campaign.\nLive project: D2C startup launch playbook.\n\nEDUCATION: MBA Marketing, IIM Indore, expected Apr 2026; BBA, Delhi University (2024)\nCERTS: Google Ads, HubSpot Inbound\nLANGUAGES: English (fluent), Hindi (native), Punjabi (conversational)",
+  "jd": "Brand Management Trainee - Dubai, UAE.\nFresh MBA in marketing, brand strategy, ATL/BTL, performance media, digital. Willingness to relocate. Open to Indian, Pakistani, Sri Lankan candidates. MEA / HRD attestation required for offer.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Marketing not in taxonomy. Silent fallback. Punjabi capture missing."
+  }
+}

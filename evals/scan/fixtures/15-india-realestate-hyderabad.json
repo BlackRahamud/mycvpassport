@@ -1,0 +1,14 @@
+{
+  "id": "15-india-realestate-hyderabad",
+  "persona": "india_based",
+  "subPersona": "hyderabad_realestate",
+  "label": "Hyderabad Real Estate Consultant targeting Abu Dhabi",
+  "synthetic": true,
+  "cv": "ROHIT MEHTA · Real Estate Consultant · Hyderabad · Indian national, ECNR passport\n\nMyHome Group (2019-present): Senior Property Consultant. Residential and commercial brokerage, ₹85 Cr deal flow, lead generation, RERA compliance.\nSquare Yards (2015-2019): Property Consultant.\n\nEDUCATION: BBA, Osmania University (2015)\nCERTS: RERA agent, IPMS\nLANGUAGES: English (fluent), Hindi (native), Telugu (native), Urdu (conversational)",
+  "jd": "Real Estate Consultant - Abu Dhabi, UAE.\nResidential and commercial property sales, broker client management, lead generation, business development. RERA Dubai or Abu Dhabi MoE certification needed (training provided). Open to candidates from India.",
+  "groundTruth": {
+    "expectedDetectedRole": "sales_real_estate",
+    "expectedScoreBand": [40, 75],
+    "notes": "Legit sales_real_estate match — JD has 'real estate', 'sales', 'broker', 'business development', 'property'."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "27-blue-driver-india-uae",
+  "persona": "blue_collar",
+  "subPersona": "hgv_driver_india_uae",
+  "label": "Indian HGV Driver targeting UAE logistics",
+  "synthetic": true,
+  "cv": "SUNIL KUMAR · HGV Driver · Punjab, India · Indian national, ECR passport\n\nDelhivery (2018-present): HGV Driver. Class III India HGV licence, long-haul Delhi-Mumbai-Bangalore corridor, 200,000+ km accident-free, hazmat aware.\nVRL Logistics (2013-2018): HGV Driver.\n\nEDUCATION: 12th CBSE (2012); HGV training NSDC accredited\nCERTS: India HGV Class III, hazmat handling\nLANGUAGES: Hindi (native), Punjabi (native), English (basic)",
+  "jd": "HGV Driver - UAE logistics, Dubai.\nHeavy goods truck driver, UAE LMV/HMV licence required (training assistance offered), 5+ years experience, accident-free, English basic. Indian candidates with valid passport and POE clearance.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Driver category not in taxonomy. Silent fallback."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "29-blue-electrician-india-ksa",
+  "persona": "blue_collar",
+  "subPersona": "electrician_india_ksa",
+  "label": "Indian Electrician 3-phase targeting KSA construction",
+  "synthetic": true,
+  "cv": "RAVI SHANKAR · Industrial Electrician (3-phase) · Kerala · Indian national, ECR passport\n\nL&T Construction (2017-present): Senior Electrician. 3-phase wiring, panel boards, MCC, motor installation, commissioning, MV terminations. Worked Riyadh Metro project (subcon).\nKitex Garments (2014-2017): Maintenance Electrician.\n\nEDUCATION: ITI Electrician, NCVT (2014)\nCERTS: NSDC Electrician Level 4, wireman licence\nLANGUAGES: Malayalam (native), Tamil (conversational), Hindi (basic), English (basic)",
+  "jd": "Industrial Electrician - Construction, Riyadh, KSA.\n3-phase wiring, panel boards, MCC, motor installation, MV terminations. ITI / NSDC certified, wireman licence. 4+ years on infrastructure / construction sites. Indian candidates with POE clearance and MEA-attested ITI.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Electrician trade not in taxonomy. Silent fallback. Malayalam regional language critical for Kerala-corridor blue-collar but not captured."
+  }
+}

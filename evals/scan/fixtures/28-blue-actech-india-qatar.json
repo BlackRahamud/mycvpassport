@@ -1,0 +1,14 @@
+{
+  "id": "28-blue-actech-india-qatar",
+  "persona": "blue_collar",
+  "subPersona": "ac_tech_india_qatar",
+  "label": "Indian AC Technician targeting Qatar facilities",
+  "synthetic": true,
+  "cv": "GANESHAN P · AC & Refrigeration Technician · Trichy, Tamil Nadu · Indian national, ECR passport\n\nVoltas Service (2016-present): Senior AC Technician. Window, split, VRF, central HVAC, chillers. Refrigerant R32 / R410A handling, EPCRA compliance.\nBlue Star (2012-2016): AC Technician.\n\nEDUCATION: ITI Refrigeration & AC, NCVT (2012)\nCERTS: NSDC HVAC Level 4, refrigerant handling\nLANGUAGES: Tamil (native), Hindi (conversational), English (basic), Telugu (basic)",
+  "jd": "AC Technician (HVAC) - Facilities, Doha, Qatar.\nVRF, central HVAC, chiller maintenance, refrigerant handling. ITI / NSDC certified. 4+ years experience. Indian candidates with POE clearance, MEA-attested ITI cert. Trade test at consulate.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "HVAC trade not in taxonomy. Silent fallback. Tamil capture missing."
+  }
+}

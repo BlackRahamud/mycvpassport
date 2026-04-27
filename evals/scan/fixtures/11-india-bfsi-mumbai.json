@@ -1,0 +1,14 @@
+{
+  "id": "11-india-bfsi-mumbai",
+  "persona": "india_based",
+  "subPersona": "mumbai_bfsi",
+  "label": "Mumbai BFSI Relationship Manager, targeting Dubai",
+  "synthetic": true,
+  "cv": "PRIYA SHARMA · Senior Relationship Manager · Mumbai · Indian national, ECNR passport\n\nHDFC Bank (2017-present): Senior RM, Imperia (HNW). Portfolio ₹1,200 Cr, mutual funds, structured products, FX, mortgage. AML, KYC, FATCA. Cross-sell ratio 3.2.\nICICI Bank (2013-2017): RM, Wealth.\n\nEDUCATION: MBA Finance, NMIMS Mumbai (2013); BCom, Mumbai University (2011)\nCERTS: NISM-V Mutual Fund, IRDA, AMFI\nLANGUAGES: English (fluent), Hindi (native), Marathi (conversational)",
+  "jd": "Senior Relationship Manager - Private Banking, Dubai.\nManage HNW portfolio, mutual funds, structured products, mortgage, FX. AML, KYC, FATCA. Indian banking experience welcome. Open to candidates relocating from India with valid documentation.",
+  "groundTruth": {
+    "expectedDetectedRole": "banking_finance",
+    "expectedScoreBand": [40, 75],
+    "notes": "Clean banking_finance match. Note: ECNR mentioned in CV but Indian-bound emigration logic absent in current product."
+  }
+}

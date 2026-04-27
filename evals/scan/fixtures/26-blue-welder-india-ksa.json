@@ -1,0 +1,14 @@
+{
+  "id": "26-blue-welder-india-ksa",
+  "persona": "blue_collar",
+  "subPersona": "welder_ndt_india_ksa",
+  "label": "Indian Welder NDT-certified, targeting KSA Aramco contractor",
+  "synthetic": true,
+  "cv": "MOHAMMED RAFIQ · Welder (6G NDT-certified) · Mumbai · Indian national, ECR passport · POE eCard required\n\nL&T Heavy Engineering (2017-present): Senior Welder. SMAW, GTAW, FCAW. 6G pipe welding, ASME IX qualified, NDT (RT, UT, MT, PT) trained. Worked offshore Mumbai High platform.\nReliance Petroleum (2013-2017): Welder.\n\nEDUCATION: ITI Welder, NCVT (2013)\nCERTS: ASME IX Welder Performance, NDT Level II (RT/UT)\nLANGUAGES: Hindi (native), English (basic), Urdu (conversational)",
+  "jd": "Welder (6G) - Aramco approved contractor, Yanbu, KSA.\nSMAW, GTAW pipe welding, ASME IX qualification, NDT awareness. 5+ years experience. Trade test required at consulate. Indian candidates with POE clearance and MEA-attested ITI certificate.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Blue-collar welding entirely out of taxonomy. Silent fallback. ECR passport + POE eCard + trade test all material to Phase 3 corridor moat — none captured today."
+  }
+}

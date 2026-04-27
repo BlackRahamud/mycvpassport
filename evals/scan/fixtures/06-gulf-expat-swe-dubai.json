@@ -1,0 +1,14 @@
+{
+  "id": "06-gulf-expat-swe-dubai",
+  "persona": "gulf_expat",
+  "subPersona": "indian_swe_uae",
+  "label": "Indian Software Engineer in Dubai (cloud, fintech)",
+  "synthetic": true,
+  "cv": "RAJESH KUMAR · Software Engineer · Dubai (Indian, UAE EID 784-1990-XXXXXXX-X)\n\nCareem (2020-present): Backend Engineer. Node.js microservices, AWS Lambda, DynamoDB, Kafka, payment integrations. On-call for tier-1 services.\nInfosys (2015-2020): Senior Developer. Java Spring, PostgreSQL, microservices for global fintech client.\n\nEDUCATION: BTech CSE, NIT Trichy (2015)\nCERTS: AWS Solutions Architect Associate, CKAD\nLANGUAGES: English (fluent), Hindi (native), Tamil (conversational), Malayalam (basic)",
+  "jd": "Senior Backend Engineer - Fintech, Dubai.\nBuild high-throughput payment microservices in Node.js or Java. AWS, Kubernetes, Kafka, DynamoDB or PostgreSQL. Strong system design. Tier-1 fintech experience preferred. Open to expats with valid UAE residency.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "JD has no it_support/banking/hr/hospitality/sales/accounting keywords. detectRole returns null → silent fallback to sales_real_estate. Expected: smoking-gun behavior — backend engineer scored against real-estate keyword pack."
+  }
+}

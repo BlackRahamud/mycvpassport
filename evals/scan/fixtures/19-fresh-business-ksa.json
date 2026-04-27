@@ -1,0 +1,14 @@
+{
+  "id": "19-fresh-business-ksa",
+  "persona": "fresh_grad",
+  "subPersona": "ksa_business",
+  "label": "KSA business graduate fresh, sales track",
+  "synthetic": true,
+  "cv": "ABDULAZIZ AL-QAHTANI · BBA Final Year · Riyadh · Saudi national\n\nINTERNSHIPS:\nNCB Capital, 2025: business development intern, lead pipeline support.\nUniversity sales club president 2024.\n\nEDUCATION: BBA, KFUPM, expected Jun 2026\nCERTS: HubSpot Sales, Salesforce Trailhead\nLANGUAGES: Arabic (native), English (fluent)",
+  "jd": "Graduate Business Development Associate - Riyadh, KSA.\nFresh graduate, B2B sales fundamentals, account management, CRM (Salesforce). Saudi nationals only (Saudization).",
+  "groundTruth": {
+    "expectedDetectedRole": "sales_real_estate",
+    "expectedScoreBand": [40, 75],
+    "notes": "JD has 'business development' and 'account' — legit sales match."
+  }
+}

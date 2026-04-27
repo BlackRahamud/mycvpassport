@@ -1,0 +1,14 @@
+{
+  "id": "05-gcc-national-hospitality-oman",
+  "persona": "gcc_national",
+  "subPersona": "oman_hospitality",
+  "label": "Omani F&B Outlet Manager, Muscat",
+  "synthetic": true,
+  "cv": "SAID AL-BUSAIDI · F&B Outlet Manager · Muscat · Omani national\n\nShangri-La Al Husn (2018-present): F&B Outlet Manager. Lead 28-cover restaurant, guest experience, menu costing, Opera POS, banquet ops, food safety HACCP.\nGrand Hyatt Muscat (2013-2018): Front Desk Manager / Concierge Lead. Guest relations, VIP arrivals, Micros Opera reservations.\n\nEDUCATION: Diploma Hospitality, Oman Tourism College (2013)\nCERTS: HACCP Level 3, Opera Cloud\nLANGUAGES: Arabic (native), English (fluent), Hindi (basic)",
+  "jd": "F&B Outlet Manager - 5-star hotel, Muscat.\nLead a fine-dining outlet, guest experience, menu engineering, Opera POS, banquet operations, food safety and HACCP compliance. Hospitality degree required. Omani nationals strongly preferred (Omanization).",
+  "groundTruth": {
+    "expectedDetectedRole": "hospitality",
+    "expectedScoreBand": [40, 75],
+    "notes": "detectRole regex /hotel|hospitality|guest|front desk|concierge|f&b|food|beverage|receptionist/ matches f&b and food and guest."
+  }
+}

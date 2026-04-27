@@ -1,0 +1,14 @@
+{
+  "id": "09-gulf-expat-marketing-auh",
+  "persona": "gulf_expat",
+  "subPersona": "egyptian_marketing_uae",
+  "label": "Egyptian Marketing Director, Abu Dhabi",
+  "synthetic": true,
+  "cv": "MAHMOUD HASSAN · Marketing Director · Abu Dhabi (Egyptian, UAE EID 784-1982-XXXXXXX-X)\n\nEtihad Aviation Group (2017-present): Marketing Director. Brand strategy, ATL/BTL campaigns, performance media, regional partnerships across MENA.\nUnilever Egypt (2010-2017): Senior Brand Manager.\n\nEDUCATION: MBA Marketing, AUC (2010); BA Mass Communication (2007)\nCERTS: CIM Diploma, Google Ads / Analytics\nLANGUAGES: Arabic (native), English (fluent), French (intermediate)",
+  "jd": "Marketing Director - Aviation, Abu Dhabi.\nLead brand strategy, ATL/BTL campaigns, performance media, regional partnerships across MENA. 10+ years marketing leadership. MBA preferred. Open to expats.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Marketing is OUT of the 6-role taxonomy. Silent fallback to sales_real_estate. Common gap — every senior marketing JD lands here."
+  }
+}

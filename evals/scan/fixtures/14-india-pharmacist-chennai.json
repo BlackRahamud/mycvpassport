@@ -1,0 +1,14 @@
+{
+  "id": "14-india-pharmacist-chennai",
+  "persona": "india_based",
+  "subPersona": "chennai_pharmacist",
+  "label": "Chennai Pharmacist targeting Sharjah (DHA)",
+  "synthetic": true,
+  "cv": "SUMA RAJAN · Registered Pharmacist · Chennai · Indian national, ECR passport\n\nApollo Pharmacy (2018-present): Senior Pharmacist. Inpatient + retail dispensing, narcotics control, drug-drug interactions, compounding, customer counselling.\nMedplus (2014-2018): Pharmacist.\n\nEDUCATION: BPharm, Madras Medical College (2014); DPharm (2012)\nCERTS: PCI registered, DHA Pharmacist licence in process\nLANGUAGES: English (fluent), Tamil (native), Hindi (conversational)",
+  "jd": "Pharmacist - Sharjah, UAE.\nDispensing, customer counselling, narcotics handling, compounding. DHA Pharmacist licence required (or in-process). MOH eligibility letter, Prometric pass. Indian candidates welcome.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Pharmacy not in 6-role taxonomy. Silent fallback. Also: ECR passport flag completely invisible in current product — material for POE eCard awareness gap."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "01-gcc-national-banking-uae",
+  "persona": "gcc_national",
+  "subPersona": "uae_banking",
+  "label": "Emirati Senior RM Private Banking, Abu Dhabi",
+  "synthetic": true,
+  "cv": "AHMED AL-MARZOUQI · Senior Relationship Manager, Private Banking · Abu Dhabi · Emirati national · UAE EID 784-1985-XXXXXXX-X\n\nFirst Abu Dhabi Bank (2018-present): Manage HNW portfolio AED 800M, 60 ultra-HNW families. Cross-sell investments, mortgage, Sharia advisory. AML, KYC, FATCA compliance. Onboard sanctioned-jurisdiction clients.\nMashreq Bank (2014-2018): RM Premium Banking. Portfolio AED 220M, 15% YoY revenue growth.\n\nEDUCATION: BSc Finance, UAE University (2014)\nCERTS: CISI Wealth Management, UAE Banking Federation\nLANGUAGES: Arabic (native), English (fluent)",
+  "jd": "Senior Relationship Manager - Private Banking, Abu Dhabi.\nManage HNW client portfolio, cross-sell investment products, mortgage, and Sharia structured products. Maintain AML and KYC compliance. UAE banking experience required. Emirati nationals preferred (Emiratisation). CISI Wealth Management certification a plus.",
+  "groundTruth": {
+    "expectedDetectedRole": "banking_finance",
+    "expectedScoreBand": [40, 75],
+    "notes": "Strong CV/JD alignment in banking_finance taxonomy — current code should detect role correctly and score in mid-band, but score will not vary across CVs (adversarial check)."
+  }
+}

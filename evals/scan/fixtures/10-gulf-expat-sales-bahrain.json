@@ -1,0 +1,14 @@
+{
+  "id": "10-gulf-expat-sales-bahrain",
+  "persona": "gulf_expat",
+  "subPersona": "lebanese_sales_bahrain",
+  "label": "Lebanese B2B Sales Lead, Manama",
+  "synthetic": true,
+  "cv": "RANIA HADDAD · Sales Lead · Manama (Lebanese, CPR 850912345)\n\nGulf Air Cargo (2018-present): Sales Lead. B2B account management, business development, pipeline AED 18M, key-account growth +22% YoY.\nAramex Lebanon (2013-2018): Account Manager.\n\nEDUCATION: BBA, AUB (2013)\nLANGUAGES: Arabic (native), English (fluent), French (intermediate)",
+  "jd": "B2B Sales Lead - Logistics, Manama.\nDrive business development, manage key accounts, build pipeline, grow revenue. 5+ years B2B sales. Open to expats with transferable visa.",
+  "groundTruth": {
+    "expectedDetectedRole": "sales_real_estate",
+    "expectedScoreBand": [35, 70],
+    "notes": "Legitimate sales_real_estate match — JD says 'sales' and 'business development' and 'account'. detectRole regex matches /sales|business development|account manager/."
+  }
+}

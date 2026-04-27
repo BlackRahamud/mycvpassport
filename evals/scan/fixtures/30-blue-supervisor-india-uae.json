@@ -1,0 +1,14 @@
+{
+  "id": "30-blue-supervisor-india-uae",
+  "persona": "blue_collar",
+  "subPersona": "construction_supervisor_india_uae",
+  "label": "Indian Construction Supervisor targeting UAE infrastructure",
+  "synthetic": true,
+  "cv": "RAJU PATEL · Site Supervisor (Civil Construction) · Surat, Gujarat · Indian national, ECR passport\n\nL&T Construction (2014-present): Site Supervisor. 200-worker labour management, RCC supervision, formwork, slab pours, NEBOSH-aware safety oversight. Worked Mumbai Metro Phase 2.\nShapoorji Pallonji (2009-2014): Junior Engineer.\n\nEDUCATION: Diploma Civil, GTU (2009)\nCERTS: NEBOSH IGC, OSHA 30, IOSH\nLANGUAGES: Gujarati (native), Hindi (native), English (conversational)",
+  "jd": "Site Supervisor - Infrastructure, Abu Dhabi, UAE.\nCivil construction supervision, RCC, formwork, labour management 100+ workers, safety NEBOSH preferred. 6+ years experience. Indian candidates with POE clearance and MEA-attested diploma.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Construction supervision not in taxonomy. Silent fallback. Gujarati capture missing."
+  }
+}

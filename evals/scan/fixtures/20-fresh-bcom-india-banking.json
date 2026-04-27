@@ -1,0 +1,14 @@
+{
+  "id": "20-fresh-bcom-india-banking",
+  "persona": "fresh_grad",
+  "subPersona": "india_bcom_banking",
+  "label": "India BCom fresh, banking aspiration",
+  "synthetic": true,
+  "cv": "RIYA AGGARWAL · BCom Final Year · Pune · Indian national, ECNR passport\n\nINTERNSHIPS:\nKotak Mahindra Bank, 2025: branch banking intern, KYC, customer service.\nNISM-V certified during summer.\n\nEDUCATION: BCom Hons, Symbiosis Pune, expected Apr 2026\nCERTS: NISM-V Mutual Fund, IIBF JAIIB\nLANGUAGES: English (fluent), Hindi (native), Marathi (conversational), Gujarati (basic)",
+  "jd": "Personal Banking Officer - Dubai, UAE.\nFresh BCom or BBA. KYC, AML basics, branch operations, mutual fund cross-sell. Indian candidates welcome. India MEA attestation required.",
+  "groundTruth": {
+    "expectedDetectedRole": "banking_finance",
+    "expectedScoreBand": [40, 75],
+    "notes": "JD has 'banking' and 'personal banking' — banking_finance match."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "16-fresh-btech-india",
+  "persona": "fresh_grad",
+  "subPersona": "india_btech",
+  "label": "India BTech CSE fresh graduate, no experience",
+  "synthetic": true,
+  "cv": "ANKIT VERMA · BTech CSE Final Year · Lucknow, India · Indian national, ECNR passport\n\nINTERNSHIPS:\nTCS, Summer 2025: Java intern, REST API development.\nAcademic project: Smart attendance app (React Native + Firebase).\n\nEDUCATION: BTech CSE, NIT Allahabad, expected Jun 2026, CGPA 8.4\nCERTS: NPTEL DSA, AWS Cloud Practitioner\nLANGUAGES: English (fluent), Hindi (native), Bhojpuri (conversational)",
+  "jd": "Graduate Software Engineer - Dubai, UAE.\nFresh BTech / BE in CSE / IT, strong DSA, Java or Python, willingness to learn cloud. UAE relocation supported. India MEA-attested degree required.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Fresh grad SWE, taxonomy gap. Bhojpuri capture not in current product (Indian regional language coverage)."
+  }
+}

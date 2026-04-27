@@ -1,0 +1,14 @@
+{
+  "id": "08-gulf-expat-nurse-ksa",
+  "persona": "gulf_expat",
+  "subPersona": "filipino_nurse_ksa",
+  "label": "Filipino Registered Nurse in Riyadh (SCFHS-licensed)",
+  "synthetic": true,
+  "cv": "MARIA SANTOS · Registered Nurse · Riyadh (Filipino, Iqama 2123456789)\n\nKing Faisal Specialist Hospital (2018-present): Charge Nurse, ICU. SCFHS licensed. BLS, ACLS, ventilator management, crisis triage.\nMakati Medical Center, Manila (2013-2018): Staff Nurse, Med-Surg. PRC licensed.\n\nEDUCATION: BSc Nursing, UP Manila (2013)\nCERTS: SCFHS RN, BLS, ACLS, IV Therapy\nLANGUAGES: English (fluent), Tagalog (native), Arabic (basic medical)",
+  "jd": "Registered Nurse - ICU, Riyadh.\nProvide critical care nursing, ventilator support, BLS/ACLS protocols, crisis triage. SCFHS licensure required. Prometric certified. 3+ years ICU experience. Family status preferred.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Healthcare is OUT of the 6-role taxonomy. detectRole returns null → silent fallback to sales_real_estate. ICU nurse scored against real-estate keyword pack — material smoking gun for a major Gulf job category."
+  }
+}

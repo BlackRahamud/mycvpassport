@@ -1,0 +1,14 @@
+{
+  "id": "04-gcc-national-itsupport-bahrain",
+  "persona": "gcc_national",
+  "subPersona": "bahrain_it",
+  "label": "Bahraini IT Desktop Support Engineer, Manama",
+  "synthetic": true,
+  "cv": "MOHAMMED AL-DOSARI · IT Support Engineer · Manama · Bahraini national · CPR 980412345\n\nBatelco (2019-present): IT Support Engineer. Active Directory, Office 365, ITIL ticketing, hardware troubleshooting, end-user support, VPN, Windows Server 2019.\nGulf Air (2015-2019): Helpdesk Technician. Remote desktop support, ServiceNow ticketing, printer & networking troubleshooting.\n\nEDUCATION: Diploma IT, Bahrain Polytechnic (2015)\nCERTS: ITIL Foundation, MCSA Windows Server\nLANGUAGES: Arabic (native), English (fluent)",
+  "jd": "IT Support Engineer - Manama, Bahrain.\nProvide desktop support, manage Active Directory, Office 365 administration, ITIL ticketing via ServiceNow. Hardware troubleshooting, VPN configuration, end-user support. ITIL Foundation required. Bahraini nationals preferred (Bahrainization).",
+  "groundTruth": {
+    "expectedDetectedRole": "it_support",
+    "expectedScoreBand": [40, 75],
+    "notes": "detectRole regex /it support|help desk|desktop support/ matches. Strong keyword overlap expected."
+  }
+}

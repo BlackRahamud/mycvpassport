@@ -1,0 +1,14 @@
+{
+  "id": "23-senior-hr-director",
+  "persona": "senior_exec",
+  "subPersona": "hr_director",
+  "label": "HR Director Healthcare, 15 years, Riyadh",
+  "synthetic": true,
+  "cv": "SAMIR EL-SAYED · HR Director · Riyadh (Egyptian, Iqama 2098765432) · 15 yrs\n\nKing Faisal Specialist Hospital (2017-present): HR Director, 4,000-FTE health system. Saudization Platinum, talent acquisition, payroll, employee relations, succession.\nNovartis Egypt (2009-2017): Head of HR.\n\nEDUCATION: MSc HR, Cairo University (2009); BA (2006)\nCERTS: SHRM-SCP, CIPD Level 7\nLANGUAGES: Arabic (native), English (fluent), French (intermediate)",
+  "jd": "HR Director - Healthcare, Riyadh, KSA.\n12+ years HR leadership. Talent acquisition, recruitment, payroll, performance management, employee relations. Saudization compliance. SHRM-SCP or CIPD Level 7.",
+  "groundTruth": {
+    "expectedDetectedRole": "hr_recruitment",
+    "expectedScoreBand": [40, 75],
+    "notes": "Clean hr_recruitment match."
+  }
+}

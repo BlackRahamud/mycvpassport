@@ -1,0 +1,14 @@
+{
+  "id": "21-senior-vp-banking",
+  "persona": "senior_exec",
+  "subPersona": "vp_banking",
+  "label": "VP Banking, 20 years, Dubai",
+  "synthetic": true,
+  "cv": "DEEPAK MENON · VP Corporate Banking · Dubai (Indian, UAE EID 784-1976-XXXXXXX-X) · 20 yrs\n\nEmirates NBD (2014-present): VP Corporate Banking. P&L AED 240M, team of 18 RMs, Sharia structured finance, syndications.\nHSBC Mumbai (2008-2014): SVP Corporate.\nStandard Chartered (2004-2008): RM Corporate.\n\nEDUCATION: MBA Finance, IIM Bangalore (2004); BCom (2002)\nCERTS: CFA Charterholder\nLANGUAGES: English (fluent), Hindi (native), Malayalam (conversational), Arabic (basic)",
+  "jd": "VP Corporate Banking - Dubai, UAE.\n20+ years banking. Lead corporate banking franchise, syndications, Sharia structured finance, P&L responsibility, team leadership. CFA preferred.",
+  "groundTruth": {
+    "expectedDetectedRole": "banking_finance",
+    "expectedScoreBand": [40, 75],
+    "notes": "Senior banking match. JD has 'banking' and 'finance'."
+  }
+}

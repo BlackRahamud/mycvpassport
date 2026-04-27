@@ -1,0 +1,14 @@
+{
+  "id": "25-senior-head-engineering",
+  "persona": "senior_exec",
+  "subPersona": "head_eng_tech",
+  "label": "Head of Engineering Tech, 16 years, Dubai",
+  "synthetic": true,
+  "cv": "VINAY GUPTA · Head of Engineering · Dubai (Indian, UAE EID 784-1980-XXXXXXX-X) · 16 yrs\n\nNoon.com (2018-present): Head of Platform Engineering. 80 engineers, microservices, AWS, Kubernetes, payments, search, fraud.\nAmazon Bangalore (2010-2018): Senior Manager SDE.\nMicrosoft India (2008-2010): SDE II.\n\nEDUCATION: MTech CS, IIT Madras (2008); BTech CSE, BITS (2006)\nCERTS: AWS Solutions Architect Pro, CKA\nLANGUAGES: English (fluent), Hindi (native), Tamil (conversational)",
+  "jd": "Head of Engineering - E-commerce, Dubai.\nLead 70+ engineers across platform, payments, search. AWS, Kubernetes, microservices. P&L for cloud spend. UAE residence preferred.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Engineering leadership not in taxonomy. Silent fallback to sales_real_estate for a head-of-engineering JD is a hard miss."
+  }
+}

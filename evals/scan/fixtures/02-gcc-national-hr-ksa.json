@@ -1,0 +1,14 @@
+{
+  "id": "02-gcc-national-hr-ksa",
+  "persona": "gcc_national",
+  "subPersona": "ksa_hr",
+  "label": "Saudi HR Business Partner, Riyadh",
+  "synthetic": true,
+  "cv": "FAHD AL-OTAIBI · HR Business Partner · Riyadh · Saudi national\n\nAramco (2017-present): Senior HRBP. Lead Saudization Nitaqat Platinum compliance for 1,200-FTE engineering division. Talent acquisition, performance management, employee relations, succession planning.\nstc (2013-2017): HR Generalist. Recruitment, onboarding, payroll oversight (~600 hires/year).\n\nEDUCATION: MBA HR, KFUPM (2013); BSc Industrial Engineering (2010)\nCERTS: SHRM-CP, CIPD Level 5\nLANGUAGES: Arabic (native), English (fluent)",
+  "jd": "HR Business Partner - Riyadh, KSA.\nLead recruitment, talent management, payroll, and performance appraisal for an engineering division. Saudization Platinum compliance. SHRM or CIPD certification preferred. Arabic-English bilingual required. Saudi nationals only (Saudization).",
+  "groundTruth": {
+    "expectedDetectedRole": "hr_recruitment",
+    "expectedScoreBand": [40, 75],
+    "notes": "JD contains clear HR keywords, detectRole regex /hr|human resource|recruitment|talent|people|payroll/ matches."
+  }
+}

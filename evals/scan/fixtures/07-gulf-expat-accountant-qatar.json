@@ -1,0 +1,14 @@
+{
+  "id": "07-gulf-expat-accountant-qatar",
+  "persona": "gulf_expat",
+  "subPersona": "pakistani_accountant_qatar",
+  "label": "Pakistani Accountant in Doha, mid-career",
+  "synthetic": true,
+  "cv": "USMAN AHMED · Senior Accountant · Doha (Pakistani, QID 27512345678)\n\nQNB (2019-present): Senior Accountant. AP/AR, GL, monthly close, VAT, IFRS, SAP FICO. Reduced close cycle by 4 days.\nKPMG Pakistan (2014-2019): Audit Senior. External audit, tax filings, internal controls.\n\nEDUCATION: ACCA Member (2018); BCom, Karachi University (2014)\nLANGUAGES: English (fluent), Urdu (native), Arabic (basic)",
+  "jd": "Senior Accountant - Doha, Qatar.\nGL, AP/AR, month-end close, VAT, IFRS reporting, audit liaison, SAP FICO. ACCA preferred. Open to expats with transferable visa.",
+  "groundTruth": {
+    "expectedDetectedRole": "accounting_finance",
+    "expectedScoreBand": [40, 75],
+    "notes": "Clean accounting_finance match."
+  }
+}

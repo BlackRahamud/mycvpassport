@@ -1,0 +1,14 @@
+{
+  "id": "18-fresh-hospitality-uae",
+  "persona": "fresh_grad",
+  "subPersona": "uae_hospitality",
+  "label": "UAE university hospitality fresh graduate",
+  "synthetic": true,
+  "cv": "AISHA AL-ZAABI · Hospitality Management Final Year · Dubai · Emirati national\n\nINTERNSHIPS:\nAtlantis The Palm, 2025: Front Office intern, guest registration, concierge support.\nAcademic project: Sustainable luxury operations.\n\nEDUCATION: BSc Hospitality, Emirates Academy, expected Jun 2026\nCERTS: Opera Cloud, Food Hygiene Level 2\nLANGUAGES: Arabic (native), English (fluent)",
+  "jd": "Front Desk Agent - 5-star hotel, Dubai.\nFresh hospitality grad. Guest registration, Opera PMS, concierge service, F&B knowledge. Emirati nationals strongly preferred (Emiratisation).",
+  "groundTruth": {
+    "expectedDetectedRole": "hospitality",
+    "expectedScoreBand": [40, 75],
+    "notes": "JD contains 'hotel', 'concierge', 'front desk', 'F&B', 'guest' — clean hospitality match."
+  }
+}

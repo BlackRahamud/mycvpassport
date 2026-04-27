@@ -1,0 +1,14 @@
+{
+  "id": "22-senior-cfo-manufacturing",
+  "persona": "senior_exec",
+  "subPersona": "cfo_manufacturing",
+  "label": "CFO Manufacturing, 18 years, Sharjah",
+  "synthetic": true,
+  "cv": "GEETHA IYER · CFO · Sharjah (Indian, UAE EID 784-1978-XXXXXXX-X) · 18 yrs\n\nGulf Steel Industries (2018-present): CFO. AED 1.2B revenue, 4-country roll-up, IFRS, VAT, treasury, banking relationships, IPO-readiness.\nTata Steel (2010-2018): Group Finance Controller.\nDeloitte (2006-2010): Audit Manager.\n\nEDUCATION: CA (ICAI) 2006; BCom (2003)\nCERTS: ACCA, CIMA\nLANGUAGES: English (fluent), Hindi (native), Tamil (native)",
+  "jd": "Chief Financial Officer - Manufacturing, Sharjah.\n15+ years finance leadership. IFRS, VAT, treasury, audit, banking. Manufacturing or industrial sector. CA, ACCA or CIMA required. UAE residence preferred.",
+  "groundTruth": {
+    "expectedDetectedRole": "accounting_finance",
+    "expectedScoreBand": [40, 75],
+    "notes": "JD has 'finance' and 'audit' and 'tax (VAT)' — accounting_finance match."
+  }
+}

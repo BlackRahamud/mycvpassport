@@ -1,0 +1,14 @@
+{
+  "id": "24-senior-coo-retail",
+  "persona": "senior_exec",
+  "subPersona": "coo_retail",
+  "label": "COO Retail, 22 years, Doha",
+  "synthetic": true,
+  "cv": "FATIMA AL-KUWARI · COO · Doha · Qatari national · 22 yrs\n\nLulu Group Qatar (2015-present): COO. 14 hypermarkets, supply chain, store ops, P&L QAR 2.8B, 8,000 staff.\nCarrefour MAF (2007-2015): VP Operations.\nMcKinsey Doha (2003-2007): Engagement Manager.\n\nEDUCATION: MBA Operations, INSEAD (2003); BSc Industrial Engineering, Qatar University (2001)\nCERTS: Six Sigma Black Belt\nLANGUAGES: Arabic (native), English (fluent)",
+  "jd": "Chief Operating Officer - Retail Group, Doha.\n15+ years retail leadership. Multi-store operations, supply chain, P&L ownership, store excellence. Qatari nationals strongly preferred (Qatarization).",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Retail operations / general management not in 6-role taxonomy. Silent fallback. Smoking gun for senior-exec coverage gap."
+  }
+}

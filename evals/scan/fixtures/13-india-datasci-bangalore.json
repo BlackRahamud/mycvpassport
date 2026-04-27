@@ -1,0 +1,14 @@
+{
+  "id": "13-india-datasci-bangalore",
+  "persona": "india_based",
+  "subPersona": "bangalore_datasci",
+  "label": "Bangalore Data Scientist targeting Doha",
+  "synthetic": true,
+  "cv": "VIKRAM RAO · Data Scientist · Bangalore · Indian national, ECNR passport\n\nFlipkart (2019-present): Senior Data Scientist. Python, SQL, PyTorch, recommendation systems, A/B testing, MLOps on Databricks.\nMu Sigma (2014-2019): Decision Scientist.\n\nEDUCATION: MTech ML, IIT Hyderabad (2014); BTech CSE, BITS Pilani (2012)\nLANGUAGES: English (fluent), Hindi (native), Telugu (conversational), Kannada (basic)",
+  "jd": "Senior Data Scientist - Doha, Qatar.\nBuild recommendation systems and forecasting models. Python, PyTorch, SQL, MLOps. PhD or MTech preferred. Indian and South-Asian candidates welcome. MOFA-attested degree at offer stage.",
+  "groundTruth": {
+    "expectedDetectedRole": null,
+    "expectedScoreBand": [40, 60],
+    "notes": "Data science not in 6-role taxonomy. Silent fallback. Telugu/Kannada capture also missing in current product."
+  }
+}

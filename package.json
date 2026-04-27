@@ -41,6 +41,7 @@
     "test:frequent-user": "npx playwright test tests/frequent-user.spec.ts",
     "test:fab": "npx playwright test tests/fab-guided-flow.spec.ts",
     "test:edge": "npx playwright test tests/fab-edge-cases.spec.ts",
+    "eval:scan": "node evals/scan/runner.mjs",
     "seed:check": "node scripts/check-seed-data.mjs"
   },
   "eslintConfig": {
