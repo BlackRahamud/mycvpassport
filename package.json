@@ -40,7 +40,8 @@
     "test:new-user": "npx playwright test tests/new-user.spec.ts",
     "test:frequent-user": "npx playwright test tests/frequent-user.spec.ts",
     "test:fab": "npx playwright test tests/fab-guided-flow.spec.ts",
-    "test:edge": "npx playwright test tests/fab-edge-cases.spec.ts"
+    "test:edge": "npx playwright test tests/fab-edge-cases.spec.ts",
+    "seed:check": "node scripts/check-seed-data.mjs"
   },
   "eslintConfig": {
     "extends": [
@@ -64,6 +65,7 @@
     "@playwright/test": "^1.59.1",
     "dotenv": "^17.4.1",
     "husky": "^9.1.7",
+    "js-yaml": "^4.1.1",
     "pdf-parse": "^2.4.5"
   }
 }

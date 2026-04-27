@@ -1,0 +1,59 @@
+# Source: u.ae, Sarmat, GDRFA, ICP, Ministry of HRE 2026
+employment_visa:
+  duration_years: 2
+  renewable: true
+  processing_days: [10, 20]
+  sponsor: employer
+  family_sponsorship: true_if_salary_min
+  family_salary_min_aed: 4000   # +housing or 5000 all-in
+  notes: "Most common path. Tied to employer."
+
+green_visa:
+  duration_years: 5
+  renewable: true
+  sponsor: self
+  introduced: 2022
+  eligibility:
+    skilled_employee:
+      min_salary_aed: 15000
+      skill_levels: [1, 2, 3]
+      requires: "Valid employment contract"
+    freelancer:
+      requires: "MOHRE freelance permit OR free-zone freelance permit"
+      income_threshold_aed: 360000   # last 2 years total OR proven solvency
+  family_sponsorship: true
+  notes: "Removes employer dependency. Major upgrade for skilled workers."
+
+golden_visa:
+  duration_years: 10
+  renewable: true
+  sponsor: self
+  processing_weeks: [2, 4]
+  eligibility:
+    skilled_professional:
+      min_salary_aed: 30000
+      requires:
+        - "Valid UAE employment contract"
+        - "MoHRE occupational level 1 or 2"
+        - "Bachelor's degree or equivalent"
+    investor:
+      property_aed: 2000000
+    entrepreneur:
+      project_value_aed: 500000
+    specialised_talent:
+      categories: [doctors, scientists, inventors, creatives, athletes]
+  benefits:
+    - "Job change without losing visa"
+    - "Can start company / invest / study"
+    - "Extended stays outside UAE allowed"
+
+documentation_common:
+  passport: "Valid 6+ months, bio page + existing UAE visa pages"
+  photo: "White background, UAE visa standard"
+  medical: "In-UAE exam, blood test, chest X-ray (HIV + TB screening)"
+
+obligations_apply_all_visas:
+  - "Work permit issued"
+  - "WPS (Wage Protection System) salary payments"
+  - "Insurance"
+  - "End-of-service gratuity calculation"

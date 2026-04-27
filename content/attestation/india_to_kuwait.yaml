@@ -1,0 +1,61 @@
+# India → Kuwait attestation roadmap
+# Last updated: 2026-04-27
+# STATUS: STUB — fees and turnaround days require validation against
+# Kuwait Embassy India, MEA India. Mirror india_to_uae.yaml when filling.
+status: stub
+key_fact: |
+  Kuwait is NOT a Hague Apostille signatory. Full embassy attestation
+  required, then MOFA attestation in Kuwait after document arrives.
+
+document_types:
+  educational_certificates:
+    fastest_route:
+      name: "SDM route"
+      total_days: null
+      total_fees_inr: null
+      steps:
+        - step: 1
+          name: "Notary attestation"
+          authority: "Local notary"
+          days: 1
+          fees_inr: [200, 500]
+        - step: 2
+          name: "SDM attestation"
+          authority: "Sub-Divisional Magistrate"
+          days: null
+          fees_inr: null
+        - step: 3
+          name: "MEA attestation"
+          authority: "Ministry of External Affairs, GoI"
+          days: 5
+          fees_inr: [50, 500]
+          link: "https://www.mea.gov.in/apostille.htm"
+        - step: 4
+          name: "Kuwait Embassy attestation"
+          authority: "Embassy of Kuwait in India"
+          days: null
+          fees_inr: null
+        - step: 5
+          name: "MOFA attestation"
+          authority: "Kuwait Ministry of Foreign Affairs (post-arrival)"
+          days: null
+          fees_kwd: null
+          location: "After document arrives in Kuwait"
+
+    alternative_route:
+      name: "HRD route"
+      total_days: null
+      notes: "Slower than SDM, required for some state universities."
+
+  commercial_certificates:
+    notes: "Chamber of Commerce → MEA → Kuwait Embassy → MOFA."
+    days: null
+    fees_inr: null
+
+  personal_certificates:
+    sub_types: [marriage, birth, death, divorce]
+    notes: "SDM → MEA → Kuwait Embassy → MOFA."
+    days: null
+    fees_inr: null
+
+private_agency_markup_inr: [3000, 10000]
