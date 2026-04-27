@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { motion, useReducedMotion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import OLEDScoreRing, { OLEDRingStyles } from './OLEDScoreRing';
 
 const STEPS = [
@@ -118,40 +118,6 @@ function PayCardFace({ kind, isFront }) {
     );
   }
   return null;
-}
-
-/* ── Value-unlocks panel for Step 03 (round 3 / fix 2) ────────────
-   Soft upsell that fills the gap between the PDF chip and the wallet
-   stack. Three rows fade in 0.6 → 1.0 sequentially on viewport-enter
-   (100ms stagger). Mono eyebrow stays — it's a scaffolding label,
-   not marketing copy. */
-const UNLOCK_ROWS = [
-  'Premium templates · Banking, Healthcare, Aviation',
-  'Unlimited downloads · revisit and re-export anytime',
-  'Priority ATS scoring · re-score against any job description',
-];
-function ValueUnlocksPanel() {
-  const reduce = useReducedMotion();
-  return (
-    <div className="cvp-hiw-unlocks">
-      <div className="cvp-hiw-unlocks-eyebrow">WITH UPGRADE</div>
-      {UNLOCK_ROWS.map((line, i) => (
-        <motion.div
-          key={i}
-          className="cvp-hiw-unlocks-row"
-          initial={reduce ? false : { opacity: 0.6 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={reduce
-            ? { duration: 0.01 }
-            : { duration: 0.4, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-          <CheckCircle2 size={14} color="#4ade80" strokeWidth={2.2} aria-hidden="true" />
-          <span>{line}</span>
-        </motion.div>
-      ))}
-    </div>
-  );
 }
 
 /* ── Fanned thumbnail stack for Step 01 (move 3-fix-2) ────────────
@@ -470,7 +436,11 @@ export default function HowItWorksSection() {
         .cvp-hiw-rail::after { content: ""; position: absolute; top: 50%; left: 0; height: 1px; width: 0; background: linear-gradient(90deg, rgba(217,119,6,0.0), rgba(217,119,6,0.85), rgba(217,119,6,0.0)); transform: translateY(-50%); transition: width 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         .cvp-hiw[data-in-view="true"] .cvp-hiw-rail::after { width: 100%; }
         @media (max-width: 880px) { .cvp-hiw-rail { display: none; } }
-        .cvp-hiw-step { position: relative; background: var(--color-surface-01, #141414); border: 1px solid color-mix(in srgb, var(--color-border, #2a2a2a), transparent 30%); border-radius: var(--radius-md, 18px); padding: 32px 28px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 520px; isolation: isolate; overflow: hidden; transition: border-color 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        .cvp-hiw-step { position: relative; background: var(--color-surface-01, #141414); border: 1px solid color-mix(in srgb, var(--color-border, #2a2a2a), transparent 30%); border-radius: var(--radius-md, 18px); padding: 32px 28px 28px; display: flex; flex-direction: column; gap: 14px; min-height: 460px; isolation: isolate; overflow: hidden; transition: border-color 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        /* Step 02 (doc + scan + ring) and Step 03 (PDF chip + wallet stack) need
+           extra room. Rail span is grid child 1, so steps are children 2/3/4. */
+        .cvp-hiw-step:nth-child(3),
+        .cvp-hiw-step:nth-child(4) { min-height: 520px; }
         .cvp-hiw-step:hover { border-color: color-mix(in srgb, var(--color-accent, #D97706), transparent 55%); transform: translateY(-2px); box-shadow: 0 18px 36px -16px rgba(0,0,0,0.55); }
         .cvp-hiw-step.is-final { background: radial-gradient(120% 80% at 100% 0%, rgba(217,119,6,0.10), transparent 60%), var(--color-surface-01, #141414); border-color: color-mix(in srgb, var(--color-accent, #D97706), transparent 55%); }
         @media (prefers-reduced-motion: reduce) { .cvp-hiw-step { transition: border-color 100ms linear; } .cvp-hiw-step:hover { transform: none; } }
@@ -597,28 +567,6 @@ export default function HowItWorksSection() {
         .cvp-hiw-pdf-chip { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(217,119,6,0.10); border: 1px solid rgba(217,119,6,0.28); border-radius: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #fde68a; letter-spacing: 0.04em; align-self: flex-start; }
         .cvp-hiw-pdf-chip b { color: #fff; font-weight: 700; }
         .cvp-hiw-pdf-pill { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: rgba(34,197,94,0.18); color: #4ade80; font-weight: 700; }
-        /* "WITH UPGRADE" panel — soft upsell between PDF chip and wallet stack (round 3 / fix 2). */
-        .cvp-hiw-unlocks {
-          padding: 14px 16px;
-          background: rgba(255,255,255,0.02);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 12px;
-          margin: 12px 0;
-          display: flex; flex-direction: column; gap: 6px;
-        }
-        .cvp-hiw-unlocks-eyebrow {
-          font-family: ui-monospace, "SF Mono", Menlo, monospace;
-          font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase;
-          color: rgba(255,255,255,0.45); font-weight: 600;
-          margin-bottom: 2px;
-        }
-        .cvp-hiw-unlocks-row {
-          display: flex; align-items: center; gap: 8px;
-          font-size: 12px; line-height: 1.45;
-          color: rgba(255,255,255,0.78);
-        }
-        .cvp-hiw-unlocks-row svg { flex-shrink: 0; }
-
         .cvp-hiw-paywall { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.08); }
         /* Marketing copy — body sans, sentence case, italicised so it reads as a human voice
            rather than a mono scaffolding label (round 3 / fix 4). */
@@ -812,7 +760,6 @@ export default function HowItWorksSection() {
                   <span>184 KB</span>
                   <span className="cvp-hiw-pdf-pill">FREE</span>
                 </div>
-                <ValueUnlocksPanel />
                 <div className="cvp-hiw-paywall">
                   <div className="cvp-hiw-paywall-label">Pay in AED only when you’re winning</div>
                   <PaymentCardStack revealed={inView} />
