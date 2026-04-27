@@ -1,92 +1,77 @@
 /**
- * Replicates the FREE-tier scoring logic from src/ATSChecker.jsx:403-482
- * exactly as it ships today. Do not "improve" this — it must mirror the
- * production path so the eval can detect when behavior changes.
+ * Eval-time wrapper around the real Day-2 scan pipeline.
  *
- * No-JD branch: hardcoded scores 65/70/75, score=70, topPercent=42,
- * keywords sliced from a flat pool of skillSuggestions.
- * With-JD branch: substring match of JD against
- * skillSuggestions[detectRole(jd) || "sales_real_estate"].atsKeywords.
- *
- * The CV argument is accepted but never read — by design, mirroring
- * the bug we're proving.
+ * Pre-Day-2 this file replicated the legacy ATSChecker.jsx free path
+ * (hardcoded scores, JD-only keyword matching). That path is gone. The
+ * file now exposes:
+ *   - buildPromptFor(fixture, tier)  — pure, deterministic, used by
+ *     structural invariants (adversarial variance, prompt integrity).
+ *   - runLiveScan(fixture, tier)     — gated on ANTHROPIC_API_KEY; calls
+ *     Anthropic with the real prompt + tool, returns the parsed result.
+ *     Used by behavioral metrics (field accuracy, score band).
  */
 
-import { loadLegacySkillSuggestions, loadLegacyDetectRole } from "../_legacyLoader.mjs";
+import {
+  buildScanPrompt,
+  getSystemPrompt,
+} from "../../../supabase/functions/analyze-cv/_prompt.mjs";
+import {
+  SCAN_TOOL,
+  modelForTier,
+  ANTHROPIC_VERSION,
+  MAX_TOKENS_BY_MODEL,
+} from "../../../supabase/functions/analyze-cv/_schema.mjs";
 
-const skillSuggestions = loadLegacySkillSuggestions();
-const detectRole = loadLegacyDetectRole();
-
-export function runFreeScan(_cvText, jobDescription) {
-  const jd = (jobDescription || "").trim();
-
-  if (!jd) {
-    const seen = new Set();
-    const pool = [];
-    poolLoop: for (const pack of Object.values(skillSuggestions)) {
-      for (const row of pack?.atsKeywords ?? []) {
-        if (pool.length >= 30) break poolLoop;
-        const keyword = row?.keyword?.trim();
-        if (!keyword) continue;
-        const key = keyword.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        pool.push(keyword);
-      }
-    }
-    return {
-      score: 70,
-      keywordsScore: 65,
-      structureScore: 70,
-      contentScore: 75,
-      visibilityBoosters: pool.slice(0, 5),
-      rankTriggers: pool.slice(5, 10),
-      industry: "General GCC Market",
-      topPercent: 42,
-      missingCount: 5,
-      detectedRoleKey: null,
-      fallbackRoleUsed: false,
-    };
-  }
-
-  const jdLower = jd.toLowerCase();
-  const detected = detectRole(jd);
-  const fallbackRoleUsed = !detected;
-  const roleKey = detected || "sales_real_estate";
-  const pack = skillSuggestions[roleKey];
-  const list = pack?.atsKeywords ?? [];
-
-  const visibilityBoosters = [];
-  const rankTriggers = [];
-  for (const row of list) {
-    const keyword = row?.keyword?.trim();
-    if (!keyword) continue;
-    if (jdLower.includes(keyword.toLowerCase())) visibilityBoosters.push(keyword);
-    else rankTriggers.push(keyword);
-  }
-
-  const total = list.length;
-  const keywordsScore = total > 0 ? Math.round((visibilityBoosters.length / total) * 100) : 0;
-  const structureScore = 70;
-  const contentScore = 75;
-  const score = Math.round((keywordsScore + structureScore + contentScore) / 3);
-
-  const industry =
-    (pack?.jobTitles && pack.jobTitles[0]) ||
-    roleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  const topPercent = Math.max(1, Math.min(99, 100 - score));
-
+export function buildPromptFor(fixture, tier = "free") {
   return {
-    score,
-    keywordsScore,
-    structureScore,
-    contentScore,
-    visibilityBoosters,
-    rankTriggers,
-    industry,
-    topPercent,
-    missingCount: rankTriggers.length,
-    detectedRoleKey: roleKey,
-    fallbackRoleUsed,
+    system: getSystemPrompt(),
+    user: buildScanPrompt({ cvText: fixture.cv, jobDescription: fixture.jd }),
+    model: modelForTier(tier),
   };
+}
+
+export function hashPrompt(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) | 0;
+  }
+  return (h >>> 0).toString(16);
+}
+
+export function hasApiKey() {
+  return !!process.env.ANTHROPIC_API_KEY;
+}
+
+export async function runLiveScan(fixture, tier = "free") {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+  const prompts = buildPromptFor(fixture, tier);
+  const maxTokens = MAX_TOKENS_BY_MODEL[prompts.model] ?? 2048;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+    },
+    body: JSON.stringify({
+      model: prompts.model,
+      max_tokens: maxTokens,
+      system: prompts.system,
+      tools: [SCAN_TOOL],
+      tool_choice: { type: "tool", name: SCAN_TOOL.name },
+      messages: [{ role: "user", content: prompts.user }],
+    }),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Anthropic ${response.status}: ${text.slice(0, 300)}`);
+  }
+  const data = await response.json();
+  const tool = (data.content ?? []).find((b) => b?.type === "tool_use");
+  if (!tool || !tool.input) {
+    throw new Error("no tool_use in response");
+  }
+  return tool.input;
 }

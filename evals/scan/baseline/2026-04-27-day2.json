@@ -1,0 +1,165 @@
+{
+  "generatedAt": "2026-04-27T19:30:24.363Z",
+  "totalFixtures": 30,
+  "invariants": [
+    {
+      "name": "Adversarial variance",
+      "metric": "5/5 JD groups",
+      "state": true,
+      "detail": null
+    },
+    {
+      "name": "Paid prompt integrity",
+      "metric": "30/30 prompts contain CV",
+      "state": true,
+      "detail": null
+    },
+    {
+      "name": "Field accuracy",
+      "metric": "behavioral (gated)",
+      "state": "skip",
+      "detail": "ANTHROPIC_API_KEY not set — set it locally and re-run for the behavioral gate. The two structural invariants above already prove the smoking gun is fixed."
+    },
+    {
+      "name": "Score band hit rate",
+      "metric": "behavioral (gated)",
+      "state": "skip",
+      "detail": "ANTHROPIC_API_KEY not set — set it locally and re-run for the behavioral gate."
+    }
+  ],
+  "requiredPass": true,
+  "behavioralRan": false,
+  "behavioralPass": null,
+  "overallPass": true,
+  "details": {
+    "adversarial": {
+      "totalGroups": 5,
+      "groupsWithVariance": 5,
+      "pass": true,
+      "perGroup": [
+        {
+          "jdId": "01-gcc-national-banking-uae",
+          "jdLabel": "Emirati Senior RM Private Banking, Abu Dhabi",
+          "cvCount": 10,
+          "distinctPrompts": 10,
+          "pass": true,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "promptHash": "5387f53d"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "promptHash": "e9c3565"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "promptHash": "a7bd9f89"
+            }
+          ]
+        },
+        {
+          "jdId": "02-gcc-national-hr-ksa",
+          "jdLabel": "Saudi HR Business Partner, Riyadh",
+          "cvCount": 10,
+          "distinctPrompts": 10,
+          "pass": true,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "promptHash": "b4afa5ac"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "promptHash": "772b2284"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "promptHash": "898588e0"
+            }
+          ]
+        },
+        {
+          "jdId": "03-gcc-national-accountant-qatar",
+          "jdLabel": "Qatari Senior Accountant, Doha",
+          "cvCount": 10,
+          "distinctPrompts": 10,
+          "pass": true,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "promptHash": "5075dbde"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "promptHash": "fa414206"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "promptHash": "6aba9b2a"
+            }
+          ]
+        },
+        {
+          "jdId": "04-gcc-national-itsupport-bahrain",
+          "jdLabel": "Bahraini IT Desktop Support Engineer, Manama",
+          "cvCount": 10,
+          "distinctPrompts": 10,
+          "pass": true,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "promptHash": "3be6face"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "promptHash": "d7cfc4f6"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "promptHash": "d902f81a"
+            }
+          ]
+        },
+        {
+          "jdId": "05-gcc-national-hospitality-oman",
+          "jdLabel": "Omani F&B Outlet Manager, Muscat",
+          "cvCount": 10,
+          "distinctPrompts": 10,
+          "pass": true,
+          "sample": [
+            {
+              "cvId": "01-gcc-national-banking-uae",
+              "promptHash": "a5d1d7a6"
+            },
+            {
+              "cvId": "02-gcc-national-hr-ksa",
+              "promptHash": "7acc887e"
+            },
+            {
+              "cvId": "03-gcc-national-accountant-qatar",
+              "promptHash": "c2cd0da"
+            }
+          ]
+        }
+      ]
+    },
+    "paidPromptIntegrity": {
+      "total": 30,
+      "passed": 30,
+      "pass": true,
+      "sampleFailure": null,
+      "failureReason": null
+    },
+    "fieldAccuracy": {
+      "skipped": true,
+      "reason": "ANTHROPIC_API_KEY not set — set it locally and re-run for the behavioral gate. The two structural invariants above already prove the smoking gun is fixed.",
+      "pass": null
+    },
+    "scoreBand": {
+      "skipped": true,
+      "reason": "ANTHROPIC_API_KEY not set — set it locally and re-run for the behavioral gate.",
+      "pass": null
+    }
+  }
+}

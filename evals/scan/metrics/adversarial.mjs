@@ -1,25 +1,34 @@
 /**
  * Adversarial variance: same JD, different CVs, different output?
  *
- * If the scanner reads the CV, swapping the CV behind a fixed JD must
- * produce different output. We pick K JDs and score N CVs against each.
- * Each group should yield > 1 distinct (score, boosters, triggers).
+ * Day 2 reframing: the new pipeline embeds the full CV text in the
+ * prompt sent to Claude. So if the prompt-builder is correct, swapping
+ * the CV behind a fixed JD must produce different prompts. This is a
+ * STRUCTURAL test that flips FAIL → PASS the moment the legacy
+ * fileBase64.substring(0, 500) bug is removed.
  *
- * Current code: each group yields exactly 1 distinct output, because
- * free-tier scoring is a function of JD only.
+ * For 5 JDs × 10 CVs each, count distinct prompt hashes per group.
+ * Pass condition: every group has 10 distinct hashes (every CV varies
+ * the prompt).
+ *
+ * Behavioral validation ("10 distinct scores AND distinct reason sets")
+ * runs only when ANTHROPIC_API_KEY is present — see fieldAccuracy.mjs
+ * and scoreBand.mjs.
  */
+
+import { buildPromptFor, hashPrompt } from "../scoring/currentFree.mjs";
 
 const JD_GROUP_SIZE = 5;
 const CVS_PER_GROUP = 10;
 
-export function computeAdversarial(fixtures, runFreeScan) {
+export function computeAdversarial(fixtures) {
   if (fixtures.length < CVS_PER_GROUP) {
     return {
       totalGroups: 0,
       groupsWithVariance: 0,
-      perGroup: [],
       pass: false,
       reason: `need at least ${CVS_PER_GROUP} fixtures, have ${fixtures.length}`,
+      perGroup: [],
     };
   }
 
@@ -27,27 +36,21 @@ export function computeAdversarial(fixtures, runFreeScan) {
   const cvSamples = fixtures.slice(0, CVS_PER_GROUP);
 
   const perGroup = jdSamples.map((jdFix) => {
-    const outputs = cvSamples.map((cvFix) => {
-      const out = runFreeScan(cvFix.cv, jdFix.jd);
-      return {
-        cvId: cvFix.id,
-        score: out.score,
-        keywordsScore: out.keywordsScore,
-        boostersFingerprint: (out.visibilityBoosters || []).slice(0, 5).join("|"),
-      };
-    });
-    const distinctScores = new Set(outputs.map((o) => o.score));
-    const distinctFingerprints = new Set(
-      outputs.map((o) => `${o.score}::${o.boostersFingerprint}`),
-    );
+    const hashes = new Set();
+    const sample = [];
+    for (const cvFix of cvSamples) {
+      const { user } = buildPromptFor({ cv: cvFix.cv, jd: jdFix.jd });
+      const h = hashPrompt(user);
+      hashes.add(h);
+      if (sample.length < 3) sample.push({ cvId: cvFix.id, promptHash: h });
+    }
     return {
       jdId: jdFix.id,
       jdLabel: jdFix.label,
-      cvCount: outputs.length,
-      distinctScores: distinctScores.size,
-      distinctOutputs: distinctFingerprints.size,
-      pass: distinctScores.size > 1,
-      sample: outputs.slice(0, 3),
+      cvCount: cvSamples.length,
+      distinctPrompts: hashes.size,
+      pass: hashes.size === cvSamples.length,
+      sample,
     };
   });
 

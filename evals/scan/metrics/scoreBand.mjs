@@ -1,42 +1,61 @@
 /**
- * Score band hit rate: does the produced score land in the persona-aligned
- * expected band?
+ * Score band — Day 2: model-derived score must land in the persona-
+ * aligned expected band.
  *
- * Bands are deliberately wide (e.g. [40, 75]) so that a CV-aware scanner
- * has plenty of room to land. The CURRENT free-tier scorer collapses to
- * a small set of values (always 70 with no JD; with a JD, only a function
- * of JD↔role keyword overlap, ignoring the CV). For matching JD/persona,
- * scores often DO land inside the band, so this metric ALONE will not
- * expose the bug — the adversarial variance check is the headline.
- *
- * Score band stays in the suite because once Phase 1 lands, narrower
- * persona-aware bands will become meaningful and we want the slot wired.
+ * Behavioral metric: requires ANTHROPIC_API_KEY. Reuses the same
+ * sampling rules as fieldAccuracy.
  */
 
-export function computeScoreBand(fixtures, runFreeScan) {
-  const perFixture = fixtures.map((fx) => {
-    const out = runFreeScan(fx.cv, fx.jd);
-    const band = fx.groundTruth?.expectedScoreBand ?? null;
-    const inBand = Array.isArray(band)
-      ? out.score >= band[0] && out.score <= band[1]
-      : null;
-    return {
-      id: fx.id,
-      score: out.score,
-      band,
-      inBand,
-    };
-  });
+import { runLiveScan, hasApiKey } from "../scoring/currentFree.mjs";
 
-  const labelled = perFixture.filter((p) => p.band != null);
-  const hit = labelled.filter((p) => p.inBand === true).length;
-  const rate = labelled.length > 0 ? hit / labelled.length : 0;
+const SAMPLE_SIZE = 10;
+
+export async function computeScoreBand(fixtures) {
+  if (!hasApiKey()) {
+    return {
+      skipped: true,
+      reason:
+        "ANTHROPIC_API_KEY not set — set it locally and re-run for the behavioral gate.",
+      pass: null,
+    };
+  }
+
+  const full = process.env.EVAL_FULL === "1";
+  const sample = full ? fixtures : fixtures.slice(0, SAMPLE_SIZE);
+  const perFixture = [];
+
+  for (const fx of sample) {
+    const band = fx.groundTruth?.expectedScoreBand ?? null;
+    if (!Array.isArray(band)) {
+      perFixture.push({ id: fx.id, band: null, inBand: null, ok: true });
+      continue;
+    }
+    try {
+      const out = await runLiveScan(fx, "free");
+      const score = typeof out.score === "number" ? out.score : null;
+      const inBand = score != null && score >= band[0] && score <= band[1];
+      perFixture.push({ id: fx.id, score, band, inBand, ok: inBand === true });
+    } catch (err) {
+      perFixture.push({
+        id: fx.id,
+        error: String(err && err.message ? err.message : err),
+        ok: false,
+      });
+    }
+  }
+
+  const ok = perFixture.filter((p) => p.ok).length;
+  const rate = perFixture.length > 0 ? ok / perFixture.length : 0;
 
   return {
-    totalLabelled: labelled.length,
-    hit,
+    skipped: false,
+    sampled: perFixture.length,
+    passed: ok,
     rate,
     pass: rate >= 0.9,
     perFixture,
+    note: full
+      ? "EVAL_FULL=1 — ran all fixtures"
+      : `Default sample (${SAMPLE_SIZE}/${fixtures.length}) — set EVAL_FULL=1 for full run`,
   };
 }
