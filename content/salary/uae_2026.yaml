@@ -1,0 +1,137 @@
+# UAE salary corpus — monthly AED, base + allowance ranges
+# Source: Robert Walters, Michael Page, Charterhouse, Hays 2026 surveys
+# Last updated: 2026-04-27
+meta:
+  currency: AED
+  basis: monthly
+  growth_forecast_2026: 1.6   # %, with most uplifts 0–5%
+  market_premium:
+    abu_dhabi_vs_dubai: 1.05  # ADGM/govt sector pays 5–10% more
+    free_zone_vs_mainland: 1.10  # DIFC/DMCC/JAFZA premium
+
+roles:
+  # Technology
+  software_engineer_mid:
+    range: [12000, 35000]
+    sectors: [tech, fintech, ecommerce]
+    notes: "Java/Python/.NET/mobile most in demand"
+  full_stack_developer:
+    range: [14000, 30000]
+    sectors: [tech, fintech]
+  data_scientist:
+    range: [18000, 55000]
+    sectors: [tech, fintech, ai]
+    notes: "LLM/ML deployment skills push toward AED 55k"
+  data_analyst_entry:
+    range: [8000, 12000]
+    sectors: [all]
+    notes: "0-2 years experience"
+  data_analyst_mid:
+    range: [12000, 20000]
+    sectors: [all]
+    notes: "2-5 years experience"
+  cloud_architect:
+    range: [22000, 45000]
+    sectors: [tech, banking]
+    notes: "AWS/Azure/GCP — high demand"
+  cybersecurity_analyst:
+    range: [15000, 35000]
+    sectors: [banking, healthcare, govt]
+  ai_ml_engineer:
+    range: [20000, 55000]
+    sectors: [tech, fintech]
+
+  # Finance & Banking
+  accountant_mid:
+    range: [20000, 27000]
+    sectors: [finance, banking]
+  finance_manager:
+    range: [18000, 40000]
+    sectors: [finance, banking, corporate]
+  investment_associate:
+    range: [50000, 60000]
+    sectors: [investment_banking]
+  financial_analyst:
+    range: [12000, 25000]
+    sectors: [banking, corporate]
+  compliance_officer:
+    range: [15000, 35000]
+    sectors: [banking, fintech]
+  risk_manager:
+    range: [20000, 45000]
+    sectors: [banking, insurance]
+
+  # Healthcare
+  doctor_specialist:
+    range: [25000, 60000]
+    sectors: [healthcare]
+  registered_nurse:
+    range: [7000, 14000]
+    sectors: [healthcare]
+    notes: "Indian NCLEX/Prometric pass required"
+
+  # Sales & Real Estate
+  sales_manager:
+    range: [15000, 35000]
+    sectors: [all]
+    notes: "Plus commission, often 30-50% of base"
+  real_estate_agent_top:
+    range: [50000, 100000]
+    sectors: [real_estate]
+    notes: "Palm Jumeirah / Dubai Hills peak cycles, commission-heavy"
+
+  # Operations & Support
+  hr_manager:
+    range: [15000, 30000]
+    sectors: [all]
+  operations_manager:
+    range: [15000, 30000]
+    sectors: [all]
+  marketing_manager:
+    range: [12000, 25000]
+    sectors: [all]
+  customer_service_lead:
+    range: [8000, 15000]
+    sectors: [all]
+  executive_assistant:
+    range: [8000, 18000]
+    sectors: [all]
+
+  # Construction & trades (high India source)
+  civil_engineer:
+    range: [10000, 25000]
+    sectors: [construction]
+  electrician:
+    range: [2500, 6000]
+    sectors: [construction, facilities]
+    notes: "Often visa-only package, accommodation provided"
+  ac_technician:
+    range: [2500, 5500]
+    sectors: [facilities]
+  welder:
+    range: [3000, 7000]
+    sectors: [construction, oil_gas]
+  driver:
+    range: [2200, 4500]
+    sectors: [logistics, personal]
+    notes: "GCC license premium"
+
+  # Hospitality
+  chef_de_partie:
+    range: [4500, 9000]
+    sectors: [hospitality]
+  hotel_supervisor:
+    range: [6000, 14000]
+    sectors: [hospitality]
+
+allowances:
+  # As % of basic salary (typical Gulf packages)
+  housing: 0.25     # 25% of basic
+  transport: 0.10   # 10% of basic
+  cola: 0.05        # 5% cost-of-living
+  education: "AED 20000-50000 per child per year (paid roles only)"
+  annual_ticket: "1 economy ticket to home country per year"
+  medical: "Provided, employer-paid"
+  end_of_service_gratuity:
+    formula: "21 days basic per year, first 5 years; 30 days basic per year after"
+    cap: "Not exceeding 2 years total basic"

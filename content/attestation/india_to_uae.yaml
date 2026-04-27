@@ -1,0 +1,58 @@
+# Source: MEA India, mofauae.com, BLS, VFS Global
+# Last updated: 2026-04-27
+key_fact: |
+  UAE is NOT a Hague Apostille signatory. Full embassy attestation
+  required, then MOFA attestation in UAE after document arrives.
+
+document_types:
+  educational_certificates:
+    fastest_route:
+      name: "SDM route"
+      total_days: 16
+      total_fees_inr: 8450
+      steps:
+        - step: 1
+          name: "Notary attestation"
+          authority: "Local notary"
+          days: 1
+          fees_inr: [200, 500]
+        - step: 2
+          name: "SDM attestation"
+          authority: "Sub-Divisional Magistrate"
+          days: 4
+          fees_inr: [500, 1500]
+        - step: 3
+          name: "MEA attestation"
+          authority: "Ministry of External Affairs, GoI"
+          days: 5
+          fees_inr: [50, 500]
+          link: "https://www.mea.gov.in/apostille.htm"
+        - step: 4
+          name: "UAE Embassy attestation"
+          authority: "UAE Embassy in India"
+          days: 7
+          fees_inr: [4000, 6000]
+        - step: 5
+          name: "MOFA attestation"
+          authority: "UAE Ministry of Foreign Affairs (post-arrival)"
+          days: 1
+          fees_aed: [150, 250]
+          location: "After document arrives in UAE"
+
+    alternative_route:
+      name: "HRD route"
+      total_days: 30
+      notes: "HRD = State Education Dept. Slower than SDM but required for some states/universities."
+
+  commercial_certificates:
+    notes: "Different chain — Chamber of Commerce instead of SDM/HRD."
+    days: [10, 18]
+    fees_inr: [3000, 12000]
+
+  personal_certificates:
+    sub_types: [marriage, birth, death, divorce]
+    notes: "Same SDM/MEA/UAE Embassy/MOFA chain as educational."
+    days: [12, 18]
+    fees_inr: [3500, 6000]
+
+private_agency_markup_inr: [3000, 10000]

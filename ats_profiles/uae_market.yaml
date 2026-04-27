@@ -1,0 +1,35 @@
+# Use these to: (a) build Phase 11 calibration profiles for the ones
+# real users will encounter, (b) study what they offer for competitive
+# differentiation
+top_ats_in_uae_2026:
+  - name: Talentera
+    notes: "Strong GCC localization, Arabic workflows, Bayt.com integration. Govt + large employers."
+    calibrate_priority: HIGH
+  - name: Workable
+    notes: "Cloud, AI sourcing, automated interviews. High-volume multi-location."
+    calibrate_priority: HIGH
+  - name: Qureos / Iris by Qureos
+    notes: "AI-powered, UAE-focused, multi-channel job posting + smart screening."
+    calibrate_priority: MEDIUM
+  - name: Bayzat
+    notes: "ATS + HR + payroll for UAE SMEs. Local labor law compliance built in."
+    calibrate_priority: MEDIUM
+  - name: Zoho Recruit
+    notes: "Generic but heavy adoption."
+    calibrate_priority: MEDIUM
+  - name: Recooty
+    notes: "Smaller player, India-origin."
+    calibrate_priority: LOW
+  - name: Ceipal ATS
+    notes: "Indian/US origin, common in UAE staffing firms."
+    calibrate_priority: MEDIUM
+  - name: Bayt
+    notes: "Job board with built-in ATS — recruiter-side. Massive in UAE."
+    calibrate_priority: HIGHEST
+  - name: LinkedIn Recruiter
+    notes: "Common for white-collar UAE roles."
+    calibrate_priority: HIGHEST
+
+market_signal:
+  pct_gulf_orgs_using_ai_ats: 60
+  middle_east_africa_companies_using_ats_2024: 11000

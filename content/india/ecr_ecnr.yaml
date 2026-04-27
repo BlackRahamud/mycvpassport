@@ -1,0 +1,37 @@
+ecr_status:
+  meaning: "Emigration Check Required"
+  who: "Indian passport holders who have NOT passed 10th grade"
+  countries_requiring_poe_clearance:
+    - SAUDI_ARABIA
+    - UAE
+    - QATAR
+    - KUWAIT
+    - BAHRAIN
+    - OMAN
+    - MALAYSIA
+    - LEBANON
+    - JORDAN
+    - IRAQ_excl_prohibited_areas
+  poe_clearance: "Must be obtained before travel for employment"
+  enforcement: "Workers without POE clearance stopped at Indian immigration"
+
+ecnr_status:
+  meaning: "Emigration Check Not Required (formerly ECNR)"
+  eligibility:
+    - "Children up to 18"
+    - "Income tax payers + family"
+    - "Professional degree holders (Engineers, Doctors, CAs) + family"
+    - "Permanent immigration / resident visas for US, UK, Australia"
+    - "3+ years overseas + family"
+    - "Diploma in nursing under Indian Nursing Council Act 1947"
+    - "Polytechnic diplomas from recognised institutes"
+    - "Matriculation (10th grade) pass + higher"
+  conversion:
+    process: "Apply for new passport (not endorsement)"
+    documents: "Education certificate or eligibility proof"
+
+product_implication: |
+  For India-based blue-collar applicants targeting GCC roles, surface
+  ECR status check + POE eCard guidance prominently. Add to scan
+  result: "If your passport is ECR and you don't have POE clearance,
+  you cannot board the flight to your Gulf job."

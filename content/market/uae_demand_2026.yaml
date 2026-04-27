@@ -1,0 +1,29 @@
+# Higher demand → boost candidate match score for these sectors
+# Use as a soft lift (max +5 points) on free tier scan
+hot_sectors:
+  technology:
+    weight: 1.0
+    sub_areas: [ai, ml, cybersecurity, cloud, full_stack, fintech]
+    drivers: ["UAE AI Strategy 2031", "Dubai AI Roadmap"]
+  financial_services:
+    weight: 0.95
+    sub_areas: [compliance, risk, fintech, investment_banking]
+  healthcare:
+    weight: 0.95
+    sub_areas: [doctors, nurses, medical_tech]
+    drivers: ["Population growth", "Medical tourism"]
+  energy_renewable:
+    weight: 0.85
+    sub_areas: [solar, nuclear, hydrogen]
+    drivers: ["Mohammed bin Rashid Solar Park", "Barakah Nuclear"]
+  construction:
+    weight: 0.75
+    sub_areas: [civil, mep, project_management]
+    drivers: ["Expo legacy projects", "Saudi Vision 2030 spillover"]
+  hospitality:
+    weight: 0.70
+    sub_areas: [hotel_management, F&B, events]
+
+market_size:
+  annual_openings: 500000
+  ats_adoption_rate: 0.60   # 60% of Gulf orgs use AI-based ATS
