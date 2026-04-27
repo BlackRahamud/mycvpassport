@@ -3,6 +3,47 @@
 
 ---
 
+## ⚠️ Active rebuild — Phase 1 in flight (started 2026-04-27)
+
+**Current state:** the scan pipeline is being rebuilt. Do not introduce features that depend on the old hardcoded path. New features that consume CV data must wait for the new parser (Phase 1 Day 2-3) or read it as a contract.
+
+**Smoking gun (Phase 0 finding):** the ATS scan ignores the CV on both tiers.
+- Free path (`src/ATSChecker.jsx:403-482`): hardcoded scores 65/70/75; uploaded file is never opened. Same output for every user.
+- Paid path (`supabase/functions/analyze-cv/index.ts:23`): the prompt sends `fileBase64?.substring(0, 500)` — first 500 base64 chars of binary noise. Claude is hallucinating with no real input.
+- The 6-second wait at `ATSChecker.jsx:555` is artificial delay to make it feel like AI work.
+
+**Phase 1 + Phase 3 in parallel — 30 days.** Phase 1 fixes parsing + caching + rate limit + Turnstile + real free-tier output + retroactive re-scan. Phase 3 ships the corridor moat (regional-language field, ID validators, public Attestation Roadmap, CTC→Gulf Package translator). Phase 2 (paid modules), Phase 5 (embeddings), Phase 6 (recruiter B2B), Phase 8/9/10 are deferred to month 2-3.
+
+**Branch policy.** Phase 1 work lives on `feat/upgrade-phase-1-scan-fix`, cut from `main` (not from the design-polish branch). One phase = one branch = one PR.
+
+### Locked decisions (do not re-ask)
+
+| Choice | Locked default |
+| --- | --- |
+| Captcha provider | Cloudflare Turnstile |
+| Embeddings (when Phase 5 starts) | Voyage `voyage-3-lite` |
+| WhatsApp provider (Phase 6) | Meta Cloud API |
+| Paid scan model | `claude-sonnet-4-6` |
+| Free scan model | `claude-haiku-4-5` |
+| Tier refactor | Introduce `recruiter` tier; keep `is_pro` for now, plan deprecation. Schema-only change in Phase 1 — no UI break. |
+| PDF text extraction | `unpdf` for native PDFs, `tesseract.js` fallback for image-only PDFs, hard-fail on encrypted PDFs |
+| Eval fixtures | 15 hand-crafted synthesised + 15 real anonymised production samples (drop into `evals/scan/fixtures/` as available) |
+| Retroactive re-scan email | Claude drafts, founder approves before flipping `RETRO_RESCAN_ENABLED=true` |
+
+### Phase 0 deliverables
+
+`docs/ARCHITECTURE.md`, `docs/GAP_ANALYSIS.md`, `docs/COMPETITOR_AUDIT.md`, `docs/RECOMMENDATION.md`. Read these before opening any Phase 1 / Phase 3 ticket.
+
+### Eval harness — Phase 1 hard gate
+
+`evals/scan/` runs against every Phase 1 PR. Failing the harness blocks merge. Acceptance: ≥ 90 % field accuracy, score Pearson ≥ 0.85 vs ground truth, calibration invariant `displayed_score < min(per_ats_scores)` holds for every fixture, adversarial test passes (same JD with different CVs produces different output).
+
+### Phase 11 prep — ATS calibration
+
+Three YAML profiles seeded in `ats_profiles/`: Workday, LinkedIn, Bayt. Fields: `parser_strictness`, `hates`, `prefers`, `keyword_match`, `scoring_weights`, `known_failure_modes`. Public stats page + validation feedback loop deferred — only the data capture and the calibration invariant are wired now.
+
+---
+
 ## Who We Are
 CVPassport (mycvpassport.com) is an ATS-focused CV builder SaaS targeting expat professionals in UAE/GCC and the India market. Solo founder.
 Primary growth market: India (massive, no restrictions, path to profitability). Secondary: UAE/GCC expat corridor.
