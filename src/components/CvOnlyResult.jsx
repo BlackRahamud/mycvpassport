@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Sparkles, Lock, CheckCircle, AlertTriangle } from "lucide-react";
 import { logEvent } from "../lib/analytics/logEvent";
+import ScannerRing, { getBand, withAlpha } from "./ScannerRing";
 
 // JD-nudge sprint: the conversion-hook result page.
 //
@@ -9,14 +10,16 @@ import { logEvent } from "../lib/analytics/logEvent";
 // uploaded a CV but didn't paste a JD. We deliver a CV-health analysis
 // up top, then below it a glassmorphism "Unlock your match score" CTA
 // card sitting on top of a blurred preview of the locked match output.
-// Pasting a JD + clicking Analyze re-runs the scan in matched mode via
-// the onAnalyze prop; the parent (ATSChecker) replaces this component
-// with the full match result.
 //
-// Styling follows the project convention: inline styles, design-token
-// constants, no Tailwind. Animated gradient border uses the same
-// @property --hue + conic-gradient pattern the rest of the app uses
-// for its loading rings.
+// OLED-restore sprint:
+//   1. ScannerRing (separate component) for the health-score badge
+//      with rotating arc + glow pulse + animated count-up.
+//   2. Severity glow on structure-issue cards — left border, inset +
+//      outer drop-shadow, pulse, badge text-shadow.
+//   3. Skill pills bucketed by category (OS / Tools / Hardware /
+//      Networking / Security / Soft / default) with gradient bg,
+//      border, hover lift, 40 ms stagger entrance.
+// All three respect prefers-reduced-motion.
 
 const T = {
   bg: "#0A0A0A",
@@ -35,20 +38,100 @@ const T = {
 
 const JD_MIN_CHARS = 50;
 
-function getScoreColor(score) {
-  if (score == null) return T.muted;
-  if (score >= 85) return T.green;
-  if (score >= 70) return "#FACC15";
-  if (score >= 50) return T.amber;
-  return T.red;
+// Severity colour map (priority 2). Same OLED language as the ring.
+const SEVERITY = {
+  high: "#ef4444",
+  medium: "#f59e0b",
+  low: "#06b6d4",
+};
+
+function severityColor(weight) {
+  return SEVERITY[String(weight ?? "").toLowerCase()] ?? T.muted;
 }
 
-function getScoreLabel(score) {
-  if (score == null) return "—";
-  if (score >= 85) return "Market ready";
-  if (score >= 70) return "Solid foundation";
-  if (score >= 50) return "Getting there";
-  return "Needs work";
+// Skill-category buckets (priority 3). First-match-wins ordering: more
+// specific buckets (security, networking) come before broader ones
+// (os_infra) so "Cisco firewall" lands in security, not networking.
+const SKILL_CATEGORIES = [
+  {
+    id: "security",
+    name: "Security",
+    color: "#f43f5e",
+    keywords: [
+      "security", "cyber", "penetration", "pentest", "encryption",
+      "oauth", "ssl", "tls", "owasp", "kerberos", "iam", "siem",
+      "firewall", "ids", "ips", "soc", "vulnerability", "compliance",
+    ],
+  },
+  {
+    id: "networking",
+    name: "Networking",
+    color: "#10b981",
+    keywords: [
+      "tcp/ip", "tcpip", "tcp", "dns", "dhcp", "vpn", "router", "switch",
+      "ccna", "ccnp", "cisco", "lan", "wan", "vlan", "wireshark",
+      "subnet", "bgp", "ospf", "mpls", "load balanc", "fortinet",
+      "palo alto", "juniper", "f5",
+    ],
+  },
+  {
+    id: "os_infra",
+    name: "OS / infra",
+    color: "#6366f1",
+    keywords: [
+      "linux", "windows server", "ubuntu", "redhat", "centos", "macos",
+      "kubernetes", "k8s", "docker", "aws", "azure", "gcp", "terraform",
+      "ansible", "jenkins", "ci/cd", "cicd", "devops", "lambda", "ec2",
+      "s3", "kafka", "redis", "postgres", "mysql", "mongo", "dynamodb",
+      "rabbitmq", "node.js", "java spring", "active directory", "office 365",
+      "powershell", "vmware", "hyper-v", "azure ad",
+    ],
+  },
+  {
+    id: "hardware",
+    name: "Hardware",
+    color: "#f97316",
+    keywords: [
+      "welding", "welder", "plumbing", "plumber", "electrician", "electrical",
+      "mechanical", "drill", "lathe", "ndt", "hvac", "refrigeration",
+      "asme", "asnt", "crane", "forklift", "rigging", "scaffolding",
+      "site supervis", "site engineer", "concrete", "rebar", "civil work",
+      "trade test", "iti ", "diploma in", "diesel", "automotive",
+    ],
+  },
+  {
+    id: "tools_saas",
+    name: "Tools / SaaS",
+    color: "#06b6d4",
+    keywords: [
+      "figma", "slack", "jira", "salesforce", "hubspot", "github", "gitlab",
+      "notion", "confluence", "asana", "tableau", "power bi", "powerbi",
+      "opera pms", "opera cloud", "sap fico", "sap mm", "sap sd", "tally",
+      "quickbooks", "zoho", "servicenow", "zendesk", "freshdesk", "trello",
+    ],
+  },
+  {
+    id: "soft",
+    name: "Soft skills",
+    color: "#a855f7",
+    keywords: [
+      "communication", "leadership", "teamwork", "collaboration",
+      "problem-solving", "problem solving", "time management", "negotiation",
+      "mentoring", "stakeholder management", "cross-functional",
+      "presentation", "public speaking",
+    ],
+  },
+];
+
+const DEFAULT_SKILL_CAT = { id: "default", name: "Default", color: "#64748b" };
+
+function categorizeSkill(skill) {
+  const s = String(skill ?? "").toLowerCase();
+  if (!s) return DEFAULT_SKILL_CAT;
+  for (const cat of SKILL_CATEGORIES) {
+    if (cat.keywords.some((k) => s.includes(k))) return cat;
+  }
+  return DEFAULT_SKILL_CAT;
 }
 
 const containerVariants = {
@@ -94,7 +177,6 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
     const v = e.target.value;
     setJdText(v);
     if (!hasFiredPasted && v.length >= 30) {
-      // Loose proxy for "user has actually typed/pasted something real".
       setHasFiredPasted(true);
       logEvent("jd_pasted", { chars: v.length, source: "cv_only_result" });
     }
@@ -109,16 +191,14 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
   };
 
   const onKeyDown = (e) => {
-    // Cmd/Ctrl+Enter submits — common power-user expectation.
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
       onSubmit();
     }
   };
 
-  const score = typeof result?.cvHealthScore === "number" ? result.cvHealthScore : null;
-  const scoreColor = getScoreColor(score);
-  const scoreLabel = getScoreLabel(score);
+  const score = typeof result?.cvHealthScore === "number" ? result.cvHealthScore : 0;
+  const band = getBand(score);
 
   const flagRows = useMemo(() => {
     const flags = result?.atsFlags || {};
@@ -161,10 +241,15 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
           0%, 100% { opacity: 0.6; }
           50% { opacity: 1; }
         }
+        @keyframes cvp-issue-glow-pulse {
+          0%, 100% { opacity: 0.45; }
+          50%      { opacity: 0.95; }
+        }
         @media (prefers-reduced-motion: reduce) {
-          .cvp-cta-border, .cvp-shimmer, .cvp-pulse {
+          .cvp-cta-border, .cvp-shimmer, .cvp-pulse, .cvp-issue-glow {
             animation: none !important;
           }
+          .cvp-issue-glow { opacity: 0.6 !important; }
         }
       `}</style>
 
@@ -183,44 +268,50 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
           </p>
         </motion.div>
 
-        {/* ── CV HEALTH SCORE ─────────────────────────────────────────── */}
+        {/* ── CV HEALTH SCORE — OLED scanner ring ─────────────────────── */}
         <motion.section
           variants={itemVariants}
           style={{
             background: T.surface,
             border: `1px solid ${T.border}`,
             borderRadius: 16,
-            padding: "24px 24px 20px",
+            padding: "32px 24px 28px",
             display: "grid",
             gridTemplateColumns: "auto 1fr",
-            gap: 20,
+            gap: 28,
             alignItems: "center",
             marginBottom: 16,
           }}
         >
-          <div style={{ width: 96, height: 96, borderRadius: "50%", background: T.elevated, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px solid ${scoreColor}` }}>
-            <div style={{ fontSize: 32, fontWeight: 800, color: scoreColor, lineHeight: 1 }}>{score ?? "—"}</div>
-            <div style={{ fontSize: 9, color: T.muted, letterSpacing: 1.2, textTransform: "uppercase", marginTop: 4 }}>Health</div>
-          </div>
+          <ScannerRing score={score} size={180} reveal={!reduce} />
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: scoreColor, marginBottom: 4 }}>{scoreLabel}</div>
             <div style={{ color: T.muted, fontSize: 14 }}>
               {result?.industry ? `Inferred industry: ${result.industry}` : "Industry not inferred"}
               {result?.seniority ? ` · ${result.seniority.replace("_", " ")}` : ""}
             </div>
+            <div style={{ color: T.muted, fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
+              Health score is parseability + structure in absolute terms — not fit. Paste a JD below for the real match score.
+            </div>
           </div>
         </motion.section>
 
-        {/* ── TOP SKILLS ──────────────────────────────────────────────── */}
+        {/* ── TOP SKILLS — categorised pills ──────────────────────────── */}
         {Array.isArray(result?.topSkills) && result.topSkills.length > 0 && (
           <motion.section variants={itemVariants} style={sectionStyle}>
             <div style={sectionLabelStyle}>Top skills detected</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {result.topSkills.map((skill, i) => (
-                <span key={`${skill}-${i}`} style={chipStyle}>
-                  {skill}
-                </span>
-              ))}
+              {result.topSkills.map((skill, i) => {
+                const cat = categorizeSkill(skill);
+                return (
+                  <SkillPill
+                    key={`${skill}-${i}`}
+                    skill={skill}
+                    category={cat}
+                    index={i}
+                    reduce={reduce}
+                  />
+                );
+              })}
             </div>
           </motion.section>
         )}
@@ -270,33 +361,18 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
           </motion.section>
         )}
 
-        {/* ── STRUCTURE ISSUES ────────────────────────────────────────── */}
+        {/* ── STRUCTURE ISSUES — severity OLED glow ───────────────────── */}
         {Array.isArray(result?.structureIssues) && result.structureIssues.length > 0 && (
           <motion.section variants={itemVariants} style={sectionStyle}>
             <div style={sectionLabelStyle}>Structure issues</div>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
               {result.structureIssues.map((issue, i) => (
-                <li
+                <SeverityIssueCard
                   key={i}
-                  style={{
-                    background: T.elevated,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 10,
-                    padding: "12px 14px",
-                  }}
-                >
-                  <div style={{ fontSize: 11, color: weightColor(issue.weight), letterSpacing: 0.4, textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>
-                    {issue.weight}
-                  </div>
-                  <div style={{ fontSize: 14, color: T.text, marginBottom: issue.evidence ? 4 : 0 }}>
-                    {issue.claim}
-                  </div>
-                  {issue.evidence && (
-                    <div style={{ fontSize: 12, color: T.muted, fontStyle: "italic" }}>
-                      “{issue.evidence}”
-                    </div>
-                  )}
-                </li>
+                  issue={issue}
+                  index={i}
+                  reduce={reduce}
+                />
               ))}
             </ul>
           </motion.section>
@@ -307,8 +383,6 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
           variants={itemVariants}
           style={{ marginTop: 32, position: "relative" }}
         >
-          {/* Animated gradient border. The conic-gradient + @property --cvp-hue
-              pattern is the same one ATSChecker uses for its loading ring. */}
           <div
             className="cvp-cta-border"
             aria-hidden
@@ -420,11 +494,9 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
               }}
             >
               {isAnalyzing ? (
-                <>
-                  <span className="cvp-pulse" style={{ animation: "cvp-pulse-soft 1.2s ease-in-out infinite" }}>
-                    Matching against the JD…
-                  </span>
-                </>
+                <span className="cvp-pulse" style={{ animation: "cvp-pulse-soft 1.2s ease-in-out infinite" }}>
+                  Matching against the JD…
+                </span>
               ) : (
                 <>
                   <Sparkles size={16} aria-hidden />
@@ -452,7 +524,7 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
                 userSelect: "none",
               }}
             >
-              <LockedPreview />
+              <LockedPreview band={band} />
             </motion.section>
           )}
           {isAnalyzing && (
@@ -477,11 +549,105 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
   );
 }
 
-// ── Visible "Locked" preview of what they'll get with a JD ──────────────────
-// Shown faded + blurred. aria-hidden + pointer-events: none so screen
-// readers + keyboard nav skip it. The visible "🔒 Locked" badge tells
-// sighted users what's behind the blur.
-function LockedPreview() {
+// ── Severity-glow card (priority 2) ─────────────────────────────────────────
+function SeverityIssueCard({ issue, index, reduce }) {
+  const color = severityColor(issue?.weight);
+  const innerShadow = `inset 4px 0 0 ${withAlpha(color, 0.16)}`;
+  const outerShadow = `0 0 12px ${withAlpha(color, 0.45)}`;
+
+  return (
+    <motion.li
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={reduce ? false : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: reduce ? 0 : index * 0.04 }}
+      style={{
+        position: "relative",
+        background: T.elevated,
+        border: `1px solid ${T.border}`,
+        borderLeft: `2px solid ${color}`,
+        borderRadius: 10,
+        padding: "12px 14px",
+      }}
+    >
+      <div
+        className="cvp-issue-glow"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: 10,
+          boxShadow: `${innerShadow}, ${outerShadow}`,
+          pointerEvents: "none",
+          animation: "cvp-issue-glow-pulse 2.5s ease-in-out infinite",
+          opacity: 0.7,
+        }}
+      />
+      <div
+        style={{
+          fontSize: 11,
+          color,
+          textShadow: `0 0 6px ${withAlpha(color, 0.55)}`,
+          letterSpacing: 0.5,
+          textTransform: "uppercase",
+          fontWeight: 700,
+          marginBottom: 4,
+          position: "relative",
+        }}
+      >
+        {issue?.weight ?? "info"}
+      </div>
+      <div style={{ fontSize: 14, color: T.text, marginBottom: issue?.evidence ? 4 : 0, position: "relative" }}>
+        {issue?.claim}
+      </div>
+      {issue?.evidence && (
+        <div style={{ fontSize: 12, color: T.muted, fontStyle: "italic", position: "relative" }}>
+          “{issue.evidence}”
+        </div>
+      )}
+    </motion.li>
+  );
+}
+
+// ── Skill pill (priority 3) ─────────────────────────────────────────────────
+function SkillPill({ skill, category, index, reduce }) {
+  const [hovered, setHovered] = useState(false);
+  const bg = `linear-gradient(135deg, ${withAlpha(category.color, 0.12)} 0%, ${withAlpha(category.color, 0.04)} 100%)`;
+  const border = `1px solid ${withAlpha(category.color, 0.35)}`;
+  const text = withAlpha(category.color, 0.95);
+  const hoverGlow = `0 0 18px ${withAlpha(category.color, 0.4)}`;
+
+  return (
+    <motion.span
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={reduce ? false : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, delay: reduce ? 0 : index * 0.04, ease: [0.4, 0, 0.2, 1] }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={category.name === "Default" ? skill : `${skill} · ${category.name}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "6px 13px",
+        background: bg,
+        border,
+        borderRadius: 999,
+        fontSize: 13,
+        color: text,
+        fontWeight: 600,
+        cursor: "default",
+        boxShadow: hovered && !reduce ? hoverGlow : "none",
+        transition: "box-shadow 200ms cubic-bezier(0.4,0,0.2,1), transform 200ms cubic-bezier(0.4,0,0.2,1)",
+        transform: hovered && !reduce ? "translateY(-1px)" : "translateY(0)",
+      }}
+    >
+      {skill}
+    </motion.span>
+  );
+}
+
+// ── Locked preview ──────────────────────────────────────────────────────────
+function LockedPreview({ band }) {
+  const accent = band?.hex ?? T.amber;
   return (
     <div
       style={{
@@ -495,8 +661,8 @@ function LockedPreview() {
       }}
     >
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 16, alignItems: "center", marginBottom: 16 }}>
-        <div style={{ width: 64, height: 64, borderRadius: "50%", background: T.elevated, border: `2px solid ${T.amber}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ color: T.amber, fontSize: 24, fontWeight: 800 }}>•••</span>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: T.elevated, border: `2px solid ${accent}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ color: accent, fontSize: 24, fontWeight: 800 }}>•••</span>
         </div>
         <div>
           <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>Match score</div>
@@ -572,12 +738,6 @@ function ShimmerBar({ height = 80 }) {
   );
 }
 
-function weightColor(weight) {
-  if (weight === "high") return T.red;
-  if (weight === "medium") return T.amber;
-  return T.muted;
-}
-
 const sectionStyle = {
   background: T.surface,
   border: `1px solid ${T.border}`,
@@ -606,4 +766,3 @@ const chipStyle = {
   color: T.text,
   fontWeight: 500,
 };
-
