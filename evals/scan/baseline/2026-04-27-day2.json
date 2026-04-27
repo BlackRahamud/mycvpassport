@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-27T19:30:24.363Z",
+  "generatedAt": "2026-04-27T20:12:40.344Z",
   "totalFixtures": 30,
   "invariants": [
     {
@@ -46,15 +46,15 @@
           "sample": [
             {
               "cvId": "01-gcc-national-banking-uae",
-              "promptHash": "5387f53d"
+              "promptHash": "8cc0523"
             },
             {
               "cvId": "02-gcc-national-hr-ksa",
-              "promptHash": "e9c3565"
+              "promptHash": "412d37ff"
             },
             {
               "cvId": "03-gcc-national-accountant-qatar",
-              "promptHash": "a7bd9f89"
+              "promptHash": "b5cf43d7"
             }
           ]
         },
@@ -67,15 +67,15 @@
           "sample": [
             {
               "cvId": "01-gcc-national-banking-uae",
-              "promptHash": "b4afa5ac"
+              "promptHash": "209dbffe"
             },
             {
               "cvId": "02-gcc-national-hr-ksa",
-              "promptHash": "772b2284"
+              "promptHash": "b8d584"
             },
             {
               "cvId": "03-gcc-national-accountant-qatar",
-              "promptHash": "898588e0"
+              "promptHash": "d6b282f2"
             }
           ]
         },
@@ -88,15 +88,15 @@
           "sample": [
             {
               "cvId": "01-gcc-national-banking-uae",
-              "promptHash": "5075dbde"
+              "promptHash": "69def262"
             },
             {
               "cvId": "02-gcc-national-hr-ksa",
-              "promptHash": "fa414206"
+              "promptHash": "5c36aba0"
             },
             {
               "cvId": "03-gcc-national-accountant-qatar",
-              "promptHash": "6aba9b2a"
+              "promptHash": "d7de0056"
             }
           ]
         },
@@ -109,15 +109,15 @@
           "sample": [
             {
               "cvId": "01-gcc-national-banking-uae",
-              "promptHash": "3be6face"
+              "promptHash": "e0f5cf2"
             },
             {
               "cvId": "02-gcc-national-hr-ksa",
-              "promptHash": "d7cfc4f6"
+              "promptHash": "5fdd8310"
             },
             {
               "cvId": "03-gcc-national-accountant-qatar",
-              "promptHash": "d902f81a"
+              "promptHash": "4e9056e6"
             }
           ]
         },
@@ -130,15 +130,15 @@
           "sample": [
             {
               "cvId": "01-gcc-national-banking-uae",
-              "promptHash": "a5d1d7a6"
+              "promptHash": "99532bc4"
             },
             {
               "cvId": "02-gcc-national-hr-ksa",
-              "promptHash": "7acc887e"
+              "promptHash": "6e974c7e"
             },
             {
               "cvId": "03-gcc-national-accountant-qatar",
-              "promptHash": "c2cd0da"
+              "promptHash": "47a58338"
             }
           ]
         }
