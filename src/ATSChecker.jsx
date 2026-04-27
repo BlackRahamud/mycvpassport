@@ -5,6 +5,8 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
 import { extractCvText, CvExtractionError } from "./services/cvExtraction";
+import { logEvent } from "./lib/analytics/logEvent";
+import CvOnlyResult from "./components/CvOnlyResult";
 import UpgradeModal from "./UpgradeModal";
 
 // Sprint #4: Cloudflare Turnstile site key (public). When unset locally
@@ -309,6 +311,8 @@ export default function ATSChecker({
   const turnstileRef = useRef(null);
   const [quota, setQuota] = useState(null);
   const [spend, setSpend] = useState(null);
+  // JD-nudge sprint: in-place re-scan from CvOnlyResult (no loading-page swap)
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
   const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
@@ -395,13 +399,24 @@ export default function ATSChecker({
   // returned via Anthropic tool_use. No more hardcoded scores, no more
   // base64 truncation, no more 6s artificial delay, no more detectRole
   // regex fallback to sales_real_estate. Persona is inferred by the model.
-  const handleAnalyze = useCallback(async () => {
+  //
+  // JD-nudge: handleAnalyze accepts an optional { jdOverride, fromNudge }
+  // so the CvOnlyResult component can re-run the scan with a freshly
+  // pasted JD without forcing a navigation. fromNudge=true skips the
+  // staged loading screen (CvOnlyResult shows its own shimmer).
+  const handleAnalyze = useCallback(async (overrides) => {
     if (!uploadedFile) { setError("Please upload your CV."); return; }
     setError(null);
+
+    const jdOverride = overrides && typeof overrides.jdOverride === "string" ? overrides.jdOverride : null;
+    const fromNudge = !!(overrides && overrides.fromNudge);
+    const jdToUse = jdOverride != null ? jdOverride : jobDescription;
+    if (jdOverride != null) setJobDescription(jdOverride);
 
     if (typeof window.gtag === "function") {
       window.gtag("event", "lead_capture", {
         source: "ats_checker",
+        from_nudge: fromNudge ? 1 : 0,
       });
     }
 
@@ -414,7 +429,11 @@ export default function ATSChecker({
     }
     const tier = paidUser ? "paid" : "free";
 
-    setPhase("loading");
+    if (fromNudge) {
+      setIsReanalyzing(true);
+    } else {
+      setPhase("loading");
+    }
     setLoadingStage("extracting");
 
     let cvText = "";
@@ -429,7 +448,11 @@ export default function ATSChecker({
         console.error("ATS extraction error:", err);
         setError("Could not read your file. Try uploading a text-based PDF or DOCX.");
       }
-      setPhase("idle");
+      if (fromNudge) {
+        setIsReanalyzing(false);
+      } else {
+        setPhase("idle");
+      }
       return;
     }
 
@@ -451,7 +474,7 @@ export default function ATSChecker({
           },
           body: JSON.stringify({
             cvText,
-            jobDescription: jobDescription || "",
+            jobDescription: jdToUse || "",
             userId,
             tier,
             planName,
@@ -484,7 +507,8 @@ export default function ATSChecker({
                 ? "Captcha verification failed. Reload and try again."
                 : "Scoring engine returned an error. Please try again.");
         setError(friendly);
-        setPhase("idle");
+        if (fromNudge) setIsReanalyzing(false);
+        else setPhase("idle");
         if (data && data.quota) setQuota(data.quota);
         if (data && data.spend) setSpend(data.spend);
         return;
@@ -493,7 +517,8 @@ export default function ATSChecker({
       if (data && data.error) {
         const friendly = data.message || "Scoring engine returned an error. Please try again.";
         setError(friendly);
-        setPhase("idle");
+        if (fromNudge) setIsReanalyzing(false);
+        else setPhase("idle");
         return;
       }
 
@@ -524,15 +549,36 @@ export default function ATSChecker({
       if (data.spend) setSpend(data.spend);
       setPhase("results");
       onResultsVisible?.(true);
+
+      // JD-nudge analytics: fire when a nudge re-scan flips cv_only → matched.
+      if (fromNudge && data?.mode === "matched") {
+        logEvent("jd_nudge_converted", {
+          score: data.score,
+          industry: data.industry,
+          seniority: data.seniority,
+          jdChars: jdToUse.length,
+          model: data.model,
+        });
+      }
+      if (fromNudge) setIsReanalyzing(false);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("ATS analysis error:", err);
       setError("Something went wrong. Please try again.");
-      setPhase("idle");
+      if (fromNudge) setIsReanalyzing(false);
+      else setPhase("idle");
     } finally {
       setLoadingStage(null);
     }
   }, [uploadedFile, jobDescription, user, onResultsVisible, turnstileToken]);
+
+  // JD-nudge: callback handed to CvOnlyResult. Always passes
+  // fromNudge:true so the parent knows to skip the staged loader and
+  // fire jd_nudge_converted on success.
+  const handleNudgeAnalyze = useCallback(
+    (jdText) => handleAnalyze({ jdOverride: jdText, fromNudge: true }),
+    [handleAnalyze],
+  );
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (
@@ -829,7 +875,35 @@ export default function ATSChecker({
     );
   }
 
-  // ── RENDER: results ───────────────────────────────────────────────────────
+  // ── RENDER: results — JD-nudge cv_only branch ────────────────────────────
+  // The Edge Function returns mode === "cv_only" when the user submitted
+  // no JD (or one shorter than 50 chars). CvOnlyResult owns its own
+  // animated CTA + locked-preview + shimmer transition; pasting a JD and
+  // clicking Analyze re-enters this component via handleNudgeAnalyze and
+  // the next response (mode === "matched") falls through to the full
+  // result render below.
+  if (results?.mode === "cv_only") {
+    return (
+      <>
+        <Nav back={() => { setPhase("idle"); setResults(null); setUploadedFile(null); setJobDescription(""); }} />
+        <CvOnlyResult
+          result={results}
+          onAnalyze={handleNudgeAnalyze}
+          isAnalyzing={isReanalyzing}
+        />
+        {error && (
+          <div role="alert" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", color: T.red, fontSize: 13, padding: "10px 16px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
+            {error}
+          </div>
+        )}
+        {showPaywall && (
+          <UpgradeModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} feature="ats" />
+        )}
+      </>
+    );
+  }
+
+  // ── RENDER: results — matched ────────────────────────────────────────────
   const score = results?.score ?? 82;
   const keywordsScore = results?.keywordsScore ?? 72;
   const structureScore = results?.structureScore ?? 58;
