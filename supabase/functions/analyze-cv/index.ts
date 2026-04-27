@@ -1,9 +1,16 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-import { buildScanPromptBlocks, getSystemPrompt } from "./_prompt.mjs";
+import {
+  buildScanPromptBlocks,
+  buildCvOnlyPromptBlocks,
+  getSystemPrompt,
+  getCvOnlySystemPrompt,
+} from "./_prompt.mjs";
 import {
   SCAN_TOOL,
+  CV_ONLY_TOOL,
+  JD_MIN_CHARS,
   modelForTier,
   ANTHROPIC_VERSION,
   MAX_TOKENS_BY_MODEL,
@@ -30,7 +37,7 @@ interface ScanRequest {
   bypassToken?: string;
 }
 
-const REQUIRED_TOOL_FIELDS = [
+const MATCHED_REQUIRED_FIELDS = [
   "score",
   "keywordsScore",
   "structureScore",
@@ -40,6 +47,16 @@ const REQUIRED_TOOL_FIELDS = [
   "reasons",
   "missingSkills",
   "atsFlags",
+  "confidence",
+];
+
+const CV_ONLY_REQUIRED_FIELDS = [
+  "cvHealthScore",
+  "topSkills",
+  "structureIssues",
+  "atsFlags",
+  "industry",
+  "seniority",
   "confidence",
 ];
 
@@ -74,6 +91,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const cvText = String(body.cvText ?? "").trim();
+  const jobDescription = String(body.jobDescription ?? "").trim();
   const tier = normaliseTier(body.tier);
   const userId = body.userId && body.userId !== "anon" ? String(body.userId) : null;
 
@@ -97,6 +115,13 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  // ── JD-nudge branch ──────────────────────────────────────────────────────
+  // < 50 chars (or absent) → cv_only mode: deliver CV-health analysis only,
+  // no fit score, no missing-skills surface. The client renders an unlock
+  // CTA that asks for a real JD and re-runs the scan in matched mode.
+  const mode: "cv_only" | "matched" =
+    jobDescription.length < JD_MIN_CHARS ? "cv_only" : "matched";
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supabase =
@@ -111,8 +136,6 @@ Deno.serve(async (req: Request) => {
   const identityArgs = { userId, ipHash, tier };
 
   // ── Turnstile ────────────────────────────────────────────────────────────
-  // Only enforced for anonymous + free callers. Paid scans skip the
-  // captcha because they're already authenticated and rate-limited.
   if (tier === "anonymous" || tier === "free") {
     const ts = await verifyTurnstile({
       token: body.turnstileToken,
@@ -128,13 +151,14 @@ Deno.serve(async (req: Request) => {
           endpoint: "analyze-cv",
           status: "turnstile_blocked",
           error_code: ts.mode,
-          meta: { reason: ts.reason ?? null, errorCodes: ts.errorCodes ?? null },
+          meta: { reason: ts.reason ?? null, errorCodes: ts.errorCodes ?? null, mode },
         });
       }
       return json(
         {
           error: "turnstile_blocked",
-          mode: ts.mode,
+          mode,
+          turnstileMode: ts.mode,
           message:
             "Captcha verification failed. Refresh the page and try again — if it keeps failing, you may be behind a strict network.",
         },
@@ -156,12 +180,13 @@ Deno.serve(async (req: Request) => {
         tier,
         endpoint: "analyze-cv",
         status: "rate_limited",
-        meta: { used: rate.used, limit: rate.limit, windowHours: rate.windowHours },
+        meta: { used: rate.used, limit: rate.limit, windowHours: rate.windowHours, mode },
       });
     }
     return json(
       {
         error: "rate_limited",
+        mode,
         message: `Daily limit reached for the ${tier} tier (${rate.limit} scans per ${rate.windowHours}h). Wait or upgrade.`,
         used: rate.used,
         limit: rate.limit,
@@ -184,12 +209,13 @@ Deno.serve(async (req: Request) => {
         tier,
         endpoint: "analyze-cv",
         status: "spend_capped",
-        meta: { spentUsd: cap.spentUsd, capUsd: cap.capUsd },
+        meta: { spentUsd: cap.spentUsd, capUsd: cap.capUsd, mode },
       });
     }
     return json(
       {
         error: "spend_capped",
+        mode,
         message: `Daily Anthropic spend cap hit for the ${tier} tier ($${cap.capUsd.toFixed(2)}). Resets at UTC midnight.`,
         spentUsd: cap.spentUsd,
         capUsd: cap.capUsd,
@@ -201,21 +227,24 @@ Deno.serve(async (req: Request) => {
   // ── Anthropic call ───────────────────────────────────────────────────────
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) {
-    return json({ error: "anthropic_not_configured" }, 500);
+    return json({ error: "anthropic_not_configured", mode }, 500);
   }
 
   const model = modelForTier(tier);
   const maxTokens =
     (MAX_TOKENS_BY_MODEL as Record<string, number>)[model] ?? 2048;
 
-  const userBlocks = buildScanPromptBlocks({
-    cvText,
-    jobDescription: body.jobDescription,
-  });
+  const tool = mode === "cv_only" ? CV_ONLY_TOOL : SCAN_TOOL;
+  const systemText = mode === "cv_only" ? getCvOnlySystemPrompt() : getSystemPrompt();
+  const userBlocks =
+    mode === "cv_only"
+      ? buildCvOnlyPromptBlocks({ cvText })
+      : buildScanPromptBlocks({ cvText, jobDescription });
+
   const systemBlocks = [
     {
       type: "text",
-      text: getSystemPrompt(),
+      text: systemText,
       cache_control: { type: "ephemeral" },
     },
   ];
@@ -233,8 +262,8 @@ Deno.serve(async (req: Request) => {
         model,
         max_tokens: maxTokens,
         system: systemBlocks,
-        tools: [SCAN_TOOL],
-        tool_choice: { type: "tool", name: SCAN_TOOL.name },
+        tools: [tool],
+        tool_choice: { type: "tool", name: tool.name },
         messages: [{ role: "user", content: userBlocks }],
       }),
     });
@@ -248,10 +277,10 @@ Deno.serve(async (req: Request) => {
         model,
         status: "error",
         error_code: "anthropic_unreachable",
-        meta: { message: String(err) },
+        meta: { message: String(err), mode },
       });
     }
-    return json({ error: "anthropic_unreachable", message: String(err) }, 502);
+    return json({ error: "anthropic_unreachable", mode, message: String(err) }, 502);
   }
 
   if (!response.ok) {
@@ -265,12 +294,13 @@ Deno.serve(async (req: Request) => {
         model,
         status: "error",
         error_code: `anthropic_http_${response.status}`,
-        meta: { body: text.slice(0, 500) },
+        meta: { body: text.slice(0, 500), mode },
       });
     }
     return json(
       {
         error: "anthropic_error",
+        mode,
         status: response.status,
         body: text.slice(0, 800),
       },
@@ -279,10 +309,10 @@ Deno.serve(async (req: Request) => {
   }
 
   const ai = await response.json();
-  const tool = (ai.content ?? []).find(
+  const toolUse = (ai.content ?? []).find(
     (b: { type?: string }) => b?.type === "tool_use",
   );
-  if (!tool || !tool.input || typeof tool.input !== "object") {
+  if (!toolUse || !toolUse.input || typeof toolUse.input !== "object") {
     if (supabase) {
       await logCall(supabase, {
         user_id: userId,
@@ -292,13 +322,16 @@ Deno.serve(async (req: Request) => {
         model,
         status: "error",
         error_code: "no_tool_use_in_response",
+        meta: { mode },
       });
     }
-    return json({ error: "no_tool_use_in_response", raw: ai }, 502);
+    return json({ error: "no_tool_use_in_response", mode, raw: ai }, 502);
   }
 
-  const result = tool.input as Record<string, unknown>;
-  for (const k of REQUIRED_TOOL_FIELDS) {
+  const result = toolUse.input as Record<string, unknown>;
+  const requiredFields =
+    mode === "cv_only" ? CV_ONLY_REQUIRED_FIELDS : MATCHED_REQUIRED_FIELDS;
+  for (const k of requiredFields) {
     if (!(k in result)) {
       if (supabase) {
         await logCall(supabase, {
@@ -309,11 +342,11 @@ Deno.serve(async (req: Request) => {
           model,
           status: "error",
           error_code: "schema_violation",
-          meta: { field: k },
+          meta: { field: k, mode },
         });
       }
       return json(
-        { error: "schema_violation", field: k, raw: result },
+        { error: "schema_violation", mode, field: k, raw: result },
         502,
       );
     }
@@ -347,20 +380,57 @@ Deno.serve(async (req: Request) => {
       output_tokens: outputTokens,
       estimated_cost_usd: estimatedCost,
       status: "ok",
-      meta: cap.alertThresholdHit
-        ? {
-            soft_alert: true,
-            spentUsd: Number((cap.spentUsd + estimatedCost).toFixed(6)),
-            capUsd: cap.capUsd,
-          }
-        : null,
+      meta: {
+        mode,
+        ...(cap.alertThresholdHit
+          ? {
+              soft_alert: true,
+              spentUsd: Number((cap.spentUsd + estimatedCost).toFixed(6)),
+              capUsd: cap.capUsd,
+            }
+          : {}),
+      },
     });
   }
 
-  // After this call, deduct the new use from the rate budget.
   const remainingAfter = Math.max(0, (rate.remaining ?? rate.limit) - 1);
 
   // ── Response ─────────────────────────────────────────────────────────────
+  if (mode === "cv_only") {
+    return json({
+      mode: "cv_only",
+      cvHealthScore: result.cvHealthScore,
+      topSkills: result.topSkills,
+      structureIssues: result.structureIssues ?? [],
+      atsFlags: result.atsFlags,
+      bilingualHeadline: result.bilingualHeadline ?? null,
+      industry: result.industry,
+      seniority: result.seniority,
+      confidence: result.confidence,
+      model,
+      usage,
+      cost: {
+        estimatedUsd: estimatedCost,
+        cacheReadInputTokens: cacheRead,
+        cacheCreationInputTokens: cacheCreate,
+      },
+      quota: {
+        tier,
+        used: rate.used + 1,
+        remaining: remainingAfter,
+        limit: rate.limit,
+        windowHours: rate.windowHours,
+        isPaid: isPaid(tier),
+      },
+      spend: {
+        spentUsdToday: Number((cap.spentUsd + estimatedCost).toFixed(6)),
+        capUsd: cap.capUsd,
+        alertThresholdHit: cap.alertThresholdHit,
+      },
+    });
+  }
+
+  // matched mode — original full response shape, with mode added.
   const score =
     typeof result.score === "number" ? (result.score as number) : 0;
   const compat = {
@@ -378,6 +448,7 @@ Deno.serve(async (req: Request) => {
   };
 
   return json({
+    mode: "matched",
     ...compat,
     seniority: result.seniority,
     reasons: result.reasons,

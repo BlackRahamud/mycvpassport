@@ -101,6 +101,112 @@ export const SCAN_TOOL = {
 };
 
 /**
+ * Sprint: JD nudge — cv_only mode tool.
+ *
+ * When the user runs a scan WITHOUT a JD (or with one shorter than the
+ * 50-char threshold), we don't pretend to score fit. Instead we deliver
+ * a CV-health analysis: how parseable is this CV in absolute terms,
+ * which skills does it surface, what structure problems will hurt at
+ * any ATS. The matched scan_result schema (above) is reused for the
+ * full match flow once a real JD lands.
+ */
+export const CV_ONLY_TOOL = {
+  name: "submit_cv_only_result",
+  description:
+    "Submit a CV-only health analysis when no job description is available. Do NOT score fit, do NOT identify missing skills.",
+  input_schema: {
+    type: "object",
+    required: [
+      "cvHealthScore",
+      "topSkills",
+      "structureIssues",
+      "atsFlags",
+      "industry",
+      "seniority",
+      "confidence",
+    ],
+    properties: {
+      cvHealthScore: {
+        type: "integer",
+        minimum: 0,
+        maximum: 100,
+        description:
+          "Absolute parseability + structural quality 0-100. NOT a fit score. Penalise tables, columns, image-only PDFs, missing contact block, weird fonts, non-standard sections.",
+      },
+      topSkills: {
+        type: "array",
+        items: { type: "string" },
+        minItems: 3,
+        maxItems: 5,
+        description:
+          "Top 5 strongest concrete skills demonstrated by the CV (proper-noun and technical, not soft skills). Quote the CV.",
+      },
+      structureIssues: {
+        type: "array",
+        maxItems: 5,
+        items: {
+          type: "object",
+          required: ["claim", "weight"],
+          properties: {
+            claim: { type: "string" },
+            evidence: { type: "string" },
+            weight: { type: "string", enum: ["high", "medium", "low"] },
+          },
+        },
+        description:
+          "Up to 5 specific ATS-parseability problems. Quote the CV in evidence when possible.",
+      },
+      atsFlags: {
+        type: "object",
+        required: [
+          "hasContactBlock",
+          "hasTablesOrColumns",
+          "imageHeavy",
+          "fontIssues",
+        ],
+        properties: {
+          hasContactBlock: { type: "boolean" },
+          hasTablesOrColumns: { type: "boolean" },
+          imageHeavy: { type: "boolean" },
+          fontIssues: { type: "boolean" },
+        },
+      },
+      bilingualHeadline: {
+        type: "object",
+        required: ["english", "arabic"],
+        properties: {
+          english: { type: "string", maxLength: 140 },
+          arabic: { type: "string", maxLength: 140 },
+        },
+        description:
+          "Optional EN + AR professional headline the candidate can paste at the top of their CV.",
+      },
+      industry: { type: "string" },
+      seniority: {
+        type: "string",
+        enum: ["fresh_graduate", "junior", "mid", "senior", "executive"],
+      },
+      confidence: {
+        type: "object",
+        required: ["industry", "seniority", "score"],
+        properties: {
+          industry: { type: "number", minimum: 0, maximum: 1 },
+          seniority: { type: "number", minimum: 0, maximum: 1 },
+          score: { type: "number", minimum: 0, maximum: 1 },
+        },
+      },
+    },
+  },
+};
+
+/**
+ * Hard threshold below which the Edge Function branches to cv_only mode.
+ * Conservative — most pasted JDs are ≥ 200 chars; under 50 means the
+ * user pasted a job title or nothing at all.
+ */
+export const JD_MIN_CHARS = 50;
+
+/**
  * Tier → model routing.
  *   anonymous + free → claude-haiku-4-5
  *   paid + paid_pro  → claude-sonnet-4-6
