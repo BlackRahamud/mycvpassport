@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
-import { detectRole } from "./utils/detectRole";
-import skillSuggestions from "./data/skillSuggestions";
+import { extractCvText, CvExtractionError } from "./services/cvExtraction";
 import UpgradeModal from "./UpgradeModal";
 
 // ─── Design tokens — FIX 1: amber #F59E0B → #D97706 ─────────────────────────
@@ -37,26 +36,24 @@ function formatPlanDisplayName(raw) {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Day 2: stages mirror real pipeline progress. The loadingStage state
+// drives currentIdx — no more 1-second timer faking progress.
+const STAGE_ORDER = ["extracting", "analysing", "scoring"];
+
 function buildFreeLoadingSteps() {
   return [
-    "Extracting your information...",
-    "Running against GCC market data...",
-    "Matching keywords...",
-    "Calculating your score...",
-    "Results ready",
+    "Extracting your CV text…",
+    "Analysing CV against the JD (Haiku 4.5)…",
+    "Compiling your scores…",
   ];
 }
 
 function buildProLoadingSteps(planName) {
   const p = formatPlanDisplayName(planName);
   return [
-    "Extracting your information...",
-    `Activating ${p} analysis...`,
-    "Running against GCC market data pool...",
-    "Matching keywords to your role...",
-    "Something interesting found",
-    "Finalizing your full report...",
-    `${p} results ready`,
+    "Extracting your CV text…",
+    `Running ${p} analysis (Sonnet 4.6)…`,
+    "Compiling your scores…",
   ];
 }
 
@@ -287,7 +284,8 @@ export default function ATSChecker({
   const [uploadedFile, setUploadedFile] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
   const [loadingMeta, setLoadingMeta] = useState(null);
-  const [loadingSeconds, setLoadingSeconds] = useState(0);
+  // Day 2: real pipeline progress — null | "extracting" | "analysing" | "scoring"
+  const [loadingStage, setLoadingStage] = useState(null);
   const [chipsRevealed, setChipsRevealed] = useState(false);
   const [isProResults, setIsProResults] = useState(false);
   const [results, setResults] = useState(null);
@@ -345,12 +343,8 @@ export default function ATSChecker({
     });
   }, [phase, user?.id, isPro, gatePlanName]);
 
-  useEffect(() => {
-    if (phase !== "loading" || !loadingMeta) return;
-    setLoadingSeconds(0);
-    const id = setInterval(() => setLoadingSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [phase, loadingMeta]);
+  // Day 2: removed the 1-second loadingSeconds timer that used to fake
+  // progression. Real stage transitions drive the loading UI now.
 
   // ── Results: staggered chips + Pro flag for Claude badge ──────────────────
   useEffect(() => {
@@ -384,6 +378,11 @@ export default function ATSChecker({
   const onDragLeave = useCallback(() => {}, []);
 
   // ── Analysis ──────────────────────────────────────────────────────────────
+  // Day 2: real pipeline. Extract CV text client-side → send full text +
+  // JD to the analyze-cv Edge Function → render the structured output
+  // returned via Anthropic tool_use. No more hardcoded scores, no more
+  // base64 truncation, no more 6s artificial delay, no more detectRole
+  // regex fallback to sales_real_estate. Persona is inferred by the model.
   const handleAnalyze = useCallback(async () => {
     if (!uploadedFile) { setError("Please upload your CV."); return; }
     setError(null);
@@ -395,172 +394,89 @@ export default function ATSChecker({
     }
 
     let paidUser = false;
+    let planName = "Career Pro";
     if (user?.id) {
       const gate = await getGatekeeperData();
       paidUser = gate.isPaidUser;
+      planName = gate.planName || planName;
     }
-
-    if (!paidUser) {
-      try {
-        const jd = jobDescription.trim();
-        if (!jd) {
-          const seen = new Set();
-          const pool = [];
-          poolLoop: for (const pack of Object.values(skillSuggestions)) {
-            for (const row of pack?.atsKeywords ?? []) {
-              if (pool.length >= 30) break poolLoop;
-              const keyword = row?.keyword?.trim();
-              if (!keyword) continue;
-              const key = keyword.toLowerCase();
-              if (seen.has(key)) continue;
-              seen.add(key);
-              pool.push(keyword);
-            }
-          }
-          const visibilityBoosters = pool.slice(0, 5);
-          const rankTriggers = pool.slice(5, 10);
-          const keywordsScore = 65;
-          const structureScore = 70;
-          const contentScore = 75;
-          const score = Math.round((65 + 70 + 75) / 3);
-          const industry = "General GCC Market";
-          const topPercent = 42;
-          const missingCount = 5;
-          setResults({
-            score,
-            keywordsScore,
-            structureScore,
-            contentScore,
-            visibilityBoosters,
-            rankTriggers,
-            industry,
-            topPercent,
-            missingCount,
-          });
-          setPhase("results");
-        } else {
-          const jdLower = jd.toLowerCase();
-          const roleKey = detectRole(jd) || "sales_real_estate";
-          const pack = skillSuggestions[roleKey];
-          const list = pack?.atsKeywords ?? [];
-          const visibilityBoosters = [];
-          const rankTriggers = [];
-          for (const row of list) {
-            const keyword = row?.keyword?.trim();
-            if (!keyword) continue;
-            if (jdLower.includes(keyword.toLowerCase())) visibilityBoosters.push(keyword);
-            else rankTriggers.push(keyword);
-          }
-          const total = list.length;
-          const keywordsScore = total > 0 ? Math.round((visibilityBoosters.length / total) * 100) : 0;
-          const structureScore = 70;
-          const contentScore = 75;
-          const score = Math.round((keywordsScore + structureScore + contentScore) / 3);
-          const industry =
-            (pack?.jobTitles && pack.jobTitles[0]) ||
-            roleKey.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-          const topPercent = Math.max(1, Math.min(99, 100 - score));
-          setResults({
-            score,
-            keywordsScore,
-            structureScore,
-            contentScore,
-            visibilityBoosters,
-            rankTriggers,
-            industry,
-            topPercent,
-            missingCount: rankTriggers.length,
-          });
-          setPhase("results");
-          onResultsVisible?.(true);
-        }
-      } catch (err) {
-        console.error("ATS analysis error:", err);
-        setError("Something went wrong. Please try again.");
-        setPhase("idle");
-      }
-      return;
-    }
-
-    const jdPro = jobDescription.trim();
-    if (!jdPro) {
-      try {
-        const seen = new Set();
-        const pool = [];
-        poolLoop: for (const pack of Object.values(skillSuggestions)) {
-          for (const row of pack?.atsKeywords ?? []) {
-            if (pool.length >= 30) break poolLoop;
-            const keyword = row?.keyword?.trim();
-            if (!keyword) continue;
-            const key = keyword.toLowerCase();
-            if (seen.has(key)) continue;
-            seen.add(key);
-            pool.push(keyword);
-          }
-        }
-        const visibilityBoosters = pool.slice(0, 5);
-        const rankTriggers = pool.slice(5, 10);
-        const keywordsScore = 65;
-        const structureScore = 70;
-        const contentScore = 75;
-        const score = Math.round((65 + 70 + 75) / 3);
-        const industry = "General GCC Market";
-        const topPercent = 42;
-        const missingCount = 5;
-        setResults({
-          score,
-          keywordsScore,
-          structureScore,
-          contentScore,
-          visibilityBoosters,
-          rankTriggers,
-          industry,
-          topPercent,
-          missingCount,
-        });
-        setPhase("results");
-        onResultsVisible?.(true);
-      } catch (err) {
-        console.error("ATS analysis error:", err);
-        setError("Something went wrong. Please try again.");
-        setPhase("idle");
-      }
-      return;
-    }
+    const tier = paidUser ? "paid" : "free";
 
     setPhase("loading");
-    const started = Date.now();
+    setLoadingStage("extracting");
+
+    let cvText = "";
+    try {
+      const extracted = await extractCvText(uploadedFile);
+      cvText = extracted.text;
+    } catch (err) {
+      if (err instanceof CvExtractionError) {
+        setError(err.hint || err.message);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error("ATS extraction error:", err);
+        setError("Could not read your file. Try uploading a text-based PDF or DOCX.");
+      }
+      setPhase("idle");
+      return;
+    }
+
+    setLoadingStage("analysing");
+
     try {
       const userId = user?.id ?? "anon";
-      const fileBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(",")[1]);
-        reader.onerror = () => reject(new Error("File read failed"));
-        reader.readAsDataURL(uploadedFile);
-      });
-
-      const { data, error: fnError } = await supabase.functions.invoke("analyze-cv", { body: { fileBase64, fileName: uploadedFile.name, jobDescription, userId } });
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "analyze-cv",
+        {
+          body: {
+            cvText,
+            jobDescription: jobDescription || "",
+            userId,
+            tier,
+            planName,
+          },
+        },
+      );
       if (fnError) throw fnError;
+      if (data && data.error) {
+        const friendly = data.message || "Scoring engine returned an error. Please try again.";
+        setError(friendly);
+        setPhase("idle");
+        return;
+      }
+
+      setLoadingStage("scoring");
 
       if (user) {
-        await supabase.from("ats_results").insert({
-          user_id: user.id, score: data.score,
-          keywords_score: data.keywordsScore, structure_score: data.structureScore,
-          content_score: data.contentScore, visibility_boosters: data.visibilityBoosters,
-          rank_triggers: data.rankTriggers, industry: data.industry,
-          created_at: new Date().toISOString(),
-        });
+        try {
+          await supabase.from("ats_results").insert({
+            user_id: user.id,
+            score: data.score,
+            keywords_score: data.keywordsScore,
+            structure_score: data.structureScore,
+            content_score: data.contentScore,
+            visibility_boosters: data.visibilityBoosters,
+            rank_triggers: data.rankTriggers,
+            industry: data.industry,
+            created_at: new Date().toISOString(),
+          });
+        } catch (persistErr) {
+          // Persistence failure is not fatal for the scan itself.
+          // eslint-disable-next-line no-console
+          console.warn("ats_results persist failed:", persistErr);
+        }
       }
-      const elapsed = Date.now() - started;
-      const remaining = Math.max(0, 6000 - elapsed);
-      if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+
       setResults(data);
       setPhase("results");
       onResultsVisible?.(true);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("ATS analysis error:", err);
       setError("Something went wrong. Please try again.");
       setPhase("idle");
+    } finally {
+      setLoadingStage(null);
     }
   }, [uploadedFile, jobDescription, user, onResultsVisible]);
 
@@ -712,7 +628,9 @@ export default function ATSChecker({
         ? buildProLoadingSteps(loadingMeta.planName)
         : buildFreeLoadingSteps()
       : [];
-    const currentIdx = steps.length ? Math.min(loadingSeconds, steps.length - 1) : 0;
+    // Day 2: tie step progression to the real loadingStage state.
+    const stageIdx = loadingStage ? STAGE_ORDER.indexOf(loadingStage) : 0;
+    const currentIdx = steps.length ? Math.max(0, Math.min(stageIdx, steps.length - 1)) : 0;
 
     return (
       <div style={{ background: T.bg, minHeight: "100vh", color: T.text, fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", lineHeight: 1.6 }}>
@@ -778,8 +696,8 @@ export default function ATSChecker({
             {loadingMeta && (
               <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 14 }}>
                 {steps.map((text, i) => {
-                  const done = loadingSeconds > i;
-                  const current = !done && i === currentIdx;
+                  const done = i < currentIdx;
+                  const current = i === currentIdx;
                   return (
                     <li
                       key={i}
