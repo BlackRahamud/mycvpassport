@@ -32,6 +32,7 @@ import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import AboutPage from "./pages/AboutPage";
 import IndiaToUaePage from "./pages/IndiaToUaePage";
+import AttestationPage from "./pages/AttestationPage";
 import GulfCareerPage from "./pages/GulfCareerPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
@@ -257,6 +258,7 @@ export default function App() {
               <Route path="/templates" element={<TemplatesBrowseLayout user={user} />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/india-to-uae" element={<IndiaToUaePage />} />
+              <Route path="/attestation" element={<AttestationPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/refund" element={<RefundPage />} />
