@@ -52,6 +52,9 @@ const MATCHED_REQUIRED_FIELDS = [
 
 const CV_ONLY_REQUIRED_FIELDS = [
   "cvHealthScore",
+  "keywordsScore",
+  "structureScore",
+  "contentScore",
   "topSkills",
   "structureIssues",
   "atsFlags",
@@ -400,6 +403,9 @@ Deno.serve(async (req: Request) => {
     return json({
       mode: "cv_only",
       cvHealthScore: result.cvHealthScore,
+      keywordsScore: result.keywordsScore,
+      structureScore: result.structureScore,
+      contentScore: result.contentScore,
       topSkills: result.topSkills,
       structureIssues: result.structureIssues ?? [],
       atsFlags: result.atsFlags,

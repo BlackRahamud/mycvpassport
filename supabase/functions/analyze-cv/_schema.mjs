@@ -118,6 +118,9 @@ export const CV_ONLY_TOOL = {
     type: "object",
     required: [
       "cvHealthScore",
+      "keywordsScore",
+      "structureScore",
+      "contentScore",
       "topSkills",
       "structureIssues",
       "atsFlags",
@@ -131,7 +134,28 @@ export const CV_ONLY_TOOL = {
         minimum: 0,
         maximum: 100,
         description:
-          "Absolute parseability + structural quality 0-100. NOT a fit score. Penalise tables, columns, image-only PDFs, missing contact block, weird fonts, non-standard sections.",
+          "Overall absolute parseability + structural quality 0-100. NOT a fit score. Penalise tables, columns, image-only PDFs, missing contact block, weird fonts, non-standard sections.",
+      },
+      keywordsScore: {
+        type: "integer",
+        minimum: 0,
+        maximum: 100,
+        description:
+          "Standalone keyword strength 0-100: proper-noun density, role-relevant terms, technical vocabulary, recognisable certifications. Independent of any JD.",
+      },
+      structureScore: {
+        type: "integer",
+        minimum: 0,
+        maximum: 100,
+        description:
+          "Parseable formatting 0-100: clear sections, contact block, single-column body, no tables / images / decorative fonts, standard ordering.",
+      },
+      contentScore: {
+        type: "integer",
+        minimum: 0,
+        maximum: 100,
+        description:
+          "Depth + recency + quantification 0-100: bullet quality, accomplishments quantified, recency of experience, story coherence.",
       },
       topSkills: {
         type: "array",

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Sparkles, Lock, CheckCircle, AlertTriangle } from "lucide-react";
 import { logEvent } from "../lib/analytics/logEvent";
-import ScannerRing, { getBand, withAlpha } from "./ScannerRing";
+import EclipseHalo, { getBand, pointsToNextBand, withAlpha } from "./EclipseHalo";
 
 // JD-nudge sprint: the conversion-hook result page.
 //
@@ -11,15 +11,19 @@ import ScannerRing, { getBand, withAlpha } from "./ScannerRing";
 // up top, then below it a glassmorphism "Unlock your match score" CTA
 // card sitting on top of a blurred preview of the locked match output.
 //
-// OLED-restore sprint:
-//   1. ScannerRing (separate component) for the health-score badge
-//      with rotating arc + glow pulse + animated count-up.
-//   2. Severity glow on structure-issue cards — left border, inset +
-//      outer drop-shadow, pulse, badge text-shadow.
-//   3. Skill pills bucketed by category (OS / Tools / Hardware /
-//      Networking / Security / Soft / default) with gradient bg,
-//      border, hover lift, 40 ms stagger entrance.
-// All three respect prefers-reduced-motion.
+// Eclipse-restore sprint replaces the previous ScannerRing (which had
+// a visible 0%→score% arc fill, called out as a regression) with the
+// EclipseHalo composition:
+//   1. EclipseHalo — solid black disc + uniform glowing corona, no
+//      progress arc, no rotation. Color band by score (4 bands).
+//   2. Headline + "+X Points within reach" pill + GCC subtitle.
+//   3. Horizontal gradient progress bar with white indicator dot +
+//      three zone labels (Needs Work / On Track / Market Ready).
+//   4. Three sub-score cards (Keywords blue / Structure amber /
+//      Content emerald) reading new fields from the cv_only response.
+//   5. Severity-glow structure-issue cards (carried from prev sprint).
+//   6. Color-coded skill pills with stagger (carried from prev sprint).
+// All animations respect prefers-reduced-motion.
 
 const T = {
   bg: "#0A0A0A",
@@ -268,30 +272,100 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
           </p>
         </motion.div>
 
-        {/* ── CV HEALTH SCORE — OLED scanner ring ─────────────────────── */}
+        {/* ── CV HEALTH SCORE — eclipse halo composition ─────────────── */}
         <motion.section
           variants={itemVariants}
           style={{
             background: T.surface,
             border: `1px solid ${T.border}`,
             borderRadius: 16,
-            padding: "32px 24px 28px",
-            display: "grid",
-            gridTemplateColumns: "auto 1fr",
-            gap: 28,
-            alignItems: "center",
+            padding: "40px 24px 32px",
             marginBottom: 16,
           }}
         >
-          <ScannerRing score={score} size={180} reveal={!reduce} />
-          <div>
-            <div style={{ color: T.muted, fontSize: 14 }}>
-              {result?.industry ? `Inferred industry: ${result.industry}` : "Industry not inferred"}
+          {/* Eclipse halo, centered */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
+            <EclipseHalo score={score} size={260} />
+          </div>
+
+          {/* Headline — band-aware */}
+          <h2 style={{
+            fontSize: 28,
+            fontWeight: 800,
+            textAlign: "center",
+            margin: "0 0 14px",
+            letterSpacing: "-0.02em",
+            color: T.text,
+          }}>
+            {band.headline}
+          </h2>
+
+          {/* "+X Points within reach" pill */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            <span style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              borderRadius: 999,
+              padding: "6px 16px",
+              fontSize: 12,
+              fontWeight: 700,
+              color: T.text,
+              letterSpacing: 0.2,
+            }}>
+              +{pointsToNextBand(score)} Points within reach
+            </span>
+          </div>
+
+          {/* Subtitle */}
+          <div style={{
+            textAlign: "center",
+            fontSize: 12,
+            color: T.muted,
+            marginBottom: 32,
+            letterSpacing: 0.3,
+          }}>
+            Analyzed against real GCC &amp; India hiring data
+          </div>
+
+          {/* Industry + seniority chip-text */}
+          {(result?.industry || result?.seniority) && (
+            <div style={{
+              textAlign: "center",
+              fontSize: 12,
+              color: T.muted,
+              marginBottom: 24,
+              marginTop: -20,
+            }}>
+              {result?.industry ? `Inferred: ${result.industry}` : ""}
               {result?.seniority ? ` · ${result.seniority.replace("_", " ")}` : ""}
             </div>
-            <div style={{ color: T.muted, fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
-              Health score is parseability + structure in absolute terms — not fit. Paste a JD below for the real match score.
-            </div>
+          )}
+
+          {/* Horizontal gradient progress bar */}
+          <ProgressGradientBar score={score} />
+
+          {/* Three sub-score cards */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+            marginTop: 24,
+          }}>
+            <SubScoreCard
+              value={typeof result?.keywordsScore === "number" ? result.keywordsScore : null}
+              label="Keywords"
+              color="#3b82f6"
+            />
+            <SubScoreCard
+              value={typeof result?.structureScore === "number" ? result.structureScore : null}
+              label="Structure"
+              color="#f59e0b"
+            />
+            <SubScoreCard
+              value={typeof result?.contentScore === "number" ? result.contentScore : null}
+              label="Content"
+              color="#10b981"
+            />
           </div>
         </motion.section>
 
@@ -546,6 +620,120 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
         </AnimatePresence>
       </div>
     </motion.main>
+  );
+}
+
+// ── Eclipse-halo composition: gradient progress bar ────────────────────────
+// Horizontal bar with the same red→orange→amber→emerald sweep as the
+// landing page CTAs. White indicator dot, 16 px, drop-shadow + 2 px
+// black ring so it pops on any band color.
+function ProgressGradientBar({ score }) {
+  const pct = Math.max(0, Math.min(100, score));
+  return (
+    <div>
+      <div
+        style={{
+          position: "relative",
+          height: 4,
+          borderRadius: 999,
+          background:
+            "linear-gradient(90deg, #ef4444 0%, #f97316 33%, #f59e0b 66%, #10b981 100%)",
+          margin: "0 8px",
+        }}
+      >
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: `${pct}%`,
+            transform: "translate(-50%, -50%)",
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            background: "#fff",
+            border: "2px solid #0A0A0A",
+            boxShadow:
+              "0 2px 6px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.12)",
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: 10,
+          fontSize: 11,
+          color: T.muted,
+          letterSpacing: 0.4,
+          textTransform: "uppercase",
+          fontWeight: 600,
+          padding: "0 4px",
+        }}
+      >
+        <span>Needs Work</span>
+        <span>On Track</span>
+        <span>Market Ready</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Eclipse-halo composition: sub-score card ───────────────────────────────
+// Big colored number, thin colored underline (with subtle glow), muted
+// caps label below. Color is FIXED per slot (Keywords blue / Structure
+// amber / Content emerald) — does NOT change with the value.
+function SubScoreCard({ value, label, color }) {
+  const display = typeof value === "number" ? value : "—";
+  const glow = typeof value === "number" ? withAlpha(color, 0.4) : "transparent";
+  return (
+    <div
+      style={{
+        background: T.elevated,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        padding: "18px 8px 12px",
+        textAlign: "center",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 32,
+          fontWeight: 800,
+          color,
+          lineHeight: 1,
+          letterSpacing: "-0.02em",
+          textShadow: `0 0 12px ${glow}`,
+          fontVariantNumeric: "tabular-nums",
+          marginBottom: 8,
+        }}
+      >
+        {display}
+      </div>
+      <div
+        aria-hidden
+        style={{
+          height: 2,
+          background: color,
+          borderRadius: 999,
+          margin: "0 auto 8px",
+          width: "70%",
+          boxShadow: `0 0 8px ${withAlpha(color, 0.55)}`,
+        }}
+      />
+      <div
+        style={{
+          fontSize: 10,
+          color: T.muted,
+          letterSpacing: 1.6,
+          textTransform: "uppercase",
+          fontWeight: 700,
+        }}
+      >
+        {label}
+      </div>
+    </div>
   );
 }
 
