@@ -758,7 +758,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
                 <button
                   type="button"
                   className="lp-btn"
-                  onClick={onSignup}
+                  onClick={() => navigate('/builder')}
                   style={{
                     background:   '#D4860A',
                     border:       'none',
@@ -811,14 +811,14 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
         />
 
         {/* ── W18 LANDING — 5-block conversion layout ───────────── */}
-        <HeroSection onSignup={onSignup} user={user} />
+        <HeroSection user={user} />
         <GulfBillboardCard />
         <ShowSection />
         <FeatureCardGrid />
         <TestimonialsRow />
         <FoundersNoteSection />
         <PricingAnchorSection />
-        <FinalCTASection onSignup={onSignup} user={user} />
+        <FinalCTASection user={user} />
 
         <footer className="lp-footer-disclaimer">
           <p>

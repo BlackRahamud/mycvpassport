@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import HeroDualTablet from '../marketing/HeroDualTablet';
 import { logEvent } from '../../lib/analytics/logEvent';
 
@@ -8,7 +9,9 @@ import { logEvent } from '../../lib/analytics/logEvent';
 const H2 = 'Same experience. Better CV.';
 const SUB =
   "Across the Gulf and India, qualified candidates are filtered out every day — not because they're underqualified, but because their CV wasn't built to pass the system that reads it first. CVPassport fixes that.";
-const PRIMARY_LABEL = 'Try it free →';
+const PRIMARY_LABEL = 'Build my Gulf CV — free →';
+const SECONDARY_LABEL = 'Score my CV';
+const MICROCOPY = 'No signup. No card. Pay in AED only if you upgrade.';
 const TRUST_LINE_1 = 'Free to start. No signup required.';
 const TRUST_LINE_2 = 'Used across UAE, India & beyond.';
 
@@ -26,7 +29,8 @@ const INSTANT = {
   show: { opacity: 1, y: 0 },
 };
 
-export default function HeroSection({ onSignup, user }) {
+export default function HeroSection({ user }) {
+  const navigate = useNavigate();
   const reduce = useReducedMotion();
   const { scrollY } = useScroll();
   const parallaxY = useTransform(scrollY, [0, 480], [0, -20]);
@@ -37,12 +41,22 @@ export default function HeroSection({ onSignup, user }) {
     logEvent('homepage_cta_clicked', {
       cta_text: PRIMARY_LABEL,
       cta_section: 'hero',
-      cta_destination_before: '/ats',
-      cta_destination_after: '/auth?mode=signup',
+      cta_destination_before: '/auth?mode=signup',
+      cta_destination_after: '/builder',
       is_authenticated: !!user?.id,
     });
-    onSignup?.();
-  }, [onSignup, user?.id]);
+    navigate('/builder');
+  }, [navigate, user?.id]);
+
+  const onSecondary = useCallback(() => {
+    logEvent('homepage_cta_clicked', {
+      cta_text: SECONDARY_LABEL,
+      cta_section: 'hero',
+      cta_destination_after: '/ats',
+      is_authenticated: !!user?.id,
+    });
+    navigate('/ats');
+  }, [navigate, user?.id]);
 
   const contentMotionStyle = reduce ? undefined : { y: parallaxY, opacity: parallaxOpacity };
 
@@ -289,6 +303,18 @@ export default function HeroSection({ onSignup, user }) {
           .cvp-hero-cta-primary:active { transform: none; }
         }
 
+        .cvp-hero-cta-microcopy {
+          font-size: 13px;
+          font-weight: 400;
+          line-height: 1.4;
+          color: var(--color-text-secondary);
+          margin: 12px 0 0;
+          font-family: inherit;
+        }
+        @media (max-width: 900px) {
+          .cvp-hero-cta-microcopy { text-align: center; }
+        }
+
         .cvp-hero-visual {
           position: relative;
           width: 100%;
@@ -323,7 +349,13 @@ export default function HeroSection({ onSignup, user }) {
           <button type="button" className="cvp-hero-cta-primary" onClick={onPrimary}>
             {PRIMARY_LABEL}
           </button>
+          <button type="button" className="cvp-hero-cta-secondary" onClick={onSecondary}>
+            {SECONDARY_LABEL}
+          </button>
         </motion.div>
+        <motion.p className="cvp-hero-cta-microcopy" variants={variants} custom={5}>
+          {MICROCOPY}
+        </motion.p>
         <motion.div className="cvp-hero-trustbar" variants={variants} custom={6}>
           <div className="cvp-hero-trustbar-item">
             <svg width="72" height="14" viewBox="0 0 72 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

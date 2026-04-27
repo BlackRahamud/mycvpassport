@@ -13,7 +13,7 @@ const PRIMARY_LABEL = 'Try it free';
 const SECONDARY_LABEL = 'See pricing';
 const SECONDARY_HREF = '/pricing';
 
-export default function FinalCTASection({ onSignup, user }) {
+export default function FinalCTASection({ user }) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
 
@@ -21,12 +21,12 @@ export default function FinalCTASection({ onSignup, user }) {
     logEvent('homepage_cta_clicked', {
       cta_text: PRIMARY_LABEL,
       cta_section: 'final_cta',
-      cta_destination_before: '/builder',
-      cta_destination_after: '/auth?mode=signup',
+      cta_destination_before: '/auth?mode=signup',
+      cta_destination_after: '/builder',
       is_authenticated: !!user?.id,
     });
-    onSignup?.();
-  }, [onSignup, user?.id]);
+    navigate('/builder');
+  }, [navigate, user?.id]);
   const onSecondary = useCallback(() => { navigate(SECONDARY_HREF); }, [navigate]);
 
   return (
