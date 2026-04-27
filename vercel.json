@@ -1,4 +1,9 @@
 {
+  "build": {
+    "env": {
+      "CI": "false"
+    }
+  },
   "functions": {
     "api/generate-pdf.js": {
       "memory": 1024,
