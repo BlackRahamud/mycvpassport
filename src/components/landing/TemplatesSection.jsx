@@ -15,7 +15,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import OLEDScoreRing, { scoreColor, OLEDRingStyles } from './OLEDScoreRing';
+import OLEDScoreRing, { scoreColor, scoreVerdict, OLEDRingStyles } from './OLEDScoreRing';
 
 const FILTERS = ['All', 'Banking', 'Tech', 'Healthcare', 'Aviation', 'Hospitality', 'Finance', 'Walk-in', 'India to UAE'];
 
@@ -272,15 +272,47 @@ const TEMPLATES = [
 /*  CV preview — renders FULL content                             */
 /* ────────────────────────────────────────────────────────────── */
 function CVPreview({ tpl }) {
-  const { cv, style, accent } = tpl;
+  const { cv, style, accent, slug } = tpl;
   return (
     <div className={`cvp-cv cvp-cv--${style}`}>
       {style === 'sidebar' && <CVSidebar cv={cv} accent={accent} />}
-      {style === 'header-block' && <CVHeaderBlock cv={cv} accent={accent} />}
-      {style === 'split' && <CVSplit cv={cv} accent={accent} />}
-      {style === 'mono' && <CVMono cv={cv} accent={accent} />}
+      {style === 'header-block' && <CVHeaderBlock cv={cv} accent={accent} slug={slug} />}
+      {style === 'split' && <CVSplit cv={cv} accent={accent} slug={slug} />}
+      {style === 'mono' && <CVMono cv={cv} accent={accent} slug={slug} />}
     </div>
   );
+}
+
+/* Micro-detail badges — 4 templates get one small accent badge in their
+   header. Polish move 2: kills the robo "same data, same rhythm" feel
+   without touching the underlying template data. */
+function MicroBadge({ slug, placement }) {
+  if (slug === 'healthcare-doha' && placement === 'name') {
+    return (
+      <span className="cvp-cv-microbadge cvp-cv-microbadge--verified" title="QCHP licensed">
+        <svg width="6.5" height="6.5" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        QCHP
+      </span>
+    );
+  }
+  if (slug === 'india-to-uae' && placement === 'role') {
+    return (
+      <span className="cvp-cv-microbadge cvp-cv-microbadge--relocate">Open to relocate</span>
+    );
+  }
+  if (slug === 'aviation-gulf' && placement === 'meta') {
+    return (
+      <span className="cvp-cv-microbadge cvp-cv-microbadge--stamp">GCC certified</span>
+    );
+  }
+  if (slug === 'banking-dubai' && placement === 'meta') {
+    return (
+      <span className="cvp-cv-microbadge cvp-cv-microbadge--tier1">Tier-1 portfolio</span>
+    );
+  }
+  return null;
 }
 
 function SecLabel({ en, ar, accent, light = false }) {
@@ -339,7 +371,8 @@ function LangsRow({ langs, light = false }) {
   );
 }
 
-/* Style: sidebar — coloured left rail with photo placeholder, skills, languages */
+/* Style: sidebar — coloured left rail with photo placeholder, skills, languages.
+   No micro-detail badge for sidebar templates in this round, so slug isn't needed. */
 function CVSidebar({ cv, accent }) {
   return (
     <div className="cvp-cv-sb">
@@ -375,14 +408,19 @@ function CVSidebar({ cv, accent }) {
   );
 }
 
-/* Style: header-block — solid coloured header, body below */
-function CVHeaderBlock({ cv, accent }) {
+/* Style: header-block — solid coloured header, body below.
+   Per-style polish lives in CSS via [data-style="header-block"] (denser body).
+   slice(0, 8) is the spec'd skills bump for this style. */
+function CVHeaderBlock({ cv, accent, slug }) {
   return (
     <div className="cvp-cv-hb">
       <header className="cvp-cv-hb-hdr" style={{ background: accent }}>
         <h4 className="cvp-cv-name" style={{ color: '#fff' }}>{cv.name}</h4>
         <div className="cvp-cv-role" style={{ color: 'rgba(255,255,255,0.86)' }}>{cv.role}</div>
-        <div className="cvp-cv-meta" style={{ color: 'rgba(255,255,255,0.7)' }}>{cv.location}  ·  {cv.contact}</div>
+        <div className="cvp-cv-meta cvp-cv-meta--row" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          <span>{cv.location}  ·  {cv.contact}</span>
+          <MicroBadge slug={slug} placement="meta" />
+        </div>
       </header>
       <main className="cvp-cv-hb-body">
         <SecLabel en="Profile" ar={cv.arabic ? 'الملف' : null} accent={accent} />
@@ -392,7 +430,7 @@ function CVHeaderBlock({ cv, accent }) {
         <div className="cvp-cv-row2">
           <div>
             <SecLabel en="Skills" ar={cv.arabic ? 'المهارات' : null} accent={accent} />
-            <SkillsChips skills={cv.skills.slice(0, 6)} accent={accent} />
+            <SkillsChips skills={cv.skills.slice(0, 8)} accent={accent} />
           </div>
           <div>
             <SecLabel en="Languages" ar={cv.arabic ? 'اللغات' : null} accent={accent} />
@@ -406,21 +444,24 @@ function CVHeaderBlock({ cv, accent }) {
   );
 }
 
-/* Style: split — header w/ name left, location right, two-column body */
-function CVSplit({ cv, accent }) {
+/* Style: split — header w/ name left, location right, two-column body.
+   Polish move 2: accent rule is now scoped under role (not full-width) so the
+   editorial split style reads more like Resume.io's higher-end template feel. */
+function CVSplit({ cv, accent, slug }) {
   return (
     <div className="cvp-cv-sp">
       <header className="cvp-cv-sp-hdr">
-        <div>
+        <div className="cvp-cv-sp-hdr-l">
           <h4 className="cvp-cv-name">{cv.name}</h4>
           <div className="cvp-cv-role" style={{ color: accent }}>{cv.role}</div>
+          <div className="cvp-cv-sp-role-rule" style={{ background: accent }} aria-hidden="true" />
+          <MicroBadge slug={slug} placement="role" />
         </div>
         <div className="cvp-cv-sp-meta">
           <div>{cv.location}</div>
           <div style={{ color: 'rgba(0,0,0,0.45)' }}>{cv.contact}</div>
         </div>
       </header>
-      <div className="cvp-cv-rule" style={{ background: accent }} />
       <SecLabel en="Profile" ar={cv.arabic ? 'الملف' : null} accent={accent} />
       <p className="cvp-cv-profile">{cv.profile}</p>
       <div className="cvp-cv-sp-cols">
@@ -442,10 +483,13 @@ function CVSplit({ cv, accent }) {
 }
 
 /* Style: mono — single column, monochrome accent rule per section */
-function CVMono({ cv, accent }) {
+function CVMono({ cv, accent, slug }) {
   return (
     <div className="cvp-cv-mn">
-      <h4 className="cvp-cv-name">{cv.name}</h4>
+      <div className="cvp-cv-mn-name-row">
+        <h4 className="cvp-cv-name">{cv.name}</h4>
+        <MicroBadge slug={slug} placement="name" />
+      </div>
       <div className="cvp-cv-role" style={{ color: accent }}>{cv.role}</div>
       <div className="cvp-cv-meta">{cv.location}  ·  {cv.contact}</div>
       <div className="cvp-cv-rule" style={{ background: accent }} />
@@ -508,48 +552,59 @@ export default function TemplatesSection() {
         ))}
       </div>
 
-      <div className="cvp-tpl-grid">
-        {filtered.length === 0 && (
-          <div className="cvp-tpl-empty">No templates in this category yet — try All.</div>
-        )}
-        {filtered.map((tpl, i) => (
-          <motion.article
-            key={tpl.slug}
-            className="cvp-tpl-card"
-            initial={reduce ? false : { opacity: 0, y: 24 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.08 * (i % 6), ease: [0.4, 0, 0.2, 1] }}
-          >
-            <div className="cvp-tpl-card-ring" aria-hidden="true" style={{ '--ring-color': scoreColor(tpl.ats) }} />
-            <div className="cvp-tpl-preview" aria-hidden="true">
-              <CVPreview tpl={tpl} />
-            </div>
-            <div className="cvp-tpl-card-meta">
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="cvp-tpl-card-name-row">
-                  <h3 className="cvp-tpl-card-name">{tpl.name}</h3>
-                  {tpl.tier === 'premium' && (
-                    <span className="cvp-tpl-card-tier premium">Premium</span>
-                  )}
-                </div>
-                <p className="cvp-tpl-card-desc">{tpl.desc}</p>
-              </div>
-              <div className="cvp-tpl-card-ringwrap">
-                <OLEDScoreRing score={tpl.ats} revealed={inView} size={64} showLabel={false} duration={1400} />
-                <div className="cvp-tpl-card-ringlabel">ATS</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="cvp-tpl-card-cta"
-              onClick={() => navigate(`/builder?template=${tpl.slug}`)}
-              aria-label={`Use ${tpl.name} template — opens the builder`}
+      <div className="cvp-tpl-shelf">
+        <div className="cvp-tpl-shelf-fade cvp-tpl-shelf-fade-l" aria-hidden="true" />
+        <div className="cvp-tpl-shelf-fade cvp-tpl-shelf-fade-r" aria-hidden="true" />
+        <ol className="cvp-tpl-row">
+          {filtered.length === 0 && (
+            <li className="cvp-tpl-empty">No templates in this category yet — try All.</li>
+          )}
+          {filtered.map((tpl, i) => (
+            <motion.li
+              key={tpl.slug}
+              className="cvp-tpl-item"
+              initial={reduce ? false : { opacity: 0, y: 24 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, delay: 0.08 * (i % 6), ease: [0.4, 0, 0.2, 1] }}
             >
-              <span>Use this template</span>
-              <span className="cvp-tpl-card-cta-arrow" aria-hidden="true">→</span>
-            </button>
-          </motion.article>
-        ))}
+              <div
+                className="cvp-tpl-paper"
+                data-style={tpl.style}
+                style={{ '--ring-color': scoreColor(tpl.ats), '--accent': tpl.accent }}
+              >
+                <div className="cvp-tpl-accent-strip" aria-hidden="true" />
+                <div className="cvp-tpl-paper-inner" aria-hidden="true">
+                  <CVPreview tpl={tpl} />
+                </div>
+                <div className="cvp-tpl-paper-overlay">
+                  <button
+                    type="button"
+                    className="cvp-tpl-overlay-cta"
+                    onClick={() => navigate(`/builder?template=${tpl.slug}`)}
+                    aria-label={`Use ${tpl.name} template — opens the builder`}
+                  >
+                    <span>Use this template</span>
+                    <span className="cvp-tpl-overlay-cta-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="cvp-tpl-meta">
+                <div className="cvp-tpl-meta-pill cvp-tpl-meta-pill--name">
+                  <h3 className="cvp-tpl-meta-name">{tpl.name}</h3>
+                  <span className={`cvp-tpl-meta-tier cvp-tpl-meta-tier--${tpl.tier}`}>
+                    {tpl.tier === 'free' ? 'FREE' : tpl.tier === 'premium' ? 'PREMIUM' : 'POPULAR'}
+                  </span>
+                </div>
+                <div className="cvp-tpl-meta-pill cvp-tpl-meta-pill--score" title={`ATS ${tpl.ats} · ${scoreVerdict(tpl.ats)}`}>
+                  <OLEDScoreRing score={tpl.ats} revealed={inView} size={28} showLabel={false} duration={1400} />
+                  <span className="cvp-tpl-meta-score-num" style={{ color: scoreColor(tpl.ats) }}>{tpl.ats}</span>
+                  <span className="cvp-tpl-meta-score-verdict">{scoreVerdict(tpl.ats)}</span>
+                </div>
+              </div>
+            </motion.li>
+          ))}
+        </ol>
       </div>
 
       <div className="cvp-tpl-foot">
@@ -617,44 +672,129 @@ function TemplatesStyles() {
       .cvp-tpl-chip.is-on { background: #fff; color: #0a0a0a; font-weight: 600; }
       .cvp-tpl-chip:focus-visible { outline: 2px solid var(--color-accent, #D97706); outline-offset: 2px; }
 
-      .cvp-tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-      @media (max-width: 1080px) { .cvp-tpl-grid { grid-template-columns: repeat(2, 1fr); } }
-      @media (max-width: 640px) { .cvp-tpl-grid { grid-template-columns: 1fr; gap: 18px; } }
-
-      .cvp-tpl-card {
+      /* ── Printed-shelf row (replaces the framed grid) ─────────── */
+      .cvp-tpl-shelf {
         position: relative;
-        background: var(--color-surface-01, #141414);
-        border: 1px solid rgba(255,255,255,0.07);
-        border-radius: 20px;
-        padding: 18px; display: flex; flex-direction: column; gap: 16px;
-        isolation: isolate; overflow: hidden;
-        transition: border-color 320ms cubic-bezier(0.4,0,0.2,1),
-                    transform 320ms cubic-bezier(0.4,0,0.2,1),
-                    box-shadow 320ms cubic-bezier(0.4,0,0.2,1);
+        margin: 0 -24px;
       }
-      .cvp-tpl-card:hover {
-        transform: translateY(-4px);
-        border-color: rgba(255,255,255,0.18);
-        box-shadow: 0 36px 72px -28px rgba(0,0,0,0.7);
+      @media (max-width: 880px) { .cvp-tpl-shelf { margin: 0 -20px; } }
+      .cvp-tpl-row {
+        display: flex; gap: 28px;
+        padding: 36px 24px 56px;
+        margin: 0; list-style: none;
+        overflow-x: auto; overflow-y: visible;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: 24px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
       }
-      .cvp-tpl-card-ring {
-        position: absolute; inset: -1px; border-radius: 20px; padding: 1px;
-        background: conic-gradient(from var(--ats-angle, 0deg), transparent 60%, var(--ring-color, #4ADE80) 80%, transparent 100%);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor; mask-composite: exclude;
-        opacity: 0; pointer-events: none; z-index: 0;
-        transition: opacity 320ms cubic-bezier(0.4,0,0.2,1);
-        animation: ats-spin-border 4s linear infinite;
+      .cvp-tpl-row::-webkit-scrollbar { display: none; }
+      @media (max-width: 880px) {
+        .cvp-tpl-row { padding: 28px 20px 48px; gap: 20px; }
       }
-      .cvp-tpl-card:hover .cvp-tpl-card-ring { opacity: 0.85; }
-      .cvp-tpl-card > * { position: relative; z-index: 1; }
+      .cvp-tpl-shelf-fade {
+        position: absolute; top: 0; bottom: 0; width: 60px; pointer-events: none; z-index: 2;
+      }
+      .cvp-tpl-shelf-fade-l { left: 0; background: linear-gradient(to right, var(--color-surface-00, #0A0A0A), transparent); }
+      .cvp-tpl-shelf-fade-r { right: 0; background: linear-gradient(to left, var(--color-surface-00, #0A0A0A), transparent); }
+      @media (max-width: 880px) { .cvp-tpl-shelf-fade { width: 36px; } }
 
-      .cvp-tpl-preview {
-        position: relative; aspect-ratio: 8.5 / 11;
-        background: #f7f5f0; border-radius: 12px; overflow: hidden;
-        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06), 0 16px 32px -14px rgba(0,0,0,0.5);
-        color: #14171d;
+      .cvp-tpl-item {
+        flex: 0 0 360px;
+        scroll-snap-align: center;
+        display: flex; flex-direction: column; gap: 14px;
+        min-width: 0;
       }
+      @media (max-width: 640px) {
+        .cvp-tpl-item { flex-basis: min(86vw, 340px); }
+      }
+
+      /* The PAPER itself is the card — no dark frame.
+         box-shadow: floating depth + inner top-edge highlight (Apple Pay card feel). */
+      .cvp-tpl-paper {
+        position: relative;
+        aspect-ratio: 8.5 / 11;
+        background: #f7f5f0;
+        border-radius: 12px;
+        overflow: hidden;
+        color: #14171d;
+        isolation: isolate;
+        box-shadow:
+          0 24px 60px -20px rgba(0,0,0,0.6),
+          inset 0 1px 0 rgba(255,255,255,0.4);
+        transition:
+          transform 320ms cubic-bezier(0.4,0,0.2,1),
+          box-shadow 320ms cubic-bezier(0.4,0,0.2,1);
+        will-change: transform;
+      }
+      .cvp-tpl-item:hover .cvp-tpl-paper {
+        transform: translateY(-6px);
+        box-shadow:
+          0 36px 80px -24px rgba(0,0,0,0.72),
+          0 0 0 1px rgba(217,119,6,0.35),
+          inset 0 1px 0 rgba(255,255,255,0.55);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .cvp-tpl-paper { transition: none; }
+        .cvp-tpl-item:hover .cvp-tpl-paper { transform: none; }
+      }
+
+      /* 4px accent strip at top — single CSS line per template's accent. */
+      .cvp-tpl-accent-strip {
+        position: absolute; top: 0; left: 0; right: 0;
+        height: 4px; background: var(--accent, #D97706);
+        z-index: 2;
+      }
+      .cvp-tpl-paper-inner {
+        position: absolute; inset: 0;
+        padding-top: 4px; /* leave room for accent strip */
+        box-sizing: border-box;
+      }
+
+      /* Hover overlay — dark wash + centred pill button */
+      .cvp-tpl-paper-overlay {
+        position: absolute; inset: 0; z-index: 3;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        opacity: 0; pointer-events: none;
+        transition: opacity 200ms cubic-bezier(0.4,0,0.2,1);
+      }
+      .cvp-tpl-item:hover .cvp-tpl-paper-overlay,
+      .cvp-tpl-item:focus-within .cvp-tpl-paper-overlay {
+        opacity: 1; pointer-events: auto;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .cvp-tpl-paper-overlay { transition: none; }
+      }
+      @media (hover: none) {
+        /* Touch devices: keep overlay button reachable without hover. */
+        .cvp-tpl-paper-overlay {
+          opacity: 1; pointer-events: auto;
+          background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 50%);
+          align-items: flex-end; padding-bottom: 18px;
+          backdrop-filter: none; -webkit-backdrop-filter: none;
+        }
+      }
+      .cvp-tpl-overlay-cta {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 12px 22px;
+        background: #fff; color: #0a0a0a;
+        border: 0; border-radius: 999px;
+        font-family: inherit; font-size: 13.5px; font-weight: 600;
+        letter-spacing: -0.005em; cursor: pointer;
+        box-shadow: 0 12px 28px -10px rgba(0,0,0,0.4);
+        transition: transform 160ms cubic-bezier(0.4,0,0.2,1), filter 160ms cubic-bezier(0.4,0,0.2,1);
+      }
+      .cvp-tpl-overlay-cta:hover { filter: brightness(0.95); }
+      .cvp-tpl-overlay-cta:active { transform: scale(0.97); }
+      .cvp-tpl-overlay-cta:focus-visible { outline: 2px solid var(--color-accent, #D97706); outline-offset: 3px; }
+      .cvp-tpl-overlay-cta-arrow {
+        font-weight: 700;
+        transition: transform 160ms cubic-bezier(0.4,0,0.2,1);
+      }
+      .cvp-tpl-overlay-cta:hover .cvp-tpl-overlay-cta-arrow { transform: translateX(3px); }
 
       /* ── Mini-CV typography (Inter @ ~6px base) ─────────────── */
       .cvp-cv {
@@ -731,50 +871,92 @@ function TemplatesStyles() {
       .cvp-cv--mono { padding: 16px 18px; }
       .cvp-cv-mn { display: flex; flex-direction: column; height: 100%; }
 
-      /* card meta + ring */
-      .cvp-tpl-card-meta { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
-      .cvp-tpl-card-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-      .cvp-tpl-card-name {
-        font-size: 17px; font-weight: 600; letter-spacing: -0.012em;
+      /* ── Meta pills under each paper card (move 1 — meta below) ── */
+      .cvp-tpl-meta {
+        display: flex; align-items: center; gap: 10px;
+        flex-wrap: wrap;
+      }
+      .cvp-tpl-meta-pill {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 7px 12px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 999px;
+        min-width: 0;
+      }
+      .cvp-tpl-meta-pill--name { flex: 1 1 auto; }
+      .cvp-tpl-meta-name {
+        font-size: 14.5px; font-weight: 600; letter-spacing: -0.012em;
         margin: 0; color: #fff; line-height: 1.2;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
-      .cvp-tpl-card-tier {
+      .cvp-tpl-meta-tier {
+        flex-shrink: 0;
         font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
-        padding: 3px 6px; border-radius: 3px; font-weight: 700;
+        padding: 2px 7px; border-radius: 3px; font-weight: 700;
         font-family: 'JetBrains Mono', ui-monospace, monospace;
-        background: rgba(217,119,6,0.14); color: #fde68a;
       }
-      .cvp-tpl-card-desc {
-        font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.55);
-        margin: 6px 0 0; font-weight: 400; letter-spacing: -0.003em;
+      .cvp-tpl-meta-tier--free    { background: rgba(29,158,117,0.16);  color: #6ee7b7; }
+      .cvp-tpl-meta-tier--premium { background: rgba(217,119,6,0.16);   color: #fde68a; }
+      .cvp-tpl-meta-tier--popular { background: rgba(217,119,6,0.16);   color: #fde68a; }
+
+      .cvp-tpl-meta-pill--score { flex-shrink: 0; padding: 4px 12px 4px 4px; gap: 8px; }
+      .cvp-tpl-meta-score-num {
+        font-size: 13px; font-weight: 700; line-height: 1;
+        font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
       }
-      .cvp-tpl-card-ringwrap {
-        position: relative; flex-shrink: 0;
-        display: flex; flex-direction: column; align-items: center; gap: 2px;
-      }
-      .cvp-tpl-card-ringlabel {
-        font-family: 'JetBrains Mono', ui-monospace, monospace;
-        font-size: 8.5px; letter-spacing: 0.2em; color: rgba(255,255,255,0.42);
-        font-weight: 600;
+      .cvp-tpl-meta-score-verdict {
+        font-size: 10.5px; font-weight: 500; letter-spacing: 0.04em;
+        color: rgba(255,255,255,0.55);
       }
 
-      .cvp-tpl-card-cta {
-        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-        width: 100%; padding: 12px 16px;
-        background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
-        border-radius: 999px; color: #fff;
-        font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
-        letter-spacing: -0.005em;
-        transition: background-color 280ms cubic-bezier(0.4,0,0.2,1),
-                    border-color 280ms cubic-bezier(0.4,0,0.2,1),
-                    color 280ms cubic-bezier(0.4,0,0.2,1);
+      /* ── Move 2: 4 micro-detail badges (rendered inside the cream paper) ── */
+      .cvp-cv-microbadge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 2px 6px; border-radius: 3px;
+        font-size: 6.8px; font-weight: 700; letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-family: 'Inter', system-ui, sans-serif;
+        line-height: 1.2;
+        flex-shrink: 0;
       }
-      .cvp-tpl-card-cta-arrow { transition: transform 280ms cubic-bezier(0.4,0,0.2,1); }
-      .cvp-tpl-card:hover .cvp-tpl-card-cta {
-        background: #fff; border-color: #fff; color: #0a0a0a;
+      .cvp-cv-microbadge--verified { background: rgba(29,158,117,0.16); color: #0d7a4a; }
+      .cvp-cv-microbadge--relocate { background: rgba(217,119,6,0.16);  color: #92400e; align-self: flex-start; margin-top: 2px; }
+      .cvp-cv-microbadge--stamp    { background: rgba(255,255,255,0.16); color: rgba(255,255,255,0.92); border: 0.6px dashed rgba(255,255,255,0.5); }
+      .cvp-cv-microbadge--tier1    { background: rgba(255,255,255,0.16); color: rgba(255,255,255,0.92); }
+
+      /* Header-block meta row supports an inline badge to the right of location/contact. */
+      .cvp-cv-meta--row {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 6px; flex-wrap: wrap;
       }
-      .cvp-tpl-card:hover .cvp-tpl-card-cta-arrow { transform: translateX(3px); }
-      .cvp-tpl-card-cta:focus-visible { outline: 2px solid var(--color-accent, #D97706); outline-offset: 3px; }
+      /* Mono-style name row holds the verified chip beside the name. */
+      .cvp-cv-mn-name-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      /* Split-style left column holds name, role, accent-rule-under-role, and badge. */
+      .cvp-cv-sp-hdr-l { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+      .cvp-cv-sp-role-rule { width: 22px; height: 1.2px; margin: 3px 0 0; border-radius: 1px; }
+
+      /* ── Move 2: per-style hierarchy variation via [data-style="..."] ── */
+      /* Split (dubai-modern, india-to-uae) — editorial: bigger name, more top whitespace. */
+      .cvp-tpl-paper[data-style="split"] .cvp-cv--split { padding: 22px 18px 16px; }
+      .cvp-tpl-paper[data-style="split"] .cvp-cv-name { font-size: 16px; }
+
+      /* Sidebar (arabia-pro, tech-riyadh, sales-lead-uae) — corporate: bigger initials avatar with white ring. */
+      .cvp-tpl-paper[data-style="sidebar"] .cvp-cv-sb-avatar {
+        width: 36px; height: 36px;
+        border: 1px solid rgba(255,255,255,0.85);
+        background: rgba(255,255,255,0.18);
+        margin-bottom: 4px;
+      }
+      .cvp-tpl-paper[data-style="sidebar"] .cvp-cv-sb-avatar > span { font-size: 13px !important; font-weight: 700 !important; color: #fff !important; }
+
+      /* Header-block (banking-dubai, aviation-gulf) — denser body with consistent rhythm. */
+      .cvp-tpl-paper[data-style="header-block"] .cvp-cv-hb-body {
+        display: flex; flex-direction: column; gap: 6px;
+      }
+      .cvp-tpl-paper[data-style="header-block"] .cvp-cv-hb-body > .cvp-cv-sec { margin: 0; }
+      .cvp-tpl-paper[data-style="header-block"] .cvp-cv-hb-body > .cvp-cv-profile { margin: 0; }
+      .cvp-tpl-paper[data-style="header-block"] .cvp-cv-hb-body > .cvp-cv-edu { margin: 0; }
 
       .cvp-tpl-foot { display: flex; justify-content: center; margin-top: 56px; }
       .cvp-tpl-seeall {
@@ -786,9 +968,10 @@ function TemplatesStyles() {
       .cvp-tpl-seeall:focus-visible { outline: 2px solid var(--color-accent, #D97706); outline-offset: 3px; border-radius: 4px; }
       .cvp-tpl-seeall-arrow { margin-left: 6px; color: var(--color-accent, #D97706); font-weight: 700; }
       .cvp-tpl-empty {
-        grid-column: 1 / -1; padding: 56px 24px; text-align: center;
+        flex: 1; padding: 56px 24px; text-align: center;
         color: rgba(255,255,255,0.5); font-size: 14px;
         border: 1px dashed rgba(255,255,255,0.10); border-radius: 16px;
+        list-style: none;
       }
     `}</style>
   );

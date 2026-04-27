@@ -22,14 +22,112 @@ function Glyph({ kind }) {
   return (<svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 3v11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><path d="M6.5 9.5L11 14l4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><path d="M4 18h14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>);
 }
 
-function PayMark({ kind }) {
-  const base = { height: 22, padding: '0 9px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5, fontWeight: 700, letterSpacing: 0.4, fontFamily: '-apple-system, "SF Pro Display", "Inter", system-ui, sans-serif', fontSize: 11, whiteSpace: 'nowrap' };
-  if (kind === 'applepay') return (<span aria-label="Apple Pay" title="Apple Pay" style={{ ...base, background: '#fff', color: '#0a0a0a', gap: 2 }}><svg width="11" height="13" viewBox="0 0 17 20" fill="currentColor" aria-hidden="true" style={{ marginTop: -1 }}><path d="M14.4 6.6c-.1 0-2.4.1-3.6 1.4-1.2 1.3-1 3.1-1 3.2.1.1 1.9.2 3-1 1.1-1.1 1.6-2.7 1.6-3.6Z" /><path d="M16.5 14.7c0-.1-1.3-.7-1.3-2.4 0-1.5 1.2-2.2 1.2-2.3-.7-1-1.7-1.1-2-1.1-.9-.1-1.6.5-2.1.5-.5 0-1.1-.5-1.9-.5-1 0-2 .6-2.5 1.5-1.1 1.8-.3 4.5.7 6 .5.7 1.1 1.6 1.9 1.5.8 0 1.1-.5 2-.5.9 0 1.2.5 2 .5.8 0 1.4-.7 1.9-1.5.6-.8.8-1.6.8-1.6 0-.1-1.7-.6-1.7-2.1Z" /></svg>Pay</span>);
-  if (kind === 'ziina') return (<span aria-label="Ziina" title="Ziina" style={{ ...base, background: '#7c3aed', color: '#fff' }}>Ziina</span>);
-  if (kind === 'visa') return (<span aria-label="Visa" title="Visa" style={{ ...base, background: '#1A1F71', color: '#F7B600', fontFamily: 'Georgia, serif', fontStyle: 'italic', letterSpacing: 0.6, fontSize: 12 }}>VISA</span>);
-  if (kind === 'mc') return (<span aria-label="Mastercard" title="Mastercard" style={{ ...base, background: '#fff', color: '#0a0a0a', padding: '0 6px', gap: 0 }}><svg width="22" height="14" viewBox="0 0 32 20" aria-hidden="true"><circle cx="12" cy="10" r="9" fill="#EB001B" /><circle cx="20" cy="10" r="9" fill="#F79E1B" opacity="0.95" /><path d="M16 3.5a9 9 0 0 1 0 13 9 9 0 0 1 0-13Z" fill="#FF5F00" /></svg></span>);
-  if (kind === 'upi') return (<span aria-label="UPI coming soon" title="UPI coming soon" style={{ ...base, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.65)', border: '1px dashed rgba(255,255,255,0.22)', gap: 6, padding: '0 8px' }}><span style={{ color: '#fff', letterSpacing: 0.5 }}>UPI</span><span style={{ fontSize: 8.5, letterSpacing: 1.4, textTransform: 'uppercase', color: 'rgba(217,119,6,0.85)', fontWeight: 700 }}>SOON</span></span>);
+/* ── Payment card stack (move 3) ─────────────────────────────────
+   Replaces the flat PayMark chip row with a layered Apple-Wallet style fan.
+   Apple Pay on top with a 3-arc NFC ripple emanating from the upper-right
+   corner. Cards collapse stacked at 0°/0,0 and fan out on viewport-enter
+   over 700ms with a small overshoot. Hover spreads them another notch.
+   Reduced-motion: skip fan animation, render at final positions immediately.
+*/
+const PAY_CARDS = [
+  // Order is render order (back → front). Higher z-index wins.
+  { kind: 'mc',       z: 2, finalX: -28, finalY: -10, finalRotate: -2,  shadow: '0 6px 14px rgba(0,0,0,0.32)',  opacity: 1 },
+  { kind: 'upi',      z: 3, finalX:  28, finalY: -10, finalRotate:  6,  shadow: '0 4px 10px rgba(0,0,0,0.22)',  opacity: 0.5 },
+  { kind: 'ziina',    z: 4, finalX: -14, finalY:  -6, finalRotate: -4,  shadow: '0 10px 22px rgba(0,0,0,0.42)', opacity: 0.95 },
+  { kind: 'visa',     z: 5, finalX:  14, finalY:  -4, finalRotate:  4,  shadow: '0 10px 22px rgba(0,0,0,0.42)', opacity: 1 },
+  { kind: 'applepay', z: 6, finalX:   0, finalY:   0, finalRotate:  0,  shadow: '0 18px 36px -8px rgba(0,0,0,0.6), 0 4px 10px rgba(0,0,0,0.4)', opacity: 1 },
+];
+
+function PayCardFace({ kind }) {
+  if (kind === 'applepay') {
+    return (
+      <div className="cvp-paycard cvp-paycard--apple" aria-label="Apple Pay">
+        <span className="cvp-paycard-applemark">
+          <svg width="13" height="15" viewBox="0 0 17 20" fill="#fff" aria-hidden="true"><path d="M14.4 6.6c-.1 0-2.4.1-3.6 1.4-1.2 1.3-1 3.1-1 3.2.1.1 1.9.2 3-1 1.1-1.1 1.6-2.7 1.6-3.6Z" /><path d="M16.5 14.7c0-.1-1.3-.7-1.3-2.4 0-1.5 1.2-2.2 1.2-2.3-.7-1-1.7-1.1-2-1.1-.9-.1-1.6.5-2.1.5-.5 0-1.1-.5-1.9-.5-1 0-2 .6-2.5 1.5-1.1 1.8-.3 4.5.7 6 .5.7 1.1 1.6 1.9 1.5.8 0 1.1-.5 2-.5.9 0 1.2.5 2 .5.8 0 1.4-.7 1.9-1.5.6-.8.8-1.6.8-1.6 0-.1-1.7-.6-1.7-2.1Z" /></svg>
+          <span>Pay</span>
+        </span>
+        <span className="cvp-paycard-chip" aria-hidden="true" />
+        <span className="cvp-paycard-nfc cvp-paycard-nfc-1" aria-hidden="true" />
+        <span className="cvp-paycard-nfc cvp-paycard-nfc-2" aria-hidden="true" />
+        <span className="cvp-paycard-nfc cvp-paycard-nfc-3" aria-hidden="true" />
+      </div>
+    );
+  }
+  if (kind === 'ziina') {
+    return (
+      <div className="cvp-paycard cvp-paycard--ziina" aria-label="Ziina">
+        <span className="cvp-paycard-wordmark cvp-paycard-wordmark--ziina">Ziina</span>
+      </div>
+    );
+  }
+  if (kind === 'visa') {
+    return (
+      <div className="cvp-paycard cvp-paycard--visa" aria-label="Visa">
+        <span className="cvp-paycard-chip cvp-paycard-chip--visa" aria-hidden="true" />
+        <span className="cvp-paycard-wordmark cvp-paycard-wordmark--visa">VISA</span>
+      </div>
+    );
+  }
+  if (kind === 'mc') {
+    return (
+      <div className="cvp-paycard cvp-paycard--mc" aria-label="Mastercard">
+        <svg className="cvp-paycard-mc" width="44" height="28" viewBox="0 0 44 28" aria-hidden="true">
+          <circle cx="16" cy="14" r="12" fill="#EB001B" />
+          <circle cx="28" cy="14" r="12" fill="#F79E1B" opacity="0.95" />
+          <path d="M22 4a12 12 0 0 1 0 20 12 12 0 0 1 0-20Z" fill="#FF5F00" />
+        </svg>
+        <span className="cvp-paycard-wordmark cvp-paycard-wordmark--mc">Mastercard</span>
+      </div>
+    );
+  }
+  if (kind === 'upi') {
+    return (
+      <div className="cvp-paycard cvp-paycard--upi" aria-label="UPI coming soon">
+        <span className="cvp-paycard-upi-text">UPI</span>
+        <span className="cvp-paycard-upi-ribbon" aria-hidden="true">SOON</span>
+      </div>
+    );
+  }
   return null;
+}
+
+function PaymentCardStack({ revealed }) {
+  const reduce = useReducedMotion();
+  return (
+    <div className="cvp-paystack" aria-label="Accepted payment methods">
+      <div className="cvp-paystack-stage">
+        {PAY_CARDS.map((c) => {
+          const initial = reduce
+            ? { x: c.finalX, y: c.finalY, rotate: c.finalRotate, opacity: c.opacity }
+            : { x: 0, y: 0, rotate: 0, opacity: c.opacity };
+          const animate = revealed
+            ? { x: c.finalX, y: c.finalY, rotate: c.finalRotate, opacity: c.opacity }
+            : initial;
+          return (
+            <motion.div
+              key={c.kind}
+              className="cvp-paystack-slot"
+              data-kind={c.kind}
+              style={{ zIndex: c.z, boxShadow: c.shadow }}
+              initial={initial}
+              animate={animate}
+              whileHover={reduce ? undefined : {
+                x: c.finalX * 1.45,
+                y: c.finalY,
+                rotate: c.finalRotate * 1.35,
+                transition: { duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] },
+              }}
+              transition={reduce
+                ? { duration: 0.01 }
+                : { duration: 0.7, ease: [0.34, 1.18, 0.64, 1], delay: c.z * 0.04 }}
+            >
+              <PayCardFace kind={c.kind} />
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function HowItWorksSection() {
@@ -99,9 +197,116 @@ export default function HowItWorksSection() {
         .cvp-hiw-pdf-chip { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(217,119,6,0.10); border: 1px solid rgba(217,119,6,0.28); border-radius: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #fde68a; letter-spacing: 0.04em; align-self: flex-start; }
         .cvp-hiw-pdf-chip b { color: #fff; font-weight: 700; }
         .cvp-hiw-pdf-pill { font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: rgba(34,197,94,0.18); color: #4ade80; font-weight: 700; }
-        .cvp-hiw-paywall { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.08); }
+        .cvp-hiw-paywall { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.08); }
         .cvp-hiw-paywall-label { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.45); font-weight: 600; }
-        .cvp-hiw-paywall-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+        /* ── Payment card stack (move 3) ─────────────────────────── */
+        .cvp-paystack { width: 100%; display: flex; align-items: center; justify-content: center; padding: 6px 0 12px; }
+        .cvp-paystack-stage {
+          position: relative; width: 100%; max-width: 240px; height: 124px;
+          margin: 0 auto;
+        }
+        .cvp-paystack-slot {
+          position: absolute; top: 50%; left: 50%;
+          width: 168px; height: 100px;
+          margin-left: -84px; margin-top: -50px;
+          border-radius: 12px;
+          will-change: transform;
+        }
+        .cvp-paycard {
+          position: relative; width: 100%; height: 100%;
+          border-radius: 12px; overflow: hidden;
+          font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif;
+          color: #fff; box-sizing: border-box; padding: 12px 14px;
+          display: block;
+        }
+        .cvp-paycard--apple { background: #0a0a0a; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); }
+        .cvp-paycard--ziina { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
+        .cvp-paycard--visa  { background: #1A1F71; }
+        .cvp-paycard--mc    { background: #f7f5f0; color: #14171d; }
+        .cvp-paycard--upi   {
+          background: rgba(255,255,255,0.04); border: 1px dashed rgba(255,255,255,0.22);
+          color: rgba(255,255,255,0.7);
+        }
+
+        /* Apple Pay mark — top-left */
+        .cvp-paycard-applemark {
+          position: absolute; top: 12px; left: 14px;
+          display: inline-flex; align-items: center; gap: 3px;
+          font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: #fff;
+          line-height: 1;
+        }
+        .cvp-paycard-applemark svg { margin-top: -2px; }
+
+        /* Chip rectangle (gold gradient) */
+        .cvp-paycard-chip {
+          position: absolute; bottom: 14px; left: 14px;
+          width: 24px; height: 16px; border-radius: 3px;
+          background: linear-gradient(135deg, #d4af37 0%, #f4cf64 50%, #d4af37 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.2);
+        }
+        .cvp-paycard-chip--visa { /* same chip on Visa */ }
+
+        /* NFC ripple — three concentric arcs from upper-right corner.
+           Cards have overflow:hidden so only the visible quadrant shows.
+           Spec: scale 0.6 → 1.4, opacity 0.6 → 0, 2.4s loop, 0.5s offsets. */
+        .cvp-paycard-nfc {
+          position: absolute;
+          top: -22px; right: -22px;
+          width: 56px; height: 56px;
+          border-radius: 50%;
+          border: 1.5px solid rgba(255,255,255,0.4);
+          opacity: 0;
+          transform-origin: 78% 22%;
+          animation: cvp-nfc-pulse 2.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+          pointer-events: none;
+        }
+        .cvp-paycard-nfc-1 { animation-delay: 0s; }
+        .cvp-paycard-nfc-2 { animation-delay: 0.5s; }
+        .cvp-paycard-nfc-3 { animation-delay: 1.0s; }
+        @keyframes cvp-nfc-pulse {
+          0%   { transform: scale(0.6); opacity: 0.6; }
+          80%  { opacity: 0; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cvp-paycard-nfc { animation: none; opacity: 0; }
+        }
+
+        /* Wordmarks */
+        .cvp-paycard-wordmark { position: absolute; line-height: 1; }
+        .cvp-paycard-wordmark--ziina {
+          top: 50%; left: 14px; transform: translateY(-50%);
+          font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: #fff;
+        }
+        .cvp-paycard-wordmark--visa {
+          bottom: 12px; right: 14px;
+          font-family: Georgia, serif; font-style: italic; font-weight: 700;
+          font-size: 22px; letter-spacing: 0.04em; color: #F7B600;
+        }
+        .cvp-paycard-mc {
+          position: absolute; bottom: 18px; right: 14px;
+        }
+        .cvp-paycard-wordmark--mc {
+          position: absolute; bottom: 8px; right: 14px;
+          font-size: 9px; font-weight: 700; letter-spacing: 0.04em; color: #14171d;
+          text-transform: lowercase;
+        }
+
+        /* UPI card — text + ribbon */
+        .cvp-paycard-upi-text {
+          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          font-size: 22px; font-weight: 800; letter-spacing: 0.06em; color: #fff;
+        }
+        .cvp-paycard-upi-ribbon {
+          position: absolute; top: 8px; right: -16px;
+          padding: 3px 18px;
+          background: var(--color-accent, #D97706); color: #fff;
+          font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+          transform: rotate(36deg);
+          transform-origin: center;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
         .cvp-hiw-fabhint { display: none; }
         @media (min-width: 1080px) { .cvp-hiw-fabhint { display: block; position: absolute; right: -20px; bottom: -40px; width: 280px; height: 200px; pointer-events: none; z-index: 2; opacity: 0; transition: opacity 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94); } .cvp-hiw[data-in-view="true"] .cvp-hiw-fabhint { opacity: 1; } }
         .cvp-hiw-fabhint-path { stroke: rgba(217,119,6,0.7); stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-dasharray: 4 6; stroke-dashoffset: 220; animation: cvp-hiw-dash 2.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; animation-delay: 600ms; }
@@ -188,22 +393,16 @@ export default function HowItWorksSection() {
             )}
 
             {s.n === '03' && (
-              <div className="cvp-hiw-pdf" aria-hidden="true">
-                <div className="cvp-hiw-pdf-chip">
+              <div className="cvp-hiw-pdf">
+                <div className="cvp-hiw-pdf-chip" aria-hidden="true">
                   <span><b>my-cv.pdf</b></span>
                   <span style={{ color: 'rgba(255,255,255,0.4)' }}>·</span>
                   <span>184 KB</span>
                   <span className="cvp-hiw-pdf-pill">FREE</span>
                 </div>
                 <div className="cvp-hiw-paywall">
-                  <div className="cvp-hiw-paywall-label">Pay in AED via</div>
-                  <div className="cvp-hiw-paywall-row">
-                    <PayMark kind="applepay" />
-                    <PayMark kind="ziina" />
-                    <PayMark kind="visa" />
-                    <PayMark kind="mc" />
-                    <PayMark kind="upi" />
-                  </div>
+                  <div className="cvp-hiw-paywall-label">Pay in AED · cancel anytime</div>
+                  <PaymentCardStack revealed={inView} />
                 </div>
               </div>
             )}
