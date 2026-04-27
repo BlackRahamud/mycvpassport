@@ -33,6 +33,7 @@ import BlogPostPage from "./pages/BlogPostPage";
 import AboutPage from "./pages/AboutPage";
 import IndiaToUaePage from "./pages/IndiaToUaePage";
 import AttestationPage from "./pages/AttestationPage";
+import AdminCostPage from "./pages/AdminCostPage";
 import GulfCareerPage from "./pages/GulfCareerPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
@@ -201,6 +202,7 @@ export default function App() {
               <Route path="/ats-checker" element={<Navigate to="/ats" replace />} />
               <Route path="/indian-cv-uae" element={<Navigate to="/india-to-uae" replace />} />
               <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanelV2 /> : <Navigate to="/" replace />} />
+              <Route path="/admin/cost" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminCostPage /> : <Navigate to="/" replace />} />
               <Route
                 path="/dashboard"
                 element={

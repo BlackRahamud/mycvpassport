@@ -1,10 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
 import { extractCvText, CvExtractionError } from "./services/cvExtraction";
 import UpgradeModal from "./UpgradeModal";
+
+// Sprint #4: Cloudflare Turnstile site key (public). When unset locally
+// the widget is skipped entirely and the Edge Function fail-opens in dev.
+const TURNSTILE_SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || "";
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || "";
 
 // ─── Design tokens — FIX 1: amber #F59E0B → #D97706 ─────────────────────────
 const T = {
@@ -297,6 +304,11 @@ export default function ATSChecker({
     window.innerWidth < 768
   );
   const [showPaywall, setShowPaywall] = useState(false);
+  // Sprint #4: Turnstile token + per-call quota/spend response
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const turnstileRef = useRef(null);
+  const [quota, setQuota] = useState(null);
+  const [spend, setSpend] = useState(null);
   const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
@@ -425,19 +437,59 @@ export default function ATSChecker({
 
     try {
       const userId = user?.id ?? "anon";
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "analyze-cv",
+
+      // Sprint #4: use plain fetch so we can read the response body on
+      // 429 (rate_limited) / 402 (spend_capped) / 403 (turnstile_blocked).
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/analyze-cv`,
         {
-          body: {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            apikey: SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
             cvText,
             jobDescription: jobDescription || "",
             userId,
             tier,
             planName,
-          },
+            turnstileToken,
+          }),
         },
       );
-      if (fnError) throw fnError;
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch {
+        // ignore — handled below
+      }
+
+      // Reset Turnstile after every attempt so the next try gets a fresh token.
+      if (turnstileRef.current && typeof turnstileRef.current.reset === "function") {
+        try { turnstileRef.current.reset(); } catch { /* noop */ }
+      }
+      setTurnstileToken(null);
+
+      if (!response.ok) {
+        const friendly =
+          (data && data.message) ||
+          (response.status === 429
+            ? "Daily scan limit reached. Try again tomorrow or upgrade."
+            : response.status === 402
+              ? "Daily Anthropic spend cap hit. Resets at UTC midnight."
+              : response.status === 403
+                ? "Captcha verification failed. Reload and try again."
+                : "Scoring engine returned an error. Please try again.");
+        setError(friendly);
+        setPhase("idle");
+        if (data && data.quota) setQuota(data.quota);
+        if (data && data.spend) setSpend(data.spend);
+        return;
+      }
+
       if (data && data.error) {
         const friendly = data.message || "Scoring engine returned an error. Please try again.";
         setError(friendly);
@@ -468,6 +520,8 @@ export default function ATSChecker({
       }
 
       setResults(data);
+      if (data.quota) setQuota(data.quota);
+      if (data.spend) setSpend(data.spend);
       setPhase("results");
       onResultsVisible?.(true);
     } catch (err) {
@@ -478,7 +532,7 @@ export default function ATSChecker({
     } finally {
       setLoadingStage(null);
     }
-  }, [uploadedFile, jobDescription, user, onResultsVisible]);
+  }, [uploadedFile, jobDescription, user, onResultsVisible, turnstileToken]);
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (
@@ -563,6 +617,21 @@ export default function ATSChecker({
           <div style={{ color: T.red, fontSize: 13, marginBottom: 12, padding: "10px 16px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10 }}>{error}</div>
         )}
 
+        {/* Sprint #4: Turnstile widget — anonymous + free tiers only.
+            Paid users skip the captcha (already auth'd + rate-limited). */}
+        {!isPro && TURNSTILE_SITE_KEY && (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={TURNSTILE_SITE_KEY}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onError={() => setTurnstileToken(null)}
+              onExpire={() => setTurnstileToken(null)}
+              options={{ theme: "dark", size: "normal" }}
+            />
+          </div>
+        )}
+
         <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
           <div aria-hidden style={{
             position: "absolute", inset: 0, borderRadius: 12, padding: 1,
@@ -575,9 +644,29 @@ export default function ATSChecker({
           }} />
           <button
             onClick={handleAnalyze}
-            style={{ width: "100%", background: "#0A0A0A", color: "#fff", border: "none", borderRadius: 12, padding: "18px 24px", fontFamily: "'DM Sans', sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, letterSpacing: -0.3, transition: "opacity 0.15s, transform 0.15s", position: "relative" }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+            disabled={!isPro && TURNSTILE_SITE_KEY && !turnstileToken}
+            style={{
+              width: "100%",
+              background: "#0A0A0A",
+              color: "#fff",
+              border: "none",
+              borderRadius: 12,
+              padding: "18px 24px",
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 16,
+              fontWeight: 700,
+              cursor: !isPro && TURNSTILE_SITE_KEY && !turnstileToken ? "not-allowed" : "pointer",
+              opacity: !isPro && TURNSTILE_SITE_KEY && !turnstileToken ? 0.55 : 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              letterSpacing: -0.3,
+              transition: "opacity 0.15s, transform 0.15s",
+              position: "relative",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
           >
             Analyze My CV <ArrowRight size={18} />
           </button>
@@ -587,6 +676,17 @@ export default function ATSChecker({
           <Lock size={12} color="rgba(160,160,160,0.5)" />
           Secure processing via Supabase · Your data is never sold
         </div>
+
+        {quota && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8, fontSize: 12, color: T.muted }}>
+            {quota.remaining} of {quota.limit} scans remaining today ({quota.tier})
+          </div>
+        )}
+        {spend?.alertThresholdHit && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6, fontSize: 12, color: T.amber }}>
+            ⚠ {Math.round((spend.spentUsdToday / spend.capUsd) * 100)}% of your daily AI budget used (${spend.spentUsdToday.toFixed(2)} of ${spend.capUsd.toFixed(2)})
+          </div>
+        )}
       </div>
     );
 

@@ -85,6 +85,11 @@ try {
       jobDescription: fixture.jd,
       userId: "verify-deploy",
       tier,
+      // Sprint #4: bypassToken matches the Edge Function's
+      // TURNSTILE_BYPASS_TOKEN env so this script can hit the live
+      // function without a real captcha challenge. Set
+      // CVP_TURNSTILE_BYPASS_TOKEN locally before running.
+      bypassToken: process.env.CVP_TURNSTILE_BYPASS_TOKEN || "",
     }),
   });
 } catch (err) {
