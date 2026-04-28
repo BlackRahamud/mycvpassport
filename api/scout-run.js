@@ -820,7 +820,34 @@ export default async function handler(req, res) {
   const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
   if (jsearchResult.status === 'rejected') console.error('[scout-run] JSearch failed:', jsearchResult.reason);
   if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
-  console.log('CHECKPOINT 3: Raw results - JSearch:', jsearchJobs.length, 'Jooble:', joobleJobs.length);
+  // FUNNEL LOG #1, #2 — raw upstream counts. If either is 0 here the
+  // upstream (or our query) is the problem, not the filters below.
+  console.log('FUNNEL #1 raw JSearch count:', jsearchJobs.length);
+  console.log('FUNNEL #2 raw Jooble count:', joobleJobs.length);
+  // First-row probes so we can see what shape each source actually returns
+  // (some fields are optional and the filters depend on them).
+  if (jsearchJobs[0]) {
+    const sample = jsearchJobs[0];
+    console.log('FUNNEL JSearch sample:', JSON.stringify({
+      job_title: sample.job_title,
+      employer_name: sample.employer_name,
+      job_country: sample.job_country,
+      job_city: sample.job_city,
+      job_posted_at_datetime_utc: sample.job_posted_at_datetime_utc,
+      job_publisher: sample.job_publisher,
+    }));
+  }
+  if (joobleJobs[0]) {
+    const sample = joobleJobs[0];
+    console.log('FUNNEL Jooble sample:', JSON.stringify({
+      job_title: sample.job_title,
+      employer_name: sample.employer_name,
+      job_country: sample.job_country,
+      job_city: sample.job_city,
+      job_posted_at_datetime_utc: sample.job_posted_at_datetime_utc,
+      job_publisher: sample.job_publisher,
+    }));
+  }
 
   // Both upstreams empty AND JSearch threw → genuine outage. Empty results
   // with both sources OK (e.g. niche role in Muscat) is not an error — let
@@ -839,10 +866,34 @@ export default async function handler(req, res) {
     if (!seen.has(key)) seen.set(key, j);
   }
   const deduped = Array.from(seen.values());
-  console.log('CHECKPOINT 4: After dedup:', deduped.length, 'jobs');
+  // FUNNEL #5 — after dedup. (Numbered per user's funnel request even
+  // though it lands earlier in the actual pipeline order.)
+  console.log('FUNNEL #5 after dedup:', deduped.length, 'jobs');
 
-  // ── Step 4: location hard filter + age cap ───────────────────────────────
-  const locationFiltered = applyLocationAndAge(deduped, location);
+  // ── Step 4: location filter + age cap, split for funnel visibility ──────
+  // Inlined (no longer using applyLocationAndAge) so we can log the
+  // attrition between the two passes — location alone vs age alone.
+  const expectedCountryNeedle = expectedCountryFor(location);
+  const afterLocation = deduped.filter((j) => {
+    if (expectedCountryNeedle && j.job_country && j.job_country !== expectedCountryNeedle) return false;
+    if (j.job_city) {
+      const cityLower = String(j.job_city).toLowerCase();
+      if (INDIAN_CITY_NEEDLES.some((n) => cityLower.includes(n))) return false;
+    }
+    return true;
+  });
+  console.log('FUNNEL #3 after location filter:', afterLocation.length, 'jobs (expectedCountry:', expectedCountryNeedle, ')');
+
+  const ageCutoff = Date.now() - GHOST_AGE_MS;
+  const afterAge = afterLocation.filter((j) => {
+    if (!j.job_posted_at_datetime_utc) return false;
+    const t = new Date(j.job_posted_at_datetime_utc).getTime();
+    if (Number.isNaN(t)) return false;
+    return t >= ageCutoff;
+  });
+  console.log('FUNNEL #4 after age filter:', afterAge.length, 'jobs (cutoff:', new Date(ageCutoff).toISOString(), ')');
+
+  const locationFiltered = afterAge;
 
   // ── Step 4b: Architect negative-query filter ────────────────────────────
   // Drops jobs whose title contains any term the Architect flagged
@@ -856,8 +907,8 @@ export default async function handler(req, res) {
         return !negativeNeedles.some((n) => n && t.includes(n));
       });
   const droppedByNegative = locationFiltered.length - filtered.length;
-  console.log(`Negative filter: removed ${droppedByNegative} jobs`);
-  console.log('CHECKPOINT 5: After negative filter:', filtered.length, 'jobs');
+  console.log(`Negative filter: removed ${droppedByNegative} jobs (needles:`, negativeNeedles, ')');
+  console.log('FUNNEL #6 after negative filter:', filtered.length, 'jobs');
 
   console.log(
     `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
@@ -932,6 +983,7 @@ export default async function handler(req, res) {
   };
 
   if (filtered.length === 0) {
+    console.log('FUNNEL #8 final matches count: 0 (zeroed before scoring — see funnel above)');
     res.status(200).json({
       ok: true,
       matches: [],
@@ -979,7 +1031,16 @@ export default async function handler(req, res) {
   );
   console.log(`Pre-filter count: ${candidates.length}, scores: [${rawScores.join(', ')}]`);
   const scored = candidates.map((_, i) => ({ score: rawScores[i] }));
-  console.log('CHECKPOINT 6: After scoring:', scored.length, 'jobs, scores:', scored.map(j => j.score));
+  // FUNNEL #7 — what Claude actually returned. Logs the full first
+  // entry (so we can see match_score, match_type, key_strengths shape)
+  // and the score+type pair for every scored job.
+  console.log('FUNNEL #7 Claude returned', scores.length, 'score objects');
+  if (scores[0]) console.log('FUNNEL #7 first score object:', JSON.stringify(scores[0]));
+  console.log('FUNNEL #7 score+type pairs:', scores.map((s, i) => ({
+    i,
+    score: rawScores[i],
+    type: (s || {}).match_type,
+  })));
 
   // Build (match, jobInsert, matchInsert, score) tuples, then sort all three
   // arrays by score descending in lockstep so the response order matches
@@ -1078,6 +1139,16 @@ export default async function handler(req, res) {
   const matchesForInsert = entries.map((e) => e.matchInsert);
 
   console.log(`Scout pipeline: ${candidates.length} scored → ${matches.length} returned (sorted by score desc)`);
+  console.log('FUNNEL #8 final matches count:', matches.length);
+  if (matches[0]) {
+    console.log('FUNNEL #8 first match preview:', JSON.stringify({
+      match_id: matches[0].match_id,
+      title: matches[0].title,
+      company: matches[0].company,
+      match_score: matches[0].match_score,
+      match_type: matches[0].match_type,
+    }));
+  }
 
   // ── Step 8: respond first ────────────────────────────────────────────────
   res.status(200).json({
