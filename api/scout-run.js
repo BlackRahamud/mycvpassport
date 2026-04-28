@@ -826,13 +826,30 @@ export default async function handler(req, res) {
     fetchJoobleJobs({ keywords: searchKeywords, location: joobleLocationFor(location), expectedCountry }),
   ]);
 
-  const jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
+  let jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
   const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
   if (jsearchResult.status === 'rejected') console.error('[scout-run] JSearch failed:', jsearchResult.reason);
   if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
-  // FUNNEL LOG #1, #2 — raw upstream counts. If either is 0 here the
-  // upstream (or our query) is the problem, not the filters below.
   console.log('FUNNEL #1 raw JSearch count:', jsearchJobs.length);
+
+  // JSearch fallback — the enriched Boolean-derived keyword soup
+  // sometimes confuses JSearch's relevance ranking and produces zero
+  // hits even for common roles. Retry once with the user's literal
+  // role string before giving up. Only fires when the first call
+  // succeeded but came back empty AND we actually used a different
+  // keyword string from the raw role (otherwise the retry would be
+  // identical to the first attempt).
+  if (jsearchJobs.length === 0 && jsearchResult.status === 'fulfilled' && searchKeywords !== role) {
+    console.log('JSearch retry with raw role:', role);
+    try {
+      jsearchJobs = await fetchJSearchJobs({ role, location, jobType, datePosted });
+      console.log('FUNNEL #1 raw JSearch count (after retry):', jsearchJobs.length);
+    } catch (e) {
+      console.error('[scout-run] JSearch retry failed:', e?.message || e);
+      jsearchJobs = [];
+    }
+  }
+
   console.log('FUNNEL #2 raw Jooble count:', joobleJobs.length);
   // First-row probes so we can see what shape each source actually returns
   // (some fields are optional and the filters depend on them).
@@ -880,9 +897,15 @@ export default async function handler(req, res) {
   // though it lands earlier in the actual pipeline order.)
   console.log('FUNNEL #5 after dedup:', deduped.length, 'jobs');
 
-  // ── Step 4: location filter + age cap, split for funnel visibility ──────
-  // Inlined (no longer using applyLocationAndAge) so we can log the
-  // attrition between the two passes — location alone vs age alone.
+  // ── Step 4: location filter only — age filter removed ──────────────────
+  // Permissive on null country: only drop a job when expectedCountry is
+  // known AND the job has a country set AND they don't match. Indian
+  // cities are still always dropped (Jooble + JSearch both leak India
+  // remote roles into Gulf searches).
+  //
+  // Age filter REMOVED: Jooble routinely returns listings dated months
+  // ago and any cutoff was zeroing the funnel. We'll lean on Claude's
+  // scoring to deprioritise stale listings rather than hard-dropping them.
   const expectedCountryNeedle = expectedCountryFor(location);
   const afterLocation = deduped.filter((j) => {
     if (expectedCountryNeedle && j.job_country && j.job_country !== expectedCountryNeedle) return false;
@@ -893,20 +916,9 @@ export default async function handler(req, res) {
     return true;
   });
   console.log('FUNNEL #3 after location filter:', afterLocation.length, 'jobs (expectedCountry:', expectedCountryNeedle, ')');
+  console.log('FUNNEL #4 age filter: SKIPPED (disabled)');
 
-  const ageCutoff = Date.now() - GHOST_AGE_MS;
-  const afterAge = afterLocation.filter((j) => {
-    // Permissive: only drop when the timestamp is explicitly set AND
-    // is older than 30 days. Missing or unparseable timestamps → keep.
-    const ts = j.job_posted_at_datetime_utc;
-    if (!ts) return true;
-    const t = new Date(ts).getTime();
-    if (Number.isNaN(t)) return true;
-    return t >= ageCutoff;
-  });
-  console.log('FUNNEL #4 after age filter:', afterAge.length, 'jobs (cutoff:', new Date(ageCutoff).toISOString(), ')');
-
-  const locationFiltered = afterAge;
+  const locationFiltered = afterLocation;
 
   // ── Step 4b: Architect negative-query filter ────────────────────────────
   // Drops jobs whose title contains any term the Architect flagged
