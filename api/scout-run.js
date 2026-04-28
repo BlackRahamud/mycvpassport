@@ -151,6 +151,20 @@ function expectedCountryFor(location) {
   return null;
 }
 
+// Normalised key for the (title, employer) dedup. Lowercase + trim alone
+// missed real duplicates because the two sources serialise the same role
+// slightly differently — non-breaking spaces, "Inc." vs "Inc", em-dashes,
+// trailing "(Hybrid)" punctuation, etc. Stripping everything that isn't
+// a Unicode letter or digit and collapsing whitespace produces a stable
+// fingerprint regardless of source.
+function dedupKey(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function applyScoutFilters(rawJobs, prefs) {
   const total = rawJobs.length;
   const expectedCountry = expectedCountryFor(prefs.location);
@@ -176,7 +190,7 @@ function applyScoutFilters(rawJobs, prefs) {
 
   const groups = new Map();
   afterAge.forEach((j) => {
-    const key = `${String(j.job_title || '').toLowerCase().trim()}|${String(j.employer_name || '').toLowerCase().trim()}`;
+    const key = `${dedupKey(j.job_title)}|${dedupKey(j.employer_name)}`;
     const existing = groups.get(key);
     if (!existing) {
       groups.set(key, j);

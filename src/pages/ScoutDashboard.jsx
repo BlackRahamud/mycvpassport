@@ -1560,11 +1560,21 @@ const ScoutDashboard = ({ user, isPro }) => {
       return;
     }
 
+    // Wipe the previous run's cards before firing the new request — without
+    // this the user sees stale matches sitting under the loading state and,
+    // when the new run completes, momentarily a mix of old + new before the
+    // reload settles. Resetting selectedId too keeps the detail rail in
+    // sync (no orphaned highlight on a card that's about to be replaced).
+    setMatches([]);
+    setSelectedId(null);
     setScanState('scanning');
+    // Snapshot the current filters at click time so the request always uses
+    // what's on screen right now, not whatever the closure captured earlier.
+    const payload = buildPreferencesPayload();
     try {
       const json = await authedFetch('/api/scout-run', {
         method: 'POST',
-        body: JSON.stringify({ preferences: buildPreferencesPayload() }),
+        body: JSON.stringify({ preferences: payload }),
       });
       await reloadMatches();
       setScanState('complete');
