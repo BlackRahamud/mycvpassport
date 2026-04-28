@@ -57,6 +57,11 @@ const JSEARCH_PAGE_SIZE = parseInt(process.env.SCOUT_JSEARCH_PAGE_SIZE || '10', 
 const JOOBLE_PAGE_SIZE = parseInt(process.env.SCOUT_JOOBLE_PAGE_SIZE || '10', 10);
 const JOOBLE_TIMEOUT_MS = parseInt(process.env.SCOUT_JOOBLE_TIMEOUT_MS || '8000', 10);
 const CLAUDE_MODEL = process.env.SCOUT_CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+// Query Architect uses Haiku regardless of the scoring-model env override —
+// it's a cheap, deterministic translation of "Sales Manager" into a precise
+// Boolean query. Lower latency, lower cost, separate from the scoring loop.
+const ARCHITECT_MODEL = 'claude-haiku-4-5-20251001';
+const ARCHITECT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function startOfTodayUTCISO() {
   const x = new Date();
@@ -197,6 +202,282 @@ function isMissingColumnError(err) {
   );
 }
 
+// ── Query Architect ──────────────────────────────────────────────────────
+// Per-city context that Haiku uses to translate a raw role into a precise
+// Boolean search query. tier1 = the obvious flagship employers; midmarket
+// = the long tail where most actual hiring happens; local_titles =
+// regional vocabulary the candidate or the JD might use. mandatory_append
+// is reserved for compliance phrases that reliably move the relevance
+// needle (Saudi: "transferable iqama" / "NOC available").
+const CITY_CONTEXT = {
+  'dubai': {
+    tier1: ['Emirates Group', 'DP World', 'DIFC firms', 'Emaar', 'Majid Al Futtaim', 'Dubai Airports'],
+    midmarket: ['Real estate brokerages', 'Al Quoz logistics', 'Jebel Ali free zone firms', 'DMCC companies', 'mid-market IT consultancies', 'retail operations', 'hospitality groups'],
+    local_titles: ['PRO', 'Draftsman', 'AutoCAD Operator', 'QS', 'MEP Engineer', 'Sales Executive'],
+    salary_mid: '12000-25000 AED/month',
+    salary_senior: '30000-55000 AED/month',
+    compliance: 'Emiratisation-aware',
+  },
+  'abu-dhabi': {
+    tier1: ['ADNOC', 'Mubadala', 'FAB', 'ADIB', 'ADGM firms', 'Abu Dhabi Health Services (SEHA)', 'PureHealth', 'Abu Dhabi Ports'],
+    midmarket: ['Musaffah industrial zone firms', 'Ruwais industrial complex', 'EPC contractors', 'healthcare operators', 'government supply chain vendors'],
+    local_titles: ['PRO', 'QS', 'MEP Engineer', 'Draftsman', 'AutoCAD Operator', 'HSE Officer', 'Document Controller'],
+    salary_mid: '12000-25000 AED/month',
+    salary_senior: '30000-55000 AED/month',
+    compliance: 'Emiratisation-aware',
+  },
+  'riyadh': {
+    tier1: ['Saudi Aramco', 'SABIC', 'NEOM', 'Saudi Vision 2030 entities', 'STC', 'Al Rajhi Bank', 'Saudi National Bank'],
+    midmarket: ['L&T Saudi Arabia', 'Shapoorji Pallonji', 'FMCG supply chain firms', 'heavy equipment companies', 'mega-project subcontractors', 'IT services companies'],
+    local_titles: ['Transferable Iqama', 'NOC Available', 'QS', 'MEP Engineer', 'HSE Officer', 'Muqeem', 'Camp Boss'],
+    salary_mid: '14000-28000 SAR/month',
+    salary_senior: '35000-65000 SAR/month',
+    compliance: 'Saudization-aware',
+    mandatory_append: 'transferable iqama OR NOC available',
+  },
+  'qatar': {
+    tier1: ['QatarEnergy', 'Qatargas', 'Qatar Airways', 'QFC firms', 'Ooredoo', 'Qatar Rail'],
+    midmarket: ['Facility management companies', 'trading and contracting firms', 'post-World Cup infrastructure operators', 'hospitality operators', 'logistics companies'],
+    local_titles: ['QS', 'MEP Engineer', 'FM Technician', 'HSE Officer', 'Document Controller', 'Draftsman'],
+    salary_mid: '13000-26000 QAR/month',
+    salary_senior: '32000-60000 QAR/month',
+    compliance: 'Qatarization-aware',
+  },
+  'oman': {
+    tier1: ['PDO (Petroleum Development Oman)', 'OQ (formerly Oman Oil)', 'Oman Air', 'Bank Muscat', 'Omantel'],
+    midmarket: ['Sohar industrial zone firms', 'Vision 2040 project contractors', 'tourism operators', 'logistics companies', 'healthcare operators'],
+    local_titles: ['QS', 'MEP Engineer', 'HSE Officer', 'Draftsman', 'AutoCAD Operator', 'Document Controller'],
+    salary_mid: '900-1800 OMR/month',
+    salary_senior: '2000-4000 OMR/month',
+    compliance: 'Omanisation-aware',
+  },
+};
+
+const DEFAULT_CITY_CONTEXT = {
+  tier1: ['Major UAE/GCC corporations'],
+  midmarket: ['Private sector companies', 'SMEs', 'contracting firms'],
+  local_titles: ['PRO', 'QS', 'MEP Engineer'],
+  salary_mid: '10000-25000 AED/month',
+  salary_senior: '30000-55000 AED/month',
+  compliance: 'GCC market aware',
+};
+
+// Slug-derived key for query_cache lookups. Idempotent: same role text
+// (modulo punctuation/case) always produces the same key, so two users
+// asking for "Sales Manager" and "sales-manager!" share a row.
+function normalizeRoleForCache(role) {
+  return String(role || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .trim();
+}
+
+function cityContextFor(location) {
+  const s = String(location || '').toLowerCase();
+  if (s.includes('dubai')) return CITY_CONTEXT['dubai'];
+  if (s.includes('abu dhabi') || s.includes('abu-dhabi')) return CITY_CONTEXT['abu-dhabi'];
+  if (s.includes('riyadh')) return CITY_CONTEXT['riyadh'];
+  if (s.includes('qatar') || s.includes('doha')) return CITY_CONTEXT['qatar'];
+  if (s.includes('oman') || s.includes('muscat')) return CITY_CONTEXT['oman'];
+  return DEFAULT_CITY_CONTEXT;
+}
+
+// Server-side only — never returned to the frontend. Builds the
+// candidate-background block of the Architect prompt from whatever shape
+// the cv_data column happens to hold (array of strings, structured
+// objects, mixed). Returns null when there's nothing usable so the
+// prompt cleanly omits the block.
+function extractCvSummary(cvData) {
+  if (!cvData || typeof cvData !== 'object') return null;
+  const exp = Array.isArray(cvData.experience) ? cvData.experience : [];
+  const firstExp = exp.find((e) => e && typeof e === 'object') || null;
+  const recent_title = (firstExp && firstExp.title) || cvData.title || '';
+
+  let top_skills = [];
+  if (Array.isArray(cvData.skills)) {
+    top_skills = cvData.skills.filter((s) => typeof s === 'string').slice(0, 5);
+  } else if (cvData.skills && typeof cvData.skills === 'object') {
+    const flat = [
+      ...(cvData.skills.hard_skills || []),
+      ...(cvData.skills.tools || []),
+      ...(cvData.skills.soft_skills || []),
+    ].filter((s) => typeof s === 'string');
+    top_skills = flat.slice(0, 5);
+  }
+
+  let totalYears = 0;
+  for (const e of exp) {
+    if (!e || typeof e !== 'object') continue;
+    if (!e.startDate) continue;
+    const start = new Date(e.startDate);
+    if (Number.isNaN(start.getTime())) continue;
+    const end = !e.endDate || /present|current/i.test(String(e.endDate))
+      ? new Date()
+      : new Date(e.endDate);
+    if (Number.isNaN(end.getTime())) continue;
+    const diff = (end - start) / (365.25 * 24 * 60 * 60 * 1000);
+    if (diff > 0) totalYears += diff;
+  }
+  const years_experience = totalYears > 0 ? Math.round(totalYears) : null;
+
+  const industry = cvData.industry || cvData.field || null;
+
+  if (!recent_title && !industry && top_skills.length === 0 && years_experience == null) {
+    return null;
+  }
+  return { recent_title, industry, top_skills, years_experience };
+}
+
+const ARCHITECT_SYSTEM_PROMPT = `You are an elite GCC Recruitment Query Architect.
+Your job is to translate a user's raw job title into a highly precise search query for the Gulf market.
+You understand both tier-1 corporations and mid-market private sector employers equally.
+You always return valid JSON only. No explanation. No markdown. No preamble. Raw JSON only.`;
+
+function buildArchitectUserPrompt(role, experience, cityContext, cvSummary) {
+  const cvBlock = cvSummary
+    ? `\nCandidate background:
+- Current/recent title: ${cvSummary.recent_title || 'unspecified'}
+- Industry: ${cvSummary.industry || 'unspecified'}
+- Top skills: ${(cvSummary.top_skills || []).join(', ') || 'unspecified'}
+- Years experience: ${cvSummary.years_experience ?? 'unspecified'}\n`
+    : '';
+  const mandatoryBlock = cityContext.mandatory_append
+    ? `\nAlways append to query: ${cityContext.mandatory_append}\n`
+    : '';
+  return `Job title: "${role}"
+Experience level: "${experience ?? 'unspecified'}"
+
+Location context:
+- City: ${cityContext.tier1.join(', ')}
+- Mid-market employers: ${cityContext.midmarket.join(', ')}
+- Local title variations: ${cityContext.local_titles.join(', ')}
+- Compliance: ${cityContext.compliance}
+${cvBlock}${mandatoryBlock}
+Return this exact JSON structure:
+{
+  "industry": "the identified job family/industry",
+  "api_query_string": "(\\"Title 1\\" OR \\"Title 2\\" OR \\"Title 3\\" OR \\"Title 4\\")",
+  "negative_query": ["junior", "intern", "trainee", "other exclusions"],
+  "key_skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+  "standardized_title": "clean normalized title for display",
+  "search_rationale": "one line explaining why these titles were chosen"
+}`;
+}
+
+function fallbackEnriched(role) {
+  return {
+    industry: '',
+    api_query_string: role,
+    negative_query: [],
+    key_skills: [],
+    standardized_title: role,
+    search_rationale: 'Fallback: raw role used (architect unavailable).',
+  };
+}
+
+// One Haiku call. Never throws — any failure path returns the
+// raw-role fallback so the run continues with the user's literal input.
+async function callArchitect(role, experience, cityContext, cvSummary) {
+  if (!ANTHROPIC_API_KEY) {
+    console.warn('[scout-run] Architect: ANTHROPIC_API_KEY missing — using fallback');
+    return fallbackEnriched(role);
+  }
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: ARCHITECT_MODEL,
+        max_tokens: 500,
+        temperature: 0,
+        system: ARCHITECT_SYSTEM_PROMPT,
+        messages: [{
+          role: 'user',
+          content: buildArchitectUserPrompt(role, experience, cityContext, cvSummary),
+        }],
+      }),
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.error(`[scout-run] Architect ${r.status}: ${text.slice(0, 200)}`);
+      return fallbackEnriched(role);
+    }
+    const data = await r.json();
+    const raw = (Array.isArray(data.content) && data.content[0]?.text) || '';
+    const cleaned = String(raw).replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      industry: typeof parsed.industry === 'string' ? parsed.industry : '',
+      api_query_string: typeof parsed.api_query_string === 'string' && parsed.api_query_string.trim()
+        ? parsed.api_query_string
+        : role,
+      negative_query: Array.isArray(parsed.negative_query)
+        ? parsed.negative_query.filter((x) => typeof x === 'string' && x.trim())
+        : [],
+      key_skills: Array.isArray(parsed.key_skills)
+        ? parsed.key_skills.filter((x) => typeof x === 'string' && x.trim())
+        : [],
+      standardized_title: typeof parsed.standardized_title === 'string' && parsed.standardized_title.trim()
+        ? parsed.standardized_title
+        : role,
+      search_rationale: typeof parsed.search_rationale === 'string' ? parsed.search_rationale : '',
+    };
+  } catch (e) {
+    console.error('[scout-run] Architect call/parse failed:', e?.message || e);
+    return fallbackEnriched(role);
+  }
+}
+
+// Cache-aware enrichment. Lookups + upserts on query_cache are wrapped
+// in try/catch so a missing table or transient DB error never blocks the
+// run — we just transparently fall through to a fresh Claude call.
+async function queryArchitect(db, { role, experience, location, cvSummary }) {
+  const cacheKey = normalizeRoleForCache(role);
+  const cityContext = cityContextFor(location);
+
+  if (cacheKey) {
+    try {
+      const { data: cached } = await db
+        .from('query_cache')
+        .select('enriched_payload, created_at')
+        .eq('normalized_title', cacheKey)
+        .maybeSingle();
+      if (cached?.enriched_payload && cached.created_at) {
+        const age = Date.now() - new Date(cached.created_at).getTime();
+        if (age < ARCHITECT_CACHE_TTL_MS) {
+          console.log(`Query Architect: cache hit for ${cacheKey}`);
+          return cached.enriched_payload;
+        }
+      }
+    } catch (e) {
+      console.warn('[scout-run] query_cache lookup failed:', e?.message || e);
+    }
+  }
+  console.log(`Query Architect: cache miss for ${cacheKey || '(empty)'}`);
+
+  const enriched = await callArchitect(role, experience, cityContext, cvSummary);
+
+  if (cacheKey) {
+    try {
+      await db
+        .from('query_cache')
+        .upsert(
+          { normalized_title: cacheKey, enriched_payload: enriched },
+          { onConflict: 'normalized_title' },
+        );
+    } catch (e) {
+      console.warn('[scout-run] query_cache upsert failed:', e?.message || e);
+    }
+  }
+  return enriched;
+}
+
 // Jooble accepts a free-text "location" string; we map the user's GCC slug
 // to a "City, Country" form that Jooble reliably parses. expectedCountryFor()
 // stays the source of truth for the post-fetch country filter.
@@ -320,7 +601,7 @@ async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
   return Array.isArray(json?.data) ? json.data.slice(0, JSEARCH_PAGE_SIZE) : [];
 }
 
-function buildScoringPrompt(cvText, jobs, prefs) {
+function buildScoringPrompt(cvText, jobs, prefs, keySkills = []) {
   const jobBlocks = jobs.map((j, i) => `=== JOB ${i + 1} ===
 Title: ${j.job_title || ''}
 Company: ${j.employer_name || ''}
@@ -332,6 +613,10 @@ Salary: ${
   }
 Description: ${(j.job_description || '').slice(0, 2400)}`).join('\n\n');
 
+  const keySkillsLine = Array.isArray(keySkills) && keySkills.length
+    ? `\nPrioritise matches that include these key skills: ${keySkills.join(', ')}\n`
+    : '';
+
   return `You are a senior recruiter scoring how well a candidate matches each job below.
 
 CANDIDATE CV:
@@ -342,7 +627,7 @@ CANDIDATE PREFERENCES:
 - Preferred location: ${prefs.location || ''}
 - Years of experience: ${prefs.experience_years ?? 'unspecified'}
 - Salary minimum: ${prefs.salary_min ?? 'unspecified'}
-
+${keySkillsLine}
 JOBS:
 ${jobBlocks}
 
@@ -365,8 +650,8 @@ Rules:
 - Output ONLY a JSON array. No commentary. No markdown fences.`;
 }
 
-async function scoreWithClaude(cvText, jobs, prefs) {
-  const prompt = buildScoringPrompt(cvText, jobs, prefs);
+async function scoreWithClaude(cvText, jobs, prefs, keySkills = []) {
+  const prompt = buildScoringPrompt(cvText, jobs, prefs, keySkills);
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -461,6 +746,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'No CV on file. Build your CV before running Scout.' });
   }
   const cvText = flattenCv(cvRow.cv_data);
+  const cvSummary = extractCvSummary(cvRow.cv_data);
+  console.log(`Query Architect: CV context ${cvSummary ? 'present' : 'absent'}`);
 
   // Daily-limit gate. Read scout_preferences ONLY for the run counter —
   // filter values come from the request body, not the DB. Founder bypasses
@@ -486,11 +773,16 @@ export default async function handler(req, res) {
     });
   }
 
+  // ── Step 0: Query Architect — translate raw role into a precise query ───
+  const enriched = await queryArchitect(db, { role, experience, location, cvSummary });
+  console.log(`Query Architect: enriched '${role}' → '${enriched.standardized_title}'`);
+  console.log(`Query Architect: api_query_string: ${enriched.api_query_string}`);
+
   // ── Step 1: parallel fetch JSearch + Jooble ──────────────────────────────
   const expectedCountry = expectedCountryFor(location);
   const [jsearchResult, joobleResult] = await Promise.allSettled([
-    fetchJSearchJobs({ role, location, jobType, datePosted }),
-    fetchJoobleJobs({ keywords: role, location: joobleLocationFor(location), expectedCountry }),
+    fetchJSearchJobs({ role: enriched.api_query_string, location, jobType, datePosted }),
+    fetchJoobleJobs({ keywords: enriched.api_query_string, location: joobleLocationFor(location), expectedCountry }),
   ]);
 
   const jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
@@ -517,10 +809,24 @@ export default async function handler(req, res) {
   const deduped = Array.from(seen.values());
 
   // ── Step 4: location hard filter + age cap ───────────────────────────────
-  const filtered = applyLocationAndAge(deduped, location);
+  const locationFiltered = applyLocationAndAge(deduped, location);
+
+  // ── Step 4b: Architect negative-query filter ────────────────────────────
+  // Drops jobs whose title contains any term the Architect flagged
+  // (junior, intern, contractor, etc). Case-insensitive substring match —
+  // negative_query is a list of canonicalised lowercase tokens.
+  const negativeNeedles = (enriched.negative_query || []).map((s) => String(s).toLowerCase());
+  const filtered = negativeNeedles.length === 0
+    ? locationFiltered
+    : locationFiltered.filter((j) => {
+        const t = String(j.job_title || '').toLowerCase();
+        return !negativeNeedles.some((n) => n && t.includes(n));
+      });
+  const droppedByNegative = locationFiltered.length - filtered.length;
+  console.log(`Negative filter: removed ${droppedByNegative} jobs`);
 
   console.log(
-    `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${filtered.length} location+age`
+    `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
   );
 
   // Helper that fires the prefs upsert + scout_jobs/matches sync. Defined
@@ -597,6 +903,8 @@ export default async function handler(req, res) {
       matches: [],
       matchesCreated: 0,
       runsRemaining: isFounder ? null : SCOUT_DAILY_LIMIT - runsToday - 1,
+      standardized_title: enriched.standardized_title,
+      search_rationale: enriched.search_rationale,
     });
     await syncToDb([], []);
     return;
@@ -607,12 +915,17 @@ export default async function handler(req, res) {
 
   let scores;
   try {
-    scores = await scoreWithClaude(cvText, candidates, {
-      target_role: role,
-      location,
-      experience_years: experience,
-      salary_min: minSalary,
-    });
+    scores = await scoreWithClaude(
+      cvText,
+      candidates,
+      {
+        target_role: role,
+        location,
+        experience_years: experience,
+        salary_min: minSalary,
+      },
+      enriched.key_skills,
+    );
   } catch (e) {
     console.error('[scout-run] Claude scoring failed:', e);
     return res.status(502).json({ ok: false, error: 'AI scorer unavailable' });
@@ -736,6 +1049,8 @@ export default async function handler(req, res) {
     matches,
     matchesCreated: matches.length,
     runsRemaining: isFounder ? null : SCOUT_DAILY_LIMIT - runsToday - 1,
+    standardized_title: enriched.standardized_title,
+    search_rationale: enriched.search_rationale,
   });
 
   // ── Step 7: DB sync drains after the response has flushed ────────────────
