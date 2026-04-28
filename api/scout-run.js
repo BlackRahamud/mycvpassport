@@ -94,9 +94,42 @@ function flattenCv(cvData) {
   return parts.join('\n').slice(0, 8000);
 }
 
-async function fetchJSearchJobs({ role, location }) {
+// Frontend filter labels → JSearch employment_types codes. JSearch treats
+// "Remote" via a separate remote_jobs_only flag — we still send a base
+// employment_type for it. "Hybrid" has no JSearch enum so we let it ride
+// as FULLTIME and rely on JD text to surface hybrid roles.
+const EMPLOYMENT_TYPE_MAP = {
+  'Full Time': 'FULLTIME',
+  'Part Time': 'PARTTIME',
+  'Contract': 'CONTRACTOR',
+  'Remote': 'FULLTIME',
+  'Hybrid': 'FULLTIME',
+};
+
+const DATE_POSTED_MAP = {
+  'Last 24 hours': 'today',
+  'Last 3 days': '3days',
+  'Last week': 'week',
+  'Last month': 'month',
+  'Any time': 'all',
+};
+
+async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
   const query = `${role}${location ? ` in ${location}` : ''}`.trim();
-  const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&num_pages=1`;
+  const params = new URLSearchParams({
+    query,
+    page: '1',
+    num_pages: '1',
+  });
+
+  const empCode = jobType && jobType !== 'Any' ? EMPLOYMENT_TYPE_MAP[jobType] : null;
+  if (empCode) params.set('employment_types', empCode);
+  if (jobType === 'Remote') params.set('remote_jobs_only', 'true');
+
+  const dateCode = DATE_POSTED_MAP[datePosted] || 'all';
+  if (dateCode !== 'all') params.set('date_posted', dateCode);
+
+  const url = `https://jsearch.p.rapidapi.com/search?${params.toString()}`;
   const r = await fetch(url, {
     headers: {
       'X-RapidAPI-Key': RAPIDAPI_KEY,
@@ -242,6 +275,8 @@ export default async function handler(req, res) {
         experience_years: bodyPrefs.experience_years ?? prefRow?.experience_years ?? null,
         salary_min: bodyPrefs.salary_min ?? prefRow?.salary_min ?? null,
         sources: bodyPrefs.sources || prefRow?.sources || ['all'],
+        job_type: bodyPrefs.job_type || prefRow?.job_type || 'Any',
+        date_posted_filter: bodyPrefs.date_posted_filter || prefRow?.date_posted_filter || 'Any time',
       }
     : (prefRow || {});
 
@@ -283,6 +318,8 @@ export default async function handler(req, res) {
         experience_years: prefs.experience_years,
         salary_min: prefs.salary_min,
         sources: prefs.sources,
+        job_type: prefs.job_type,
+        date_posted_filter: prefs.date_posted_filter,
       })
       .select()
       .single();
@@ -300,13 +337,20 @@ export default async function handler(req, res) {
         experience_years: prefs.experience_years,
         salary_min: prefs.salary_min,
         sources: prefs.sources,
+        job_type: prefs.job_type,
+        date_posted_filter: prefs.date_posted_filter,
       })
       .eq('id', prefRow.id);
   }
 
   let rawJobs = [];
   try {
-    rawJobs = await fetchJSearchJobs({ role: prefs.target_role, location: prefs.location });
+    rawJobs = await fetchJSearchJobs({
+      role: prefs.target_role,
+      location: prefs.location,
+      jobType: prefs.job_type,
+      datePosted: prefs.date_posted_filter,
+    });
   } catch (e) {
     console.error('[scout-run] JSearch failed:', e);
     return res.status(502).json({ ok: false, error: 'Job source unavailable' });
@@ -336,20 +380,34 @@ export default async function handler(req, res) {
     console.warn('[scout-run] score/job count mismatch:', scores.length, rawJobs.length);
   }
 
-  const jobRows = rawJobs.map((j) => ({
-    user_id: user.id,
-    title: j.job_title || '',
-    company: j.employer_name || '',
-    location: [j.job_city, j.job_country].filter(Boolean).join(', '),
-    salary:
-      j.job_min_salary || j.job_max_salary
-        ? `${j.job_min_salary ?? ''}-${j.job_max_salary ?? ''} ${j.job_salary_currency || ''}`.trim()
-        : (j.job_salary || ''),
-    jd_text: (j.job_description || '').slice(0, 12000),
-    jd_snippet: jdSnippet(j.job_description),
-    apply_url: j.job_apply_link || j.job_google_link || '',
-    source_platform: j.job_publisher || 'JSearch',
-  }));
+  const jobRows = rawJobs.map((j) => {
+    // Structured salary fields per migration 008. salary_min/max are
+    // numeric, currency + period are text. The legacy `salary` text
+    // column stays populated (denormalised) for back-compat with any
+    // older read paths but new code formats from the structured fields.
+    const minNum = Number.isFinite(Number(j.job_min_salary)) ? Number(j.job_min_salary) : null;
+    const maxNum = Number.isFinite(Number(j.job_max_salary)) ? Number(j.job_max_salary) : null;
+    const currency = j.job_salary_currency || null;
+    const period = j.job_salary_period || null;
+    return {
+      user_id: user.id,
+      title: j.job_title || '',
+      company: j.employer_name || '',
+      location: [j.job_city, j.job_country].filter(Boolean).join(', '),
+      salary:
+        minNum != null || maxNum != null
+          ? `${minNum ?? ''}-${maxNum ?? ''} ${currency || ''}`.trim()
+          : (j.job_salary || ''),
+      salary_min: minNum,
+      salary_max: maxNum,
+      salary_currency: currency,
+      salary_period: period,
+      jd_text: (j.job_description || '').slice(0, 12000),
+      jd_snippet: jdSnippet(j.job_description),
+      apply_url: j.job_apply_link || j.job_google_link || '',
+      source_platform: j.job_publisher || 'JSearch',
+    };
+  });
 
   const { data: insertedJobs, error: jobsErr } = await db
     .from('scout_jobs')

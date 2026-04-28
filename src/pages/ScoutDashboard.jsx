@@ -33,9 +33,9 @@ import {
   FileText,
   Upload,
   Loader2,
+  ExternalLink,
 } from 'lucide-react';
 import { supabase } from '../appSupabaseClient';
-import { extractCvText, CvExtractionError } from '../services/cvExtraction';
 
 /* =====================================================================
    ScoutDashboard — Pro-only feature, static UI prototype.
@@ -145,7 +145,7 @@ const SCAN_SOURCE_MESSAGES = {
 const SCAN_ALL_ORDER = ['LinkedIn', 'Indeed', 'Bayt', 'Glassdoor', 'Naukri'];
 const SCAN_FINAL_MESSAGE = 'Scoring matches with AI…';
 
-async function triggerPdfDownload({ tailoredCv, templateId, baseName }) {
+async function triggerPdfDownload({ tailoredCv, templateId, baseName, signal }) {
   const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -153,6 +153,7 @@ async function triggerPdfDownload({ tailoredCv, templateId, baseName }) {
       templateId: templateId || APPLY_DEFAULT_TEMPLATE_ID,
       cv: tailoredCv,
     }),
+    signal,
   });
   if (!res.ok) {
     let msg = `PDF render failed (${res.status})`;
@@ -171,6 +172,35 @@ async function triggerPdfDownload({ tailoredCv, templateId, baseName }) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
+// Compact period label for salary strings ("month" → "/mo", "year" → "/yr").
+function periodSuffix(period) {
+  const p = String(period || '').toLowerCase();
+  if (p.includes('hour')) return '/hr';
+  if (p.includes('day')) return '/day';
+  if (p.includes('week')) return '/wk';
+  if (p.includes('month') || p === 'mo' || p === 'monthly') return '/mo';
+  if (p.includes('year') || p === 'yr' || p === 'annual' || p === 'annually') return '/yr';
+  return '';
+}
+
+// Format the salary block for cards + detail header. Returns '' when there
+// is nothing real to show — callers conditionally render based on truthiness
+// so we never display "Not stated" or empty placeholders.
+function formatSalary(job) {
+  const min = Number.isFinite(Number(job?.salaryMin)) ? Number(job.salaryMin) : null;
+  const max = Number.isFinite(Number(job?.salaryMax)) ? Number(job.salaryMax) : null;
+  const currency = (job?.salaryCurrency || '').toUpperCase();
+  const period = periodSuffix(job?.salaryPeriod);
+  if (min == null && max == null) return '';
+  const fmt = (n) => n.toLocaleString();
+  const cur = currency || '';
+  if (min != null && max != null) {
+    return `${cur ? cur + ' ' : ''}${fmt(min)} – ${fmt(max)}${period ? ' ' + period : ''}`.trim();
+  }
+  const single = min != null ? min : max;
+  return `From ${cur ? cur + ' ' : ''}${fmt(single)}${period ? ' ' + period : ''}`.trim();
+}
+
 function mapMatchToUi(m) {
   const state = m.match_type === 'direct' ? 'direct' : m.match_type === 'stretch' ? 'stretch' : 'discarded';
   return {
@@ -181,8 +211,10 @@ function mapMatchToUi(m) {
     role: m.title || 'Untitled role',
     location: m.location || '',
     jobType: '',
-    salary: m.salary || 'Not stated',
-    salaryNote: '',
+    salaryMin: m.salary_min ?? null,
+    salaryMax: m.salary_max ?? null,
+    salaryCurrency: m.salary_currency || null,
+    salaryPeriod: m.salary_period || null,
     posted: timeAgo(m.fetched_at),
     source: m.source_platform || 'Source',
     score: m.match_score || 0,
@@ -205,6 +237,8 @@ const DEFAULT_FILTERS = Object.freeze({
   experience: 'Mid (3-5 years)',
   salary: 10000,
   sources: ['all'],
+  jobType: 'Any',
+  datePosted: 'Any time',
 });
 
 /* shared spring — snappy, never linear */
@@ -425,6 +459,41 @@ const PreferencesSidebar = ({
         </Field>
 
         <Field
+          icon={<Briefcase size={14} strokeWidth={1.9} />}
+          label="Job Type"
+        >
+          <select
+            className="scout-input scout-select"
+            value={filters.jobType}
+            onChange={(e) => setFilters({ ...filters, jobType: e.target.value })}
+          >
+            <option>Any</option>
+            <option>Full Time</option>
+            <option>Part Time</option>
+            <option>Contract</option>
+            <option>Remote</option>
+            <option>Hybrid</option>
+          </select>
+        </Field>
+
+        <Field
+          icon={<Clock size={14} strokeWidth={1.9} />}
+          label="Date Posted"
+        >
+          <select
+            className="scout-input scout-select"
+            value={filters.datePosted}
+            onChange={(e) => setFilters({ ...filters, datePosted: e.target.value })}
+          >
+            <option>Any time</option>
+            <option>Last 24 hours</option>
+            <option>Last 3 days</option>
+            <option>Last week</option>
+            <option>Last month</option>
+          </select>
+        </Field>
+
+        <Field
           icon={<Banknote size={14} strokeWidth={1.9} />}
           label={
             <span className="scout-salary-head">
@@ -610,10 +679,11 @@ const JobCard = ({ job, tint, active, onClick }) => {
       </div>
 
       <div className="scout-card-foot">
-        <div className="scout-salary">{job.salary}</div>
+        {(() => {
+          const sal = formatSalary(job);
+          return sal ? <div className="scout-salary">{sal}</div> : null;
+        })()}
         <div className="scout-salary-meta">
-          <span>{job.salaryNote}</span>
-          <span className="scout-dot" />
           <span className="scout-source-tag scout-source-tag--card">
             via {job.source}
           </span>
@@ -720,8 +790,16 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword, onApply, onSave, 
           <div className="scout-detail-company">{job.company}</div>
           <div className="scout-detail-meta">
             {job.location && <span>{job.location}</span>}
-            {job.location && job.salary && <span className="scout-dot" />}
-            {job.salary && <span>{job.salary}</span>}
+            {(() => {
+              const sal = formatSalary(job);
+              if (!sal) return null;
+              return (
+                <>
+                  {job.location && <span className="scout-dot" />}
+                  <span>{sal}</span>
+                </>
+              );
+            })()}
           </div>
           <div className="scout-detail-sub">
             {job.posted && (
@@ -783,6 +861,18 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword, onApply, onSave, 
           {isIgnored ? 'Skipped' : 'Skip'}
         </motion.button>
       </div>
+
+      {job.applyUrl && (
+        <a
+          className="scout-detail-job-link"
+          href={job.applyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <ExternalLink size={12} strokeWidth={2} />
+          View original job posting
+        </a>
+      )}
 
       {(job.summary || job.why) && (
         <Section title="Why Scout picked this">
@@ -1078,34 +1168,40 @@ const ProgressMessages = ({ messages, intervalMs = 2400 }) => {
 
 /* ---------------------------- apply modal ---------------------------- */
 
-// Stages: 'choose' | 'extracting' | 'tailoring' | 'rendering' | 'done' | 'error'
+// Stages: 'choose' | 'tailoring' | 'rendering' | 'opening' | 'done' | 'error'
+//
+// Path A (Use my CVPassport CV) flows through 'tailoring' → 'rendering' → 'done'.
+// Path B (Upload a CV) flips to 'opening' for a single beat then 'done' — it
+// never hits an API.
 const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) => {
   const fileRef = useRef(null);
-  const [pickedFileName, setPickedFileName] = useState('');
 
   if (!job) return null;
 
   const onFileChange = (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
-    setPickedFileName(f.name);
     onPickUpload(f);
   };
 
   const stageMessages = {
-    extracting: ['Reading your CV…'],
     tailoring: [
       `Tailoring your CV for ${job.company || 'this role'}…`,
       'Inserting ATS keywords…',
       'Reframing bullets to mirror the JD…',
     ],
     rendering: ['Rendering PDF…', 'Almost there…'],
-    done: ['Tailored CV ready'],
+    opening: ['Opening job page…'],
   };
 
-  const showProgress = stage === 'extracting' || stage === 'tailoring' || stage === 'rendering';
+  const showProgress = stage === 'tailoring' || stage === 'rendering' || stage === 'opening';
   const showDone = stage === 'done';
   const showError = stage === 'error';
+
+  // Done-state copy depends on which path we took. Path A downloaded a PDF
+  // and opened the tab. Path B only opened the tab.
+  const doneTitle = 'Job opened in a new tab';
+  const doneSub = 'Upload your CV there to apply.';
 
   return (
     <motion.div
@@ -1127,12 +1223,13 @@ const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) 
         aria-modal="true"
         aria-label="Apply with tailored CV"
       >
+        {/* X always works — onClose aborts the in-flight Apply (Path A)
+            via AbortController and resets modal state. */}
         <button
           type="button"
           className="scout-apply-close"
           onClick={onClose}
           aria-label="Close"
-          disabled={showProgress}
         >
           <X size={16} strokeWidth={2} />
         </button>
@@ -1158,7 +1255,7 @@ const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) 
               <div className="scout-apply-option-body">
                 <div className="scout-apply-option-title">Use my CVPassport CV</div>
                 <div className="scout-apply-option-desc">
-                  Tailor the CV you built here to this JD. Fastest path.
+                  Tailor the CV you built here to this JD. Downloads + opens the job page.
                 </div>
               </div>
               <ArrowRight size={14} strokeWidth={2} className="scout-apply-option-arrow" />
@@ -1175,7 +1272,7 @@ const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) 
               <div className="scout-apply-option-body">
                 <div className="scout-apply-option-title">Upload a CV</div>
                 <div className="scout-apply-option-desc">
-                  Send a PDF or DOCX you already have. We&apos;ll tailor it.
+                  Use a CV you already have. We&apos;ll open the job page so you can upload it.
                 </div>
               </div>
               <ArrowRight size={14} strokeWidth={2} className="scout-apply-option-arrow" />
@@ -1183,7 +1280,7 @@ const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) 
             <input
               ref={fileRef}
               type="file"
-              accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              accept="application/pdf,.pdf"
               onChange={onFileChange}
               style={{ display: 'none' }}
             />
@@ -1201,9 +1298,6 @@ const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) 
             <div className="scout-apply-progress-text">
               <ProgressMessages messages={stageMessages[stage]} intervalMs={2400} />
             </div>
-            {pickedFileName && stage === 'extracting' && (
-              <div className="scout-apply-progress-sub">{pickedFileName}</div>
-            )}
           </div>
         )}
 
@@ -1212,10 +1306,8 @@ const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) 
             <div className="scout-apply-done-mark">
               <Check size={18} strokeWidth={2.4} />
             </div>
-            <div className="scout-apply-done-title">Tailored CV downloaded</div>
-            <div className="scout-apply-done-sub">
-              We&apos;ve also opened the job page in a new tab. Upload the CV there to apply.
-            </div>
+            <div className="scout-apply-done-title">{doneTitle}</div>
+            <div className="scout-apply-done-sub">{doneSub}</div>
             <button type="button" className="scout-btn scout-btn--primary" onClick={onClose}>
               Done
             </button>
@@ -1263,6 +1355,9 @@ const ScoutDashboard = ({ user, isPro }) => {
   const [applyStage, setApplyStage] = useState('choose');
   const [applyError, setApplyError] = useState(null);
   const avatarRef = useRef(null);
+  // Aborts the in-flight Apply (Path A) fetch when the user clicks the
+  // modal X. Set on each onPickStored invocation, cleared in finally.
+  const applyAbortRef = useRef(null);
   const sort = 'Best match';
 
   const visibleJobs = useMemo(() => matches.map(mapMatchToUi), [matches]);
@@ -1342,7 +1437,7 @@ const ScoutDashboard = ({ user, isPro }) => {
 
         const { data: prefRow } = await supabase
           .from('scout_preferences')
-          .select('target_role, location, experience_years, salary_min, sources')
+          .select('target_role, location, experience_years, salary_min, sources, job_type, date_posted_filter')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -1363,6 +1458,8 @@ const ScoutDashboard = ({ user, isPro }) => {
             sources: Array.isArray(prefRow.sources) && prefRow.sources.length
               ? prefRow.sources
               : DEFAULT_FILTERS.sources,
+            jobType: prefRow.job_type || DEFAULT_FILTERS.jobType,
+            datePosted: prefRow.date_posted_filter || DEFAULT_FILTERS.datePosted,
           });
         }
 
@@ -1391,6 +1488,8 @@ const ScoutDashboard = ({ user, isPro }) => {
     experience_years: seniorityToYears(filters.experience),
     salary_min: filters.salary || null,
     sources: filters.sources,
+    job_type: filters.jobType || 'Any',
+    date_posted_filter: filters.datePosted || 'Any time',
   });
 
   const reloadMatches = async () => {
@@ -1454,8 +1553,7 @@ const ScoutDashboard = ({ user, isPro }) => {
     );
   };
 
-  // Open the Apply modal for a given job. The modal owns the rest of the
-  // flow (CV source picker → tailor → PDF → open apply URL).
+  // Open the Apply modal for a given job. Modal owns the rest of the flow.
   const handleApply = (job) => {
     if (!job?.id) return;
     setApplyJob(job);
@@ -1463,45 +1561,21 @@ const ScoutDashboard = ({ user, isPro }) => {
     setApplyError(null);
   };
 
+  // X-button close. Aborts any in-flight fetch (the AbortController is
+  // attached to authedFetch / triggerPdfDownload via signal). The aborted
+  // fetch throws AbortError which the orchestrators below silently swallow.
   const closeApplyModal = () => {
-    // Don't allow close while a network step is mid-flight (the close button
-    // is disabled in the modal during 'extracting' | 'tailoring' | 'rendering').
-    if (['extracting', 'tailoring', 'rendering'].includes(applyStage)) return;
+    if (applyAbortRef.current) {
+      try { applyAbortRef.current.abort(); } catch { /* noop */ }
+      applyAbortRef.current = null;
+    }
     setApplyJob(null);
     setApplyStage('choose');
     setApplyError(null);
   };
 
-  // Shared tail of the Apply flow: tailor → render PDF → open apply URL →
-  // mark match saved → toast → flip modal to 'done'.
-  const finishApplyFlow = async ({ job, body }) => {
-    setApplyStage('tailoring');
-    const json = await authedFetch('/api/scout-tailor', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-    if (!json?.tailored_cv) throw new Error('Tailor returned no CV');
-
-    setApplyStage('rendering');
-    const baseName = `${(json.tailored_cv.name || 'CV').replace(/\s+/g, '_')}_for_${(job.company || 'role').replace(/\s+/g, '_')}`;
-    await triggerPdfDownload({
-      tailoredCv: json.tailored_cv,
-      templateId: json.template_id,
-      baseName,
-    });
-
-    if (job.applyUrl) {
-      try { window.open(job.applyUrl, '_blank', 'noopener,noreferrer'); } catch { /* popup blocked */ }
-    }
-
-    await updateMatchStatus(job.id, 'saved');
-    setToast({
-      id: Date.now(),
-      message: 'Your tailored CV is ready — upload it on the job page',
-    });
-    setApplyStage('done');
-  };
-
+  // Path A — Use my CVPassport CV.
+  // Tailor → PDF download → open apply URL → mark applied → toast.
   const onPickStored = async () => {
     const job = applyJob;
     if (!job) return;
@@ -1510,40 +1584,67 @@ const ScoutDashboard = ({ user, isPro }) => {
       setApplyError('No CV on file. Build your CV first, or upload one instead.');
       return;
     }
+    const ac = new AbortController();
+    applyAbortRef.current = ac;
     try {
-      await finishApplyFlow({ job, body: { match_id: job.id, cv_type: 'specific' } });
+      setApplyStage('tailoring');
+      const json = await authedFetch('/api/scout-tailor', {
+        method: 'POST',
+        body: JSON.stringify({ match_id: job.id, cv_type: 'specific' }),
+        signal: ac.signal,
+      });
+      if (ac.signal.aborted) return;
+      if (!json?.tailored_cv) throw new Error('Tailor returned no CV');
+
+      setApplyStage('rendering');
+      const baseName = `${(json.tailored_cv.name || 'CV').replace(/\s+/g, '_')}_for_${(job.company || 'role').replace(/\s+/g, '_')}`;
+      await triggerPdfDownload({
+        tailoredCv: json.tailored_cv,
+        templateId: json.template_id,
+        baseName,
+        signal: ac.signal,
+      });
+      if (ac.signal.aborted) return;
+
+      if (job.applyUrl) {
+        try { window.open(job.applyUrl, '_blank', 'noopener,noreferrer'); } catch { /* popup blocked */ }
+      }
+
+      await updateMatchStatus(job.id, 'applied');
+      setToast({
+        id: Date.now(),
+        message: 'Tailored CV downloaded. Job opened in new tab — upload your CV there.',
+      });
+      setApplyStage('done');
     } catch (e) {
+      if (e?.name === 'AbortError' || ac.signal.aborted) return; // user cancelled
       console.error('[scout] apply (stored) failed:', e);
       setApplyStage('error');
       setApplyError(e?.message || 'Apply failed — please try again.');
+    } finally {
+      if (applyAbortRef.current === ac) applyAbortRef.current = null;
     }
   };
 
-  const onPickUpload = async (file) => {
+  // Path B — Upload a CV.
+  // Zero API calls, zero Anthropic spend, zero PDF generation. Just open
+  // the apply URL in a new tab and let the user upload there. We mark
+  // 'saved' so the row stays on the shortlist for follow-up. The file
+  // input is wired so the modal accepts a file but we never read it.
+  const onPickUpload = async () => {
     const job = applyJob;
-    if (!job || !file) return;
-    setApplyStage('extracting');
-    let extracted;
-    try {
-      extracted = await extractCvText(file);
-    } catch (e) {
-      const msg = e instanceof CvExtractionError
-        ? (e.hint || e.message)
-        : (e?.message || 'Could not read the file.');
-      setApplyStage('error');
-      setApplyError(msg);
-      return;
+    if (!job) return;
+    if (job.applyUrl) {
+      try { window.open(job.applyUrl, '_blank', 'noopener,noreferrer'); } catch { /* popup blocked */ }
     }
     try {
-      await finishApplyFlow({
-        job,
-        body: { match_id: job.id, cv_type: 'specific', cv_text: extracted.text },
-      });
-    } catch (e) {
-      console.error('[scout] apply (upload) failed:', e);
-      setApplyStage('error');
-      setApplyError(e?.message || 'Apply failed — please try again.');
-    }
+      await updateMatchStatus(job.id, 'saved');
+    } catch { /* status update is best-effort */ }
+    setToast({
+      id: Date.now(),
+      message: 'Job opened in a new tab. Upload your CV there to apply.',
+    });
+    setApplyStage('done');
   };
 
   const handleSave = async (job) => {
@@ -2775,6 +2876,21 @@ const ScoutStyle = () => (
     .scout-stat-note { font-size: 11px; font-weight: 500; color: var(--scout-text-faint); letter-spacing: -0.005em; }
     .scout-stat-card--good .scout-stat-note { color: var(--scout-direct); opacity: 0.8; }
     .scout-stat-card--okay .scout-stat-note { color: var(--scout-stretch); opacity: 0.8; }
+
+    /* original-job-posting link (under the action bar) ----------------- */
+    .scout-detail-job-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin: 4px 0 18px;
+      font-size: 12px; font-weight: 500;
+      color: #6B7280;
+      text-decoration: none;
+      transition: color 160ms var(--scout-ease);
+    }
+    .scout-detail-job-link:hover {
+      color: var(--scout-text);
+      text-decoration: underline;
+    }
+    .scout-detail-job-link svg { color: inherit; }
 
     /* gap list (replaces the old "CV tweaks" before/after) ------------- */
     .scout-gap-list {

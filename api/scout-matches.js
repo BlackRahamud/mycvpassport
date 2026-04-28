@@ -74,8 +74,8 @@ export default async function handler(req, res) {
       id, job_id, match_score, match_type, key_strengths, missing_requirements,
       tailoring_advice, ats_keywords, status, created_at,
       scout_jobs (
-        title, company, location, salary, jd_text, jd_snippet, apply_url,
-        source_platform, fetched_at
+        title, company, location, salary, salary_min, salary_max, salary_currency,
+        salary_period, jd_text, jd_snippet, apply_url, source_platform, fetched_at
       )
     `)
     .eq('user_id', user.id)
@@ -102,6 +102,10 @@ export default async function handler(req, res) {
       company: job.company || '',
       location: job.location || '',
       salary: job.salary || '',
+      salary_min: job.salary_min ?? null,
+      salary_max: job.salary_max ?? null,
+      salary_currency: job.salary_currency || null,
+      salary_period: job.salary_period || null,
       jd_text: job.jd_text || '',
       jd_snippet: job.jd_snippet || '',
       apply_url: job.apply_url || '',
