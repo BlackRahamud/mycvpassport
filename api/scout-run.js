@@ -48,6 +48,10 @@ const JOOBLE_API_KEY = process.env.JOOBLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const SCOUT_DAILY_LIMIT = parseInt(process.env.SCOUT_DAILY_LIMIT || '3', 10);
+// Founder account bypasses the daily run limit entirely — used for live
+// QA, eval-fixture sweeps, and demo runs that mustn't trip the same gate
+// real users see.
+const FOUNDER_USER_ID = 'bc4a800f-0ab7-47d5-85ed-a9e014020c64';
 const JSEARCH_PAGE_SIZE = parseInt(process.env.SCOUT_JSEARCH_PAGE_SIZE || '10', 10);
 const JOOBLE_PAGE_SIZE = parseInt(process.env.SCOUT_JOOBLE_PAGE_SIZE || '10', 10);
 const JOOBLE_TIMEOUT_MS = parseInt(process.env.SCOUT_JOOBLE_TIMEOUT_MS || '8000', 10);
@@ -492,11 +496,12 @@ export default async function handler(req, res) {
   }
 
   const todayStart = startOfTodayUTCISO();
+  const isFounder = user.id === FOUNDER_USER_ID;
   let runsToday = prefRow?.run_count_today || 0;
   if (!prefRow?.last_run_at || new Date(prefRow.last_run_at) < new Date(todayStart)) {
     runsToday = 0;
   }
-  if (runsToday >= SCOUT_DAILY_LIMIT) {
+  if (!isFounder && runsToday >= SCOUT_DAILY_LIMIT) {
     return res.status(429).json({
       ok: false,
       error: `Daily limit reached (${SCOUT_DAILY_LIMIT}/day). Try again tomorrow.`,
@@ -614,13 +619,15 @@ export default async function handler(req, res) {
   if (rawJobs.length === 0) {
     await db
       .from('scout_preferences')
-      .update({ last_run_at: new Date().toISOString(), run_count_today: runsToday + 1 })
+      .update(isFounder
+        ? { last_run_at: new Date().toISOString() }
+        : { last_run_at: new Date().toISOString(), run_count_today: runsToday + 1 })
       .eq('id', prefRow.id);
     return res.status(200).json({
       ok: true,
       jobsFetched: 0,
       matchesCreated: 0,
-      runsRemaining: SCOUT_DAILY_LIMIT - runsToday - 1,
+      runsRemaining: isFounder ? null : SCOUT_DAILY_LIMIT - runsToday - 1,
     });
   }
 
@@ -716,13 +723,15 @@ export default async function handler(req, res) {
 
   await db
     .from('scout_preferences')
-    .update({ last_run_at: new Date().toISOString(), run_count_today: runsToday + 1 })
+    .update(isFounder
+      ? { last_run_at: new Date().toISOString() }
+      : { last_run_at: new Date().toISOString(), run_count_today: runsToday + 1 })
     .eq('id', prefRow.id);
 
   return res.status(200).json({
     ok: true,
     jobsFetched: rawJobs.length,
     matchesCreated: matchRows.length,
-    runsRemaining: SCOUT_DAILY_LIMIT - runsToday - 1,
+    runsRemaining: isFounder ? null : SCOUT_DAILY_LIMIT - runsToday - 1,
   });
 }
