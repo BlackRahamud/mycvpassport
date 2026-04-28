@@ -366,6 +366,29 @@ Return this exact JSON structure:
 }`;
 }
 
+// Convert the Architect's Boolean api_query_string into a free-text
+// keyword string that JSearch and Jooble actually accept. Both APIs
+// document `query`/`keywords` as natural language — neither parses
+// Boolean operators reliably. Sending `("X" OR "Y")` literally returns
+// zero hits because the upstream treats it as a phrase search.
+//
+// Strategy: pull out every quoted title, drop the parens and OR
+// joiners, and fall back to standardized_title or raw role if nothing
+// extractable remains. We join surviving titles with a space so they
+// act as keyword soup, which is what these search APIs do best.
+function extractApiKeywords(enriched, role) {
+  const q = String(enriched?.api_query_string || '');
+  const quoted = q.match(/"([^"]+)"/g);
+  if (quoted && quoted.length) {
+    const titles = quoted.map((m) => m.replace(/"/g, '').trim()).filter(Boolean);
+    if (titles.length) return titles.join(' ');
+  }
+  const stripped = q.replace(/[()"]/g, '').replace(/\s+OR\s+/gi, ' ').replace(/\s+/g, ' ').trim();
+  if (stripped) return stripped;
+  if (enriched?.standardized_title) return enriched.standardized_title;
+  return role;
+}
+
 function fallbackEnriched(role) {
   return {
     industry: '',
@@ -778,13 +801,19 @@ export default async function handler(req, res) {
   console.log(`Query Architect: enriched '${role}' → '${enriched.standardized_title}'`);
   console.log(`Query Architect: api_query_string: ${enriched.api_query_string}`);
   console.log('CHECKPOINT 1: Query Architect done, api_query_string:', enriched.api_query_string);
+  console.log('Query Architect full payload:', JSON.stringify(enriched));
+
+  // Strip Boolean syntax — JSearch/Jooble can't parse it. Keeps the
+  // Architect's value-add (negative_query, key_skills, standardized_title)
+  // intact while sending these APIs the keyword soup they actually want.
+  const searchKeywords = extractApiKeywords(enriched, role);
 
   // ── Step 1: parallel fetch JSearch + Jooble ──────────────────────────────
   const expectedCountry = expectedCountryFor(location);
-  console.log('CHECKPOINT 2: Firing JSearch + Jooble with query:', enriched.api_query_string);
+  console.log('CHECKPOINT 2: Firing JSearch + Jooble with query:', searchKeywords);
   const [jsearchResult, joobleResult] = await Promise.allSettled([
-    fetchJSearchJobs({ role: enriched.api_query_string, location, jobType, datePosted }),
-    fetchJoobleJobs({ keywords: enriched.api_query_string, location: joobleLocationFor(location), expectedCountry }),
+    fetchJSearchJobs({ role: searchKeywords, location, jobType, datePosted }),
+    fetchJoobleJobs({ keywords: searchKeywords, location: joobleLocationFor(location), expectedCountry }),
   ]);
 
   const jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
