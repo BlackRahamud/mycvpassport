@@ -1435,9 +1435,13 @@ const ScoutDashboard = ({ user, isPro }) => {
         if (cancelled) return;
         setHasCv(Array.isArray(cvRows) && cvRows.length > 0);
 
+        // .select('*') instead of an explicit column list so the query
+        // doesn't 400 when a newly-shipped client meets a not-yet-migrated
+        // database. Optional chaining + ?? on every read below already
+        // handles missing fields.
         const { data: prefRow } = await supabase
           .from('scout_preferences')
-          .select('target_role, location, experience_years, salary_min, sources, job_type, date_posted_filter')
+          .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)

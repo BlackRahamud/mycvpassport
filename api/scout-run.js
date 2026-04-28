@@ -308,39 +308,57 @@ export default async function handler(req, res) {
   }
   const cvText = flattenCv(cvRow.cv_data);
 
+  // Helper: detect "column does not exist" so we can transparently retry
+  // without optional fields when a migration hasn't been applied yet.
+  const isMissingColumnError = (err) =>
+    !!err && (
+      err.code === 'PGRST204' ||
+      err.code === '42703' ||
+      /column .* does not exist|Could not find the .* column/i.test(err.message || '')
+    );
+
   if (!prefRow) {
-    const ins = await db
-      .from('scout_preferences')
-      .insert({
-        user_id: user.id,
-        target_role: prefs.target_role,
-        location: prefs.location,
-        experience_years: prefs.experience_years,
-        salary_min: prefs.salary_min,
-        sources: prefs.sources,
-        job_type: prefs.job_type,
-        date_posted_filter: prefs.date_posted_filter,
-      })
-      .select()
-      .single();
+    const baseRow = {
+      user_id: user.id,
+      target_role: prefs.target_role,
+      location: prefs.location,
+      experience_years: prefs.experience_years,
+      salary_min: prefs.salary_min,
+      sources: prefs.sources,
+    };
+    const fullRow = {
+      ...baseRow,
+      job_type: prefs.job_type,
+      date_posted_filter: prefs.date_posted_filter,
+    };
+    let ins = await db.from('scout_preferences').insert(fullRow).select().single();
+    if (ins.error && isMissingColumnError(ins.error)) {
+      console.warn('[scout-run] scout_preferences missing migration 007 columns — retrying without them');
+      ins = await db.from('scout_preferences').insert(baseRow).select().single();
+    }
     if (ins.error) {
       console.error('[scout-run] insert scout_preferences failed:', ins.error);
       return res.status(500).json({ ok: false, error: 'Could not save preferences' });
     }
     prefRow = ins.data;
   } else if (bodyPrefs) {
-    await db
-      .from('scout_preferences')
-      .update({
-        target_role: prefs.target_role,
-        location: prefs.location,
-        experience_years: prefs.experience_years,
-        salary_min: prefs.salary_min,
-        sources: prefs.sources,
-        job_type: prefs.job_type,
-        date_posted_filter: prefs.date_posted_filter,
-      })
-      .eq('id', prefRow.id);
+    const baseUpdate = {
+      target_role: prefs.target_role,
+      location: prefs.location,
+      experience_years: prefs.experience_years,
+      salary_min: prefs.salary_min,
+      sources: prefs.sources,
+    };
+    const fullUpdate = {
+      ...baseUpdate,
+      job_type: prefs.job_type,
+      date_posted_filter: prefs.date_posted_filter,
+    };
+    const upd = await db.from('scout_preferences').update(fullUpdate).eq('id', prefRow.id);
+    if (upd.error && isMissingColumnError(upd.error)) {
+      console.warn('[scout-run] scout_preferences update missing migration 007 columns — retrying without them');
+      await db.from('scout_preferences').update(baseUpdate).eq('id', prefRow.id);
+    }
   }
 
   let rawJobs = [];
@@ -409,10 +427,23 @@ export default async function handler(req, res) {
     };
   });
 
-  const { data: insertedJobs, error: jobsErr } = await db
+  // First-pass insert with structured salary columns (migration 008). If
+  // those columns aren't present yet, retry with the legacy `salary` text
+  // field only — keeps Scout running until 008 is applied.
+  let insertedJobs;
+  let jobsErr;
+  ({ data: insertedJobs, error: jobsErr } = await db
     .from('scout_jobs')
     .insert(jobRows)
-    .select('id');
+    .select('id'));
+  if (jobsErr && isMissingColumnError(jobsErr)) {
+    console.warn('[scout-run] scout_jobs missing migration 008 columns — retrying without structured salary');
+    const legacyJobRows = jobRows.map(({ salary_min, salary_max, salary_currency, salary_period, ...rest }) => rest);
+    ({ data: insertedJobs, error: jobsErr } = await db
+      .from('scout_jobs')
+      .insert(legacyJobRows)
+      .select('id'));
+  }
   if (jobsErr || !Array.isArray(insertedJobs)) {
     console.error('[scout-run] insert scout_jobs failed:', jobsErr);
     return res.status(500).json({ ok: false, error: 'Could not save jobs' });

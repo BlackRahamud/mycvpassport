@@ -68,15 +68,17 @@ export default async function handler(req, res) {
   if (!Number.isFinite(limit) || limit < 1) limit = 50;
   if (limit > 200) limit = 200;
 
+  // scout_jobs(*) instead of an explicit field list so this query keeps
+  // working when the client side ships before migration 008 has been run.
+  // The mapper below reads only the fields it needs and defaults missing
+  // ones to null, so unknown columns (or known columns not yet present)
+  // never throw.
   let query = db
     .from('scout_matches')
     .select(`
       id, job_id, match_score, match_type, key_strengths, missing_requirements,
       tailoring_advice, ats_keywords, status, created_at,
-      scout_jobs (
-        title, company, location, salary, salary_min, salary_max, salary_currency,
-        salary_period, jd_text, jd_snippet, apply_url, source_platform, fetched_at
-      )
+      scout_jobs (*)
     `)
     .eq('user_id', user.id)
     .order('match_score', { ascending: false })
