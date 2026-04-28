@@ -4,6 +4,7 @@ import ReactGA from "react-ga4";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
+import NavigateToAuth from "./lib/auth/navigateToAuth";
 import PricingPage from "./pages/PricingPage";
 import LandingPage from "./LandingPage";
 import AdminPanelV2 from "./AdminPanelV2";
@@ -253,7 +254,7 @@ export default function App() {
               <Route path="/ats" element={<ATSPage onBack={() => navigate(user ? "/dashboard" : "/")} />} />
               <Route path="/linkedin-optimizer" element={<LinkedInOptimizer />} />
               <Route path="/salary-switcher" element={<SalarySwitcher />} />
-              <Route path="/scout" element={user ? <ScoutDashboard user={user} isPro={isPro} /> : <Navigate to="/auth" replace />} />
+              <Route path="/scout" element={user ? <ScoutDashboard user={user} isPro={isPro} /> : <NavigateToAuth />} />
               <Route path="/gulf-career" element={<GulfCareerPage />} />
               <Route path="/gulf/:reportId" element={<GulfCareerPage />} />
               <Route path="/tools" element={<ToolsPage />} />
@@ -267,7 +268,7 @@ export default function App() {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/refund" element={<RefundPage />} />
-              <Route path="/dashboard/applications" element={user ? <ApplicationsPage /> : <Navigate to="/auth" replace />} />
+              <Route path="/dashboard/applications" element={user ? <ApplicationsPage /> : <NavigateToAuth />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Analytics />

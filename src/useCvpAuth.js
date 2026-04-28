@@ -26,6 +26,24 @@ function consumePostAuthRedirect() {
   }
 }
 
+// Set by NavigateToAuth when a logged-out user hits a protected route
+// (e.g. /scout). Read here once after auth completes so the user lands
+// back on the page they wanted instead of the generic /dashboard.
+// Reject "/auth" and "/" defensively in case something writes a useless
+// destination — those shouldn't trigger a return navigation.
+const RETURN_PATH_KEY = "cvp_return_path";
+function consumeReturnPath() {
+  if (typeof window === "undefined" || !window.sessionStorage) return null;
+  try {
+    const v = window.sessionStorage.getItem(RETURN_PATH_KEY);
+    if (v) window.sessionStorage.removeItem(RETURN_PATH_KEY);
+    if (!v || v === "/auth" || v === "/") return null;
+    return v;
+  } catch {
+    return null;
+  }
+}
+
 export function useCvpAuth() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -291,8 +309,10 @@ export function useCvpAuth() {
           /* default to /dashboard */
         }
         const stored = consumePostAuthRedirect();
-        console.log("[cvp-auth-trace] postAuth navigating", { dest: stored || dest, stored });
-        runPostAuthNavigate(stored || dest, { replace: true });
+        const sessionReturn = consumeReturnPath();
+        const target = stored || sessionReturn || dest;
+        console.log("[cvp-auth-trace] postAuth navigating", { dest: target, stored, sessionReturn });
+        runPostAuthNavigate(target, { replace: true });
       })();
       return;
     }
@@ -367,7 +387,8 @@ export function useCvpAuth() {
           // navigate has committed so the next render lands on the
           // destination URL (not /auth or /register) and skips naturally.
           const stored = consumePostAuthRedirect();
-          const dest = stored || (trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true");
+          const sessionReturn = consumeReturnPath();
+          const dest = stored || sessionReturn || (trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true");
           runPostAuthNavigate(dest, { replace: true });
           authLoginSuccessHoldRef.current = false;
           return { ok: true };
@@ -487,7 +508,8 @@ export function useCvpAuth() {
     onDelayedLoginNavigate: (path) => {
       authLoginSuccessHoldRef.current = false;
       const stored = consumePostAuthRedirect();
-      runPostAuthNavigate(stored || path || "/dashboard", { replace: true });
+      const sessionReturn = consumeReturnPath();
+      runPostAuthNavigate(stored || sessionReturn || path || "/dashboard", { replace: true });
     },
     onResendVerification: handleResendVerification,
     onForgotPassword: handleForgotPassword,

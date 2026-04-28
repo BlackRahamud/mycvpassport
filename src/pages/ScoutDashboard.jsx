@@ -1111,7 +1111,7 @@ const UserMenu = ({ open, onClose, anchorRef, plan = 'active-hunter', email = ''
           <button
             type="button"
             className="scout-popover-item"
-            onClick={go('/settings')}
+            onClick={go('/account')}
           >
             <SettingsIcon size={14} strokeWidth={1.9} />
             Settings
