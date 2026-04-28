@@ -299,6 +299,8 @@ async function fetchJoobleJobs({ keywords, location, expectedCountry }) {
   }
 }
 
+const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
 async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
   const query = `${role}${location ? ` in ${location}` : ''}`.trim();
   const params = new URLSearchParams({
@@ -315,19 +317,32 @@ async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
   if (dateCode !== 'all') params.set('date_posted', dateCode);
 
   const url = `https://jsearch.p.rapidapi.com/search?${params.toString()}`;
-  const r = await fetch(url, {
+  const doFetch = () => fetch(url, {
     headers: {
       'X-RapidAPI-Key': RAPIDAPI_KEY,
       'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
     },
   });
+
+  // First attempt. On a 429 we back off 3s and retry exactly once; if the
+  // retry is still 429 we fall back gracefully to an empty array so Jooble
+  // alone can carry the run. Non-429 failures still throw so allSettled
+  // surfaces them.
+  let r = await doFetch();
+  if (r.status === 429) {
+    const text = await r.text().catch(() => '');
+    console.error(`[scout-run] JSearch 429 rate-limited — full body: ${text}`);
+    await delay(3000);
+    r = await doFetch();
+    if (r.status === 429) {
+      console.error('[scout-run] JSearch rate limited after retry — continuing with Jooble only');
+      return [];
+    }
+  }
+
   if (!r.ok) {
     const text = await r.text().catch(() => '');
-    if (r.status === 429) {
-      console.error(`[scout-run] JSearch 429 rate-limited — full body: ${text}`);
-    } else {
-      console.error(`[scout-run] JSearch ${r.status} error — full body: ${text}`);
-    }
+    console.error(`[scout-run] JSearch ${r.status} error — full body: ${text}`);
     throw new Error(`JSearch ${r.status}: ${text.slice(0, 300)}`);
   }
   const json = await r.json();

@@ -412,7 +412,10 @@ const PreferencesSidebar = ({
   scanMessages,
   sourceCounts,
   chipCounts,
+  cooldownLeft = 0,
 }) => {
+  const onCooldown = cooldownLeft > 0 && scanState === 'idle';
+  const cooldownLabel = `${Math.floor(cooldownLeft / 60)}:${String(cooldownLeft % 60).padStart(2, '0')}`;
   const pct = ((filters.salary - 5000) / (25000 - 5000)) * 100;
 
   return (
@@ -543,12 +546,12 @@ const PreferencesSidebar = ({
 
       <motion.button
         type="button"
-        className={`scout-run scout-run--${scanState}`}
+        className={`scout-run scout-run--${scanState} ${onCooldown ? 'scout-run--cooldown' : ''}`}
         onClick={onRunScout}
-        whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.97 }}
+        whileHover={onCooldown ? undefined : { y: -1 }}
+        whileTap={onCooldown ? undefined : { scale: 0.97 }}
         transition={SPRING}
-        disabled={scanState === 'scanning'}
+        disabled={scanState === 'scanning' || onCooldown}
       >
         {scanState === 'scanning' ? (
           <>
@@ -562,6 +565,11 @@ const PreferencesSidebar = ({
           <>
             <Check size={15} strokeWidth={2.4} />
             Scout complete
+          </>
+        ) : onCooldown ? (
+          <>
+            <Clock size={15} strokeWidth={1.9} />
+            Run Scout again in {cooldownLabel}
           </>
         ) : (
           <>
@@ -1360,6 +1368,34 @@ const ScoutDashboard = ({ user, isPro }) => {
   // Mobile-only: bottom-sheet hosting the filter panel. Desktop renders the
   // sidebar inline so this state is unused there.
   const [mobilePrefOpen, setMobilePrefOpen] = useState(false);
+  // Post-run cooldown. cooldownEndRef holds the absolute end timestamp
+  // (Date.now() + 60s) so it survives re-renders without re-creating the
+  // interval; cooldownLeft is the seconds-remaining the UI binds to.
+  // intervalRef tracks the active setInterval so we can clear it on
+  // unmount or whenever a new cooldown starts.
+  const cooldownEndRef = useRef(null);
+  const cooldownIntervalRef = useRef(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+
+  const startCooldown = (seconds = 60) => {
+    cooldownEndRef.current = Date.now() + seconds * 1000;
+    setCooldownLeft(seconds);
+    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    cooldownIntervalRef.current = setInterval(() => {
+      const ms = (cooldownEndRef.current || 0) - Date.now();
+      const sec = Math.max(0, Math.ceil(ms / 1000));
+      setCooldownLeft(sec);
+      if (sec <= 0) {
+        clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
+        cooldownEndRef.current = null;
+      }
+    }, 1000);
+  };
+
+  useEffect(() => () => {
+    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+  }, []);
   const [toast, setToast] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hasCv, setHasCv] = useState(null); // null = unknown, true/false once probed
@@ -1581,6 +1617,11 @@ const ScoutDashboard = ({ user, isPro }) => {
       });
       await reloadMatches();
       setScanState('complete');
+      // Real success only — empty runs and errors must not lock the user
+      // out of an immediate retry. matchesCreated is the API's truth.
+      if ((json.matchesCreated || 0) > 0) {
+        startCooldown(60);
+      }
       const remaining = typeof json.runsRemaining === 'number'
         ? ` · ${json.runsRemaining} runs left today`
         : '';
@@ -1839,6 +1880,7 @@ const ScoutDashboard = ({ user, isPro }) => {
             scanMessages={scanMessages}
             sourceCounts={sourceCounts}
             chipCounts={chipCounts}
+            cooldownLeft={cooldownLeft}
           />
         )}
 
@@ -1977,11 +2019,21 @@ const ScoutDashboard = ({ user, isPro }) => {
           {isMobile && !gated && (
             <button
               type="button"
-              className="scout-mobile-pref"
+              className={`scout-mobile-pref ${cooldownLeft > 0 && scanState === 'idle' ? 'scout-mobile-pref--cooldown' : ''}`}
               onClick={runScout}
+              disabled={scanState === 'scanning' || (cooldownLeft > 0 && scanState === 'idle')}
             >
-              <Sparkles size={14} strokeWidth={2} />
-              Run Scout
+              {cooldownLeft > 0 && scanState === 'idle' ? (
+                <>
+                  <Clock size={14} strokeWidth={2} />
+                  Run Scout again in {`${Math.floor(cooldownLeft / 60)}:${String(cooldownLeft % 60).padStart(2, '0')}`}
+                </>
+              ) : (
+                <>
+                  <Sparkles size={14} strokeWidth={2} />
+                  Run Scout
+                </>
+              )}
             </button>
           )}
         </main>
@@ -2107,6 +2159,7 @@ const ScoutDashboard = ({ user, isPro }) => {
                 scanMessages={scanMessages}
                 sourceCounts={sourceCounts}
                 chipCounts={chipCounts}
+                cooldownLeft={cooldownLeft}
               />
             </motion.div>
           </motion.div>
@@ -2575,6 +2628,22 @@ const ScoutStyle = () => (
     .scout-run:hover { background: var(--scout-amber-hover); }
     .scout-run--scanning { background: var(--scout-amber-hover); cursor: progress; }
     .scout-run--complete { background: var(--scout-direct); box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 12px -2px rgba(14,124,90,0.32); }
+    /* Cooldown — muted warm, same family as the active amber CTA but quieter
+       so it reads as "wait" rather than "go". cursor:not-allowed +
+       disabled[disabled] handle the input affordance. */
+    .scout-run--cooldown {
+      background: color-mix(in srgb, var(--scout-amber) 28%, var(--scout-surface) 72%);
+      color: var(--scout-text-dim);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .scout-run--cooldown:hover { background: color-mix(in srgb, var(--scout-amber) 28%, var(--scout-surface) 72%); }
+    .scout-mobile-pref--cooldown {
+      background: color-mix(in srgb, var(--scout-amber) 28%, var(--scout-surface) 72%);
+      color: var(--scout-text-dim);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
     .scout-run-pulse {
       width: 8px; height: 8px;
       border-radius: 50%;
