@@ -131,19 +131,16 @@ function seniorityToYears(label) {
 // colour, max parser score. Safest pick for a JD-tailored application.
 const APPLY_DEFAULT_TEMPLATE_ID = 10;
 
-// Per-source progress copy for the Run-Scout cycling messages. The verbs
-// are intentionally varied so the cycling feels alive, not templated.
-const SCAN_SOURCE_MESSAGES = {
-  LinkedIn: 'Searching LinkedIn…',
-  Indeed: 'Checking Indeed…',
-  Bayt: 'Scanning Bayt…',
-  Glassdoor: 'Browsing Glassdoor…',
-  Naukri: 'Checking Naukri…',
-};
-// When 'all' is selected, cycle in this fixed order regardless of SOURCES
-// declaration order — copy ordering matters more than the chip ordering.
-const SCAN_ALL_ORDER = ['LinkedIn', 'Indeed', 'Bayt', 'Glassdoor', 'Naukri'];
-const SCAN_FINAL_MESSAGE = 'Scoring matches with AI…';
+// Static 5-step progress copy. The frontend holds each line for at least
+// 800ms (see runScout's MIN_SCAN_MS) so even a fast upstream still reads
+// like real work — important for trust on a $99/yr feature.
+const SCAN_PROGRESS_MESSAGES = [
+  'Searching JSearch…',
+  'Searching Jooble…',
+  'Removing duplicates…',
+  'AI is analysing matches…',
+  'Building your shortlist…',
+];
 
 async function triggerPdfDownload({ tailoredCv, templateId, baseName, signal }) {
   const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
@@ -328,10 +325,12 @@ const ScoreRing = ({ value, tone, size = 84 }) => {
 
 const SourcesChips = ({ value, onChange, counts = null }) => {
   const allOn = value.includes('all');
-  // counts === null → no scout run yet; chips stay clickable so the user can
-  // pick sources before the first run. Once results exist (counts !== null)
-  // a chip with 0 hits is disabled and muted — honest yield, not a phantom.
+  // counts === null OR all === 0 → no matches loaded yet. Source chips
+  // are pure client-side filters in the new architecture: nothing to
+  // filter against → every chip is disabled. Once matches arrive, chips
+  // with 0 hits stay disabled (honest yield) but the rest light up.
   const hasResults = counts && (counts.all || 0) > 0;
+  const allChipsDisabled = !hasResults;
 
   const toggle = (src) => {
     if (src === 'all') {
@@ -357,11 +356,14 @@ const SourcesChips = ({ value, onChange, counts = null }) => {
     <div className="scout-sources">
       <motion.button
         type="button"
-        className={`scout-source scout-source--all ${allOn ? 'is-on' : ''}`}
-        onClick={() => toggle('all')}
-        whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.97 }}
+        className={`scout-source scout-source--all ${allOn ? 'is-on' : ''} ${allChipsDisabled ? 'is-disabled' : ''}`}
+        onClick={allChipsDisabled ? undefined : () => toggle('all')}
+        disabled={allChipsDisabled}
+        aria-disabled={allChipsDisabled}
+        whileHover={allChipsDisabled ? undefined : { y: -1 }}
+        whileTap={allChipsDisabled ? undefined : { scale: 0.97 }}
         transition={SPRING}
+        style={allChipsDisabled ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
       >
         All{allTotal != null ? ` · ${allTotal}` : ''}
       </motion.button>
@@ -425,15 +427,18 @@ const PreferencesSidebar = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Sources up top — first thing the user sees */}
-      <div className="scout-sidebar-section scout-sidebar-section--first">
-        <div className="scout-sidebar-title">Search on</div>
-        <SourcesChips
-          value={filters.sources}
-          onChange={(sources) => setFilters({ ...filters, sources })}
-          counts={chipCounts}
-        />
-      </div>
+      {/* Source chips — hidden mid-scan so the user reads the progress
+          messages, not a stale chip row. Reappear once results arrive. */}
+      {scanState !== 'scanning' && (
+        <div className="scout-sidebar-section scout-sidebar-section--first">
+          <div className="scout-sidebar-title">Search on</div>
+          <SourcesChips
+            value={filters.sources}
+            onChange={(sources) => setFilters({ ...filters, sources })}
+            counts={chipCounts}
+          />
+        </div>
+      )}
 
       <div className="scout-sidebar-divider" aria-hidden="true" />
 
@@ -558,7 +563,7 @@ const PreferencesSidebar = ({
             <span className="scout-run-pulse" aria-hidden="true" />
             <ProgressMessages
               messages={scanMessages && scanMessages.length ? scanMessages : ['Searching jobs…']}
-              intervalMs={2400}
+              intervalMs={800}
             />
           </>
         ) : scanState === 'complete' ? (
@@ -1460,19 +1465,11 @@ const ScoutDashboard = ({ user, isPro }) => {
     return Object.entries(counts).map(([source, count]) => ({ source, count }));
   }, [allJobs]);
 
-  // Build the cycling Run-Scout progress messages from the user's selected
-  // sources. 'all' uses the curated SCAN_ALL_ORDER; any subset cycles in
-  // their selection order. The final message is always the AI scoring step.
-  const scanMessages = useMemo(() => {
-    const includesAll = filters.sources.includes('all');
-    const order = includesAll
-      ? SCAN_ALL_ORDER
-      : filters.sources.filter((s) => SCAN_SOURCE_MESSAGES[s]);
-    const sourceLines = order
-      .map((s) => SCAN_SOURCE_MESSAGES[s])
-      .filter(Boolean);
-    return [...sourceLines, SCAN_FINAL_MESSAGE];
-  }, [filters.sources]);
+  // Pipeline-aligned progress messages. Static — same 5 lines every run.
+  // ProgressMessages cycles them at intervalMs (defaults to 2400ms in this
+  // file), and runScout's MIN_SCAN_MS guarantees each line surfaces for
+  // ≥800ms even on the fastest pipeline pass.
+  const scanMessages = SCAN_PROGRESS_MESSAGES;
 
   const lastRunLabel = useMemo(() => {
     if (visibleJobs.length === 0) return '';
@@ -1552,11 +1549,9 @@ const ScoutDashboard = ({ user, isPro }) => {
           });
         }
 
-        if (isPro && Array.isArray(cvRows) && cvRows.length > 0) {
-          const json = await authedFetch('/api/scout-matches?limit=50');
-          if (cancelled) return;
-          setMatches(Array.isArray(json.matches) ? json.matches : []);
-        }
+        // Intentionally NOT auto-loading scout_matches on mount — fresh
+        // page load must show the empty state, not the user's last run's
+        // cards. New matches arrive only via the run response.
       } catch (e) {
         if (!cancelled) setBootError(e?.message || 'Could not load Scout');
       }
@@ -1571,20 +1566,18 @@ const ScoutDashboard = ({ user, isPro }) => {
 
   const closeOverlay = () => setOverlayOpen(false);
 
-  const buildPreferencesPayload = () => ({
-    target_role: filters.role,
+  // Flat body shape consumed by /api/scout-run after the pipeline
+  // refactor — sources are intentionally omitted because chip filtering
+  // is purely client-side now.
+  const buildRunPayload = () => ({
+    userId: user?.id || null,
+    role: filters.role,
     location: filters.location,
-    experience_years: seniorityToYears(filters.experience),
-    salary_min: filters.salary || null,
-    sources: filters.sources,
-    job_type: filters.jobType || 'Any',
-    date_posted_filter: filters.datePosted || 'Any time',
+    experience: seniorityToYears(filters.experience),
+    jobType: filters.jobType || 'Any',
+    datePosted: filters.datePosted || 'Any time',
+    minSalary: filters.salary || null,
   });
-
-  const reloadMatches = async () => {
-    const json = await authedFetch('/api/scout-matches?limit=50');
-    setMatches(Array.isArray(json.matches) ? json.matches : []);
-  };
 
   const runScout = async () => {
     if (!user) { navigate('/auth'); return; }
@@ -1609,13 +1602,25 @@ const ScoutDashboard = ({ user, isPro }) => {
     setScanState('scanning');
     // Snapshot the current filters at click time so the request always uses
     // what's on screen right now, not whatever the closure captured earlier.
-    const payload = buildPreferencesPayload();
+    const payload = buildRunPayload();
+    // Anchor for the minimum scan duration — we want each progress message
+    // to read for ~800ms even when the upstream pipeline is fast, so the UI
+    // doesn't flash through to "complete" before the user reads the steps.
+    const scanStartedAt = Date.now();
+    const MIN_SCAN_MS = SCAN_PROGRESS_MESSAGES.length * 800;
     try {
       const json = await authedFetch('/api/scout-run', {
         method: 'POST',
-        body: JSON.stringify({ preferences: payload }),
+        body: JSON.stringify(payload),
       });
-      await reloadMatches();
+      // Hold the loading state for the minimum if the API beat the floor.
+      const elapsed = Date.now() - scanStartedAt;
+      if (elapsed < MIN_SCAN_MS) {
+        await new Promise((res) => setTimeout(res, MIN_SCAN_MS - elapsed));
+      }
+      // Response now carries the full match payload — no second roundtrip
+      // to /api/scout-matches needed.
+      setMatches(Array.isArray(json.matches) ? json.matches : []);
       setScanState('complete');
       // Real success only — empty runs and errors must not lock the user
       // out of an immediate retry. matchesCreated is the API's truth.

@@ -37,6 +37,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
 
 export const config = { maxDuration: 60 };
 
@@ -124,16 +125,13 @@ const DATE_POSTED_MAP = {
   'Any time': 'all',
 };
 
-// Post-fetch hard filters applied to JSearch results before scoring.
-// Scope:
-//   - Location: country must match the user's selected GCC city; Indian
-//     cities are dropped regardless of the country field (JSearch tags
-//     India-based remote roles inconsistently).
-//   - Age: anything older than 21 days, or with no timestamp at all,
-//     is dropped — stale postings are the #1 source of "ghost job" complaints.
-//   - Dedup: same (title, employer) → keep the most recently posted; tie
-//     goes to LinkedIn, then first-seen.
-//   - Ghost: known-dead URL patterns and empty apply links.
+// Pipeline filters applied between source fan-out and Claude scoring.
+//   - Step 3 (smartDedupKey): collapse the same job appearing on multiple
+//     boards (BeBee + Bayt + Workable etc) into one — first occurrence wins.
+//   - Step 4 (applyLocationAndAge): country must match the user's selected
+//     GCC city; Indian cities are always dropped (JSearch tags India remote
+//     roles inconsistently); postings older than 21 days or with no
+//     timestamp are dropped — stale listings drive most "ghost job" complaints.
 const GCC_LOCATION_COUNTRY = [
   { needles: ['dubai'], country: 'United Arab Emirates' },
   { needles: ['abu dhabi', 'abu-dhabi'], country: 'United Arab Emirates' },
@@ -155,25 +153,23 @@ function expectedCountryFor(location) {
   return null;
 }
 
-// Normalised key for the (title, employer) dedup. Lowercase + trim alone
-// missed real duplicates because the two sources serialise the same role
-// slightly differently — non-breaking spaces, "Inc." vs "Inc", em-dashes,
-// trailing "(Hybrid)" punctuation, etc. Stripping everything that isn't
-// a Unicode letter or digit and collapsing whitespace produces a stable
-// fingerprint regardless of source.
-function dedupKey(s) {
-  return String(s || '')
+// Step 3 — smart hash dedup key. Same job published on BeBee + Bayt +
+// Workable lands at slightly different surface text but identical
+// (title, company, city) once you strip whitespace and punctuation.
+// First occurrence wins; everything else is discarded.
+function smartDedupKey(j) {
+  return `${j.job_title || ''}${j.employer_name || ''}${j.job_city || ''}`
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/[^a-z0-9]/g, '');
 }
 
-function applyScoutFilters(rawJobs, prefs) {
-  const total = rawJobs.length;
-  const expectedCountry = expectedCountryFor(prefs.location);
-
-  const afterLocation = rawJobs.filter((j) => {
+// Step 4 — location hard filter + 21-day age cap. No country fallback
+// when the GCC slug is unrecognised: we only filter by country when we
+// know which country the user picked.
+function applyLocationAndAge(jobs, location) {
+  const expectedCountry = expectedCountryFor(location);
+  const cutoff = Date.now() - GHOST_AGE_MS;
+  return jobs.filter((j) => {
     if (expectedCountry && j.job_country && j.job_country !== expectedCountry) {
       return false;
     }
@@ -181,53 +177,24 @@ function applyScoutFilters(rawJobs, prefs) {
       const cityLower = String(j.job_city).toLowerCase();
       if (INDIAN_CITY_NEEDLES.some((n) => cityLower.includes(n))) return false;
     }
-    return true;
-  });
-
-  const cutoff = Date.now() - GHOST_AGE_MS;
-  const afterAge = afterLocation.filter((j) => {
     if (!j.job_posted_at_datetime_utc) return false;
     const t = new Date(j.job_posted_at_datetime_utc).getTime();
     if (Number.isNaN(t)) return false;
-    return t >= cutoff;
-  });
-
-  const groups = new Map();
-  afterAge.forEach((j) => {
-    const key = `${dedupKey(j.job_title)}|${dedupKey(j.employer_name)}`;
-    const existing = groups.get(key);
-    if (!existing) {
-      groups.set(key, j);
-      return;
-    }
-    const eTime = new Date(existing.job_posted_at_datetime_utc).getTime();
-    const jTime = new Date(j.job_posted_at_datetime_utc).getTime();
-    if (jTime > eTime) {
-      groups.set(key, j);
-    } else if (jTime === eTime) {
-      const jIsLinkedIn = String(j.job_publisher || '').toLowerCase().includes('linkedin');
-      const eIsLinkedIn = String(existing.job_publisher || '').toLowerCase().includes('linkedin');
-      if (jIsLinkedIn && !eIsLinkedIn) groups.set(key, j);
-    }
-  });
-  const afterDedup = Array.from(groups.values());
-
-  const afterGhost = afterDedup.filter((j) => {
-    const url = j.job_apply_link;
-    if (!url || url === '') return false;
-    const lowerUrl = String(url).toLowerCase();
-    if (lowerUrl.includes('workable.com') && (lowerUrl.includes('not-available') || lowerUrl.includes('expired'))) {
-      return false;
-    }
-    if (lowerUrl === 'https://www.linkedin.com/jobs/') return false;
+    if (t < cutoff) return false;
     return true;
   });
+}
 
-  console.log(
-    `Scout filter summary: ${total} fetched → ${afterLocation.length} location → ${afterAge.length} age → ${afterDedup.length} dedup → ${afterGhost.length} ghost → ${afterGhost.length} returned`
+// Detects "column does not exist" so we can transparently retry inserts
+// without optional fields when migration 007/008 hasn't been applied to
+// the target environment yet. Module-scoped because Step 7's prefs and
+// jobs paths both use it.
+function isMissingColumnError(err) {
+  return !!err && (
+    err.code === 'PGRST204' ||
+    err.code === '42703' ||
+    /column .* does not exist|Could not find the .* column/i.test(err.message || '')
   );
-
-  return afterGhost;
 }
 
 // Jooble accepts a free-text "location" string; we map the user's GCC slug
@@ -454,6 +421,26 @@ export default async function handler(req, res) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  // ── Body parse + auth ────────────────────────────────────────────────────
+  let body;
+  try {
+    body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  } catch {
+    return res.status(400).json({ ok: false, error: 'Invalid JSON body' });
+  }
+  // userId is accepted in the contract but we never trust it — auth's
+  // user.id is the only writeable identity.
+  const role = String(body.role || '').trim();
+  const location = String(body.location || '').trim();
+  const experience = Number.isFinite(Number(body.experience)) ? Number(body.experience) : null;
+  const jobType = body.jobType || 'Any';
+  const datePosted = body.datePosted || 'Any time';
+  const minSalary = Number.isFinite(Number(body.minSalary)) ? Number(body.minSalary) : null;
+
+  if (!role) {
+    return res.status(400).json({ ok: false, error: 'Missing role' });
+  }
+
   const { data: profile } = await db
     .from('profiles')
     .select('is_pro')
@@ -461,51 +448,6 @@ export default async function handler(req, res) {
     .single();
   if (!profile?.is_pro) {
     return res.status(402).json({ ok: false, error: 'Scout requires a paid plan' });
-  }
-
-  let body;
-  try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-  } catch {
-    return res.status(400).json({ ok: false, error: 'Invalid JSON body' });
-  }
-  const bodyPrefs = body.preferences;
-
-  let { data: prefRow } = await db
-    .from('scout_preferences')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const prefs = bodyPrefs
-    ? {
-        target_role: bodyPrefs.target_role || prefRow?.target_role || '',
-        location: bodyPrefs.location || prefRow?.location || '',
-        experience_years: bodyPrefs.experience_years ?? prefRow?.experience_years ?? null,
-        salary_min: bodyPrefs.salary_min ?? prefRow?.salary_min ?? null,
-        sources: bodyPrefs.sources || prefRow?.sources || ['all'],
-        job_type: bodyPrefs.job_type || prefRow?.job_type || 'Any',
-        date_posted_filter: bodyPrefs.date_posted_filter || prefRow?.date_posted_filter || 'Any time',
-      }
-    : (prefRow || {});
-
-  if (!prefs.target_role) {
-    return res.status(400).json({ ok: false, error: 'Missing target_role. Set scout preferences first.' });
-  }
-
-  const todayStart = startOfTodayUTCISO();
-  const isFounder = user.id === FOUNDER_USER_ID;
-  let runsToday = prefRow?.run_count_today || 0;
-  if (!prefRow?.last_run_at || new Date(prefRow.last_run_at) < new Date(todayStart)) {
-    runsToday = 0;
-  }
-  if (!isFounder && runsToday >= SCOUT_DAILY_LIMIT) {
-    return res.status(429).json({
-      ok: false,
-      error: `Daily limit reached (${SCOUT_DAILY_LIMIT}/day). Try again tomorrow.`,
-    });
   }
 
   const { data: cvRow } = await db
@@ -520,218 +462,273 @@ export default async function handler(req, res) {
   }
   const cvText = flattenCv(cvRow.cv_data);
 
-  // Helper: detect "column does not exist" so we can transparently retry
-  // without optional fields when a migration hasn't been applied yet.
-  const isMissingColumnError = (err) =>
-    !!err && (
-      err.code === 'PGRST204' ||
-      err.code === '42703' ||
-      /column .* does not exist|Could not find the .* column/i.test(err.message || '')
-    );
+  // Daily-limit gate. Read scout_preferences ONLY for the run counter —
+  // filter values come from the request body, not the DB. Founder bypasses
+  // the limit and the increment.
+  const { data: prefRow } = await db
+    .from('scout_preferences')
+    .select('id, run_count_today, last_run_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (!prefRow) {
-    const baseRow = {
-      user_id: user.id,
-      target_role: prefs.target_role,
-      location: prefs.location,
-      experience_years: prefs.experience_years,
-      salary_min: prefs.salary_min,
-      sources: prefs.sources,
-    };
-    const fullRow = {
-      ...baseRow,
-      job_type: prefs.job_type,
-      date_posted_filter: prefs.date_posted_filter,
-    };
-    let ins = await db.from('scout_preferences').insert(fullRow).select().single();
-    if (ins.error && isMissingColumnError(ins.error)) {
-      console.warn('[scout-run] scout_preferences missing migration 007 columns — retrying without them');
-      ins = await db.from('scout_preferences').insert(baseRow).select().single();
-    }
-    if (ins.error) {
-      console.error('[scout-run] insert scout_preferences failed:', ins.error);
-      return res.status(500).json({ ok: false, error: 'Could not save preferences' });
-    }
-    prefRow = ins.data;
-  } else if (bodyPrefs) {
-    const baseUpdate = {
-      target_role: prefs.target_role,
-      location: prefs.location,
-      experience_years: prefs.experience_years,
-      salary_min: prefs.salary_min,
-      sources: prefs.sources,
-    };
-    const fullUpdate = {
-      ...baseUpdate,
-      job_type: prefs.job_type,
-      date_posted_filter: prefs.date_posted_filter,
-    };
-    const upd = await db.from('scout_preferences').update(fullUpdate).eq('id', prefRow.id);
-    if (upd.error && isMissingColumnError(upd.error)) {
-      console.warn('[scout-run] scout_preferences update missing migration 007 columns — retrying without them');
-      await db.from('scout_preferences').update(baseUpdate).eq('id', prefRow.id);
-    }
+  const todayStart = startOfTodayUTCISO();
+  const isFounder = user.id === FOUNDER_USER_ID;
+  let runsToday = prefRow?.run_count_today || 0;
+  if (!prefRow?.last_run_at || new Date(prefRow.last_run_at) < new Date(todayStart)) {
+    runsToday = 0;
+  }
+  if (!isFounder && runsToday >= SCOUT_DAILY_LIMIT) {
+    return res.status(429).json({
+      ok: false,
+      error: `Daily limit reached (${SCOUT_DAILY_LIMIT}/day). Try again tomorrow.`,
+    });
   }
 
-  // Fan out JSearch + Jooble in parallel. allSettled means one upstream
-  // failure (or timeout, in Jooble's case) can't sink the whole run — the
-  // other source still fills the slate. Only return 502 if both come back empty.
-  const expectedCountry = expectedCountryFor(prefs.location);
+  // ── Step 1: parallel fetch JSearch + Jooble ──────────────────────────────
+  const expectedCountry = expectedCountryFor(location);
   const [jsearchResult, joobleResult] = await Promise.allSettled([
-    fetchJSearchJobs({
-      role: prefs.target_role,
-      location: prefs.location,
-      jobType: prefs.job_type,
-      datePosted: prefs.date_posted_filter,
-    }),
-    fetchJoobleJobs({
-      keywords: prefs.target_role,
-      location: joobleLocationFor(prefs.location),
-      expectedCountry,
-    }),
+    fetchJSearchJobs({ role, location, jobType, datePosted }),
+    fetchJoobleJobs({ keywords: role, location: joobleLocationFor(location), expectedCountry }),
   ]);
 
-  let jsearchJobs = [];
-  let joobleJobs = [];
-  if (jsearchResult.status === 'fulfilled') {
-    jsearchJobs = jsearchResult.value;
-  } else {
-    console.error('[scout-run] JSearch failed:', jsearchResult.reason);
-  }
-  if (joobleResult.status === 'fulfilled') {
-    joobleJobs = joobleResult.value;
-  } else {
-    console.error('[scout-run] Jooble failed:', joobleResult.reason);
-  }
+  const jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
+  const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
+  if (jsearchResult.status === 'rejected') console.error('[scout-run] JSearch failed:', jsearchResult.reason);
+  if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
 
+  // Both upstreams empty AND JSearch threw → genuine outage. Empty results
+  // with both sources OK (e.g. niche role in Muscat) is not an error — let
+  // it through and return an empty array.
   if (jsearchJobs.length === 0 && joobleJobs.length === 0 && jsearchResult.status === 'rejected') {
     return res.status(502).json({ ok: false, error: 'Job source unavailable' });
   }
 
-  const jsearchCount = jsearchJobs.length;
-  const joobleCount = joobleJobs.length;
-  let rawJobs = [...jsearchJobs, ...joobleJobs];
-  rawJobs = applyScoutFilters(rawJobs, prefs);
+  // ── Step 2: merge ────────────────────────────────────────────────────────
+  const merged = [...jsearchJobs, ...joobleJobs];
+
+  // ── Step 3: smart hash dedup, first occurrence wins ──────────────────────
+  const seen = new Map();
+  for (const j of merged) {
+    const key = smartDedupKey(j);
+    if (!seen.has(key)) seen.set(key, j);
+  }
+  const deduped = Array.from(seen.values());
+
+  // ── Step 4: location hard filter + age cap ───────────────────────────────
+  const filtered = applyLocationAndAge(deduped, location);
+
   console.log(
-    `Scout sources: ${jsearchCount} from JSearch, ${joobleCount} from Jooble → ${rawJobs.length} after merge/dedup`
+    `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${filtered.length} location+age`
   );
 
-  if (rawJobs.length === 0) {
-    await db
-      .from('scout_preferences')
-      .update(isFounder
-        ? { last_run_at: new Date().toISOString() }
-        : { last_run_at: new Date().toISOString(), run_count_today: runsToday + 1 })
-      .eq('id', prefRow.id);
-    return res.status(200).json({
+  // Helper that fires the prefs upsert + scout_jobs/matches sync. Defined
+  // inline so it closes over user/db/role/.../prefRow without a giant
+  // parameter list. Returned promise is awaited AFTER res.json so the
+  // function stays alive on Vercel until the writes drain.
+  const syncToDb = async (matchesForInsert, jobsForInsert) => {
+    const newRunCount = isFounder ? (prefRow?.run_count_today || 0) : runsToday + 1;
+    const lastRunAt = new Date().toISOString();
+
+    const baseRow = {
+      user_id: user.id,
+      target_role: role,
+      location,
+      experience_years: experience,
+      salary_min: minSalary,
+      sources: ['all'],
+      last_run_at: lastRunAt,
+      run_count_today: newRunCount,
+    };
+    const fullRow = { ...baseRow, job_type: jobType, date_posted_filter: datePosted };
+
+    const prefsTask = (async () => {
+      try {
+        if (prefRow?.id) {
+          let { error } = await db.from('scout_preferences').update(fullRow).eq('id', prefRow.id);
+          if (error && isMissingColumnError(error)) {
+            ({ error } = await db.from('scout_preferences').update(baseRow).eq('id', prefRow.id));
+          }
+          if (error) console.error('[scout-run] prefs update failed:', error);
+        } else {
+          let { error } = await db.from('scout_preferences').insert(fullRow);
+          if (error && isMissingColumnError(error)) {
+            ({ error } = await db.from('scout_preferences').insert(baseRow));
+          }
+          if (error) console.error('[scout-run] prefs insert failed:', error);
+        }
+      } catch (e) {
+        console.error('[scout-run] prefs task threw:', e);
+      }
+    })();
+
+    const matchesTask = (async () => {
+      if (matchesForInsert.length === 0) return;
+      try {
+        // Wipe the user's previous run before inserting the new one. matches
+        // are user-scoped so this only clears their own slate.
+        const { error: delErr } = await db.from('scout_matches').delete().eq('user_id', user.id);
+        if (delErr) console.error('[scout-run] delete old matches failed:', delErr);
+
+        let { error: jobsErr } = await db.from('scout_jobs').insert(jobsForInsert);
+        if (jobsErr && isMissingColumnError(jobsErr)) {
+          const legacy = jobsForInsert.map(({ salary_min, salary_max, salary_currency, salary_period, ...rest }) => rest);
+          ({ error: jobsErr } = await db.from('scout_jobs').insert(legacy));
+        }
+        if (jobsErr) {
+          console.error('[scout-run] insert scout_jobs failed:', jobsErr);
+          return;
+        }
+
+        const { error: matchErr } = await db.from('scout_matches').insert(matchesForInsert);
+        if (matchErr) console.error('[scout-run] insert scout_matches failed:', matchErr);
+      } catch (e) {
+        console.error('[scout-run] matches task threw:', e);
+      }
+    })();
+
+    await Promise.allSettled([prefsTask, matchesTask]);
+  };
+
+  if (filtered.length === 0) {
+    res.status(200).json({
       ok: true,
-      jobsFetched: 0,
+      matches: [],
       matchesCreated: 0,
       runsRemaining: isFounder ? null : SCOUT_DAILY_LIMIT - runsToday - 1,
     });
+    await syncToDb([], []);
+    return;
   }
+
+  // ── Step 5: top 20 to Claude ─────────────────────────────────────────────
+  const candidates = filtered.slice(0, 20);
 
   let scores;
   try {
-    scores = await scoreWithClaude(cvText, rawJobs, prefs);
+    scores = await scoreWithClaude(cvText, candidates, {
+      target_role: role,
+      location,
+      experience_years: experience,
+      salary_min: minSalary,
+    });
   } catch (e) {
     console.error('[scout-run] Claude scoring failed:', e);
     return res.status(502).json({ ok: false, error: 'AI scorer unavailable' });
   }
-  if (scores.length !== rawJobs.length) {
-    console.warn('[scout-run] score/job count mismatch:', scores.length, rawJobs.length);
+  if (scores.length !== candidates.length) {
+    console.warn('[scout-run] score/job count mismatch:', scores.length, candidates.length);
   }
 
-  const jobRows = rawJobs.map((j) => {
-    // Structured salary fields per migration 008. salary_min/max are
-    // numeric, currency + period are text. The legacy `salary` text
-    // column stays populated (denormalised) for back-compat with any
-    // older read paths but new code formats from the structured fields.
+  // ── Step 6: drop scores below 70, build response + DB rows ──────────────
+  // IDs are pre-generated so the response can carry real DB ids even
+  // though the inserts haven't run yet — Save/Skip/Apply on the freshly
+  // returned cards land on the correct rows once the async writes drain.
+  const matches = [];
+  const jobsForInsert = [];
+  const matchesForInsert = [];
+
+  for (let i = 0; i < candidates.length; i++) {
+    const j = candidates[i];
+    const s = scores[i] || {};
+    const score = Math.max(0, Math.min(100, parseInt(s.match_score, 10) || 0));
+    if (score < 70) continue;
+
+    const type = ['direct', 'stretch', 'discarded'].includes(s.match_type)
+      ? s.match_type
+      : score >= 80 ? 'direct' : score >= 50 ? 'stretch' : 'discarded';
+
     const minNum = Number.isFinite(Number(j.job_min_salary)) ? Number(j.job_min_salary) : null;
     const maxNum = Number.isFinite(Number(j.job_max_salary)) ? Number(j.job_max_salary) : null;
     const currency = j.job_salary_currency || null;
     const period = j.job_salary_period || null;
-    return {
-      user_id: user.id,
-      title: j.job_title || '',
-      company: j.employer_name || '',
-      location: [j.job_city, j.job_country].filter(Boolean).join(', '),
-      salary:
-        minNum != null || maxNum != null
-          ? `${minNum ?? ''}-${maxNum ?? ''} ${currency || ''}`.trim()
-          : (j.job_salary || ''),
+
+    const jobId = randomUUID();
+    const matchId = randomUUID();
+    const fetchedAt = new Date().toISOString();
+
+    const title = j.job_title || '';
+    const company = j.employer_name || '';
+    const locStr = [j.job_city, j.job_country].filter(Boolean).join(', ');
+    const salaryStr = minNum != null || maxNum != null
+      ? `${minNum ?? ''}-${maxNum ?? ''} ${currency || ''}`.trim()
+      : (j.job_salary || '');
+    const jdText = (j.job_description || '').slice(0, 12000);
+    const jdSnip = jdSnippet(j.job_description);
+    const applyUrl = j.job_apply_link || j.job_google_link || '';
+    const sourcePlatform = j.job_publisher || 'JSearch';
+    const keyStrengths = Array.isArray(s.key_strengths) ? s.key_strengths : [];
+    const missingRequirements = Array.isArray(s.missing_requirements) ? s.missing_requirements : [];
+    const tailoringAdvice = typeof s.tailoring_advice === 'string' ? s.tailoring_advice : '';
+    const atsKeywords = Array.isArray(s.ats_keywords) ? s.ats_keywords : [];
+
+    matches.push({
+      match_id: matchId,
+      job_id: jobId,
+      title,
+      company,
+      location: locStr,
+      salary: salaryStr,
       salary_min: minNum,
       salary_max: maxNum,
       salary_currency: currency,
       salary_period: period,
-      jd_text: (j.job_description || '').slice(0, 12000),
-      jd_snippet: jdSnippet(j.job_description),
-      apply_url: j.job_apply_link || j.job_google_link || '',
-      source_platform: j.job_publisher || 'JSearch',
-    };
-  });
-
-  // First-pass insert with structured salary columns (migration 008). If
-  // those columns aren't present yet, retry with the legacy `salary` text
-  // field only — keeps Scout running until 008 is applied.
-  let insertedJobs;
-  let jobsErr;
-  ({ data: insertedJobs, error: jobsErr } = await db
-    .from('scout_jobs')
-    .insert(jobRows)
-    .select('id'));
-  if (jobsErr && isMissingColumnError(jobsErr)) {
-    console.warn('[scout-run] scout_jobs missing migration 008 columns — retrying without structured salary');
-    const legacyJobRows = jobRows.map(({ salary_min, salary_max, salary_currency, salary_period, ...rest }) => rest);
-    ({ data: insertedJobs, error: jobsErr } = await db
-      .from('scout_jobs')
-      .insert(legacyJobRows)
-      .select('id'));
-  }
-  if (jobsErr || !Array.isArray(insertedJobs)) {
-    console.error('[scout-run] insert scout_jobs failed:', jobsErr);
-    return res.status(500).json({ ok: false, error: 'Could not save jobs' });
-  }
-
-  const matchRows = insertedJobs.map((row, i) => {
-    const s = scores[i] || {};
-    const score = Math.max(0, Math.min(100, parseInt(s.match_score, 10) || 0));
-    const type = ['direct', 'stretch', 'discarded'].includes(s.match_type)
-      ? s.match_type
-      : score >= 80
-        ? 'direct'
-        : score >= 50
-          ? 'stretch'
-          : 'discarded';
-    return {
-      user_id: user.id,
-      job_id: row.id,
+      jd_text: jdText,
+      jd_snippet: jdSnip,
+      apply_url: applyUrl,
+      source_platform: sourcePlatform,
+      fetched_at: fetchedAt,
       match_score: score,
       match_type: type,
-      key_strengths: Array.isArray(s.key_strengths) ? s.key_strengths : [],
-      missing_requirements: Array.isArray(s.missing_requirements) ? s.missing_requirements : [],
-      tailoring_advice: typeof s.tailoring_advice === 'string' ? s.tailoring_advice : '',
-      ats_keywords: Array.isArray(s.ats_keywords) ? s.ats_keywords : [],
-    };
-  });
+      key_strengths: keyStrengths,
+      missing_requirements: missingRequirements,
+      tailoring_advice: tailoringAdvice,
+      ats_keywords: atsKeywords,
+      status: 'new',
+      created_at: fetchedAt,
+    });
 
-  const { error: matchErr } = await db.from('scout_matches').insert(matchRows);
-  if (matchErr) {
-    console.error('[scout-run] insert scout_matches failed:', matchErr);
-    return res.status(500).json({ ok: false, error: 'Could not save matches' });
+    jobsForInsert.push({
+      id: jobId,
+      user_id: user.id,
+      title,
+      company,
+      location: locStr,
+      salary: salaryStr,
+      salary_min: minNum,
+      salary_max: maxNum,
+      salary_currency: currency,
+      salary_period: period,
+      jd_text: jdText,
+      jd_snippet: jdSnip,
+      apply_url: applyUrl,
+      source_platform: sourcePlatform,
+    });
+
+    matchesForInsert.push({
+      id: matchId,
+      user_id: user.id,
+      job_id: jobId,
+      match_score: score,
+      match_type: type,
+      key_strengths: keyStrengths,
+      missing_requirements: missingRequirements,
+      tailoring_advice: tailoringAdvice,
+      ats_keywords: atsKeywords,
+    });
   }
 
-  await db
-    .from('scout_preferences')
-    .update(isFounder
-      ? { last_run_at: new Date().toISOString() }
-      : { last_run_at: new Date().toISOString(), run_count_today: runsToday + 1 })
-    .eq('id', prefRow.id);
+  console.log(`Scout pipeline: ${candidates.length} scored → ${matches.length} kept (≥70)`);
 
-  return res.status(200).json({
+  // ── Step 8: respond first ────────────────────────────────────────────────
+  res.status(200).json({
     ok: true,
-    jobsFetched: rawJobs.length,
-    matchesCreated: matchRows.length,
+    matches,
+    matchesCreated: matches.length,
     runsRemaining: isFounder ? null : SCOUT_DAILY_LIMIT - runsToday - 1,
   });
+
+  // ── Step 7: DB sync drains after the response has flushed ────────────────
+  await syncToDb(matchesForInsert, jobsForInsert);
 }
