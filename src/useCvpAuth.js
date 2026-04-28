@@ -271,13 +271,27 @@ export function useCvpAuth() {
       console.log("[cvp-auth-trace] postAuth bail — login hold active on", clean);
       return;
     }
-    const isAuthReturnPath = clean === "/auth" || clean === "/register" || clean === "/auth/callback";
+    // "Auth return" means the user was actively bounced through one of
+    // the auth pages (e.g. NavigateToAuth bumped them off a protected
+    // route) and is now waiting to be sent on. Just BEING on /auth is
+    // not enough — a logged-in user typing /auth into the address bar,
+    // or a hard refresh that briefly flickers through /auth before our
+    // route guards settle, must NOT trigger a redirect dance. The
+    // discriminator is sessionStorage["cvp_return_path"], which only
+    // NavigateToAuth ever sets.
+    const onAuthPagePath = clean === "/auth" || clean === "/register" || clean === "/auth/callback";
+    const sessionReturnPeek = typeof window !== "undefined" && window.sessionStorage
+      ? window.sessionStorage.getItem("cvp_return_path")
+      : null;
+    const isAuthReturnPath = onAuthPagePath && !!sessionReturnPeek;
     // OAuth providers can drop the user at "/" (Site URL) instead of the
     // requested redirectTo — if we just observed a fresh SIGNED_IN event,
     // treat that as an auth return from wherever we are.
     const isFreshOAuthSignIn = justSignedInRef.current && !authLoginSuccessHoldRef.current;
     console.log("[cvp-auth-trace] postAuth decision inputs", {
       clean,
+      onAuthPagePath,
+      sessionReturnPeek,
       isAuthReturnPath,
       isFreshOAuthSignIn,
     });
