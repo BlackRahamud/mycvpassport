@@ -134,9 +134,11 @@ const DATE_POSTED_MAP = {
 //   - Step 3 (smartDedupKey): collapse the same job appearing on multiple
 //     boards (BeBee + Bayt + Workable etc) into one — first occurrence wins.
 //   - Step 4 (applyLocationAndAge): country must match the user's selected
-//     GCC city; Indian cities are always dropped (JSearch tags India remote
-//     roles inconsistently); postings older than 21 days or with no
-//     timestamp are dropped — stale listings drive most "ghost job" complaints.
+//     GCC city WHEN explicitly set; Indian cities are always dropped (JSearch
+//     tags India remote roles inconsistently); postings explicitly older than
+//     30 days are dropped. Missing country, missing city, or missing/
+//     unparseable timestamp → keep — most boards leave at least one of these
+//     blank and dropping on absence was zeroing the funnel before scoring.
 const GCC_LOCATION_COUNTRY = [
   { needles: ['dubai'], country: 'United Arab Emirates' },
   { needles: ['abu dhabi', 'abu-dhabi'], country: 'United Arab Emirates' },
@@ -148,7 +150,7 @@ const INDIAN_CITY_NEEDLES = [
   'india', 'bangalore', 'bengaluru', 'mumbai', 'delhi',
   'chennai', 'hyderabad', 'pune', 'kolkata',
 ];
-const GHOST_AGE_MS = 21 * 24 * 60 * 60 * 1000;
+const GHOST_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 function expectedCountryFor(location) {
   const s = String(location || '').toLowerCase();
@@ -168,25 +170,33 @@ function smartDedupKey(j) {
     .replace(/[^a-z0-9]/g, '');
 }
 
-// Step 4 — location hard filter + 21-day age cap. No country fallback
-// when the GCC slug is unrecognised: we only filter by country when we
-// know which country the user picked.
+// Step 4 — location hard filter + 30-day age cap. Both filters are
+// permissive on missing data: a job is only dropped when the relevant
+// field is explicitly set AND clearly disqualifying. Missing country,
+// missing city, missing/unparseable timestamp → KEEP. Most boards
+// publish jobs with at least one field empty (especially Jooble), and
+// dropping on absence was zeroing the funnel before scoring even ran.
 function applyLocationAndAge(jobs, location) {
   const expectedCountry = expectedCountryFor(location);
   const cutoff = Date.now() - GHOST_AGE_MS;
   return jobs.filter((j) => {
+    // Country: only drop when explicitly set to a non-matching value.
     if (expectedCountry && j.job_country && j.job_country !== expectedCountry) {
       return false;
     }
+    // City: only drop when explicitly set and contains an Indian-city
+    // needle (catches Jooble's remote-India leakage on Gulf searches).
     if (j.job_city) {
       const cityLower = String(j.job_city).toLowerCase();
       if (INDIAN_CITY_NEEDLES.some((n) => cityLower.includes(n))) return false;
     }
-    if (!j.job_posted_at_datetime_utc) return false;
-    const t = new Date(j.job_posted_at_datetime_utc).getTime();
-    if (Number.isNaN(t)) return false;
-    if (t < cutoff) return false;
-    return true;
+    // Age: missing or unparseable timestamp → keep. Only drop when the
+    // timestamp is explicitly set, parses cleanly, and is older than cutoff.
+    const ts = j.job_posted_at_datetime_utc;
+    if (!ts) return true;
+    const t = new Date(ts).getTime();
+    if (Number.isNaN(t)) return true;
+    return t >= cutoff;
   });
 }
 
@@ -886,9 +896,12 @@ export default async function handler(req, res) {
 
   const ageCutoff = Date.now() - GHOST_AGE_MS;
   const afterAge = afterLocation.filter((j) => {
-    if (!j.job_posted_at_datetime_utc) return false;
-    const t = new Date(j.job_posted_at_datetime_utc).getTime();
-    if (Number.isNaN(t)) return false;
+    // Permissive: only drop when the timestamp is explicitly set AND
+    // is older than 30 days. Missing or unparseable timestamps → keep.
+    const ts = j.job_posted_at_datetime_utc;
+    if (!ts) return true;
+    const t = new Date(ts).getTime();
+    if (Number.isNaN(t)) return true;
     return t >= ageCutoff;
   });
   console.log('FUNNEL #4 after age filter:', afterAge.length, 'jobs (cutoff:', new Date(ageCutoff).toISOString(), ')');
