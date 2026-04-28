@@ -24,16 +24,27 @@ import {
   Copy,
   Inbox,
   Briefcase,
+  ArrowRight,
 } from 'lucide-react';
 
 /* =====================================================================
    ScoutDashboard — Pro-only feature, static UI prototype.
-   Light, warm, LinkedIn-adjacent direction.
-   Tailwind not installed in this project — all styles ship in a
-   self-contained scoped <style> block at the bottom.
+   Light, warm, LinkedIn-adjacent direction. Eclipse-inspired colored
+   card grid + Framer Motion interaction layer.
+   Tailwind not installed — all styles in scoped <style> block.
    ===================================================================== */
 
 const SOURCES = ['LinkedIn', 'Indeed', 'Glassdoor', 'Bayt', 'Naukri'];
+
+/* Soft pastel rotation for the card grid. Card bg is decorative
+   (Eclipse-style variety); state still reads via the pip + score colour. */
+const TINTS = [
+  { bg: '#F0FDF4', logoBg: '#BBF7D0', logoText: '#14532D' }, // soft green
+  { bg: '#EFF6FF', logoBg: '#BFDBFE', logoText: '#1E3A8A' }, // sky blue
+  { bg: '#FFFBEB', logoBg: '#FDE68A', logoText: '#7C2D12' }, // light amber
+  { bg: '#FFF1F2', logoBg: '#FECDD3', logoText: '#881337' }, // pale blush
+  { bg: '#FAF7F2', logoBg: '#EADDC4', logoText: '#7C5A1F' }, // warm cream (overflow)
+];
 
 const JOBS = [
   {
@@ -42,6 +53,7 @@ const JOBS = [
     initials: 'ML',
     role: 'IT Support Specialist',
     location: 'Dubai · DIFC',
+    jobType: 'Hybrid',
     salary: 'AED 9,500 – 12,000',
     salaryNote: '/month',
     posted: '6h ago',
@@ -84,6 +96,7 @@ const JOBS = [
     initials: 'CI',
     role: 'Service Desk Analyst',
     location: 'Dubai · Business Bay',
+    jobType: 'On-site',
     salary: 'AED 8,000 – 10,500',
     salaryNote: '/month',
     posted: '11h ago',
@@ -126,6 +139,7 @@ const JOBS = [
     initials: 'AR',
     role: 'Systems Support Engineer',
     location: 'Dubai · Al Quoz',
+    jobType: 'On-site',
     salary: 'AED 12,000 – 15,000',
     salaryNote: '/month',
     posted: '1d ago',
@@ -168,6 +182,7 @@ const JOBS = [
     initials: 'HX',
     role: 'IT Operations Lead',
     location: 'Dubai · Jebel Ali',
+    jobType: 'On-site',
     salary: 'AED 16,000 – 20,000',
     salaryNote: '/month',
     posted: '2d ago',
@@ -214,6 +229,10 @@ const DEFAULT_FILTERS = Object.freeze({
   sources: ['all'],
 });
 
+/* shared spring — snappy, never linear */
+const SPRING = { type: 'spring', stiffness: 300, damping: 25 };
+const SPRING_SOFT = { type: 'spring', stiffness: 220, damping: 26 };
+
 /* ---------------------------- helpers ---------------------------- */
 
 const useViewport = () => {
@@ -246,7 +265,6 @@ const ScoreNumber = ({ value, size = 22, weight = 600 }) => {
   );
 };
 
-/* circular score ring — light, refined */
 const ScoreRing = ({ value, tone, size = 88 }) => {
   const r = (size - 10) / 2;
   const c = 2 * Math.PI * r;
@@ -290,7 +308,6 @@ const ScoreRing = ({ value, tone, size = 88 }) => {
   );
 };
 
-/* breakdown stat blocks — replaces horizontal bars */
 const Breakdown = ({ data }) => (
   <div className="scout-breakdown">
     {Object.entries(data).map(([label, { value, note }]) => {
@@ -407,9 +424,7 @@ const PreferencesSidebar = ({
           <select
             className="scout-input scout-select"
             value={filters.experience}
-            onChange={(e) =>
-              setFilters({ ...filters, experience: e.target.value })
-            }
+            onChange={(e) => setFilters({ ...filters, experience: e.target.value })}
           >
             <option>Mid (3-5 years)</option>
             <option>Junior (0-2 years)</option>
@@ -462,8 +477,8 @@ const PreferencesSidebar = ({
         className={`scout-run scout-run--${scanState}`}
         onClick={onRunScout}
         whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.985 }}
-        transition={{ duration: 0.18 }}
+        whileTap={{ scale: 0.97 }}
+        transition={SPRING}
         disabled={scanState === 'scanning'}
       >
         {scanState === 'scanning' ? (
@@ -520,100 +535,155 @@ const Field = ({ icon, label, children }) => (
 
 /* ---------------------------- job card ---------------------------- */
 
-const JobCard = ({ job, active, onClick, index }) => (
-  <motion.button
-    type="button"
-    onClick={onClick}
-    className={`scout-card scout-card--${job.state} ${active ? 'is-active' : ''}`}
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{
-      duration: 0.4,
-      delay: 0.06 + index * 0.05,
-      ease: [0.22, 1, 0.36, 1],
-    }}
-    whileHover={{ y: -2 }}
-  >
-    <div className="scout-card-head">
-      <div className="scout-company">
-        <div className={`scout-logo scout-logo--${job.state}`}>
+const cardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: SPRING,
+  },
+  exit: {
+    x: -360,
+    rotate: -6,
+    opacity: 0,
+    transition: { duration: 0.36, ease: [0.32, 0, 0.67, 0] },
+  },
+  hover: { y: -4 },
+  tap: { scale: 0.97, transition: { type: 'spring', stiffness: 420, damping: 22 } },
+};
+
+const JobCard = ({ job, tint, active, onClick, onDismiss }) => {
+  const stopAnd = (fn) => (e) => {
+    e.stopPropagation();
+    fn?.();
+  };
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      layout
+      variants={cardVariants}
+      initial="hidden"
+      animate="show"
+      exit="exit"
+      whileHover="hover"
+      whileTap="tap"
+      transition={SPRING}
+      style={{ background: tint.bg }}
+      className={`scout-card scout-card--${job.state} ${active ? 'is-active' : ''}`}
+    >
+      {/* dismiss — top right, hover only */}
+      <motion.span
+        className="scout-card-dismiss"
+        variants={{ hidden: { opacity: 0, scale: 0.85 }, hover: { opacity: 1, scale: 1 } }}
+        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        onClick={stopAnd(onDismiss)}
+        role="button"
+        aria-label="Not interested"
+        tabIndex={0}
+      >
+        <X size={12} strokeWidth={2.4} />
+      </motion.span>
+
+      <div className="scout-card-head">
+        <div
+          className="scout-logo"
+          style={{ background: tint.logoBg, color: tint.logoText }}
+        >
           {job.initials}
         </div>
-        <div className="scout-company-meta">
-          <div className="scout-company-name">{job.company}</div>
-          <div className="scout-company-sub">
-            <MapPin size={10.5} strokeWidth={2} />
-            {job.location}
+        <motion.div
+          className="scout-score-block"
+          variants={{ hover: { scale: 1.06 } }}
+          transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+        >
+          <div className={`scout-state-pip scout-state-pip--${job.state}`}>
+            <span className="scout-pip-dot" />
+            {job.state === 'direct' ? 'Direct' : 'Stretch'}
           </div>
-        </div>
+          <ScoreNumber value={job.score} size={26} weight={700} />
+        </motion.div>
       </div>
-      <div className="scout-score-block">
-        <div className={`scout-state-pip scout-state-pip--${job.state}`}>
-          <span className="scout-pip-dot" />
-          {job.state === 'direct' ? 'Direct' : 'Stretch'}
-        </div>
-        <ScoreNumber value={job.score} size={24} weight={700} />
+
+      <div className="scout-card-body">
+        <h3 className="scout-card-role">{job.role}</h3>
+        <div className="scout-card-company">{job.company}</div>
       </div>
-    </div>
 
-    <h3 className="scout-card-role">{job.role}</h3>
-    <p className="scout-card-summary">{job.summary}</p>
+      <div className="scout-skill-row">
+        {job.skills.slice(0, 3).map((s) => (
+          <span key={s} className="scout-skill">
+            {s}
+          </span>
+        ))}
+        {job.skills.length > 3 && (
+          <span className="scout-skill scout-skill--more">
+            +{job.skills.length - 3}
+          </span>
+        )}
+      </div>
 
-    <div className="scout-skill-row">
-      {job.skills.slice(0, 3).map((s) => (
-        <span key={s} className="scout-skill">
-          {s}
-        </span>
-      ))}
-      {job.skills.length > 3 && (
-        <span className="scout-skill scout-skill--more">
-          +{job.skills.length - 3}
-        </span>
-      )}
-    </div>
-
-    <div className="scout-card-foot">
-      <div className="scout-salary">{job.salary}</div>
-      <div className="scout-card-foot-meta">
-        <span className="scout-source-tag">via {job.source}</span>
+      <div className="scout-meta-line">
+        <MapPin size={11} strokeWidth={2} />
+        <span>{job.location}</span>
         <span className="scout-dot" />
+        <span>{job.jobType}</span>
+        <span className="scout-dot" />
+        <Clock size={11} strokeWidth={2} />
         <span>{job.posted}</span>
       </div>
-    </div>
-  </motion.button>
-);
 
-/* ---------------------------- skeleton card (loading state) ---------------------------- */
+      <div className="scout-card-foot">
+        <div className="scout-salary-block">
+          <div className="scout-salary">{job.salary}</div>
+          <div className="scout-salary-meta">
+            {job.salaryNote}
+            <span className="scout-source-tag scout-source-tag--card">
+              via {job.source}
+            </span>
+          </div>
+        </div>
+        <motion.span
+          className="scout-card-tailor"
+          variants={{
+            hidden: { opacity: 0, y: 4 },
+            hover: { opacity: 1, y: 0 },
+          }}
+          initial="hidden"
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          Tailor now
+          <ArrowRight size={13} strokeWidth={2.2} />
+        </motion.span>
+      </div>
+    </motion.button>
+  );
+};
+
+/* ---------------------------- skeleton (loading) ---------------------------- */
 
 const SkeletonCard = ({ index }) => (
   <motion.div
     className="scout-card scout-skeleton-card"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ delay: 0.04 * index, duration: 0.25 }}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.22 } }}
+    transition={{ delay: 0.04 * index, ...SPRING_SOFT }}
   >
     <div className="scout-card-head">
-      <div className="scout-company">
-        <div className="scout-skel scout-skel--logo" />
-        <div className="scout-company-meta">
-          <div className="scout-skel scout-skel--line" style={{ width: '110px' }} />
-          <div
-            className="scout-skel scout-skel--line"
-            style={{ width: '78px', height: '8px', marginTop: '6px' }}
-          />
-        </div>
-      </div>
+      <div className="scout-skel scout-skel--logo" />
       <div className="scout-skel scout-skel--pill" />
     </div>
-    <div className="scout-skel scout-skel--line" style={{ width: '70%', height: '14px' }} />
-    <div className="scout-skel scout-skel--line" style={{ width: '92%', height: '8px' }} />
-    <div className="scout-skel scout-skel--line" style={{ width: '64%', height: '8px' }} />
+    <div className="scout-skel scout-skel--line" style={{ width: '80%', height: '14px' }} />
+    <div className="scout-skel scout-skel--line" style={{ width: '50%', height: '10px' }} />
     <div className="scout-skel-row">
       <div className="scout-skel scout-skel--chip" />
       <div className="scout-skel scout-skel--chip" />
       <div className="scout-skel scout-skel--chip" />
     </div>
-    <div className="scout-skel scout-skel--line" style={{ width: '46%' }} />
+    <div className="scout-skel scout-skel--line" style={{ width: '60%', height: '10px' }} />
+    <div className="scout-skel scout-skel--line" style={{ width: '46%', height: '14px' }} />
   </motion.div>
 );
 
@@ -624,7 +694,8 @@ const EmptyState = ({ onAdjust }) => (
     className="scout-empty-state"
     initial={{ opacity: 0, y: 6 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    exit={{ opacity: 0, y: 6 }}
+    transition={SPRING_SOFT}
   >
     <div className="scout-empty-mark scout-empty-mark--big">
       <Inbox size={28} strokeWidth={1.6} />
@@ -663,10 +734,10 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
     <motion.div
       key={job.id}
       className="scout-detail"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 6 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 30, mass: 0.6 }}
+      initial={{ opacity: 0, x: 60 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 60 }}
+      transition={SPRING}
     >
       <div className="scout-detail-head">
         <div className="scout-detail-head-left">
@@ -678,6 +749,8 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
           <div className="scout-detail-company">{job.company}</div>
           <div className="scout-detail-meta">
             <span>{job.location}</span>
+            <span className="scout-dot" />
+            <span>{job.jobType}</span>
             <span className="scout-dot" />
             <span>{job.salary}</span>
           </div>
@@ -704,7 +777,8 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
       </div>
 
       <Section title="Why Scout picked this">
-        <p className="scout-detail-why">{job.why}</p>
+        <p className="scout-detail-why">{job.summary}</p>
+        <p className="scout-detail-why scout-detail-why--soft">{job.why}</p>
       </Section>
 
       <Section title="Match breakdown">
@@ -717,9 +791,9 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
             <motion.div
               key={i}
               className="scout-tweak"
-              initial={{ opacity: 0, y: 4 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 + i * 0.06, duration: 0.32 }}
+              transition={{ delay: 0.18 + i * 0.06, ...SPRING_SOFT }}
             >
               <div className="scout-tweak-field">{t.field}</div>
               <div className="scout-tweak-rows">
@@ -758,33 +832,50 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
           </div>
           <div className="scout-kw-row">
             {job.keywords.missing.map((k) => (
-              <button
+              <motion.button
                 key={k}
                 type="button"
                 className="scout-kw scout-kw--miss"
                 onClick={() => onCopyKeyword(k)}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.94 }}
+                transition={SPRING}
               >
                 <Copy size={10.5} strokeWidth={2.2} />
                 {k}
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
       </Section>
 
       <div className="scout-detail-actions">
-        <button type="button" className="scout-btn scout-btn--primary">
+        <motion.button
+          type="button"
+          className="scout-btn scout-btn--primary"
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.97 }}
+          transition={SPRING}
+        >
           <Sparkles size={14} strokeWidth={2} />
           Apply with tailored CV
-        </button>
-        <button type="button" className="scout-btn scout-btn--ghost">
+        </motion.button>
+        <motion.button
+          type="button"
+          className="scout-btn scout-btn--ghost"
+          whileTap={{ scale: 0.95 }}
+        >
           <Bookmark size={13} strokeWidth={1.9} />
           Save
-        </button>
-        <button type="button" className="scout-btn scout-btn--ghost">
+        </motion.button>
+        <motion.button
+          type="button"
+          className="scout-btn scout-btn--ghost"
+          whileTap={{ scale: 0.95 }}
+        >
           <SkipForward size={13} strokeWidth={1.9} />
           Skip
-        </button>
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -802,10 +893,10 @@ const Section = ({ title, children }) => (
 const Toast = ({ message }) => (
   <motion.div
     className="scout-toast"
-    initial={{ opacity: 0, y: 10, scale: 0.96 }}
+    initial={{ opacity: 0, y: 16, scale: 0.94 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
-    exit={{ opacity: 0, y: 6, scale: 0.98 }}
-    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+    transition={SPRING}
   >
     <Check size={13} strokeWidth={2.4} />
     {message}
@@ -821,20 +912,26 @@ const ScoutDashboard = () => {
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [scanState, setScanState] = useState('idle'); // idle | scanning | complete
   const [toast, setToast] = useState(null);
+  const [dismissed, setDismissed] = useState(() => new Set());
   const sort = 'Best match';
 
+  const visibleJobs = useMemo(
+    () => JOBS.filter((j) => !dismissed.has(j.id)),
+    [dismissed]
+  );
+
   const selected = useMemo(
-    () => JOBS.find((j) => j.id === selectedId) || null,
-    [selectedId]
+    () => visibleJobs.find((j) => j.id === selectedId) || null,
+    [selectedId, visibleJobs]
   );
 
   const sourceCounts = useMemo(() => {
-    const counts = JOBS.reduce((acc, j) => {
+    const counts = visibleJobs.reduce((acc, j) => {
       acc[j.source] = (acc[j.source] || 0) + 1;
       return acc;
     }, {});
     return Object.entries(counts).map(([source, count]) => ({ source, count }));
-  }, []);
+  }, [visibleJobs]);
 
   // Plus Jakarta Sans — single sans-serif for the whole screen
   useEffect(() => {
@@ -844,7 +941,7 @@ const ScoutDashboard = () => {
     link.id = id;
     link.rel = 'stylesheet';
     link.href =
-      'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap';
+      'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
     document.head.appendChild(link);
     return () => {
       const el = document.getElementById(id);
@@ -861,13 +958,27 @@ const ScoutDashboard = () => {
 
   const runScout = () => {
     setScanState('scanning');
+    // Reset dismissals on a fresh scan — feels like a real refresh
     setTimeout(() => {
+      setDismissed(new Set());
       setScanState('complete');
       setTimeout(() => setScanState('idle'), 1700);
     }, 1500);
   };
 
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
+
+  const dismissJob = (id) => {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    if (selectedId === id) {
+      const remaining = visibleJobs.find((j) => j.id !== id);
+      setSelectedId(remaining ? remaining.id : null);
+    }
+  };
 
   const copyKeyword = (kw) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -883,7 +994,7 @@ const ScoutDashboard = () => {
   }, [toast]);
 
   const showSkeleton = scanState === 'scanning';
-  const showEmpty = !showSkeleton && JOBS.length === 0;
+  const showEmpty = !showSkeleton && visibleJobs.length === 0;
 
   return (
     <div className="scout-root">
@@ -904,8 +1015,8 @@ const ScoutDashboard = () => {
             {scanState === 'scanning'
               ? 'Scout is searching…'
               : scanState === 'complete'
-              ? 'Just updated · 4 matches'
-              : '4 new matches · last sweep 2h ago'}
+              ? `Just updated · ${visibleJobs.length} matches`
+              : `${visibleJobs.length} new matches · last sweep 2h ago`}
           </div>
         </div>
         <div className="scout-topbar-right">
@@ -918,7 +1029,11 @@ const ScoutDashboard = () => {
       </header>
 
       {/* shell */}
-      <div className="scout-shell">
+      <motion.div
+        className="scout-shell"
+        animate={{ filter: !isDesktop && overlayOpen ? 'blur(3px)' : 'blur(0px)' }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      >
         {!isMobile && (
           <PreferencesSidebar
             filters={filters}
@@ -935,7 +1050,10 @@ const ScoutDashboard = () => {
             <div>
               <h1 className="scout-list-title">Tonight&apos;s shortlist</h1>
               <p className="scout-list-sub">
-                4 jobs found in Dubai &middot; 2 direct matches and 2 stretch
+                {visibleJobs.length} jobs found in Dubai &middot;{' '}
+                {visibleJobs.filter((j) => j.state === 'direct').length} direct
+                matches and{' '}
+                {visibleJobs.filter((j) => j.state === 'stretch').length} stretch
                 roles worth a look.
               </p>
             </div>
@@ -949,27 +1067,48 @@ const ScoutDashboard = () => {
             </div>
           </div>
 
-          {showSkeleton ? (
-            <div className="scout-cards scout-cards--grid">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <SkeletonCard key={i} index={i} />
-              ))}
-            </div>
-          ) : showEmpty ? (
-            <EmptyState onAdjust={resetFilters} />
-          ) : (
-            <div className="scout-cards scout-cards--grid">
-              {JOBS.map((j, i) => (
-                <JobCard
-                  key={j.id}
-                  job={j}
-                  index={i}
-                  active={selectedId === j.id}
-                  onClick={() => handleSelect(j.id)}
-                />
-              ))}
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {showSkeleton ? (
+              <motion.div
+                key="skel"
+                className="scout-cards-grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22 }}
+              >
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <SkeletonCard key={i} index={i} />
+                ))}
+              </motion.div>
+            ) : showEmpty ? (
+              <EmptyState key="empty" onAdjust={resetFilters} />
+            ) : (
+              <motion.div
+                key="jobs"
+                className="scout-cards-grid"
+                initial="hidden"
+                animate="show"
+                variants={{
+                  hidden: {},
+                  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
+                }}
+              >
+                <AnimatePresence mode="popLayout">
+                  {visibleJobs.map((j, i) => (
+                    <JobCard
+                      key={j.id}
+                      job={j}
+                      tint={TINTS[i % TINTS.length]}
+                      active={selectedId === j.id}
+                      onClick={() => handleSelect(j.id)}
+                      onDismiss={() => dismissJob(j.id)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {isMobile && (
             <button
@@ -995,7 +1134,7 @@ const ScoutDashboard = () => {
             </AnimatePresence>
           </aside>
         )}
-      </div>
+      </motion.div>
 
       {/* overlay — tablet right slide-over, mobile bottom sheet */}
       <AnimatePresence>
@@ -1005,7 +1144,7 @@ const ScoutDashboard = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.22 }}
             onClick={closeOverlay}
           >
             <motion.div
@@ -1015,7 +1154,7 @@ const ScoutDashboard = () => {
               initial={isMobile ? { y: '100%' } : { x: '100%' }}
               animate={isMobile ? { y: 0 } : { x: 0 }}
               exit={isMobile ? { y: '100%' } : { x: '100%' }}
-              transition={{ type: 'spring', stiffness: 280, damping: 32 }}
+              transition={SPRING}
               onClick={(e) => e.stopPropagation()}
             >
               {isMobile && (
@@ -1055,7 +1194,6 @@ const ScoutDashboard = () => {
 const ScoutStyle = () => (
   <style>{`
     .scout-root {
-      /* warm, light palette */
       --scout-bg: #FAF7F2;
       --scout-surface: #FFFFFF;
       --scout-surface-tint: #FBF8F3;
@@ -1080,9 +1218,9 @@ const ScoutStyle = () => (
       --scout-amber-soft: #FCEFE0;
 
       --scout-shadow-1: 0 1px 2px rgba(20, 22, 28, 0.04);
-      --scout-shadow-2: 0 1px 2px rgba(20, 22, 28, 0.05), 0 6px 14px -2px rgba(20, 22, 28, 0.06);
-      --scout-shadow-3: 0 1px 3px rgba(20, 22, 28, 0.05), 0 14px 36px rgba(20, 22, 28, 0.08);
-      --scout-shadow-card-hover: 0 1px 2px rgba(20,22,28,0.05), 0 14px 30px -8px rgba(20,22,28,0.10);
+      --scout-shadow-2: 0 1px 2px rgba(20,22,28,0.05), 0 6px 14px -2px rgba(20,22,28,0.06);
+      --scout-shadow-3: 0 1px 3px rgba(20,22,28,0.05), 0 14px 36px rgba(20,22,28,0.08);
+      --scout-shadow-card-hover: 0 1px 2px rgba(20,22,28,0.05), 0 16px 32px -10px rgba(20,22,28,0.14);
       --scout-ease: cubic-bezier(0.22, 1, 0.36, 1);
       --scout-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
@@ -1103,12 +1241,8 @@ const ScoutStyle = () => (
 
     /* topbar ------------------------------------------------------------ */
     .scout-topbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
       gap: 24px;
       padding: 14px 28px;
       background: rgba(255, 255, 255, 0.85);
@@ -1121,32 +1255,23 @@ const ScoutStyle = () => (
     .scout-brand-mark {
       width: 26px; height: 26px;
       border-radius: 8px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center;
       color: #fff;
       background: linear-gradient(135deg, #0E7C5A 0%, #15A074 100%);
-      box-shadow: 0 1px 2px rgba(14, 124, 90, 0.25), inset 0 1px 0 rgba(255,255,255,0.18);
+      box-shadow: 0 1px 2px rgba(14,124,90,0.25), inset 0 1px 0 rgba(255,255,255,0.18);
     }
     .scout-brand-word { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--scout-text); }
     .scout-brand-tag {
-      padding: 2px 6px;
-      border-radius: 999px;
-      font-size: 9.5px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      color: var(--scout-amber);
-      background: var(--scout-amber-soft);
+      padding: 2px 6px; border-radius: 999px;
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em;
+      color: var(--scout-amber); background: var(--scout-amber-soft);
     }
     .scout-topbar-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-flex; align-items: center; gap: 8px;
       padding: 5px 12px 5px 8px;
       border-radius: 999px;
       color: var(--scout-text-dim);
-      font-size: 12.5px;
-      font-weight: 500;
+      font-size: 12.5px; font-weight: 500;
       transition: background-color 320ms var(--scout-ease), color 320ms var(--scout-ease), border-color 320ms var(--scout-ease);
       border: 1px solid transparent;
     }
@@ -1165,31 +1290,27 @@ const ScoutStyle = () => (
       width: 7px; height: 7px;
       border-radius: 50%;
       background: var(--scout-direct);
-      box-shadow: 0 0 0 0 rgba(14, 124, 90, 0.4);
+      box-shadow: 0 0 0 0 rgba(14,124,90,0.4);
       animation: scout-pulse 2.4s var(--scout-ease) infinite;
     }
     .scout-topbar-status--scanning .scout-live-dot {
       background: var(--scout-amber);
-      box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4);
       animation: scout-pulse-fast 1s var(--scout-ease) infinite;
     }
     @keyframes scout-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(14, 124, 90, 0.4); }
-      50% { box-shadow: 0 0 0 6px rgba(14, 124, 90, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(14,124,90,0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(14,124,90,0); }
     }
     @keyframes scout-pulse-fast {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
-      50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.5); }
+      50% { box-shadow: 0 0 0 5px rgba(217,119,6,0); }
     }
     .scout-topbar-right { display: flex; align-items: center; gap: 12px; }
     .scout-search {
       position: relative;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-flex; align-items: center; gap: 8px;
       padding: 0 12px;
-      height: 34px;
-      width: 220px;
+      height: 34px; width: 220px;
       border-radius: 10px;
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
@@ -1202,12 +1323,8 @@ const ScoutStyle = () => (
     .scout-avatar {
       width: 34px; height: 34px;
       border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
       color: #fff;
       background: linear-gradient(135deg, #C2410C 0%, #D97706 100%);
       box-shadow: var(--scout-shadow-1);
@@ -1232,11 +1349,8 @@ const ScoutStyle = () => (
 
     /* sidebar ----------------------------------------------------------- */
     .scout-sidebar {
-      position: sticky;
-      top: 80px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      position: sticky; top: 80px;
+      display: flex; flex-direction: column; gap: 12px;
       padding: 18px;
       border-radius: 14px;
       background: var(--scout-surface);
@@ -1245,24 +1359,16 @@ const ScoutStyle = () => (
     }
     .scout-sidebar-section { display: flex; flex-direction: column; gap: 12px; }
     .scout-sidebar-title {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
-      color: var(--scout-text);
-      margin-bottom: 2px;
+      font-size: 13px; font-weight: 600; letter-spacing: -0.005em;
+      color: var(--scout-text); margin-bottom: 2px;
     }
     .scout-field { display: flex; flex-direction: column; gap: 6px; }
     .scout-field-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--scout-text-dim);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500; color: var(--scout-text-dim);
     }
     .scout-input {
-      width: 100%;
-      height: 36px;
+      width: 100%; height: 36px;
       padding: 0 12px;
       border-radius: 9px;
       font-size: 13px;
@@ -1273,18 +1379,13 @@ const ScoutStyle = () => (
       transition: border-color 160ms var(--scout-ease), box-shadow 160ms var(--scout-ease);
     }
     .scout-input:hover { border-color: var(--scout-border-strong); }
-    .scout-input:focus {
-      border-color: var(--scout-amber);
-      box-shadow: 0 0 0 3px var(--scout-amber-soft);
-    }
+    .scout-input:focus { border-color: var(--scout-amber); box-shadow: 0 0 0 3px var(--scout-amber-soft); }
     .scout-select {
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238B92A1' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
+      background-repeat: no-repeat; background-position: right 12px center;
       padding-right: 28px;
     }
-
     .scout-salary-head { display: inline-flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
     .scout-salary-num { font-size: 12.5px; font-weight: 700; color: var(--scout-text); }
     .scout-slider-wrap { display: flex; flex-direction: column; gap: 4px; padding: 4px 2px 0; }
@@ -1292,20 +1393,17 @@ const ScoutStyle = () => (
       width: 100%;
       -webkit-appearance: none; appearance: none;
       background: transparent;
-      height: 28px;
-      touch-action: pan-y;
+      height: 28px; touch-action: pan-y;
     }
     .scout-slider::-webkit-slider-runnable-track {
-      height: 4px;
-      border-radius: 2px;
+      height: 4px; border-radius: 2px;
       background: linear-gradient(90deg, var(--scout-amber) 0%, var(--scout-amber) var(--p, 25%), var(--scout-border) var(--p, 25%));
     }
     .scout-slider::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
       width: 18px; height: 18px;
       border-radius: 50%;
-      background: #fff;
-      border: 2.5px solid var(--scout-amber);
+      background: #fff; border: 2.5px solid var(--scout-amber);
       margin-top: -7px;
       box-shadow: 0 1px 3px rgba(20,22,28,0.16);
     }
@@ -1320,66 +1418,42 @@ const ScoutStyle = () => (
     }
 
     /* sources chips ----------------------------------------------------- */
-    .scout-sources {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
+    .scout-sources { display: flex; flex-wrap: wrap; gap: 6px; }
     .scout-source {
       padding: 5px 10px;
-      font-size: 11.5px;
-      font-weight: 600;
+      font-size: 11.5px; font-weight: 600;
       color: var(--scout-text-dim);
       background: transparent;
       border: 1px solid var(--scout-border-strong);
       border-radius: 999px;
       letter-spacing: -0.005em;
-      transition: background-color 160ms var(--scout-ease),
-                  border-color 160ms var(--scout-ease),
-                  color 160ms var(--scout-ease);
+      transition: background-color 160ms var(--scout-ease), border-color 160ms var(--scout-ease), color 160ms var(--scout-ease);
     }
     .scout-source:hover { border-color: var(--scout-amber); color: var(--scout-text); }
-    .scout-source.is-on {
-      background: var(--scout-amber);
-      border-color: var(--scout-amber);
-      color: #fff;
-    }
-    .scout-source.is-implicit {
-      background: var(--scout-amber-soft);
-      border-color: var(--scout-amber-soft);
-      color: var(--scout-amber-hover);
-    }
+    .scout-source.is-on { background: var(--scout-amber); border-color: var(--scout-amber); color: #fff; }
+    .scout-source.is-implicit { background: var(--scout-amber-soft); border-color: var(--scout-amber-soft); color: var(--scout-amber-hover); }
     .scout-source.is-on:hover { background: var(--scout-amber-hover); border-color: var(--scout-amber-hover); }
 
     /* run scout button -------------------------------------------------- */
     .scout-run {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 42px;
-      padding: 0 16px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      height: 42px; padding: 0 16px;
       border-radius: 10px;
-      font-size: 13.5px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
+      font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em;
       color: #fff;
       background: var(--scout-amber);
       box-shadow:
         0 1px 0 rgba(255,255,255,0.18) inset,
-        0 4px 12px -2px rgba(217, 119, 6, 0.30);
-      transition:
-        background-color 180ms var(--scout-ease),
-        box-shadow 180ms var(--scout-ease);
+        0 4px 12px -2px rgba(217,119,6,0.30);
+      transition: background-color 180ms var(--scout-ease), box-shadow 180ms var(--scout-ease);
     }
     .scout-run:hover { background: var(--scout-amber-hover); }
     .scout-run--scanning { background: var(--scout-amber-hover); cursor: progress; }
-    .scout-run--complete { background: var(--scout-direct); box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 12px -2px rgba(14, 124, 90, 0.32); }
+    .scout-run--complete { background: var(--scout-direct); box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 12px -2px rgba(14,124,90,0.32); }
     .scout-run-pulse {
       width: 8px; height: 8px;
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 0 0 0 rgba(255,255,255,0.6);
       animation: scout-run-pulse 0.9s var(--scout-ease) infinite;
     }
     @keyframes scout-run-pulse {
@@ -1387,66 +1461,45 @@ const ScoutStyle = () => (
       50% { transform: scale(0.85); box-shadow: 0 0 0 5px rgba(255,255,255,0); }
     }
 
-    /* reset filters link ----------------------------------------------- */
+    /* reset link ------------------------------------------------------- */
     .scout-reset {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
       align-self: center;
       padding: 4px 8px;
-      font-size: 11.5px;
-      font-weight: 500;
-      color: var(--scout-text-faint);
+      font-size: 11.5px; font-weight: 500; color: var(--scout-text-faint);
       transition: color 160ms var(--scout-ease);
     }
     .scout-reset:hover { color: var(--scout-text-dim); }
 
     /* mini stats ------------------------------------------------------- */
     .scout-mini-stat {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      display: flex; flex-direction: column; gap: 8px;
       padding: 12px;
       border-radius: 12px;
       background: var(--scout-direct-tint);
       border: 1px solid var(--scout-direct-line);
     }
     .scout-mini-stat-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      display: inline-flex; align-items: center; gap: 8px;
       color: var(--scout-direct);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
+      font-size: 12px; font-weight: 600; letter-spacing: -0.005em;
     }
     .scout-mini-stat .scout-live-dot { background: var(--scout-direct); }
-    .scout-mini-stat-sources {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
+    .scout-mini-stat-sources { display: flex; flex-wrap: wrap; gap: 5px; }
     .scout-source-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      display: inline-flex; align-items: center; gap: 5px;
       padding: 2px 7px 2px 2px;
       background: var(--scout-surface);
       border: 1px solid var(--scout-direct-line);
       border-radius: 999px;
-      font-size: 10.5px;
-      font-weight: 500;
+      font-size: 10.5px; font-weight: 500;
       color: var(--scout-text-dim);
     }
     .scout-source-mark {
       width: 16px; height: 16px;
       border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9.5px;
-      font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 9.5px; font-weight: 700;
       color: #fff;
       background: var(--scout-direct);
       letter-spacing: 0;
@@ -1457,37 +1510,28 @@ const ScoutStyle = () => (
     /* list head --------------------------------------------------------- */
     .scout-list { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     .scout-list-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      display: flex; justify-content: space-between; align-items: flex-end;
       gap: 24px;
       padding: 6px 4px 0;
     }
     .scout-list-title {
       margin: 0;
-      font-size: 24px;
-      line-height: 1.2;
-      font-weight: 700;
-      letter-spacing: -0.018em;
+      font-size: 24px; line-height: 1.2;
+      font-weight: 700; letter-spacing: -0.018em;
       color: var(--scout-text);
     }
     .scout-list-sub {
       margin: 6px 0 0;
       max-width: 520px;
       color: var(--scout-text-dim);
-      font-size: 13.5px;
-      line-height: 1.55;
+      font-size: 13.5px; line-height: 1.55;
     }
     .scout-sort { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .scout-sort-label { font-size: 12px; color: var(--scout-text-faint); font-weight: 500; }
     .scout-sort-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      height: 32px;
-      padding: 0 12px;
-      font-size: 12.5px;
-      font-weight: 500;
+      display: inline-flex; align-items: center; gap: 6px;
+      height: 32px; padding: 0 12px;
+      font-size: 12.5px; font-weight: 500;
       color: var(--scout-text);
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
@@ -1496,35 +1540,35 @@ const ScoutStyle = () => (
     }
     .scout-sort-btn:hover { border-color: var(--scout-border-strong); }
 
-    /* job cards — 2-col grid on desktop, 1-col on mobile -------------- */
-    .scout-cards--grid {
+    /* job cards — Eclipse-style colored grid --------------------------- */
+    .scout-cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
     }
     @media (max-width: 540px) {
-      .scout-cards--grid { grid-template-columns: 1fr; }
+      .scout-cards-grid { grid-template-columns: 1fr; }
     }
 
     .scout-card {
+      position: relative;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
-      padding: 16px 18px;
+      padding: 18px 20px 16px;
       text-align: left;
-      border-radius: 14px;
-      background: var(--scout-surface);
-      border: 1px solid var(--scout-border);
-      box-shadow: var(--scout-shadow-1);
+      border-radius: 18px;
+      border: 1px solid rgba(20,22,28,0.045);
+      box-shadow: 0 1px 1px rgba(20,22,28,0.025);
+      will-change: transform;
       transition:
-        border-color 220ms var(--scout-ease),
-        box-shadow 220ms var(--scout-ease),
-        transform 220ms var(--scout-ease);
+        box-shadow 240ms var(--scout-ease),
+        border-color 240ms var(--scout-ease);
     }
     .scout-card:hover {
-      border-color: var(--scout-border-strong);
       box-shadow: var(--scout-shadow-card-hover);
+      border-color: rgba(20,22,28,0.06);
     }
     .scout-card.is-active {
       box-shadow:
@@ -1532,164 +1576,162 @@ const ScoutStyle = () => (
         var(--scout-shadow-card-hover);
       border-color: transparent;
     }
-    .scout-card--direct.is-active {
-      --scout-card-ring: var(--scout-direct);
-      background: linear-gradient(180deg, var(--scout-direct-tint) 0%, var(--scout-surface) 60%);
-    }
-    .scout-card--stretch.is-active {
-      --scout-card-ring: var(--scout-stretch);
-      background: linear-gradient(180deg, var(--scout-stretch-tint) 0%, var(--scout-surface) 60%);
-    }
+    .scout-card--direct.is-active { --scout-card-ring: var(--scout-direct); }
+    .scout-card--stretch.is-active { --scout-card-ring: var(--scout-stretch); }
 
-    .scout-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .scout-company { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .scout-logo {
-      width: 38px; height: 38px;
-      border-radius: 10px;
+    .scout-card-dismiss {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      flex-shrink: 0;
+      color: rgba(27,31,42,0.55);
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(20,22,28,0.06);
+      cursor: pointer;
+      z-index: 2;
     }
-    .scout-logo--direct {
-      color: var(--scout-direct);
-      background: var(--scout-direct-soft);
-      border: 1px solid var(--scout-direct-line);
-    }
-    .scout-logo--stretch {
-      color: var(--scout-stretch);
-      background: var(--scout-stretch-soft);
-      border: 1px solid var(--scout-stretch-line);
-    }
-    .scout-company-meta { min-width: 0; }
-    .scout-company-name { font-size: 13px; font-weight: 600; color: var(--scout-text); letter-spacing: -0.005em; line-height: 1.25; }
-    .scout-company-sub {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      margin-top: 3px;
-      font-size: 11.5px;
-      font-weight: 500;
-      color: var(--scout-text-faint);
-    }
-    .scout-dot {
-      width: 3px; height: 3px;
-      border-radius: 50%;
-      background: var(--scout-text-faint);
-      display: inline-block;
-      flex-shrink: 0;
-    }
+    .scout-card-dismiss:hover { color: var(--scout-stretch); background: #fff; }
 
+    .scout-card-head {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 12px;
+    }
+    .scout-logo {
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; letter-spacing: 0.02em;
+      flex-shrink: 0;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 1px 2px rgba(20,22,28,0.06);
+    }
     .scout-score-block {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
       flex-shrink: 0;
     }
     .scout-state-pip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 2px 7px;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 8px;
       border-radius: 999px;
-      font-size: 10.5px;
-      font-weight: 700;
-      letter-spacing: 0.005em;
+      font-size: 10.5px; font-weight: 700; letter-spacing: 0.005em;
       border: 1px solid;
     }
-    .scout-state-pip--direct { color: var(--scout-direct); background: var(--scout-direct-soft); border-color: var(--scout-direct-line); }
-    .scout-state-pip--stretch { color: var(--scout-stretch); background: var(--scout-stretch-soft); border-color: var(--scout-stretch-line); }
+    .scout-state-pip--direct {
+      color: var(--scout-direct); background: var(--scout-direct-soft); border-color: var(--scout-direct-line);
+    }
+    .scout-state-pip--stretch {
+      color: var(--scout-stretch); background: var(--scout-stretch-soft); border-color: var(--scout-stretch-line);
+    }
     .scout-pip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
     .scout-score-num {
-      display: inline-flex;
-      align-items: baseline;
-      line-height: 1;
-      letter-spacing: -0.02em;
+      display: inline-flex; align-items: baseline;
+      line-height: 1; letter-spacing: -0.02em;
       color: var(--scout-text);
       font-feature-settings: "tnum" 1, "lnum" 1;
     }
     .scout-card--direct .scout-score-num { color: var(--scout-direct); }
     .scout-card--stretch .scout-score-num { color: var(--scout-stretch); }
-    .scout-score-pct { font-size: 0.55em; margin-left: 1px; font-weight: 600; opacity: 0.85; }
+    .scout-score-pct { font-size: 0.55em; margin-left: 1px; font-weight: 700; opacity: 0.85; }
 
+    .scout-card-body { display: flex; flex-direction: column; gap: 2px; }
     .scout-card-role {
       margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: -0.018em;
-      color: var(--scout-text);
-      line-height: 1.2;
+      font-size: 17px; font-weight: 700; letter-spacing: -0.018em;
+      color: var(--scout-text); line-height: 1.2;
     }
-    .scout-card-summary {
-      margin: 0;
-      font-size: 12.5px;
-      line-height: 1.5;
+    .scout-card-company {
+      font-size: 12.5px; font-weight: 500;
       color: var(--scout-text-dim);
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      letter-spacing: -0.005em;
     }
     .scout-skill-row { display: flex; flex-wrap: wrap; gap: 5px; }
     .scout-skill {
       padding: 3px 9px;
-      font-size: 11px;
-      font-weight: 500;
+      font-size: 11px; font-weight: 600;
       color: var(--scout-text-dim);
-      background: var(--scout-surface-tint);
-      border: 1px solid var(--scout-border);
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(20,22,28,0.05);
       border-radius: 999px;
       white-space: nowrap;
       max-width: 140px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .scout-skill--more { background: transparent; color: var(--scout-text-faint); }
+    .scout-skill--more { background: transparent; color: var(--scout-text-faint); border-color: transparent; }
+
+    .scout-meta-line {
+      display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px;
+      font-size: 11.5px; font-weight: 500;
+      color: var(--scout-text-dim);
+    }
+    .scout-meta-line svg { color: var(--scout-text-faint); }
+    .scout-dot {
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: var(--scout-text-faint);
+      display: inline-block; flex-shrink: 0;
+    }
 
     .scout-card-foot {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+      display: flex; justify-content: space-between; align-items: flex-end;
+      gap: 10px; flex-wrap: wrap;
       padding-top: 10px;
-      border-top: 1px solid var(--scout-border);
+      margin-top: 2px;
+      border-top: 1px solid rgba(20,22,28,0.06);
+    }
+    .scout-salary-block {
+      display: flex; flex-direction: column;
+      gap: 2px;
     }
     .scout-salary {
-      font-size: 14px;
-      font-weight: 800;
+      font-size: 18px; font-weight: 800;
       color: var(--scout-text);
-      letter-spacing: -0.012em;
+      letter-spacing: -0.02em;
       font-feature-settings: "tnum" 1, "lnum" 1;
+      line-height: 1.1;
     }
-    .scout-card-foot-meta {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 500;
+    .scout-salary-meta {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 10.5px; font-weight: 500;
       color: var(--scout-text-faint);
     }
     .scout-source-tag {
-      padding: 2px 7px;
+      padding: 1px 6px;
       border-radius: 5px;
-      background: var(--scout-surface-tint);
-      border: 1px solid var(--scout-border);
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(20,22,28,0.06);
       color: var(--scout-text-dim);
-      font-size: 10.5px;
-      font-weight: 600;
+      font-size: 10px; font-weight: 600;
       letter-spacing: 0.005em;
     }
-    .scout-source-tag--inline { font-size: 11px; padding: 2px 8px; }
+    .scout-source-tag--card {}
+    .scout-source-tag--inline {
+      font-size: 11px; padding: 2px 8px;
+      background: var(--scout-surface-tint);
+      border: 1px solid var(--scout-border);
+    }
+
+    .scout-card-tailor {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 700;
+      color: var(--scout-amber);
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(217,119,6,0.18);
+      transition: background-color 160ms var(--scout-ease), color 160ms var(--scout-ease);
+    }
+    .scout-card-tailor:hover { background: var(--scout-amber); color: #fff; }
 
     /* skeleton cards (loading) ----------------------------------------- */
-    .scout-skeleton-card { pointer-events: none; }
+    .scout-skeleton-card {
+      background: var(--scout-surface);
+      pointer-events: none;
+    }
     .scout-skel {
       background: linear-gradient(
         90deg,
@@ -1705,17 +1747,15 @@ const ScoutStyle = () => (
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
-    .scout-skel--logo { width: 38px; height: 38px; border-radius: 10px; }
+    .scout-skel--logo { width: 42px; height: 42px; border-radius: 12px; }
     .scout-skel--line { height: 10px; width: 100%; }
-    .scout-skel--pill { width: 56px; height: 22px; border-radius: 999px; }
+    .scout-skel--pill { width: 64px; height: 22px; border-radius: 999px; }
     .scout-skel--chip { width: 64px; height: 18px; border-radius: 999px; }
     .scout-skel-row { display: flex; gap: 5px; }
 
-    /* empty state (in list) -------------------------------------------- */
+    /* empty state ------------------------------------------------------- */
     .scout-empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
       gap: 10px;
       text-align: center;
       padding: 56px 24px;
@@ -1725,24 +1765,19 @@ const ScoutStyle = () => (
     }
     .scout-empty-state h3 {
       margin: 8px 0 0;
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: -0.018em;
+      font-size: 17px; font-weight: 700; letter-spacing: -0.018em;
       color: var(--scout-text);
     }
     .scout-empty-state p {
       margin: 0 0 4px;
       max-width: 38ch;
-      font-size: 13px;
-      line-height: 1.55;
+      font-size: 13px; line-height: 1.55;
       color: var(--scout-text-dim);
     }
     .scout-empty-mark {
       width: 52px; height: 52px;
       border-radius: 13px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center;
       color: var(--scout-amber);
       background: var(--scout-amber-soft);
     }
@@ -1750,8 +1785,7 @@ const ScoutStyle = () => (
 
     /* detail panel ------------------------------------------------------ */
     .scout-detail-rail {
-      position: sticky;
-      top: 80px;
+      position: sticky; top: 80px;
       max-height: calc(100vh - 100px);
       overflow-y: auto;
       overscroll-behavior: contain;
@@ -1766,12 +1800,8 @@ const ScoutStyle = () => (
     .scout-detail-rail::-webkit-scrollbar-track { background: transparent; }
 
     .scout-detail-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 10px;
-      padding: 56px 28px;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      gap: 10px; padding: 56px 28px;
       color: var(--scout-text-dim);
     }
     .scout-detail-empty h4 { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--scout-text); }
@@ -1779,9 +1809,7 @@ const ScoutStyle = () => (
 
     .scout-detail { display: flex; flex-direction: column; gap: 22px; position: relative; }
     .scout-detail-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      display: flex; align-items: flex-start; justify-content: space-between;
       gap: 16px;
       padding-bottom: 18px;
       border-bottom: 1px solid var(--scout-border);
@@ -1790,59 +1818,39 @@ const ScoutStyle = () => (
     .scout-detail-head-left { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .scout-detail-role {
       margin: 4px 0 0;
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--scout-text);
-      line-height: 1.2;
+      font-size: 20px; font-weight: 700; letter-spacing: -0.02em;
+      color: var(--scout-text); line-height: 1.2;
     }
     .scout-detail-company {
-      font-size: 13.5px;
-      font-weight: 600;
-      color: var(--scout-text);
-      letter-spacing: -0.005em;
+      font-size: 13.5px; font-weight: 600;
+      color: var(--scout-text); letter-spacing: -0.005em;
     }
     .scout-detail-meta {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      font-size: 12.5px;
-      color: var(--scout-text-dim);
+      display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      font-size: 12.5px; color: var(--scout-text-dim);
     }
     .scout-detail-sub {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
       margin-top: 4px;
-      font-size: 11.5px;
-      font-weight: 500;
+      font-size: 11.5px; font-weight: 500;
       color: var(--scout-text-faint);
     }
     .scout-detail-close {
-      position: absolute;
-      top: -2px;
-      right: -2px;
+      position: absolute; top: -2px; right: -2px;
       width: 30px; height: 30px;
       border-radius: 8px;
       color: var(--scout-text-dim);
       background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center;
       transition: color 160ms var(--scout-ease), border-color 160ms var(--scout-ease);
     }
     .scout-detail-close:hover { color: var(--scout-text); border-color: var(--scout-border-strong); }
 
     .scout-ring-wrap { position: relative; flex-shrink: 0; }
     .scout-ring-inner {
-      position: absolute;
-      inset: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute; inset: 0;
+      display: inline-flex; align-items: center; justify-content: center;
     }
     .scout-detail .scout-ring-wrap .scout-score-num { color: var(--scout-text); }
 
@@ -1850,30 +1858,22 @@ const ScoutStyle = () => (
     .scout-section { display: flex; flex-direction: column; gap: 10px; }
     .scout-section-title {
       margin: 0;
-      font-size: 11.5px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+      font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--scout-text-faint);
     }
     .scout-detail-why {
       margin: 0;
-      font-size: 13.5px;
-      line-height: 1.6;
-      color: var(--scout-text);
-      letter-spacing: -0.005em;
+      font-size: 13.5px; line-height: 1.6;
+      color: var(--scout-text); letter-spacing: -0.005em;
     }
+    .scout-detail-why--soft { color: var(--scout-text-dim); margin-top: 2px; }
 
-    /* breakdown stat blocks -------------------------------------------- */
     .scout-breakdown {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     }
     .scout-stat-card {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      display: flex; flex-direction: column; gap: 4px;
       padding: 12px 14px;
       border-radius: 12px;
       background: var(--scout-surface);
@@ -1897,15 +1897,10 @@ const ScoutStyle = () => (
       border-radius: 12px;
       background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      display: flex; flex-direction: column; gap: 8px;
     }
     .scout-tweak-field {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
       color: var(--scout-text-faint);
     }
     .scout-tweak-rows { display: flex; flex-direction: column; gap: 6px; }
@@ -1913,22 +1908,15 @@ const ScoutStyle = () => (
     .scout-tweak-tag {
       flex-shrink: 0;
       padding: 2px 7px;
-      font-size: 9.5px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+      font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
       border-radius: 6px;
       margin-top: 2px;
     }
-    .scout-tweak-row--before .scout-tweak-tag {
-      background: var(--scout-surface);
-      color: var(--scout-text-faint);
-      border: 1px solid var(--scout-border);
-    }
+    .scout-tweak-row--before .scout-tweak-tag { background: var(--scout-surface); color: var(--scout-text-faint); border: 1px solid var(--scout-border); }
     .scout-tweak-row--before .scout-tweak-text {
       color: var(--scout-text-faint);
       text-decoration: line-through;
-      text-decoration-color: rgba(139, 146, 161, 0.45);
+      text-decoration-color: rgba(139,146,161,0.45);
       text-decoration-thickness: 1px;
     }
     .scout-tweak-row--after .scout-tweak-tag { background: var(--scout-direct-soft); color: var(--scout-direct); }
@@ -1937,72 +1925,44 @@ const ScoutStyle = () => (
     /* keywords ---------------------------------------------------------- */
     .scout-kw-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
     .scout-kw-group:last-child { margin-bottom: 0; }
-    .scout-kw-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11.5px;
-      font-weight: 600;
-      letter-spacing: 0.005em;
-    }
+    .scout-kw-label { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.005em; }
     .scout-kw-label--ok { color: var(--scout-direct); }
     .scout-kw-label--miss { color: var(--scout-stretch); }
     .scout-kw-row { display: flex; flex-wrap: wrap; gap: 6px; }
     .scout-kw {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      display: inline-flex; align-items: center; gap: 5px;
       padding: 4px 10px;
-      font-size: 11.5px;
-      font-weight: 500;
+      font-size: 11.5px; font-weight: 500;
       border-radius: 999px;
       letter-spacing: -0.005em;
     }
-    .scout-kw--ok {
-      color: var(--scout-direct);
-      background: var(--scout-direct-soft);
-      border: 1px solid var(--scout-direct-line);
-    }
+    .scout-kw--ok { color: var(--scout-direct); background: var(--scout-direct-soft); border: 1px solid var(--scout-direct-line); }
     .scout-kw--miss {
       color: var(--scout-stretch);
       background: var(--scout-stretch-soft);
       border: 1px dashed var(--scout-stretch-line);
       cursor: pointer;
-      transition: background-color 140ms var(--scout-ease), border-color 140ms var(--scout-ease), transform 140ms var(--scout-ease);
+      transition: background-color 140ms var(--scout-ease), border-color 140ms var(--scout-ease);
     }
-    button.scout-kw--miss:hover {
-      background: #FCE5C0;
-      border-style: solid;
-      transform: translateY(-1px);
-    }
+    button.scout-kw--miss:hover { background: #FCE5C0; border-style: solid; }
 
     /* actions ----------------------------------------------------------- */
     .scout-detail-actions {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 8px;
+      display: grid; grid-template-columns: 1fr auto auto; gap: 8px;
       padding-top: 18px;
       border-top: 1px solid var(--scout-border);
     }
     .scout-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 40px;
-      padding: 0 14px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      height: 40px; padding: 0 14px;
       border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
-      transition: background-color 180ms var(--scout-ease), border-color 180ms var(--scout-ease), color 180ms var(--scout-ease), transform 180ms var(--scout-ease);
+      font-size: 13px; font-weight: 600; letter-spacing: -0.005em;
+      transition: background-color 180ms var(--scout-ease), border-color 180ms var(--scout-ease), color 180ms var(--scout-ease);
     }
     .scout-btn--primary {
       color: #fff;
       background: var(--scout-amber);
-      box-shadow:
-        0 1px 0 rgba(255,255,255,0.15) inset,
-        0 4px 14px -4px rgba(217, 119, 6, 0.32);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 4px 14px -4px rgba(217,119,6,0.32);
     }
     .scout-btn--primary:hover { background: var(--scout-amber-hover); }
     .scout-btn--ghost {
@@ -2015,27 +1975,20 @@ const ScoutStyle = () => (
     /* mobile pref CTA --------------------------------------------------- */
     .scout-mobile-pref {
       display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 44px;
-      border-radius: 11px;
-      background: var(--scout-amber);
-      color: #fff;
-      font-weight: 600;
-      font-size: 13px;
-      box-shadow: 0 4px 14px -4px rgba(217, 119, 6, 0.35);
+      align-items: center; justify-content: center; gap: 8px;
+      height: 44px; border-radius: 11px;
+      background: var(--scout-amber); color: #fff;
+      font-weight: 600; font-size: 13px;
+      box-shadow: 0 4px 14px -4px rgba(217,119,6,0.35);
     }
     @media (max-width: 768px) { .scout-mobile-pref { display: inline-flex; } }
 
     /* overlay (tablet rail / mobile sheet) ----------------------------- */
     .scout-scrim {
-      position: fixed;
-      inset: 0;
-      z-index: 40;
-      background: rgba(27, 31, 42, 0.32);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      position: fixed; inset: 0; z-index: 40;
+      background: rgba(27,31,42,0.32);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
     .scout-overlay {
       position: absolute;
@@ -2058,14 +2011,10 @@ const ScoutStyle = () => (
       border-radius: 18px 18px 0 0;
     }
     .scout-sheet-head {
-      position: sticky;
-      top: 0;
-      z-index: 1;
+      position: sticky; top: 0; z-index: 1;
       background: var(--scout-surface);
       padding: 10px 0 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
     }
     .scout-sheet-grip {
       width: 40px; height: 4px;
@@ -2073,35 +2022,25 @@ const ScoutStyle = () => (
       border-radius: 2px;
     }
     .scout-sheet-close {
-      position: absolute;
-      right: 0;
-      top: 6px;
+      position: absolute; right: 0; top: 6px;
       width: 32px; height: 32px;
       border-radius: 9px;
       color: var(--scout-text-dim);
       background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center;
     }
 
     /* toast ------------------------------------------------------------- */
     .scout-toast {
-      position: fixed;
-      z-index: 60;
-      bottom: 28px;
-      right: 28px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      position: fixed; z-index: 60;
+      bottom: 28px; right: 28px;
+      display: inline-flex; align-items: center; gap: 8px;
       padding: 10px 14px;
       border-radius: 10px;
       background: var(--scout-text);
       color: #FFFEF8;
-      font-size: 12.5px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
+      font-size: 12.5px; font-weight: 600; letter-spacing: -0.005em;
       box-shadow: 0 10px 28px -8px rgba(20,22,28,0.30), 0 1px 2px rgba(20,22,28,0.18);
     }
     .scout-toast svg { color: #4FE1A6; }
@@ -2119,9 +2058,12 @@ const ScoutStyle = () => (
       .scout-search { display: none; }
       .scout-list-head { flex-direction: column; align-items: flex-start; gap: 12px; }
       .scout-list-title { font-size: 22px; }
-      .scout-card { padding: 14px 16px; }
-      .scout-card-role { font-size: 15.5px; }
+      .scout-card { padding: 16px; }
+      .scout-card-role { font-size: 16px; }
+      .scout-salary { font-size: 17px; }
       .scout-detail-actions { grid-template-columns: 1fr; }
+      .scout-card-tailor { opacity: 1 !important; transform: none !important; }
+      .scout-card-dismiss { opacity: 1 !important; transform: none !important; }
     }
   `}</style>
 );
