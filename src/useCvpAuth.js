@@ -198,21 +198,33 @@ export function useCvpAuth() {
       const prevId = prevSessionUserIdRef.current;
       const nextId = session?.user?.id || null;
       prevSessionUserIdRef.current = nextId;
-      const willSetFreshSignIn = event === "SIGNED_IN" && !authLoginSuccessHoldRef.current && prevId === null && nextId;
+      // OAuth callbacks land back on our origin with either ?code=...
+      // (PKCE/auth-code flow) or #access_token=... (implicit flow). The
+      // null → user transition alone is NOT enough: onAuthStateChange
+      // fires before getSession().then() has populated prevSessionUserIdRef,
+      // so prevId === null on every page load with an existing session and
+      // a regular navigation to /scout was getting bounced through the
+      // post-auth redirect branch. Gating on the URL markers means the
+      // fresh-sign-in flag only flips when this really is an OAuth return.
+      const url = typeof window !== "undefined" ? window.location : null;
+      const hasOAuthMarker = url
+        ? (/[?&]code=/.test(url.search || "") || (url.hash || "").includes("access_token"))
+        : false;
+      const willSetFreshSignIn = event === "SIGNED_IN"
+        && !authLoginSuccessHoldRef.current
+        && prevId === null
+        && !!nextId
+        && hasOAuthMarker;
       console.log("[cvp-auth-trace] onAuthStateChange", {
         event,
         prevId,
         nextId,
         hold: authLoginSuccessHoldRef.current,
+        hasOAuthMarker,
         willSetFreshSignIn,
         path: typeof window !== "undefined" ? window.location.pathname : null,
       });
       applySession(session);
-      // Only treat SIGNED_IN as a fresh auth event when there's a real
-      // null → authenticated transition. Supabase also fires SIGNED_IN on
-      // tab focus / token refresh for already-authenticated users — those
-      // must NOT flip justSignedInRef, or the post-auth redirect branch
-      // can bounce the user off whatever page they were on.
       if (willSetFreshSignIn) {
         justSignedInRef.current = true;
       }
