@@ -9,27 +9,31 @@ import {
 import {
   Search,
   MapPin,
-  Briefcase,
   Banknote,
   Sparkles,
   ChevronDown,
   Check,
   X,
-  ArrowRight,
   Bookmark,
   SkipForward,
   Clock,
   Compass,
   Plus,
   GraduationCap,
+  RotateCcw,
+  Copy,
+  Inbox,
+  Briefcase,
 } from 'lucide-react';
 
 /* =====================================================================
-   ScoutDashboard — Pro-only feature, static UI prototype
-   Light, warm, LinkedIn-adjacent direction. Single sans-serif type
-   system (Plus Jakarta Sans). Tailwind not installed in this project,
-   so all styles ship in a self-contained scoped <style> block.
+   ScoutDashboard — Pro-only feature, static UI prototype.
+   Light, warm, LinkedIn-adjacent direction.
+   Tailwind not installed in this project — all styles ship in a
+   self-contained scoped <style> block at the bottom.
    ===================================================================== */
+
+const SOURCES = ['LinkedIn', 'Indeed', 'Glassdoor', 'Bayt', 'Naukri'];
 
 const JOBS = [
   {
@@ -41,6 +45,7 @@ const JOBS = [
     salary: 'AED 9,500 – 12,000',
     salaryNote: '/month',
     posted: '6h ago',
+    source: 'LinkedIn',
     score: 92,
     state: 'direct',
     summary:
@@ -82,10 +87,11 @@ const JOBS = [
     salary: 'AED 8,000 – 10,500',
     salaryNote: '/month',
     posted: '11h ago',
+    source: 'LinkedIn',
     score: 88,
     state: 'direct',
     summary:
-      'L1/L2 ticket queue for a regional insurer. Strong ITIL culture, clear escalation paths, room to grow into infra.',
+      'L1/L2 ticket queue for a regional insurer with strong ITIL culture. Clear escalation paths, room to grow into infra.',
     skills: ['ITIL', 'Service Desk', 'Ticketing', 'Remote Support', 'O365'],
     skillsMatched: 8,
     skillsTotal: 10,
@@ -123,6 +129,7 @@ const JOBS = [
     salary: 'AED 12,000 – 15,000',
     salaryNote: '/month',
     posted: '1d ago',
+    source: 'Indeed',
     score: 76,
     state: 'stretch',
     summary:
@@ -164,6 +171,7 @@ const JOBS = [
     salary: 'AED 16,000 – 20,000',
     salaryNote: '/month',
     posted: '2d ago',
+    source: 'Bayt',
     score: 71,
     state: 'stretch',
     summary:
@@ -198,6 +206,14 @@ const JOBS = [
   },
 ];
 
+const DEFAULT_FILTERS = Object.freeze({
+  role: 'IT Support / Service Desk',
+  location: 'Dubai, UAE',
+  experience: 'Mid (3-5 years)',
+  salary: 10000,
+  sources: ['all'],
+});
+
 /* ---------------------------- helpers ---------------------------- */
 
 const useViewport = () => {
@@ -214,7 +230,7 @@ const useViewport = () => {
   };
 };
 
-/* count-up score number — sans-serif, no italic serif */
+/* count-up score number — sans-serif, tabular figures */
 const ScoreNumber = ({ value, size = 22, weight = 600 }) => {
   const mv = useMotionValue(0);
   const display = useTransform(mv, (n) => Math.round(n));
@@ -268,13 +284,13 @@ const ScoreRing = ({ value, tone, size = 88 }) => {
         />
       </svg>
       <div className="scout-ring-inner">
-        <ScoreNumber value={value} size={Math.round(size * 0.26)} weight={600} />
+        <ScoreNumber value={value} size={Math.round(size * 0.26)} weight={700} />
       </div>
     </div>
   );
 };
 
-/* breakdown stat block — replaces horizontal bars */
+/* breakdown stat blocks — replaces horizontal bars */
 const Breakdown = ({ data }) => (
   <div className="scout-breakdown">
     {Object.entries(data).map(([label, { value, note }]) => {
@@ -283,7 +299,7 @@ const Breakdown = ({ data }) => (
         <div key={label} className={`scout-stat-card scout-stat-card--${tone}`}>
           <div className="scout-stat-label">{label}</div>
           <div className="scout-stat-value">
-            <ScoreNumber value={value} size={22} weight={600} />
+            <ScoreNumber value={value} size={22} weight={700} />
           </div>
           <div className="scout-stat-note">{note}</div>
         </div>
@@ -292,11 +308,66 @@ const Breakdown = ({ data }) => (
   </div>
 );
 
+/* ---------------------------- sources chip selector ---------------------------- */
+
+const SourcesChips = ({ value, onChange }) => {
+  const allOn = value.includes('all');
+  const isOn = (src) => allOn || value.includes(src);
+
+  const toggle = (src) => {
+    if (src === 'all') {
+      onChange(['all']);
+      return;
+    }
+    if (allOn) {
+      onChange([src]);
+      return;
+    }
+    if (value.includes(src)) {
+      const next = value.filter((v) => v !== src);
+      onChange(next.length ? next : ['all']);
+    } else {
+      const next = [...value, src];
+      onChange(next.length === SOURCES.length ? ['all'] : next);
+    }
+  };
+
+  return (
+    <div className="scout-sources">
+      <button
+        type="button"
+        className={`scout-source ${allOn ? 'is-on' : ''}`}
+        onClick={() => toggle('all')}
+      >
+        All
+      </button>
+      {SOURCES.map((s) => (
+        <button
+          key={s}
+          type="button"
+          className={`scout-source ${isOn(s) ? 'is-on' : ''} ${
+            allOn ? 'is-implicit' : ''
+          }`}
+          onClick={() => toggle(s)}
+        >
+          {s}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 /* ---------------------------- sidebar ---------------------------- */
 
-const PreferencesSidebar = ({ onRunScout, scanning }) => {
-  const [salary, setSalary] = useState(10000);
-  const pct = ((salary - 5000) / (25000 - 5000)) * 100;
+const PreferencesSidebar = ({
+  filters,
+  setFilters,
+  onRunScout,
+  onReset,
+  scanState,
+  sourceCounts,
+}) => {
+  const pct = ((filters.salary - 5000) / (25000 - 5000)) * 100;
 
   return (
     <motion.aside
@@ -308,15 +379,20 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
       <div className="scout-sidebar-section">
         <div className="scout-sidebar-title">Search preferences</div>
 
-        <Field icon={<Briefcase size={14} strokeWidth={1.8} />} label="Role">
+        <Field icon={<Briefcase size={14} strokeWidth={1.9} />} label="Role">
           <input
             className="scout-input"
-            defaultValue="IT Support / Service Desk"
+            value={filters.role}
+            onChange={(e) => setFilters({ ...filters, role: e.target.value })}
           />
         </Field>
 
-        <Field icon={<MapPin size={14} strokeWidth={1.8} />} label="Location">
-          <select className="scout-input scout-select">
+        <Field icon={<MapPin size={14} strokeWidth={1.9} />} label="Location">
+          <select
+            className="scout-input scout-select"
+            value={filters.location}
+            onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+          >
             <option>Dubai, UAE</option>
             <option>Abu Dhabi, UAE</option>
             <option>Riyadh, KSA</option>
@@ -325,10 +401,16 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
         </Field>
 
         <Field
-          icon={<GraduationCap size={14} strokeWidth={1.8} />}
+          icon={<GraduationCap size={14} strokeWidth={1.9} />}
           label="Experience"
         >
-          <select className="scout-input scout-select">
+          <select
+            className="scout-input scout-select"
+            value={filters.experience}
+            onChange={(e) =>
+              setFilters({ ...filters, experience: e.target.value })
+            }
+          >
             <option>Mid (3-5 years)</option>
             <option>Junior (0-2 years)</option>
             <option>Senior (6-10 years)</option>
@@ -336,12 +418,12 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
         </Field>
 
         <Field
-          icon={<Banknote size={14} strokeWidth={1.8} />}
+          icon={<Banknote size={14} strokeWidth={1.9} />}
           label={
             <span className="scout-salary-head">
               <span>Min salary</span>
               <span className="scout-salary-num">
-                AED&nbsp;{salary.toLocaleString()}
+                AED&nbsp;{filters.salary.toLocaleString()}
               </span>
             </span>
           }
@@ -352,8 +434,10 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
               min="5000"
               max="25000"
               step="500"
-              value={salary}
-              onChange={(e) => setSalary(Number(e.target.value))}
+              value={filters.salary}
+              onChange={(e) =>
+                setFilters({ ...filters, salary: Number(e.target.value) })
+              }
               style={{ '--p': `${pct}%` }}
               className="scout-slider"
             />
@@ -364,23 +448,61 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
             </div>
           </div>
         </Field>
+
+        <Field label="Sources">
+          <SourcesChips
+            value={filters.sources}
+            onChange={(sources) => setFilters({ ...filters, sources })}
+          />
+        </Field>
       </div>
 
       <motion.button
         type="button"
-        className={`scout-run ${scanning ? 'is-scanning' : ''}`}
+        className={`scout-run scout-run--${scanState}`}
         onClick={onRunScout}
         whileHover={{ y: -1 }}
         whileTap={{ scale: 0.985 }}
         transition={{ duration: 0.18 }}
+        disabled={scanState === 'scanning'}
       >
-        <Sparkles size={15} strokeWidth={1.9} />
-        {scanning ? 'Searching jobs…' : 'Run Scout'}
+        {scanState === 'scanning' ? (
+          <>
+            <span className="scout-run-pulse" aria-hidden="true" />
+            Searching jobs…
+          </>
+        ) : scanState === 'complete' ? (
+          <>
+            <Check size={15} strokeWidth={2.4} />
+            Scout complete
+          </>
+        ) : (
+          <>
+            <Sparkles size={15} strokeWidth={1.9} />
+            Run Scout
+          </>
+        )}
       </motion.button>
 
+      <button type="button" className="scout-reset" onClick={onReset}>
+        <RotateCcw size={11} strokeWidth={2} />
+        Reset filters
+      </button>
+
       <div className="scout-mini-stat">
-        <span className="scout-live-dot" />
-        4 matches found · 2h ago
+        <div className="scout-mini-stat-row">
+          <span className="scout-live-dot" />
+          <span>4 matches found · 2h ago</span>
+        </div>
+        <div className="scout-mini-stat-sources">
+          {sourceCounts.map(({ source, count }) => (
+            <span key={source} className="scout-source-chip">
+              <span className="scout-source-mark">{source[0]}</span>
+              <span className="scout-source-name">{source}</span>
+              <span className="scout-source-count">{count}</span>
+            </span>
+          ))}
+        </div>
       </div>
     </motion.aside>
   );
@@ -407,10 +529,10 @@ const JobCard = ({ job, active, onClick, index }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{
       duration: 0.4,
-      delay: 0.08 + index * 0.05,
+      delay: 0.06 + index * 0.05,
       ease: [0.22, 1, 0.36, 1],
     }}
-    whileHover={{ y: -1 }}
+    whileHover={{ y: -2 }}
   >
     <div className="scout-card-head">
       <div className="scout-company">
@@ -420,21 +542,17 @@ const JobCard = ({ job, active, onClick, index }) => (
         <div className="scout-company-meta">
           <div className="scout-company-name">{job.company}</div>
           <div className="scout-company-sub">
-            <MapPin size={11} strokeWidth={1.9} />
+            <MapPin size={10.5} strokeWidth={2} />
             {job.location}
-            <span className="scout-dot" />
-            <Clock size={11} strokeWidth={1.9} />
-            {job.posted}
           </div>
         </div>
       </div>
-
       <div className="scout-score-block">
         <div className={`scout-state-pip scout-state-pip--${job.state}`}>
           <span className="scout-pip-dot" />
-          {job.state === 'direct' ? 'Direct match' : 'Stretch match'}
+          {job.state === 'direct' ? 'Direct' : 'Stretch'}
         </div>
-        <ScoreNumber value={job.score} size={26} weight={700} />
+        <ScoreNumber value={job.score} size={24} weight={700} />
       </div>
     </div>
 
@@ -442,40 +560,90 @@ const JobCard = ({ job, active, onClick, index }) => (
     <p className="scout-card-summary">{job.summary}</p>
 
     <div className="scout-skill-row">
-      {job.skills.slice(0, 4).map((s) => (
+      {job.skills.slice(0, 3).map((s) => (
         <span key={s} className="scout-skill">
           {s}
         </span>
       ))}
-      {job.skills.length > 4 && (
+      {job.skills.length > 3 && (
         <span className="scout-skill scout-skill--more">
-          +{job.skills.length - 4}
+          +{job.skills.length - 3}
         </span>
       )}
     </div>
 
     <div className="scout-card-foot">
-      <div className="scout-salary">
-        <Banknote size={13} strokeWidth={1.9} />
-        {job.salary}
-        <span className="scout-salary-note">{job.salaryNote}</span>
-      </div>
-      <div className="scout-card-foot-right">
-        <div className="scout-skill-fit">
-          {job.skillsMatched}/{job.skillsTotal} skills match
-        </div>
-        <span className="scout-card-foot-cta">
-          View match
-          <ArrowRight size={13} strokeWidth={2} />
-        </span>
+      <div className="scout-salary">{job.salary}</div>
+      <div className="scout-card-foot-meta">
+        <span className="scout-source-tag">via {job.source}</span>
+        <span className="scout-dot" />
+        <span>{job.posted}</span>
       </div>
     </div>
   </motion.button>
 );
 
+/* ---------------------------- skeleton card (loading state) ---------------------------- */
+
+const SkeletonCard = ({ index }) => (
+  <motion.div
+    className="scout-card scout-skeleton-card"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ delay: 0.04 * index, duration: 0.25 }}
+  >
+    <div className="scout-card-head">
+      <div className="scout-company">
+        <div className="scout-skel scout-skel--logo" />
+        <div className="scout-company-meta">
+          <div className="scout-skel scout-skel--line" style={{ width: '110px' }} />
+          <div
+            className="scout-skel scout-skel--line"
+            style={{ width: '78px', height: '8px', marginTop: '6px' }}
+          />
+        </div>
+      </div>
+      <div className="scout-skel scout-skel--pill" />
+    </div>
+    <div className="scout-skel scout-skel--line" style={{ width: '70%', height: '14px' }} />
+    <div className="scout-skel scout-skel--line" style={{ width: '92%', height: '8px' }} />
+    <div className="scout-skel scout-skel--line" style={{ width: '64%', height: '8px' }} />
+    <div className="scout-skel-row">
+      <div className="scout-skel scout-skel--chip" />
+      <div className="scout-skel scout-skel--chip" />
+      <div className="scout-skel scout-skel--chip" />
+    </div>
+    <div className="scout-skel scout-skel--line" style={{ width: '46%' }} />
+  </motion.div>
+);
+
+/* ---------------------------- empty state ---------------------------- */
+
+const EmptyState = ({ onAdjust }) => (
+  <motion.div
+    className="scout-empty-state"
+    initial={{ opacity: 0, y: 6 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+  >
+    <div className="scout-empty-mark scout-empty-mark--big">
+      <Inbox size={28} strokeWidth={1.6} />
+    </div>
+    <h3>Scout came back empty</h3>
+    <p>
+      Nothing matched these filters tonight. Try widening the salary, adding more
+      sources, or relaxing the experience level.
+    </p>
+    <button type="button" className="scout-btn scout-btn--primary" onClick={onAdjust}>
+      <Sparkles size={14} strokeWidth={2} />
+      Adjust preferences
+    </button>
+  </motion.div>
+);
+
 /* ---------------------------- detail panel ---------------------------- */
 
-const DetailPanel = ({ job, onClose, isOverlay }) => {
+const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
   if (!job) {
     return (
       <div className="scout-detail-empty">
@@ -507,12 +675,19 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
             {job.state === 'direct' ? 'Direct match' : 'Stretch match'}
           </div>
           <h2 className="scout-detail-role">{job.role}</h2>
+          <div className="scout-detail-company">{job.company}</div>
           <div className="scout-detail-meta">
-            <span className="scout-detail-meta-strong">{job.company}</span>
-            <span className="scout-dot" />
             <span>{job.location}</span>
             <span className="scout-dot" />
             <span>{job.salary}</span>
+          </div>
+          <div className="scout-detail-sub">
+            <Clock size={11} strokeWidth={2} />
+            Last updated {job.posted}
+            <span className="scout-dot" />
+            <span className="scout-source-tag scout-source-tag--inline">
+              via {job.source}
+            </span>
           </div>
         </div>
         <ScoreRing value={job.score} tone={job.state} />
@@ -579,13 +754,19 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
         <div className="scout-kw-group">
           <div className="scout-kw-label scout-kw-label--miss">
             <Plus size={11} strokeWidth={2.4} />
-            Add these to your CV
+            Add these to your CV — tap to copy
           </div>
           <div className="scout-kw-row">
             {job.keywords.missing.map((k) => (
-              <span key={k} className="scout-kw scout-kw--miss">
+              <button
+                key={k}
+                type="button"
+                className="scout-kw scout-kw--miss"
+                onClick={() => onCopyKeyword(k)}
+              >
+                <Copy size={10.5} strokeWidth={2.2} />
                 {k}
-              </span>
+              </button>
             ))}
           </div>
         </div>
@@ -616,19 +797,44 @@ const Section = ({ title, children }) => (
   </section>
 );
 
+/* ---------------------------- toast ---------------------------- */
+
+const Toast = ({ message }) => (
+  <motion.div
+    className="scout-toast"
+    initial={{ opacity: 0, y: 10, scale: 0.96 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+  >
+    <Check size={13} strokeWidth={2.4} />
+    {message}
+  </motion.div>
+);
+
 /* ---------------------------- root ---------------------------- */
 
 const ScoutDashboard = () => {
   const { isDesktop, isMobile } = useViewport();
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [selectedId, setSelectedId] = useState(isDesktop ? JOBS[0].id : null);
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [scanning, setScanning] = useState(false);
+  const [scanState, setScanState] = useState('idle'); // idle | scanning | complete
+  const [toast, setToast] = useState(null);
   const sort = 'Best match';
 
   const selected = useMemo(
     () => JOBS.find((j) => j.id === selectedId) || null,
     [selectedId]
   );
+
+  const sourceCounts = useMemo(() => {
+    const counts = JOBS.reduce((acc, j) => {
+      acc[j.source] = (acc[j.source] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts).map(([source, count]) => ({ source, count }));
+  }, []);
 
   // Plus Jakarta Sans — single sans-serif for the whole screen
   useEffect(() => {
@@ -654,9 +860,30 @@ const ScoutDashboard = () => {
   const closeOverlay = () => setOverlayOpen(false);
 
   const runScout = () => {
-    setScanning(true);
-    setTimeout(() => setScanning(false), 1600);
+    setScanState('scanning');
+    setTimeout(() => {
+      setScanState('complete');
+      setTimeout(() => setScanState('idle'), 1700);
+    }, 1500);
   };
+
+  const resetFilters = () => setFilters(DEFAULT_FILTERS);
+
+  const copyKeyword = (kw) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(kw).catch(() => {});
+    }
+    setToast({ id: Date.now(), message: `Copied “${kw}”` });
+  };
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(null), 1700);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const showSkeleton = scanState === 'scanning';
+  const showEmpty = !showSkeleton && JOBS.length === 0;
 
   return (
     <div className="scout-root">
@@ -672,9 +899,13 @@ const ScoutDashboard = () => {
             <span className="scout-brand-word">Scout</span>
             <span className="scout-brand-tag">PRO</span>
           </div>
-          <div className="scout-topbar-status">
+          <div className={`scout-topbar-status scout-topbar-status--${scanState}`}>
             <span className="scout-live-dot" />
-            4 new matches · last sweep 2h ago
+            {scanState === 'scanning'
+              ? 'Scout is searching…'
+              : scanState === 'complete'
+              ? 'Just updated · 4 matches'
+              : '4 new matches · last sweep 2h ago'}
           </div>
         </div>
         <div className="scout-topbar-right">
@@ -689,7 +920,14 @@ const ScoutDashboard = () => {
       {/* shell */}
       <div className="scout-shell">
         {!isMobile && (
-          <PreferencesSidebar onRunScout={runScout} scanning={scanning} />
+          <PreferencesSidebar
+            filters={filters}
+            setFilters={setFilters}
+            onRunScout={runScout}
+            onReset={resetFilters}
+            scanState={scanState}
+            sourceCounts={sourceCounts}
+          />
         )}
 
         <main className="scout-list">
@@ -711,17 +949,27 @@ const ScoutDashboard = () => {
             </div>
           </div>
 
-          <div className="scout-cards">
-            {JOBS.map((j, i) => (
-              <JobCard
-                key={j.id}
-                job={j}
-                index={i}
-                active={selectedId === j.id}
-                onClick={() => handleSelect(j.id)}
-              />
-            ))}
-          </div>
+          {showSkeleton ? (
+            <div className="scout-cards scout-cards--grid">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SkeletonCard key={i} index={i} />
+              ))}
+            </div>
+          ) : showEmpty ? (
+            <EmptyState onAdjust={resetFilters} />
+          ) : (
+            <div className="scout-cards scout-cards--grid">
+              {JOBS.map((j, i) => (
+                <JobCard
+                  key={j.id}
+                  job={j}
+                  index={i}
+                  active={selectedId === j.id}
+                  onClick={() => handleSelect(j.id)}
+                />
+              ))}
+            </div>
+          )}
 
           {isMobile && (
             <button
@@ -742,6 +990,7 @@ const ScoutDashboard = () => {
                 key={selected ? selected.id : 'empty'}
                 job={selected}
                 isOverlay={false}
+                onCopyKeyword={copyKeyword}
               />
             </AnimatePresence>
           </aside>
@@ -769,11 +1018,33 @@ const ScoutDashboard = () => {
               transition={{ type: 'spring', stiffness: 280, damping: 32 }}
               onClick={(e) => e.stopPropagation()}
             >
-              {isMobile && <div className="scout-sheet-grip" />}
-              <DetailPanel job={selected} onClose={closeOverlay} isOverlay />
+              {isMobile && (
+                <div className="scout-sheet-head">
+                  <div className="scout-sheet-grip" aria-hidden="true" />
+                  <button
+                    type="button"
+                    className="scout-sheet-close"
+                    onClick={closeOverlay}
+                    aria-label="Close"
+                  >
+                    <X size={16} strokeWidth={2} />
+                  </button>
+                </div>
+              )}
+              <DetailPanel
+                job={selected}
+                onClose={closeOverlay}
+                isOverlay
+                onCopyKeyword={copyKeyword}
+              />
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* toast */}
+      <AnimatePresence>
+        {toast && <Toast key={toast.id} message={toast.message} />}
       </AnimatePresence>
     </div>
   );
@@ -809,8 +1080,9 @@ const ScoutStyle = () => (
       --scout-amber-soft: #FCEFE0;
 
       --scout-shadow-1: 0 1px 2px rgba(20, 22, 28, 0.04);
-      --scout-shadow-2: 0 1px 2px rgba(20, 22, 28, 0.04), 0 8px 22px rgba(20, 22, 28, 0.05);
+      --scout-shadow-2: 0 1px 2px rgba(20, 22, 28, 0.05), 0 6px 14px -2px rgba(20, 22, 28, 0.06);
       --scout-shadow-3: 0 1px 3px rgba(20, 22, 28, 0.05), 0 14px 36px rgba(20, 22, 28, 0.08);
+      --scout-shadow-card-hover: 0 1px 2px rgba(20,22,28,0.05), 0 14px 30px -8px rgba(20,22,28,0.10);
       --scout-ease: cubic-bezier(0.22, 1, 0.36, 1);
       --scout-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
@@ -856,12 +1128,7 @@ const ScoutStyle = () => (
       background: linear-gradient(135deg, #0E7C5A 0%, #15A074 100%);
       box-shadow: 0 1px 2px rgba(14, 124, 90, 0.25), inset 0 1px 0 rgba(255,255,255,0.18);
     }
-    .scout-brand-word {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      color: var(--scout-text);
-    }
+    .scout-brand-word { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--scout-text); }
     .scout-brand-tag {
       padding: 2px 6px;
       border-radius: 999px;
@@ -875,11 +1142,24 @@ const ScoutStyle = () => (
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding-left: 18px;
-      border-left: 1px solid var(--scout-border);
+      padding: 5px 12px 5px 8px;
+      border-radius: 999px;
       color: var(--scout-text-dim);
       font-size: 12.5px;
       font-weight: 500;
+      transition: background-color 320ms var(--scout-ease), color 320ms var(--scout-ease), border-color 320ms var(--scout-ease);
+      border: 1px solid transparent;
+    }
+    .scout-topbar-status--complete {
+      color: var(--scout-direct);
+      background: var(--scout-direct-tint);
+      border-color: var(--scout-direct-line);
+      animation: scout-flash 1.6s var(--scout-ease);
+    }
+    @keyframes scout-flash {
+      0% { background: var(--scout-direct-soft); }
+      50% { background: var(--scout-direct-soft); }
+      100% { background: var(--scout-direct-tint); }
     }
     .scout-live-dot {
       width: 7px; height: 7px;
@@ -888,9 +1168,18 @@ const ScoutStyle = () => (
       box-shadow: 0 0 0 0 rgba(14, 124, 90, 0.4);
       animation: scout-pulse 2.4s var(--scout-ease) infinite;
     }
+    .scout-topbar-status--scanning .scout-live-dot {
+      background: var(--scout-amber);
+      box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4);
+      animation: scout-pulse-fast 1s var(--scout-ease) infinite;
+    }
     @keyframes scout-pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(14, 124, 90, 0.4); }
       50% { box-shadow: 0 0 0 6px rgba(14, 124, 90, 0); }
+    }
+    @keyframes scout-pulse-fast {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
+      50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); }
     }
     .scout-topbar-right { display: flex; align-items: center; gap: 12px; }
     .scout-search {
@@ -907,18 +1196,8 @@ const ScoutStyle = () => (
       color: var(--scout-text-faint);
       transition: border-color 160ms var(--scout-ease), background-color 160ms var(--scout-ease);
     }
-    .scout-search:focus-within {
-      border-color: var(--scout-border-strong);
-      background: #fff;
-      color: var(--scout-text-dim);
-    }
-    .scout-search input {
-      border: 0; outline: 0;
-      background: transparent;
-      font-size: 13px;
-      width: 100%;
-      color: var(--scout-text);
-    }
+    .scout-search:focus-within { border-color: var(--scout-border-strong); background: #fff; color: var(--scout-text-dim); }
+    .scout-search input { border: 0; outline: 0; background: transparent; font-size: 13px; width: 100%; color: var(--scout-text); }
     .scout-search input::placeholder { color: var(--scout-text-faint); }
     .scout-avatar {
       width: 34px; height: 34px;
@@ -940,7 +1219,7 @@ const ScoutStyle = () => (
       grid-template-columns: 260px minmax(0, 1fr) 440px;
       gap: 22px;
       padding: 24px 28px 56px;
-      max-width: 1440px;
+      max-width: 1480px;
       margin: 0 auto;
       align-items: start;
     }
@@ -957,7 +1236,7 @@ const ScoutStyle = () => (
       top: 80px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       padding: 18px;
       border-radius: 14px;
       background: var(--scout-surface);
@@ -1007,13 +1286,14 @@ const ScoutStyle = () => (
     }
 
     .scout-salary-head { display: inline-flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
-    .scout-salary-num { font-size: 12.5px; font-weight: 600; color: var(--scout-text); }
+    .scout-salary-num { font-size: 12.5px; font-weight: 700; color: var(--scout-text); }
     .scout-slider-wrap { display: flex; flex-direction: column; gap: 4px; padding: 4px 2px 0; }
     .scout-slider {
       width: 100%;
       -webkit-appearance: none; appearance: none;
       background: transparent;
-      height: 22px;
+      height: 28px;
+      touch-action: pan-y;
     }
     .scout-slider::-webkit-slider-runnable-track {
       height: 4px;
@@ -1022,17 +1302,54 @@ const ScoutStyle = () => (
     }
     .scout-slider::-webkit-slider-thumb {
       -webkit-appearance: none; appearance: none;
-      width: 14px; height: 14px;
+      width: 18px; height: 18px;
       border-radius: 50%;
       background: #fff;
-      border: 2px solid var(--scout-amber);
-      margin-top: -5px;
-      box-shadow: 0 1px 2px rgba(20,22,28,0.12);
+      border: 2.5px solid var(--scout-amber);
+      margin-top: -7px;
+      box-shadow: 0 1px 3px rgba(20,22,28,0.16);
     }
     .scout-slider::-moz-range-track { height: 4px; background: var(--scout-border); border-radius: 2px; }
     .scout-slider::-moz-range-progress { height: 4px; background: var(--scout-amber); border-radius: 2px; }
-    .scout-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid var(--scout-amber); }
+    .scout-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2.5px solid var(--scout-amber); }
     .scout-slider-ticks { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--scout-text-faint); font-weight: 500; }
+    @media (max-width: 768px) {
+      .scout-slider { height: 36px; }
+      .scout-slider::-webkit-slider-thumb { width: 24px; height: 24px; margin-top: -10px; }
+      .scout-slider::-moz-range-thumb { width: 24px; height: 24px; }
+    }
+
+    /* sources chips ----------------------------------------------------- */
+    .scout-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .scout-source {
+      padding: 5px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--scout-text-dim);
+      background: transparent;
+      border: 1px solid var(--scout-border-strong);
+      border-radius: 999px;
+      letter-spacing: -0.005em;
+      transition: background-color 160ms var(--scout-ease),
+                  border-color 160ms var(--scout-ease),
+                  color 160ms var(--scout-ease);
+    }
+    .scout-source:hover { border-color: var(--scout-amber); color: var(--scout-text); }
+    .scout-source.is-on {
+      background: var(--scout-amber);
+      border-color: var(--scout-amber);
+      color: #fff;
+    }
+    .scout-source.is-implicit {
+      background: var(--scout-amber-soft);
+      border-color: var(--scout-amber-soft);
+      color: var(--scout-amber-hover);
+    }
+    .scout-source.is-on:hover { background: var(--scout-amber-hover); border-color: var(--scout-amber-hover); }
 
     /* run scout button -------------------------------------------------- */
     .scout-run {
@@ -1053,30 +1370,89 @@ const ScoutStyle = () => (
         0 4px 12px -2px rgba(217, 119, 6, 0.30);
       transition:
         background-color 180ms var(--scout-ease),
-        box-shadow 180ms var(--scout-ease),
-        transform 180ms var(--scout-ease);
+        box-shadow 180ms var(--scout-ease);
     }
     .scout-run:hover { background: var(--scout-amber-hover); }
-    .scout-run.is-scanning { background: var(--scout-amber-hover); }
-    .scout-run.is-scanning svg {
-      animation: scout-spin 1.4s linear infinite;
+    .scout-run--scanning { background: var(--scout-amber-hover); cursor: progress; }
+    .scout-run--complete { background: var(--scout-direct); box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 12px -2px rgba(14, 124, 90, 0.32); }
+    .scout-run-pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 0 rgba(255,255,255,0.6);
+      animation: scout-run-pulse 0.9s var(--scout-ease) infinite;
     }
-    @keyframes scout-spin { to { transform: rotate(360deg); } }
+    @keyframes scout-run-pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
+      50% { transform: scale(0.85); box-shadow: 0 0 0 5px rgba(255,255,255,0); }
+    }
 
+    /* reset filters link ----------------------------------------------- */
+    .scout-reset {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      align-self: center;
+      padding: 4px 8px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--scout-text-faint);
+      transition: color 160ms var(--scout-ease);
+    }
+    .scout-reset:hover { color: var(--scout-text-dim); }
+
+    /* mini stats ------------------------------------------------------- */
     .scout-mini-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--scout-direct-tint);
+      border: 1px solid var(--scout-direct-line);
+    }
+    .scout-mini-stat-row {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: var(--scout-direct-tint);
-      border: 1px solid var(--scout-direct-line);
       color: var(--scout-direct);
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: -0.005em;
     }
     .scout-mini-stat .scout-live-dot { background: var(--scout-direct); }
+    .scout-mini-stat-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .scout-source-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 7px 2px 2px;
+      background: var(--scout-surface);
+      border: 1px solid var(--scout-direct-line);
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--scout-text-dim);
+    }
+    .scout-source-mark {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--scout-direct);
+      letter-spacing: 0;
+    }
+    .scout-source-name { color: var(--scout-text-dim); }
+    .scout-source-count { font-weight: 700; color: var(--scout-text); }
 
     /* list head --------------------------------------------------------- */
     .scout-list { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -1120,48 +1496,60 @@ const ScoutStyle = () => (
     }
     .scout-sort-btn:hover { border-color: var(--scout-border-strong); }
 
-    /* job cards --------------------------------------------------------- */
-    .scout-cards { display: flex; flex-direction: column; gap: 12px; }
+    /* job cards — 2-col grid on desktop, 1-col on mobile -------------- */
+    .scout-cards--grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 540px) {
+      .scout-cards--grid { grid-template-columns: 1fr; }
+    }
+
     .scout-card {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       width: 100%;
-      padding: 18px 20px;
+      padding: 16px 18px;
       text-align: left;
       border-radius: 14px;
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
       box-shadow: var(--scout-shadow-1);
       transition:
-        border-color 200ms var(--scout-ease),
-        box-shadow 200ms var(--scout-ease),
-        transform 200ms var(--scout-ease);
+        border-color 220ms var(--scout-ease),
+        box-shadow 220ms var(--scout-ease),
+        transform 220ms var(--scout-ease);
     }
     .scout-card:hover {
       border-color: var(--scout-border-strong);
-      box-shadow: var(--scout-shadow-2);
+      box-shadow: var(--scout-shadow-card-hover);
     }
     .scout-card.is-active {
       box-shadow:
         0 0 0 2px var(--scout-card-ring),
-        var(--scout-shadow-2);
+        var(--scout-shadow-card-hover);
       border-color: transparent;
     }
-    .scout-card--direct.is-active { --scout-card-ring: var(--scout-direct); }
-    .scout-card--stretch.is-active { --scout-card-ring: var(--scout-stretch); }
-    .scout-card--direct.is-active { background: linear-gradient(180deg, var(--scout-direct-tint) 0%, var(--scout-surface) 60%); }
-    .scout-card--stretch.is-active { background: linear-gradient(180deg, var(--scout-stretch-tint) 0%, var(--scout-surface) 60%); }
+    .scout-card--direct.is-active {
+      --scout-card-ring: var(--scout-direct);
+      background: linear-gradient(180deg, var(--scout-direct-tint) 0%, var(--scout-surface) 60%);
+    }
+    .scout-card--stretch.is-active {
+      --scout-card-ring: var(--scout-stretch);
+      background: linear-gradient(180deg, var(--scout-stretch-tint) 0%, var(--scout-surface) 60%);
+    }
 
-    .scout-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-    .scout-company { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .scout-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .scout-company { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .scout-logo {
-      width: 44px; height: 44px;
-      border-radius: 11px;
+      width: 38px; height: 38px;
+      border-radius: 10px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.02em;
       flex-shrink: 0;
@@ -1177,13 +1565,13 @@ const ScoutStyle = () => (
       border: 1px solid var(--scout-stretch-line);
     }
     .scout-company-meta { min-width: 0; }
-    .scout-company-name { font-size: 13.5px; font-weight: 600; color: var(--scout-text); letter-spacing: -0.005em; }
+    .scout-company-name { font-size: 13px; font-weight: 600; color: var(--scout-text); letter-spacing: -0.005em; line-height: 1.25; }
     .scout-company-sub {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       margin-top: 3px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 500;
       color: var(--scout-text-faint);
     }
@@ -1199,30 +1587,22 @@ const ScoutStyle = () => (
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 6px;
+      gap: 4px;
       flex-shrink: 0;
     }
     .scout-state-pip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 3px 8px;
+      gap: 5px;
+      padding: 2px 7px;
       border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: -0.005em;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.005em;
       border: 1px solid;
     }
-    .scout-state-pip--direct {
-      color: var(--scout-direct);
-      background: var(--scout-direct-soft);
-      border-color: var(--scout-direct-line);
-    }
-    .scout-state-pip--stretch {
-      color: var(--scout-stretch);
-      background: var(--scout-stretch-soft);
-      border-color: var(--scout-stretch-line);
-    }
+    .scout-state-pip--direct { color: var(--scout-direct); background: var(--scout-direct-soft); border-color: var(--scout-direct-line); }
+    .scout-state-pip--stretch { color: var(--scout-stretch); background: var(--scout-stretch-soft); border-color: var(--scout-stretch-line); }
     .scout-pip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
     .scout-score-num {
@@ -1235,37 +1615,40 @@ const ScoutStyle = () => (
     }
     .scout-card--direct .scout-score-num { color: var(--scout-direct); }
     .scout-card--stretch .scout-score-num { color: var(--scout-stretch); }
-    .scout-score-pct {
-      font-size: 0.55em;
-      margin-left: 1px;
-      font-weight: 600;
-      opacity: 0.85;
-    }
+    .scout-score-pct { font-size: 0.55em; margin-left: 1px; font-weight: 600; opacity: 0.85; }
 
     .scout-card-role {
       margin: 0;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
       letter-spacing: -0.018em;
       color: var(--scout-text);
-      line-height: 1.3;
+      line-height: 1.2;
     }
     .scout-card-summary {
       margin: 0;
-      font-size: 13px;
-      line-height: 1.55;
+      font-size: 12.5px;
+      line-height: 1.5;
       color: var(--scout-text-dim);
-      max-width: 60ch;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .scout-skill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .scout-skill-row { display: flex; flex-wrap: wrap; gap: 5px; }
     .scout-skill {
-      padding: 4px 10px;
-      font-size: 11.5px;
+      padding: 3px 9px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--scout-text-dim);
       background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
       border-radius: 999px;
+      white-space: nowrap;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .scout-skill--more { background: transparent; color: var(--scout-text-faint); }
 
@@ -1273,40 +1656,97 @@ const ScoutStyle = () => (
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      padding-top: 12px;
+      padding-top: 10px;
       border-top: 1px solid var(--scout-border);
     }
     .scout-salary {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--scout-text);
+      letter-spacing: -0.012em;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+    }
+    .scout-card-foot-meta {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--scout-text);
-    }
-    .scout-salary-note { font-weight: 500; color: var(--scout-text-faint); margin-left: -2px; }
-    .scout-card-foot-right {
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .scout-skill-fit {
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--scout-text-faint);
     }
-    .scout-card-foot-cta {
+    .scout-source-tag {
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: var(--scout-surface-tint);
+      border: 1px solid var(--scout-border);
+      color: var(--scout-text-dim);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.005em;
+    }
+    .scout-source-tag--inline { font-size: 11px; padding: 2px 8px; }
+
+    /* skeleton cards (loading) ----------------------------------------- */
+    .scout-skeleton-card { pointer-events: none; }
+    .scout-skel {
+      background: linear-gradient(
+        90deg,
+        rgba(20,22,28,0.06) 0%,
+        rgba(20,22,28,0.10) 50%,
+        rgba(20,22,28,0.06) 100%
+      );
+      background-size: 200% 100%;
+      animation: scout-shimmer 1.4s linear infinite;
+      border-radius: 6px;
+    }
+    @keyframes scout-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .scout-skel--logo { width: 38px; height: 38px; border-radius: 10px; }
+    .scout-skel--line { height: 10px; width: 100%; }
+    .scout-skel--pill { width: 56px; height: 22px; border-radius: 999px; }
+    .scout-skel--chip { width: 64px; height: 18px; border-radius: 999px; }
+    .scout-skel-row { display: flex; gap: 5px; }
+
+    /* empty state (in list) -------------------------------------------- */
+    .scout-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+      padding: 56px 24px;
+      border-radius: 16px;
+      background: var(--scout-surface);
+      border: 1px dashed var(--scout-border-strong);
+    }
+    .scout-empty-state h3 {
+      margin: 8px 0 0;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.018em;
+      color: var(--scout-text);
+    }
+    .scout-empty-state p {
+      margin: 0 0 4px;
+      max-width: 38ch;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--scout-text-dim);
+    }
+    .scout-empty-mark {
+      width: 52px; height: 52px;
+      border-radius: 13px;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--scout-text);
-      transition: gap 200ms var(--scout-ease);
+      justify-content: center;
+      color: var(--scout-amber);
+      background: var(--scout-amber-soft);
     }
-    .scout-card:hover .scout-card-foot-cta { gap: 9px; }
+    .scout-empty-mark--big { width: 60px; height: 60px; border-radius: 16px; }
 
     /* detail panel ------------------------------------------------------ */
     .scout-detail-rail {
@@ -1314,6 +1754,7 @@ const ScoutStyle = () => (
       top: 80px;
       max-height: calc(100vh - 100px);
       overflow-y: auto;
+      overscroll-behavior: contain;
       border-radius: 14px;
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
@@ -1333,28 +1774,8 @@ const ScoutStyle = () => (
       padding: 56px 28px;
       color: var(--scout-text-dim);
     }
-    .scout-detail-empty h4 {
-      margin: 4px 0 0;
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--scout-text);
-    }
-    .scout-detail-empty p {
-      margin: 0;
-      font-size: 12.5px;
-      max-width: 32ch;
-      line-height: 1.55;
-    }
-    .scout-empty-mark {
-      width: 52px; height: 52px;
-      border-radius: 13px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--scout-amber);
-      background: var(--scout-amber-soft);
-      margin-bottom: 4px;
-    }
+    .scout-detail-empty h4 { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--scout-text); }
+    .scout-detail-empty p { margin: 0; font-size: 12.5px; max-width: 32ch; line-height: 1.55; }
 
     .scout-detail { display: flex; flex-direction: column; gap: 22px; position: relative; }
     .scout-detail-head {
@@ -1366,14 +1787,20 @@ const ScoutStyle = () => (
       border-bottom: 1px solid var(--scout-border);
       position: relative;
     }
-    .scout-detail-head-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .scout-detail-head-left { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .scout-detail-role {
       margin: 4px 0 0;
       font-size: 20px;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: var(--scout-text);
-      line-height: 1.25;
+      line-height: 1.2;
+    }
+    .scout-detail-company {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--scout-text);
+      letter-spacing: -0.005em;
     }
     .scout-detail-meta {
       display: inline-flex;
@@ -1383,7 +1810,16 @@ const ScoutStyle = () => (
       font-size: 12.5px;
       color: var(--scout-text-dim);
     }
-    .scout-detail-meta-strong { color: var(--scout-text); font-weight: 600; }
+    .scout-detail-sub {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--scout-text-faint);
+    }
     .scout-detail-close {
       position: absolute;
       top: -2px;
@@ -1428,7 +1864,7 @@ const ScoutStyle = () => (
       letter-spacing: -0.005em;
     }
 
-    /* breakdown — stat blocks (no bars) -------------------------------- */
+    /* breakdown stat blocks -------------------------------------------- */
     .scout-breakdown {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1443,34 +1879,16 @@ const ScoutStyle = () => (
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
     }
-    .scout-stat-card--good {
-      background: var(--scout-direct-tint);
-      border-color: var(--scout-direct-line);
-    }
-    .scout-stat-card--okay {
-      background: var(--scout-stretch-tint);
-      border-color: var(--scout-stretch-line);
-    }
-    .scout-stat-card--low {
-      background: var(--scout-surface-tint);
-      border-color: var(--scout-border);
-    }
-    .scout-stat-label {
-      font-size: 11.5px;
-      font-weight: 500;
-      color: var(--scout-text-dim);
-    }
+    .scout-stat-card--good { background: var(--scout-direct-tint); border-color: var(--scout-direct-line); }
+    .scout-stat-card--okay { background: var(--scout-stretch-tint); border-color: var(--scout-stretch-line); }
+    .scout-stat-card--low { background: var(--scout-surface-tint); border-color: var(--scout-border); }
+    .scout-stat-label { font-size: 11.5px; font-weight: 500; color: var(--scout-text-dim); }
     .scout-stat-value .scout-score-num { color: var(--scout-text); font-weight: 700; }
     .scout-stat-card--good .scout-stat-value .scout-score-num { color: var(--scout-direct); }
     .scout-stat-card--okay .scout-stat-value .scout-score-num { color: var(--scout-stretch); }
-    .scout-stat-note {
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--scout-text-faint);
-      letter-spacing: -0.005em;
-    }
-    .scout-stat-card--good .scout-stat-note { color: var(--scout-direct); opacity: 0.78; }
-    .scout-stat-card--okay .scout-stat-note { color: var(--scout-stretch); opacity: 0.78; }
+    .scout-stat-note { font-size: 11px; font-weight: 500; color: var(--scout-text-faint); letter-spacing: -0.005em; }
+    .scout-stat-card--good .scout-stat-note { color: var(--scout-direct); opacity: 0.8; }
+    .scout-stat-card--okay .scout-stat-note { color: var(--scout-stretch); opacity: 0.8; }
 
     /* tweaks ------------------------------------------------------------ */
     .scout-tweaks { display: flex; flex-direction: column; gap: 10px; }
@@ -1491,13 +1909,7 @@ const ScoutStyle = () => (
       color: var(--scout-text-faint);
     }
     .scout-tweak-rows { display: flex; flex-direction: column; gap: 6px; }
-    .scout-tweak-row {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      font-size: 13px;
-      line-height: 1.55;
-    }
+    .scout-tweak-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.55; }
     .scout-tweak-tag {
       flex-shrink: 0;
       padding: 2px 7px;
@@ -1519,14 +1931,8 @@ const ScoutStyle = () => (
       text-decoration-color: rgba(139, 146, 161, 0.45);
       text-decoration-thickness: 1px;
     }
-    .scout-tweak-row--after .scout-tweak-tag {
-      background: var(--scout-direct-soft);
-      color: var(--scout-direct);
-    }
-    .scout-tweak-row--after .scout-tweak-text {
-      color: var(--scout-text);
-      font-weight: 500;
-    }
+    .scout-tweak-row--after .scout-tweak-tag { background: var(--scout-direct-soft); color: var(--scout-direct); }
+    .scout-tweak-row--after .scout-tweak-text { color: var(--scout-text); font-weight: 500; }
 
     /* keywords ---------------------------------------------------------- */
     .scout-kw-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
@@ -1543,6 +1949,9 @@ const ScoutStyle = () => (
     .scout-kw-label--miss { color: var(--scout-stretch); }
     .scout-kw-row { display: flex; flex-wrap: wrap; gap: 6px; }
     .scout-kw {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       padding: 4px 10px;
       font-size: 11.5px;
       font-weight: 500;
@@ -1558,6 +1967,13 @@ const ScoutStyle = () => (
       color: var(--scout-stretch);
       background: var(--scout-stretch-soft);
       border: 1px dashed var(--scout-stretch-line);
+      cursor: pointer;
+      transition: background-color 140ms var(--scout-ease), border-color 140ms var(--scout-ease), transform 140ms var(--scout-ease);
+    }
+    button.scout-kw--miss:hover {
+      background: #FCE5C0;
+      border-style: solid;
+      transform: translateY(-1px);
     }
 
     /* actions ----------------------------------------------------------- */
@@ -1579,7 +1995,7 @@ const ScoutStyle = () => (
       font-size: 13px;
       font-weight: 600;
       letter-spacing: -0.005em;
-      transition: background-color 180ms var(--scout-ease), border-color 180ms var(--scout-ease), color 180ms var(--scout-ease);
+      transition: background-color 180ms var(--scout-ease), border-color 180ms var(--scout-ease), color 180ms var(--scout-ease), transform 180ms var(--scout-ease);
     }
     .scout-btn--primary {
       color: #fff;
@@ -1627,6 +2043,7 @@ const ScoutStyle = () => (
       border: 1px solid var(--scout-border);
       box-shadow: var(--scout-shadow-3);
       overflow-y: auto;
+      overscroll-behavior: contain;
     }
     .scout-overlay--rail {
       top: 0; right: 0; bottom: 0;
@@ -1637,14 +2054,59 @@ const ScoutStyle = () => (
     .scout-overlay--sheet {
       left: 0; right: 0; bottom: 0;
       max-height: 88vh;
-      padding: 14px 18px 28px;
+      padding: 0 18px 28px;
       border-radius: 18px 18px 0 0;
     }
+    .scout-sheet-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--scout-surface);
+      padding: 10px 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .scout-sheet-grip {
-      width: 36px; height: 4px;
+      width: 40px; height: 4px;
       background: var(--scout-border-strong);
       border-radius: 2px;
-      margin: 4px auto 12px;
+    }
+    .scout-sheet-close {
+      position: absolute;
+      right: 0;
+      top: 6px;
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      color: var(--scout-text-dim);
+      background: var(--scout-surface-tint);
+      border: 1px solid var(--scout-border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* toast ------------------------------------------------------------- */
+    .scout-toast {
+      position: fixed;
+      z-index: 60;
+      bottom: 28px;
+      right: 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--scout-text);
+      color: #FFFEF8;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      box-shadow: 0 10px 28px -8px rgba(20,22,28,0.30), 0 1px 2px rgba(20,22,28,0.18);
+    }
+    .scout-toast svg { color: #4FE1A6; }
+    @media (max-width: 540px) {
+      .scout-toast { left: 18px; right: 18px; bottom: 18px; justify-content: center; }
     }
 
     /* responsive tweaks ------------------------------------------------- */
@@ -1657,10 +2119,9 @@ const ScoutStyle = () => (
       .scout-search { display: none; }
       .scout-list-head { flex-direction: column; align-items: flex-start; gap: 12px; }
       .scout-list-title { font-size: 22px; }
-      .scout-card { padding: 16px; }
-      .scout-card-role { font-size: 16px; }
+      .scout-card { padding: 14px 16px; }
+      .scout-card-role { font-size: 15.5px; }
       .scout-detail-actions { grid-template-columns: 1fr; }
-      /* breakdown stays 2-col on mobile — that's the whole point of dropping bars */
     }
   `}</style>
 );
