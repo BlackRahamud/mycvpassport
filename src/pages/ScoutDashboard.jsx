@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   motion,
   AnimatePresence,
@@ -24,7 +25,13 @@ import {
   Copy,
   Inbox,
   Briefcase,
+  Settings as SettingsIcon,
+  HelpCircle,
+  LogOut,
+  ArrowUpRight,
+  ArrowRight,
 } from 'lucide-react';
+import { supabase } from '../appSupabaseClient';
 
 /* =====================================================================
    ScoutDashboard — Pro-only feature, static UI prototype.
@@ -886,6 +893,161 @@ const Section = ({ title, children }) => (
   </section>
 );
 
+/* ---------------------------- user menu popover ---------------------------- */
+
+const UserMenu = ({ open, onClose, anchorRef, plan = 'active-hunter', email = 'connectingjunaidkhan@gmail.com' }) => {
+  const navigate = useNavigate();
+  const [hoverUpgrade, setHoverUpgrade] = useState(false);
+  const isCareerPro = plan === 'career-pro';
+  const planName = isCareerPro ? 'Career Pro' : 'Active Hunter';
+  const planDot = isCareerPro ? 'gold' : 'green';
+
+  // Close on outside click. Anchor (the avatar button) lives outside the
+  // popover, so we ignore clicks inside the anchor too — the anchor's own
+  // onClick is the toggle.
+  useEffect(() => {
+    if (!open) return undefined;
+    const handler = (e) => {
+      const popover = document.querySelector('[data-scout-popover]');
+      if (popover && popover.contains(e.target)) return;
+      if (anchorRef?.current && anchorRef.current.contains(e.target)) return;
+      onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open, onClose, anchorRef]);
+
+  const go = (path) => () => {
+    onClose();
+    navigate(path);
+  };
+
+  const handleLogout = async () => {
+    onClose();
+    try {
+      if (supabase) await supabase.auth.signOut();
+    } catch (e) {
+      // signOut already invalidates locally even if the network call fails
+    }
+    navigate('/');
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          data-scout-popover
+          className="scout-popover"
+          initial={{ opacity: 0, scale: 0.96, y: -4 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: -4 }}
+          transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+        >
+          <div className="scout-popover-email" title={email}>{email}</div>
+
+          <div className="scout-popover-divider" />
+
+          <div className="scout-popover-plan">
+            <div className="scout-plan-head">
+              <span className={`scout-plan-dot scout-plan-dot--${planDot}`} />
+              {planName} Plan
+            </div>
+            <div className="scout-plan-line">Scout runs: 2 of 3 used today</div>
+            <div className="scout-plan-line">CV generations: 1 of 3 used today</div>
+          </div>
+
+          <div className="scout-popover-divider" />
+
+          {!isCareerPro && (
+            <div
+              className="scout-upgrade-wrap"
+              onMouseEnter={() => setHoverUpgrade(true)}
+              onMouseLeave={() => setHoverUpgrade(false)}
+            >
+              <button
+                type="button"
+                className="scout-popover-item scout-popover-item--upgrade"
+                onClick={go('/pricing')}
+              >
+                <ArrowUpRight size={14} strokeWidth={2} />
+                Upgrade to Career Pro
+                <ChevronDown
+                  size={12}
+                  strokeWidth={2}
+                  className="scout-popover-item-chev"
+                />
+              </button>
+
+              <AnimatePresence>
+                {hoverUpgrade && (
+                  <motion.div
+                    className="scout-upgrade-sub"
+                    initial={{ opacity: 0, x: 12, scale: 0.98 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 12 }}
+                    transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                  >
+                    <div className="scout-upgrade-sub-head">
+                      <span className="scout-plan-dot scout-plan-dot--gold" />
+                      Career Pro
+                    </div>
+                    <div className="scout-upgrade-sub-price">
+                      AED&nbsp;199<span>/year</span>
+                    </div>
+                    <div className="scout-upgrade-sub-label">What you get</div>
+                    <ul className="scout-upgrade-sub-list">
+                      <li><Check size={11} strokeWidth={2.4} /> Unlimited Scout runs</li>
+                      <li><Check size={11} strokeWidth={2.4} /> Unlimited CV generations</li>
+                      <li><Check size={11} strokeWidth={2.4} /> Priority matching</li>
+                    </ul>
+                    <button
+                      type="button"
+                      className="scout-upgrade-sub-cta"
+                      onClick={go('/pricing')}
+                    >
+                      Upgrade Now
+                      <ArrowRight size={12} strokeWidth={2.2} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="scout-popover-item"
+            onClick={go('/settings')}
+          >
+            <SettingsIcon size={14} strokeWidth={1.9} />
+            Settings
+          </button>
+
+          <button
+            type="button"
+            className="scout-popover-item"
+            onClick={go('/support')}
+          >
+            <HelpCircle size={14} strokeWidth={1.9} />
+            Help &amp; Support
+          </button>
+
+          <div className="scout-popover-divider" />
+
+          <button
+            type="button"
+            className="scout-popover-item scout-popover-item--logout"
+            onClick={handleLogout}
+          >
+            <LogOut size={14} strokeWidth={1.9} />
+            Log out
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 /* ---------------------------- toast ---------------------------- */
 
 const Toast = ({ message }) => (
@@ -910,6 +1072,8 @@ const ScoutDashboard = () => {
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [scanState, setScanState] = useState('idle'); // idle | scanning | complete
   const [toast, setToast] = useState(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const avatarRef = useRef(null);
   const sort = 'Best match';
 
   const visibleJobs = JOBS;
@@ -1003,7 +1167,24 @@ const ScoutDashboard = () => {
             <Search size={14} strokeWidth={1.9} />
             <input placeholder="Search Scout" />
           </div>
-          <div className="scout-avatar">JK</div>
+          <div className="scout-user-wrap">
+            <button
+              type="button"
+              ref={avatarRef}
+              className="scout-avatar"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              aria-label="Open user menu"
+            >
+              JK
+            </button>
+            <UserMenu
+              open={userMenuOpen}
+              onClose={() => setUserMenuOpen(false)}
+              anchorRef={avatarRef}
+            />
+          </div>
         </div>
       </header>
 
@@ -1300,6 +1481,177 @@ const ScoutStyle = () => (
       color: #fff;
       background: linear-gradient(135deg, #C2410C 0%, #D97706 100%);
       box-shadow: var(--scout-shadow-1);
+      cursor: pointer;
+      border: 0;
+      transition: box-shadow 160ms var(--scout-ease), transform 160ms var(--scout-ease);
+    }
+    .scout-avatar:hover { box-shadow: 0 1px 2px rgba(20,22,28,0.06), 0 0 0 3px rgba(217,119,6,0.18); }
+    .scout-avatar:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(217,119,6,0.35); }
+
+    /* user menu popover (Claude.ai-style) -------------------------------- */
+    .scout-user-wrap { position: relative; }
+    .scout-popover {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 100;
+      width: 280px;
+      padding: 6px;
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 14px;
+      box-shadow:
+        0 1px 2px rgba(17,17,17,0.04),
+        0 12px 32px -8px rgba(17,17,17,0.18);
+      transform-origin: top right;
+      color: #111111;
+      font-family: var(--scout-font);
+    }
+    .scout-popover-email {
+      padding: 10px 12px 8px;
+      font-size: 12px; font-weight: 500;
+      color: #6B7280;
+      letter-spacing: -0.005em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .scout-popover-divider {
+      height: 1px;
+      background: #E5E7EB;
+      margin: 4px 0;
+    }
+    .scout-popover-plan {
+      padding: 10px 12px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .scout-plan-head {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; color: #111111;
+      letter-spacing: -0.005em;
+    }
+    .scout-plan-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .scout-plan-dot--green {
+      background: #22C55E;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.18);
+    }
+    .scout-plan-dot--gold {
+      background: linear-gradient(135deg, #F4C147 0%, #D49B25 100%);
+      box-shadow: 0 0 0 3px rgba(212,155,37,0.22);
+    }
+    .scout-plan-line {
+      font-size: 11.5px; font-weight: 500;
+      color: #6B7280;
+      padding-left: 16px;
+      letter-spacing: -0.005em;
+    }
+
+    .scout-popover-item {
+      position: relative;
+      width: 100%;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      border-radius: 9px;
+      font-size: 13px; font-weight: 500;
+      color: #111111;
+      text-align: left;
+      letter-spacing: -0.005em;
+      transition: background-color 140ms var(--scout-ease), color 140ms var(--scout-ease);
+    }
+    .scout-popover-item:hover { background: #F3F4F6; }
+    .scout-popover-item svg { color: #6B7280; flex-shrink: 0; }
+    .scout-popover-item-chev {
+      margin-left: auto;
+      transform: rotate(-90deg);
+      transition: transform 160ms var(--scout-ease);
+    }
+    .scout-popover-item--upgrade {
+      color: #D97706;
+      font-weight: 600;
+    }
+    .scout-popover-item--upgrade svg { color: #D97706; }
+    .scout-popover-item--upgrade:hover { background: #FEF3E2; color: #B45309; }
+    .scout-popover-item--upgrade:hover svg { color: #B45309; }
+    .scout-popover-item--logout { color: #111111; }
+    .scout-popover-item--logout:hover { background: #FEF2F2; color: #DC2626; }
+    .scout-popover-item--logout:hover svg { color: #DC2626; }
+
+    /* upgrade sub-panel — slides in from the right of the popover --- */
+    .scout-upgrade-wrap { position: relative; }
+    .scout-upgrade-sub {
+      position: absolute;
+      top: -6px;
+      right: calc(100% + 12px);
+      width: 240px;
+      padding: 14px;
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 14px;
+      box-shadow:
+        0 1px 2px rgba(17,17,17,0.04),
+        0 14px 30px -10px rgba(17,17,17,0.18);
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 1;
+    }
+    .scout-upgrade-sub-head {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; color: #111111;
+      letter-spacing: -0.005em;
+    }
+    .scout-upgrade-sub-price {
+      font-size: 22px; font-weight: 700; color: #111111;
+      letter-spacing: -0.022em;
+      font-feature-settings: "tnum" 1, "lnum" 1;
+      line-height: 1;
+    }
+    .scout-upgrade-sub-price span {
+      font-size: 12px; font-weight: 500;
+      color: #6B7280; margin-left: 4px;
+      letter-spacing: -0.005em;
+    }
+    .scout-upgrade-sub-label {
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: #9CA3AF;
+      margin-top: 2px;
+    }
+    .scout-upgrade-sub-list {
+      list-style: none;
+      padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .scout-upgrade-sub-list li {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 500;
+      color: #374151;
+      letter-spacing: -0.005em;
+    }
+    .scout-upgrade-sub-list svg { color: #15803D; flex-shrink: 0; }
+    .scout-upgrade-sub-cta {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      height: 36px;
+      border-radius: 10px;
+      background: #D97706;
+      color: #FFFFFF;
+      font-size: 12.5px; font-weight: 600;
+      letter-spacing: -0.005em;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 4px 12px -3px rgba(217,119,6,0.32);
+      transition: background-color 160ms var(--scout-ease);
+      margin-top: 2px;
+    }
+    .scout-upgrade-sub-cta:hover { background: #B45309; }
+
+    @media (max-width: 540px) {
+      .scout-popover { width: min(300px, calc(100vw - 24px)); right: -4px; }
+      .scout-upgrade-sub {
+        right: 0;
+        top: calc(100% + 8px);
+        width: calc(100% - 12px);
+      }
     }
 
     /* shell ------------------------------------------------------------- */
