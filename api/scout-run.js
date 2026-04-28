@@ -309,6 +309,11 @@ async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
   });
   if (!r.ok) {
     const text = await r.text().catch(() => '');
+    if (r.status === 429) {
+      console.error(`[scout-run] JSearch 429 rate-limited — full body: ${text}`);
+    } else {
+      console.error(`[scout-run] JSearch ${r.status} error — full body: ${text}`);
+    }
     throw new Error(`JSearch ${r.status}: ${text.slice(0, 300)}`);
   }
   const json = await r.json();
@@ -388,6 +393,8 @@ async function scoreWithClaude(cvText, jobs, prefs) {
 }
 
 export default async function handler(req, res) {
+  console.log(`Scout-run started - JOOBLE_KEY present: ${!!JOOBLE_API_KEY}`);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
