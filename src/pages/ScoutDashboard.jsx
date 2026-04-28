@@ -1357,6 +1357,9 @@ const ScoutDashboard = ({ user, isPro }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [scanState, setScanState] = useState('idle'); // idle | scanning | complete
+  // Mobile-only: bottom-sheet hosting the filter panel. Desktop renders the
+  // sidebar inline so this state is unused there.
+  const [mobilePrefOpen, setMobilePrefOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hasCv, setHasCv] = useState(null); // null = unknown, true/false once probed
@@ -2041,6 +2044,69 @@ const ScoutDashboard = ({ user, isPro }) => {
                 onApply={handleApply}
                 onSave={handleSave}
                 onSkip={handleSkip}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile-only floating Edit Search button. Hidden mid-scan so it
+          doesn't overlay the loading shimmer. Tapping opens the filter
+          sheet below. */}
+      {isMobile && !gated && scanState !== 'scanning' && (
+        <motion.button
+          type="button"
+          className="scout-mobile-edit-search"
+          onClick={() => setMobilePrefOpen(true)}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <SettingsIcon size={14} strokeWidth={2} />
+          Edit Search
+        </motion.button>
+      )}
+
+      <AnimatePresence>
+        {isMobile && mobilePrefOpen && (
+          <motion.div
+            key="pref-scrim"
+            className="scout-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            onClick={() => setMobilePrefOpen(false)}
+          >
+            <motion.div
+              className="scout-overlay scout-overlay--sheet scout-pref-sheet"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={SPRING}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="scout-sheet-head">
+                <div className="scout-sheet-grip" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="scout-sheet-close"
+                  onClick={() => setMobilePrefOpen(false)}
+                  aria-label="Close filters"
+                >
+                  <X size={16} strokeWidth={2} />
+                </button>
+              </div>
+              <PreferencesSidebar
+                filters={filters}
+                setFilters={setFilters}
+                onRunScout={() => { setMobilePrefOpen(false); runScout(); }}
+                onReset={resetFilters}
+                scanState={scanState}
+                scanMessages={scanMessages}
+                sourceCounts={sourceCounts}
+                chipCounts={chipCounts}
               />
             </motion.div>
           </motion.div>
@@ -3115,6 +3181,45 @@ const ScoutStyle = () => (
       background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
       display: inline-flex; align-items: center; justify-content: center;
+    }
+
+    /* mobile filter sheet ----------------------------------------------- */
+    /* The PreferencesSidebar is built for a desktop column with sticky
+       positioning + its own card chrome. Inside the sheet we strip those
+       so it reads as a single continuous panel. */
+    .scout-pref-sheet { right: 0 !important; padding-right: 18px; }
+    .scout-pref-sheet .scout-sidebar {
+      position: static;
+      top: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    /* mobile floating Edit Search FAB ----------------------------------- */
+    .scout-mobile-edit-search { display: none; }
+    @media (max-width: 768px) {
+      .scout-mobile-edit-search {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        z-index: 35;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 44px;
+        padding: 0 18px;
+        border-radius: 999px;
+        background: var(--scout-text);
+        color: #fff;
+        font-weight: 600;
+        font-size: 13.5px;
+        letter-spacing: -0.005em;
+        box-shadow: 0 10px 28px -8px rgba(0,0,0,0.32), 0 2px 6px -2px rgba(0,0,0,0.18);
+      }
+      .scout-mobile-edit-search:active { transform: translateX(-50%) scale(0.97); }
     }
 
     /* apply modal ------------------------------------------------------- */
