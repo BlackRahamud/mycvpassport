@@ -61,180 +61,94 @@ const TINTS = [
   { bg: '#FAF7F2', logoBg: '#EADDC4', logoText: '#7C5A1F' }, // warm cream
 ];
 
-const JOBS = [
-  {
-    id: 'j1',
-    company: 'Marina Logistics Co.',
-    initials: 'ML',
-    role: 'IT Support Specialist',
-    location: 'Dubai · DIFC',
-    jobType: 'Hybrid',
-    salary: 'AED 9,500 – 12,000',
-    salaryNote: '/month',
-    posted: '6h ago',
-    source: 'LinkedIn',
-    score: 92,
-    state: 'direct',
-    summary:
-      'Front-line desktop, O365 and AD support for a 600-seat logistics HQ. Hybrid, 4 days on-site.',
-    skills: ['Active Directory', 'Office 365', 'ITIL v4', 'Windows 11', 'JIRA'],
-    skillsMatched: 9,
-    skillsTotal: 10,
-    breakdown: {
-      Skills: { value: 95, note: 'Excellent' },
-      Experience: { value: 90, note: 'Strong' },
-      Location: { value: 100, note: 'Walking distance' },
-      Salary: { value: 82, note: 'In range' },
+/* ---------------------------- API + shape helpers ---------------------------- */
+
+async function authedFetch(url, options = {}) {
+  if (!supabase) throw new Error('Supabase client unavailable');
+  const { data: { session } = {} } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) {
+    const err = new Error('Not signed in');
+    err.code = 'NOT_SIGNED_IN';
+    throw err;
+  }
+  const r = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
     },
-    why:
-      'Your four years on a service desk plus your Office 365 admin experience map almost one-to-one. DIFC is a 12-minute walk from your stated home location.',
-    cvTweaks: [
-      {
-        field: 'Headline',
-        before: 'IT Support Engineer',
-        after: 'IT Support Specialist · Office 365 + Active Directory',
-      },
-      {
-        field: 'Top skills (reorder)',
-        before: 'Windows · Networking · O365',
-        after: 'Office 365 · Active Directory · ITIL v4',
-      },
-    ],
-    keywords: {
-      present: ['Office 365', 'Active Directory', 'ITIL', 'Windows 11', 'Service Desk'],
-      missing: ['Intune', 'Azure AD'],
-    },
-  },
-  {
-    id: 'j2',
-    company: 'Cobalt Insurance',
-    initials: 'CI',
-    role: 'Service Desk Analyst',
-    location: 'Dubai · Business Bay',
-    jobType: 'On-site',
-    salary: 'AED 8,000 – 10,500',
-    salaryNote: '/month',
-    posted: '11h ago',
-    source: 'LinkedIn',
-    score: 88,
-    state: 'direct',
-    summary:
-      'L1/L2 ticket queue for a regional insurer with strong ITIL culture. Clear escalation paths, room to grow into infra.',
-    skills: ['ITIL', 'Service Desk', 'Ticketing', 'Remote Support', 'O365'],
-    skillsMatched: 8,
-    skillsTotal: 10,
-    breakdown: {
-      Skills: { value: 90, note: 'Strong' },
-      Experience: { value: 88, note: 'Strong' },
-      Location: { value: 92, note: '15 min commute' },
-      Salary: { value: 80, note: 'In range' },
-    },
-    why:
-      'Your ticket-handling volume in your last role exceeds their stated SLA. Insurance domain language is missing from your CV — easy fix.',
-    cvTweaks: [
-      {
-        field: 'Domain language',
-        before: 'Supported business users',
-        after: 'Supported underwriters and claims teams across two regions',
-      },
-      {
-        field: 'Metric',
-        before: 'High ticket volume',
-        after: 'Closed 220+ tickets / month at 96% SLA',
-      },
-    ],
-    keywords: {
-      present: ['ITIL', 'Service Desk', 'O365', 'Remote Support'],
-      missing: ['Insurance', 'Underwriting workflows', 'Compliance'],
-    },
-  },
-  {
-    id: 'j3',
-    company: 'Atlas Retail Group',
-    initials: 'AR',
-    role: 'Systems Support Engineer',
-    location: 'Dubai · Al Quoz',
-    jobType: 'On-site',
-    salary: 'AED 12,000 – 15,000',
-    salaryNote: '/month',
-    posted: '1d ago',
-    source: 'Indeed',
-    score: 76,
-    state: 'stretch',
-    summary:
-      'Mid-level role bridging support and sysadmin for a 30-store retail group. POS, networking, light scripting.',
-    skills: ['Networking', 'PowerShell', 'POS Systems', 'Linux', 'VPN'],
-    skillsMatched: 6,
-    skillsTotal: 10,
-    breakdown: {
-      Skills: { value: 72, note: 'Close' },
-      Experience: { value: 70, note: 'Close' },
-      Location: { value: 88, note: '25 min commute' },
-      Salary: { value: 90, note: 'Above target' },
-    },
-    why:
-      'A reach — they want one year of scripting you don’t have on paper. Your home-lab automation work would close that gap if you surface it.',
-    cvTweaks: [
-      {
-        field: 'New section',
-        before: '(missing)',
-        after: 'Personal projects: PowerShell automation for AD user provisioning',
-      },
-      {
-        field: 'Skills add',
-        before: 'Networking, VPN',
-        after: 'Networking, VPN, PowerShell scripting, basic Linux',
-      },
-    ],
-    keywords: {
-      present: ['Networking', 'VPN', 'POS Systems'],
-      missing: ['PowerShell', 'Bash', 'Linux server administration'],
-    },
-  },
-  {
-    id: 'j4',
-    company: 'Helix Manufacturing',
-    initials: 'HX',
-    role: 'IT Operations Lead',
-    location: 'Dubai · Jebel Ali',
-    jobType: 'On-site',
-    salary: 'AED 16,000 – 20,000',
-    salaryNote: '/month',
-    posted: '2d ago',
-    source: 'Bayt',
-    score: 71,
-    state: 'stretch',
-    summary:
-      'A jump role. Leads a small ops team across two plants. They need someone ready to manage two reports.',
-    skills: ['Team Leadership', 'ITIL', 'Vendor Mgmt', 'Networking', 'O365'],
-    skillsMatched: 6,
-    skillsTotal: 11,
-    breakdown: {
-      Skills: { value: 70, note: 'Close' },
-      Experience: { value: 60, note: 'Stretch' },
-      Location: { value: 75, note: '35 min commute' },
-      Salary: { value: 95, note: 'Above target' },
-    },
-    why:
-      'A real stretch — you have not formally led a team. The salary delta is huge, and your vendor coordination experience is a credible bridge.',
-    cvTweaks: [
-      {
-        field: 'Reframe',
-        before: 'Senior team member',
-        after: 'Informal lead — mentored 2 L1 analysts, ran weekly triage',
-      },
-      {
-        field: 'Add metric',
-        before: 'Worked with vendors',
-        after: 'Owned 6 vendor contracts, reduced ticket-vendor handoff by 30%',
-      },
-    ],
-    keywords: {
-      present: ['ITIL', 'Networking', 'O365'],
-      missing: ['Team management', 'Budget ownership', 'OKRs', 'KPI reporting'],
-    },
-  },
-];
+  });
+  const text = await r.text();
+  let json = {};
+  try { json = text ? JSON.parse(text) : {}; } catch { /* leave empty */ }
+  if (!r.ok) {
+    const err = new Error(json?.error || `Request failed: ${r.status}`);
+    err.status = r.status;
+    throw err;
+  }
+  return json;
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (Number.isNaN(ms) || ms < 0) return '';
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  const mo = Math.floor(d / 30);
+  return `${mo}mo ago`;
+}
+
+function initialsOf(name) {
+  if (!name) return '—';
+  const tokens = String(name).trim().split(/\s+/).filter(Boolean);
+  return tokens.slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '—';
+}
+
+function seniorityToYears(label) {
+  if (!label) return null;
+  const m = String(label).match(/(\d+)\s*-\s*(\d+)/);
+  if (m) return Math.round((parseInt(m[1], 10) + parseInt(m[2], 10)) / 2);
+  if (/junior/i.test(label)) return 1;
+  if (/mid/i.test(label)) return 4;
+  if (/senior/i.test(label)) return 8;
+  return null;
+}
+
+function mapMatchToUi(m) {
+  const state = m.match_type === 'direct' ? 'direct' : m.match_type === 'stretch' ? 'stretch' : 'discarded';
+  return {
+    id: m.match_id,
+    jobId: m.job_id,
+    company: m.company || '—',
+    initials: initialsOf(m.company),
+    role: m.title || 'Untitled role',
+    location: m.location || '',
+    jobType: '',
+    salary: m.salary || 'Not stated',
+    salaryNote: '',
+    posted: timeAgo(m.fetched_at),
+    source: m.source_platform || 'Source',
+    score: m.match_score || 0,
+    state,
+    summary: m.jd_snippet || '',
+    skills: Array.isArray(m.ats_keywords) ? m.ats_keywords : [],
+    why: m.tailoring_advice || '',
+    keyStrengths: Array.isArray(m.key_strengths) ? m.key_strengths : [],
+    missingRequirements: Array.isArray(m.missing_requirements) ? m.missing_requirements : [],
+    atsKeywords: Array.isArray(m.ats_keywords) ? m.ats_keywords : [],
+    applyUrl: m.apply_url || '',
+    status: m.status || 'new',
+    fetchedAt: m.fetched_at || null,
+  };
+}
 
 const DEFAULT_FILTERS = Object.freeze({
   role: 'IT Support / Service Desk',
@@ -322,22 +236,10 @@ const ScoreRing = ({ value, tone, size = 84 }) => {
   );
 };
 
-const Breakdown = ({ data }) => (
-  <div className="scout-breakdown">
-    {Object.entries(data).map(([label, { value, note }]) => {
-      const tone = value >= 85 ? 'good' : value >= 70 ? 'okay' : 'low';
-      return (
-        <div key={label} className={`scout-stat-card scout-stat-card--${tone}`}>
-          <div className="scout-stat-label">{label}</div>
-          <div className="scout-stat-value">
-            <ScoreNumber value={value} size={22} weight={700} />
-          </div>
-          <div className="scout-stat-note">{note}</div>
-        </div>
-      );
-    })}
-  </div>
-);
+/* Breakdown component removed — the API contract returns a single match_score
+   per match rather than per-axis stats; the score-ring in DetailPanel covers
+   that signal. If we ever extend Claude scoring to return per-axis breakdowns,
+   re-add this component then. */
 
 /* ---------------------------- sources chip selector ---------------------------- */
 
@@ -718,7 +620,7 @@ const EmptyState = ({ onAdjust }) => (
 
 /* ---------------------------- detail panel ---------------------------- */
 
-const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
+const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword, onApply, onSave, onSkip, isTailoring }) => {
   if (!job) {
     return (
       <div className="scout-detail-empty">
@@ -727,12 +629,21 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
         </div>
         <h4>Pick a match to open the breakdown</h4>
         <p>
-          Scout will lay out the score, the CV tweaks, and the ATS keywords for
+          Scout will lay out the score, the strengths, and the ATS keywords for
           any job you click.
         </p>
       </div>
     );
   }
+
+  const stateLabel =
+    job.state === 'direct' ? 'Direct match' : job.state === 'stretch' ? 'Stretch match' : 'Low match';
+  const tone = job.state === 'direct' ? 'direct' : 'stretch';
+  const hasKeyStrengths = Array.isArray(job.keyStrengths) && job.keyStrengths.length > 0;
+  const hasMissing = Array.isArray(job.missingRequirements) && job.missingRequirements.length > 0;
+  const hasAtsKeywords = Array.isArray(job.atsKeywords) && job.atsKeywords.length > 0;
+  const isSaved = job.status === 'saved';
+  const isIgnored = job.status === 'ignored';
 
   return (
     <motion.div
@@ -747,27 +658,29 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
         <div className="scout-detail-head-left">
           <div className={`scout-state-pip scout-state-pip--${job.state}`}>
             <span className="scout-pip-dot" />
-            {job.state === 'direct' ? 'Direct match' : 'Stretch match'}
+            {stateLabel}
           </div>
           <h2 className="scout-detail-role">{job.role}</h2>
           <div className="scout-detail-company">{job.company}</div>
           <div className="scout-detail-meta">
-            <span>{job.location}</span>
-            <span className="scout-dot" />
-            <span>{job.jobType}</span>
-            <span className="scout-dot" />
-            <span>{job.salary}</span>
+            {job.location && <span>{job.location}</span>}
+            {job.location && job.salary && <span className="scout-dot" />}
+            {job.salary && <span>{job.salary}</span>}
           </div>
           <div className="scout-detail-sub">
-            <Clock size={11} strokeWidth={2} />
-            Last updated {job.posted}
-            <span className="scout-dot" />
+            {job.posted && (
+              <>
+                <Clock size={11} strokeWidth={2} />
+                Last updated {job.posted}
+                <span className="scout-dot" />
+              </>
+            )}
             <span className="scout-source-tag scout-source-tag--inline">
               via {job.source}
             </span>
           </div>
         </div>
-        <ScoreRing value={job.score} tone={job.state} />
+        <ScoreRing value={job.score} tone={tone} />
         {isOverlay && (
           <button
             type="button"
@@ -780,108 +693,109 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
         )}
       </div>
 
-      {/* Action bar — moved up: visible immediately under header */}
+      {/* Action bar — visible immediately under header */}
       <div className="scout-detail-actions scout-detail-actions--top">
         <motion.button
           type="button"
           className="scout-btn scout-btn--primary"
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.97 }}
+          whileHover={isTailoring ? undefined : { y: -1 }}
+          whileTap={isTailoring ? undefined : { scale: 0.97 }}
           transition={SPRING}
+          disabled={isTailoring}
+          onClick={() => onApply && onApply(job)}
         >
           <Sparkles size={14} strokeWidth={2} />
-          Apply with tailored CV
+          {isTailoring ? 'Tailoring CV…' : 'Apply with tailored CV'}
         </motion.button>
         <motion.button
           type="button"
-          className="scout-btn scout-btn--ghost"
+          className={`scout-btn scout-btn--ghost ${isSaved ? 'is-on' : ''}`}
           whileTap={{ scale: 0.95 }}
+          onClick={() => onSave && onSave(job)}
+          disabled={isSaved}
         >
           <Bookmark size={13} strokeWidth={1.9} />
-          Save
+          {isSaved ? 'Saved' : 'Save'}
         </motion.button>
         <motion.button
           type="button"
-          className="scout-btn scout-btn--ghost"
+          className={`scout-btn scout-btn--ghost ${isIgnored ? 'is-on' : ''}`}
           whileTap={{ scale: 0.95 }}
+          onClick={() => onSkip && onSkip(job)}
+          disabled={isIgnored}
         >
           <SkipForward size={13} strokeWidth={1.9} />
-          Skip
+          {isIgnored ? 'Skipped' : 'Skip'}
         </motion.button>
       </div>
 
-      <Section title="Why Scout picked this">
-        <p className="scout-detail-why">{job.summary}</p>
-        <p className="scout-detail-why scout-detail-why--soft">{job.why}</p>
-      </Section>
+      {(job.summary || job.why) && (
+        <Section title="Why Scout picked this">
+          {job.summary && <p className="scout-detail-why">{job.summary}</p>}
+          {job.why && <p className="scout-detail-why scout-detail-why--soft">{job.why}</p>}
+        </Section>
+      )}
 
-      <Section title="Match breakdown">
-        <Breakdown data={job.breakdown} />
-      </Section>
-
-      <Section title="CV tweaks Scout suggests">
-        <div className="scout-tweaks">
-          {job.cvTweaks.map((t, i) => (
-            <motion.div
-              key={i}
-              className="scout-tweak"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 + i * 0.06, ...SPRING_SOFT }}
-            >
-              <div className="scout-tweak-field">{t.field}</div>
-              <div className="scout-tweak-rows">
-                <div className="scout-tweak-row scout-tweak-row--before">
-                  <span className="scout-tweak-tag">Before</span>
-                  <span className="scout-tweak-text">{t.before}</span>
-                </div>
-                <div className="scout-tweak-row scout-tweak-row--after">
-                  <span className="scout-tweak-tag">After</span>
-                  <span className="scout-tweak-text">{t.after}</span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="ATS keywords">
-        <div className="scout-kw-group">
-          <div className="scout-kw-label scout-kw-label--ok">
-            <Check size={11} strokeWidth={2.4} />
-            Already in your CV
-          </div>
-          <div className="scout-kw-row">
-            {job.keywords.present.map((k) => (
-              <span key={k} className="scout-kw scout-kw--ok">
-                {k}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="scout-kw-group">
-          <div className="scout-kw-label scout-kw-label--miss">
-            <Plus size={11} strokeWidth={2.4} />
-            Add these to your CV — tap to copy
-          </div>
-          <div className="scout-kw-row">
-            {job.keywords.missing.map((k) => (
-              <motion.button
-                key={k}
-                type="button"
-                className="scout-kw scout-kw--miss"
-                onClick={() => onCopyKeyword(k)}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.94 }}
-                transition={SPRING}
+      {hasMissing && (
+        <Section title="Gaps to address">
+          <ul className="scout-gap-list">
+            {job.missingRequirements.map((g, i) => (
+              <motion.li
+                key={`${g}-${i}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12 + i * 0.05, ...SPRING_SOFT }}
               >
-                <Copy size={10.5} strokeWidth={2.2} />
-                {k}
-              </motion.button>
+                {g}
+              </motion.li>
             ))}
-          </div>
-        </div>
-      </Section>
+          </ul>
+        </Section>
+      )}
+
+      {(hasKeyStrengths || hasAtsKeywords) && (
+        <Section title="ATS keywords">
+          {hasKeyStrengths && (
+            <div className="scout-kw-group">
+              <div className="scout-kw-label scout-kw-label--ok">
+                <Check size={11} strokeWidth={2.4} />
+                Strengths to lean into
+              </div>
+              <div className="scout-kw-row">
+                {job.keyStrengths.map((k, i) => (
+                  <span key={`${k}-${i}`} className="scout-kw scout-kw--ok">
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {hasAtsKeywords && (
+            <div className="scout-kw-group">
+              <div className="scout-kw-label scout-kw-label--miss">
+                <Plus size={11} strokeWidth={2.4} />
+                Add these to your CV — tap to copy
+              </div>
+              <div className="scout-kw-row">
+                {job.atsKeywords.map((k, i) => (
+                  <motion.button
+                    key={`${k}-${i}`}
+                    type="button"
+                    className="scout-kw scout-kw--miss"
+                    onClick={() => onCopyKeyword(k)}
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.94 }}
+                    transition={SPRING}
+                  >
+                    <Copy size={10.5} strokeWidth={2.2} />
+                    {k}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+        </Section>
+      )}
     </motion.div>
   );
 };
@@ -895,12 +809,13 @@ const Section = ({ title, children }) => (
 
 /* ---------------------------- user menu popover ---------------------------- */
 
-const UserMenu = ({ open, onClose, anchorRef, plan = 'active-hunter', email = 'connectingjunaidkhan@gmail.com' }) => {
+const UserMenu = ({ open, onClose, anchorRef, plan = 'active-hunter', email = '', onUniversalCv, universalRunning }) => {
   const navigate = useNavigate();
   const [hoverUpgrade, setHoverUpgrade] = useState(false);
   const isCareerPro = plan === 'career-pro';
-  const planName = isCareerPro ? 'Career Pro' : 'Active Hunter';
-  const planDot = isCareerPro ? 'gold' : 'green';
+  const isFree = plan === 'free';
+  const planName = isCareerPro ? 'Career Pro' : isFree ? 'Free plan' : 'Active Hunter';
+  const planDot = isCareerPro ? 'gold' : isFree ? 'green' : 'green';
 
   // Close on outside click. Anchor (the avatar button) lives outside the
   // popover, so we ignore clicks inside the anchor too — the anchor's own
@@ -950,13 +865,24 @@ const UserMenu = ({ open, onClose, anchorRef, plan = 'active-hunter', email = 'c
           <div className="scout-popover-plan">
             <div className="scout-plan-head">
               <span className={`scout-plan-dot scout-plan-dot--${planDot}`} />
-              {planName} Plan
+              {planName}
             </div>
-            <div className="scout-plan-line">Scout runs: 2 of 3 used today</div>
-            <div className="scout-plan-line">CV generations: 1 of 3 used today</div>
+            <div className="scout-plan-line">Scout runs · daily limit applies</div>
           </div>
 
           <div className="scout-popover-divider" />
+
+          {onUniversalCv && !isFree && (
+            <button
+              type="button"
+              className="scout-popover-item"
+              onClick={() => { onClose(); onUniversalCv(); }}
+              disabled={universalRunning}
+            >
+              <Sparkles size={14} strokeWidth={1.9} />
+              {universalRunning ? 'Generating universal CV…' : 'Generate universal CV'}
+            </button>
+          )}
 
           {!isCareerPro && (
             <div
@@ -1066,17 +992,25 @@ const Toast = ({ message }) => (
 /* ---------------------------- root ---------------------------- */
 
 const ScoutDashboard = () => {
+  const navigate = useNavigate();
   const { isDesktop, isMobile } = useViewport();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [selectedId, setSelectedId] = useState(isDesktop ? JOBS[0].id : null);
+  const [matches, setMatches] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [scanState, setScanState] = useState('idle'); // idle | scanning | complete
   const [toast, setToast] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [hasCv, setHasCv] = useState(null); // null = unknown, true/false once probed
+  const [bootError, setBootError] = useState(null);
+  const [tailoringId, setTailoringId] = useState(null);
+  const [universalRunning, setUniversalRunning] = useState(false);
   const avatarRef = useRef(null);
   const sort = 'Best match';
 
-  const visibleJobs = JOBS;
+  const visibleJobs = useMemo(() => matches.map(mapMatchToUi), [matches]);
 
   const selected = useMemo(
     () => visibleJobs.find((j) => j.id === selectedId) || null,
@@ -1091,6 +1025,22 @@ const ScoutDashboard = () => {
     return Object.entries(counts).map(([source, count]) => ({ source, count }));
   }, [visibleJobs]);
 
+  const lastRunLabel = useMemo(() => {
+    if (visibleJobs.length === 0) return '';
+    const latest = visibleJobs.reduce(
+      (acc, j) => (j.fetchedAt && (!acc || j.fetchedAt > acc) ? j.fetchedAt : acc),
+      null
+    );
+    return latest ? `last sweep ${timeAgo(latest)}` : '';
+  }, [visibleJobs]);
+
+  // Auto-pick top match on desktop once matches load
+  useEffect(() => {
+    if (!isDesktop || selectedId) return;
+    if (visibleJobs.length > 0) setSelectedId(visibleJobs[0].id);
+  }, [isDesktop, selectedId, visibleJobs]);
+
+  // Font preload
   useEffect(() => {
     const id = 'scout-fonts';
     if (document.getElementById(id)) return undefined;
@@ -1106,6 +1056,72 @@ const ScoutDashboard = () => {
     };
   }, []);
 
+  // Bootstrap: session → profile → cv check → preferences → initial matches
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (!supabase) return;
+        const { data: { session } = {} } = await supabase.auth.getSession();
+        if (cancelled) return;
+        const u = session?.user || null;
+        setUser(u);
+        if (!u) return;
+
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id, is_pro, full_name')
+          .eq('id', u.id)
+          .single();
+        if (cancelled) return;
+        setProfile(prof || null);
+
+        const { data: cvRows } = await supabase
+          .from('cvs')
+          .select('id')
+          .eq('user_id', u.id)
+          .limit(1);
+        if (cancelled) return;
+        setHasCv(Array.isArray(cvRows) && cvRows.length > 0);
+
+        const { data: prefRow } = await supabase
+          .from('scout_preferences')
+          .select('target_role, location, experience_years, salary_min, sources')
+          .eq('user_id', u.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        if (prefRow) {
+          const yrs = prefRow.experience_years;
+          const expLabel = yrs == null
+            ? DEFAULT_FILTERS.experience
+            : yrs <= 2 ? 'Junior (0-2 years)'
+            : yrs <= 5 ? 'Mid (3-5 years)'
+            : 'Senior (6-10 years)';
+          setFilters({
+            role: prefRow.target_role || DEFAULT_FILTERS.role,
+            location: prefRow.location || DEFAULT_FILTERS.location,
+            experience: expLabel,
+            salary: prefRow.salary_min || DEFAULT_FILTERS.salary,
+            sources: Array.isArray(prefRow.sources) && prefRow.sources.length
+              ? prefRow.sources
+              : DEFAULT_FILTERS.sources,
+          });
+        }
+
+        if (prof?.is_pro && Array.isArray(cvRows) && cvRows.length > 0) {
+          const json = await authedFetch('/api/scout-matches?limit=50');
+          if (cancelled) return;
+          setMatches(Array.isArray(json.matches) ? json.matches : []);
+        }
+      } catch (e) {
+        if (!cancelled) setBootError(e?.message || 'Could not load Scout');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleSelect = (id) => {
     setSelectedId(id);
     if (!isDesktop) setOverlayOpen(true);
@@ -1113,21 +1129,129 @@ const ScoutDashboard = () => {
 
   const closeOverlay = () => setOverlayOpen(false);
 
-  const runScout = () => {
+  const buildPreferencesPayload = () => ({
+    target_role: filters.role,
+    location: filters.location,
+    experience_years: seniorityToYears(filters.experience),
+    salary_min: filters.salary || null,
+    sources: filters.sources,
+  });
+
+  const reloadMatches = async () => {
+    const json = await authedFetch('/api/scout-matches?limit=50');
+    setMatches(Array.isArray(json.matches) ? json.matches : []);
+  };
+
+  const runScout = async () => {
+    if (!user) { navigate('/auth'); return; }
+    if (!profile?.is_pro) {
+      setToast({ id: Date.now(), message: 'Scout is a Pro feature' });
+      navigate('/pricing');
+      return;
+    }
+    if (hasCv === false) {
+      setToast({ id: Date.now(), message: 'Build your CV first' });
+      navigate('/builder');
+      return;
+    }
+
     setScanState('scanning');
-    setTimeout(() => {
+    try {
+      const json = await authedFetch('/api/scout-run', {
+        method: 'POST',
+        body: JSON.stringify({ preferences: buildPreferencesPayload() }),
+      });
+      await reloadMatches();
       setScanState('complete');
+      const remaining = typeof json.runsRemaining === 'number'
+        ? ` · ${json.runsRemaining} runs left today`
+        : '';
+      setToast({
+        id: Date.now(),
+        message: `${json.matchesCreated || 0} matches added${remaining}`,
+      });
       setTimeout(() => setScanState('idle'), 1700);
-    }, 1500);
+    } catch (e) {
+      setScanState('idle');
+      const msg = e?.status === 429 ? e.message
+        : e?.status === 402 ? 'Scout is a Pro feature'
+        : e?.status === 400 ? e.message
+        : 'Scout run failed — try again';
+      setToast({ id: Date.now(), message: msg });
+    }
   };
 
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
+
+  const updateMatchStatus = async (matchId, status) => {
+    if (!supabase || !matchId) return;
+    const { error } = await supabase
+      .from('scout_matches')
+      .update({ status })
+      .eq('id', matchId);
+    if (error) {
+      setToast({ id: Date.now(), message: 'Could not update match' });
+      return;
+    }
+    setMatches((prev) =>
+      prev.map((m) => (m.match_id === matchId ? { ...m, status } : m))
+    );
+  };
+
+  const handleApply = async (job) => {
+    if (!job?.id) return;
+    setTailoringId(job.id);
+    try {
+      await authedFetch('/api/scout-tailor', {
+        method: 'POST',
+        body: JSON.stringify({ match_id: job.id, cv_type: 'specific' }),
+      });
+      setToast({ id: Date.now(), message: 'Tailored CV ready · saved to your account' });
+      await updateMatchStatus(job.id, 'saved');
+    } catch (e) {
+      setToast({ id: Date.now(), message: e?.message || 'Tailor failed' });
+    } finally {
+      setTailoringId(null);
+    }
+  };
+
+  const handleSave = async (job) => {
+    await updateMatchStatus(job.id, 'saved');
+    setToast({ id: Date.now(), message: 'Saved to shortlist' });
+  };
+
+  const handleSkip = async (job) => {
+    await updateMatchStatus(job.id, 'ignored');
+    setToast({ id: Date.now(), message: 'Skipped' });
+    setSelectedId((cur) => (cur === job.id ? null : cur));
+  };
+
+  const handleUniversalCv = async () => {
+    if (!user) { navigate('/auth'); return; }
+    if (!profile?.is_pro) { navigate('/pricing'); return; }
+    if (hasCv === false) {
+      setToast({ id: Date.now(), message: 'Build your CV first' });
+      return;
+    }
+    setUniversalRunning(true);
+    try {
+      await authedFetch('/api/scout-universal', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setToast({ id: Date.now(), message: 'Universal CV generated · saved to your account' });
+    } catch (e) {
+      setToast({ id: Date.now(), message: e?.message || 'Universal CV failed' });
+    } finally {
+      setUniversalRunning(false);
+    }
+  };
 
   const copyKeyword = (kw) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(kw).catch(() => {});
     }
-    setToast({ id: Date.now(), message: `Copied “${kw}”` });
+    setToast({ id: Date.now(), message: `Copied "${kw}"` });
   };
 
   useEffect(() => {
@@ -1137,7 +1261,24 @@ const ScoutDashboard = () => {
   }, [toast]);
 
   const showSkeleton = scanState === 'scanning';
-  const showEmpty = !showSkeleton && visibleJobs.length === 0;
+  const showAuthGate = !!supabase && user === null;
+  const showProGate = !!user && profile && !profile.is_pro;
+  const showCvGate = !!user && profile?.is_pro && hasCv === false;
+  const gated = showAuthGate || showProGate || showCvGate;
+  const showEmpty = !showSkeleton && !gated && visibleJobs.length === 0;
+  const showCards = !showSkeleton && !gated && visibleJobs.length > 0;
+
+  const topbarStatusText = scanState === 'scanning'
+    ? 'Scout is searching…'
+    : scanState === 'complete'
+    ? `Just updated · ${visibleJobs.length} matches`
+    : visibleJobs.length === 0
+    ? 'No matches yet — run Scout to begin'
+    : `${visibleJobs.length} matches${lastRunLabel ? ` · ${lastRunLabel}` : ''}`;
+
+  const userEmail = user?.email || '';
+  const userInitials = initialsOf(profile?.full_name || user?.email);
+  const userPlan = profile?.is_pro ? 'active-hunter' : 'free';
 
   return (
     <div className="scout-root">
@@ -1155,11 +1296,7 @@ const ScoutDashboard = () => {
           </div>
           <div className={`scout-topbar-status scout-topbar-status--${scanState}`}>
             <span className="scout-live-dot" />
-            {scanState === 'scanning'
-              ? 'Scout is searching…'
-              : scanState === 'complete'
-              ? `Just updated · ${visibleJobs.length} matches`
-              : `${visibleJobs.length} new matches · last sweep 2h ago`}
+            {topbarStatusText}
           </div>
         </div>
         <div className="scout-topbar-right">
@@ -1177,12 +1314,16 @@ const ScoutDashboard = () => {
               aria-expanded={userMenuOpen}
               aria-label="Open user menu"
             >
-              JK
+              {userInitials}
             </button>
             <UserMenu
               open={userMenuOpen}
               onClose={() => setUserMenuOpen(false)}
               anchorRef={avatarRef}
+              email={userEmail || 'Not signed in'}
+              plan={userPlan}
+              onUniversalCv={handleUniversalCv}
+              universalRunning={universalRunning}
             />
           </div>
         </div>
@@ -1209,11 +1350,9 @@ const ScoutDashboard = () => {
             <div>
               <h1 className="scout-list-title">Tonight&apos;s shortlist</h1>
               <p className="scout-list-sub">
-                {visibleJobs.length} jobs found in Dubai &middot;{' '}
-                {visibleJobs.filter((j) => j.state === 'direct').length} direct
-                matches and{' '}
-                {visibleJobs.filter((j) => j.state === 'stretch').length} stretch
-                roles worth a look.
+                {visibleJobs.length === 0
+                  ? 'Run Scout to find matches against your preferences.'
+                  : `${visibleJobs.length} matches · ${visibleJobs.filter((j) => j.state === 'direct').length} direct, ${visibleJobs.filter((j) => j.state === 'stretch').length} stretch.`}
               </p>
             </div>
 
@@ -1226,8 +1365,78 @@ const ScoutDashboard = () => {
             </div>
           </div>
 
+          {bootError && (
+            <div className="scout-empty-state" style={{ padding: '24px' }}>
+              <h3>Could not load Scout</h3>
+              <p>{bootError}</p>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
-            {showSkeleton ? (
+            {showAuthGate ? (
+              <motion.div
+                key="gate-auth"
+                className="scout-empty-state"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <div className="scout-empty-mark scout-empty-mark--big">
+                  <Compass size={28} strokeWidth={1.6} />
+                </div>
+                <h3>Sign in to use Scout</h3>
+                <p>Scout matches your CV against live job postings. You&apos;ll need an account to run it.</p>
+                <button
+                  type="button"
+                  className="scout-btn scout-btn--primary"
+                  onClick={() => navigate('/auth')}
+                >
+                  Sign in
+                </button>
+              </motion.div>
+            ) : showProGate ? (
+              <motion.div
+                key="gate-pro"
+                className="scout-empty-state"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <div className="scout-empty-mark scout-empty-mark--big">
+                  <Sparkles size={28} strokeWidth={1.6} />
+                </div>
+                <h3>Scout is a Pro feature</h3>
+                <p>Active Hunter and Career Pro plans unlock Scout. Find live matches every day.</p>
+                <button
+                  type="button"
+                  className="scout-btn scout-btn--primary"
+                  onClick={() => navigate('/pricing')}
+                >
+                  See plans
+                </button>
+              </motion.div>
+            ) : showCvGate ? (
+              <motion.div
+                key="gate-cv"
+                className="scout-empty-state"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <div className="scout-empty-mark scout-empty-mark--big">
+                  <Briefcase size={28} strokeWidth={1.6} />
+                </div>
+                <h3>Build your CV first</h3>
+                <p>Scout reads your CV to score job matches. Build it once and Scout will use it on every run.</p>
+                <button
+                  type="button"
+                  className="scout-btn scout-btn--primary"
+                  onClick={() => navigate('/builder')}
+                >
+                  Build CV
+                </button>
+              </motion.div>
+            ) : showSkeleton ? (
               <motion.div
                 key="skel"
                 className="scout-cards-grid"
@@ -1241,8 +1450,8 @@ const ScoutDashboard = () => {
                 ))}
               </motion.div>
             ) : showEmpty ? (
-              <EmptyState key="empty" onAdjust={resetFilters} />
-            ) : (
+              <EmptyState key="empty" onAdjust={runScout} />
+            ) : showCards ? (
               <motion.div
                 key="jobs"
                 className="scout-cards-grid"
@@ -1265,17 +1474,17 @@ const ScoutDashboard = () => {
                   ))}
                 </AnimatePresence>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
 
-          {isMobile && (
+          {isMobile && !gated && (
             <button
               type="button"
               className="scout-mobile-pref"
               onClick={runScout}
             >
               <Sparkles size={14} strokeWidth={2} />
-              Adjust search preferences
+              Run Scout
             </button>
           )}
         </main>
@@ -1288,6 +1497,10 @@ const ScoutDashboard = () => {
                 job={selected}
                 isOverlay={false}
                 onCopyKeyword={copyKeyword}
+                onApply={handleApply}
+                onSave={handleSave}
+                onSkip={handleSkip}
+                isTailoring={!!selected && tailoringId === selected.id}
               />
             </AnimatePresence>
           </aside>
@@ -1332,6 +1545,10 @@ const ScoutDashboard = () => {
                 onClose={closeOverlay}
                 isOverlay
                 onCopyKeyword={copyKeyword}
+                onApply={handleApply}
+                onSave={handleSave}
+                onSkip={handleSkip}
+                isTailoring={tailoringId === selected.id}
               />
             </motion.div>
           </motion.div>
@@ -2192,6 +2409,27 @@ const ScoutStyle = () => (
     .scout-stat-note { font-size: 11px; font-weight: 500; color: var(--scout-text-faint); letter-spacing: -0.005em; }
     .scout-stat-card--good .scout-stat-note { color: var(--scout-direct); opacity: 0.8; }
     .scout-stat-card--okay .scout-stat-note { color: var(--scout-stretch); opacity: 0.8; }
+
+    /* gap list (replaces the old "CV tweaks" before/after) ------------- */
+    .scout-gap-list {
+      list-style: none; margin: 0; padding: 0;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .scout-gap-list li {
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--scout-surface-tint);
+      border: 1px solid var(--scout-border);
+      font-size: 13px; line-height: 1.55;
+      color: var(--scout-text);
+      position: relative; padding-left: 28px;
+    }
+    .scout-gap-list li::before {
+      content: '';
+      position: absolute; left: 12px; top: 16px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--scout-stretch);
+    }
 
     /* tweaks ------------------------------------------------------------ */
     .scout-tweaks { display: flex; flex-direction: column; gap: 10px; }
