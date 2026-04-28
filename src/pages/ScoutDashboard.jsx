@@ -326,8 +326,12 @@ const ScoreRing = ({ value, tone, size = 84 }) => {
 
 /* ---------------------------- sources chip selector ---------------------------- */
 
-const SourcesChips = ({ value, onChange }) => {
+const SourcesChips = ({ value, onChange, counts = null }) => {
   const allOn = value.includes('all');
+  // counts === null → no scout run yet; chips stay clickable so the user can
+  // pick sources before the first run. Once results exist (counts !== null)
+  // a chip with 0 hits is disabled and muted — honest yield, not a phantom.
+  const hasResults = counts && (counts.all || 0) > 0;
 
   const toggle = (src) => {
     if (src === 'all') {
@@ -347,6 +351,8 @@ const SourcesChips = ({ value, onChange }) => {
     }
   };
 
+  const allTotal = counts ? (counts.all || 0) : null;
+
   return (
     <div className="scout-sources">
       <motion.button
@@ -357,30 +363,37 @@ const SourcesChips = ({ value, onChange }) => {
         whileTap={{ scale: 0.97 }}
         transition={SPRING}
       >
-        All
+        All{allTotal != null ? ` · ${allTotal}` : ''}
       </motion.button>
       {SOURCES.map((s) => {
+        const count = counts ? (counts[s] || 0) : null;
+        const disabled = hasResults && count === 0;
         const filled = !allOn && value.includes(s);
         const color = SOURCE_COLORS[s];
-        const style = filled
+        const baseStyle = filled
           ? { background: color, borderColor: color, color: '#fff' }
           : allOn
           ? { borderColor: `${color}40`, color }
           : { borderColor: `${color}55`, color };
+        const style = disabled
+          ? { borderColor: 'var(--scout-border-soft, #2A2A2A)', color: 'var(--scout-text-faint, #6B6B6B)', background: 'transparent', opacity: 0.5 }
+          : baseStyle;
         return (
           <motion.button
             key={s}
             type="button"
+            disabled={disabled}
+            aria-disabled={disabled}
             className={`scout-source ${filled ? 'is-on' : ''} ${
               allOn ? 'is-implicit' : ''
-            }`}
+            } ${disabled ? 'is-disabled' : ''}`}
             style={style}
-            onClick={() => toggle(s)}
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.97 }}
+            onClick={disabled ? undefined : () => toggle(s)}
+            whileHover={disabled ? undefined : { y: -1 }}
+            whileTap={disabled ? undefined : { scale: 0.97 }}
             transition={SPRING}
           >
-            {s}
+            {s}{count != null ? ` · ${count}` : ''}
           </motion.button>
         );
       })}
@@ -398,6 +411,7 @@ const PreferencesSidebar = ({
   scanState,
   scanMessages,
   sourceCounts,
+  chipCounts,
 }) => {
   const pct = ((filters.salary - 5000) / (25000 - 5000)) * 100;
 
@@ -414,6 +428,7 @@ const PreferencesSidebar = ({
         <SourcesChips
           value={filters.sources}
           onChange={(sources) => setFilters({ ...filters, sources })}
+          counts={chipCounts}
         />
       </div>
 
@@ -1360,7 +1375,38 @@ const ScoutDashboard = ({ user, isPro }) => {
   const applyAbortRef = useRef(null);
   const sort = 'Best match';
 
-  const visibleJobs = useMemo(() => matches.map(mapMatchToUi), [matches]);
+  const allJobs = useMemo(() => matches.map(mapMatchToUi), [matches]);
+
+  // Per-source hit counts driving the chip badges + disabled state. Computed
+  // off the unfiltered allJobs (chip "All · 12" must hold steady as you
+  // toggle other chips — only the card grid filters).
+  const chipCounts = useMemo(() => {
+    if (allJobs.length === 0) return null;
+    const map = { all: allJobs.length };
+    SOURCES.forEach((s) => {
+      const needle = s.toLowerCase();
+      map[s] = allJobs.filter((j) =>
+        String(j.source || '').toLowerCase().includes(needle)
+      ).length;
+    });
+    return map;
+  }, [allJobs]);
+
+  // Visible cards = allJobs gated by selected source chips (case-insensitive
+  // contains, OR across selections). 'all' or empty selection = pass-through.
+  const visibleJobs = useMemo(() => {
+    if (!filters.sources || filters.sources.length === 0 || filters.sources.includes('all')) {
+      return allJobs;
+    }
+    const needles = filters.sources
+      .filter((s) => s !== 'all')
+      .map((s) => String(s).toLowerCase());
+    if (needles.length === 0) return allJobs;
+    return allJobs.filter((j) => {
+      const src = String(j.source || '').toLowerCase();
+      return needles.some((n) => src.includes(n));
+    });
+  }, [allJobs, filters.sources]);
 
   const selected = useMemo(
     () => visibleJobs.find((j) => j.id === selectedId) || null,
@@ -1368,12 +1414,12 @@ const ScoutDashboard = ({ user, isPro }) => {
   );
 
   const sourceCounts = useMemo(() => {
-    const counts = visibleJobs.reduce((acc, j) => {
+    const counts = allJobs.reduce((acc, j) => {
       acc[j.source] = (acc[j.source] || 0) + 1;
       return acc;
     }, {});
     return Object.entries(counts).map(([source, count]) => ({ source, count }));
-  }, [visibleJobs]);
+  }, [allJobs]);
 
   // Build the cycling Run-Scout progress messages from the user's selected
   // sources. 'all' uses the curated SCAN_ALL_ORDER; any subset cycles in
@@ -1779,6 +1825,7 @@ const ScoutDashboard = ({ user, isPro }) => {
             scanState={scanState}
             scanMessages={scanMessages}
             sourceCounts={sourceCounts}
+            chipCounts={chipCounts}
           />
         )}
 

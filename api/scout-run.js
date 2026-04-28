@@ -114,6 +114,98 @@ const DATE_POSTED_MAP = {
   'Any time': 'all',
 };
 
+// Post-fetch hard filters applied to JSearch results before scoring.
+// Scope:
+//   - Location: country must match the user's selected GCC city; Indian
+//     cities are dropped regardless of the country field (JSearch tags
+//     India-based remote roles inconsistently).
+//   - Age: anything older than 21 days, or with no timestamp at all,
+//     is dropped — stale postings are the #1 source of "ghost job" complaints.
+//   - Dedup: same (title, employer) → keep the most recently posted; tie
+//     goes to LinkedIn, then first-seen.
+//   - Ghost: known-dead URL patterns and empty apply links.
+const GCC_LOCATION_COUNTRY = [
+  { needles: ['dubai'], country: 'United Arab Emirates' },
+  { needles: ['abu dhabi', 'abu-dhabi'], country: 'United Arab Emirates' },
+  { needles: ['riyadh'], country: 'Saudi Arabia' },
+  { needles: ['qatar', 'doha'], country: 'Qatar' },
+  { needles: ['oman', 'muscat'], country: 'Oman' },
+];
+const INDIAN_CITY_NEEDLES = [
+  'india', 'bangalore', 'bengaluru', 'mumbai', 'delhi',
+  'chennai', 'hyderabad', 'pune', 'kolkata',
+];
+const GHOST_AGE_MS = 21 * 24 * 60 * 60 * 1000;
+
+function expectedCountryFor(location) {
+  const s = String(location || '').toLowerCase();
+  for (const entry of GCC_LOCATION_COUNTRY) {
+    if (entry.needles.some((n) => s.includes(n))) return entry.country;
+  }
+  return null;
+}
+
+function applyScoutFilters(rawJobs, prefs) {
+  const total = rawJobs.length;
+  const expectedCountry = expectedCountryFor(prefs.location);
+
+  const afterLocation = rawJobs.filter((j) => {
+    if (expectedCountry && j.job_country && j.job_country !== expectedCountry) {
+      return false;
+    }
+    if (j.job_city) {
+      const cityLower = String(j.job_city).toLowerCase();
+      if (INDIAN_CITY_NEEDLES.some((n) => cityLower.includes(n))) return false;
+    }
+    return true;
+  });
+
+  const cutoff = Date.now() - GHOST_AGE_MS;
+  const afterAge = afterLocation.filter((j) => {
+    if (!j.job_posted_at_datetime_utc) return false;
+    const t = new Date(j.job_posted_at_datetime_utc).getTime();
+    if (Number.isNaN(t)) return false;
+    return t >= cutoff;
+  });
+
+  const groups = new Map();
+  afterAge.forEach((j) => {
+    const key = `${String(j.job_title || '').toLowerCase().trim()}|${String(j.employer_name || '').toLowerCase().trim()}`;
+    const existing = groups.get(key);
+    if (!existing) {
+      groups.set(key, j);
+      return;
+    }
+    const eTime = new Date(existing.job_posted_at_datetime_utc).getTime();
+    const jTime = new Date(j.job_posted_at_datetime_utc).getTime();
+    if (jTime > eTime) {
+      groups.set(key, j);
+    } else if (jTime === eTime) {
+      const jIsLinkedIn = String(j.job_publisher || '').toLowerCase().includes('linkedin');
+      const eIsLinkedIn = String(existing.job_publisher || '').toLowerCase().includes('linkedin');
+      if (jIsLinkedIn && !eIsLinkedIn) groups.set(key, j);
+    }
+  });
+  const afterDedup = Array.from(groups.values());
+
+  const afterGhost = afterDedup.filter((j) => {
+    const url = j.job_apply_link;
+    if (!url || url === '') return false;
+    const lowerUrl = String(url).toLowerCase();
+    if (lowerUrl.includes('workable.com') && (lowerUrl.includes('not-available') || lowerUrl.includes('expired'))) {
+      return false;
+    }
+    if (lowerUrl === 'https://www.linkedin.com/jobs/') return false;
+    return true;
+  });
+
+  console.log(
+    `Scout filter summary: ${total} fetched → ${afterLocation.length} location → ${afterAge.length} age → ${afterDedup.length} dedup → ${afterGhost.length} ghost → ${afterGhost.length} returned`
+  );
+
+  return afterGhost;
+}
+
 async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
   const query = `${role}${location ? ` in ${location}` : ''}`.trim();
   const params = new URLSearchParams({
@@ -373,6 +465,8 @@ export default async function handler(req, res) {
     console.error('[scout-run] JSearch failed:', e);
     return res.status(502).json({ ok: false, error: 'Job source unavailable' });
   }
+
+  rawJobs = applyScoutFilters(rawJobs, prefs);
 
   if (rawJobs.length === 0) {
     await db
