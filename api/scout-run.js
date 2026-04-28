@@ -2,9 +2,9 @@
  * POST /api/scout-run
  *
  * Pro-only Scout endpoint. Fetches fresh job postings from JSearch (RapidAPI)
- * matching the user's stated preferences, scores them against the user's most
- * recent CV with Claude, and persists scout_jobs + scout_matches rows under
- * the user's id. Daily run count is enforced via scout_preferences.
+ * and Jooble in parallel, merges + dedups them, scores them against the user's
+ * most recent CV with Claude, and persists scout_jobs + scout_matches rows
+ * under the user's id. Daily run count is enforced via scout_preferences.
  *
  * Auth:  Authorization: Bearer <user JWT>
  * Body:  { preferences?: { target_role, location, experience_years, salary_min, sources } }
@@ -28,8 +28,11 @@
  *   - ANTHROPIC_API_KEY
  *
  * Optional env:
+ *   - JOOBLE_API_KEY              jooble.org/api — second source. Skipped if unset.
  *   - SCOUT_DAILY_LIMIT           default 3
  *   - SCOUT_JSEARCH_PAGE_SIZE     default 10
+ *   - SCOUT_JOOBLE_PAGE_SIZE      default 10
+ *   - SCOUT_JOOBLE_TIMEOUT_MS     default 8000
  *   - SCOUT_CLAUDE_MODEL          default 'claude-haiku-4-5-20251001'
  */
 
@@ -41,10 +44,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+const JOOBLE_API_KEY = process.env.JOOBLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const SCOUT_DAILY_LIMIT = parseInt(process.env.SCOUT_DAILY_LIMIT || '3', 10);
 const JSEARCH_PAGE_SIZE = parseInt(process.env.SCOUT_JSEARCH_PAGE_SIZE || '10', 10);
+const JOOBLE_PAGE_SIZE = parseInt(process.env.SCOUT_JOOBLE_PAGE_SIZE || '10', 10);
+const JOOBLE_TIMEOUT_MS = parseInt(process.env.SCOUT_JOOBLE_TIMEOUT_MS || '8000', 10);
 const CLAUDE_MODEL = process.env.SCOUT_CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
 function startOfTodayUTCISO() {
@@ -204,6 +210,79 @@ function applyScoutFilters(rawJobs, prefs) {
   );
 
   return afterGhost;
+}
+
+// Jooble accepts a free-text "location" string; we map the user's GCC slug
+// to a "City, Country" form that Jooble reliably parses. expectedCountryFor()
+// stays the source of truth for the post-fetch country filter.
+const JOOBLE_LOCATION_FULL = [
+  { needles: ['dubai'], full: 'Dubai, United Arab Emirates' },
+  { needles: ['abu dhabi', 'abu-dhabi'], full: 'Abu Dhabi, United Arab Emirates' },
+  { needles: ['riyadh'], full: 'Riyadh, Saudi Arabia' },
+  { needles: ['qatar', 'doha'], full: 'Doha, Qatar' },
+  { needles: ['oman', 'muscat'], full: 'Muscat, Oman' },
+];
+
+function joobleLocationFor(location) {
+  const s = String(location || '').toLowerCase();
+  for (const entry of JOOBLE_LOCATION_FULL) {
+    if (entry.needles.some((n) => s.includes(n))) return entry.full;
+  }
+  return location || '';
+}
+
+// Normalises a Jooble job into the JSearch shape the rest of the pipeline
+// already understands. job_country is set to the user's intended country
+// (Jooble's location string is free-text and inconsistent), but job_city
+// is populated from Jooble's `location` so the Indian-city drop in
+// applyScoutFilters can still catch leakage of remote India roles.
+function normaliseJoobleJob(j, expectedCountry) {
+  return {
+    job_title: j.title || '',
+    employer_name: j.company || '',
+    job_apply_link: j.link || '',
+    job_description: j.snippet || '',
+    job_posted_at_datetime_utc: j.updated || null,
+    job_country: expectedCountry || null,
+    job_city: j.location || '',
+    job_publisher: 'Jooble',
+    job_id: `jooble-${j.id || ''}`,
+    job_salary: j.salary || '',
+  };
+}
+
+async function fetchJoobleJobs({ keywords, location, expectedCountry }) {
+  if (!JOOBLE_API_KEY) {
+    console.warn('[scout-run] JOOBLE_API_KEY not set — skipping Jooble fetch');
+    return [];
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), JOOBLE_TIMEOUT_MS);
+  try {
+    const r = await fetch(`https://jooble.org/api/${JOOBLE_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keywords, location }),
+      signal: controller.signal,
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.error(`[scout-run] Jooble ${r.status}: ${text.slice(0, 200)}`);
+      return [];
+    }
+    const json = await r.json();
+    const jobs = Array.isArray(json?.jobs) ? json.jobs.slice(0, JOOBLE_PAGE_SIZE) : [];
+    return jobs.map((j) => normaliseJoobleJob(j, expectedCountry));
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.error(`[scout-run] Jooble timed out after ${JOOBLE_TIMEOUT_MS}ms`);
+    } else {
+      console.error('[scout-run] Jooble fetch failed:', e.message || e);
+    }
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
@@ -453,20 +532,48 @@ export default async function handler(req, res) {
     }
   }
 
-  let rawJobs = [];
-  try {
-    rawJobs = await fetchJSearchJobs({
+  // Fan out JSearch + Jooble in parallel. allSettled means one upstream
+  // failure (or timeout, in Jooble's case) can't sink the whole run — the
+  // other source still fills the slate. Only return 502 if both come back empty.
+  const expectedCountry = expectedCountryFor(prefs.location);
+  const [jsearchResult, joobleResult] = await Promise.allSettled([
+    fetchJSearchJobs({
       role: prefs.target_role,
       location: prefs.location,
       jobType: prefs.job_type,
       datePosted: prefs.date_posted_filter,
-    });
-  } catch (e) {
-    console.error('[scout-run] JSearch failed:', e);
+    }),
+    fetchJoobleJobs({
+      keywords: prefs.target_role,
+      location: joobleLocationFor(prefs.location),
+      expectedCountry,
+    }),
+  ]);
+
+  let jsearchJobs = [];
+  let joobleJobs = [];
+  if (jsearchResult.status === 'fulfilled') {
+    jsearchJobs = jsearchResult.value;
+  } else {
+    console.error('[scout-run] JSearch failed:', jsearchResult.reason);
+  }
+  if (joobleResult.status === 'fulfilled') {
+    joobleJobs = joobleResult.value;
+  } else {
+    console.error('[scout-run] Jooble failed:', joobleResult.reason);
+  }
+
+  if (jsearchJobs.length === 0 && joobleJobs.length === 0 && jsearchResult.status === 'rejected') {
     return res.status(502).json({ ok: false, error: 'Job source unavailable' });
   }
 
+  const jsearchCount = jsearchJobs.length;
+  const joobleCount = joobleJobs.length;
+  let rawJobs = [...jsearchJobs, ...joobleJobs];
   rawJobs = applyScoutFilters(rawJobs, prefs);
+  console.log(
+    `Scout sources: ${jsearchCount} from JSearch, ${joobleCount} from Jooble → ${rawJobs.length} after merge/dedup`
+  );
 
   if (rawJobs.length === 0) {
     await db
