@@ -74,6 +74,14 @@ function IconLinkedIn({ size = 13 }) {
     </svg>
   );
 }
+function IconCompass({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+    </svg>
+  );
+}
 function IconMore({ size = 13 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -325,6 +333,7 @@ export default function DashboardPage({
   const navItems = [
     { id: "mycvs", label: "My CVs", icon: IconGrid, iconColor: "#ffffff", action: () => setActive("mycvs") },
     { id: "ats", label: "ATS Check", icon: IconTarget, iconColor: "#1D9E75", action: () => { setActive("ats"); onRunATS(); } },
+    { id: "scout", label: "Scout", icon: IconCompass, iconColor: "#0A66C2", action: () => { setActive("scout"); navigate("/scout"); } },
     { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, iconColor: "#ffffff", action: () => { setActive("linkedin"); navigate("/linkedin-optimizer"); } },
     { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: "#D97706", action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
     { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: "#D85A30", action: () => { setActive("walkin"); onWalkIn(); } },
@@ -344,6 +353,7 @@ export default function DashboardPage({
   ];
 
   const moreItems = [
+    { id: "scout", label: "Scout", icon: IconCompass, action: () => { setMoreOpen(false); setMobileTab("scout"); navigate("/scout"); } },
     { id: "templates", label: "Templates", icon: IconTable, action: () => { setMoreOpen(false); setMobileTab("templates"); onTemplates(); } },
   ];
 
