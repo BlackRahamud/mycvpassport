@@ -133,12 +133,10 @@ const DATE_POSTED_MAP = {
 // Pipeline filters applied between source fan-out and Claude scoring.
 //   - Step 3 (smartDedupKey): collapse the same job appearing on multiple
 //     boards (BeBee + Bayt + Workable etc) into one — first occurrence wins.
-//   - Step 4 (applyLocationAndAge): country must match the user's selected
+//   - Step 4 (applyLocationFilter): country must match the user's selected
 //     GCC city WHEN explicitly set; Indian cities are always dropped (JSearch
-//     tags India remote roles inconsistently); postings explicitly older than
-//     30 days are dropped. Missing country, missing city, or missing/
-//     unparseable timestamp → keep — most boards leave at least one of these
-//     blank and dropping on absence was zeroing the funnel before scoring.
+//     tags India remote roles inconsistently). Missing country or missing
+//     city → keep. No age filter — Jooble's index is too stale to gate on.
 const GCC_LOCATION_COUNTRY = [
   { needles: ['dubai'], country: 'United Arab Emirates' },
   { needles: ['abu dhabi', 'abu-dhabi'], country: 'United Arab Emirates' },
@@ -150,7 +148,6 @@ const INDIAN_CITY_NEEDLES = [
   'india', 'bangalore', 'bengaluru', 'mumbai', 'delhi',
   'chennai', 'hyderabad', 'pune', 'kolkata',
 ];
-const GHOST_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 function expectedCountryFor(location) {
   const s = String(location || '').toLowerCase();
@@ -170,33 +167,27 @@ function smartDedupKey(j) {
     .replace(/[^a-z0-9]/g, '');
 }
 
-// Step 4 — location hard filter + 30-day age cap. Both filters are
-// permissive on missing data: a job is only dropped when the relevant
-// field is explicitly set AND clearly disqualifying. Missing country,
-// missing city, missing/unparseable timestamp → KEEP. Most boards
-// publish jobs with at least one field empty (especially Jooble), and
-// dropping on absence was zeroing the funnel before scoring even ran.
-function applyLocationAndAge(jobs, location) {
+// Step 4 — location filter only. Permissive on absence:
+//   - country: only drop when expectedCountry is known AND job_country is
+//     explicitly set AND they don't match. null/undefined/empty → keep.
+//   - city: only drop when explicitly set and contains an Indian-city
+//     needle (catches Jooble's remote-India leakage on Gulf searches).
+//
+// Age filter has been removed entirely — Jooble's index is stale (it
+// returns listings months old) and any cutoff was zeroing the funnel
+// before scoring. We lean on Claude's scoring to deprioritise old
+// listings rather than hard-dropping them.
+function applyLocationFilter(jobs, location) {
   const expectedCountry = expectedCountryFor(location);
-  const cutoff = Date.now() - GHOST_AGE_MS;
   return jobs.filter((j) => {
-    // Country: only drop when explicitly set to a non-matching value.
     if (expectedCountry && j.job_country && j.job_country !== expectedCountry) {
       return false;
     }
-    // City: only drop when explicitly set and contains an Indian-city
-    // needle (catches Jooble's remote-India leakage on Gulf searches).
     if (j.job_city) {
       const cityLower = String(j.job_city).toLowerCase();
       if (INDIAN_CITY_NEEDLES.some((n) => cityLower.includes(n))) return false;
     }
-    // Age: missing or unparseable timestamp → keep. Only drop when the
-    // timestamp is explicitly set, parses cleanly, and is older than cutoff.
-    const ts = j.job_posted_at_datetime_utc;
-    if (!ts) return true;
-    const t = new Date(ts).getTime();
-    if (Number.isNaN(t)) return true;
-    return t >= cutoff;
+    return true;
   });
 }
 
@@ -813,17 +804,26 @@ export default async function handler(req, res) {
   console.log('CHECKPOINT 1: Query Architect done, api_query_string:', enriched.api_query_string);
   console.log('Query Architect full payload:', JSON.stringify(enriched));
 
-  // Strip Boolean syntax — JSearch/Jooble can't parse it. Keeps the
-  // Architect's value-add (negative_query, key_skills, standardized_title)
-  // intact while sending these APIs the keyword soup they actually want.
-  const searchKeywords = extractApiKeywords(enriched, role);
+  // Two different shapes for two different parsers:
+  //   - JSearch chokes on long queries; the relevance ranker returns
+  //     zero hits when fed the full Boolean-derived keyword soup. It
+  //     gets the canonical standardized_title only (or raw role as a
+  //     fallback when the Architect produced nothing usable).
+  //   - Jooble handles longer queries fine, so it gets the full
+  //     extracted keyword string for broader recall.
+  const jsearchKeywords = (enriched.standardized_title && String(enriched.standardized_title).trim())
+    ? enriched.standardized_title
+    : role;
+  const joobleKeywords = extractApiKeywords(enriched, role);
 
   // ── Step 1: parallel fetch JSearch + Jooble ──────────────────────────────
   const expectedCountry = expectedCountryFor(location);
-  console.log('CHECKPOINT 2: Firing JSearch + Jooble with query:', searchKeywords);
+  console.log('JSearch query:', jsearchKeywords);
+  console.log('Jooble query:', joobleKeywords);
+  console.log('CHECKPOINT 2: Firing JSearch + Jooble (separate queries above)');
   const [jsearchResult, joobleResult] = await Promise.allSettled([
-    fetchJSearchJobs({ role: searchKeywords, location, jobType, datePosted }),
-    fetchJoobleJobs({ keywords: searchKeywords, location: joobleLocationFor(location), expectedCountry }),
+    fetchJSearchJobs({ role: jsearchKeywords, location, jobType, datePosted }),
+    fetchJoobleJobs({ keywords: joobleKeywords, location: joobleLocationFor(location), expectedCountry }),
   ]);
 
   let jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
@@ -832,14 +832,12 @@ export default async function handler(req, res) {
   if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
   console.log('FUNNEL #1 raw JSearch count:', jsearchJobs.length);
 
-  // JSearch fallback — the enriched Boolean-derived keyword soup
-  // sometimes confuses JSearch's relevance ranking and produces zero
-  // hits even for common roles. Retry once with the user's literal
-  // role string before giving up. Only fires when the first call
-  // succeeded but came back empty AND we actually used a different
-  // keyword string from the raw role (otherwise the retry would be
-  // identical to the first attempt).
-  if (jsearchJobs.length === 0 && jsearchResult.status === 'fulfilled' && searchKeywords !== role) {
+  // JSearch fallback — even the standardized_title sometimes produces
+  // zero hits (Architect drift, sparse niche role, etc). Retry once
+  // with the user's literal role string before giving up. Only fires
+  // when the first call succeeded but came back empty AND we actually
+  // used a different keyword string from the raw role.
+  if (jsearchJobs.length === 0 && jsearchResult.status === 'fulfilled' && jsearchKeywords !== role) {
     console.log('JSearch retry with raw role:', role);
     try {
       jsearchJobs = await fetchJSearchJobs({ role, location, jobType, datePosted });
@@ -897,28 +895,10 @@ export default async function handler(req, res) {
   // though it lands earlier in the actual pipeline order.)
   console.log('FUNNEL #5 after dedup:', deduped.length, 'jobs');
 
-  // ── Step 4: location filter only — age filter removed ──────────────────
-  // Permissive on null country: only drop a job when expectedCountry is
-  // known AND the job has a country set AND they don't match. Indian
-  // cities are still always dropped (Jooble + JSearch both leak India
-  // remote roles into Gulf searches).
-  //
-  // Age filter REMOVED: Jooble routinely returns listings dated months
-  // ago and any cutoff was zeroing the funnel. We'll lean on Claude's
-  // scoring to deprioritise stale listings rather than hard-dropping them.
-  const expectedCountryNeedle = expectedCountryFor(location);
-  const afterLocation = deduped.filter((j) => {
-    if (expectedCountryNeedle && j.job_country && j.job_country !== expectedCountryNeedle) return false;
-    if (j.job_city) {
-      const cityLower = String(j.job_city).toLowerCase();
-      if (INDIAN_CITY_NEEDLES.some((n) => cityLower.includes(n))) return false;
-    }
-    return true;
-  });
-  console.log('FUNNEL #3 after location filter:', afterLocation.length, 'jobs (expectedCountry:', expectedCountryNeedle, ')');
+  // ── Step 4: location filter only (age filter retired) ──────────────────
+  const locationFiltered = applyLocationFilter(deduped, location);
+  console.log('FUNNEL #3 after location filter:', locationFiltered.length, 'jobs (expectedCountry:', expectedCountryFor(location), ')');
   console.log('FUNNEL #4 age filter: SKIPPED (disabled)');
-
-  const locationFiltered = afterLocation;
 
   // ── Step 4b: Architect negative-query filter ────────────────────────────
   // Drops jobs whose title contains any term the Architect flagged
