@@ -704,7 +704,12 @@ export default function ATSChecker({
                   console.error("[turnstile] timeout — script failed to challenge");
                   setTurnstileStatus('timeout');
                 }}
-                options={{ theme: "dark", size: "normal" }}
+                // appearance: 'always' forces the widget to render visibly for
+                // every free user, regardless of Cloudflare's device-trust
+                // signal. Default 'interaction-only' lets trusted devices
+                // pass silently — that breaks the user-visible gate we
+                // promised, so we override it here.
+                options={{ theme: "dark", size: "normal", appearance: "always" }}
               />
             </div>
             {(turnstileStatus === 'error' || turnstileStatus === 'timeout' || turnstileStatus === 'unsupported' || turnstileStatus === 'expired') && (
