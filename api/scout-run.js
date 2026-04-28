@@ -621,20 +621,23 @@ export default async function handler(req, res) {
     console.warn('[scout-run] score/job count mismatch:', scores.length, candidates.length);
   }
 
-  // ── Step 6: drop scores below 70, build response + DB rows ──────────────
+  // ── Step 6: build response + DB rows for every scored candidate ─────────
   // IDs are pre-generated so the response can carry real DB ids even
   // though the inserts haven't run yet — Save/Skip/Apply on the freshly
   // returned cards land on the correct rows once the async writes drain.
-  const matches = [];
-  const jobsForInsert = [];
-  const matchesForInsert = [];
+  // No score threshold: the score is a ranking signal, not a pass/fail
+  // gate. Everything Claude returns is shown, sorted by score descending.
+  const rawScores = scores.map((s) =>
+    Math.max(0, Math.min(100, parseInt((s || {}).match_score, 10) || 0))
+  );
+  console.log(`Pre-filter count: ${candidates.length}, scores: [${rawScores.join(', ')}]`);
 
-  for (let i = 0; i < candidates.length; i++) {
-    const j = candidates[i];
+  // Build (match, jobInsert, matchInsert, score) tuples, then sort all three
+  // arrays by score descending in lockstep so the response order matches
+  // the DB insert order.
+  const entries = candidates.map((j, i) => {
     const s = scores[i] || {};
-    const score = Math.max(0, Math.min(100, parseInt(s.match_score, 10) || 0));
-    if (score < 70) continue;
-
+    const score = rawScores[i];
     const type = ['direct', 'stretch', 'discarded'].includes(s.match_type)
       ? s.match_type
       : score >= 80 ? 'direct' : score >= 50 ? 'stretch' : 'discarded';
@@ -663,63 +666,69 @@ export default async function handler(req, res) {
     const tailoringAdvice = typeof s.tailoring_advice === 'string' ? s.tailoring_advice : '';
     const atsKeywords = Array.isArray(s.ats_keywords) ? s.ats_keywords : [];
 
-    matches.push({
-      match_id: matchId,
-      job_id: jobId,
-      title,
-      company,
-      location: locStr,
-      salary: salaryStr,
-      salary_min: minNum,
-      salary_max: maxNum,
-      salary_currency: currency,
-      salary_period: period,
-      jd_text: jdText,
-      jd_snippet: jdSnip,
-      apply_url: applyUrl,
-      source_platform: sourcePlatform,
-      fetched_at: fetchedAt,
-      match_score: score,
-      match_type: type,
-      key_strengths: keyStrengths,
-      missing_requirements: missingRequirements,
-      tailoring_advice: tailoringAdvice,
-      ats_keywords: atsKeywords,
-      status: 'new',
-      created_at: fetchedAt,
-    });
+    return {
+      score,
+      match: {
+        match_id: matchId,
+        job_id: jobId,
+        title,
+        company,
+        location: locStr,
+        salary: salaryStr,
+        salary_min: minNum,
+        salary_max: maxNum,
+        salary_currency: currency,
+        salary_period: period,
+        jd_text: jdText,
+        jd_snippet: jdSnip,
+        apply_url: applyUrl,
+        source_platform: sourcePlatform,
+        fetched_at: fetchedAt,
+        match_score: score,
+        match_type: type,
+        key_strengths: keyStrengths,
+        missing_requirements: missingRequirements,
+        tailoring_advice: tailoringAdvice,
+        ats_keywords: atsKeywords,
+        status: 'new',
+        created_at: fetchedAt,
+      },
+      jobInsert: {
+        id: jobId,
+        user_id: user.id,
+        title,
+        company,
+        location: locStr,
+        salary: salaryStr,
+        salary_min: minNum,
+        salary_max: maxNum,
+        salary_currency: currency,
+        salary_period: period,
+        jd_text: jdText,
+        jd_snippet: jdSnip,
+        apply_url: applyUrl,
+        source_platform: sourcePlatform,
+      },
+      matchInsert: {
+        id: matchId,
+        user_id: user.id,
+        job_id: jobId,
+        match_score: score,
+        match_type: type,
+        key_strengths: keyStrengths,
+        missing_requirements: missingRequirements,
+        tailoring_advice: tailoringAdvice,
+        ats_keywords: atsKeywords,
+      },
+    };
+  });
 
-    jobsForInsert.push({
-      id: jobId,
-      user_id: user.id,
-      title,
-      company,
-      location: locStr,
-      salary: salaryStr,
-      salary_min: minNum,
-      salary_max: maxNum,
-      salary_currency: currency,
-      salary_period: period,
-      jd_text: jdText,
-      jd_snippet: jdSnip,
-      apply_url: applyUrl,
-      source_platform: sourcePlatform,
-    });
+  entries.sort((a, b) => b.score - a.score);
+  const matches = entries.map((e) => e.match);
+  const jobsForInsert = entries.map((e) => e.jobInsert);
+  const matchesForInsert = entries.map((e) => e.matchInsert);
 
-    matchesForInsert.push({
-      id: matchId,
-      user_id: user.id,
-      job_id: jobId,
-      match_score: score,
-      match_type: type,
-      key_strengths: keyStrengths,
-      missing_requirements: missingRequirements,
-      tailoring_advice: tailoringAdvice,
-      ats_keywords: atsKeywords,
-    });
-  }
-
-  console.log(`Scout pipeline: ${candidates.length} scored → ${matches.length} kept (≥70)`);
+  console.log(`Scout pipeline: ${candidates.length} scored → ${matches.length} returned (sorted by score desc)`);
 
   // ── Step 8: respond first ────────────────────────────────────────────────
   res.status(200).json({
