@@ -777,9 +777,11 @@ export default async function handler(req, res) {
   const enriched = await queryArchitect(db, { role, experience, location, cvSummary });
   console.log(`Query Architect: enriched '${role}' → '${enriched.standardized_title}'`);
   console.log(`Query Architect: api_query_string: ${enriched.api_query_string}`);
+  console.log('CHECKPOINT 1: Query Architect done, api_query_string:', enriched.api_query_string);
 
   // ── Step 1: parallel fetch JSearch + Jooble ──────────────────────────────
   const expectedCountry = expectedCountryFor(location);
+  console.log('CHECKPOINT 2: Firing JSearch + Jooble with query:', enriched.api_query_string);
   const [jsearchResult, joobleResult] = await Promise.allSettled([
     fetchJSearchJobs({ role: enriched.api_query_string, location, jobType, datePosted }),
     fetchJoobleJobs({ keywords: enriched.api_query_string, location: joobleLocationFor(location), expectedCountry }),
@@ -789,6 +791,7 @@ export default async function handler(req, res) {
   const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
   if (jsearchResult.status === 'rejected') console.error('[scout-run] JSearch failed:', jsearchResult.reason);
   if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
+  console.log('CHECKPOINT 3: Raw results - JSearch:', jsearchJobs.length, 'Jooble:', joobleJobs.length);
 
   // Both upstreams empty AND JSearch threw → genuine outage. Empty results
   // with both sources OK (e.g. niche role in Muscat) is not an error — let
@@ -807,6 +810,7 @@ export default async function handler(req, res) {
     if (!seen.has(key)) seen.set(key, j);
   }
   const deduped = Array.from(seen.values());
+  console.log('CHECKPOINT 4: After dedup:', deduped.length, 'jobs');
 
   // ── Step 4: location hard filter + age cap ───────────────────────────────
   const locationFiltered = applyLocationAndAge(deduped, location);
@@ -824,6 +828,7 @@ export default async function handler(req, res) {
       });
   const droppedByNegative = locationFiltered.length - filtered.length;
   console.log(`Negative filter: removed ${droppedByNegative} jobs`);
+  console.log('CHECKPOINT 5: After negative filter:', filtered.length, 'jobs');
 
   console.log(
     `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
@@ -944,6 +949,8 @@ export default async function handler(req, res) {
     Math.max(0, Math.min(100, parseInt((s || {}).match_score, 10) || 0))
   );
   console.log(`Pre-filter count: ${candidates.length}, scores: [${rawScores.join(', ')}]`);
+  const scored = candidates.map((_, i) => ({ score: rawScores[i] }));
+  console.log('CHECKPOINT 6: After scoring:', scored.length, 'jobs, scores:', scored.map(j => j.score));
 
   // Build (match, jobInsert, matchInsert, score) tuples, then sort all three
   // arrays by score descending in lockstep so the response order matches
