@@ -30,8 +30,12 @@ import {
   LogOut,
   ArrowUpRight,
   ArrowRight,
+  FileText,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { supabase } from '../appSupabaseClient';
+import { extractCvText, CvExtractionError } from '../services/cvExtraction';
 
 /* =====================================================================
    ScoutDashboard — Pro-only feature, static UI prototype.
@@ -120,6 +124,51 @@ function seniorityToYears(label) {
   if (/mid/i.test(label)) return 4;
   if (/senior/i.test(label)) return 8;
   return null;
+}
+
+// Default template for Apply-flow PDFs when the user uploaded a CV (no
+// stored template_id). Template 10 = "ATS International" — pure ATS, zero
+// colour, max parser score. Safest pick for a JD-tailored application.
+const APPLY_DEFAULT_TEMPLATE_ID = 10;
+
+// Per-source progress copy for the Run-Scout cycling messages. The verbs
+// are intentionally varied so the cycling feels alive, not templated.
+const SCAN_SOURCE_MESSAGES = {
+  LinkedIn: 'Searching LinkedIn…',
+  Indeed: 'Checking Indeed…',
+  Bayt: 'Scanning Bayt…',
+  Glassdoor: 'Browsing Glassdoor…',
+  Naukri: 'Checking Naukri…',
+};
+// When 'all' is selected, cycle in this fixed order regardless of SOURCES
+// declaration order — copy ordering matters more than the chip ordering.
+const SCAN_ALL_ORDER = ['LinkedIn', 'Indeed', 'Bayt', 'Glassdoor', 'Naukri'];
+const SCAN_FINAL_MESSAGE = 'Scoring matches with AI…';
+
+async function triggerPdfDownload({ tailoredCv, templateId, baseName }) {
+  const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      templateId: templateId || APPLY_DEFAULT_TEMPLATE_ID,
+      cv: tailoredCv,
+    }),
+  });
+  if (!res.ok) {
+    let msg = `PDF render failed (${res.status})`;
+    try { const j = await res.json(); if (j.error) msg = j.error; } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(baseName || 'Tailored_CV').replace(/[^A-Za-z0-9_-]+/g, '_')}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Defer revoke so Safari has time to consume the blob URL.
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 
 function mapMatchToUi(m) {
@@ -313,6 +362,7 @@ const PreferencesSidebar = ({
   onRunScout,
   onReset,
   scanState,
+  scanMessages,
   sourceCounts,
 }) => {
   const pct = ((filters.salary - 5000) / (25000 - 5000)) * 100;
@@ -419,7 +469,10 @@ const PreferencesSidebar = ({
         {scanState === 'scanning' ? (
           <>
             <span className="scout-run-pulse" aria-hidden="true" />
-            Searching jobs…
+            <ProgressMessages
+              messages={scanMessages && scanMessages.length ? scanMessages : ['Searching jobs…']}
+              intervalMs={2400}
+            />
           </>
         ) : scanState === 'complete' ? (
           <>
@@ -543,14 +596,17 @@ const JobCard = ({ job, tint, active, onClick }) => {
         )}
       </div>
 
-      <div className="scout-meta-line">
-        <MapPin size={11} strokeWidth={2} />
-        <span className="scout-meta-text">{job.location}</span>
-        <span className="scout-dot" />
-        <span className="scout-meta-text">{job.jobType}</span>
-        <span className="scout-dot" />
-        <Clock size={11} strokeWidth={2} />
-        <span className="scout-meta-text">{job.posted}</span>
+      <div className="scout-card-where">
+        <div className="scout-card-where-city">
+          <MapPin size={12} strokeWidth={2.2} />
+          <span>{job.location || 'Location not stated'}</span>
+        </div>
+        {job.posted && (
+          <div className="scout-card-where-when">
+            <Clock size={11} strokeWidth={2} />
+            <span>{job.posted}</span>
+          </div>
+        )}
       </div>
 
       <div className="scout-card-foot">
@@ -620,7 +676,7 @@ const EmptyState = ({ onAdjust }) => (
 
 /* ---------------------------- detail panel ---------------------------- */
 
-const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword, onApply, onSave, onSkip, isTailoring }) => {
+const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword, onApply, onSave, onSkip }) => {
   if (!job) {
     return (
       <div className="scout-detail-empty">
@@ -698,14 +754,13 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword, onApply, onSave, 
         <motion.button
           type="button"
           className="scout-btn scout-btn--primary"
-          whileHover={isTailoring ? undefined : { y: -1 }}
-          whileTap={isTailoring ? undefined : { scale: 0.97 }}
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.97 }}
           transition={SPRING}
-          disabled={isTailoring}
           onClick={() => onApply && onApply(job)}
         >
           <Sparkles size={14} strokeWidth={2} />
-          {isTailoring ? 'Tailoring CV…' : 'Apply with tailored CV'}
+          Apply with tailored CV
         </motion.button>
         <motion.button
           type="button"
@@ -989,6 +1044,198 @@ const Toast = ({ message }) => (
   </motion.div>
 );
 
+/* ---------------------------- progress messages ---------------------------- */
+
+// Crossfades through a list of messages on a fixed interval. Used by the
+// Run-Scout button (per-source cycling) and the Apply modal (extract →
+// tailor → render). Single message? It just renders that message.
+const ProgressMessages = ({ messages, intervalMs = 2400 }) => {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    setI(0);
+    if (!Array.isArray(messages) || messages.length <= 1) return undefined;
+    const t = setInterval(() => {
+      setI((cur) => (cur + 1) % messages.length);
+    }, intervalMs);
+    return () => clearInterval(t);
+  }, [messages, intervalMs]);
+  const current = (messages && messages[i]) || '';
+  return (
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={`${i}-${current}`}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -4 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        style={{ display: 'inline-block' }}
+      >
+        {current}
+      </motion.span>
+    </AnimatePresence>
+  );
+};
+
+/* ---------------------------- apply modal ---------------------------- */
+
+// Stages: 'choose' | 'extracting' | 'tailoring' | 'rendering' | 'done' | 'error'
+const ApplyModal = ({ job, stage, error, onPickStored, onPickUpload, onClose }) => {
+  const fileRef = useRef(null);
+  const [pickedFileName, setPickedFileName] = useState('');
+
+  if (!job) return null;
+
+  const onFileChange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    setPickedFileName(f.name);
+    onPickUpload(f);
+  };
+
+  const stageMessages = {
+    extracting: ['Reading your CV…'],
+    tailoring: [
+      `Tailoring your CV for ${job.company || 'this role'}…`,
+      'Inserting ATS keywords…',
+      'Reframing bullets to mirror the JD…',
+    ],
+    rendering: ['Rendering PDF…', 'Almost there…'],
+    done: ['Tailored CV ready'],
+  };
+
+  const showProgress = stage === 'extracting' || stage === 'tailoring' || stage === 'rendering';
+  const showDone = stage === 'done';
+  const showError = stage === 'error';
+
+  return (
+    <motion.div
+      className="scout-apply-scrim"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22 }}
+      onClick={stage === 'choose' || stage === 'error' ? onClose : undefined}
+    >
+      <motion.div
+        className="scout-apply-modal"
+        initial={{ opacity: 0, y: 12, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Apply with tailored CV"
+      >
+        <button
+          type="button"
+          className="scout-apply-close"
+          onClick={onClose}
+          aria-label="Close"
+          disabled={showProgress}
+        >
+          <X size={16} strokeWidth={2} />
+        </button>
+
+        <div className="scout-apply-head">
+          <div className="scout-apply-title">Apply with a tailored CV</div>
+          <div className="scout-apply-sub">
+            For <strong>{job.role}</strong>
+            {job.company ? <> at <strong>{job.company}</strong></> : null}
+          </div>
+        </div>
+
+        {stage === 'choose' && (
+          <div className="scout-apply-options">
+            <button
+              type="button"
+              className="scout-apply-option scout-apply-option--primary"
+              onClick={onPickStored}
+            >
+              <div className="scout-apply-option-icon">
+                <FileText size={18} strokeWidth={2} />
+              </div>
+              <div className="scout-apply-option-body">
+                <div className="scout-apply-option-title">Use my CVPassport CV</div>
+                <div className="scout-apply-option-desc">
+                  Tailor the CV you built here to this JD. Fastest path.
+                </div>
+              </div>
+              <ArrowRight size={14} strokeWidth={2} className="scout-apply-option-arrow" />
+            </button>
+
+            <button
+              type="button"
+              className="scout-apply-option"
+              onClick={() => fileRef.current && fileRef.current.click()}
+            >
+              <div className="scout-apply-option-icon">
+                <Upload size={18} strokeWidth={2} />
+              </div>
+              <div className="scout-apply-option-body">
+                <div className="scout-apply-option-title">Upload a CV</div>
+                <div className="scout-apply-option-desc">
+                  Send a PDF or DOCX you already have. We&apos;ll tailor it.
+                </div>
+              </div>
+              <ArrowRight size={14} strokeWidth={2} className="scout-apply-option-arrow" />
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={onFileChange}
+              style={{ display: 'none' }}
+            />
+            <p className="scout-apply-foot-note">
+              We&apos;ll never auto-submit your application — you stay in control on the employer&apos;s page.
+            </p>
+          </div>
+        )}
+
+        {showProgress && (
+          <div className="scout-apply-progress">
+            <div className="scout-apply-spinner" aria-hidden="true">
+              <Loader2 size={28} strokeWidth={2} />
+            </div>
+            <div className="scout-apply-progress-text">
+              <ProgressMessages messages={stageMessages[stage]} intervalMs={2400} />
+            </div>
+            {pickedFileName && stage === 'extracting' && (
+              <div className="scout-apply-progress-sub">{pickedFileName}</div>
+            )}
+          </div>
+        )}
+
+        {showDone && (
+          <div className="scout-apply-done">
+            <div className="scout-apply-done-mark">
+              <Check size={18} strokeWidth={2.4} />
+            </div>
+            <div className="scout-apply-done-title">Tailored CV downloaded</div>
+            <div className="scout-apply-done-sub">
+              We&apos;ve also opened the job page in a new tab. Upload the CV there to apply.
+            </div>
+            <button type="button" className="scout-btn scout-btn--primary" onClick={onClose}>
+              Done
+            </button>
+          </div>
+        )}
+
+        {showError && (
+          <div className="scout-apply-error">
+            <div className="scout-apply-error-title">Something went wrong</div>
+            <div className="scout-apply-error-sub">{error || 'Please try again.'}</div>
+            <button type="button" className="scout-btn scout-btn--ghost" onClick={onClose}>
+              Close
+            </button>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+};
+
 /* ---------------------------- root ---------------------------- */
 
 // Auth state (user, isPro) is owned by useCvpAuth and threaded in as props
@@ -1007,8 +1254,14 @@ const ScoutDashboard = ({ user, isPro }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hasCv, setHasCv] = useState(null); // null = unknown, true/false once probed
   const [bootError, setBootError] = useState(null);
-  const [tailoringId, setTailoringId] = useState(null);
   const [universalRunning, setUniversalRunning] = useState(false);
+  // Apply flow state. applyJob holds the job we're applying to (modal opens
+  // when non-null). applyStage drives the modal's view ('choose' | 'extracting'
+  // | 'tailoring' | 'rendering' | 'done' | 'error'). applyError is the
+  // surfaced message for the 'error' stage.
+  const [applyJob, setApplyJob] = useState(null);
+  const [applyStage, setApplyStage] = useState('choose');
+  const [applyError, setApplyError] = useState(null);
   const avatarRef = useRef(null);
   const sort = 'Best match';
 
@@ -1026,6 +1279,20 @@ const ScoutDashboard = ({ user, isPro }) => {
     }, {});
     return Object.entries(counts).map(([source, count]) => ({ source, count }));
   }, [visibleJobs]);
+
+  // Build the cycling Run-Scout progress messages from the user's selected
+  // sources. 'all' uses the curated SCAN_ALL_ORDER; any subset cycles in
+  // their selection order. The final message is always the AI scoring step.
+  const scanMessages = useMemo(() => {
+    const includesAll = filters.sources.includes('all');
+    const order = includesAll
+      ? SCAN_ALL_ORDER
+      : filters.sources.filter((s) => SCAN_SOURCE_MESSAGES[s]);
+    const sourceLines = order
+      .map((s) => SCAN_SOURCE_MESSAGES[s])
+      .filter(Boolean);
+    return [...sourceLines, SCAN_FINAL_MESSAGE];
+  }, [filters.sources]);
 
   const lastRunLabel = useMemo(() => {
     if (visibleJobs.length === 0) return '';
@@ -1187,20 +1454,95 @@ const ScoutDashboard = ({ user, isPro }) => {
     );
   };
 
-  const handleApply = async (job) => {
+  // Open the Apply modal for a given job. The modal owns the rest of the
+  // flow (CV source picker → tailor → PDF → open apply URL).
+  const handleApply = (job) => {
     if (!job?.id) return;
-    setTailoringId(job.id);
+    setApplyJob(job);
+    setApplyStage('choose');
+    setApplyError(null);
+  };
+
+  const closeApplyModal = () => {
+    // Don't allow close while a network step is mid-flight (the close button
+    // is disabled in the modal during 'extracting' | 'tailoring' | 'rendering').
+    if (['extracting', 'tailoring', 'rendering'].includes(applyStage)) return;
+    setApplyJob(null);
+    setApplyStage('choose');
+    setApplyError(null);
+  };
+
+  // Shared tail of the Apply flow: tailor → render PDF → open apply URL →
+  // mark match saved → toast → flip modal to 'done'.
+  const finishApplyFlow = async ({ job, body }) => {
+    setApplyStage('tailoring');
+    const json = await authedFetch('/api/scout-tailor', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    if (!json?.tailored_cv) throw new Error('Tailor returned no CV');
+
+    setApplyStage('rendering');
+    const baseName = `${(json.tailored_cv.name || 'CV').replace(/\s+/g, '_')}_for_${(job.company || 'role').replace(/\s+/g, '_')}`;
+    await triggerPdfDownload({
+      tailoredCv: json.tailored_cv,
+      templateId: json.template_id,
+      baseName,
+    });
+
+    if (job.applyUrl) {
+      try { window.open(job.applyUrl, '_blank', 'noopener,noreferrer'); } catch { /* popup blocked */ }
+    }
+
+    await updateMatchStatus(job.id, 'saved');
+    setToast({
+      id: Date.now(),
+      message: 'Your tailored CV is ready — upload it on the job page',
+    });
+    setApplyStage('done');
+  };
+
+  const onPickStored = async () => {
+    const job = applyJob;
+    if (!job) return;
+    if (hasCv === false) {
+      setApplyStage('error');
+      setApplyError('No CV on file. Build your CV first, or upload one instead.');
+      return;
+    }
     try {
-      await authedFetch('/api/scout-tailor', {
-        method: 'POST',
-        body: JSON.stringify({ match_id: job.id, cv_type: 'specific' }),
-      });
-      setToast({ id: Date.now(), message: 'Tailored CV ready · saved to your account' });
-      await updateMatchStatus(job.id, 'saved');
+      await finishApplyFlow({ job, body: { match_id: job.id, cv_type: 'specific' } });
     } catch (e) {
-      setToast({ id: Date.now(), message: e?.message || 'Tailor failed' });
-    } finally {
-      setTailoringId(null);
+      console.error('[scout] apply (stored) failed:', e);
+      setApplyStage('error');
+      setApplyError(e?.message || 'Apply failed — please try again.');
+    }
+  };
+
+  const onPickUpload = async (file) => {
+    const job = applyJob;
+    if (!job || !file) return;
+    setApplyStage('extracting');
+    let extracted;
+    try {
+      extracted = await extractCvText(file);
+    } catch (e) {
+      const msg = e instanceof CvExtractionError
+        ? (e.hint || e.message)
+        : (e?.message || 'Could not read the file.');
+      setApplyStage('error');
+      setApplyError(msg);
+      return;
+    }
+    try {
+      await finishApplyFlow({
+        job,
+        body: { match_id: job.id, cv_type: 'specific', cv_text: extracted.text },
+      });
+    } catch (e) {
+      console.error('[scout] apply (upload) failed:', e);
+      setApplyStage('error');
+      setApplyError(e?.message || 'Apply failed — please try again.');
     }
   };
 
@@ -1330,6 +1672,7 @@ const ScoutDashboard = ({ user, isPro }) => {
             onRunScout={runScout}
             onReset={resetFilters}
             scanState={scanState}
+            scanMessages={scanMessages}
             sourceCounts={sourceCounts}
           />
         )}
@@ -1489,7 +1832,6 @@ const ScoutDashboard = ({ user, isPro }) => {
                 onApply={handleApply}
                 onSave={handleSave}
                 onSkip={handleSkip}
-                isTailoring={!!selected && tailoringId === selected.id}
               />
             </AnimatePresence>
           </aside>
@@ -1537,10 +1879,23 @@ const ScoutDashboard = ({ user, isPro }) => {
                 onApply={handleApply}
                 onSave={handleSave}
                 onSkip={handleSkip}
-                isTailoring={tailoringId === selected.id}
               />
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {applyJob && (
+          <ApplyModal
+            key={`apply-${applyJob.id}`}
+            job={applyJob}
+            stage={applyStage}
+            error={applyError}
+            onPickStored={onPickStored}
+            onPickUpload={onPickUpload}
+            onClose={closeApplyModal}
+          />
         )}
       </AnimatePresence>
 
@@ -2203,6 +2558,28 @@ const ScoutStyle = () => (
     }
     .scout-meta-line svg { color: var(--scout-text-faint); flex-shrink: 0; }
     .scout-meta-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Card location/posted block — city in bold above muted posted-time. */
+    .scout-card-where {
+      display: flex; flex-direction: column; gap: 3px;
+      min-width: 0;
+    }
+    .scout-card-where-city {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 700;
+      color: var(--scout-text);
+      letter-spacing: -0.01em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .scout-card-where-city svg {
+      color: var(--scout-text-dim); flex-shrink: 0;
+    }
+    .scout-card-where-when {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11.5px; font-weight: 500;
+      color: var(--scout-text-faint);
+    }
+    .scout-card-where-when svg { color: var(--scout-text-faint); flex-shrink: 0; }
     .scout-dot {
       width: 3px; height: 3px;
       border-radius: 50%;
@@ -2563,9 +2940,166 @@ const ScoutStyle = () => (
       display: inline-flex; align-items: center; justify-content: center;
     }
 
+    /* apply modal ------------------------------------------------------- */
+    .scout-apply-scrim {
+      position: fixed; inset: 0;
+      background: rgba(20,22,28,0.45);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 80;
+      padding: 24px;
+    }
+    .scout-apply-modal {
+      position: relative;
+      width: 100%; max-width: 480px;
+      background: var(--scout-surface);
+      border-radius: 16px;
+      box-shadow: 0 24px 64px -12px rgba(20,22,28,0.35), 0 2px 6px rgba(20,22,28,0.10);
+      padding: 28px 24px 22px;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+    }
+    .scout-apply-close {
+      position: absolute; top: 14px; right: 14px;
+      background: transparent; border: none;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--scout-text-faint); cursor: pointer;
+      transition: background-color 160ms var(--scout-ease), color 160ms var(--scout-ease);
+    }
+    .scout-apply-close:hover:not(:disabled) {
+      background: var(--scout-surface-tint); color: var(--scout-text);
+    }
+    .scout-apply-close:disabled { opacity: 0.4; cursor: default; }
+    .scout-apply-head { margin-bottom: 18px; padding-right: 28px; }
+    .scout-apply-title {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.012em;
+      color: var(--scout-text);
+    }
+    .scout-apply-sub {
+      margin-top: 4px;
+      font-size: 13px; color: var(--scout-text-dim);
+    }
+    .scout-apply-sub strong { color: var(--scout-text); font-weight: 700; }
+
+    .scout-apply-options { display: flex; flex-direction: column; gap: 10px; }
+    .scout-apply-option {
+      width: 100%;
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--scout-surface-tint);
+      border: 1px solid var(--scout-border);
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background-color 160ms var(--scout-ease), border-color 160ms var(--scout-ease), transform 120ms var(--scout-ease);
+    }
+    .scout-apply-option:hover { background: #FFFFFF; border-color: var(--scout-border-strong); transform: translateY(-1px); }
+    .scout-apply-option:active { transform: translateY(0); }
+    .scout-apply-option--primary {
+      background: linear-gradient(135deg, #FFFFFF 0%, #FBF8F3 100%);
+      border-color: var(--scout-match-blue, #0A66C2);
+      box-shadow: 0 0 0 3px rgba(10,102,194,0.08);
+    }
+    .scout-apply-option-icon {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: var(--scout-surface);
+      border: 1px solid var(--scout-border);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--scout-text);
+    }
+    .scout-apply-option--primary .scout-apply-option-icon {
+      background: var(--scout-match-blue, #0A66C2);
+      border-color: var(--scout-match-blue, #0A66C2);
+      color: #FFFFFF;
+    }
+    .scout-apply-option-body { flex: 1; min-width: 0; }
+    .scout-apply-option-title {
+      font-size: 14px; font-weight: 700;
+      color: var(--scout-text);
+      letter-spacing: -0.01em;
+    }
+    .scout-apply-option-desc {
+      margin-top: 2px;
+      font-size: 12px; color: var(--scout-text-dim);
+      line-height: 1.45;
+    }
+    .scout-apply-option-arrow { color: var(--scout-text-faint); flex-shrink: 0; }
+    .scout-apply-option:hover .scout-apply-option-arrow { color: var(--scout-text); }
+
+    .scout-apply-foot-note {
+      margin: 14px 0 0;
+      font-size: 11.5px; color: var(--scout-text-faint);
+      text-align: center;
+    }
+
+    .scout-apply-progress {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      padding: 28px 8px 14px;
+    }
+    .scout-apply-spinner {
+      color: var(--scout-match-blue, #0A66C2);
+      animation: scout-apply-spin 1s linear infinite;
+      display: inline-flex;
+    }
+    @keyframes scout-apply-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .scout-apply-spinner { animation: none; }
+    }
+    .scout-apply-progress-text {
+      font-size: 14px; font-weight: 600; color: var(--scout-text);
+      letter-spacing: -0.005em;
+      text-align: center; min-height: 22px;
+    }
+    .scout-apply-progress-sub {
+      font-size: 12px; color: var(--scout-text-faint);
+    }
+
+    .scout-apply-done {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 14px 8px 4px;
+      text-align: center;
+    }
+    .scout-apply-done-mark {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--scout-direct, #0F8B5C);
+      color: #FFFFFF;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .scout-apply-done-title {
+      font-size: 16px; font-weight: 700; color: var(--scout-text);
+      letter-spacing: -0.01em;
+    }
+    .scout-apply-done-sub {
+      font-size: 13px; color: var(--scout-text-dim);
+      line-height: 1.5; max-width: 320px;
+    }
+    .scout-apply-done .scout-btn { margin-top: 10px; }
+
+    .scout-apply-error {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 16px 8px 4px;
+      text-align: center;
+    }
+    .scout-apply-error-title {
+      font-size: 15px; font-weight: 700; color: var(--scout-text);
+    }
+    .scout-apply-error-sub {
+      font-size: 13px; color: var(--scout-text-dim);
+      line-height: 1.5; max-width: 360px;
+    }
+    .scout-apply-error .scout-btn { margin-top: 8px; }
+
     /* toast ------------------------------------------------------------- */
     .scout-toast {
-      position: fixed; z-index: 60;
+      position: fixed; z-index: 100;
       bottom: 28px; right: 28px;
       display: inline-flex; align-items: center; gap: 8px;
       padding: 10px 14px;

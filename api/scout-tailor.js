@@ -45,16 +45,21 @@ const TAILOR_MODEL = process.env.SCOUT_TAILOR_MODEL || 'claude-sonnet-4-6';
 const VALID_CV_TYPE = new Set(['specific', 'universal']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function buildTailorPrompt({ cvData, job, match, cvType }) {
+function buildTailorPrompt({ cvData, cvText, job, match, cvType }) {
   const directive =
     cvType === 'universal'
       ? `Rewrite the CV as a polished "universal" version for the candidate's target role. Do NOT over-fit to this specific JD — instead make it strong across the role family. Use the JD only as a sanity check for what's broadly expected. Bias toward concise, ATS-friendly phrasing.`
       : `Rewrite the CV so it is tightly tailored to THIS specific job. Reorder, rephrase, and re-emphasise existing experience to mirror the JD's language. Insert the supplied ATS keywords naturally where they fit the candidate's real history. Do NOT invent jobs, employers, dates, or qualifications that aren't in the source CV.`;
 
+  const sourceBlock = cvText
+    ? `SOURCE CV (raw text extracted from the candidate's uploaded file):
+${String(cvText).slice(0, 12000)}`
+    : `SOURCE CV (canonical JSON from the candidate's CVPassport account):
+${JSON.stringify(cvData).slice(0, 12000)}`;
+
   return `You are an expert CV editor for the India-to-Gulf migration corridor.
 
-CANDIDATE CV (canonical JSON — preserve this top-level shape exactly in your output):
-${JSON.stringify(cvData).slice(0, 12000)}
+${sourceBlock}
 
 TARGET JOB:
 - Title: ${job.title || ''}
@@ -73,14 +78,36 @@ ${directive}
 
 OUTPUT — return ONE JSON object, no markdown fences, no commentary:
 {
-  "tailored_cv": <the rewritten CV — same top-level keys and array shapes as the input CV>,
+  "tailored_cv": {
+    "name": string, "email": string, "phone": string, "location": string,
+    "title": string, "summary": string,
+    "experience": [
+      { "company": string, "role": string, "location": string, "period": string, "points": string,
+        "startDate": string, "endDate": string, "present": boolean }
+    ],
+    "education": [
+      { "school": string, "degree": string, "year": string, "fieldOfStudy": string,
+        "startDate": string, "endDate": string, "location": string }
+    ],
+    "skills": string,
+    "languages": string,
+    "certifications": [{ "name": string, "issuer": string, "year": string }],
+    "technicalSkills": string,
+    "projects": string,
+    "volunteerWork": string,
+    "publications": string
+  },
   "cover_letter": <plain text body, 3 short paragraphs, no salutation, no sign-off, no date>
 }
 
 Rules:
+- Output MUST conform exactly to the canonical shape above — those keys, those types.
 - Never fabricate employers, titles, dates, qualifications, or certifications not present in the source CV.
 - Do not change names of real employers or institutions.
 - Keep bullet rewrites grounded in the original bullets — sharpen verbs, surface metrics that are already there.
+- experience[].points = newline-separated bullet sentences (no leading "•" or "-"). Keep 3–5 per role.
+- skills + technicalSkills + languages = comma-separated strings.
+- For unknown fields, use "" (empty string) — never null, never omit the key.
 - Cover letter tone: confident Gulf corporate when the job location is UAE/GCC, formal Indian corporate when it is India.
 - Output VALID JSON only. No backticks. No leading text.`;
 }
@@ -158,6 +185,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'match_id (uuid) required' });
   }
   const cvType = VALID_CV_TYPE.has(body.cv_type) ? body.cv_type : 'specific';
+  const cvTextOverride = typeof body.cv_text === 'string' && body.cv_text.trim() ? body.cv_text.trim() : null;
 
   const { data: matchRow, error: matchErr } = await db
     .from('scout_matches')
@@ -180,22 +208,34 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'Match has no JD text to tailor against' });
   }
 
-  const { data: cvRow } = await db
-    .from('cvs')
-    .select('cv_data')
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!cvRow?.cv_data) {
-    return res.status(400).json({ ok: false, error: 'No CV on file. Build your CV first.' });
+  // Source CV resolution:
+  // - If cv_text override is provided (uploaded file path), use that string directly.
+  // - Otherwise fall back to the user's most recent stored CV.
+  // template_id is also returned so the client can render the tailored CV
+  // through generate-pdf using the same template the user already chose.
+  let sourceCvData = null;
+  let sourceTemplateId = null;
+  if (!cvTextOverride) {
+    const { data: cvRow } = await db
+      .from('cvs')
+      .select('cv_data, template_id')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!cvRow?.cv_data) {
+      return res.status(400).json({ ok: false, error: 'No CV on file. Build your CV first.' });
+    }
+    sourceCvData = cvRow.cv_data;
+    sourceTemplateId = Number.isFinite(Number(cvRow.template_id)) ? Number(cvRow.template_id) : null;
   }
 
   let result;
   try {
     result = await callClaude(
       buildTailorPrompt({
-        cvData: cvRow.cv_data,
+        cvData: sourceCvData,
+        cvText: cvTextOverride,
         job,
         match: matchRow,
         cvType,
@@ -228,5 +268,6 @@ export default async function handler(req, res) {
     cv_type: cvType,
     tailored_cv: result.tailored_cv,
     cover_letter: result.cover_letter,
+    template_id: sourceTemplateId, // null when cv_text override was used
   });
 }
