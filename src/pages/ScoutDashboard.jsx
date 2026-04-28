@@ -24,7 +24,6 @@ import {
   Copy,
   Inbox,
   Briefcase,
-  ArrowRight,
 } from 'lucide-react';
 
 /* =====================================================================
@@ -284,7 +283,7 @@ const ScoreRing = ({ value, tone, size = 84 }) => {
     });
     return () => controls.stop();
   }, [value, c, offset]);
-  const stroke = tone === 'direct' ? 'var(--scout-direct)' : 'var(--scout-stretch)';
+  const stroke = tone === 'direct' ? 'var(--scout-match-blue)' : 'var(--scout-stretch)';
   return (
     <div className="scout-ring-wrap" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -581,8 +580,6 @@ const cardVariants = {
 };
 
 const JobCard = ({ job, tint, active, onClick }) => {
-  const stop = (e) => e.stopPropagation();
-
   return (
     <motion.button
       type="button"
@@ -606,41 +603,17 @@ const JobCard = ({ job, tint, active, onClick }) => {
           {job.initials}
         </div>
 
-        <div className="scout-card-head-right">
-          <motion.div
-            className="scout-score-block"
-            variants={{ hover: { scale: 1.05 } }}
-            transition={{ type: 'spring', stiffness: 380, damping: 18 }}
-          >
-            <div className={`scout-state-pip scout-state-pip--${job.state}`}>
-              <span className="scout-pip-dot" />
-              {job.state === 'direct' ? 'Direct' : 'Stretch'}
-            </div>
-            <ScoreNumber value={job.score} size={24} weight={700} />
-          </motion.div>
-
-          <motion.button
-            type="button"
-            className="scout-card-apply"
-            onClick={stop}
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.94 }}
-            transition={SPRING}
-            aria-label="Tailor and apply"
-          >
-            <span aria-hidden="true" className="scout-apply-sizer">
-              Tailor &amp; Apply
-            </span>
-            <span className="scout-apply-text scout-apply-text--default">
-              <Sparkles size={11} strokeWidth={2.2} />
-              Apply
-            </span>
-            <span className="scout-apply-text scout-apply-text--hover">
-              Tailor &amp; Apply
-              <ArrowRight size={11} strokeWidth={2.2} />
-            </span>
-          </motion.button>
-        </div>
+        <motion.div
+          className="scout-score-block"
+          variants={{ hover: { scale: 1.05 } }}
+          transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+        >
+          <div className={`scout-state-pip scout-state-pip--${job.state}`}>
+            <span className="scout-pip-dot" />
+            {job.state === 'direct' ? 'Direct' : 'Stretch'}
+          </div>
+          <ScoreNumber value={job.score} size={24} weight={700} />
+        </motion.div>
       </div>
 
       <div className="scout-card-body">
@@ -1215,6 +1188,11 @@ const ScoutStyle = () => (
       --scout-stretch-line: #ECCAA0;
       --scout-stretch-tint: #FCF7EE;
 
+      /* Direct match indicator — LinkedIn blue, "blue means go" */
+      --scout-match-blue: #0A66C2;
+      --scout-match-blue-soft: #E7F0FA;
+      --scout-match-blue-line: #B8D2EE;
+
       --scout-amber: #D97706;
       --scout-amber-hover: #B45309;
       --scout-amber-soft: #FCEFE0;
@@ -1561,7 +1539,7 @@ const ScoutStyle = () => (
       gap: 12px;
       width: 100%;
       min-width: 0;
-      padding: 18px 20px 16px;
+      padding: 16px;
       text-align: left;
       border-radius: 18px;
       border: 1px solid rgba(20,22,28,0.045);
@@ -1582,17 +1560,13 @@ const ScoutStyle = () => (
         var(--scout-shadow-card-hover);
       border-color: transparent;
     }
-    .scout-card--direct.is-active { --scout-card-ring: var(--scout-direct); }
+    .scout-card--direct.is-active { --scout-card-ring: var(--scout-match-blue); }
     .scout-card--stretch.is-active { --scout-card-ring: var(--scout-stretch); }
 
     .scout-card-head {
       display: flex; justify-content: space-between; align-items: flex-start;
       gap: 12px;
       min-width: 0;
-    }
-    .scout-card-head-right {
-      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
-      flex-shrink: 0;
     }
     .scout-logo {
       width: 42px; height: 42px;
@@ -1613,7 +1587,7 @@ const ScoutStyle = () => (
       border: 1px solid;
       white-space: nowrap;
     }
-    .scout-state-pip--direct { color: var(--scout-direct); background: var(--scout-direct-soft); border-color: var(--scout-direct-line); }
+    .scout-state-pip--direct { color: var(--scout-match-blue); background: var(--scout-match-blue-soft); border-color: var(--scout-match-blue-line); }
     .scout-state-pip--stretch { color: var(--scout-stretch); background: var(--scout-stretch-soft); border-color: var(--scout-stretch-line); }
     .scout-pip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
@@ -1623,49 +1597,9 @@ const ScoutStyle = () => (
       color: var(--scout-text);
       font-feature-settings: "tnum" 1, "lnum" 1;
     }
-    .scout-card--direct .scout-score-num { color: var(--scout-direct); }
+    .scout-card--direct .scout-score-num { color: var(--scout-match-blue); }
     .scout-card--stretch .scout-score-num { color: var(--scout-stretch); }
     .scout-score-pct { font-size: 0.55em; margin-left: 1px; font-weight: 700; opacity: 0.85; }
-
-    /* apply button on card --------------------------------------------- */
-    .scout-card-apply {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 28px;
-      padding: 0 12px;
-      border-radius: 8px;
-      font-size: 11.5px; font-weight: 700;
-      color: #fff;
-      background: var(--scout-amber);
-      box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 3px 10px -2px rgba(217,119,6,0.32);
-      transition: background-color 160ms var(--scout-ease);
-      white-space: nowrap;
-    }
-    .scout-card-apply:hover { background: var(--scout-amber-hover); }
-    .scout-apply-sizer {
-      visibility: hidden;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-      padding: 0 4px;
-    }
-    .scout-apply-text {
-      position: absolute;
-      inset: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: opacity 180ms var(--scout-ease);
-      padding: 0 12px;
-      white-space: nowrap;
-    }
-    .scout-apply-text--hover { opacity: 0; }
-    .scout-card-apply:hover .scout-apply-text--default { opacity: 0; }
-    .scout-card-apply:hover .scout-apply-text--hover { opacity: 1; }
 
     /* card body --------------------------------------------------------- */
     .scout-card-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -2077,10 +2011,9 @@ const ScoutStyle = () => (
       .scout-search { display: none; }
       .scout-list-head { flex-direction: column; align-items: flex-start; gap: 12px; }
       .scout-list-title { font-size: 22px; }
-      .scout-card { padding: 16px 16px 14px; }
+      .scout-card { padding: 16px; }
       .scout-card-role { font-size: 15.5px; }
       .scout-salary { font-size: 15.5px; }
-      .scout-card-apply { height: 32px; padding: 0 14px; font-size: 12px; }
       .scout-detail-actions { grid-template-columns: 1fr; }
     }
   `}</style>
