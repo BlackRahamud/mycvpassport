@@ -253,7 +253,7 @@ export default function App() {
               <Route path="/ats" element={<ATSPage onBack={() => navigate(user ? "/dashboard" : "/")} />} />
               <Route path="/linkedin-optimizer" element={<LinkedInOptimizer />} />
               <Route path="/salary-switcher" element={<SalarySwitcher />} />
-              <Route path="/scout" element={user ? <ScoutDashboard /> : <Navigate to="/auth" replace />} />
+              <Route path="/scout" element={user ? <ScoutDashboard user={user} isPro={isPro} /> : <Navigate to="/auth" replace />} />
               <Route path="/gulf-career" element={<GulfCareerPage />} />
               <Route path="/gulf/:reportId" element={<GulfCareerPage />} />
               <Route path="/tools" element={<ToolsPage />} />

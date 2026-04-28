@@ -991,7 +991,11 @@ const Toast = ({ message }) => (
 
 /* ---------------------------- root ---------------------------- */
 
-const ScoutDashboard = () => {
+// Auth state (user, isPro) is owned by useCvpAuth and threaded in as props
+// from App.js — never re-query profiles here. The previous local query
+// silently failed because it referenced a non-existent `full_name` column,
+// which left isPro unset and forced every pro user into the pricing gate.
+const ScoutDashboard = ({ user, isPro }) => {
   const navigate = useNavigate();
   const { isDesktop, isMobile } = useViewport();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -1001,8 +1005,6 @@ const ScoutDashboard = () => {
   const [scanState, setScanState] = useState('idle'); // idle | scanning | complete
   const [toast, setToast] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
   const [hasCv, setHasCv] = useState(null); // null = unknown, true/false once probed
   const [bootError, setBootError] = useState(null);
   const [tailoringId, setTailoringId] = useState(null);
@@ -1056,30 +1058,17 @@ const ScoutDashboard = () => {
     };
   }, []);
 
-  // Bootstrap: session → profile → cv check → preferences → initial matches
+  // Bootstrap: cv check → preferences → initial matches.
+  // Auth/pro come from props (useCvpAuth is the single source of truth).
   useEffect(() => {
+    if (!supabase || !user?.id) return undefined;
     let cancelled = false;
     (async () => {
       try {
-        if (!supabase) return;
-        const { data: { session } = {} } = await supabase.auth.getSession();
-        if (cancelled) return;
-        const u = session?.user || null;
-        setUser(u);
-        if (!u) return;
-
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('id, is_pro, full_name')
-          .eq('id', u.id)
-          .single();
-        if (cancelled) return;
-        setProfile(prof || null);
-
         const { data: cvRows } = await supabase
           .from('cvs')
           .select('id')
-          .eq('user_id', u.id)
+          .eq('user_id', user.id)
           .limit(1);
         if (cancelled) return;
         setHasCv(Array.isArray(cvRows) && cvRows.length > 0);
@@ -1087,7 +1076,7 @@ const ScoutDashboard = () => {
         const { data: prefRow } = await supabase
           .from('scout_preferences')
           .select('target_role, location, experience_years, salary_min, sources')
-          .eq('user_id', u.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -1110,7 +1099,7 @@ const ScoutDashboard = () => {
           });
         }
 
-        if (prof?.is_pro && Array.isArray(cvRows) && cvRows.length > 0) {
+        if (isPro && Array.isArray(cvRows) && cvRows.length > 0) {
           const json = await authedFetch('/api/scout-matches?limit=50');
           if (cancelled) return;
           setMatches(Array.isArray(json.matches) ? json.matches : []);
@@ -1120,7 +1109,7 @@ const ScoutDashboard = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user?.id, isPro]);
 
   const handleSelect = (id) => {
     setSelectedId(id);
@@ -1144,7 +1133,7 @@ const ScoutDashboard = () => {
 
   const runScout = async () => {
     if (!user) { navigate('/auth'); return; }
-    if (!profile?.is_pro) {
+    if (!isPro) {
       setToast({ id: Date.now(), message: 'Scout is a Pro feature' });
       navigate('/pricing');
       return;
@@ -1228,7 +1217,7 @@ const ScoutDashboard = () => {
 
   const handleUniversalCv = async () => {
     if (!user) { navigate('/auth'); return; }
-    if (!profile?.is_pro) { navigate('/pricing'); return; }
+    if (!isPro) { navigate('/pricing'); return; }
     if (hasCv === false) {
       setToast({ id: Date.now(), message: 'Build your CV first' });
       return;
@@ -1262,8 +1251,8 @@ const ScoutDashboard = () => {
 
   const showSkeleton = scanState === 'scanning';
   const showAuthGate = !!supabase && user === null;
-  const showProGate = !!user && profile && !profile.is_pro;
-  const showCvGate = !!user && profile?.is_pro && hasCv === false;
+  const showProGate = !!user && !isPro;
+  const showCvGate = !!user && isPro && hasCv === false;
   const gated = showAuthGate || showProGate || showCvGate;
   const showEmpty = !showSkeleton && !gated && visibleJobs.length === 0;
   const showCards = !showSkeleton && !gated && visibleJobs.length > 0;
@@ -1277,8 +1266,8 @@ const ScoutDashboard = () => {
     : `${visibleJobs.length} matches${lastRunLabel ? ` · ${lastRunLabel}` : ''}`;
 
   const userEmail = user?.email || '';
-  const userInitials = initialsOf(profile?.full_name || user?.email);
-  const userPlan = profile?.is_pro ? 'active-hunter' : 'free';
+  const userInitials = initialsOf(user?.name || user?.email);
+  const userPlan = isPro ? 'active-hunter' : 'free';
 
   return (
     <div className="scout-root">
