@@ -29,21 +29,30 @@ import {
 
 /* =====================================================================
    ScoutDashboard — Pro-only feature, static UI prototype.
-   Light, warm, LinkedIn-adjacent direction. Eclipse-inspired colored
-   card grid + Framer Motion interaction layer.
-   Tailwind not installed — all styles in scoped <style> block.
+   Light, warm, LinkedIn-adjacent. Eclipse-inspired colored card grid +
+   Framer Motion interaction layer. Tailwind not installed — all styles
+   in scoped <style> block at the bottom.
    ===================================================================== */
 
 const SOURCES = ['LinkedIn', 'Indeed', 'Glassdoor', 'Bayt', 'Naukri'];
 
-/* Soft pastel rotation for the card grid. Card bg is decorative
-   (Eclipse-style variety); state still reads via the pip + score colour. */
+/* Platform brand colours used when a specific source is selected.
+   Per-source UI accent only — never used elsewhere on the screen. */
+const SOURCE_COLORS = {
+  LinkedIn: '#0A66C2',
+  Indeed: '#E96E00',
+  Glassdoor: '#0F73E2',
+  Bayt: '#15803D',
+  Naukri: '#DC2626',
+};
+
+/* Soft pastel rotation for the card grid — Eclipse-style variety. */
 const TINTS = [
   { bg: '#F0FDF4', logoBg: '#BBF7D0', logoText: '#14532D' }, // soft green
   { bg: '#EFF6FF', logoBg: '#BFDBFE', logoText: '#1E3A8A' }, // sky blue
   { bg: '#FFFBEB', logoBg: '#FDE68A', logoText: '#7C2D12' }, // light amber
   { bg: '#FFF1F2', logoBg: '#FECDD3', logoText: '#881337' }, // pale blush
-  { bg: '#FAF7F2', logoBg: '#EADDC4', logoText: '#7C5A1F' }, // warm cream (overflow)
+  { bg: '#FAF7F2', logoBg: '#EADDC4', logoText: '#7C5A1F' }, // warm cream
 ];
 
 const JOBS = [
@@ -249,7 +258,6 @@ const useViewport = () => {
   };
 };
 
-/* count-up score number — sans-serif, tabular figures */
 const ScoreNumber = ({ value, size = 22, weight = 600 }) => {
   const mv = useMotionValue(0);
   const display = useTransform(mv, (n) => Math.round(n));
@@ -265,7 +273,7 @@ const ScoreNumber = ({ value, size = 22, weight = 600 }) => {
   );
 };
 
-const ScoreRing = ({ value, tone, size = 88 }) => {
+const ScoreRing = ({ value, tone, size = 84 }) => {
   const r = (size - 10) / 2;
   const c = 2 * Math.PI * r;
   const offset = useMotionValue(c);
@@ -302,7 +310,7 @@ const ScoreRing = ({ value, tone, size = 88 }) => {
         />
       </svg>
       <div className="scout-ring-inner">
-        <ScoreNumber value={value} size={Math.round(size * 0.26)} weight={700} />
+        <ScoreNumber value={value} size={Math.round(size * 0.27)} weight={700} />
       </div>
     </div>
   );
@@ -329,7 +337,6 @@ const Breakdown = ({ data }) => (
 
 const SourcesChips = ({ value, onChange }) => {
   const allOn = value.includes('all');
-  const isOn = (src) => allOn || value.includes(src);
 
   const toggle = (src) => {
     if (src === 'all') {
@@ -351,25 +358,41 @@ const SourcesChips = ({ value, onChange }) => {
 
   return (
     <div className="scout-sources">
-      <button
+      <motion.button
         type="button"
-        className={`scout-source ${allOn ? 'is-on' : ''}`}
+        className={`scout-source scout-source--all ${allOn ? 'is-on' : ''}`}
         onClick={() => toggle('all')}
+        whileHover={{ y: -1 }}
+        whileTap={{ scale: 0.97 }}
+        transition={SPRING}
       >
         All
-      </button>
-      {SOURCES.map((s) => (
-        <button
-          key={s}
-          type="button"
-          className={`scout-source ${isOn(s) ? 'is-on' : ''} ${
-            allOn ? 'is-implicit' : ''
-          }`}
-          onClick={() => toggle(s)}
-        >
-          {s}
-        </button>
-      ))}
+      </motion.button>
+      {SOURCES.map((s) => {
+        const filled = !allOn && value.includes(s);
+        const color = SOURCE_COLORS[s];
+        const style = filled
+          ? { background: color, borderColor: color, color: '#fff' }
+          : allOn
+          ? { borderColor: `${color}40`, color }
+          : { borderColor: `${color}55`, color };
+        return (
+          <motion.button
+            key={s}
+            type="button"
+            className={`scout-source ${filled ? 'is-on' : ''} ${
+              allOn ? 'is-implicit' : ''
+            }`}
+            style={style}
+            onClick={() => toggle(s)}
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.97 }}
+            transition={SPRING}
+          >
+            {s}
+          </motion.button>
+        );
+      })}
     </div>
   );
 };
@@ -393,6 +416,17 @@ const PreferencesSidebar = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
+      {/* Sources up top — first thing the user sees */}
+      <div className="scout-sidebar-section scout-sidebar-section--first">
+        <div className="scout-sidebar-title">Search on</div>
+        <SourcesChips
+          value={filters.sources}
+          onChange={(sources) => setFilters({ ...filters, sources })}
+        />
+      </div>
+
+      <div className="scout-sidebar-divider" aria-hidden="true" />
+
       <div className="scout-sidebar-section">
         <div className="scout-sidebar-title">Search preferences</div>
 
@@ -463,13 +497,6 @@ const PreferencesSidebar = ({
             </div>
           </div>
         </Field>
-
-        <Field label="Sources">
-          <SourcesChips
-            value={filters.sources}
-            onChange={(sources) => setFilters({ ...filters, sources })}
-          />
-        </Field>
       </div>
 
       <motion.button
@@ -507,12 +534,17 @@ const PreferencesSidebar = ({
       <div className="scout-mini-stat">
         <div className="scout-mini-stat-row">
           <span className="scout-live-dot" />
-          <span>4 matches found · 2h ago</span>
+          <span>{sourceCounts.reduce((t, s) => t + s.count, 0)} matches found · 2h ago</span>
         </div>
         <div className="scout-mini-stat-sources">
           {sourceCounts.map(({ source, count }) => (
             <span key={source} className="scout-source-chip">
-              <span className="scout-source-mark">{source[0]}</span>
+              <span
+                className="scout-source-mark"
+                style={{ background: SOURCE_COLORS[source] || 'var(--scout-direct)' }}
+              >
+                {source[0]}
+              </span>
               <span className="scout-source-name">{source}</span>
               <span className="scout-source-count">{count}</span>
             </span>
@@ -537,11 +569,7 @@ const Field = ({ icon, label, children }) => (
 
 const cardVariants = {
   hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: SPRING,
-  },
+  show: { opacity: 1, y: 0, transition: SPRING },
   exit: {
     x: -360,
     rotate: -6,
@@ -552,11 +580,8 @@ const cardVariants = {
   tap: { scale: 0.97, transition: { type: 'spring', stiffness: 420, damping: 22 } },
 };
 
-const JobCard = ({ job, tint, active, onClick, onDismiss }) => {
-  const stopAnd = (fn) => (e) => {
-    e.stopPropagation();
-    fn?.();
-  };
+const JobCard = ({ job, tint, active, onClick }) => {
+  const stop = (e) => e.stopPropagation();
 
   return (
     <motion.button
@@ -573,19 +598,6 @@ const JobCard = ({ job, tint, active, onClick, onDismiss }) => {
       style={{ background: tint.bg }}
       className={`scout-card scout-card--${job.state} ${active ? 'is-active' : ''}`}
     >
-      {/* dismiss — top right, hover only */}
-      <motion.span
-        className="scout-card-dismiss"
-        variants={{ hidden: { opacity: 0, scale: 0.85 }, hover: { opacity: 1, scale: 1 } }}
-        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-        onClick={stopAnd(onDismiss)}
-        role="button"
-        aria-label="Not interested"
-        tabIndex={0}
-      >
-        <X size={12} strokeWidth={2.4} />
-      </motion.span>
-
       <div className="scout-card-head">
         <div
           className="scout-logo"
@@ -593,17 +605,42 @@ const JobCard = ({ job, tint, active, onClick, onDismiss }) => {
         >
           {job.initials}
         </div>
-        <motion.div
-          className="scout-score-block"
-          variants={{ hover: { scale: 1.06 } }}
-          transition={{ type: 'spring', stiffness: 380, damping: 18 }}
-        >
-          <div className={`scout-state-pip scout-state-pip--${job.state}`}>
-            <span className="scout-pip-dot" />
-            {job.state === 'direct' ? 'Direct' : 'Stretch'}
-          </div>
-          <ScoreNumber value={job.score} size={26} weight={700} />
-        </motion.div>
+
+        <div className="scout-card-head-right">
+          <motion.div
+            className="scout-score-block"
+            variants={{ hover: { scale: 1.05 } }}
+            transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+          >
+            <div className={`scout-state-pip scout-state-pip--${job.state}`}>
+              <span className="scout-pip-dot" />
+              {job.state === 'direct' ? 'Direct' : 'Stretch'}
+            </div>
+            <ScoreNumber value={job.score} size={24} weight={700} />
+          </motion.div>
+
+          <motion.button
+            type="button"
+            className="scout-card-apply"
+            onClick={stop}
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.94 }}
+            transition={SPRING}
+            aria-label="Tailor and apply"
+          >
+            <span aria-hidden="true" className="scout-apply-sizer">
+              Tailor &amp; Apply
+            </span>
+            <span className="scout-apply-text scout-apply-text--default">
+              <Sparkles size={11} strokeWidth={2.2} />
+              Apply
+            </span>
+            <span className="scout-apply-text scout-apply-text--hover">
+              Tailor &amp; Apply
+              <ArrowRight size={11} strokeWidth={2.2} />
+            </span>
+          </motion.button>
+        </div>
       </div>
 
       <div className="scout-card-body">
@@ -626,42 +663,29 @@ const JobCard = ({ job, tint, active, onClick, onDismiss }) => {
 
       <div className="scout-meta-line">
         <MapPin size={11} strokeWidth={2} />
-        <span>{job.location}</span>
+        <span className="scout-meta-text">{job.location}</span>
         <span className="scout-dot" />
-        <span>{job.jobType}</span>
+        <span className="scout-meta-text">{job.jobType}</span>
         <span className="scout-dot" />
         <Clock size={11} strokeWidth={2} />
-        <span>{job.posted}</span>
+        <span className="scout-meta-text">{job.posted}</span>
       </div>
 
       <div className="scout-card-foot">
-        <div className="scout-salary-block">
-          <div className="scout-salary">{job.salary}</div>
-          <div className="scout-salary-meta">
-            {job.salaryNote}
-            <span className="scout-source-tag scout-source-tag--card">
-              via {job.source}
-            </span>
-          </div>
+        <div className="scout-salary">{job.salary}</div>
+        <div className="scout-salary-meta">
+          <span>{job.salaryNote}</span>
+          <span className="scout-dot" />
+          <span className="scout-source-tag scout-source-tag--card">
+            via {job.source}
+          </span>
         </div>
-        <motion.span
-          className="scout-card-tailor"
-          variants={{
-            hidden: { opacity: 0, y: 4 },
-            hover: { opacity: 1, y: 0 },
-          }}
-          initial="hidden"
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        >
-          Tailor now
-          <ArrowRight size={13} strokeWidth={2.2} />
-        </motion.span>
       </div>
     </motion.button>
   );
 };
 
-/* ---------------------------- skeleton (loading) ---------------------------- */
+/* ---------------------------- skeleton ---------------------------- */
 
 const SkeletonCard = ({ index }) => (
   <motion.div
@@ -776,6 +800,36 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
         )}
       </div>
 
+      {/* Action bar — moved up: visible immediately under header */}
+      <div className="scout-detail-actions scout-detail-actions--top">
+        <motion.button
+          type="button"
+          className="scout-btn scout-btn--primary"
+          whileHover={{ y: -1 }}
+          whileTap={{ scale: 0.97 }}
+          transition={SPRING}
+        >
+          <Sparkles size={14} strokeWidth={2} />
+          Apply with tailored CV
+        </motion.button>
+        <motion.button
+          type="button"
+          className="scout-btn scout-btn--ghost"
+          whileTap={{ scale: 0.95 }}
+        >
+          <Bookmark size={13} strokeWidth={1.9} />
+          Save
+        </motion.button>
+        <motion.button
+          type="button"
+          className="scout-btn scout-btn--ghost"
+          whileTap={{ scale: 0.95 }}
+        >
+          <SkipForward size={13} strokeWidth={1.9} />
+          Skip
+        </motion.button>
+      </div>
+
       <Section title="Why Scout picked this">
         <p className="scout-detail-why">{job.summary}</p>
         <p className="scout-detail-why scout-detail-why--soft">{job.why}</p>
@@ -848,35 +902,6 @@ const DetailPanel = ({ job, onClose, isOverlay, onCopyKeyword }) => {
           </div>
         </div>
       </Section>
-
-      <div className="scout-detail-actions">
-        <motion.button
-          type="button"
-          className="scout-btn scout-btn--primary"
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.97 }}
-          transition={SPRING}
-        >
-          <Sparkles size={14} strokeWidth={2} />
-          Apply with tailored CV
-        </motion.button>
-        <motion.button
-          type="button"
-          className="scout-btn scout-btn--ghost"
-          whileTap={{ scale: 0.95 }}
-        >
-          <Bookmark size={13} strokeWidth={1.9} />
-          Save
-        </motion.button>
-        <motion.button
-          type="button"
-          className="scout-btn scout-btn--ghost"
-          whileTap={{ scale: 0.95 }}
-        >
-          <SkipForward size={13} strokeWidth={1.9} />
-          Skip
-        </motion.button>
-      </div>
     </motion.div>
   );
 };
@@ -912,13 +937,9 @@ const ScoutDashboard = () => {
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [scanState, setScanState] = useState('idle'); // idle | scanning | complete
   const [toast, setToast] = useState(null);
-  const [dismissed, setDismissed] = useState(() => new Set());
   const sort = 'Best match';
 
-  const visibleJobs = useMemo(
-    () => JOBS.filter((j) => !dismissed.has(j.id)),
-    [dismissed]
-  );
+  const visibleJobs = JOBS;
 
   const selected = useMemo(
     () => visibleJobs.find((j) => j.id === selectedId) || null,
@@ -933,7 +954,6 @@ const ScoutDashboard = () => {
     return Object.entries(counts).map(([source, count]) => ({ source, count }));
   }, [visibleJobs]);
 
-  // Plus Jakarta Sans — single sans-serif for the whole screen
   useEffect(() => {
     const id = 'scout-fonts';
     if (document.getElementById(id)) return undefined;
@@ -958,27 +978,13 @@ const ScoutDashboard = () => {
 
   const runScout = () => {
     setScanState('scanning');
-    // Reset dismissals on a fresh scan — feels like a real refresh
     setTimeout(() => {
-      setDismissed(new Set());
       setScanState('complete');
       setTimeout(() => setScanState('idle'), 1700);
     }, 1500);
   };
 
   const resetFilters = () => setFilters(DEFAULT_FILTERS);
-
-  const dismissJob = (id) => {
-    setDismissed((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    if (selectedId === id) {
-      const remaining = visibleJobs.find((j) => j.id !== id);
-      setSelectedId(remaining ? remaining.id : null);
-    }
-  };
 
   const copyKeyword = (kw) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -1028,7 +1034,6 @@ const ScoutDashboard = () => {
         </div>
       </header>
 
-      {/* shell */}
       <motion.div
         className="scout-shell"
         animate={{ filter: !isDesktop && overlayOpen ? 'blur(3px)' : 'blur(0px)' }}
@@ -1102,7 +1107,6 @@ const ScoutDashboard = () => {
                       tint={TINTS[i % TINTS.length]}
                       active={selectedId === j.id}
                       onClick={() => handleSelect(j.id)}
-                      onDismiss={() => dismissJob(j.id)}
                     />
                   ))}
                 </AnimatePresence>
@@ -1136,7 +1140,6 @@ const ScoutDashboard = () => {
         )}
       </motion.div>
 
-      {/* overlay — tablet right slide-over, mobile bottom sheet */}
       <AnimatePresence>
         {!isDesktop && overlayOpen && selected && (
           <motion.div
@@ -1181,7 +1184,6 @@ const ScoutDashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* toast */}
       <AnimatePresence>
         {toast && <Toast key={toast.id} message={toast.message} />}
       </AnimatePresence>
@@ -1217,7 +1219,7 @@ const ScoutStyle = () => (
       --scout-amber-hover: #B45309;
       --scout-amber-soft: #FCEFE0;
 
-      --scout-shadow-1: 0 1px 2px rgba(20, 22, 28, 0.04);
+      --scout-shadow-1: 0 1px 2px rgba(20,22,28,0.04);
       --scout-shadow-2: 0 1px 2px rgba(20,22,28,0.05), 0 6px 14px -2px rgba(20,22,28,0.06);
       --scout-shadow-3: 0 1px 3px rgba(20,22,28,0.05), 0 14px 36px rgba(20,22,28,0.08);
       --scout-shadow-card-hover: 0 1px 2px rgba(20,22,28,0.05), 0 16px 32px -10px rgba(20,22,28,0.14);
@@ -1243,8 +1245,7 @@ const ScoutStyle = () => (
     .scout-topbar {
       position: sticky; top: 0; z-index: 10;
       display: flex; align-items: center; justify-content: space-between;
-      gap: 24px;
-      padding: 14px 28px;
+      gap: 24px; padding: 14px 28px;
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: saturate(140%) blur(10px);
       -webkit-backdrop-filter: saturate(140%) blur(10px);
@@ -1297,17 +1298,10 @@ const ScoutStyle = () => (
       background: var(--scout-amber);
       animation: scout-pulse-fast 1s var(--scout-ease) infinite;
     }
-    @keyframes scout-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(14,124,90,0.4); }
-      50% { box-shadow: 0 0 0 6px rgba(14,124,90,0); }
-    }
-    @keyframes scout-pulse-fast {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.5); }
-      50% { box-shadow: 0 0 0 5px rgba(217,119,6,0); }
-    }
+    @keyframes scout-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(14,124,90,0.4); } 50% { box-shadow: 0 0 0 6px rgba(14,124,90,0); } }
+    @keyframes scout-pulse-fast { 0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.5); } 50% { box-shadow: 0 0 0 5px rgba(217,119,6,0); } }
     .scout-topbar-right { display: flex; align-items: center; gap: 12px; }
     .scout-search {
-      position: relative;
       display: inline-flex; align-items: center; gap: 8px;
       padding: 0 12px;
       height: 34px; width: 220px;
@@ -1333,7 +1327,7 @@ const ScoutStyle = () => (
     /* shell ------------------------------------------------------------- */
     .scout-shell {
       display: grid;
-      grid-template-columns: 260px minmax(0, 1fr) 440px;
+      grid-template-columns: 280px minmax(0, 1fr) 440px;
       gap: 22px;
       padding: 24px 28px 56px;
       max-width: 1480px;
@@ -1341,7 +1335,7 @@ const ScoutStyle = () => (
       align-items: start;
     }
     @media (max-width: 1180px) {
-      .scout-shell { grid-template-columns: 240px minmax(0, 1fr); gap: 20px; }
+      .scout-shell { grid-template-columns: 260px minmax(0, 1fr); gap: 20px; }
     }
     @media (max-width: 768px) {
       .scout-shell { grid-template-columns: 1fr; padding: 16px 14px 96px; gap: 16px; }
@@ -1350,16 +1344,22 @@ const ScoutStyle = () => (
     /* sidebar ----------------------------------------------------------- */
     .scout-sidebar {
       position: sticky; top: 80px;
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; flex-direction: column; gap: 14px;
       padding: 18px;
       border-radius: 14px;
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
       box-shadow: var(--scout-shadow-1);
     }
-    .scout-sidebar-section { display: flex; flex-direction: column; gap: 12px; }
+    .scout-sidebar-section { display: flex; flex-direction: column; gap: 10px; }
+    .scout-sidebar-section--first { gap: 12px; }
+    .scout-sidebar-divider {
+      height: 1px;
+      background: var(--scout-border);
+      margin: 2px -2px;
+    }
     .scout-sidebar-title {
-      font-size: 13px; font-weight: 600; letter-spacing: -0.005em;
+      font-size: 13px; font-weight: 700; letter-spacing: -0.005em;
       color: var(--scout-text); margin-bottom: 2px;
     }
     .scout-field { display: flex; flex-direction: column; gap: 6px; }
@@ -1417,22 +1417,28 @@ const ScoutStyle = () => (
       .scout-slider::-moz-range-thumb { width: 24px; height: 24px; }
     }
 
-    /* sources chips ----------------------------------------------------- */
+    /* sources chips — bigger, platform-tinted ------------------------- */
     .scout-sources { display: flex; flex-wrap: wrap; gap: 6px; }
     .scout-source {
-      padding: 5px 10px;
-      font-size: 11.5px; font-weight: 600;
+      padding: 7px 12px;
+      font-size: 12.5px; font-weight: 600;
       color: var(--scout-text-dim);
       background: transparent;
-      border: 1px solid var(--scout-border-strong);
+      border: 1.5px solid var(--scout-border-strong);
       border-radius: 999px;
       letter-spacing: -0.005em;
       transition: background-color 160ms var(--scout-ease), border-color 160ms var(--scout-ease), color 160ms var(--scout-ease);
     }
-    .scout-source:hover { border-color: var(--scout-amber); color: var(--scout-text); }
-    .scout-source.is-on { background: var(--scout-amber); border-color: var(--scout-amber); color: #fff; }
-    .scout-source.is-implicit { background: var(--scout-amber-soft); border-color: var(--scout-amber-soft); color: var(--scout-amber-hover); }
-    .scout-source.is-on:hover { background: var(--scout-amber-hover); border-color: var(--scout-amber-hover); }
+    .scout-source--all {
+      color: var(--scout-text-dim);
+      border-color: var(--scout-border-strong);
+    }
+    .scout-source--all.is-on {
+      background: var(--scout-amber);
+      border-color: var(--scout-amber);
+      color: #fff;
+    }
+    .scout-source--all.is-on:hover { background: var(--scout-amber-hover); border-color: var(--scout-amber-hover); }
 
     /* run scout button -------------------------------------------------- */
     .scout-run {
@@ -1461,7 +1467,6 @@ const ScoutStyle = () => (
       50% { transform: scale(0.85); box-shadow: 0 0 0 5px rgba(255,255,255,0); }
     }
 
-    /* reset link ------------------------------------------------------- */
     .scout-reset {
       display: inline-flex; align-items: center; justify-content: center; gap: 5px;
       align-self: center;
@@ -1501,7 +1506,6 @@ const ScoutStyle = () => (
       display: inline-flex; align-items: center; justify-content: center;
       font-size: 9.5px; font-weight: 700;
       color: #fff;
-      background: var(--scout-direct);
       letter-spacing: 0;
     }
     .scout-source-name { color: var(--scout-text-dim); }
@@ -1556,11 +1560,13 @@ const ScoutStyle = () => (
       flex-direction: column;
       gap: 12px;
       width: 100%;
+      min-width: 0;
       padding: 18px 20px 16px;
       text-align: left;
       border-radius: 18px;
       border: 1px solid rgba(20,22,28,0.045);
       box-shadow: 0 1px 1px rgba(20,22,28,0.025);
+      overflow: hidden;
       will-change: transform;
       transition:
         box-shadow 240ms var(--scout-ease),
@@ -1579,26 +1585,14 @@ const ScoutStyle = () => (
     .scout-card--direct.is-active { --scout-card-ring: var(--scout-direct); }
     .scout-card--stretch.is-active { --scout-card-ring: var(--scout-stretch); }
 
-    .scout-card-dismiss {
-      position: absolute;
-      top: 10px; right: 10px;
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(27,31,42,0.55);
-      background: rgba(255,255,255,0.7);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(20,22,28,0.06);
-      cursor: pointer;
-      z-index: 2;
-    }
-    .scout-card-dismiss:hover { color: var(--scout-stretch); background: #fff; }
-
     .scout-card-head {
       display: flex; justify-content: space-between; align-items: flex-start;
       gap: 12px;
+      min-width: 0;
+    }
+    .scout-card-head-right {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+      flex-shrink: 0;
     }
     .scout-logo {
       width: 42px; height: 42px;
@@ -1610,7 +1604,6 @@ const ScoutStyle = () => (
     }
     .scout-score-block {
       display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
-      flex-shrink: 0;
     }
     .scout-state-pip {
       display: inline-flex; align-items: center; gap: 5px;
@@ -1618,13 +1611,10 @@ const ScoutStyle = () => (
       border-radius: 999px;
       font-size: 10.5px; font-weight: 700; letter-spacing: 0.005em;
       border: 1px solid;
+      white-space: nowrap;
     }
-    .scout-state-pip--direct {
-      color: var(--scout-direct); background: var(--scout-direct-soft); border-color: var(--scout-direct-line);
-    }
-    .scout-state-pip--stretch {
-      color: var(--scout-stretch); background: var(--scout-stretch-soft); border-color: var(--scout-stretch-line);
-    }
+    .scout-state-pip--direct { color: var(--scout-direct); background: var(--scout-direct-soft); border-color: var(--scout-direct-line); }
+    .scout-state-pip--stretch { color: var(--scout-stretch); background: var(--scout-stretch-soft); border-color: var(--scout-stretch-line); }
     .scout-pip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
     .scout-score-num {
@@ -1637,38 +1627,90 @@ const ScoutStyle = () => (
     .scout-card--stretch .scout-score-num { color: var(--scout-stretch); }
     .scout-score-pct { font-size: 0.55em; margin-left: 1px; font-weight: 700; opacity: 0.85; }
 
-    .scout-card-body { display: flex; flex-direction: column; gap: 2px; }
+    /* apply button on card --------------------------------------------- */
+    .scout-card-apply {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 8px;
+      font-size: 11.5px; font-weight: 700;
+      color: #fff;
+      background: var(--scout-amber);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 3px 10px -2px rgba(217,119,6,0.32);
+      transition: background-color 160ms var(--scout-ease);
+      white-space: nowrap;
+    }
+    .scout-card-apply:hover { background: var(--scout-amber-hover); }
+    .scout-apply-sizer {
+      visibility: hidden;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      padding: 0 4px;
+    }
+    .scout-apply-text {
+      position: absolute;
+      inset: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: opacity 180ms var(--scout-ease);
+      padding: 0 12px;
+      white-space: nowrap;
+    }
+    .scout-apply-text--hover { opacity: 0; }
+    .scout-card-apply:hover .scout-apply-text--default { opacity: 0; }
+    .scout-card-apply:hover .scout-apply-text--hover { opacity: 1; }
+
+    /* card body --------------------------------------------------------- */
+    .scout-card-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .scout-card-role {
       margin: 0;
-      font-size: 17px; font-weight: 700; letter-spacing: -0.018em;
+      font-size: 16px; font-weight: 700; letter-spacing: -0.018em;
       color: var(--scout-text); line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      word-break: break-word;
     }
     .scout-card-company {
       font-size: 12.5px; font-weight: 500;
       color: var(--scout-text-dim);
       letter-spacing: -0.005em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .scout-skill-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .scout-skill-row { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
     .scout-skill {
       padding: 3px 9px;
       font-size: 11px; font-weight: 600;
       color: var(--scout-text-dim);
-      background: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.7);
       border: 1px solid rgba(20,22,28,0.05);
       border-radius: 999px;
       white-space: nowrap;
-      max-width: 140px;
+      max-width: 130px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .scout-skill--more { background: transparent; color: var(--scout-text-faint); border-color: transparent; }
 
     .scout-meta-line {
-      display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
       font-size: 11.5px; font-weight: 500;
       color: var(--scout-text-dim);
+      min-width: 0;
     }
-    .scout-meta-line svg { color: var(--scout-text-faint); }
+    .scout-meta-line svg { color: var(--scout-text-faint); flex-shrink: 0; }
+    .scout-meta-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .scout-dot {
       width: 3px; height: 3px;
       border-radius: 50%;
@@ -1677,25 +1719,24 @@ const ScoutStyle = () => (
     }
 
     .scout-card-foot {
-      display: flex; justify-content: space-between; align-items: flex-end;
-      gap: 10px; flex-wrap: wrap;
+      display: flex; flex-direction: column; gap: 2px;
       padding-top: 10px;
       margin-top: 2px;
       border-top: 1px solid rgba(20,22,28,0.06);
-    }
-    .scout-salary-block {
-      display: flex; flex-direction: column;
-      gap: 2px;
+      min-width: 0;
     }
     .scout-salary {
-      font-size: 18px; font-weight: 800;
+      font-size: 16px; font-weight: 700;
       color: var(--scout-text);
-      letter-spacing: -0.02em;
+      letter-spacing: -0.018em;
       font-feature-settings: "tnum" 1, "lnum" 1;
-      line-height: 1.1;
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .scout-salary-meta {
-      display: inline-flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
       font-size: 10.5px; font-weight: 500;
       color: var(--scout-text-faint);
     }
@@ -1707,38 +1748,18 @@ const ScoutStyle = () => (
       color: var(--scout-text-dim);
       font-size: 10px; font-weight: 600;
       letter-spacing: 0.005em;
+      white-space: nowrap;
     }
-    .scout-source-tag--card {}
     .scout-source-tag--inline {
       font-size: 11px; padding: 2px 8px;
       background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
     }
 
-    .scout-card-tailor {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: 12px; font-weight: 700;
-      color: var(--scout-amber);
-      background: rgba(255,255,255,0.7);
-      border: 1px solid rgba(217,119,6,0.18);
-      transition: background-color 160ms var(--scout-ease), color 160ms var(--scout-ease);
-    }
-    .scout-card-tailor:hover { background: var(--scout-amber); color: #fff; }
-
     /* skeleton cards (loading) ----------------------------------------- */
-    .scout-skeleton-card {
-      background: var(--scout-surface);
-      pointer-events: none;
-    }
+    .scout-skeleton-card { background: var(--scout-surface); pointer-events: none; }
     .scout-skel {
-      background: linear-gradient(
-        90deg,
-        rgba(20,22,28,0.06) 0%,
-        rgba(20,22,28,0.10) 50%,
-        rgba(20,22,28,0.06) 100%
-      );
+      background: linear-gradient(90deg, rgba(20,22,28,0.06) 0%, rgba(20,22,28,0.10) 50%, rgba(20,22,28,0.06) 100%);
       background-size: 200% 100%;
       animation: scout-shimmer 1.4s linear infinite;
       border-radius: 6px;
@@ -1756,8 +1777,7 @@ const ScoutStyle = () => (
     /* empty state ------------------------------------------------------- */
     .scout-empty-state {
       display: flex; flex-direction: column; align-items: center;
-      gap: 10px;
-      text-align: center;
+      gap: 10px; text-align: center;
       padding: 56px 24px;
       border-radius: 16px;
       background: var(--scout-surface);
@@ -1807,12 +1827,11 @@ const ScoutStyle = () => (
     .scout-detail-empty h4 { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--scout-text); }
     .scout-detail-empty p { margin: 0; font-size: 12.5px; max-width: 32ch; line-height: 1.55; }
 
-    .scout-detail { display: flex; flex-direction: column; gap: 22px; position: relative; }
+    .scout-detail { display: flex; flex-direction: column; gap: 18px; position: relative; }
     .scout-detail-head {
       display: flex; align-items: flex-start; justify-content: space-between;
       gap: 16px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--scout-border);
+      padding-bottom: 14px;
       position: relative;
     }
     .scout-detail-head-left { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -1869,9 +1888,7 @@ const ScoutStyle = () => (
     }
     .scout-detail-why--soft { color: var(--scout-text-dim); margin-top: 2px; }
 
-    .scout-breakdown {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    }
+    .scout-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .scout-stat-card {
       display: flex; flex-direction: column; gap: 4px;
       padding: 12px 14px;
@@ -1946,11 +1963,13 @@ const ScoutStyle = () => (
     }
     button.scout-kw--miss:hover { background: #FCE5C0; border-style: solid; }
 
-    /* actions ----------------------------------------------------------- */
+    /* actions — moved to top of detail panel --------------------------- */
     .scout-detail-actions {
       display: grid; grid-template-columns: 1fr auto auto; gap: 8px;
-      padding-top: 18px;
-      border-top: 1px solid var(--scout-border);
+    }
+    .scout-detail-actions--top {
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--scout-border);
     }
     .scout-btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -2058,12 +2077,11 @@ const ScoutStyle = () => (
       .scout-search { display: none; }
       .scout-list-head { flex-direction: column; align-items: flex-start; gap: 12px; }
       .scout-list-title { font-size: 22px; }
-      .scout-card { padding: 16px; }
-      .scout-card-role { font-size: 16px; }
-      .scout-salary { font-size: 17px; }
+      .scout-card { padding: 16px 16px 14px; }
+      .scout-card-role { font-size: 15.5px; }
+      .scout-salary { font-size: 15.5px; }
+      .scout-card-apply { height: 32px; padding: 0 14px; font-size: 12px; }
       .scout-detail-actions { grid-template-columns: 1fr; }
-      .scout-card-tailor { opacity: 1 !important; transform: none !important; }
-      .scout-card-dismiss { opacity: 1 !important; transform: none !important; }
     }
   `}</style>
 );
