@@ -18,19 +18,17 @@ import {
   ArrowRight,
   Bookmark,
   SkipForward,
-  Activity,
-  Building2,
   Clock,
   Compass,
-  ArrowUpRight,
+  Plus,
+  GraduationCap,
 } from 'lucide-react';
 
 /* =====================================================================
    ScoutDashboard — Pro-only feature, static UI prototype
-   - Self-contained: scoped <style> block uses CVPassport design tokens
-   - Tailwind not installed in this project; CSS vars match styles.css
-   - Reference layout (Eclipse 3-col) used for structure only — palette,
-     typography and motion are bespoke for the CVPassport dark system
+   Light, warm, LinkedIn-adjacent direction. Single sans-serif type
+   system (Plus Jakarta Sans). Tailwind not installed in this project,
+   so all styles ship in a self-contained scoped <style> block.
    ===================================================================== */
 
 const JOBS = [
@@ -50,9 +48,14 @@ const JOBS = [
     skills: ['Active Directory', 'Office 365', 'ITIL v4', 'Windows 11', 'JIRA'],
     skillsMatched: 9,
     skillsTotal: 10,
-    breakdown: { Skills: 95, Experience: 90, Location: 100, Salary: 82 },
+    breakdown: {
+      Skills: { value: 95, note: 'Excellent' },
+      Experience: { value: 90, note: 'Strong' },
+      Location: { value: 100, note: 'Walking distance' },
+      Salary: { value: 82, note: 'In range' },
+    },
     why:
-      'Your four years on a service desk plus your Office 365 admin chops map almost one-to-one. DIFC is a 12-minute walk from your stated home location.',
+      'Your four years on a service desk plus your Office 365 admin experience map almost one-to-one. DIFC is a 12-minute walk from your stated home location.',
     cvTweaks: [
       {
         field: 'Headline',
@@ -86,7 +89,12 @@ const JOBS = [
     skills: ['ITIL', 'Service Desk', 'Ticketing', 'Remote Support', 'O365'],
     skillsMatched: 8,
     skillsTotal: 10,
-    breakdown: { Skills: 90, Experience: 88, Location: 92, Salary: 80 },
+    breakdown: {
+      Skills: { value: 90, note: 'Strong' },
+      Experience: { value: 88, note: 'Strong' },
+      Location: { value: 92, note: '15 min commute' },
+      Salary: { value: 80, note: 'In range' },
+    },
     why:
       'Your ticket-handling volume in your last role exceeds their stated SLA. Insurance domain language is missing from your CV — easy fix.',
     cvTweaks: [
@@ -122,9 +130,14 @@ const JOBS = [
     skills: ['Networking', 'PowerShell', 'POS Systems', 'Linux', 'VPN'],
     skillsMatched: 6,
     skillsTotal: 10,
-    breakdown: { Skills: 72, Experience: 70, Location: 88, Salary: 90 },
+    breakdown: {
+      Skills: { value: 72, note: 'Close' },
+      Experience: { value: 70, note: 'Close' },
+      Location: { value: 88, note: '25 min commute' },
+      Salary: { value: 90, note: 'Above target' },
+    },
     why:
-      'A reach — they want one year of scripting you don\'t have on paper. Your home-lab automation work would close that gap if you surface it.',
+      'A reach — they want one year of scripting you don’t have on paper. Your home-lab automation work would close that gap if you surface it.',
     cvTweaks: [
       {
         field: 'New section',
@@ -158,7 +171,12 @@ const JOBS = [
     skills: ['Team Leadership', 'ITIL', 'Vendor Mgmt', 'Networking', 'O365'],
     skillsMatched: 6,
     skillsTotal: 11,
-    breakdown: { Skills: 70, Experience: 60, Location: 75, Salary: 95 },
+    breakdown: {
+      Skills: { value: 70, note: 'Close' },
+      Experience: { value: 60, note: 'Stretch' },
+      Location: { value: 75, note: '35 min commute' },
+      Salary: { value: 95, note: 'Above target' },
+    },
     why:
       'A real stretch — you have not formally led a team. The salary delta is huge, and your vendor coordination experience is a credible bridge.',
     cvTweaks: [
@@ -192,126 +210,112 @@ const useViewport = () => {
   return {
     width: w,
     isMobile: w < 768,
-    isTablet: w >= 768 && w < 1180,
     isDesktop: w >= 1180,
   };
 };
 
-/* count-up score number, set in serif italic */
-const ScoreNumber = ({ value, size = 28 }) => {
+/* count-up score number — sans-serif, no italic serif */
+const ScoreNumber = ({ value, size = 22, weight = 600 }) => {
   const mv = useMotionValue(0);
   const display = useTransform(mv, (n) => Math.round(n));
   useEffect(() => {
-    const controls = animate(mv, value, {
-      duration: 1.1,
-      ease: [0.16, 1, 0.3, 1],
-    });
+    const controls = animate(mv, value, { duration: 0.9, ease: [0.22, 1, 0.36, 1] });
     return () => controls.stop();
   }, [value, mv]);
   return (
-    <span className="scout-score-num" style={{ fontSize: size }}>
+    <span className="scout-score-num" style={{ fontSize: size, fontWeight: weight }}>
       <motion.span>{display}</motion.span>
       <span className="scout-score-pct">%</span>
     </span>
   );
 };
 
-/* horizontal bar that animates width on mount */
-const Bar = ({ label, value, tone }) => {
+/* circular score ring — light, refined */
+const ScoreRing = ({ value, tone, size = 88 }) => {
+  const r = (size - 10) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = useMotionValue(c);
+  useEffect(() => {
+    const controls = animate(offset, c - (value / 100) * c, {
+      duration: 1.0,
+      ease: [0.22, 1, 0.36, 1],
+    });
+    return () => controls.stop();
+  }, [value, c, offset]);
+  const stroke = tone === 'direct' ? 'var(--scout-direct)' : 'var(--scout-stretch)';
   return (
-    <div className="scout-bar-row">
-      <div className="scout-bar-head">
-        <span className="scout-bar-label">{label}</span>
-        <span className="scout-bar-value">{value}</span>
-      </div>
-      <div className="scout-bar-track">
-        <motion.div
-          className={`scout-bar-fill scout-bar-fill--${tone}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+    <div className="scout-ring-wrap" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="var(--scout-border)"
+          strokeWidth="5"
+          fill="none"
         />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={stroke}
+          strokeWidth="5"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          style={{ strokeDashoffset: offset }}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      <div className="scout-ring-inner">
+        <ScoreNumber value={value} size={Math.round(size * 0.26)} weight={600} />
       </div>
     </div>
   );
 };
 
-/* circular score ring, SVG */
-const ScoreRing = ({ value, tone }) => {
-  const r = 38;
-  const c = 2 * Math.PI * r;
-  const offset = useMotionValue(c);
-  useEffect(() => {
-    const controls = animate(offset, c - (value / 100) * c, {
-      duration: 1.2,
-      ease: [0.16, 1, 0.3, 1],
-    });
-    return () => controls.stop();
-  }, [value, c, offset]);
-  const stroke = tone === 'direct' ? 'var(--scout-green)' : 'var(--scout-amber)';
-  return (
-    <div className="scout-ring-wrap">
-      <svg width="96" height="96" viewBox="0 0 96 96">
-        <circle
-          cx="48"
-          cy="48"
-          r={r}
-          stroke="var(--scout-border)"
-          strokeWidth="4"
-          fill="none"
-        />
-        <motion.circle
-          cx="48"
-          cy="48"
-          r={r}
-          stroke={stroke}
-          strokeWidth="4"
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          style={{ strokeDashoffset: offset }}
-          transform="rotate(-90 48 48)"
-        />
-      </svg>
-      <div className="scout-ring-inner">
-        <ScoreNumber value={value} size={26} />
-      </div>
-    </div>
-  );
-};
+/* breakdown stat block — replaces horizontal bars */
+const Breakdown = ({ data }) => (
+  <div className="scout-breakdown">
+    {Object.entries(data).map(([label, { value, note }]) => {
+      const tone = value >= 85 ? 'good' : value >= 70 ? 'okay' : 'low';
+      return (
+        <div key={label} className={`scout-stat-card scout-stat-card--${tone}`}>
+          <div className="scout-stat-label">{label}</div>
+          <div className="scout-stat-value">
+            <ScoreNumber value={value} size={22} weight={600} />
+          </div>
+          <div className="scout-stat-note">{note}</div>
+        </div>
+      );
+    })}
+  </div>
+);
 
 /* ---------------------------- sidebar ---------------------------- */
 
 const PreferencesSidebar = ({ onRunScout, scanning }) => {
   const [salary, setSalary] = useState(10000);
+  const pct = ((salary - 5000) / (25000 - 5000)) * 100;
 
   return (
     <motion.aside
       className="scout-sidebar"
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="scout-sidebar-head">
-        <div className="scout-brand">
-          <Compass size={18} strokeWidth={1.6} />
-          <span className="scout-brand-word">Scout</span>
-        </div>
-        <p className="scout-sidebar-sub">
-          Tell Scout what you want. It searches the corridor at 4&nbsp;AM Gulf time and
-          comes back with a shortlist.
-        </p>
-      </div>
+      <div className="scout-sidebar-section">
+        <div className="scout-sidebar-title">Search preferences</div>
 
-      <div className="scout-form">
-        <Field icon={<Briefcase size={14} strokeWidth={1.6} />} label="Role">
+        <Field icon={<Briefcase size={14} strokeWidth={1.8} />} label="Role">
           <input
             className="scout-input"
             defaultValue="IT Support / Service Desk"
           />
         </Field>
 
-        <Field icon={<MapPin size={14} strokeWidth={1.6} />} label="Location">
+        <Field icon={<MapPin size={14} strokeWidth={1.8} />} label="Location">
           <select className="scout-input scout-select">
             <option>Dubai, UAE</option>
             <option>Abu Dhabi, UAE</option>
@@ -320,7 +324,10 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
           </select>
         </Field>
 
-        <Field icon={<Activity size={14} strokeWidth={1.6} />} label="Experience">
+        <Field
+          icon={<GraduationCap size={14} strokeWidth={1.8} />}
+          label="Experience"
+        >
           <select className="scout-input scout-select">
             <option>Mid (3-5 years)</option>
             <option>Junior (0-2 years)</option>
@@ -329,7 +336,7 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
         </Field>
 
         <Field
-          icon={<Banknote size={14} strokeWidth={1.6} />}
+          icon={<Banknote size={14} strokeWidth={1.8} />}
           label={
             <span className="scout-salary-head">
               <span>Min salary</span>
@@ -347,6 +354,7 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
               step="500"
               value={salary}
               onChange={(e) => setSalary(Number(e.target.value))}
+              style={{ '--p': `${pct}%` }}
               className="scout-slider"
             />
             <div className="scout-slider-ticks">
@@ -363,34 +371,16 @@ const PreferencesSidebar = ({ onRunScout, scanning }) => {
         className={`scout-run ${scanning ? 'is-scanning' : ''}`}
         onClick={onRunScout}
         whileHover={{ y: -1 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ duration: 0.15 }}
+        whileTap={{ scale: 0.985 }}
+        transition={{ duration: 0.18 }}
       >
-        <span className="scout-run-glow" aria-hidden="true" />
-        <span className="scout-run-inner">
-          <Sparkles size={15} strokeWidth={1.8} />
-          {scanning ? 'Scout is searching…' : 'Run Scout now'}
-        </span>
+        <Sparkles size={15} strokeWidth={1.9} />
+        {scanning ? 'Searching jobs…' : 'Run Scout'}
       </motion.button>
 
-      <div className="scout-stats">
-        <div className="scout-stats-head">
-          <span>Today&apos;s haul</span>
-          <span className="scout-live">
-            <span className="scout-live-dot" />
-            live
-          </span>
-        </div>
-        <div className="scout-stats-grid">
-          <Stat n="4" l="matches" />
-          <Stat n="2" l="direct" tone="green" />
-          <Stat n="2" l="stretch" tone="amber" />
-          <Stat n="82%" l="avg fit" />
-        </div>
-        <div className="scout-stats-foot">
-          <Clock size={11} strokeWidth={1.6} />
-          Last sweep · 2h ago
-        </div>
+      <div className="scout-mini-stat">
+        <span className="scout-live-dot" />
+        4 matches found · 2h ago
       </div>
     </motion.aside>
   );
@@ -406,96 +396,82 @@ const Field = ({ icon, label, children }) => (
   </label>
 );
 
-const Stat = ({ n, l, tone }) => (
-  <div className={`scout-stat ${tone ? `scout-stat--${tone}` : ''}`}>
-    <span className="scout-stat-n">{n}</span>
-    <span className="scout-stat-l">{l}</span>
-  </div>
-);
-
 /* ---------------------------- job card ---------------------------- */
 
-const JobCard = ({ job, active, onClick, index }) => {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      className={`scout-card scout-card--${job.state} ${
-        active ? 'is-active' : ''
-      }`}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: 0.5,
-        delay: 0.15 + index * 0.07,
-        ease: [0.16, 1, 0.3, 1],
-      }}
-      whileHover={{ y: -2 }}
-    >
-      <div className="scout-card-glow" aria-hidden="true" />
-
-      <div className="scout-card-head">
-        <div className="scout-company">
-          <div className={`scout-logo scout-logo--${job.state}`}>
-            {job.initials}
-          </div>
-          <div className="scout-company-meta">
-            <div className="scout-company-name">{job.company}</div>
-            <div className="scout-company-sub">
-              <Building2 size={11} strokeWidth={1.6} />
-              {job.location}
-              <span className="scout-dot" />
-              <Clock size={11} strokeWidth={1.6} />
-              {job.posted}
-            </div>
-          </div>
+const JobCard = ({ job, active, onClick, index }) => (
+  <motion.button
+    type="button"
+    onClick={onClick}
+    className={`scout-card scout-card--${job.state} ${active ? 'is-active' : ''}`}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{
+      duration: 0.4,
+      delay: 0.08 + index * 0.05,
+      ease: [0.22, 1, 0.36, 1],
+    }}
+    whileHover={{ y: -1 }}
+  >
+    <div className="scout-card-head">
+      <div className="scout-company">
+        <div className={`scout-logo scout-logo--${job.state}`}>
+          {job.initials}
         </div>
-
-        <div className="scout-score-block">
-          <div className={`scout-state-pip scout-state-pip--${job.state}`}>
-            <span className="scout-pip-dot" />
-            {job.state === 'direct' ? 'Direct match' : 'Stretch match'}
+        <div className="scout-company-meta">
+          <div className="scout-company-name">{job.company}</div>
+          <div className="scout-company-sub">
+            <MapPin size={11} strokeWidth={1.9} />
+            {job.location}
+            <span className="scout-dot" />
+            <Clock size={11} strokeWidth={1.9} />
+            {job.posted}
           </div>
-          <ScoreNumber value={job.score} size={32} />
         </div>
       </div>
 
-      <h3 className="scout-card-role">{job.role}</h3>
-      <p className="scout-card-summary">{job.summary}</p>
-
-      <div className="scout-card-meta">
-        <div className="scout-salary">
-          <Banknote size={13} strokeWidth={1.6} />
-          {job.salary}
-          <span className="scout-salary-note">{job.salaryNote}</span>
+      <div className="scout-score-block">
+        <div className={`scout-state-pip scout-state-pip--${job.state}`}>
+          <span className="scout-pip-dot" />
+          {job.state === 'direct' ? 'Direct match' : 'Stretch match'}
         </div>
+        <ScoreNumber value={job.score} size={26} weight={700} />
+      </div>
+    </div>
+
+    <h3 className="scout-card-role">{job.role}</h3>
+    <p className="scout-card-summary">{job.summary}</p>
+
+    <div className="scout-skill-row">
+      {job.skills.slice(0, 4).map((s) => (
+        <span key={s} className="scout-skill">
+          {s}
+        </span>
+      ))}
+      {job.skills.length > 4 && (
+        <span className="scout-skill scout-skill--more">
+          +{job.skills.length - 4}
+        </span>
+      )}
+    </div>
+
+    <div className="scout-card-foot">
+      <div className="scout-salary">
+        <Banknote size={13} strokeWidth={1.9} />
+        {job.salary}
+        <span className="scout-salary-note">{job.salaryNote}</span>
+      </div>
+      <div className="scout-card-foot-right">
         <div className="scout-skill-fit">
-          {job.skillsMatched}/{job.skillsTotal} skills
+          {job.skillsMatched}/{job.skillsTotal} skills match
         </div>
-      </div>
-
-      <div className="scout-skill-row">
-        {job.skills.slice(0, 4).map((s) => (
-          <span key={s} className="scout-skill">
-            {s}
-          </span>
-        ))}
-        {job.skills.length > 4 && (
-          <span className="scout-skill scout-skill--more">
-            +{job.skills.length - 4}
-          </span>
-        )}
-      </div>
-
-      <div className="scout-card-foot">
         <span className="scout-card-foot-cta">
           View match
-          <ArrowRight size={13} strokeWidth={1.8} />
+          <ArrowRight size={13} strokeWidth={2} />
         </span>
       </div>
-    </motion.button>
-  );
-};
+    </div>
+  </motion.button>
+);
 
 /* ---------------------------- detail panel ---------------------------- */
 
@@ -504,12 +480,12 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
     return (
       <div className="scout-detail-empty">
         <div className="scout-empty-mark">
-          <Compass size={28} strokeWidth={1.4} />
+          <Compass size={26} strokeWidth={1.6} />
         </div>
-        <h4>Pick a match to open the dossier</h4>
+        <h4>Pick a match to open the breakdown</h4>
         <p>
-          Scout will lay out the breakdown, the CV tweaks, and the ATS keywords
-          for any job you click.
+          Scout will lay out the score, the CV tweaks, and the ATS keywords for
+          any job you click.
         </p>
       </div>
     );
@@ -519,10 +495,10 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
     <motion.div
       key={job.id}
       className="scout-detail"
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 24 }}
-      transition={{ type: 'spring', stiffness: 240, damping: 28, mass: 0.6 }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 30, mass: 0.6 }}
     >
       <div className="scout-detail-head">
         <div className="scout-detail-head-left">
@@ -532,7 +508,7 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
           </div>
           <h2 className="scout-detail-role">{job.role}</h2>
           <div className="scout-detail-meta">
-            <span>{job.company}</span>
+            <span className="scout-detail-meta-strong">{job.company}</span>
             <span className="scout-dot" />
             <span>{job.location}</span>
             <span className="scout-dot" />
@@ -547,7 +523,7 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
             onClick={onClose}
             aria-label="Close detail"
           >
-            <X size={16} strokeWidth={1.8} />
+            <X size={16} strokeWidth={2} />
           </button>
         )}
       </div>
@@ -557,16 +533,7 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
       </Section>
 
       <Section title="Match breakdown">
-        <div className="scout-bars">
-          {Object.entries(job.breakdown).map(([k, v]) => (
-            <Bar
-              key={k}
-              label={k}
-              value={v}
-              tone={v >= 85 ? 'green' : v >= 70 ? 'amber' : 'dim'}
-            />
-          ))}
-        </div>
+        <Breakdown data={job.breakdown} />
       </Section>
 
       <Section title="CV tweaks Scout suggests">
@@ -575,18 +542,18 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
             <motion.div
               key={i}
               className="scout-tweak"
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 + i * 0.08, duration: 0.4 }}
+              transition={{ delay: 0.18 + i * 0.06, duration: 0.32 }}
             >
               <div className="scout-tweak-field">{t.field}</div>
               <div className="scout-tweak-rows">
                 <div className="scout-tweak-row scout-tweak-row--before">
-                  <span className="scout-tweak-tag">before</span>
+                  <span className="scout-tweak-tag">Before</span>
                   <span className="scout-tweak-text">{t.before}</span>
                 </div>
                 <div className="scout-tweak-row scout-tweak-row--after">
-                  <span className="scout-tweak-tag">after</span>
+                  <span className="scout-tweak-tag">After</span>
                   <span className="scout-tweak-text">{t.after}</span>
                 </div>
               </div>
@@ -598,7 +565,7 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
       <Section title="ATS keywords">
         <div className="scout-kw-group">
           <div className="scout-kw-label scout-kw-label--ok">
-            <Check size={11} strokeWidth={2.2} />
+            <Check size={11} strokeWidth={2.4} />
             Already in your CV
           </div>
           <div className="scout-kw-row">
@@ -611,8 +578,8 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
         </div>
         <div className="scout-kw-group">
           <div className="scout-kw-label scout-kw-label--miss">
-            <X size={11} strokeWidth={2.2} />
-            Missing — add these
+            <Plus size={11} strokeWidth={2.4} />
+            Add these to your CV
           </div>
           <div className="scout-kw-row">
             {job.keywords.missing.map((k) => (
@@ -626,16 +593,15 @@ const DetailPanel = ({ job, onClose, isOverlay }) => {
 
       <div className="scout-detail-actions">
         <button type="button" className="scout-btn scout-btn--primary">
-          <Sparkles size={14} strokeWidth={1.8} />
+          <Sparkles size={14} strokeWidth={2} />
           Apply with tailored CV
-          <ArrowUpRight size={14} strokeWidth={1.8} />
         </button>
         <button type="button" className="scout-btn scout-btn--ghost">
-          <Bookmark size={13} strokeWidth={1.8} />
+          <Bookmark size={13} strokeWidth={1.9} />
           Save
         </button>
         <button type="button" className="scout-btn scout-btn--ghost">
-          <SkipForward size={13} strokeWidth={1.8} />
+          <SkipForward size={13} strokeWidth={1.9} />
           Skip
         </button>
       </div>
@@ -664,7 +630,7 @@ const ScoutDashboard = () => {
     [selectedId]
   );
 
-  // load distinctive fonts (Instrument Serif italic + Geist) at runtime
+  // Plus Jakarta Sans — single sans-serif for the whole screen
   useEffect(() => {
     const id = 'scout-fonts';
     if (document.getElementById(id)) return undefined;
@@ -672,7 +638,7 @@ const ScoutDashboard = () => {
     link.id = id;
     link.rel = 'stylesheet';
     link.href =
-      'https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap';
+      'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap';
     document.head.appendChild(link);
     return () => {
       const el = document.getElementById(id);
@@ -680,7 +646,6 @@ const ScoutDashboard = () => {
     };
   }, []);
 
-  // when picking a card on tablet/mobile, open the overlay
   const handleSelect = (id) => {
     setSelectedId(id);
     if (!isDesktop) setOverlayOpen(true);
@@ -690,36 +655,33 @@ const ScoutDashboard = () => {
 
   const runScout = () => {
     setScanning(true);
-    setTimeout(() => setScanning(false), 1800);
+    setTimeout(() => setScanning(false), 1600);
   };
 
   return (
     <div className="scout-root">
       <ScoutStyle />
 
-      {/* ambient gradient backdrop */}
-      <div className="scout-ambient" aria-hidden="true">
-        <div className="scout-ambient-amber" />
-        <div className="scout-ambient-green" />
-      </div>
-
-      {/* top bar */}
+      {/* topbar */}
       <header className="scout-topbar">
         <div className="scout-topbar-left">
-          <div className="scout-brand scout-brand--top">
-            <Compass size={16} strokeWidth={1.6} />
+          <div className="scout-brand">
+            <div className="scout-brand-mark">
+              <Compass size={14} strokeWidth={2} />
+            </div>
             <span className="scout-brand-word">Scout</span>
-            <span className="scout-brand-tag">pro</span>
+            <span className="scout-brand-tag">PRO</span>
           </div>
           <div className="scout-topbar-status">
             <span className="scout-live-dot" />
-            Last sweep · 2h ago · 4 new matches
+            4 new matches · last sweep 2h ago
           </div>
         </div>
         <div className="scout-topbar-right">
-          <button type="button" className="scout-icon-btn" aria-label="Search">
-            <Search size={15} strokeWidth={1.6} />
-          </button>
+          <div className="scout-search">
+            <Search size={14} strokeWidth={1.9} />
+            <input placeholder="Search Scout" />
+          </div>
           <div className="scout-avatar">JK</div>
         </div>
       </header>
@@ -733,14 +695,10 @@ const ScoutDashboard = () => {
         <main className="scout-list">
           <div className="scout-list-head">
             <div>
-              <div className="scout-list-eyebrow">Tonight&apos;s shortlist</div>
-              <h1 className="scout-list-title">
-                <span className="scout-list-title-italic">Four</span> jobs worth your
-                morning coffee
-              </h1>
+              <h1 className="scout-list-title">Tonight&apos;s shortlist</h1>
               <p className="scout-list-sub">
-                Two direct matches you should apply to today, two stretch roles
-                Scout thinks you can crack with the right CV tweaks.
+                4 jobs found in Dubai &middot; 2 direct matches and 2 stretch
+                roles worth a look.
               </p>
             </div>
 
@@ -748,20 +706,12 @@ const ScoutDashboard = () => {
               <span className="scout-sort-label">Sort by</span>
               <button type="button" className="scout-sort-btn">
                 {sort}
-                <ChevronDown size={13} strokeWidth={1.8} />
+                <ChevronDown size={13} strokeWidth={2} />
               </button>
             </div>
           </div>
 
-          <motion.div
-            className="scout-cards"
-            initial="hidden"
-            animate="show"
-            variants={{
-              hidden: {},
-              show: { transition: { staggerChildren: 0.06 } },
-            }}
-          >
+          <div className="scout-cards">
             {JOBS.map((j, i) => (
               <JobCard
                 key={j.id}
@@ -771,17 +721,16 @@ const ScoutDashboard = () => {
                 onClick={() => handleSelect(j.id)}
               />
             ))}
-          </motion.div>
+          </div>
 
-          {/* mobile-only CTA — surfaces preferences bottom-up */}
           {isMobile && (
             <button
               type="button"
               className="scout-mobile-pref"
               onClick={runScout}
             >
-              <Sparkles size={14} strokeWidth={1.8} />
-              Adjust scout preferences
+              <Sparkles size={14} strokeWidth={2} />
+              Adjust search preferences
             </button>
           )}
         </main>
@@ -799,7 +748,7 @@ const ScoutDashboard = () => {
         )}
       </div>
 
-      {/* overlay modes — tablet right slide-over, mobile bottom sheet */}
+      {/* overlay — tablet right slide-over, mobile bottom sheet */}
       <AnimatePresence>
         {!isDesktop && overlayOpen && selected && (
           <motion.div
@@ -811,11 +760,13 @@ const ScoutDashboard = () => {
             onClick={closeOverlay}
           >
             <motion.div
-              className={`scout-overlay ${isMobile ? 'scout-overlay--sheet' : 'scout-overlay--rail'}`}
+              className={`scout-overlay ${
+                isMobile ? 'scout-overlay--sheet' : 'scout-overlay--rail'
+              }`}
               initial={isMobile ? { y: '100%' } : { x: '100%' }}
               animate={isMobile ? { y: 0 } : { x: 0 }}
               exit={isMobile ? { y: '100%' } : { x: '100%' }}
-              transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 32 }}
               onClick={(e) => e.stopPropagation()}
             >
               {isMobile && <div className="scout-sheet-grip" />}
@@ -833,27 +784,35 @@ const ScoutDashboard = () => {
 const ScoutStyle = () => (
   <style>{`
     .scout-root {
-      --scout-bg: #0A0A0A;
-      --scout-surface: #141414;
-      --scout-elevated: #1C1C1C;
-      --scout-elevated-2: #232323;
-      --scout-border: #2A2A2A;
-      --scout-border-strong: #3A3A3A;
-      --scout-text: #FFFFFF;
-      --scout-text-dim: #A0A0A0;
-      --scout-text-faint: #6B6B6B;
+      /* warm, light palette */
+      --scout-bg: #FAF7F2;
+      --scout-surface: #FFFFFF;
+      --scout-surface-tint: #FBF8F3;
+      --scout-border: #ECE6D7;
+      --scout-border-strong: #D9D2BF;
+      --scout-text: #1B1F2A;
+      --scout-text-dim: #5C6473;
+      --scout-text-faint: #8B92A1;
+
+      --scout-direct: #0E7C5A;
+      --scout-direct-soft: #E7F2EC;
+      --scout-direct-line: #BDD9C9;
+      --scout-direct-tint: #F4FAF6;
+
+      --scout-stretch: #B45309;
+      --scout-stretch-soft: #FBEEDB;
+      --scout-stretch-line: #ECCAA0;
+      --scout-stretch-tint: #FCF7EE;
+
       --scout-amber: #D97706;
-      --scout-amber-soft: rgba(217, 119, 6, 0.10);
-      --scout-amber-line: rgba(217, 119, 6, 0.32);
-      --scout-amber-glow: rgba(217, 119, 6, 0.28);
-      --scout-green: #1D9E75;
-      --scout-green-soft: rgba(29, 158, 117, 0.10);
-      --scout-green-line: rgba(29, 158, 117, 0.32);
-      --scout-green-glow: rgba(29, 158, 117, 0.28);
-      --scout-blue: #378ADD;
-      --scout-ease: cubic-bezier(0.16, 1, 0.3, 1);
-      --scout-font: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      --scout-font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+      --scout-amber-hover: #B45309;
+      --scout-amber-soft: #FCEFE0;
+
+      --scout-shadow-1: 0 1px 2px rgba(20, 22, 28, 0.04);
+      --scout-shadow-2: 0 1px 2px rgba(20, 22, 28, 0.04), 0 8px 22px rgba(20, 22, 28, 0.05);
+      --scout-shadow-3: 0 1px 3px rgba(20, 22, 28, 0.05), 0 14px 36px rgba(20, 22, 28, 0.08);
+      --scout-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --scout-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
       position: relative;
       min-height: 100vh;
@@ -863,382 +822,264 @@ const ScoutStyle = () => (
       font-size: 14px;
       line-height: 1.5;
       letter-spacing: -0.005em;
-      isolation: isolate;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-
-    .scout-root *, .scout-root *::before, .scout-root *::after {
-      box-sizing: border-box;
-    }
-
-    .scout-root button {
-      font-family: inherit;
-      cursor: pointer;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      padding: 0;
-    }
-
-    /* ambient backdrop -------------------------------------------------- */
-    .scout-ambient {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 0;
-    }
-    .scout-ambient-amber,
-    .scout-ambient-green {
-      position: absolute;
-      width: 720px;
-      height: 720px;
-      border-radius: 50%;
-      filter: blur(140px);
-      opacity: 0.35;
-    }
-    .scout-ambient-amber {
-      top: -260px;
-      right: -200px;
-      background: radial-gradient(circle, rgba(217,119,6,0.28), transparent 65%);
-    }
-    .scout-ambient-green {
-      bottom: -300px;
-      left: -240px;
-      background: radial-gradient(circle, rgba(29,158,117,0.20), transparent 65%);
-    }
+    .scout-root *, .scout-root *::before, .scout-root *::after { box-sizing: border-box; }
+    .scout-root button { font-family: inherit; cursor: pointer; border: 0; background: transparent; color: inherit; padding: 0; }
+    .scout-root input, .scout-root select { font-family: inherit; }
 
     /* topbar ------------------------------------------------------------ */
     .scout-topbar {
-      position: relative;
-      z-index: 2;
+      position: sticky;
+      top: 0;
+      z-index: 10;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 24px;
-      padding: 18px 32px;
+      padding: 14px 28px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: saturate(140%) blur(10px);
+      -webkit-backdrop-filter: saturate(140%) blur(10px);
       border-bottom: 1px solid var(--scout-border);
-      background: rgba(10, 10, 10, 0.65);
-      backdrop-filter: saturate(140%) blur(12px);
-      -webkit-backdrop-filter: saturate(140%) blur(12px);
     }
-    .scout-topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      min-width: 0;
-    }
-    .scout-brand {
+    .scout-topbar-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+    .scout-brand { display: inline-flex; align-items: center; gap: 8px; }
+    .scout-brand-mark {
+      width: 26px; height: 26px;
+      border-radius: 8px;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      color: var(--scout-text);
+      justify-content: center;
+      color: #fff;
+      background: linear-gradient(135deg, #0E7C5A 0%, #15A074 100%);
+      box-shadow: 0 1px 2px rgba(14, 124, 90, 0.25), inset 0 1px 0 rgba(255,255,255,0.18);
     }
     .scout-brand-word {
-      font-family: var(--scout-font-display);
-      font-style: italic;
-      font-size: 22px;
+      font-size: 17px;
+      font-weight: 700;
       letter-spacing: -0.01em;
-      line-height: 1;
+      color: var(--scout-text);
     }
     .scout-brand-tag {
       padding: 2px 6px;
+      border-radius: 999px;
       font-size: 9.5px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       color: var(--scout-amber);
       background: var(--scout-amber-soft);
-      border: 1px solid var(--scout-amber-line);
-      border-radius: 999px;
-      font-weight: 500;
     }
     .scout-topbar-status {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: var(--scout-text-dim);
-      font-size: 12px;
-      letter-spacing: 0.005em;
-      padding-left: 24px;
+      padding-left: 18px;
       border-left: 1px solid var(--scout-border);
+      color: var(--scout-text-dim);
+      font-size: 12.5px;
+      font-weight: 500;
     }
     .scout-live-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--scout-green);
+      width: 7px; height: 7px;
       border-radius: 50%;
-      box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.45);
+      background: var(--scout-direct);
+      box-shadow: 0 0 0 0 rgba(14, 124, 90, 0.4);
       animation: scout-pulse 2.4s var(--scout-ease) infinite;
     }
     @keyframes scout-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.45); }
-      50% { box-shadow: 0 0 0 6px rgba(29, 158, 117, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(14, 124, 90, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(14, 124, 90, 0); }
     }
-    .scout-topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .scout-icon-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+    .scout-topbar-right { display: flex; align-items: center; gap: 12px; }
+    .scout-search {
+      position: relative;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      color: var(--scout-text-dim);
-      border: 1px solid var(--scout-border);
+      gap: 8px;
+      padding: 0 12px;
+      height: 34px;
+      width: 220px;
+      border-radius: 10px;
       background: var(--scout-surface);
-      transition: color 160ms var(--scout-ease),
-                  border-color 160ms var(--scout-ease);
+      border: 1px solid var(--scout-border);
+      color: var(--scout-text-faint);
+      transition: border-color 160ms var(--scout-ease), background-color 160ms var(--scout-ease);
     }
-    .scout-icon-btn:hover {
-      color: var(--scout-text);
+    .scout-search:focus-within {
       border-color: var(--scout-border-strong);
+      background: #fff;
+      color: var(--scout-text-dim);
     }
+    .scout-search input {
+      border: 0; outline: 0;
+      background: transparent;
+      font-size: 13px;
+      width: 100%;
+      color: var(--scout-text);
+    }
+    .scout-search input::placeholder { color: var(--scout-text-faint); }
     .scout-avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+      width: 34px; height: 34px;
+      border-radius: 50%;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      color: #f5e9d6;
-      background: linear-gradient(135deg, #3a2308 0%, #6a3d0c 100%);
-      border: 1px solid var(--scout-amber-line);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #fff;
+      background: linear-gradient(135deg, #C2410C 0%, #D97706 100%);
+      box-shadow: var(--scout-shadow-1);
     }
 
     /* shell ------------------------------------------------------------- */
     .scout-shell {
-      position: relative;
-      z-index: 1;
       display: grid;
-      grid-template-columns: 280px minmax(0, 1fr) 460px;
-      gap: 24px;
-      padding: 28px 32px 56px;
-      max-width: 1480px;
+      grid-template-columns: 260px minmax(0, 1fr) 440px;
+      gap: 22px;
+      padding: 24px 28px 56px;
+      max-width: 1440px;
       margin: 0 auto;
       align-items: start;
     }
     @media (max-width: 1180px) {
-      .scout-shell { grid-template-columns: 260px minmax(0, 1fr); }
+      .scout-shell { grid-template-columns: 240px minmax(0, 1fr); gap: 20px; }
     }
     @media (max-width: 768px) {
-      .scout-shell { grid-template-columns: 1fr; padding: 20px 16px 96px; gap: 16px; }
+      .scout-shell { grid-template-columns: 1fr; padding: 16px 14px 96px; gap: 16px; }
     }
 
     /* sidebar ----------------------------------------------------------- */
     .scout-sidebar {
       position: sticky;
-      top: 88px;
+      top: 80px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
-      padding: 22px;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 14px;
+      background: var(--scout-surface);
       border: 1px solid var(--scout-border);
-      background: linear-gradient(180deg, var(--scout-surface) 0%, #101010 100%);
-      border-radius: 18px;
+      box-shadow: var(--scout-shadow-1);
     }
-    .scout-sidebar-head { display: flex; flex-direction: column; gap: 8px; }
-    .scout-sidebar-sub {
-      margin: 0;
-      font-size: 12.5px;
-      line-height: 1.55;
-      color: var(--scout-text-dim);
+    .scout-sidebar-section { display: flex; flex-direction: column; gap: 12px; }
+    .scout-sidebar-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--scout-text);
+      margin-bottom: 2px;
     }
-    .scout-form { display: flex; flex-direction: column; gap: 14px; }
-    .scout-field {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .scout-field { display: flex; flex-direction: column; gap: 6px; }
     .scout-field-label {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--scout-text-dim);
+      gap: 6px;
+      font-size: 12px;
       font-weight: 500;
+      color: var(--scout-text-dim);
     }
     .scout-input {
       width: 100%;
-      height: 38px;
-      border-radius: 10px;
+      height: 36px;
       padding: 0 12px;
-      font: inherit;
+      border-radius: 9px;
       font-size: 13px;
       color: var(--scout-text);
-      background: var(--scout-bg);
+      background: var(--scout-surface);
       border: 1px solid var(--scout-border);
-      transition: border-color 160ms var(--scout-ease),
-                  background-color 160ms var(--scout-ease);
       outline: none;
+      transition: border-color 160ms var(--scout-ease), box-shadow 160ms var(--scout-ease);
     }
+    .scout-input:hover { border-color: var(--scout-border-strong); }
     .scout-input:focus {
-      border-color: var(--scout-amber-line);
-      background: #0E0E0E;
+      border-color: var(--scout-amber);
+      box-shadow: 0 0 0 3px var(--scout-amber-soft);
     }
-    .scout-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23A0A0A0' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 28px; }
+    .scout-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238B92A1' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 28px;
+    }
+
     .scout-salary-head { display: inline-flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; }
-    .scout-salary-num {
-      font-family: var(--scout-font-display);
-      font-style: italic;
-      font-size: 14px;
-      color: var(--scout-text);
-      letter-spacing: 0;
-      text-transform: none;
-    }
-    .scout-slider-wrap { display: flex; flex-direction: column; gap: 6px; padding: 4px 2px 0; }
+    .scout-salary-num { font-size: 12.5px; font-weight: 600; color: var(--scout-text); }
+    .scout-slider-wrap { display: flex; flex-direction: column; gap: 4px; padding: 4px 2px 0; }
     .scout-slider {
       width: 100%;
-      -webkit-appearance: none;
-      appearance: none;
+      -webkit-appearance: none; appearance: none;
       background: transparent;
       height: 22px;
     }
     .scout-slider::-webkit-slider-runnable-track {
       height: 4px;
-      background: linear-gradient(90deg, var(--scout-amber) 0%, var(--scout-amber) var(--p, 25%), var(--scout-border) var(--p, 25%));
       border-radius: 2px;
+      background: linear-gradient(90deg, var(--scout-amber) 0%, var(--scout-amber) var(--p, 25%), var(--scout-border) var(--p, 25%));
     }
     .scout-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 14px;
-      height: 14px;
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px;
       border-radius: 50%;
       background: #fff;
       border: 2px solid var(--scout-amber);
       margin-top: -5px;
-      box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.18);
+      box-shadow: 0 1px 2px rgba(20,22,28,0.12);
     }
     .scout-slider::-moz-range-track { height: 4px; background: var(--scout-border); border-radius: 2px; }
     .scout-slider::-moz-range-progress { height: 4px; background: var(--scout-amber); border-radius: 2px; }
     .scout-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid var(--scout-amber); }
-    .scout-slider-ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--scout-text-faint); letter-spacing: 0.04em; }
+    .scout-slider-ticks { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--scout-text-faint); font-weight: 500; }
 
     /* run scout button -------------------------------------------------- */
     .scout-run {
-      position: relative;
-      height: 44px;
-      border-radius: 12px;
-      background: var(--scout-amber);
-      color: #1A0E00;
-      font-weight: 600;
-      font-size: 13.5px;
-      letter-spacing: -0.005em;
-      overflow: hidden;
-      isolation: isolate;
-      box-shadow:
-        0 1px 0 rgba(255,255,255,0.12) inset,
-        0 12px 32px -16px rgba(217,119,6,0.7),
-        0 0 0 1px rgba(217,119,6,0.5);
-    }
-    .scout-run-inner {
-      position: relative;
-      z-index: 2;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      width: 100%;
-      height: 100%;
       justify-content: center;
-    }
-    .scout-run-glow {
-      position: absolute;
-      inset: -1px;
-      z-index: 1;
-      background: conic-gradient(
-        from var(--a, 0deg),
-        rgba(255,255,255,0.0) 0deg,
-        rgba(255,255,255,0.0) 200deg,
-        rgba(255,240,210,0.55) 290deg,
-        rgba(255,255,255,0.0) 360deg
-      );
-      opacity: 0;
-      transition: opacity 240ms var(--scout-ease);
-    }
-    .scout-run.is-scanning .scout-run-glow {
-      opacity: 1;
-      animation: scout-spin 1.6s linear infinite;
-    }
-    @keyframes scout-spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .scout-run.is-scanning .scout-run-inner {
-      background: var(--scout-amber);
-      margin: 1px;
-      border-radius: 11px;
-    }
-
-    /* stats card -------------------------------------------------------- */
-    .scout-stats {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 14px;
-      border-radius: 12px;
-      background: var(--scout-bg);
-      border: 1px solid var(--scout-border);
-    }
-    .scout-stats-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--scout-text-dim);
-    }
-    .scout-live {
-      display: inline-flex; align-items: center; gap: 5px;
-      color: var(--scout-green);
-      font-weight: 500;
-      letter-spacing: 0.08em;
-    }
-    .scout-stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
+      height: 42px;
+      padding: 0 16px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: #fff;
+      background: var(--scout-amber);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.18) inset,
+        0 4px 12px -2px rgba(217, 119, 6, 0.30);
+      transition:
+        background-color 180ms var(--scout-ease),
+        box-shadow 180ms var(--scout-ease),
+        transform 180ms var(--scout-ease);
     }
-    .scout-stat {
-      display: flex; flex-direction: column;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: var(--scout-elevated);
-      border: 1px solid var(--scout-border);
+    .scout-run:hover { background: var(--scout-amber-hover); }
+    .scout-run.is-scanning { background: var(--scout-amber-hover); }
+    .scout-run.is-scanning svg {
+      animation: scout-spin 1.4s linear infinite;
     }
-    .scout-stat-n {
-      font-family: var(--scout-font-display);
-      font-style: italic;
-      font-size: 22px;
-      line-height: 1;
-      color: var(--scout-text);
-    }
-    .scout-stat-l {
-      font-size: 10.5px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--scout-text-faint);
-      margin-top: 2px;
-    }
-    .scout-stat--green .scout-stat-n { color: var(--scout-green); }
-    .scout-stat--amber .scout-stat-n { color: var(--scout-amber); }
-    .scout-stats-foot {
+    @keyframes scout-spin { to { transform: rotate(360deg); } }
+
+    .scout-mini-stat {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--scout-text-faint);
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--scout-direct-tint);
+      border: 1px solid var(--scout-direct-line);
+      color: var(--scout-direct);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: -0.005em;
     }
+    .scout-mini-stat .scout-live-dot { background: var(--scout-direct); }
 
     /* list head --------------------------------------------------------- */
-    .scout-list { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .scout-list { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     .scout-list-head {
       display: flex;
       justify-content: space-between;
@@ -1246,48 +1087,23 @@ const ScoutStyle = () => (
       gap: 24px;
       padding: 6px 4px 0;
     }
-    .scout-list-eyebrow {
-      font-size: 11px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--scout-amber);
-      font-weight: 500;
-      margin-bottom: 8px;
-    }
     .scout-list-title {
       margin: 0;
-      font-size: 28px;
-      line-height: 1.15;
-      font-weight: 600;
-      letter-spacing: -0.02em;
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.018em;
       color: var(--scout-text);
-      max-width: 520px;
-    }
-    .scout-list-title-italic {
-      font-family: var(--scout-font-display);
-      font-style: italic;
-      font-weight: 400;
-      font-size: 1.05em;
     }
     .scout-list-sub {
-      margin: 8px 0 0;
-      max-width: 480px;
+      margin: 6px 0 0;
+      max-width: 520px;
       color: var(--scout-text-dim);
-      font-size: 13px;
+      font-size: 13.5px;
       line-height: 1.55;
     }
-    .scout-sort {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-    .scout-sort-label {
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--scout-text-faint);
-    }
+    .scout-sort { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .scout-sort-label { font-size: 12px; color: var(--scout-text-faint); font-weight: 500; }
     .scout-sort-btn {
       display: inline-flex;
       align-items: center;
@@ -1295,10 +1111,11 @@ const ScoutStyle = () => (
       height: 32px;
       padding: 0 12px;
       font-size: 12.5px;
+      font-weight: 500;
       color: var(--scout-text);
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
-      border-radius: 10px;
+      border-radius: 9px;
       transition: border-color 160ms var(--scout-ease);
     }
     .scout-sort-btn:hover { border-color: var(--scout-border-strong); }
@@ -1306,88 +1123,68 @@ const ScoutStyle = () => (
     /* job cards --------------------------------------------------------- */
     .scout-cards { display: flex; flex-direction: column; gap: 12px; }
     .scout-card {
-      position: relative;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       width: 100%;
-      padding: 20px 22px;
+      padding: 18px 20px;
       text-align: left;
-      border-radius: 16px;
+      border-radius: 14px;
       background: var(--scout-surface);
       border: 1px solid var(--scout-border);
-      overflow: hidden;
+      box-shadow: var(--scout-shadow-1);
       transition:
-        border-color 220ms var(--scout-ease),
-        background-color 220ms var(--scout-ease),
-        transform 220ms var(--scout-ease);
+        border-color 200ms var(--scout-ease),
+        box-shadow 200ms var(--scout-ease),
+        transform 200ms var(--scout-ease);
     }
-    .scout-card-glow {
-      position: absolute;
-      inset: -1px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 320ms var(--scout-ease);
-      background:
-        radial-gradient(420px 200px at 90% -10%, var(--scout-card-glow), transparent 60%);
+    .scout-card:hover {
+      border-color: var(--scout-border-strong);
+      box-shadow: var(--scout-shadow-2);
     }
-    .scout-card--direct { --scout-card-glow: var(--scout-green-glow); }
-    .scout-card--stretch { --scout-card-glow: var(--scout-amber-glow); }
-    .scout-card:hover { border-color: var(--scout-border-strong); }
-    .scout-card:hover .scout-card-glow { opacity: 0.7; }
     .scout-card.is-active {
-      border-color: transparent;
-      background: var(--scout-elevated);
       box-shadow:
-        0 0 0 1px var(--scout-card-line),
-        0 18px 40px -28px rgba(0,0,0,0.9);
+        0 0 0 2px var(--scout-card-ring),
+        var(--scout-shadow-2);
+      border-color: transparent;
     }
-    .scout-card.is-active .scout-card-glow { opacity: 1; }
-    .scout-card--direct.is-active { --scout-card-line: var(--scout-green-line); }
-    .scout-card--stretch.is-active { --scout-card-line: var(--scout-amber-line); }
+    .scout-card--direct.is-active { --scout-card-ring: var(--scout-direct); }
+    .scout-card--stretch.is-active { --scout-card-ring: var(--scout-stretch); }
+    .scout-card--direct.is-active { background: linear-gradient(180deg, var(--scout-direct-tint) 0%, var(--scout-surface) 60%); }
+    .scout-card--stretch.is-active { background: linear-gradient(180deg, var(--scout-stretch-tint) 0%, var(--scout-surface) 60%); }
 
-    .scout-card-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
+    .scout-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
     .scout-company { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .scout-logo {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
+      width: 44px; height: 44px;
+      border-radius: 11px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+      font-weight: 700;
+      letter-spacing: 0.02em;
       flex-shrink: 0;
     }
     .scout-logo--direct {
-      color: #C8FFE7;
-      background: linear-gradient(140deg, #0e3328 0%, #154a3a 100%);
-      border: 1px solid var(--scout-green-line);
+      color: var(--scout-direct);
+      background: var(--scout-direct-soft);
+      border: 1px solid var(--scout-direct-line);
     }
     .scout-logo--stretch {
-      color: #FFE5C2;
-      background: linear-gradient(140deg, #3a2308 0%, #5a3a13 100%);
-      border: 1px solid var(--scout-amber-line);
+      color: var(--scout-stretch);
+      background: var(--scout-stretch-soft);
+      border: 1px solid var(--scout-stretch-line);
     }
     .scout-company-meta { min-width: 0; }
-    .scout-company-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--scout-text);
-      letter-spacing: -0.005em;
-    }
+    .scout-company-name { font-size: 13.5px; font-weight: 600; color: var(--scout-text); letter-spacing: -0.005em; }
     .scout-company-sub {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      margin-top: 2px;
-      font-size: 11.5px;
+      margin-top: 3px;
+      font-size: 12px;
+      font-weight: 500;
       color: var(--scout-text-faint);
     }
     .scout-dot {
@@ -1411,135 +1208,120 @@ const ScoutStyle = () => (
       gap: 6px;
       padding: 3px 8px;
       border-radius: 999px;
-      font-size: 10.5px;
-      letter-spacing: 0.04em;
-      font-weight: 500;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
       border: 1px solid;
     }
     .scout-state-pip--direct {
-      color: var(--scout-green);
-      background: var(--scout-green-soft);
-      border-color: var(--scout-green-line);
+      color: var(--scout-direct);
+      background: var(--scout-direct-soft);
+      border-color: var(--scout-direct-line);
     }
     .scout-state-pip--stretch {
-      color: var(--scout-amber);
-      background: var(--scout-amber-soft);
-      border-color: var(--scout-amber-line);
+      color: var(--scout-stretch);
+      background: var(--scout-stretch-soft);
+      border-color: var(--scout-stretch-line);
     }
-    .scout-pip-dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: currentColor;
-    }
+    .scout-pip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
     .scout-score-num {
-      font-family: var(--scout-font-display);
-      font-style: italic;
-      line-height: 0.95;
-      color: var(--scout-text);
-      letter-spacing: -0.01em;
       display: inline-flex;
       align-items: baseline;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: var(--scout-text);
+      font-feature-settings: "tnum" 1, "lnum" 1;
     }
-    .scout-card--direct .scout-score-num { color: var(--scout-green); }
-    .scout-card--stretch .scout-score-num { color: var(--scout-amber); }
+    .scout-card--direct .scout-score-num { color: var(--scout-direct); }
+    .scout-card--stretch .scout-score-num { color: var(--scout-stretch); }
     .scout-score-pct {
-      font-size: 0.45em;
-      margin-left: 2px;
-      font-style: italic;
-      opacity: 0.8;
+      font-size: 0.55em;
+      margin-left: 1px;
+      font-weight: 600;
+      opacity: 0.85;
     }
 
     .scout-card-role {
       margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: -0.015em;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.018em;
       color: var(--scout-text);
+      line-height: 1.3;
     }
     .scout-card-summary {
       margin: 0;
-      font-size: 12.5px;
+      font-size: 13px;
       line-height: 1.55;
       color: var(--scout-text-dim);
-      max-width: 56ch;
+      max-width: 60ch;
     }
-    .scout-card-meta {
+    .scout-skill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .scout-skill {
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--scout-text-dim);
+      background: var(--scout-surface-tint);
+      border: 1px solid var(--scout-border);
+      border-radius: 999px;
+    }
+    .scout-skill--more { background: transparent; color: var(--scout-text-faint); }
+
+    .scout-card-foot {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       gap: 12px;
       flex-wrap: wrap;
+      padding-top: 12px;
+      border-top: 1px solid var(--scout-border);
     }
     .scout-salary {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 12.5px;
+      font-size: 13px;
+      font-weight: 600;
       color: var(--scout-text);
-      font-weight: 500;
     }
-    .scout-salary-note {
-      color: var(--scout-text-faint);
-      font-weight: 400;
-      margin-left: -2px;
+    .scout-salary-note { font-weight: 500; color: var(--scout-text-faint); margin-left: -2px; }
+    .scout-card-foot-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
     }
     .scout-skill-fit {
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+      font-size: 11.5px;
+      font-weight: 500;
       color: var(--scout-text-faint);
-    }
-    .scout-skill-row {
-      display: flex; flex-wrap: wrap; gap: 6px;
-    }
-    .scout-skill {
-      padding: 4px 9px;
-      font-size: 11px;
-      letter-spacing: 0.005em;
-      color: var(--scout-text-dim);
-      background: var(--scout-elevated);
-      border: 1px solid var(--scout-border);
-      border-radius: 999px;
-    }
-    .scout-skill--more {
-      color: var(--scout-text-faint);
-      background: transparent;
-    }
-    .scout-card-foot {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      margin-top: 2px;
-      border-top: 1px solid var(--scout-border);
-      padding-top: 12px;
     }
     .scout-card-foot-cta {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--scout-text-dim);
-      transition: color 200ms var(--scout-ease), gap 200ms var(--scout-ease);
-    }
-    .scout-card:hover .scout-card-foot-cta {
+      font-size: 12.5px;
+      font-weight: 600;
       color: var(--scout-text);
-      gap: 9px;
+      transition: gap 200ms var(--scout-ease);
     }
+    .scout-card:hover .scout-card-foot-cta { gap: 9px; }
 
     /* detail panel ------------------------------------------------------ */
     .scout-detail-rail {
       position: sticky;
-      top: 88px;
-      max-height: calc(100vh - 108px);
+      top: 80px;
+      max-height: calc(100vh - 100px);
       overflow-y: auto;
+      border-radius: 14px;
+      background: var(--scout-surface);
       border: 1px solid var(--scout-border);
-      background: linear-gradient(180deg, var(--scout-surface) 0%, #101010 100%);
-      border-radius: 18px;
-      padding: 22px 22px 16px;
+      box-shadow: var(--scout-shadow-2);
+      padding: 22px;
     }
     .scout-detail-rail::-webkit-scrollbar { width: 8px; }
-    .scout-detail-rail::-webkit-scrollbar-thumb { background: var(--scout-border); border-radius: 4px; }
+    .scout-detail-rail::-webkit-scrollbar-thumb { background: var(--scout-border-strong); border-radius: 4px; }
     .scout-detail-rail::-webkit-scrollbar-track { background: transparent; }
 
     .scout-detail-empty {
@@ -1548,67 +1330,77 @@ const ScoutStyle = () => (
       align-items: center;
       text-align: center;
       gap: 10px;
-      padding: 64px 28px;
+      padding: 56px 28px;
       color: var(--scout-text-dim);
     }
-    .scout-detail-empty h4 { margin: 0; font-size: 15px; color: var(--scout-text); font-weight: 600; }
-    .scout-detail-empty p { margin: 0; font-size: 12.5px; max-width: 32ch; line-height: 1.55; }
+    .scout-detail-empty h4 {
+      margin: 4px 0 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--scout-text);
+    }
+    .scout-detail-empty p {
+      margin: 0;
+      font-size: 12.5px;
+      max-width: 32ch;
+      line-height: 1.55;
+    }
     .scout-empty-mark {
-      width: 56px; height: 56px;
-      border-radius: 14px;
-      display: inline-flex; align-items: center; justify-content: center;
+      width: 52px; height: 52px;
+      border-radius: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       color: var(--scout-amber);
       background: var(--scout-amber-soft);
-      border: 1px solid var(--scout-amber-line);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
-    .scout-detail { display: flex; flex-direction: column; gap: 20px; position: relative; }
+    .scout-detail { display: flex; flex-direction: column; gap: 22px; position: relative; }
     .scout-detail-head {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
-      padding-bottom: 16px;
+      padding-bottom: 18px;
       border-bottom: 1px solid var(--scout-border);
       position: relative;
     }
     .scout-detail-head-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .scout-detail-role {
       margin: 4px 0 0;
-      font-size: 22px;
-      font-weight: 600;
-      letter-spacing: -0.018em;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
       color: var(--scout-text);
-      line-height: 1.2;
+      line-height: 1.25;
     }
     .scout-detail-meta {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
-      font-size: 12px;
+      font-size: 12.5px;
       color: var(--scout-text-dim);
     }
+    .scout-detail-meta-strong { color: var(--scout-text); font-weight: 600; }
     .scout-detail-close {
       position: absolute;
-      top: -4px;
-      right: -4px;
+      top: -2px;
+      right: -2px;
       width: 30px; height: 30px;
       border-radius: 8px;
       color: var(--scout-text-dim);
-      background: var(--scout-elevated);
+      background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
-      display: inline-flex; align-items: center; justify-content: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       transition: color 160ms var(--scout-ease), border-color 160ms var(--scout-ease);
     }
     .scout-detail-close:hover { color: var(--scout-text); border-color: var(--scout-border-strong); }
 
-    .scout-ring-wrap {
-      position: relative;
-      width: 96px; height: 96px;
-      flex-shrink: 0;
-    }
+    .scout-ring-wrap { position: relative; flex-shrink: 0; }
     .scout-ring-inner {
       position: absolute;
       inset: 0;
@@ -1619,14 +1411,14 @@ const ScoutStyle = () => (
     .scout-detail .scout-ring-wrap .scout-score-num { color: var(--scout-text); }
 
     /* sections ---------------------------------------------------------- */
-    .scout-section { display: flex; flex-direction: column; gap: 12px; }
+    .scout-section { display: flex; flex-direction: column; gap: 10px; }
     .scout-section-title {
       margin: 0;
-      font-size: 11px;
-      letter-spacing: 0.12em;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--scout-text-faint);
-      font-weight: 500;
     }
     .scout-detail-why {
       margin: 0;
@@ -1636,100 +1428,145 @@ const ScoutStyle = () => (
       letter-spacing: -0.005em;
     }
 
-    /* breakdown bars ---------------------------------------------------- */
-    .scout-bars { display: flex; flex-direction: column; gap: 10px; }
-    .scout-bar-row { display: flex; flex-direction: column; gap: 6px; }
-    .scout-bar-head {
-      display: flex; justify-content: space-between;
+    /* breakdown — stat blocks (no bars) -------------------------------- */
+    .scout-breakdown {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .scout-stat-card {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--scout-surface);
+      border: 1px solid var(--scout-border);
+    }
+    .scout-stat-card--good {
+      background: var(--scout-direct-tint);
+      border-color: var(--scout-direct-line);
+    }
+    .scout-stat-card--okay {
+      background: var(--scout-stretch-tint);
+      border-color: var(--scout-stretch-line);
+    }
+    .scout-stat-card--low {
+      background: var(--scout-surface-tint);
+      border-color: var(--scout-border);
+    }
+    .scout-stat-label {
       font-size: 11.5px;
+      font-weight: 500;
       color: var(--scout-text-dim);
     }
-    .scout-bar-label { letter-spacing: 0; }
-    .scout-bar-value {
-      font-family: var(--scout-font-display);
-      font-style: italic;
-      color: var(--scout-text);
-      font-size: 14px;
+    .scout-stat-value .scout-score-num { color: var(--scout-text); font-weight: 700; }
+    .scout-stat-card--good .scout-stat-value .scout-score-num { color: var(--scout-direct); }
+    .scout-stat-card--okay .scout-stat-value .scout-score-num { color: var(--scout-stretch); }
+    .scout-stat-note {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--scout-text-faint);
+      letter-spacing: -0.005em;
     }
-    .scout-bar-track {
-      height: 6px;
-      background: var(--scout-elevated);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .scout-bar-fill { height: 100%; border-radius: 3px; }
-    .scout-bar-fill--green { background: linear-gradient(90deg, #1A8264, var(--scout-green)); }
-    .scout-bar-fill--amber { background: linear-gradient(90deg, #A05A04, var(--scout-amber)); }
-    .scout-bar-fill--dim { background: linear-gradient(90deg, #3A3A3A, #6B6B6B); }
+    .scout-stat-card--good .scout-stat-note { color: var(--scout-direct); opacity: 0.78; }
+    .scout-stat-card--okay .scout-stat-note { color: var(--scout-stretch); opacity: 0.78; }
 
     /* tweaks ------------------------------------------------------------ */
     .scout-tweaks { display: flex; flex-direction: column; gap: 10px; }
     .scout-tweak {
       padding: 12px 14px;
       border-radius: 12px;
-      background: var(--scout-bg);
+      background: var(--scout-surface-tint);
       border: 1px solid var(--scout-border);
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
     .scout-tweak-field {
       font-size: 11px;
-      letter-spacing: 0.08em;
+      font-weight: 600;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--scout-text-faint);
     }
     .scout-tweak-rows { display: flex; flex-direction: column; gap: 6px; }
     .scout-tweak-row {
-      display: flex; gap: 10px; align-items: flex-start;
-      font-size: 12.5px; line-height: 1.55;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      line-height: 1.55;
     }
     .scout-tweak-tag {
       flex-shrink: 0;
-      padding: 1px 6px;
+      padding: 2px 7px;
       font-size: 9.5px;
-      letter-spacing: 0.1em;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      border-radius: 4px;
-      font-weight: 600;
+      border-radius: 6px;
       margin-top: 2px;
     }
-    .scout-tweak-row--before .scout-tweak-tag { background: rgba(255,255,255,0.04); color: var(--scout-text-faint); }
-    .scout-tweak-row--before .scout-tweak-text { color: var(--scout-text-dim); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.18); text-decoration-thickness: 1px; }
-    .scout-tweak-row--after .scout-tweak-tag { background: var(--scout-green-soft); color: var(--scout-green); }
-    .scout-tweak-row--after .scout-tweak-text { color: var(--scout-text); }
+    .scout-tweak-row--before .scout-tweak-tag {
+      background: var(--scout-surface);
+      color: var(--scout-text-faint);
+      border: 1px solid var(--scout-border);
+    }
+    .scout-tweak-row--before .scout-tweak-text {
+      color: var(--scout-text-faint);
+      text-decoration: line-through;
+      text-decoration-color: rgba(139, 146, 161, 0.45);
+      text-decoration-thickness: 1px;
+    }
+    .scout-tweak-row--after .scout-tweak-tag {
+      background: var(--scout-direct-soft);
+      color: var(--scout-direct);
+    }
+    .scout-tweak-row--after .scout-tweak-text {
+      color: var(--scout-text);
+      font-weight: 500;
+    }
 
     /* keywords ---------------------------------------------------------- */
     .scout-kw-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
     .scout-kw-group:last-child { margin-bottom: 0; }
     .scout-kw-label {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.005em;
     }
-    .scout-kw-label--ok { color: var(--scout-green); }
-    .scout-kw-label--miss { color: var(--scout-amber); }
+    .scout-kw-label--ok { color: var(--scout-direct); }
+    .scout-kw-label--miss { color: var(--scout-stretch); }
     .scout-kw-row { display: flex; flex-wrap: wrap; gap: 6px; }
     .scout-kw {
-      padding: 4px 9px;
-      font-size: 11px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 500;
       border-radius: 999px;
       letter-spacing: -0.005em;
     }
-    .scout-kw--ok { color: var(--scout-green); background: var(--scout-green-soft); border: 1px solid var(--scout-green-line); }
-    .scout-kw--miss { color: var(--scout-amber); background: var(--scout-amber-soft); border: 1px solid var(--scout-amber-line); border-style: dashed; }
+    .scout-kw--ok {
+      color: var(--scout-direct);
+      background: var(--scout-direct-soft);
+      border: 1px solid var(--scout-direct-line);
+    }
+    .scout-kw--miss {
+      color: var(--scout-stretch);
+      background: var(--scout-stretch-soft);
+      border: 1px dashed var(--scout-stretch-line);
+    }
 
     /* actions ----------------------------------------------------------- */
     .scout-detail-actions {
       display: grid;
       grid-template-columns: 1fr auto auto;
       gap: 8px;
-      padding-top: 8px;
+      padding-top: 18px;
       border-top: 1px solid var(--scout-border);
-      margin-top: 4px;
-      padding-top: 16px;
     }
     .scout-btn {
       display: inline-flex;
@@ -1738,30 +1575,26 @@ const ScoutStyle = () => (
       gap: 8px;
       height: 40px;
       padding: 0 14px;
-      border-radius: 11px;
-      font-size: 12.5px;
-      font-weight: 500;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
       letter-spacing: -0.005em;
-      transition: background-color 180ms var(--scout-ease),
-                  border-color 180ms var(--scout-ease),
-                  color 180ms var(--scout-ease);
+      transition: background-color 180ms var(--scout-ease), border-color 180ms var(--scout-ease), color 180ms var(--scout-ease);
     }
     .scout-btn--primary {
-      color: #1A0E00;
+      color: #fff;
       background: var(--scout-amber);
       box-shadow:
-        0 1px 0 rgba(255,255,255,0.12) inset,
-        0 12px 28px -16px rgba(217,119,6,0.6),
-        0 0 0 1px rgba(217,119,6,0.4);
-      font-weight: 600;
+        0 1px 0 rgba(255,255,255,0.15) inset,
+        0 4px 14px -4px rgba(217, 119, 6, 0.32);
     }
-    .scout-btn--primary:hover { background: #E68512; }
+    .scout-btn--primary:hover { background: var(--scout-amber-hover); }
     .scout-btn--ghost {
       color: var(--scout-text-dim);
-      background: var(--scout-elevated);
+      background: var(--scout-surface);
       border: 1px solid var(--scout-border);
     }
-    .scout-btn--ghost:hover { color: var(--scout-text); border-color: var(--scout-border-strong); }
+    .scout-btn--ghost:hover { color: var(--scout-text); border-color: var(--scout-border-strong); background: var(--scout-surface-tint); }
 
     /* mobile pref CTA --------------------------------------------------- */
     .scout-mobile-pref {
@@ -1770,12 +1603,12 @@ const ScoutStyle = () => (
       justify-content: center;
       gap: 8px;
       height: 44px;
-      border-radius: 12px;
+      border-radius: 11px;
       background: var(--scout-amber);
-      color: #1A0E00;
+      color: #fff;
       font-weight: 600;
       font-size: 13px;
-      box-shadow: 0 12px 28px -14px rgba(217,119,6,0.65);
+      box-shadow: 0 4px 14px -4px rgba(217, 119, 6, 0.35);
     }
     @media (max-width: 768px) { .scout-mobile-pref { display: inline-flex; } }
 
@@ -1784,23 +1617,22 @@ const ScoutStyle = () => (
       position: fixed;
       inset: 0;
       z-index: 40;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      display: flex;
+      background: rgba(27, 31, 42, 0.32);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
     .scout-overlay {
       position: absolute;
-      background: linear-gradient(180deg, var(--scout-surface) 0%, #101010 100%);
+      background: var(--scout-surface);
       border: 1px solid var(--scout-border);
+      box-shadow: var(--scout-shadow-3);
       overflow-y: auto;
     }
     .scout-overlay--rail {
       top: 0; right: 0; bottom: 0;
-      width: min(480px, 92vw);
+      width: min(460px, 92vw);
       padding: 22px;
-      border-left: 1px solid var(--scout-border);
-      border-radius: 18px 0 0 18px;
+      border-radius: 16px 0 0 16px;
     }
     .scout-overlay--sheet {
       left: 0; right: 0; bottom: 0;
@@ -1820,13 +1652,15 @@ const ScoutStyle = () => (
       .scout-detail-rail { display: none; }
     }
     @media (max-width: 768px) {
-      .scout-topbar { padding: 14px 16px; }
-      .scout-topbar-status { padding-left: 0; border-left: 0; font-size: 11px; }
+      .scout-topbar { padding: 12px 14px; }
+      .scout-topbar-status { display: none; }
+      .scout-search { display: none; }
       .scout-list-head { flex-direction: column; align-items: flex-start; gap: 12px; }
       .scout-list-title { font-size: 22px; }
       .scout-card { padding: 16px; }
       .scout-card-role { font-size: 16px; }
       .scout-detail-actions { grid-template-columns: 1fr; }
+      /* breakdown stays 2-col on mobile — that's the whole point of dropping bars */
     }
   `}</style>
 );
