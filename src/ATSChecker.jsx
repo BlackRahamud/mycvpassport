@@ -308,6 +308,13 @@ export default function ATSChecker({
   const [showPaywall, setShowPaywall] = useState(false);
   // Sprint #4: Turnstile token + per-call quota/spend response
   const [turnstileToken, setTurnstileToken] = useState(null);
+  // turnstileStatus: 'idle' (mounting) | 'ready' (token received) |
+  // 'error' (Cloudflare rejected/network/script failed) | 'expired' |
+  // 'unsupported' (browser unsupported) | 'timeout' (no callback fired in time).
+  // Surfaces a visible diagnostic to the user when the silent failure modes
+  // hit (rotated site key, domain mismatch, blocked CDN).
+  const [turnstileStatus, setTurnstileStatus] = useState('idle');
+  const [turnstileWidgetKey, setTurnstileWidgetKey] = useState(0);
   const turnstileRef = useRef(null);
   const [quota, setQuota] = useState(null);
   const [spend, setSpend] = useState(null);
@@ -495,6 +502,7 @@ export default function ATSChecker({
         try { turnstileRef.current.reset(); } catch { /* noop */ }
       }
       setTurnstileToken(null);
+      setTurnstileStatus('idle');
 
       if (!response.ok) {
         const friendly =
@@ -664,18 +672,92 @@ export default function ATSChecker({
         )}
 
         {/* Sprint #4: Turnstile widget — anonymous + free tiers only.
-            Paid users skip the captcha (already auth'd + rate-limited). */}
+            Paid users skip the captcha (already auth'd + rate-limited).
+            All Turnstile lifecycle events are wired so any silent
+            failure (rotated key, domain mismatch, blocked CDN) surfaces
+            in DevTools and to the user via turnstileStatus. */}
         {!isPro && TURNSTILE_SITE_KEY && (
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-            <Turnstile
-              ref={turnstileRef}
-              siteKey={TURNSTILE_SITE_KEY}
-              onSuccess={(token) => setTurnstileToken(token)}
-              onError={() => setTurnstileToken(null)}
-              onExpire={() => setTurnstileToken(null)}
-              options={{ theme: "dark", size: "normal" }}
-            />
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Turnstile
+                key={turnstileWidgetKey}
+                ref={turnstileRef}
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={(token) => {
+                  setTurnstileToken(token);
+                  setTurnstileStatus('ready');
+                }}
+                onError={(code) => {
+                  console.error("[turnstile] error", code);
+                  setTurnstileToken(null);
+                  setTurnstileStatus('error');
+                }}
+                onExpire={() => {
+                  setTurnstileToken(null);
+                  setTurnstileStatus('expired');
+                }}
+                onUnsupported={() => {
+                  console.error("[turnstile] unsupported browser");
+                  setTurnstileStatus('unsupported');
+                }}
+                onTimeout={() => {
+                  console.error("[turnstile] timeout — script failed to challenge");
+                  setTurnstileStatus('timeout');
+                }}
+                options={{ theme: "dark", size: "normal" }}
+              />
+            </div>
+            {(turnstileStatus === 'error' || turnstileStatus === 'timeout' || turnstileStatus === 'unsupported' || turnstileStatus === 'expired') && (
+              <div style={{
+                marginTop: 10,
+                padding: "10px 14px",
+                background: "rgba(248,113,113,0.08)",
+                border: "1px solid rgba(248,113,113,0.25)",
+                borderRadius: 10,
+                fontSize: 12,
+                color: T.muted,
+                textAlign: "center",
+              }}>
+                {turnstileStatus === 'unsupported'
+                  ? 'Your browser is not supported by the verification check. Try a different browser.'
+                  : turnstileStatus === 'expired'
+                    ? 'Verification expired. Tap below to retry.'
+                    : 'Verification failed to load. Tap below to retry, or refresh the page.'}
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTurnstileToken(null);
+                      setTurnstileStatus('idle');
+                      setTurnstileWidgetKey((k) => k + 1);
+                    }}
+                    style={{
+                      background: "transparent",
+                      border: `1px solid ${T.border}`,
+                      borderRadius: 8,
+                      padding: "6px 14px",
+                      color: T.text,
+                      fontSize: 12,
+                      cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    Retry verification
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+        )}
+        {!isPro && !TURNSTILE_SITE_KEY && (
+          // Build-time misconfig: env var missing. Surface so future
+          // deploys catch the regression early instead of silently
+          // letting free traffic through (or breaking the gate, which
+          // is what happened in the field).
+          (() => {
+            console.error("[turnstile] REACT_APP_TURNSTILE_SITE_KEY is missing at build time");
+            return null;
+          })()
         )}
 
         <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
