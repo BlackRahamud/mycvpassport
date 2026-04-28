@@ -20,7 +20,7 @@ function ChevronDownIcon({ open }) {
   );
 }
 
-export default function DesktopNav({ user }) {
+export default function DesktopNav({ user, isPro }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [openPanelId, setOpenPanelId] = useState(null);
@@ -51,6 +51,11 @@ export default function DesktopNav({ user }) {
 
   const handleItemClick = (item) => {
     if (item.requiresAuth && !user) return;
+    if (item.requiresPro && !isPro) {
+      navigate('/pricing');
+      setOpenPanelId(null);
+      return;
+    }
     navigate(item.href);
     setOpenPanelId(null);
   };
@@ -242,7 +247,7 @@ export default function DesktopNav({ user }) {
                     >
                       <span className="cvp-desktop-nav-item-left">
                         <span>{item.label}</span>
-                        {item.badge && <NavBadge variant="free-tool" />}
+                        {item.badge && <NavBadge label={item.badge} />}
                       </span>
                       {authGated && <span className="cvp-desktop-nav-item-hint">Sign in</span>}
                     </button>

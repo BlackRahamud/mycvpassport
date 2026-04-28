@@ -24,6 +24,7 @@ export default function MobileNav({
   isOpen,
   onClose,
   user,
+  isPro,
   userType,
   avatarDest,
   onLogin,
@@ -49,6 +50,11 @@ export default function MobileNav({
 
   const handleItemClick = (item) => {
     if (item.requiresAuth && !user) return;
+    if (item.requiresPro && !isPro) {
+      navigate('/pricing');
+      onClose();
+      return;
+    }
     navigate(item.href);
     onClose();
   };
@@ -253,7 +259,7 @@ export default function MobileNav({
                 >
                   <span className="cvp-nav-item-left">
                     <span className="cvp-nav-item-label">{item.label}</span>
-                    {item.badge && <NavBadge variant="free-tool" />}
+                    {item.badge && <NavBadge label={item.badge} />}
                   </span>
                   {authGated ? (
                     <span className="cvp-nav-item-hint">Sign in</span>

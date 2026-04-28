@@ -143,6 +143,7 @@ export default function App() {
                 element={
                   <LandingPage
                     user={user}
+                    isPro={isPro}
                     onSignOut={handleLogout}
                     onLogin={() => {
                       setAuthMode("login");

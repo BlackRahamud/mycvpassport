@@ -4,13 +4,13 @@ import React from 'react';
 // discipline per STYLE_GUIDE § 2.4 — the only place amber appears
 // in the nav surface other than CTAs.
 //
-// variant: 'free-tool' (default) | 'new'
-export default function NavBadge({ variant = 'free-tool' }) {
-  const label = variant === 'new' ? 'NEW' : 'FREE TOOL';
+// label: the literal text to display ('FREE TOOL' | 'NEW' | 'PRO').
+//        Pass through item.badge from navItems.js.
+export default function NavBadge({ label = 'FREE TOOL' }) {
   const ariaLabel =
-    variant === 'new'
-      ? 'New feature'
-      : 'Free tool — no signup required';
+    label === 'PRO' ? 'Pro feature — paid plan required'
+    : label === 'NEW' ? 'New feature'
+    : 'Free tool — no signup required';
 
   return (
     <span

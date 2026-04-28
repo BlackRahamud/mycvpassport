@@ -28,9 +28,11 @@ export const NAV_SECTIONS = [
     id: 'explore',
     label: 'Explore',
     items: [
-      { label: 'Browse Jobs', href: '/jobs',    badge: 'NEW', requiresAuth: false },
-      { label: 'Blog',        href: '/blog',    requiresAuth: false },
-      { label: 'Pricing',     href: '/pricing', requiresAuth: false },
+      // Pro-gated: nav renderer redirects logged-out + non-pro users to /pricing.
+      { label: 'Job Scout ✨', href: '/scout', badge: 'PRO', requiresPro: true },
+      { label: 'Browse Jobs',  href: '/jobs',    badge: 'NEW', requiresAuth: false },
+      { label: 'Blog',         href: '/blog',    requiresAuth: false },
+      { label: 'Pricing',      href: '/pricing', requiresAuth: false },
     ],
   },
 ];

@@ -108,7 +108,7 @@ const FAQ_ITEMS = [
 ];
 
 // ── Main component ──────────────────────────────────────────────────
-export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalkIn }) {
+export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup, onWalkIn }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [theme, setTheme] = useState(() => {
@@ -629,7 +629,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
 
           {/* Desktop nav — section-grouped dropdowns (freebie-first).
               See src/components/navigation/DesktopNav.jsx + src/config/navItems.js. */}
-          <DesktopNav user={user} />
+          <DesktopNav user={user} isPro={isPro} />
 
           {/* Right actions — desktop only */}
           <div className="lp-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -806,6 +806,7 @@ export default function LandingPage({ user, onSignOut, onLogin, onSignup, onWalk
           isOpen={mobileMenuOpen}
           onClose={closeMobileMenu}
           user={user}
+          isPro={isPro}
           userType={userType}
           avatarDest={avatarDest}
           onLogin={onLogin}
