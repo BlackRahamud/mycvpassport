@@ -611,6 +611,7 @@ function normaliseSerpApiJob(j, expectedCountry) {
 // timeout) into an empty array so allSettled never sees a rejection that
 // would taint the funnel logs.
 async function searchSerpApiJobs(query, location) {
+  console.log('[scout-run] SerpApi: SERPAPI_KEY defined:', !!SERPAPI_KEY);
   if (!SERPAPI_KEY) {
     console.warn('[scout-run] SERPAPI_KEY not set — skipping SerpApi fetch');
     return [];
@@ -625,20 +626,28 @@ async function searchSerpApiJobs(query, location) {
     api_key: SERPAPI_KEY,
   });
   const url = `https://serpapi.com/search?${params.toString()}`;
+  console.log('[scout-run] SerpApi: q="' + (`${query || ''} ${location || ''}`.trim()) + '" location="' + (location || '') + '" gl=ae');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERPAPI_TIMEOUT_MS);
   try {
     const r = await fetch(url, { signal: controller.signal });
+    console.log('[scout-run] SerpApi: response status:', r.status);
     if (!r.ok) {
       const text = await r.text().catch(() => '');
       console.error(`[scout-run] SerpApi ${r.status}: ${text.slice(0, 200)}`);
       return [];
     }
     const json = await r.json();
-    const results = Array.isArray(json?.jobs_results)
-      ? json.jobs_results.slice(0, SERPAPI_PAGE_SIZE)
-      : [];
+    const rawResults = Array.isArray(json?.jobs_results) ? json.jobs_results : [];
+    console.log('[scout-run] SerpApi: jobs_results length (raw, pre-slice):', rawResults.length);
+    if (rawResults[0]) {
+      console.log('[scout-run] SerpApi: raw job[0]:', JSON.stringify(rawResults[0]).slice(0, 1500));
+    }
+    if (rawResults[1]) {
+      console.log('[scout-run] SerpApi: raw job[1]:', JSON.stringify(rawResults[1]).slice(0, 1500));
+    }
+    const results = rawResults.slice(0, SERPAPI_PAGE_SIZE);
     return results.map((j) => normaliseSerpApiJob(j, expectedCountry));
   } catch (e) {
     if (e.name === 'AbortError') {
@@ -974,8 +983,15 @@ export default async function handler(req, res) {
     return res.status(502).json({ ok: false, error: 'Job source unavailable' });
   }
 
+  // SerpApi rows are tagged with `serpapi_` job_id prefix at normalise
+  // time, so we can count per-source survivors at every pipeline stage by
+  // filtering on that prefix. Used purely for diagnostics — no logic gates
+  // off this count.
+  const isSerpApi = (j) => String(j.job_id || '').startsWith('serpapi_');
+
   // ── Step 2: merge ────────────────────────────────────────────────────────
   const merged = [...jsearchJobs, ...joobleJobs, ...serpapiJobs];
+  console.log('FUNNEL SerpApi after merge:', merged.filter(isSerpApi).length);
 
   // ── Step 3: smart hash dedup, first occurrence wins ──────────────────────
   const seen = new Map();
@@ -987,11 +1003,13 @@ export default async function handler(req, res) {
   // FUNNEL #5 — after dedup. (Numbered per user's funnel request even
   // though it lands earlier in the actual pipeline order.)
   console.log('FUNNEL #5 after dedup:', deduped.length, 'jobs');
+  console.log('FUNNEL SerpApi after dedup:', deduped.filter(isSerpApi).length);
 
   // ── Step 4: location filter only (age filter retired) ──────────────────
   const locationFiltered = applyLocationFilter(deduped, location);
   console.log('FUNNEL #3 after location filter:', locationFiltered.length, 'jobs (expectedCountry:', expectedCountryFor(location), ')');
   console.log('FUNNEL #4 age filter: SKIPPED (disabled)');
+  console.log('FUNNEL SerpApi after location filter:', locationFiltered.filter(isSerpApi).length);
 
   // ── Step 4b: Architect negative-query filter ────────────────────────────
   // Drops jobs whose title contains any term the Architect flagged
@@ -1007,6 +1025,7 @@ export default async function handler(req, res) {
   const droppedByNegative = locationFiltered.length - filtered.length;
   console.log(`Negative filter: removed ${droppedByNegative} jobs (needles:`, negativeNeedles, ')');
   console.log('FUNNEL #6 after negative filter:', filtered.length, 'jobs');
+  console.log('FUNNEL SerpApi after negative filter:', filtered.filter(isSerpApi).length);
 
   console.log(
     `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}+${serpapiJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
@@ -1096,6 +1115,7 @@ export default async function handler(req, res) {
 
   // ── Step 5: top 20 to Claude ─────────────────────────────────────────────
   const candidates = filtered.slice(0, 20);
+  console.log('FUNNEL SerpApi into Claude scorer:', candidates.filter(isSerpApi).length);
 
   let scores;
   try {
