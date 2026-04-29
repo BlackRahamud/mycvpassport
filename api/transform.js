@@ -622,11 +622,16 @@ const EMPTY_EDU = {
   startDate: '', endDate: '', location: '',
 };
 
-const SYSTEM_PROMPT = `You are an expert CV editor for the India ↔ UAE/GCC migration corridor.
+const SYSTEM_PROMPT = `You are an expert CV writer specialising in the UAE/GCC and Indian job markets.
 You rewrite a candidate's existing CV into a regionally-tuned, ATS-optimised CV in CVPassport's canonical JSON shape.
-You never invent employers, dates, qualifications, or certifications that aren't in the source.
-You sharpen verbs, surface metrics already present, and normalise dates.
-Output VALID JSON only — no markdown fences, no commentary.`;
+Output VALID JSON only — no markdown fences, no commentary, no preamble.
+
+HALLUCINATION RULES — NEVER VIOLATE:
+- Never invent company names, dates, degrees, or qualifications not in the source.
+- Never add certifications (ITIL, PMP, AWS, Six Sigma, Prince2, CFA, etc.) unless they appear verbatim in the source CV.
+- Never infer skills not present in the source text.
+- Never invent metrics, currency amounts, or percentages.
+- If a field is ambiguous or missing, set it to "". Never guess. Omit information rather than fabricate it.`;
 
 function buildUserPrompt({ text, intake }) {
   return `SOURCE CV TEXT (raw extracted, may be noisy):
@@ -635,13 +640,17 @@ ${text}
 >>>
 
 REGIONAL INTAKE:
-- Target market: ${intake.target_market}
-- Target city:   ${intake.target_city}
-- Target role:   ${intake.target_role}
-- Language pref: ${intake.language_pref}
-- Experience:    ${intake.experience_level}
+- Target market:    ${intake.target_market}
+- Target city:      ${intake.target_city}
+- Target role:      ${intake.target_role}
+- Experience level: ${intake.experience_level}
+- Language pref:    ${intake.language_pref}
+- Visa status:      ${intake.visa_status || '(not provided)'}
+- Driving license:  ${intake.driving_license || '(not provided)'}
+- Target industry:  ${intake.target_industry || '(not provided)'}
 
 DIRECTIVES (apply ALL):
+
 1. Output ONE JSON object conforming EXACTLY to this canonical shape:
    { name, email, phone, location, title, summary,
      nationality, visaStatus, dob, gender, maritalStatus,
@@ -653,24 +662,51 @@ DIRECTIVES (apply ALL):
    Use "" for unknown scalar fields. Never null. Never omit a key.
 
 2. experience[i] = { company, role, location, period, points, startDate, endDate, present }.
-   points = newline-separated bullet sentences, no leading "•" or "-". Keep 3–5 per role.
-   Each bullet grounded in the source text only.
+   - MAXIMUM 5 bullets per role (3–5 ideal).
+   - Every bullet starts with a strong action verb (Led, Drove, Delivered, Owned, Built, Reduced,
+     Optimised, Launched, Negotiated, Scaled, etc.).
+   - Every bullet must read as Action → Result. Surface a metric where the source has one — never
+     invent numbers, percentages, or currency amounts.
+   - No generic duties repeated across roles. Each role must show its unique contribution.
+   - Currency in metrics: use the source's currency. If the source has a number with no currency,
+     infer from the role's location: AED for UAE roles, SAR for Saudi Arabia, INR (with Lakhs/Cr
+     formatting where natural) for India. Never convert numbers between currencies — that's
+     fabrication.
+   - Keep each role compact so it fits one PDF block (downstream PDF templates apply
+     page-break-inside: avoid on each entry — do not exceed 5 bullets).
+   - points = newline-separated bullet sentences, no leading "•" or "-".
 
-3. education[i] = { school, degree, year, fieldOfStudy, startDate, endDate, location }.
+3. education[i] = { school, degree, year, fieldOfStudy, startDate, endDate, location }. Source-only.
 
-4. certifications[i] = { name, issuer, year }.
+4. certifications[i] = { name, issuer, year }. SOURCE-ONLY. Never add a certification (ITIL, PMP,
+   AWS, Six Sigma, Prince2, CFA, etc.) that is not explicitly named in the source CV.
 
-5. skills, technicalSkills, languages = comma-separated strings.
+5. Skills:
+   - skills: comma-separated plain-text list. NO bubbles, NO progress bars, NO percentage
+     proficiency scores anywhere — output is a flat string.
+   - technicalSkills: comma-separated. Group by category when the source supports it
+     (e.g. "Frontend: React, Vue, Tailwind | Backend: Node, Python, Postgres").
+   - languages: comma-separated.
+   - Never infer or add skills not present in the source text.
 
 6. summary = 3–4 sentences, regionally tuned:
-   - Target market 'UAE' or 'GCC': confident Gulf corporate tone, surface visa status if known, mention the target city.
-   - Target market 'India': formal Indian corporate tone.
+   - 'UAE' or 'GCC': lead with target role + years of experience, then visa status + notice period,
+     then target city. Recruiters in UAE/GCC filter on visa + notice period FIRST — make these
+     unmissable. Mention driving license only if relevant to the target role (sales, field ops,
+     logistics, healthcare).
+   - 'India': formal Indian corporate tone. Skip Gulf-specific status fields.
 
-7. Regional fields:
-   - 'UAE' / 'GCC': fill nationality, visaStatus, dob, gender, maritalStatus, drivingLicense when present in source. Otherwise "".
-   - 'India': leave the Gulf-only fields as "" if not in source.
+7. Status row prominence (top of CV, never buried):
+   - 'UAE' / 'GCC': make visa, notice period, and driving license front-and-centre.
+       * visaStatus: copy intake.visa_status verbatim if provided; else use the source if present;
+         else "". (intake.visa_status may already include notice period — preserve verbatim.)
+       * drivingLicense: copy intake.driving_license verbatim if provided; else the source; else "".
+       * nationality, dob, gender, maritalStatus: from source only. Otherwise "".
+   - 'India': leave Gulf-only fields as "" unless the source already includes them.
 
-8. NEVER fabricate. If a field can't be inferred from the source, set "".
+8. NEVER fabricate. If a field can't be inferred from the source, set "". Omit rather than guess.
+   No invented certifications. No inferred skills. No guessed dates. No placeholder companies.
+   No fabricated metrics or currency conversions.
 
 9. Output VALID JSON only. No backticks. No leading text. No commentary.`;
 }
