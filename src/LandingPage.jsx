@@ -10,6 +10,7 @@ import DesktopNav from './components/navigation/DesktopNav';
 // W18 — 5-block conversion layout. See
 // /5-HANDOFF/[READY]_landing_page_conversion_rewrite_W18.json.
 import HeroSection from './components/landing/HeroSection';
+import UploadTransformSection from './components/landing/UploadTransformSection';
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import TemplatesSection from './components/landing/TemplatesSection';
 import FloatingActionButton from './components/landing/FloatingActionButton';
@@ -816,6 +817,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
 
         {/* ── W18 LANDING — 5-block conversion layout ───────────── */}
         <HeroSection user={user} />
+        <UploadTransformSection user={user} />
         <HowItWorksSection />
         <TemplatesSection />
         <GulfBillboardCard />
