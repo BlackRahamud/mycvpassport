@@ -1,10 +1,11 @@
 /**
  * POST /api/scout-run
  *
- * Pro-only Scout endpoint. Fetches fresh job postings from JSearch (RapidAPI)
- * and Jooble in parallel, merges + dedups them, scores them against the user's
- * most recent CV with Claude, and persists scout_jobs + scout_matches rows
- * under the user's id. Daily run count is enforced via scout_preferences.
+ * Pro-only Scout endpoint. Fetches fresh job postings from JSearch (RapidAPI),
+ * Jooble, and SerpApi (Google Jobs) in parallel, merges + dedups them, scores
+ * them against the user's most recent CV with Claude, and persists scout_jobs
+ * + scout_matches rows under the user's id. Daily run count is enforced via
+ * scout_preferences.
  *
  * Auth:  Authorization: Bearer <user JWT>
  * Body:  { preferences?: { target_role, location, experience_years, salary_min, sources } }
@@ -29,10 +30,13 @@
  *
  * Optional env:
  *   - JOOBLE_API_KEY              jooble.org/api — second source. Skipped if unset.
+ *   - SERPAPI_KEY                 serpapi.com (Google Jobs) — third source. Skipped if unset.
  *   - SCOUT_DAILY_LIMIT           default 3
  *   - SCOUT_JSEARCH_PAGE_SIZE     default 10
  *   - SCOUT_JOOBLE_PAGE_SIZE      default 10
  *   - SCOUT_JOOBLE_TIMEOUT_MS     default 8000
+ *   - SCOUT_SERPAPI_PAGE_SIZE     default 10
+ *   - SCOUT_SERPAPI_TIMEOUT_MS    default 8000
  *   - SCOUT_CLAUDE_MODEL          default 'claude-haiku-4-5-20251001'
  */
 
@@ -46,6 +50,7 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.REACT_APP
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 const JOOBLE_API_KEY = process.env.JOOBLE_API_KEY;
+const SERPAPI_KEY = process.env.SERPAPI_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 const SCOUT_DAILY_LIMIT = parseInt(process.env.SCOUT_DAILY_LIMIT || '3', 10);
@@ -56,6 +61,8 @@ const FOUNDER_USER_ID = 'bc4a800f-0ab7-47d5-85ed-a9e014020c64';
 const JSEARCH_PAGE_SIZE = parseInt(process.env.SCOUT_JSEARCH_PAGE_SIZE || '10', 10);
 const JOOBLE_PAGE_SIZE = parseInt(process.env.SCOUT_JOOBLE_PAGE_SIZE || '10', 10);
 const JOOBLE_TIMEOUT_MS = parseInt(process.env.SCOUT_JOOBLE_TIMEOUT_MS || '8000', 10);
+const SERPAPI_PAGE_SIZE = parseInt(process.env.SCOUT_SERPAPI_PAGE_SIZE || '10', 10);
+const SERPAPI_TIMEOUT_MS = parseInt(process.env.SCOUT_SERPAPI_TIMEOUT_MS || '8000', 10);
 const CLAUDE_MODEL = process.env.SCOUT_CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 // Query Architect uses Haiku regardless of the scoring-model env override —
 // it's a cheap, deterministic translation of "Sales Manager" into a precise
@@ -575,6 +582,76 @@ async function fetchJoobleJobs({ keywords, location, expectedCountry }) {
   }
 }
 
+// Normalises a SerpApi (Google Jobs) result into the JSearch-shaped record
+// the rest of the pipeline already understands. Same pattern as Jooble:
+// expectedCountry is derived from the user's selected city so the post-fetch
+// country filter has something concrete to compare against (SerpApi returns
+// `location` as a free-text "City, Country" string with no separate country
+// field). job_city carries the raw SerpApi location string so the
+// Indian-city drop in applyLocationFilter still catches Gulf-search leakage.
+function normaliseSerpApiJob(j, expectedCountry) {
+  const applyUrl = (Array.isArray(j.related_links) && j.related_links[0]?.link) || j.share_link || '';
+  const ext = j.detected_extensions || {};
+  return {
+    job_title: j.title || '',
+    employer_name: j.company_name || '',
+    job_apply_link: applyUrl,
+    job_description: j.description || '',
+    job_posted_at_datetime_utc: ext.posted_at || null,
+    job_country: expectedCountry || null,
+    job_city: j.location || '',
+    job_publisher: 'Google Jobs',
+    job_id: `serpapi_${j.job_id || ''}`,
+    job_salary: ext.salary || '',
+  };
+}
+
+// Third source. Same contract as fetchJoobleJobs: returns a normalised
+// JSearch-shaped array, swallows all upstream failures (network, non-2xx,
+// timeout) into an empty array so allSettled never sees a rejection that
+// would taint the funnel logs.
+async function searchSerpApiJobs(query, location) {
+  if (!SERPAPI_KEY) {
+    console.warn('[scout-run] SERPAPI_KEY not set — skipping SerpApi fetch');
+    return [];
+  }
+  const expectedCountry = expectedCountryFor(location);
+  const params = new URLSearchParams({
+    engine: 'google_jobs',
+    q: `${query || ''} ${location || ''}`.trim(),
+    location: location || '',
+    hl: 'en',
+    gl: 'ae',
+    api_key: SERPAPI_KEY,
+  });
+  const url = `https://serpapi.com/search?${params.toString()}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SERPAPI_TIMEOUT_MS);
+  try {
+    const r = await fetch(url, { signal: controller.signal });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.error(`[scout-run] SerpApi ${r.status}: ${text.slice(0, 200)}`);
+      return [];
+    }
+    const json = await r.json();
+    const results = Array.isArray(json?.jobs_results)
+      ? json.jobs_results.slice(0, SERPAPI_PAGE_SIZE)
+      : [];
+    return results.map((j) => normaliseSerpApiJob(j, expectedCountry));
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.error(`[scout-run] SerpApi timed out after ${SERPAPI_TIMEOUT_MS}ms`);
+    } else {
+      console.error('[scout-run] SerpApi fetch failed:', e.message || e);
+    }
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 async function fetchJSearchJobs({ role, location, jobType, datePosted }) {
@@ -702,7 +779,7 @@ async function scoreWithClaude(cvText, jobs, prefs, keySkills = []) {
 }
 
 export default async function handler(req, res) {
-  console.log(`Scout-run started - JOOBLE_KEY present: ${!!JOOBLE_API_KEY}`);
+  console.log(`Scout-run started - JOOBLE_KEY present: ${!!JOOBLE_API_KEY}, SERPAPI_KEY present: ${!!SERPAPI_KEY}`);
 
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
@@ -816,20 +893,24 @@ export default async function handler(req, res) {
     : role;
   const joobleKeywords = extractApiKeywords(enriched, role);
 
-  // ── Step 1: parallel fetch JSearch + Jooble ──────────────────────────────
+  // ── Step 1: parallel fetch JSearch + Jooble + SerpApi ───────────────────
   const expectedCountry = expectedCountryFor(location);
   console.log('JSearch query:', jsearchKeywords);
   console.log('Jooble query:', joobleKeywords);
-  console.log('CHECKPOINT 2: Firing JSearch + Jooble (separate queries above)');
-  const [jsearchResult, joobleResult] = await Promise.allSettled([
+  console.log('SerpApi query:', joobleKeywords);
+  console.log('CHECKPOINT 2: Firing JSearch + Jooble + SerpApi (separate queries above)');
+  const [jsearchResult, joobleResult, serpapiResult] = await Promise.allSettled([
     fetchJSearchJobs({ role: jsearchKeywords, location, jobType, datePosted }),
     fetchJoobleJobs({ keywords: joobleKeywords, location: joobleLocationFor(location), expectedCountry }),
+    searchSerpApiJobs(joobleKeywords, location),
   ]);
 
   let jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
   const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
+  const serpapiJobs = serpapiResult.status === 'fulfilled' ? serpapiResult.value : [];
   if (jsearchResult.status === 'rejected') console.error('[scout-run] JSearch failed:', jsearchResult.reason);
   if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
+  if (serpapiResult.status === 'rejected') console.error('[scout-run] SerpApi failed:', serpapiResult.reason);
   console.log('FUNNEL #1 raw JSearch count:', jsearchJobs.length);
 
   // JSearch fallback — even the standardized_title sometimes produces
@@ -849,6 +930,7 @@ export default async function handler(req, res) {
   }
 
   console.log('FUNNEL #2 raw Jooble count:', joobleJobs.length);
+  console.log('FUNNEL #2b raw SerpApi count:', serpapiJobs.length);
   // First-row probes so we can see what shape each source actually returns
   // (some fields are optional and the filters depend on them).
   if (jsearchJobs[0]) {
@@ -873,6 +955,17 @@ export default async function handler(req, res) {
       job_publisher: sample.job_publisher,
     }));
   }
+  if (serpapiJobs[0]) {
+    const sample = serpapiJobs[0];
+    console.log('FUNNEL SerpApi sample:', JSON.stringify({
+      job_title: sample.job_title,
+      employer_name: sample.employer_name,
+      job_country: sample.job_country,
+      job_city: sample.job_city,
+      job_posted_at_datetime_utc: sample.job_posted_at_datetime_utc,
+      job_publisher: sample.job_publisher,
+    }));
+  }
 
   // Both upstreams empty AND JSearch threw → genuine outage. Empty results
   // with both sources OK (e.g. niche role in Muscat) is not an error — let
@@ -882,7 +975,7 @@ export default async function handler(req, res) {
   }
 
   // ── Step 2: merge ────────────────────────────────────────────────────────
-  const merged = [...jsearchJobs, ...joobleJobs];
+  const merged = [...jsearchJobs, ...joobleJobs, ...serpapiJobs];
 
   // ── Step 3: smart hash dedup, first occurrence wins ──────────────────────
   const seen = new Map();
@@ -916,7 +1009,7 @@ export default async function handler(req, res) {
   console.log('FUNNEL #6 after negative filter:', filtered.length, 'jobs');
 
   console.log(
-    `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
+    `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}+${serpapiJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
   );
 
   // Helper that fires the prefs upsert + scout_jobs/matches sync. Defined
