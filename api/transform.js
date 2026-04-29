@@ -1,5 +1,5 @@
 /**
- * /api/transform?action=upload|pay|run|status
+ * /api/transform?action=upload|update_intake|pay|run|status
  *
  * Single Upload & Transform router. Was four separate functions
  * (transform-upload, transform-pay, transform-run, transform-session/[id])
@@ -14,17 +14,18 @@
  *                                     gated, raw text never returned)
  *
  * Methods:
- *   - upload | pay | run            POST only
- *   - status                        GET or POST (read-only; no-store)
+ *   - upload | update_intake | pay | run   POST only
+ *   - status                                GET or POST (read-only; no-store)
  *
  * Auth:  Authorization: Bearer <user JWT>  (all branches)
  *
  * Body / query (per branch):
- *   - upload   POST { text, intake, source_kind?, source_chars? }
- *   - pay      POST { session_id }
- *   - run      POST { session_id }
- *   - status   GET  ?action=status&session_id=<uuid>
- *              POST { action:'status', session_id }
+ *   - upload         POST { text, intake, source_kind?, source_chars? }
+ *   - update_intake  POST { session_id, intake }
+ *   - pay            POST { session_id }
+ *   - run            POST { session_id }
+ *   - status         GET  ?action=status&session_id=<uuid>
+ *                    POST { action:'status', session_id }
  *
  * Required env (any branch):
  *   - SUPABASE_URL                (or REACT_APP_SUPABASE_URL)
@@ -214,6 +215,86 @@ async function handleUpload(req, res, body) {
     amount_fils: session.amount_fils,
     next: skipPayment ? 'run' : 'pay',
   });
+}
+
+// =====================================================================
+// Branch 1b — update_intake (refine intake post-upload)
+//
+// Landing-page upload sends placeholder intake (DEFAULT_INTAKE in
+// UploadTransformSection.jsx) so the friction-free CTA never asks 5
+// questions inline. The /transform page then collects the real answers
+// and PATCHes them in here before run kicks Claude. RLS on
+// transform_sessions is SELECT-only by design (010_transform_sessions.sql)
+// — every write must be service-role-keyed and gated, exactly like the
+// other branches.
+//
+// We gate to pre-run statuses (created / awaiting_payment / paid). Once a
+// session is transforming or transformed, the intake is locked. We MERGE
+// the new intake with whatever's already in the row so required keys
+// (target_city, language_pref) inherited from upload defaults can't be
+// dropped by a partial PATCH from the /transform page form.
+// =====================================================================
+
+async function handleUpdateIntake(req, res, body) {
+  const ctx = await requireAuthAndDb(req, res);
+  if (!ctx) return;
+  const { user, db } = ctx;
+
+  const sessionId = typeof body.session_id === 'string' ? body.session_id.trim() : '';
+  if (!sessionId || !UUID_RE.test(sessionId)) {
+    return res.status(400).json({ ok: false, error: 'session_id (uuid) required' });
+  }
+  if (!body.intake || typeof body.intake !== 'object' || Array.isArray(body.intake)) {
+    return res.status(400).json({ ok: false, error: 'intake must be an object' });
+  }
+
+  const { data: session, error: loadErr } = await db
+    .from('transform_sessions')
+    .select('id, user_id, status, intake')
+    .eq('id', sessionId).eq('user_id', user.id).maybeSingle();
+  if (loadErr) {
+    console.error('[transform/update_intake] load failed:', JSON.stringify(loadErr));
+    return res.status(500).json({ ok: false, error: 'Could not load session' });
+  }
+  if (!session) {
+    return res.status(404).json({ ok: false, error: 'Session not found' });
+  }
+  const ALLOWED_FROM = ['created', 'awaiting_payment', 'paid'];
+  if (!ALLOWED_FROM.includes(session.status)) {
+    return res.status(409).json({
+      ok: false,
+      error: `Intake is locked once a session reaches ${session.status}.`,
+    });
+  }
+
+  const existing = (session.intake && typeof session.intake === 'object' && !Array.isArray(session.intake))
+    ? session.intake : {};
+  const merged = { ...existing };
+  for (const [k, v] of Object.entries(body.intake)) {
+    if (typeof v === 'string' && v.trim()) merged[k] = v.trim();
+  }
+  const validation = validateIntake(merged);
+  if (!validation.ok) {
+    return res.status(400).json({ ok: false, error: validation.reason });
+  }
+
+  const { error: upErr } = await db
+    .from('transform_sessions')
+    .update({ intake: merged })
+    .eq('id', sessionId).eq('user_id', user.id)
+    .in('status', ALLOWED_FROM);
+  if (upErr) {
+    console.error('[transform/update_intake] update failed:', JSON.stringify(upErr));
+    return res.status(500).json({ ok: false, error: 'Could not update intake' });
+  }
+
+  console.log('[transform/update_intake] intake refined', JSON.stringify({
+    session_id: sessionId,
+    user_id: user.id,
+    keys: Object.keys(merged),
+  }));
+
+  return res.status(200).json({ ok: true, session_id: sessionId, intake: merged });
 }
 
 // =====================================================================
@@ -947,6 +1028,10 @@ export default async function handler(req, res) {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST required for upload' });
       return handleUpload(req, res, body);
 
+    case 'update_intake':
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST required for update_intake' });
+      return handleUpdateIntake(req, res, body);
+
     case 'pay':
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST required for pay' });
       return handlePay(req, res, body);
@@ -969,7 +1054,7 @@ export default async function handler(req, res) {
     default:
       return res.status(400).json({
         ok: false,
-        error: 'Missing or unknown action. Use ?action=upload|pay|run|status.',
+        error: 'Missing or unknown action. Use ?action=upload|update_intake|pay|run|status.',
       });
   }
 }
