@@ -2619,6 +2619,18 @@ function ResumeBuilder({
       delete next.cvpInitialTemplateId;
       dirty = true;
     }
+    // /transform/success → "Edit in Builder" hands the rewritten CV in
+    // via location.state. Apply once and clear so a refresh doesn't
+    // overwrite further user edits.
+    if (st.cvpInitialResume && typeof st.cvpInitialResume === "object") {
+      const incoming = normalizeResumeForBuilder(st.cvpInitialResume);
+      setResume({
+        ...incoming,
+        technicalSkills: normalizeTechnicalSkillsState(incoming.technicalSkills),
+      });
+      delete next.cvpInitialResume;
+      dirty = true;
+    }
     if (!dirty) return;
     navigate(location.pathname, { replace: true, state: Object.keys(next).length ? next : undefined });
   }, [location.state, location.pathname, navigate]);

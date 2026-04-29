@@ -30,6 +30,7 @@ import LinkedInOptimizer from "./pages/LinkedInOptimizer";
 import SalarySwitcher from "./pages/SalarySwitcher";
 import ScoutDashboard from "./pages/ScoutDashboard";
 import TransformPage from "./pages/TransformPage";
+import TransformSuccessPage from "./pages/TransformSuccessPage";
 import ToolsPage from "./pages/ToolsPage";
 import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
@@ -257,6 +258,7 @@ export default function App() {
               <Route path="/salary-switcher" element={<SalarySwitcher />} />
               <Route path="/scout" element={!authReady ? null : user ? <ScoutDashboard user={user} isPro={isPro} /> : <NavigateToAuth />} />
               <Route path="/transform" element={!authReady ? null : <TransformPage user={user} isPro={isPro} />} />
+              <Route path="/transform/success" element={!authReady ? null : <TransformSuccessPage user={user} isPro={isPro} />} />
               <Route path="/gulf-career" element={<GulfCareerPage />} />
               <Route path="/gulf/:reportId" element={<GulfCareerPage />} />
               <Route path="/tools" element={<ToolsPage />} />
