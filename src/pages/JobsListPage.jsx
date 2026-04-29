@@ -239,7 +239,12 @@ export default function JobsListPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: T.font }}>
+    <div style={{ position: "relative", minHeight: "100vh", background: T.bg, fontFamily: T.font }}>
+      <div
+        style={{ filter: "blur(8px)", pointerEvents: "none", userSelect: "none" }}
+        aria-hidden="true"
+      >
+      <div style={{ minHeight: "100vh", background: T.bg, fontFamily: T.font }}>
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
@@ -474,6 +479,117 @@ export default function JobsListPage() {
           onClick={() => navigate("/")}
           style={{ color: T.accent, cursor: "pointer" }}
         >mycvpassport.com</span>
+      </div>
+      </div>
+      </div>
+
+      {/* ── COMING SOON OVERLAY ── */}
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 100,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 24px",
+          background: "rgba(10,10,10,0.55)",
+          backdropFilter: "blur(2px)",
+          WebkitBackdropFilter: "blur(2px)",
+          fontFamily: T.font,
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 460,
+            width: "100%",
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: 16,
+            padding: "36px 28px",
+            boxShadow: "0 30px 80px -30px rgba(0,0,0,0.7)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: T.amber,
+              marginBottom: 14,
+            }}
+          >
+            CVPassport Jobs
+          </div>
+          <h1
+            style={{
+              fontSize: "clamp(28px, 4vw, 38px)",
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.1,
+              margin: "0 0 14px 0",
+              color: T.text,
+            }}
+          >
+            Coming Soon
+          </h1>
+          <p
+            style={{
+              fontSize: 15,
+              lineHeight: 1.55,
+              color: T.muted,
+              margin: "0 0 20px 0",
+            }}
+          >
+            We&apos;re working on this. You&apos;ll be able to find Gulf
+            &amp; India jobs right here — stay tuned.
+          </p>
+          <div
+            style={{
+              fontSize: 13,
+              color: "#6E6E73",
+              borderTop: `1px solid ${T.border}`,
+              paddingTop: 16,
+              marginTop: 4,
+              lineHeight: 1.5,
+            }}
+          >
+            Your feedback matters —{" "}
+            <a
+              href="mailto:support@mycvpassport.com"
+              style={{
+                color: T.amber,
+                textDecoration: "underline",
+                textUnderlineOffset: 3,
+              }}
+            >
+              tell us what you need
+            </a>
+            .
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          style={{
+            marginTop: 18,
+            background: "transparent",
+            color: T.muted,
+            border: `1px solid ${T.border}`,
+            borderRadius: 999,
+            padding: "10px 18px",
+            fontSize: 13,
+            fontFamily: T.font,
+            cursor: "pointer",
+          }}
+        >
+          ← Back to home
+        </button>
       </div>
     </div>
   );

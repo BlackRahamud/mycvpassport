@@ -398,6 +398,14 @@ export default function UploadTransformSection({ user }) {
           color: #6E6E73;
           margin: 0;
         }
+        .cvp-utr-drop-beta {
+          font-size: 11.5px;
+          font-weight: 500;
+          color: #8A8A8E;
+          letter-spacing: 0.01em;
+          margin: -2px 0 0 0;
+          opacity: 0.85;
+        }
 
         .cvp-utr-cta {
           appearance: none;
@@ -505,6 +513,11 @@ export default function UploadTransformSection({ user }) {
             <p className="cvp-utr-drop-title">
               {stageLabel || 'Drop your CV here, or click to browse'}
             </p>
+            {!isSuccess && (
+              <p className="cvp-utr-drop-beta">
+                🧪 Beta — We&apos;re improving this. Full launch in a few days.
+              </p>
+            )}
             <p className="cvp-utr-drop-sub">
               {isSuccess ? 'Opening your transform…' : 'PDF or DOCX, up to 10 MB'}
             </p>
