@@ -85,7 +85,7 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
     setLoading(true);
     setLetterBody("");
     try {
-      const response = await fetch("/api/cover-letter", {
+      const response = await fetch("/api/ai?action=cover_letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

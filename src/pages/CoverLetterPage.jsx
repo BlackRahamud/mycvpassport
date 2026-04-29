@@ -194,7 +194,7 @@ function CoverLetterPage({ user, profile, onBack }) {
             const doAutoRetry = async (attempt = 0) => {
               setPhase("loading");
               const minWait = new Promise((r) => setTimeout(r, 5000));
-              const apiCall = fetch("/api/cover-letter", {
+              const apiCall = fetch("/api/ai?action=cover_letter", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -634,7 +634,7 @@ function CoverLetterPage({ user, profile, onBack }) {
         setClTemplateVariant(null);
       }
       const minWait = new Promise((r) => setTimeout(r, 5000));
-      const apiCall = fetch("/api/cover-letter", {
+      const apiCall = fetch("/api/ai?action=cover_letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestPayload),
@@ -679,7 +679,7 @@ function CoverLetterPage({ user, profile, onBack }) {
     setClUnlocking(true);
     setGenError("");
     try {
-      const response = await fetch("/api/cover-letter", {
+      const response = await fetch("/api/ai?action=cover_letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

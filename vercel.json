@@ -4,10 +4,10 @@
       "memory": 1024,
       "maxDuration": 60
     },
-    "api/parse-resume.js": {
-      "maxDuration": 30
+    "api/ai.js": {
+      "maxDuration": 60
     },
-    "api/cover-letter.js": {
+    "api/transform.js": {
       "maxDuration": 60
     },
     "api/create-ziina-payment.js": {
@@ -15,9 +15,6 @@
     },
     "api/ziina-webhook.js": {
       "maxDuration": 15
-    },
-    "api/generate-linkedin-headline.js": {
-      "maxDuration": 30
     },
     "api/notify-candidate.js": {
       "maxDuration": 15

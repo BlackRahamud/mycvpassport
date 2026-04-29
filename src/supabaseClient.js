@@ -44,7 +44,7 @@ export async function getCurrentUserProfile() {
 
 /**
  * Premium parsing engine (Pro users only).
- * Calls the serverless API at /api/parse-resume; Anthropic is invoked only server-side.
+ * Calls the serverless API at /api/ai?action=parse_resume; Anthropic is invoked only server-side.
  * Returns: structured JSON on success, or { error: "..." } when not Pro / on API failure.
  */
 export async function parseResumeToStructuredJSON(rawText) {
@@ -66,7 +66,7 @@ export async function parseResumeToStructuredJSON(rawText) {
   const base = typeof window !== 'undefined' && window.location?.origin
     ? window.location.origin
     : '';
-  const res = await fetch(`${base}/api/parse-resume`, {
+  const res = await fetch(`${base}/api/ai?action=parse_resume`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ text: cleaned }),

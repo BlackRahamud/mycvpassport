@@ -12,7 +12,7 @@
  *   currentStep  : "idle" | "loading" | "results" | "locked"
  *   userStatus   : { isUnlocked: boolean, isAuthenticated: boolean }
  *   apiResponse  : { professional, bold, storyDriven }
- *   onOptimize   : POST /api/generate-linkedin-headline
+ *   onOptimize   : POST /api/ai?action=linkedin_headline
  *   onUnlock     : POST /api/create-ziina-payment → Ziina redirect
  */
 
@@ -527,7 +527,7 @@ export default function LinkedInOptimizer() {
     const minDelay = new Promise((r) => setTimeout(r, 1400));
     try {
       const [res] = await Promise.all([
-        fetch("/api/generate-linkedin-headline", {
+        fetch("/api/ai?action=linkedin_headline", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ headline: trimmed, market }),
