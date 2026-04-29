@@ -607,26 +607,67 @@ function normaliseSerpApiJob(j, expectedCountry) {
 }
 
 // Third source. Same contract as fetchJoobleJobs: returns a normalised
-// JSearch-shaped array, swallows all upstream failures (network, non-2xx,
-// timeout) into an empty array so allSettled never sees a rejection that
-// would taint the funnel logs.
+// JSearch-shaped array, swallows ALL upstream failures (network, non-2xx,
+// timeout, malformed json, missing fields) into an empty array. SerpApi
+// failing must never break the pipeline or surface to the user.
 async function searchSerpApiJobs(query, location) {
   console.log('[scout-run] SerpApi: SERPAPI_KEY defined:', !!SERPAPI_KEY);
   if (!SERPAPI_KEY) {
     console.warn('[scout-run] SERPAPI_KEY not set — skipping SerpApi fetch');
     return [];
   }
+
+  // Location normaliser. SerpApi's `location` param rejects strings it
+  // can't resolve to a Google Places entity (the original bug:
+  // "Abu Dhabi, UAE" → 400 "Unsupported location"). The map below pins
+  // the common Gulf + India inputs to a SerpApi-accepted form. Anything
+  // not in the map but shaped "City, Country" falls through to the
+  // country half (so e.g. "Riyadh, Saudi Arabia" → "Saudi Arabia"); a
+  // bare unknown string lands on UAE since that is the primary market.
+  const LOCATION_MAP = {
+    'abu dhabi, uae': 'United Arab Emirates',
+    'dubai, uae': 'United Arab Emirates',
+    'sharjah, uae': 'United Arab Emirates',
+    'uae': 'United Arab Emirates',
+    'gcc': 'United Arab Emirates',
+    'india': 'India',
+    'mumbai, india': 'India',
+    'bangalore, india': 'India',
+  };
+  const normaliseLocation = (input) => {
+    const raw = String(input || '').trim();
+    if (!raw) return 'United Arab Emirates';
+    const lower = raw.toLowerCase();
+    if (LOCATION_MAP[lower]) return LOCATION_MAP[lower];
+    const commaIdx = raw.indexOf(',');
+    if (commaIdx >= 0) {
+      const country = raw.slice(commaIdx + 1).trim();
+      if (country) {
+        const countryLower = country.toLowerCase();
+        if (LOCATION_MAP[countryLower]) return LOCATION_MAP[countryLower];
+        return country;
+      }
+    }
+    return 'United Arab Emirates';
+  };
+
+  const normalisedLocation = normaliseLocation(location);
+  // gl picks Google's index. India market → 'in'; Gulf (and unknown) → 'ae'.
+  const gl = /india/i.test(normalisedLocation) ? 'in' : 'ae';
   const expectedCountry = expectedCountryFor(location);
-  const params = new URLSearchParams({
+
+  const paramsObj = {
     engine: 'google_jobs',
-    q: `${query || ''} ${location || ''}`.trim(),
-    location: location || '',
+    q: String(query || '').trim(),
+    location: normalisedLocation,
     hl: 'en',
-    gl: 'ae',
-    api_key: SERPAPI_KEY,
-  });
+    gl,
+    chips: 'date_posted:today',
+  };
+  console.log('[scout-run] SerpApi: params (api_key redacted):', JSON.stringify(paramsObj));
+
+  const params = new URLSearchParams({ ...paramsObj, api_key: SERPAPI_KEY });
   const url = `https://serpapi.com/search?${params.toString()}`;
-  console.log('[scout-run] SerpApi: q="' + (`${query || ''} ${location || ''}`.trim()) + '" location="' + (location || '') + '" gl=ae');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SERPAPI_TIMEOUT_MS);
@@ -635,11 +676,15 @@ async function searchSerpApiJobs(query, location) {
     console.log('[scout-run] SerpApi: response status:', r.status);
     if (!r.ok) {
       const text = await r.text().catch(() => '');
-      console.error(`[scout-run] SerpApi ${r.status}: ${text.slice(0, 200)}`);
+      console.error(`[scout-run] SerpApi ${r.status} — full body: ${text}`);
       return [];
     }
-    const json = await r.json();
-    const rawResults = Array.isArray(json?.jobs_results) ? json.jobs_results : [];
+    const json = await r.json().catch((e) => {
+      console.error('[scout-run] SerpApi: response was not valid JSON:', e?.message || e);
+      return null;
+    });
+    if (!json) return [];
+    const rawResults = Array.isArray(json.jobs_results) ? json.jobs_results : [];
     console.log('[scout-run] SerpApi: jobs_results length (raw, pre-slice):', rawResults.length);
     if (rawResults[0]) {
       console.log('[scout-run] SerpApi: raw job[0]:', JSON.stringify(rawResults[0]).slice(0, 1500));
@@ -647,13 +692,33 @@ async function searchSerpApiJobs(query, location) {
     if (rawResults[1]) {
       console.log('[scout-run] SerpApi: raw job[1]:', JSON.stringify(rawResults[1]).slice(0, 1500));
     }
-    const results = rawResults.slice(0, SERPAPI_PAGE_SIZE);
-    return results.map((j) => normaliseSerpApiJob(j, expectedCountry));
+    if (rawResults.length === 0) {
+      console.log('[scout-run] SerpApi: 0 jobs returned');
+      return [];
+    }
+    const sliced = rawResults.slice(0, SERPAPI_PAGE_SIZE);
+    const valid = [];
+    let skipped = 0;
+    for (const j of sliced) {
+      if (!j || !j.title || !j.company_name) {
+        skipped += 1;
+        console.warn('[scout-run] SerpApi: skipped malformed job (missing title or company_name)');
+        continue;
+      }
+      try {
+        valid.push(normaliseSerpApiJob(j, expectedCountry));
+      } catch (e) {
+        skipped += 1;
+        console.warn('[scout-run] SerpApi: skipped job (normalise threw):', e?.message || e);
+      }
+    }
+    console.log(`[scout-run] SerpApi: kept ${valid.length}, skipped ${skipped} of ${sliced.length} sliced`);
+    return valid;
   } catch (e) {
     if (e.name === 'AbortError') {
       console.error(`[scout-run] SerpApi timed out after ${SERPAPI_TIMEOUT_MS}ms`);
     } else {
-      console.error('[scout-run] SerpApi fetch failed:', e.message || e);
+      console.error('[scout-run] SerpApi fetch failed:', e?.message || e);
     }
     return [];
   } finally {
