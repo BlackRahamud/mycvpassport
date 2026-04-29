@@ -15,6 +15,13 @@ const PLAN_MAP = {
   1000:  { plan: 'cover_letter',  is_pro: false },
 };
 
+// Upload & Transform sessions encode their session id in the
+// external_reference as "transform:<uuid>". Used by the transform
+// branch below to route the webhook to transform_sessions instead of
+// the subscription / permissions paths.
+const TRANSFORM_PREFIX = 'transform:';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -31,19 +38,30 @@ export default async function handler(req, res) {
   const signature = req.headers['x-ziina-signature'];
   const secret = process.env.ZIINA_WEBHOOK_SECRET;
 
-  if (secret && signature) {
-    const expected = crypto
-      .createHmac('sha256', secret)
-      .update(rawBody)
-      .digest('hex');
-    const expectedBuf = Buffer.from(expected, 'hex');
-    const signatureBuf = Buffer.from(String(signature), 'hex');
-    if (
-      expectedBuf.length !== signatureBuf.length ||
-      !crypto.timingSafeEqual(expectedBuf, signatureBuf)
-    ) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
+  // Fail-closed signature verification. Without this every webhook
+  // branch (subscriptions, à-la-carte unlocks, transform sessions)
+  // could be forged by anyone who can POST to this URL. ZIINA_WEBHOOK_SECRET
+  // is required in every environment; if it's missing, we 500 rather
+  // than silently accept unsigned webhooks.
+  if (!secret) {
+    console.error('[ziina-webhook] ZIINA_WEBHOOK_SECRET missing — failing closed');
+    return res.status(500).json({ error: 'Webhook misconfigured' });
+  }
+  if (!signature) {
+    console.error('[ziina-webhook] missing x-ziina-signature header');
+    return res.status(401).json({ error: 'Missing signature' });
+  }
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+  const expectedBuf = Buffer.from(expected, 'hex');
+  const signatureBuf = Buffer.from(String(signature), 'hex');
+  if (
+    expectedBuf.length !== signatureBuf.length ||
+    !crypto.timingSafeEqual(expectedBuf, signatureBuf)
+  ) {
+    return res.status(401).json({ error: 'Invalid signature' });
   }
 
   let payload;
@@ -67,7 +85,14 @@ export default async function handler(req, res) {
   }
 
   if (!external_reference) {
-    return res.status(400).json({ error: 'No user ID' });
+    // Malformed event — there's nothing useful we can do with it. Ack
+    // 200 instead of 400 so Ziina doesn't keep retrying the same
+    // unprocessable payload.
+    console.warn('[ziina-webhook] no external_reference — acking 200', {
+      payment_intent_id,
+      amount,
+    });
+    return res.status(200).json({ received: true, ignored: true });
   }
 
   // Audit-log helper — inserts into the payments table if it exists.
@@ -101,6 +126,84 @@ export default async function handler(req, res) {
     } catch (e) {
       console.error('payments insert threw', { error: e?.message || String(e) });
     }
+  }
+
+  // Upload & Transform per-session payments. external_reference is
+  // "transform:<session_uuid>". We flip the matching transform_sessions
+  // row from created/awaiting_payment → paid (any other status is
+  // treated as an idempotent retry — Ziina re-delivers webhooks; we
+  // also don't want to clobber a session that /api/transform-run has
+  // already advanced to 'transforming' / 'transformed'). Audit row
+  // goes to the same payments table the subscription branch uses.
+  if (external_reference.startsWith(TRANSFORM_PREFIX)) {
+    const sessionId = external_reference.slice(TRANSFORM_PREFIX.length);
+    if (!UUID_RE.test(sessionId)) {
+      console.error('[ziina-webhook] transform: invalid session id', { sessionId });
+      return res.status(400).json({ error: 'Invalid transform session id' });
+    }
+
+    // Conditional UPDATE — the .in('status', ...) predicate is what
+    // makes this safe against double-fire. If the session is already
+    // past the gate, the predicate matches 0 rows and we ack as a
+    // no-op below.
+    const { data: updated, error: upErr } = await supabase
+      .from('transform_sessions')
+      .update({
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        payment_intent_id: payment_intent_id || null,
+      })
+      .eq('id', sessionId)
+      .in('status', ['created', 'awaiting_payment'])
+      .select('id, user_id')
+      .maybeSingle();
+
+    if (upErr) {
+      console.error('[ziina-webhook] transform update failed', {
+        sessionId,
+        error: upErr.message,
+      });
+      return res.status(500).json({ error: upErr.message });
+    }
+
+    if (!updated) {
+      // Two cases collapse here:
+      //   (a) Ziina retry of an event we already processed — the first
+      //       delivery wrote the audit row, so a second would duplicate.
+      //   (b) Session was deleted (cascade from auth.users) between
+      //       Ziina charging the card and this webhook firing — we
+      //       NEVER wrote an audit row for this real payment.
+      // Distinguish by looking up payments.payment_intent_id. If we
+      // already recorded it, ack quietly. If not, write an orphan
+      // audit row with user_id=null so the founder can reconcile
+      // against the Ziina dashboard.
+      const { data: existingAudit } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('payment_intent_id', payment_intent_id)
+        .maybeSingle();
+      if (!existingAudit) {
+        await recordPayment({ user_id: null, service: 'transform_orphan' });
+        console.warn('[ziina-webhook] transform: orphan payment recorded (session missing)', {
+          sessionId,
+          payment_intent_id,
+        });
+      } else {
+        console.log('[ziina-webhook] transform: idempotent ack (already processed)', {
+          sessionId,
+        });
+      }
+      return res.status(200).json({ received: true, idempotent: true });
+    }
+
+    await recordPayment({ user_id: updated.user_id, service: 'transform' });
+
+    console.log('[ziina-webhook] transform session paid', {
+      sessionId,
+      userId: updated.user_id,
+      payment_intent_id,
+    });
+    return res.status(200).json({ success: true });
   }
 
   // A-la-carte unlocks encode service via "userId|service" in external_reference.
