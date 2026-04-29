@@ -217,6 +217,10 @@ function mapMatchToUi(m) {
     score: m.match_score || 0,
     state,
     summary: m.jd_snippet || '',
+    // Full JD text is shipped to the apply-fallback payload so the
+    // tailor endpoint can keep working even when the scout_matches DB
+    // row is missing. Snippet stays separate for the card UI.
+    jdText: m.jd_text || '',
     skills: Array.isArray(m.ats_keywords) ? m.ats_keywords : [],
     why: m.tailoring_advice || '',
     keyStrengths: Array.isArray(m.key_strengths) ? m.key_strengths : [],
@@ -1697,9 +1701,24 @@ const ScoutDashboard = ({ user, isPro }) => {
     applyAbortRef.current = ac;
     try {
       setApplyStage('tailoring');
+      // Fallback payload — sent every time, used by the backend only
+      // when the scout_matches DB lookup misses (race after a fresh
+      // run wipes the table, transient query error, stale match_id
+      // in client state). Belt-and-braces: user never sees a 404.
+      const fallback = {
+        title: job.role || '',
+        company: job.company || '',
+        location: job.location || '',
+        description: job.jdText || '',
+        match_score: job.score || 0,
+        key_strengths: Array.isArray(job.keyStrengths) ? job.keyStrengths : [],
+        missing_requirements: Array.isArray(job.missingRequirements) ? job.missingRequirements : [],
+        tailoring_advice: job.why || '',
+        ats_keywords: Array.isArray(job.atsKeywords) ? job.atsKeywords : [],
+      };
       const json = await authedFetch('/api/scout-tailor', {
         method: 'POST',
-        body: JSON.stringify({ match_id: job.id, cv_type: 'specific' }),
+        body: JSON.stringify({ match_id: job.id, cv_type: 'specific', fallback }),
         signal: ac.signal,
       });
       if (ac.signal.aborted) return;

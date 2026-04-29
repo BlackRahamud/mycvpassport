@@ -6,18 +6,29 @@
  * show "already tailored" without re-spending Claude credits on every view.
  *
  * Auth:  Authorization: Bearer <user JWT>
- * Body:  { match_id: string, cv_type?: 'specific' | 'universal' }
+ * Body:  { match_id: string, cv_type?: 'specific' | 'universal',
+ *          fallback?: { title, company, location, description|jd_text,
+ *                       key_strengths, missing_requirements,
+ *                       tailoring_advice, ats_keywords, match_score } }
  *        cv_type defaults to 'specific'. Source CV is always the user's
  *        most recent stored CV — uploaded-CV path no longer hits this
  *        endpoint (Apply modal Path B opens the job page directly).
+ *        fallback is the resilience payload: when the DB lookup misses
+ *        (race after a fresh run wipes/re-inserts matches, transient
+ *        Supabase error, stale match_id in client state) we tailor
+ *        from the fallback shape instead of returning 404. scout_cvs
+ *        is only persisted when the DB row exists — the FK to
+ *        scout_matches.id would break otherwise.
  *
  * Responses:
  *   200 { ok: true, scout_cv_id, cv_type, tailored_cv, cover_letter }
- *   400 missing/invalid match_id, no CV on file, malformed body
+ *       scout_cv_id is null when the response came from the fallback
+ *       path — caller should treat null as "tailored CV available, not
+ *       persisted to scout_cvs" and not retry.
+ *   400 malformed body, no CV on file, no match data anywhere (no DB row
+ *       AND no usable fallback), match has no JD to tailor against
  *   401 missing or invalid bearer token
  *   402 not on a paid plan
- *   404 match_id does not belong to this user
- *   500 server / Supabase / unexpected
  *   502 Anthropic upstream failed
  *
  * Schema note: scout_cvs.tailored_cv_blob holds serialized cv_data JSON until
@@ -180,28 +191,80 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'Invalid JSON body' });
   }
   const matchId = typeof body.match_id === 'string' ? body.match_id.trim() : '';
-  if (!matchId || !UUID_RE.test(matchId)) {
-    return res.status(400).json({ ok: false, error: 'match_id (uuid) required' });
-  }
   const cvType = VALID_CV_TYPE.has(body.cv_type) ? body.cv_type : 'specific';
+  const fallback = body.fallback && typeof body.fallback === 'object' ? body.fallback : null;
+  const matchIdIsUuid = !!matchId && UUID_RE.test(matchId);
 
-  const { data: matchRow, error: matchErr } = await db
-    .from('scout_matches')
-    .select(`
-      id, user_id, key_strengths, missing_requirements, tailoring_advice, ats_keywords,
-      scout_jobs ( id, title, company, location, jd_text )
-    `)
-    .eq('id', matchId)
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (matchErr) {
-    console.error('[scout-tailor] match lookup failed:', matchErr);
-    return res.status(500).json({ ok: false, error: 'Could not load match' });
+  console.log('[scout-tailor] request:', JSON.stringify({
+    match_id: matchId,
+    match_id_is_uuid: matchIdIsUuid,
+    user_id: user.id,
+    cv_type: cvType,
+    has_fallback: !!fallback,
+    fallback_keys: fallback ? Object.keys(fallback) : [],
+  }));
+
+  // DB lookup is best-effort. Any miss (invalid match_id, query error,
+  // no row) falls through to the fallback path silently — we do NOT
+  // surface a 404/500 to the user when fallback can carry the request.
+  let matchRow = null;
+  if (matchIdIsUuid) {
+    const { data, error } = await db
+      .from('scout_matches')
+      .select(`
+        id, user_id, key_strengths, missing_requirements, tailoring_advice, ats_keywords,
+        scout_jobs ( id, title, company, location, jd_text )
+      `)
+      .eq('id', matchId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (error) {
+      console.error('[scout-tailor] match lookup error (full):', JSON.stringify(error));
+    } else if (!data) {
+      console.warn(`[scout-tailor] no match row for match_id=${matchId} user_id=${user.id} — will try fallback`);
+    } else {
+      matchRow = data;
+      console.log('[scout-tailor] DB hit — using canonical match row');
+    }
+  } else {
+    console.log('[scout-tailor] match_id missing or non-UUID — going straight to fallback');
   }
-  if (!matchRow) {
-    return res.status(404).json({ ok: false, error: 'Match not found' });
+
+  // Pick the source-of-truth for the prompt: DB row preferred (canonical),
+  // otherwise the fallback payload the dashboard ships with every Apply
+  // click. Both shapes get coerced into a uniform { job, match } pair so
+  // buildTailorPrompt is none the wiser.
+  let job;
+  let match;
+  if (matchRow) {
+    job = matchRow.scout_jobs || {};
+    match = matchRow;
+  } else if (fallback) {
+    console.log('[scout-tailor] using fallback payload — DB row unavailable');
+    job = {
+      title: typeof fallback.title === 'string' ? fallback.title : '',
+      company: typeof fallback.company === 'string' ? fallback.company : '',
+      location: typeof fallback.location === 'string' ? fallback.location : '',
+      jd_text: typeof fallback.description === 'string' && fallback.description
+        ? fallback.description
+        : (typeof fallback.jd_text === 'string' ? fallback.jd_text : ''),
+    };
+    match = {
+      key_strengths: Array.isArray(fallback.key_strengths) ? fallback.key_strengths : [],
+      missing_requirements: Array.isArray(fallback.missing_requirements) ? fallback.missing_requirements : [],
+      tailoring_advice: typeof fallback.tailoring_advice === 'string' ? fallback.tailoring_advice : '',
+      ats_keywords: Array.isArray(fallback.ats_keywords) ? fallback.ats_keywords : [],
+    };
+  } else {
+    // No DB row AND no fallback. Genuinely cannot tailor — this is the
+    // only hard failure path that survives. The frontend should never
+    // reach this branch in the new flow because it always sends fallback.
+    console.error('[scout-tailor] hard fail — no DB row and no fallback payload');
+    return res.status(400).json({
+      ok: false,
+      error: 'Could not locate match details. Refresh and try again.',
+    });
   }
-  const job = matchRow.scout_jobs || {};
   if (!job.jd_text) {
     return res.status(400).json({ ok: false, error: 'Match has no JD text to tailor against' });
   }
@@ -227,7 +290,7 @@ export default async function handler(req, res) {
       buildTailorPrompt({
         cvData: cvRow.cv_data,
         job,
-        match: matchRow,
+        match,
         cvType,
       })
     );
@@ -236,28 +299,42 @@ export default async function handler(req, res) {
     return res.status(502).json({ ok: false, error: 'AI tailor unavailable' });
   }
 
-  const { data: cvInsert, error: cvInsertErr } = await db
-    .from('scout_cvs')
-    .insert({
-      user_id: user.id,
-      match_id: matchId,
-      cv_type: cvType,
-      tailored_cv_blob: JSON.stringify(result.tailored_cv),
-      cover_letter: result.cover_letter,
-    })
-    .select('id')
-    .single();
-  if (cvInsertErr) {
-    console.error('[scout-tailor] insert scout_cvs failed:', cvInsertErr);
-    return res.status(500).json({ ok: false, error: 'Could not save tailored CV' });
+  // Persist scout_cvs ONLY when we have a verified DB-resident match_id.
+  // Inserting with a bogus match_id would either hit the FK to
+  // scout_matches.id and 500 us, or (in environments without the FK)
+  // create an orphan row. In fallback mode we just skip the insert —
+  // the user still gets the tailored CV in the response.
+  let scoutCvId = null;
+  if (matchRow) {
+    const { data: cvInsert, error: cvInsertErr } = await db
+      .from('scout_cvs')
+      .insert({
+        user_id: user.id,
+        match_id: matchId,
+        cv_type: cvType,
+        tailored_cv_blob: JSON.stringify(result.tailored_cv),
+        cover_letter: result.cover_letter,
+      })
+      .select('id')
+      .single();
+    if (cvInsertErr) {
+      // Persist failures are NON-FATAL — the user gets their tailored
+      // CV regardless. Logged for debugging; "save tailored CV for next
+      // time" is a nice-to-have, not a hard requirement.
+      console.error('[scout-tailor] insert scout_cvs failed (non-fatal):', JSON.stringify(cvInsertErr));
+    } else {
+      scoutCvId = cvInsert.id;
+    }
+  } else {
+    console.log('[scout-tailor] skipping scout_cvs insert (fallback mode — no canonical match_id)');
   }
 
   return res.status(200).json({
     ok: true,
-    scout_cv_id: cvInsert.id,
+    scout_cv_id: scoutCvId,
     cv_type: cvType,
     tailored_cv: result.tailored_cv,
     cover_letter: result.cover_letter,
-    template_id: sourceTemplateId, // null when cv_text override was used
+    template_id: sourceTemplateId,
   });
 }
