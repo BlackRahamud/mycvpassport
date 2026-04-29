@@ -656,13 +656,17 @@ async function searchSerpApiJobs(query, location) {
   const gl = /india/i.test(normalisedLocation) ? 'in' : 'ae';
   const expectedCountry = expectedCountryFor(location);
 
+  // chips=date_posted:today was removing all UAE results — Google Jobs'
+  // UAE index doesn't have enough daily volume to guarantee fresh hits.
+  // Drop the freshness chip and explicitly request 10 results via `num`
+  // instead. Recency is now a Claude-scoring concern, not a fetch gate.
   const paramsObj = {
     engine: 'google_jobs',
     q: String(query || '').trim(),
     location: normalisedLocation,
     hl: 'en',
     gl,
-    chips: 'date_posted:today',
+    num: 10,
   };
   console.log('[scout-run] SerpApi: params (api_key redacted):', JSON.stringify(paramsObj));
 
