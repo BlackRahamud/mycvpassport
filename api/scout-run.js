@@ -164,6 +164,38 @@ function expectedCountryFor(location) {
   return null;
 }
 
+// Step 2b — apply-URL blocklist. These domains are aggregator /
+// scrape-of-a-scrape sites that redirect into paid registration walls
+// the moment the user clicks Apply, so they pollute the funnel without
+// converting. Dropped before dedup so the per-domain count is honest
+// (after dedup we'd be counting one survivor per cluster, not the raw
+// hit rate). Substring match on the URL — covers subdomains and
+// localised paths (.in/, .ae/, /jobs/) without a regex per variant.
+const BLOCKED_APPLY_DOMAINS = [
+  'learn4good.com',
+  'jobrapido.com',
+  'jobilize.com',
+  'trovit.com',
+  'mitula.com',
+];
+
+// Returns the first blocked domain found in any URL field on the job,
+// or null when the job is clean. Checks job_apply_link, job_google_link
+// (JSearch fallback URL), and source_link defensively even though our
+// normalisers don't currently emit it — costs nothing and future-proofs
+// any source that decides to.
+function blockedApplyDomainFor(j) {
+  const urls = [j?.job_apply_link, j?.job_google_link, j?.source_link];
+  for (const u of urls) {
+    if (typeof u !== 'string' || !u) continue;
+    const lower = u.toLowerCase();
+    for (const d of BLOCKED_APPLY_DOMAINS) {
+      if (lower.includes(d)) return d;
+    }
+  }
+  return null;
+}
+
 // Step 3 — smart hash dedup key. Same job published on BeBee + Bayt +
 // Workable lands at slightly different surface text but identical
 // (title, company, city) once you strip whitespace and punctuation.
@@ -1062,9 +1094,27 @@ export default async function handler(req, res) {
   const merged = [...jsearchJobs, ...joobleJobs, ...serpapiJobs];
   console.log('FUNNEL SerpApi after merge:', merged.filter(isSerpApi).length);
 
+  // ── Step 2b: apply-URL blocklist ────────────────────────────────────────
+  const blockedHits = new Map();
+  const afterBlocklist = [];
+  for (const j of merged) {
+    const hit = blockedApplyDomainFor(j);
+    if (hit) {
+      blockedHits.set(hit, (blockedHits.get(hit) || 0) + 1);
+    } else {
+      afterBlocklist.push(j);
+    }
+  }
+  const totalBlocked = merged.length - afterBlocklist.length;
+  const blockBreakdown = totalBlocked > 0
+    ? Array.from(blockedHits.entries()).map(([d, n]) => `${d}=${n}`).join(', ')
+    : 'none';
+  console.log(`Blocklist: dropped ${totalBlocked} jobs (${blockBreakdown})`);
+  console.log('FUNNEL SerpApi after blocklist:', afterBlocklist.filter(isSerpApi).length);
+
   // ── Step 3: smart hash dedup, first occurrence wins ──────────────────────
   const seen = new Map();
-  for (const j of merged) {
+  for (const j of afterBlocklist) {
     const key = smartDedupKey(j);
     if (!seen.has(key)) seen.set(key, j);
   }
@@ -1097,7 +1147,7 @@ export default async function handler(req, res) {
   console.log('FUNNEL SerpApi after negative filter:', filtered.filter(isSerpApi).length);
 
   console.log(
-    `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}+${serpapiJobs.length}=${merged.length} merged → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
+    `Scout pipeline: ${jsearchJobs.length}+${joobleJobs.length}+${serpapiJobs.length}=${merged.length} merged → ${afterBlocklist.length} blocklist → ${deduped.length} dedup → ${locationFiltered.length} location+age → ${filtered.length} negative`
   );
 
   // Helper that fires the prefs upsert + scout_jobs/matches sync. Defined
