@@ -58,6 +58,31 @@ html {
   --color-text-primary: #F5F5F7;
   --color-text-secondary: #A0A0A0;
   --radius-pill: 9999px;
+
+  /* ─── Builder light/dark token system (added 2026-05-03) ──────────
+     Scoped with --builder-* prefix so we don't collide with the nav,
+     landing, or legacy generic tokens. Default values = current dark
+     theme; html.light overrides flip to the T10 sky palette. The
+     toggle in BuilderPage sets <html class="light"> (matching the
+     existing LandingPage theme pattern: localStorage 'cvp-theme'
+     + document.documentElement.className). Phase B foundation only:
+     applied to the builder shell CSS classes; nested inline-styled
+     components stay dark until a future sweep. */
+  --builder-bg:             #0A0A0A;
+  --builder-surface:        #141414;
+  --builder-surface-2:      #1C1C1C;
+  --builder-surface-hover:  #1F1F1F;
+  --builder-border:         #2A2A2A;
+  --builder-border-strong:  #333333;
+  --builder-text:           #FFFFFF;
+  --builder-text-2:         #E5E5E5;
+  --builder-muted:          #A0A0A0;
+  --builder-accent:         #D97706;             /* dark stays amber per CLAUDE.md */
+  --builder-accent-strong:  #B25E03;
+  --builder-accent-soft:    rgba(217, 119, 6, 0.12);
+  --builder-shadow-md:      0 4px 12px rgba(0, 0, 0, 0.35);
+  --builder-scrollbar:      rgba(255, 255, 255, 0.12);
+  --builder-scrollbar-hov:  rgba(255, 255, 255, 0.18);
 }
 
 .cvp-theme-light {
@@ -66,6 +91,27 @@ html {
   --text-primary: #111;
   --text-secondary: #555;
   --border: #E5E5E5;
+}
+
+/* Builder light theme overrides — matches Template 10 sky palette
+   (#0EA5E9 / #0284C7) so the builder canvas reads as a continuation
+   of the rendered CV. Activated by <html class="light">. */
+html.light {
+  --builder-bg:             #F8FAFC;
+  --builder-surface:        #FFFFFF;
+  --builder-surface-2:      #F1F5F9;
+  --builder-surface-hover:  #F8FAFC;
+  --builder-border:         #E2E8F0;
+  --builder-border-strong:  #CBD5E1;
+  --builder-text:           #0F172A;
+  --builder-text-2:         #334155;
+  --builder-muted:          #64748B;
+  --builder-accent:         #0EA5E9;
+  --builder-accent-strong:  #0284C7;
+  --builder-accent-soft:    #E0F2FE;
+  --builder-shadow-md:      0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --builder-scrollbar:      rgba(15, 23, 42, 0.18);
+  --builder-scrollbar-hov:  rgba(15, 23, 42, 0.32);
 }
 
 body {
@@ -502,8 +548,10 @@ select:focus,
   align-items: start !important;
   min-height: calc(100vh - 56px);
   height: auto !important;
-  background-color: #0A0A0A;
+  background-color: var(--builder-bg);
+  color: var(--builder-text);
   overflow: visible !important;
+  transition: background-color 0.25s cubic-bezier(0.4,0,0.2,1), color 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
 .cvp-builder-left {
@@ -518,7 +566,7 @@ select:focus,
   align-self: start !important;
   position: relative !important;
   padding-bottom: 40px;
-  scrollbar-color: rgba(255, 255, 255, 0.2) var(--bg-surface);
+  scrollbar-color: var(--builder-scrollbar) var(--builder-surface);
   scrollbar-width: thin;
 }
 
@@ -527,16 +575,16 @@ select:focus,
 }
 
 .cvp-builder-left::-webkit-scrollbar-track {
-  background: var(--bg-surface);
+  background: var(--builder-surface);
 }
 
 .cvp-builder-left::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--builder-scrollbar);
   border-radius: 4px;
 }
 
 .cvp-builder-left::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--builder-scrollbar-hov);
 }
 
 .cvp-builder-preview {
@@ -588,7 +636,9 @@ select:focus,
   display: grid;
   gap: 8px;
   align-content: start;
-  background: #0a0a0a;
+  background: var(--builder-bg);
+  color: var(--builder-text);
+  transition: background-color 0.25s cubic-bezier(0.4,0,0.2,1), color 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
 /* Templates tab — grid (no clipping; scroll vertical only) */
@@ -1045,9 +1095,10 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   align-items: stretch;
   width: 100%;
   box-sizing: border-box;
-  background: #0A0A0A;
-  border-top: 1px solid #1E1E1E;
+  background: var(--builder-bg);
+  border-top: 1px solid var(--builder-border);
   padding: 10px 16px 0;
+  transition: background-color 0.25s cubic-bezier(0.4,0,0.2,1), border-color 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
 /* Edit | Preview — stays in document flow (relative), not position:fixed */
