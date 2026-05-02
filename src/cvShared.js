@@ -78,6 +78,7 @@ export const EMPTY_RESUME = {
   volunteerWork: "",
   publications: "",
   builderExtraSectionIds: [],
+  customFields: [],
   availability: "Immediately Available",
   drivingLicense: "",
   willingToRelocate: "Yes",
@@ -137,6 +138,27 @@ export function cvWithTemplateCertifications(cv) {
   };
 }
 
+// Generic regional-fields escape hatch (research doc sections 1, 12).
+// Each entry: { id, icon, name, value, link }. Existing CVs that predate
+// this field load with customFields=[]; new transforms populate from
+// intake/source via the parse + run prompts. Templates that render this
+// loop over the array; templates that don't simply ignore it.
+export function normalizeCustomFieldsArray(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const name = String(item.name || "").trim();
+      const value = String(item.value || "").trim();
+      if (!name || !value) return null;
+      const id = String(item.id || "").trim() || null;
+      const icon = item.icon == null ? null : (String(item.icon).trim() || null);
+      const link = item.link == null ? null : (String(item.link).trim() || null);
+      return { id, icon, name, value, link };
+    })
+    .filter(Boolean);
+}
+
 export function normalizeResumeForBuilder(cv) {
   if (!cv || typeof cv !== "object") return { ...EMPTY_RESUME };
   const exp = Array.isArray(cv.experience) ? cv.experience : [];
@@ -147,6 +169,7 @@ export function normalizeResumeForBuilder(cv) {
     experience: exp.length ? exp.map((e) => ({ ...EMPTY_EXP, ...e })) : [],
     education: edu.length ? edu.map((e) => ({ ...EMPTY_EDU, ...e })) : [],
     certifications: normalizeCertificationsArray(cv.certifications),
+    customFields: normalizeCustomFieldsArray(cv.customFields),
     builderExtraSectionIds: Array.isArray(cv.builderExtraSectionIds) ? cv.builderExtraSectionIds : [],
     projects: cv.projects ?? "",
     volunteerWork: cv.volunteerWork ?? "",

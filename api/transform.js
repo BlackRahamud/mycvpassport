@@ -616,6 +616,7 @@ const EMPTY_RESUME = {
   volunteerWork: '',
   publications: '',
   builderExtraSectionIds: [],
+  customFields: [],
   availability: 'Immediately Available',
   drivingLicense: '',
   willingToRelocate: 'Yes',
@@ -675,6 +676,7 @@ DIRECTIVES (apply ALL):
      skills, languages, certifications: [...],
      technicalSkills, projects, volunteerWork, publications,
      builderExtraSectionIds: [],
+     customFields: [...],
      availability, drivingLicense, willingToRelocate, references }
    Use "" for unknown scalar fields. Never null. Never omit a key.
 
@@ -728,7 +730,22 @@ DIRECTIVES (apply ALL):
    No invented certifications. No inferred skills. No guessed dates. No placeholder companies.
    No fabricated metrics or currency conversions.
 
-9. Output VALID JSON only. No backticks. No leading text. No commentary.`;
+9. customFields[]: structured regional metadata array. Each entry: { id, icon, name, value }.
+   Populate when source data is available. Keep the existing flat fields (visaStatus,
+   drivingLicense) populated as well - customFields[] is additive, not a replacement.
+   - { id: "visa_status",      icon: "shield", name: "Visa Status",      value }
+       Use intake.visa_status verbatim if provided; else the source. intake.visa_status may
+       bundle notice period in the same string - split into a separate notice_period entry
+       if cleanly separable, otherwise keep the combined value here.
+   - { id: "notice_period",    icon: "clock",  name: "Notice Period",    value }
+       From intake.visa_status when it cleanly contains a notice period; else from source.
+   - { id: "driving_license",  icon: "car",    name: "Driving License",  value }
+       Use intake.driving_license verbatim if provided; else the source.
+   - { id: "nafis_registered", icon: "check",  name: "Nafis Registered", value: "Yes" }
+       Only when explicitly stated in the source CV. Never infer.
+   Omit entries with no value. customFields = [] if no regional data is present.
+
+10. Output VALID JSON only. No backticks. No leading text. No commentary.`;
 }
 
 function normalizeCvData(raw, intake) {
@@ -762,6 +779,23 @@ function normalizeCvData(raw, intake) {
     .filter(Boolean);
   merged.builderExtraSectionIds = Array.isArray(obj.builderExtraSectionIds)
     ? obj.builderExtraSectionIds : [];
+
+  // customFields[] - generic regional-fields escape hatch. Mirrors
+  // src/cvShared.js normalizeCustomFieldsArray; inlined here so api/
+  // stays self-contained (matches the existing comment on EMPTY_RESUME).
+  const cfArr = Array.isArray(obj.customFields) ? obj.customFields : [];
+  merged.customFields = cfArr
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const name = String(item.name || '').trim();
+      const value = String(item.value || '').trim();
+      if (!name || !value) return null;
+      const id = String(item.id || '').trim() || null;
+      const icon = item.icon == null ? null : (String(item.icon).trim() || null);
+      const link = item.link == null ? null : (String(item.link).trim() || null);
+      return { id, icon, name, value, link };
+    })
+    .filter(Boolean);
 
   merged.targetMarket = String(intake?.target_market || '');
   merged.targetCity = String(intake?.target_city || '');
@@ -1033,6 +1067,9 @@ EXTRACTION RULES:
 - Contact data: copy as-is, do not reformat
 - Skills: include only explicitly stated skills - never infer
 - Descriptions: preserve original bullet structure
+- Regional metadata: capture visa status, notice period, driving license, and Nafis
+  registration as customFields entries when explicitly present in the CV. Never
+  infer Nafis registration. Omit any field with no source value.
 - If PDF is low quality or partially unreadable: return best-effort for readable parts only
 
 OUTPUT CONTRACT:
@@ -1052,11 +1089,21 @@ Extract into the canonical CVPassport resume shape:
   experience: [...], education: [...],
   skills, languages, certifications: [...],
   technicalSkills, projects, volunteerWork, publications,
+  customFields: [...],
   availability, drivingLicense, willingToRelocate, references }
 
 experience[i] = { company, role, location, period, points, startDate, endDate, present }
 education[i]  = { school, degree, year, fieldOfStudy, startDate, endDate, location }
 certifications[i] = { name, issuer, year }
+customFields[i] = { id, icon, name, value }
+
+Regional fields - if explicitly stated in the CV, add as customFields entries:
+  - visa_status      -> { id: "visa_status",      icon: "shield", name: "Visa Status",       value: "..." }
+  - notice_period    -> { id: "notice_period",    icon: "clock",  name: "Notice Period",     value: "..." }
+  - driving_license  -> { id: "driving_license",  icon: "car",    name: "Driving License",   value: "..." }
+  - nafis_registered -> { id: "nafis_registered", icon: "check",  name: "Nafis Registered",  value: "Yes" }
+                        Only include if the CV explicitly states Nafis registration. Never infer.
+Omit entries with no source value. customFields = [] if no regional data present.
 
 Rules:
 - points = newline-separated bullet sentences as written, no leading bullets or dashes.
