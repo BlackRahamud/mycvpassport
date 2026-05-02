@@ -17,11 +17,9 @@ import {
   Lightbulb,
   List,
   Loader2,
-  Moon,
   Pencil,
   Sparkles,
   Star,
-  Sun,
   Trash2,
   X,
 } from "lucide-react";
@@ -2488,33 +2486,6 @@ function ResumeBuilder({
     setAiCreditsRemaining(deriveAiCreditsRemaining(profile));
   }, [profile, deriveAiCreditsRemaining]);
 
-  // Builder light/dark theme toggle (Phase B 2026-05-03). Reads/writes
-  // the same localStorage key + DOM class as LandingPage's existing
-  // toggle ('cvp-theme' + <html class="...">). Hydrates on mount in
-  // case the user lands on the builder directly without going through
-  // the landing page first. Default stays 'dark' so existing users
-  // see no visual change until they toggle.
-  const [builderTheme, setBuilderTheme] = useState(() => {
-    try {
-      return typeof document !== "undefined" && document.documentElement.classList.contains("light")
-        ? "light"
-        : (localStorage.getItem("cvp-theme") || "dark");
-    } catch {
-      return "dark";
-    }
-  });
-  useEffect(() => {
-    try {
-      localStorage.setItem("cvp-theme", builderTheme);
-    } catch { /* ignore */ }
-    if (typeof document !== "undefined") {
-      document.documentElement.className = builderTheme;
-    }
-  }, [builderTheme]);
-  const toggleBuilderTheme = useCallback(() => {
-    setBuilderTheme((t) => (t === "dark" ? "light" : "dark"));
-  }, []);
-
   // Session C - AI bullet rewrite modal. Open state lives here so the
   // experience editor can keep its own modal open while the AI modal
   // stacks on top. Auto-closes if the experience editor is dismissed.
@@ -3371,40 +3342,6 @@ function ResumeBuilder({
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
             <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-            </button>
-            <button
-              type="button"
-              onClick={toggleBuilderTheme}
-              aria-label={builderTheme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-              title={builderTheme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-              className="cvp-builder-theme-toggle"
-              style={{
-                width: 36,
-                height: 36,
-                minWidth: 36,
-                padding: 0,
-                borderRadius: 8,
-                border: "1px solid var(--builder-border)",
-                background: "var(--builder-surface)",
-                color: "var(--builder-muted)",
-                cursor: "pointer",
-                display: "grid",
-                placeItems: "center",
-                flexShrink: 0,
-                transition: `color 150ms ${EASE}, background-color 150ms ${EASE}, border-color 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--builder-text)";
-                e.currentTarget.style.borderColor = "var(--builder-border-strong)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--builder-muted)";
-                e.currentTarget.style.borderColor = "var(--builder-border)";
-              }}
-            >
-              {builderTheme === "dark"
-                ? <Sun size={16} strokeWidth={2} aria-hidden />
-                : <Moon size={16} strokeWidth={2} aria-hidden />}
             </button>
             <div className="cvp-builder-tab-scroll" style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               {["content", "templates", "ats", "jobmatch"].map((tab) => (
