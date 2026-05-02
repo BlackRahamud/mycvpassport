@@ -28,6 +28,7 @@ import JobMatch from "../JobMatch";
 import ATSChecker from "../ATSChecker";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
+import AIRewriteModal from "../components/AIRewriteModal";
 import { hasFeatureAccess } from "../utils/paywall";
 import SynthesisOverlay from "../components/SynthesisOverlay";
 import CompletionScreen from "../components/CompletionScreen";
@@ -2484,6 +2485,26 @@ function ResumeBuilder({
   useEffect(() => {
     setAiCreditsRemaining(deriveAiCreditsRemaining(profile));
   }, [profile, deriveAiCreditsRemaining]);
+
+  // Session C - AI bullet rewrite modal. Open state lives here so the
+  // experience editor can keep its own modal open while the AI modal
+  // stacks on top. Auto-closes if the experience editor is dismissed.
+  const [aiRewriteOpen, setAiRewriteOpen] = useState(false);
+  // Bullets parsed from the experience editor draft. Each entry tracks
+  // its original line index so a successful rewrite can be written
+  // back to the exact line in the textarea string (preserving blank
+  // lines / line ordering / surrounding whitespace).
+  const aiRewriteBullets = useMemo(() => {
+    const text = String(experienceEditor?.draft?.points || "");
+    if (!text) return [];
+    return text
+      .split("\n")
+      .map((line, idx) => ({ idx, text: line.trim().replace(/^[-*•]\s*/, "") }))
+      .filter((b) => b.text);
+  // experienceEditor itself is the source of truth for points; depend
+  // on the draft value directly so this recomputes on every edit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [experienceEditor?.draft?.points]);
   const [templatePickPending, setTemplatePickPending] = useState(null);
   const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
@@ -5506,9 +5527,57 @@ function ResumeBuilder({
                       {String(experienceEditor.draft.points || "").length}
                     </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 8 }}>
-                    <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
-                    <span style={{ fontSize: 11, color: "#555" }}>Each line = one bullet on your CV</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      marginTop: 8,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                      <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
+                      <span style={{ fontSize: 11, color: "#555" }}>Each line = one bullet on your CV</span>
+                    </div>
+                    {aiRewriteBullets.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAiRewriteOpen(true)}
+                        aria-label="Improve a bullet with AI"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "5px 11px",
+                          border: "1px solid rgba(217,119,6,0.45)",
+                          borderRadius: 999,
+                          background: "rgba(217,119,6,0.12)",
+                          color: "#D97706",
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          flexShrink: 0,
+                          transition:
+                            "background-color 0.16s cubic-bezier(0.4,0,0.2,1), border-color 0.16s cubic-bezier(0.4,0,0.2,1)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(217,119,6,0.22)";
+                          e.currentTarget.style.borderColor = "rgba(217,119,6,0.65)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "rgba(217,119,6,0.12)";
+                          e.currentTarget.style.borderColor = "rgba(217,119,6,0.45)";
+                        }}
+                      >
+                        <Sparkles size={12} strokeWidth={2.4} aria-hidden />
+                        <span>
+                          Improve with AI
+                          {aiCreditsRemaining !== null ? ` (${aiCreditsRemaining} left)` : ""}
+                        </span>
+                      </button>
+                    )}
                   </div>
                   {expModalBulletWarn ? (
                     <div
@@ -5562,6 +5631,46 @@ function ResumeBuilder({
           </div>
         </div>
       )}
+
+      <AIRewriteModal
+        isOpen={aiRewriteOpen && !!experienceEditor}
+        onClose={() => setAiRewriteOpen(false)}
+        bullets={aiRewriteBullets.map((b) => b.text)}
+        roleContext={{
+          role: experienceEditor?.draft?.role || "",
+          company: experienceEditor?.draft?.company || "",
+          target_role: resume?.title || "",
+        }}
+        creditsRemaining={aiCreditsRemaining}
+        onAIRewriteSuccess={(remaining) => {
+          setAiCreditsRemaining(remaining);
+          if (refreshProfile) refreshProfile();
+        }}
+        onAIExhausted={() => {
+          setAiRewriteOpen(false);
+          setUpgradeFeature("builder_ai");
+          setUpgradeOpen(true);
+        }}
+        onConfirm={(bulletIdx, newText) => {
+          // bulletIdx is the index into the (filtered) aiRewriteBullets
+          // array. Map it back to the original line index in the
+          // textarea string so blank lines / ordering are preserved.
+          const target = aiRewriteBullets[bulletIdx];
+          if (!target) {
+            setAiRewriteOpen(false);
+            return;
+          }
+          setExperienceEditor((ev) => {
+            if (!ev) return null;
+            const lines = String(ev.draft.points || "").split("\n");
+            lines[target.idx] = String(newText || "").trim();
+            return { ...ev, draft: { ...ev.draft, points: lines.join("\n") } };
+          });
+          setExpModalHighEffortDirty(true);
+          setExpModalBulletWarn(false);
+          setAiRewriteOpen(false);
+        }}
+      />
 
       {educationEditor && (
         <div
