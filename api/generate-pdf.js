@@ -17,6 +17,7 @@ const { buildTemplate12Html } = require("../src/serverLib/template12Builder");
 const { markPageStarts } = require("../src/serverLib/markPageStarts");
 const { buildFinanceTemplate13Html } = require("../src/serverLib/financeTemplate13Html");
 const { buildTemplate14Html } = require("../src/serverLib/template14Builder");
+const { buildUaeAtsTemplate19Html } = require("../src/serverLib/uaeAtsTemplate19Html");
 const { drawT11SidebarStripeOnPdf } = require("../src/serverLib/pdfDrawT11SidebarStripe");
 const { normalizeCvForPdf } = require("../src/serverLib/pdfCommon");
 
@@ -35,6 +36,7 @@ const BUILDERS = {
   12: (cv) => markPageStarts(buildTemplate12Html(cv), { PAGE_HEIGHT: 1027 }),
   13: buildFinanceTemplate13Html,
   14: (cv) => markPageStarts(buildTemplate14Html(cv), { PAGE_HEIGHT: 1027 }),
+  19: buildUaeAtsTemplate19Html,
 };
 
 module.exports = async (req, res) => {

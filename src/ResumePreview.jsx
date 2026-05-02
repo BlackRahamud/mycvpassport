@@ -17,6 +17,7 @@ import { PreviewSlateCarbon } from "./Template15";
 import { PreviewCrimsonEdge } from "./Template16";
 import { PreviewForestPro } from "./Template17";
 import { PreviewMidnightGold } from "./Template18";
+import { PreviewUAEATS } from "./components/templates/UAEATSTemplate";
 import { TEMPLATES, cvWithTemplateCertifications } from "./cvShared";
 
 export function ResumePreview({ cv, template, mobileMode = false }) {
@@ -39,6 +40,7 @@ export function ResumePreview({ cv, template, mobileMode = false }) {
   if (t.layout === "crimson-edge") return <PreviewCrimsonEdge cv={cvT} mobileMode={mobileMode} />;
   if (t.layout === "forest-pro") return <PreviewForestPro cv={cvT} mobileMode={mobileMode} />;
   if (t.layout === "midnight-gold") return <PreviewMidnightGold cv={cvT} mobileMode={mobileMode} />;
+  if (t.layout === "uae-ats") return <PreviewUAEATS cv={cvT} t={t} mobileMode={mobileMode} />;
   return <PreviewModernEmerald cv={cvT} mobileMode={mobileMode} />;
 }
 

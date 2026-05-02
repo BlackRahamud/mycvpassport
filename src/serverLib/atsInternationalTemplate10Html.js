@@ -97,13 +97,19 @@ function pdfSaaSModern(cv) {
             letter-spacing: 0.05em;
             margin-bottom: 12px;
             margin-top: 20px;
+            page-break-after: avoid;
+            break-after: avoid;
           }
-          .exp-item { margin-bottom: 20px; page-break-inside: avoid; }
+          .skills, .lang-item, .summary, .left > div, .right > div {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .exp-item { margin-bottom: 20px; page-break-inside: avoid; break-inside: avoid; }
           .exp-role { font-weight: bold; color: ${isPlaceholder ? SKELETON : NAVY}; font-size: 15px; }
           .exp-meta { color: ${isPlaceholder ? SKELETON : LIGHT_GREY}; font-size: 12px; margin-bottom: 8px; }
           .bullet { font-size: 12.5px; color: ${isPlaceholder ? SKELETON : BODY_GREY}; margin-bottom: 4px; display: flex; }
           .bullet span:first-child { margin-right: 8px; }
-          .edu-item { margin-bottom: 12px; page-break-inside: avoid; }
+          .edu-item { margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid; }
           .edu-degree { font-weight: bold; color: ${isPlaceholder ? SKELETON : NAVY}; font-size: 14px; }
           .edu-meta { color: ${isPlaceholder ? SKELETON : BODY_GREY}; font-size: 12px; }
           .summary { font-size: 12px; color: ${isPlaceholder ? SKELETON : BODY_GREY}; line-height: 1.5; margin: 0; }
@@ -135,6 +141,9 @@ function pdfSaaSModern(cv) {
 
             <div class="body">
               <div class="left">
+                ${
+                  (experience.length || isPlaceholder)
+                    ? `
                 <div class="section-title">Experience</div>
                 ${
                   experience.length
@@ -152,11 +161,14 @@ function pdfSaaSModern(cv) {
                     </div>`,
                         )
                         .join("")
-                    : isPlaceholder
-                      ? `<div class="exp-item"><div class="exp-role">Role Title</div><div class="exp-meta">Company | Period</div><div class="bullet"><span>•</span><span>Achievement placeholder</span></div></div>`
-                      : ""
+                    : `<div class="exp-item"><div class="exp-role">Role Title</div><div class="exp-meta">Company | Period</div><div class="bullet"><span>•</span><span>Achievement placeholder</span></div></div>`
+                }`
+                    : ""
                 }
 
+                ${
+                  (education.length || isPlaceholder)
+                    ? `
                 <div class="section-title">Education</div>
                 ${
                   education.length
@@ -169,27 +181,38 @@ function pdfSaaSModern(cv) {
                     </div>`,
                         )
                         .join("")
-                    : isPlaceholder
-                      ? `<div class="edu-item"><div class="edu-degree">Degree Title</div><div class="edu-meta">University • Year</div></div>`
-                      : ""
+                    : `<div class="edu-item"><div class="edu-degree">Degree Title</div><div class="edu-meta">University • Year</div></div>`
+                }`
+                    : ""
                 }
               </div>
 
               <div class="right">
+                ${
+                  (cv.summary || isPlaceholder)
+                    ? `
                 <div class="section-title">Summary</div>
-                <p class="summary">${cv.summary || (isPlaceholder ? "Professional summary placeholder text..." : "")}</p>
+                <p class="summary">${cv.summary || "Professional summary placeholder text..."}</p>`
+                    : ""
+                }
 
+                ${
+                  (skills.length || isPlaceholder)
+                    ? `
                 <div class="section-title">Skills</div>
                 <div class="skills">
                   ${
                     skills.length
                       ? skills.map((skill) => `<span class="skill-pill">${skill}</span>`).join("")
-                      : isPlaceholder
-                        ? `<span class="skill-pill">Skill</span><span class="skill-pill">Skill</span><span class="skill-pill">Skill</span>`
-                        : ""
+                      : `<span class="skill-pill">Skill</span><span class="skill-pill">Skill</span><span class="skill-pill">Skill</span>`
                   }
-                </div>
+                </div>`
+                    : ""
+                }
 
+                ${
+                  (languages.length || isPlaceholder)
+                    ? `
                 <div class="section-title">Languages</div>
                 ${
                   languages.length
@@ -202,9 +225,9 @@ function pdfSaaSModern(cv) {
                     </div>`,
                         )
                         .join("")
-                    : isPlaceholder
-                      ? `<div class="lang-item"><div class="lang-name">Language</div><div class="lang-track"><div class="lang-fill"></div></div></div>`
-                      : ""
+                    : `<div class="lang-item"><div class="lang-name">Language</div><div class="lang-track"><div class="lang-fill"></div></div></div>`
+                }`
+                    : ""
                 }
               </div>
             </div>

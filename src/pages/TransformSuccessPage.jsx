@@ -44,10 +44,13 @@ import { logEvent } from '../lib/analytics/logEvent';
 
 const TIMEOUT_MS = 45_000;
 const POLL_MS = 2_000;
-// ATS International — pure-ATS layout, the safest regional default for
-// a CV the user just paid AED 49 to have rewritten. Mirrors Scout's
-// APPLY_DEFAULT_TEMPLATE_ID.
-const PDF_TEMPLATE_ID = 10;
+// Template 19 (UAE ATS) — single-column, black-on-white ATS template
+// purpose-built for the transform pipeline. Replaces Template 10
+// (ATS International), which had decorative shapes and hardcoded
+// placeholder sections that produced ghost pages on real CVs. The new
+// template is data-driven (all sections gated on populated content)
+// and applies page-break-inside: avoid on every section item.
+const PDF_TEMPLATE_ID = 19;
 const EASE_OUT = [0.22, 1, 0.36, 1];
 
 // ── Helpers ────────────────────────────────────────────────────────

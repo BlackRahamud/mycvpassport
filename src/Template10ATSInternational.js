@@ -67,6 +67,8 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
         letterSpacing: "0.08em",
         marginBottom: "16px",
         marginTop: "0",
+        pageBreakAfter: "avoid",
+        breakAfter: "avoid",
       }}
     >
       {children}
@@ -161,37 +163,41 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
         >
           {/* LEFT COLUMN (60%) */}
           <div style={{ flex: "0 0 58%" }}>
-            <div data-section="experience">
-            <SectionHeading>Experience</SectionHeading>
-            {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "24px", pageBreakInside: "avoid" }}>
-                <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
-                <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "14px" }}>{exp.role}</div>
-                <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "12px", marginBottom: "8px" }}>
-                  {exp.company} • {exp.period}
-                </div>
-                {exp.points &&
-                  splitExperiencePointsForPreview(exp.points).map((point, j) => (
-                    <div key={j} style={{ fontSize: "13px", color: COLORS.TEXT_BODY, marginBottom: "5px", display: "flex", lineHeight: "1.5" }}>
-                      <span style={{ marginRight: "10px", color: COLORS.ACCENT_BLUE }}>•</span>
-                      <span>{point}</span>
+            {experience.length > 0 && (
+              <div data-section="experience" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
+                <SectionHeading>Experience</SectionHeading>
+                {experience.map((exp, i) => (
+                  <div key={i} style={{ marginBottom: "24px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+                    <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
+                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "14px" }}>{exp.role}</div>
+                    <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "12px", marginBottom: "8px" }}>
+                      {exp.company} • {exp.period}
                     </div>
-                  ))}
+                    {exp.points &&
+                      splitExperiencePointsForPreview(exp.points).map((point, j) => (
+                        <div key={j} style={{ fontSize: "13px", color: COLORS.TEXT_BODY, marginBottom: "5px", display: "flex", lineHeight: "1.5" }}>
+                          <span style={{ marginRight: "10px", color: COLORS.ACCENT_BLUE }}>•</span>
+                          <span>{point}</span>
+                        </div>
+                      ))}
+                  </div>
+                ))}
               </div>
-            ))}
-            </div>
+            )}
 
-            <div data-section="education">
-            <SectionHeading>Education</SectionHeading>
-            {education.map((edu, i) => (
-              <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "13px" }}>{edu.degree}</div>
-                <div style={{ color: COLORS.TEXT_MUTED, fontSize: "12px" }}>
-                  {edu.school} • {edu.year}
-                </div>
+            {education.length > 0 && (
+              <div data-section="education" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
+                <SectionHeading>Education</SectionHeading>
+                {education.map((edu, i) => (
+                  <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "13px" }}>{edu.degree}</div>
+                    <div style={{ color: COLORS.TEXT_MUTED, fontSize: "12px" }}>
+                      {edu.school} • {edu.year}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-            </div>
+            )}
 
             {skills.length > 0 && (
               <div data-section="competencies">
@@ -240,15 +246,17 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
 
           {/* RIGHT COLUMN (40%) */}
           <div style={{ flex: "1" }}>
-            <div data-section="summary">
-            <SectionHeading>Summary</SectionHeading>
-            <div>
-              <GhostChip>{cv.summary}</GhostChip>
-              <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", margin: "0 0 28px 0" }}>
-                {cv.summary}
-              </p>
-            </div>
-            </div>
+            {cv.summary && (
+              <div data-section="summary" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
+                <SectionHeading>Summary</SectionHeading>
+                <div>
+                  <GhostChip>{cv.summary}</GhostChip>
+                  <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", margin: "0 0 28px 0" }}>
+                    {cv.summary}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <SectionHeading>Key Achievements</SectionHeading>
             <div style={{ marginBottom: "24px" }}>
@@ -256,17 +264,19 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
               <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px", lineHeight: "1.4" }}>Successfully migrated legacy architecture to cloud-native microservices.</div>
             </div>
 
-            <div data-section="languages">
-            <SectionHeading>Languages</SectionHeading>
-            {languages.map((lang, i) => (
-              <div key={i} style={{ marginBottom: "14px" }}>
-                <div style={{ fontSize: "12px", color: COLORS.TEXT_MAIN, marginBottom: "5px" }}>{lang}</div>
-                <div style={{ height: "5px", width: "100%", background: COLORS.PROGRESS_TRACK, borderRadius: "999px" }}>
-                  <div style={{ height: "100%", width: "80%", background: COLORS.ACCENT_BLUE, borderRadius: "999px" }} />
-                </div>
+            {languages.length > 0 && (
+              <div data-section="languages" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
+                <SectionHeading>Languages</SectionHeading>
+                {languages.map((lang, i) => (
+                  <div key={i} style={{ marginBottom: "14px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+                    <div style={{ fontSize: "12px", color: COLORS.TEXT_MAIN, marginBottom: "5px" }}>{lang}</div>
+                    <div style={{ height: "5px", width: "100%", background: COLORS.PROGRESS_TRACK, borderRadius: "999px" }}>
+                      <div style={{ height: "100%", width: "80%", background: COLORS.ACCENT_BLUE, borderRadius: "999px" }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-            </div>
+            )}
 
             <SectionHeading>Courses</SectionHeading>
             <div style={{ marginBottom: "16px" }}>

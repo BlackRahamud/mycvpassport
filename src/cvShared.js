@@ -19,6 +19,7 @@ export const TEMPLATES = [
   { id: 16, name: "Crimson Edge", tier: "premium", color: "#0F0F0F", accent: "#DC2626", desc: "Red accent bar, bold creative edge", layout: "crimson-edge" },
   { id: 17, name: "Forest Pro", tier: "premium", color: "#14532D", accent: "#16A34A", desc: "Deep green header, modern professional", layout: "forest-pro" },
   { id: 18, name: "Midnight Gold", tier: "premium", color: "#0A0A0A", accent: "#D97706", desc: "Dark header with amber gold accent", layout: "midnight-gold" },
+  { id: 19, name: "UAE ATS", tier: "free", color: "#FFFFFF", accent: "#000000", desc: "Pure ATS single-column · UAE/GCC + India focused", layout: "uae-ats", tags: ["ATS Friendly", "Single Column", "Popular in UAE"] },
 ];
 
 /** Filter keys → TEMPLATES[].id (numeric ids 1–14 are the canonical template IDs in this app). */
