@@ -1,72 +1,97 @@
+// =============================================================
+// src/Template10ATSInternational.js
+//
+// Template 10 - ATS International (redesign 2026-05-03).
+// React preview component for the builder.
+//
+// Twin file: src/serverLib/atsInternationalTemplate10Html.js renders
+// the same shape server-side for Puppeteer PDF. Keep them visually
+// consistent.
+//
+// Replaces the prior decorative version (cyan header bar, decorative
+// circles, hardcoded "Key Achievements / Courses / Interests" filler)
+// with a clean two-column white surface, sky-blue accents, strict
+// null-guarded sections, and customFields[]-aware status row.
+//
+// Exports:
+//   - PreviewATSInternational  (consumed by ResumePreview.jsx)
+//   - PreviewSaaSModern        (alias preserved for legacy imports)
+// =============================================================
+
 import React from "react";
-import GhostChip from "./components/GhostChip";
 import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
+
+const COLORS = {
+  ACCENT_SKY:    "#0EA5E9",   // sky-500 - top bar, dot bullets, separators
+  HEADING_SKY:   "#0284C7",   // sky-600 - section titles, role, company
+  INK:           "#0F172A",   // slate-900 - name, exp-role, edu-degree
+  BODY:          "#334155",   // slate-700 - bullet/body text
+  MUTED:         "#64748B",   // slate-500 - meta dates, contact
+  MUTED_LIGHT:   "#94A3B8",   // slate-400 - contact pipes
+  HAIRLINE:      "#E2E8F0",   // slate-200 - section title underline + dividers
+};
+
+const FONT_STACK = "Helvetica, Arial, sans-serif";
+
+function readCustomField(cv, ids, fallbackFlatField) {
+  if (cv && Array.isArray(cv.customFields)) {
+    for (const f of cv.customFields) {
+      if (!f || typeof f !== "object") continue;
+      const id = String(f.id || "").trim();
+      const value = String(f.value || "").trim();
+      if (ids.includes(id) && value) return value;
+    }
+  }
+  if (fallbackFlatField && cv && cv[fallbackFlatField]) {
+    return String(cv[fallbackFlatField]).trim();
+  }
+  return "";
+}
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
-  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
-  // Legacy string: pipe-separated
-  const chips = raw.split("|").map((s) => s.trim()).filter(Boolean);
-  if (!chips.length) return [];
-  return [{ category: 'Technical Skills', chips }];
+  if (Array.isArray(raw)) {
+    return raw
+      .filter((g) => g && Array.isArray(g.chips) && g.chips.length > 0)
+      .map((g) => ({
+        category: String(g.category || "").trim(),
+        chips: g.chips.map((c) => String(c).trim()).filter(Boolean),
+      }));
+  }
+  return String(raw)
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx === -1) return { category: "", chips: [line] };
+      const category = line.slice(0, colonIdx).trim();
+      const chips = line
+        .slice(colonIdx + 1)
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean);
+      return { category, chips };
+    })
+    .filter((g) => g.category || g.chips.length > 0);
 }
 
-/**
- * Template 10: Continuous Surface Modern CV
- * Constraints: Single-column HTML, Flexbox visual split, Puppeteer-safe.
- * Design: No cards, no shadows, continuous white surface with integrated header.
- */
+function trimStr(v) {
+  return typeof v === "string" ? v.trim() : "";
+}
 
-const COLORS = {
-  TEXT_MAIN: "#2c3e50",
-  TEXT_MUTED: "#6b7c93",
-  TEXT_BODY: "#444",
-  TEXT_LIGHT: "#8a99a8",
-  ACCENT_BLUE: "#4a90e2",
-  HEADER_BG: "#c9dced",
-  PROGRESS_TRACK: "#e0e6ed",
-  PILL_BG: "#e6eef7",
-  SKELETON_BG: "#D1D5DB"
-};
-
-export function PreviewSaaSModern({ cv, mobileMode = false }) {
-  // Empty state: placeholder skeleton when cv.name is empty
-  if (!cv || !cv.name) {
-    return (
-      <div
-        style={{
-          width: mobileMode ? "100%" : "800px",
-          height: "600px",
-          backgroundColor: COLORS.SKELETON_BG,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 auto",
-          fontFamily: "Arial, sans-serif",
-          color: "#4B5563",
-        }}
-      >
-        Loading Template Preview...
-      </div>
-    );
-  }
-
-  const experience = Array.isArray(cv.experience) ? cv.experience : [];
-  const education = Array.isArray(cv.education) ? cv.education : [];
-  const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
-  const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
-
-  const SectionHeading = ({ children }) => (
+function SectionTitle({ children }) {
+  return (
     <h2
       style={{
-        fontSize: "11px",
-        fontWeight: "bold",
-        color: COLORS.TEXT_MUTED,
+        fontSize: "10.5px",
+        fontWeight: 700,
+        color: COLORS.HEADING_SKY,
         textTransform: "uppercase",
-        letterSpacing: "0.08em",
-        marginBottom: "16px",
-        marginTop: "0",
+        letterSpacing: "0.14em",
+        margin: "0 0 10px 0",
+        paddingBottom: "6px",
+        borderBottom: `1px solid ${COLORS.HAIRLINE}`,
         pageBreakAfter: "avoid",
         breakAfter: "avoid",
       }}
@@ -74,235 +99,498 @@ export function PreviewSaaSModern({ cv, mobileMode = false }) {
       {children}
     </h2>
   );
+}
+
+function RowBetween({ left, right }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        gap: "12px",
+      }}
+    >
+      <div>{left}</div>
+      {right ? (
+        <div
+          style={{
+            color: COLORS.MUTED,
+            fontSize: "11.5px",
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {right}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PipeRow({ items, color, sepColor, sepBold }) {
+  return (
+    <div
+      style={{
+        marginTop: "8px",
+        fontSize: "11.5px",
+        color,
+        lineHeight: 1.5,
+      }}
+    >
+      {items.map((it, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && (
+            <span
+              style={{
+                color: sepColor,
+                margin: "0 10px",
+                fontWeight: sepBold ? 700 : "normal",
+              }}
+            >
+              |
+            </span>
+          )}
+          <span>{it}</span>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function Header({ cv }) {
+  const name = trimStr(cv.name) || "Your Name";
+  const role = trimStr(cv.title);
+  const contactItems = [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.location)].filter(Boolean);
+
+  const visa = readCustomField(cv, ["visa_status"], "visaStatus");
+  const notice = readCustomField(cv, ["notice_period"], null);
+  const license = readCustomField(cv, ["driving_license"], "drivingLicense");
+  const statusItems = [];
+  if (visa) statusItems.push(`Visa: ${visa}`);
+  if (notice) statusItems.push(`Notice: ${notice}`);
+  if (license) statusItems.push(`License: ${license}`);
+
+  return (
+    <header
+      style={{
+        padding: "32px 40px 22px 40px",
+        borderBottom: `1px solid ${COLORS.HAIRLINE}`,
+        background: "#FFFFFF",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "30px",
+          fontWeight: 700,
+          color: COLORS.INK,
+          margin: 0,
+          letterSpacing: "0.02em",
+          lineHeight: 1.1,
+          textTransform: "uppercase",
+        }}
+      >
+        {name}
+      </h1>
+      {role ? (
+        <p
+          style={{
+            fontSize: "14px",
+            color: COLORS.HEADING_SKY,
+            margin: "6px 0 0 0",
+            fontWeight: 500,
+            letterSpacing: "0.02em",
+          }}
+        >
+          {role}
+        </p>
+      ) : null}
+      {contactItems.length > 0 && (
+        <div
+          style={{
+            marginTop: "14px",
+            fontSize: "11.5px",
+            color: COLORS.MUTED,
+            lineHeight: 1.5,
+          }}
+        >
+          {contactItems.map((c, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && (
+                <span style={{ color: COLORS.MUTED_LIGHT, margin: "0 10px" }}>|</span>
+              )}
+              <span>{c}</span>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      {statusItems.length > 0 && (
+        <PipeRow
+          items={statusItems}
+          color={COLORS.INK}
+          sepColor={COLORS.ACCENT_SKY}
+          sepBold
+        />
+      )}
+    </header>
+  );
+}
+
+function ExperienceItem({ exp }) {
+  const role = trimStr(exp.role);
+  const period = trimStr(exp.period);
+  const companyParts = [trimStr(exp.company), trimStr(exp.location)].filter(Boolean).join(" · ");
+  const bullets = trimStr(exp.points) ? splitExperiencePointsForPreview(exp.points) : [];
+
+  return (
+    <div
+      style={{
+        marginBottom: "18px",
+        pageBreakInside: "avoid",
+        breakInside: "avoid",
+      }}
+    >
+      <RowBetween
+        left={
+          <div style={{ fontWeight: 700, color: COLORS.INK, fontSize: "13.5px" }}>
+            {role}
+          </div>
+        }
+        right={period}
+      />
+      {companyParts ? (
+        <div
+          style={{
+            color: COLORS.HEADING_SKY,
+            fontSize: "12px",
+            fontWeight: 500,
+            margin: "2px 0 8px 0",
+          }}
+        >
+          {companyParts}
+        </div>
+      ) : null}
+      {bullets.map((b, i) => (
+        <div
+          key={i}
+          style={{
+            fontSize: "12.5px",
+            color: COLORS.BODY,
+            marginBottom: "4px",
+            display: "flex",
+            lineHeight: 1.55,
+            pageBreakInside: "avoid",
+            breakInside: "avoid",
+          }}
+        >
+          <span
+            style={{
+              marginRight: "10px",
+              color: COLORS.ACCENT_SKY,
+              fontWeight: 700,
+            }}
+          >
+            &middot;
+          </span>
+          <span>{b}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EducationItem({ edu }) {
+  const degreeAndField = [trimStr(edu.degree), trimStr(edu.fieldOfStudy)].filter(Boolean).join(", ");
+  const schoolAndLocation = [trimStr(edu.school), trimStr(edu.location)].filter(Boolean).join(" · ");
+  const year = trimStr(edu.year);
+  const leading = degreeAndField || trimStr(edu.school);
+  const middle = degreeAndField ? schoolAndLocation : trimStr(edu.location);
+
+  return (
+    <div
+      style={{
+        marginBottom: "12px",
+        pageBreakInside: "avoid",
+        breakInside: "avoid",
+      }}
+    >
+      <RowBetween
+        left={
+          <div style={{ fontWeight: 700, color: COLORS.INK, fontSize: "13px" }}>
+            {leading}
+          </div>
+        }
+        right={year}
+      />
+      {middle ? (
+        <div
+          style={{
+            color: COLORS.HEADING_SKY,
+            fontSize: "12px",
+            fontWeight: 500,
+            marginTop: "2px",
+          }}
+        >
+          {middle}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SkillList({ items }) {
+  return (
+    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+      {items.map((s, i) => {
+        const isLast = i === items.length - 1;
+        return (
+          <li
+            key={i}
+            style={{
+              fontSize: "12.5px",
+              color: COLORS.BODY,
+              lineHeight: 1.5,
+              padding: "4px 0",
+              borderBottom: isLast ? "none" : `1px solid ${COLORS.HAIRLINE}`,
+              pageBreakInside: "avoid",
+              breakInside: "avoid",
+            }}
+          >
+            {s}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function MultilineSection({ title, raw }) {
+  const lines = String(raw || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return null;
+  return (
+    <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+      <SectionTitle>{title}</SectionTitle>
+      <div>
+        {lines.map((line, i) => (
+          <p
+            key={i}
+            style={{
+              margin: "0 0 6px 0",
+              fontSize: "12.5px",
+              color: COLORS.BODY,
+              lineHeight: 1.55,
+              pageBreakInside: "avoid",
+              breakInside: "avoid",
+            }}
+          >
+            {line.replace(/^[-*•]\s+/, "")}
+          </p>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function PreviewSaaSModern({ cv }) {
+  const safe = cv && typeof cv === "object" ? cv : {};
+
+  const summary = trimStr(safe.summary);
+  const experience = Array.isArray(safe.experience)
+    ? safe.experience.filter(
+        (e) => e && (trimStr(e.role) || trimStr(e.company) || trimStr(e.points)),
+      )
+    : [];
+  const education = Array.isArray(safe.education)
+    ? safe.education.filter(
+        (e) => e && (trimStr(e.school) || trimStr(e.degree) || trimStr(e.fieldOfStudy)),
+      )
+    : [];
+  const skillsItems = trimStr(safe.skills)
+    ? safe.skills.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const techGroups = technicalSkillsGroupsForTemplate(safe.technicalSkills);
+  const languageItems = trimStr(safe.languages)
+    ? safe.languages.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  let certifications = [];
+  if (Array.isArray(safe.certifications)) {
+    certifications = safe.certifications
+      .map((c) => {
+        if (!c) return null;
+        if (typeof c === "string") {
+          const n = c.trim();
+          return n ? { name: n, issuer: "", year: "" } : null;
+        }
+        if (typeof c === "object") {
+          const name = trimStr(c.name);
+          if (!name) return null;
+          return { name, issuer: trimStr(c.issuer), year: trimStr(c.year) };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  } else if (typeof safe.certifications === "string" && safe.certifications.trim()) {
+    certifications = safe.certifications
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((name) => ({ name, issuer: "", year: "" }));
+  }
+
+  const projects = trimStr(safe.projects);
+  const publications = trimStr(safe.publications);
+  const volunteerWork = trimStr(safe.volunteerWork);
+  const references = trimStr(safe.references);
 
   return (
     <div
       style={{
         width: "100%",
-        minHeight: "auto", // Required constraint
-        backgroundColor: "#FFFFFF", // Continuous white surface
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        fontFamily: 'Arial, "system-ui", sans-serif',
+        minHeight: "auto",
+        backgroundColor: "#FFFFFF",
+        fontFamily: FONT_STACK,
+        color: COLORS.BODY,
         WebkitPrintColorAdjust: "exact",
       }}
     >
-      {/* KEEP position:relative — outermost template root, conservative bias against future absolute descendants re-anchoring (Phase 3 audit) */}
+      <div style={{ height: "4px", width: "100%", background: COLORS.ACCENT_SKY }} />
+      <Header cv={safe} />
       <div
-        className="main-container"
         style={{
-          width: "100%",
-          maxWidth: "800px",
-          backgroundColor: "#FFFFFF",
-          position: "relative",
-          paddingBottom: "40px", // Required for Puppeteer footer safety
+          display: "flex",
+          flexDirection: "row",
+          gap: "36px",
+          padding: "26px 40px 32px 40px",
         }}
       >
-        {/* TOP HEADER SECTION */}
-        {/* KEEP position:relative — anchors 2 absolute decorative circles (lines below) AND establishes stacking context for the z-indexed title */}
-        <header
-          style={{
-            backgroundColor: COLORS.HEADER_BG,
-            padding: "40px 32px 28px 32px",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          {/* Subtle Abstract Shapes */}
-          <div
-            style={{
-              position: "absolute",
-              top: "-30px",
-              right: "-30px",
-              width: "180px",
-              height: "180px",
-              borderRadius: "50%",
-              border: `2px solid ${COLORS.TEXT_MAIN}`,
-              opacity: 0.05,
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              bottom: "-20px",
-              left: "40%",
-              width: "100px",
-              height: "100px",
-              borderRadius: "50%",
-              backgroundColor: "#FFF",
-              opacity: 0.15,
-            }}
-          />
-
-          {/* KEEP position:relative — required for zIndex:1 to lift title above the decorative circles above */}
-          <div style={{ position: "relative", zIndex: 1, textAlign: "left" }}>
-            <h1 style={{ fontSize: "30px", fontWeight: "bold", color: COLORS.TEXT_MAIN, margin: 0, letterSpacing: "-0.02em" }}>
-              {cv.name.toUpperCase()}
-            </h1>
-            <p style={{ fontSize: "14px", color: COLORS.TEXT_MUTED, margin: "6px 0 16px 0", fontWeight: "500" }}>
-              {cv.title || "The role you are applying for?"}
-            </p>
-
-            {/* CONTACT ROW */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", fontSize: "12px", color: COLORS.TEXT_MUTED }}>
-              {cv.phone && <span>{cv.phone}</span>}
-              {cv.email && <span>{cv.email}</span>}
-              {cv.location && <span>{cv.location}</span>}
-            </div>
-          </div>
-        </header>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row", // Visual split
-            gap: "40px",
-            padding: "32px",
-          }}
-        >
-          {/* LEFT COLUMN (60%) */}
-          <div style={{ flex: "0 0 58%" }}>
-            {experience.length > 0 && (
-              <div data-section="experience" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
-                <SectionHeading>Experience</SectionHeading>
-                {experience.map((exp, i) => (
-                  <div key={i} style={{ marginBottom: "24px", pageBreakInside: "avoid", breakInside: "avoid" }}>
-                    <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
-                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "14px" }}>{exp.role}</div>
-                    <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "12px", marginBottom: "8px" }}>
-                      {exp.company} • {exp.period}
-                    </div>
-                    {exp.points &&
-                      splitExperiencePointsForPreview(exp.points).map((point, j) => (
-                        <div key={j} style={{ fontSize: "13px", color: COLORS.TEXT_BODY, marginBottom: "5px", display: "flex", lineHeight: "1.5" }}>
-                          <span style={{ marginRight: "10px", color: COLORS.ACCENT_BLUE }}>•</span>
-                          <span>{point}</span>
-                        </div>
-                      ))}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {education.length > 0 && (
-              <div data-section="education" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
-                <SectionHeading>Education</SectionHeading>
-                {education.map((edu, i) => (
-                  <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid", breakInside: "avoid" }}>
-                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_MAIN, fontSize: "13px" }}>{edu.degree}</div>
-                    <div style={{ color: COLORS.TEXT_MUTED, fontSize: "12px" }}>
-                      {edu.school} • {edu.year}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {skills.length > 0 && (
-              <div data-section="competencies">
-                <SectionHeading>Skills</SectionHeading>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
-                  {skills.map((skill, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        padding: "5px 12px",
-                        backgroundColor: COLORS.PILL_BG,
-                        color: COLORS.TEXT_MAIN,
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                      }}
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {hasTechnicalSkills && (
-              <div data-section="competencies">
-                <SectionHeading>Technical Skills</SectionHeading>
-                <div style={{ fontSize: "13px", color: COLORS.TEXT_BODY, lineHeight: "1.6", margin: "0 0 0 0" }}>
-                  {(() => {
-                    const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
-                    if (!groups.length) return null;
-                    return (
-                      <div>
-                        {groups.map((g, i) => (
-                          <p key={i} style={{ margin: "2px 0", lineHeight: "1.4" }}>
-                            <strong>{g.category}:</strong> {g.chips.join(", ")}
-                          </p>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN (40%) */}
-          <div style={{ flex: "1" }}>
-            {cv.summary && (
-              <div data-section="summary" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
-                <SectionHeading>Summary</SectionHeading>
-                <div>
-                  <GhostChip>{cv.summary}</GhostChip>
-                  <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.6", margin: "0 0 28px 0" }}>
-                    {cv.summary}
+        <div style={{ flex: "0 0 62%", minWidth: 0 }}>
+          {experience.length > 0 && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>Professional Experience</SectionTitle>
+              {experience.map((exp, i) => (
+                <ExperienceItem key={i} exp={exp} />
+              ))}
+            </section>
+          )}
+          {education.length > 0 && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>Education</SectionTitle>
+              {education.map((edu, i) => (
+                <EducationItem key={i} edu={edu} />
+              ))}
+            </section>
+          )}
+          {projects && <MultilineSection title="Projects" raw={projects} />}
+          {publications && <MultilineSection title="Publications" raw={publications} />}
+          {volunteerWork && <MultilineSection title="Volunteer Work" raw={volunteerWork} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {summary && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>Profile</SectionTitle>
+              <p
+                style={{
+                  fontSize: "12.5px",
+                  color: COLORS.BODY,
+                  lineHeight: 1.55,
+                  margin: 0,
+                  pageBreakInside: "avoid",
+                  breakInside: "avoid",
+                }}
+              >
+                {summary}
+              </p>
+            </section>
+          )}
+          {skillsItems.length > 0 && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>Core Skills</SectionTitle>
+              <SkillList items={skillsItems} />
+            </section>
+          )}
+          {techGroups.length > 0 && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>Technical Skills</SectionTitle>
+              <div>
+                {techGroups.map((g, i) => (
+                  <p
+                    key={i}
+                    style={{
+                      margin: "0 0 6px 0",
+                      fontSize: "12.5px",
+                      color: COLORS.BODY,
+                      lineHeight: 1.55,
+                      pageBreakInside: "avoid",
+                      breakInside: "avoid",
+                    }}
+                  >
+                    {g.category && (
+                      <strong style={{ color: COLORS.INK }}>{g.category}: </strong>
+                    )}
+                    {g.chips.join(", ")}
                   </p>
-                </div>
+                ))}
               </div>
-            )}
-
-            <SectionHeading>Key Achievements</SectionHeading>
-            <div style={{ marginBottom: "24px" }}>
-              <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "13px", marginBottom: "2px" }}>Project Excellence</div>
-              <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px", lineHeight: "1.4" }}>Successfully migrated legacy architecture to cloud-native microservices.</div>
-            </div>
-
-            {languages.length > 0 && (
-              <div data-section="languages" style={{ pageBreakInside: "avoid", breakInside: "avoid" }}>
-                <SectionHeading>Languages</SectionHeading>
-                {languages.map((lang, i) => (
-                  <div key={i} style={{ marginBottom: "14px", pageBreakInside: "avoid", breakInside: "avoid" }}>
-                    <div style={{ fontSize: "12px", color: COLORS.TEXT_MAIN, marginBottom: "5px" }}>{lang}</div>
-                    <div style={{ height: "5px", width: "100%", background: COLORS.PROGRESS_TRACK, borderRadius: "999px" }}>
-                      <div style={{ height: "100%", width: "80%", background: COLORS.ACCENT_BLUE, borderRadius: "999px" }} />
-                    </div>
+            </section>
+          )}
+          {languageItems.length > 0 && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>Languages</SectionTitle>
+              <div>
+                {languageItems.map((l, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      fontSize: "12.5px",
+                      color: COLORS.BODY,
+                      lineHeight: 1.5,
+                      padding: "3px 0",
+                      pageBreakInside: "avoid",
+                      breakInside: "avoid",
+                    }}
+                  >
+                    {l}
                   </div>
                 ))}
               </div>
-            )}
-
-            <SectionHeading>Courses</SectionHeading>
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ color: COLORS.TEXT_MAIN, fontWeight: "bold", fontSize: "12px" }}>Advanced System Design</div>
-              <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px" }}>Focus on scalability and fault tolerance.</div>
-            </div>
-
-            <SectionHeading>Interests</SectionHeading>
-            <div style={{ color: COLORS.ACCENT_BLUE, fontWeight: "bold", fontSize: "12px" }}>UI/UX Research</div>
-            <div style={{ color: COLORS.TEXT_LIGHT, fontSize: "11px" }}>Passionate about accessible design patterns.</div>
-          </div>
+            </section>
+          )}
+          {certifications.length > 0 && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>Certifications</SectionTitle>
+              <SkillList
+                items={certifications.map((c) =>
+                  [c.name, c.issuer, c.year].filter(Boolean).join(" — "),
+                )}
+              />
+            </section>
+          )}
+          {references && (
+            <section style={{ marginBottom: "22px", pageBreakInside: "avoid", breakInside: "avoid" }}>
+              <SectionTitle>References</SectionTitle>
+              <p
+                style={{
+                  fontSize: "12.5px",
+                  color: COLORS.BODY,
+                  lineHeight: 1.55,
+                  margin: 0,
+                }}
+              >
+                {references}
+              </p>
+            </section>
+          )}
         </div>
       </div>
-
-      <style>
-        {`
-          @media print {
-            body { background: white !important; -webkit-print-color-adjust: exact; }
-            header { background-color: ${COLORS.HEADER_BG} !important; }
-          }
-        `}
-      </style>
     </div>
   );
 }
 
+// Public export consumed by ResumePreview.jsx (layout="ats-intl").
 export function PreviewATSInternational({ cv, mobileMode = false }) {
   return <PreviewSaaSModern cv={cv} mobileMode={mobileMode} />;
 }

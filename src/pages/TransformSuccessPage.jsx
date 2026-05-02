@@ -44,13 +44,13 @@ import { logEvent } from '../lib/analytics/logEvent';
 
 const TIMEOUT_MS = 45_000;
 const POLL_MS = 2_000;
-// Template 19 (UAE ATS) — single-column, black-on-white ATS template
-// purpose-built for the transform pipeline. Replaces Template 10
-// (ATS International), which had decorative shapes and hardcoded
-// placeholder sections that produced ghost pages on real CVs. The new
-// template is data-driven (all sections gated on populated content)
-// and applies page-break-inside: avoid on every section item.
-const PDF_TEMPLATE_ID = 19;
+// Template 10 (ATS International, redesigned 2026-05-03) — two-column
+// white surface with sky-blue accents, customFields-aware status row,
+// strict null-guarded sections, page-break-safe. Replaces the brief
+// run with Template 19 (single-column pure black-on-white) as the
+// transform default; T19 stays available in the picker for users
+// who want strict zero-colour ATS minimalism.
+const PDF_TEMPLATE_ID = 10;
 const EASE_OUT = [0.22, 1, 0.36, 1];
 
 // ── Helpers ────────────────────────────────────────────────────────

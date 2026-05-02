@@ -10,7 +10,7 @@ export const TEMPLATES = [
   { id: 7, name: "Compact Pro", tier: "premium", color: "#14213D", accent: "#0D7377", desc: "Dense teal layout, max content", layout: "compact-pro" },
   { id: 8, name: "Creative Sidebar", tier: "premium", color: "#2D2D2D", accent: "#E8533F", desc: "Coral sidebar for Sales/RE", layout: "creative" },
   { id: 9, name: "Hospitality & Service", tier: "premium", color: "#6B4C3B", accent: "#6B4C3B", desc: "Warm tone for hotels & F&B", layout: "hospitality" },
-  { id: 10, name: "ATS International", tier: "premium", color: "#000000", accent: "#333333", desc: "Pure ATS — zero colour, max score", layout: "ats-intl" },
+  { id: 10, name: "ATS International", tier: "premium", color: "#0F172A", accent: "#0EA5E9", desc: "Two-column UAE ATS · sky-blue accent · transform default", layout: "ats-intl", tags: ["ATS Friendly", "Popular in UAE", "Two Column"] },
   { id: 11, name: "Tech & IT Pro", tier: "premium", color: "#1E2D45", accent: "#4A90D9", desc: "Dark slate sidebar for tech roles", layout: "tech-it" },
   { id: 12, name: "Flat Split", tier: "premium", color: "#F5E6E0", accent: "#000000", desc: "Flat split layout · beige header, grey sidebar", layout: "flat-split" },
   { id: 13, name: "Finance", tier: "premium", color: "#000000", accent: "#000000", desc: "Dense finance & accounting · UAE banking", layout: "finance", tags: ["ATS Friendly", "Popular in UAE", "Banking & Finance"] },
