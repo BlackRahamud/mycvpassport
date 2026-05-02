@@ -1,5 +1,5 @@
 /**
- * /api/transform?action=upload|update_intake|pay|run|status
+ * /api/transform?action=upload|update_intake|pay|parse|run|status
  *
  * Single Upload & Transform router. Was four separate functions
  * (transform-upload, transform-pay, transform-run, transform-session/[id])
@@ -13,9 +13,16 @@
  *   - M3 (raw_extracted_text expiry)— preserved in run + status (cv_data
  *                                     gated, raw text never returned)
  *
+ * Two-stage Claude pipeline (research doc sections 4, 7, 8):
+ *   parse  — strict source-fidelity extraction of raw OCR text into
+ *            canonical resume JSON. Stored in transform_sessions.parsed_cv.
+ *   run    — regional rewrite/tailor of parsed_cv (or raw_extracted_text
+ *            when parsed_cv is null, for legacy sessions and
+ *            backwards compatibility).
+ *
  * Methods:
- *   - upload | update_intake | pay | run   POST only
- *   - status                                GET or POST (read-only; no-store)
+ *   - upload | update_intake | pay | parse | run   POST only
+ *   - status                                        GET or POST (read-only; no-store)
  *
  * Auth:  Authorization: Bearer <user JWT>  (all branches)
  *
@@ -23,6 +30,7 @@
  *   - upload         POST { text, intake, source_kind?, source_chars? }
  *   - update_intake  POST { session_id, intake }
  *   - pay            POST { session_id }
+ *   - parse          POST { session_id }
  *   - run            POST { session_id }
  *   - status         GET  ?action=status&session_id=<uuid>
  *                    POST { action:'status', session_id }
@@ -624,14 +632,23 @@ const EMPTY_EDU = {
 
 const SYSTEM_PROMPT = `You are an expert CV writer specialising in the UAE/GCC and Indian job markets.
 You rewrite a candidate's existing CV into a regionally-tuned, ATS-optimised CV in CVPassport's canonical JSON shape.
-Output VALID JSON only — no markdown fences, no commentary, no preamble.
+Output is rendered on A4 page (794px wide, 1123px per page). Keep content density appropriate for A4.
+Output VALID JSON only - no markdown fences, no commentary, no preamble.
 
-HALLUCINATION RULES — NEVER VIOLATE:
-- Never invent company names, dates, degrees, or qualifications not in the source.
-- Never add certifications (ITIL, PMP, AWS, Six Sigma, Prince2, CFA, etc.) unless they appear verbatim in the source CV.
-- Never infer skills not present in the source text.
-- Never invent metrics, currency amounts, or percentages.
-- If a field is ambiguous or missing, set it to "". Never guess. Omit information rather than fabricate it.`;
+FORMATTING RULES - NEVER VIOLATE:
+1. No emdashes or endashes. Use hyphens, commas, or semicolons instead.
+2. No curly/smart quotes. Straight quotes only.
+3. No ellipsis character. Use three periods instead.
+4. ASCII punctuation only throughout all output.
+5. No markdown. All description fields are plain text or HTML only.
+
+HALLUCINATION RULES - NEVER VIOLATE:
+1. Never invent company names, dates, or degrees not in the original CV.
+2. Never add certifications not explicitly stated.
+3. Never infer skills not present in original CV text.
+4. If a required field is missing from intake: omit it, never guess.
+5. If data is ambiguous: use what is there, do not normalize or improve it.
+6. Output is rendered on A4 page (794px wide). Keep content density appropriate.`;
 
 function buildUserPrompt({ text, intake }) {
   return `SOURCE CV TEXT (raw extracted, may be noisy):
@@ -662,19 +679,20 @@ DIRECTIVES (apply ALL):
    Use "" for unknown scalar fields. Never null. Never omit a key.
 
 2. experience[i] = { company, role, location, period, points, startDate, endDate, present }.
-   - MAXIMUM 5 bullets per role (3–5 ideal).
-   - Every bullet starts with a strong action verb (Led, Drove, Delivered, Owned, Built, Reduced,
-     Optimised, Launched, Negotiated, Scaled, etc.).
-   - Every bullet must read as Action → Result. Surface a metric where the source has one — never
-     invent numbers, percentages, or currency amounts.
-   - No generic duties repeated across roles. Each role must show its unique contribution.
-   - Currency in metrics: use the source's currency. If the source has a number with no currency,
-     infer from the role's location: AED for UAE roles, SAR for Saudi Arabia, INR (with Lakhs/Cr
-     formatting where natural) for India. Never convert numbers between currencies — that's
-     fabrication.
+   - MAXIMUM 5 bullets per role. No exceptions (3-5 ideal).
+   - Every bullet must start with a strong action verb (Led, Drove, Delivered, Owned, Built,
+     Reduced, Optimised, Launched, Negotiated, Scaled, etc.).
+   - Every bullet must read as Action -> Result. Include metrics where they exist in the original
+     CV. Never fabricate numbers, percentages, or currency amounts.
+   - Do not repeat generic duties across roles. Each role must show its unique contribution.
+   - Currency: AED for UAE roles, SAR for Saudi Arabia, INR (with Lakhs/Cr formatting where
+     natural) for India. Use the source's currency where stated; otherwise infer from the role's
+     location. Never convert between currencies (that is fabrication).
+   - period: keep date ranges on a single string (e.g. "Oct 2025 - Present"). Do not split or
+     reformat the date string - it must render on one line.
    - Keep each role compact so it fits one PDF block (downstream PDF templates apply
-     page-break-inside: avoid on each entry — do not exceed 5 bullets).
-   - points = newline-separated bullet sentences, no leading "•" or "-".
+     page-break-inside: avoid on each entry - do not exceed 5 bullets).
+   - points = newline-separated bullet sentences, no leading bullets or dashes.
 
 3. education[i] = { school, degree, year, fieldOfStudy, startDate, endDate, location }. Source-only.
 
@@ -682,12 +700,14 @@ DIRECTIVES (apply ALL):
    AWS, Six Sigma, Prince2, CFA, etc.) that is not explicitly named in the source CV.
 
 5. Skills:
-   - skills: comma-separated plain-text list. NO bubbles, NO progress bars, NO percentage
-     proficiency scores anywhere — output is a flat string.
+   - skills: comma-separated plain-text list of 6-10 skill items maximum. Curate, do not dump.
+     NO bubbles, NO progress bars, NO percentage proficiency scores. Output is a flat string.
    - technicalSkills: comma-separated. Group by category when the source supports it
      (e.g. "Frontend: React, Vue, Tailwind | Backend: Node, Python, Postgres").
    - languages: comma-separated.
    - Never infer or add skills not present in the source text.
+   - Never add certifications (ITIL, PMP, AWS, Six Sigma, Prince2, CFA, etc.) unless they appear
+     verbatim in the original CV.
 
 6. summary = 3–4 sentences, regionally tuned:
    - 'UAE' or 'GCC': lead with target role + years of experience, then visa status + notice period,
@@ -805,7 +825,7 @@ async function handleRun(req, res, body) {
 
   const { data: session, error: loadErr } = await db
     .from('transform_sessions')
-    .select('id, user_id, status, intake, raw_extracted_text, cv_data, paid_at')
+    .select('id, user_id, status, intake, raw_extracted_text, parsed_cv, cv_data, paid_at')
     .eq('id', sessionId).eq('user_id', user.id).maybeSingle();
   if (loadErr) {
     console.error('[transform/run] session load failed:', JSON.stringify(loadErr));
@@ -847,7 +867,8 @@ async function handleRun(req, res, body) {
       status: session.status,
     });
   }
-  if (session.status !== 'paid' && session.status !== 'error' && !canReclaimTransforming) {
+  if (session.status !== 'paid' && session.status !== 'parsed' && session.status !== 'error'
+      && !canReclaimTransforming) {
     return res.status(409).json({ ok: false, error: `Unexpected session status: ${session.status}` });
   }
 
@@ -855,9 +876,11 @@ async function handleRun(req, res, body) {
     && typeof session.intake === 'object'
     && !Array.isArray(session.intake)
     && Object.keys(session.intake).length > 0;
-  if (!session.raw_extracted_text || !intakeOk) {
-    const expired = !session.raw_extracted_text
-      && (session.status === 'paid' || session.status === 'error' || canReclaimTransforming);
+  const hasSourceData = !!session.parsed_cv || !!session.raw_extracted_text;
+  if (!hasSourceData || !intakeOk) {
+    const expired = !hasSourceData
+      && (session.status === 'paid' || session.status === 'parsed'
+          || session.status === 'error' || canReclaimTransforming);
     if (expired) {
       return res.status(410).json({
         ok: false,
@@ -868,7 +891,7 @@ async function handleRun(req, res, body) {
     return res.status(500).json({ ok: false, error: 'Session is missing source text or intake' });
   }
 
-  const allowedFromStatuses = ['paid', 'error'];
+  const allowedFromStatuses = ['paid', 'parsed', 'error'];
   if (canReclaimTransforming) allowedFromStatuses.push('transforming');
 
   const { data: locked, error: lockErr } = await db
@@ -889,18 +912,26 @@ async function handleRun(req, res, body) {
     return res.status(409).json({ ok: false, error: 'Session is no longer ready to run' });
   }
 
+  // Two-stage pipeline: prefer the parse stage's structured output; fall
+  // back to raw OCR text for legacy sessions and pre-parse callers.
+  const sourceForClaude = session.parsed_cv
+    ? JSON.stringify(session.parsed_cv, null, 2)
+    : session.raw_extracted_text;
+  const sourceMode = session.parsed_cv ? 'parsed_cv' : 'raw_extracted_text';
+
   console.log('[transform/run] starting transform', JSON.stringify({
     session_id: sessionId,
     user_id: user.id,
     model: TRANSFORM_MODEL,
-    text_chars: session.raw_extracted_text.length,
+    source_mode: sourceMode,
+    source_chars: sourceForClaude.length,
     intake_keys: Object.keys(session.intake || {}),
   }));
 
   let parsed;
   let usage;
   try {
-    const result = await callClaude({ text: session.raw_extracted_text, intake: session.intake });
+    const result = await callClaude({ text: sourceForClaude, intake: session.intake });
     parsed = result.parsed;
     usage = result.usage;
   } catch (e) {
@@ -930,6 +961,7 @@ async function handleRun(req, res, body) {
   };
   if (!TRANSFORM_RETAIN_RAW) {
     updateRow.raw_extracted_text = null;
+    updateRow.parsed_cv = null;
   }
 
   const { error: saveErr } = await db
@@ -960,6 +992,234 @@ async function handleRun(req, res, body) {
 }
 
 // =====================================================================
+// Branch 3b — parse (strict source-fidelity extraction)
+//
+// Stage 1 of the two-stage Claude pipeline (research doc sections 4, 7,
+// 8). Cleans noisy OCR text into the canonical resume JSON shape with
+// source-only values and nulls for anything not explicitly stated. The
+// run branch then consumes parsed_cv as structured input instead of the
+// raw OCR dump, preventing Claude from hallucinating off PDF noise.
+//
+// Lifecycle: paid -> parsed -> (run) -> transforming -> transformed.
+// Backwards-compatible: parse is optional. Sessions without parsed_cv
+// fall through to raw_extracted_text in handleRun.
+//
+// No status lock here. Parse is fast (~5-10s) and idempotent at
+// temperature=0; the idempotency check at the top short-circuits a
+// second call once parsed_cv is persisted. A user double-click before
+// the first response lands could fire two Claude requests; treated as
+// acceptable single-user billing risk vs. the extra state machinery a
+// 'parsing' lock would require.
+// =====================================================================
+
+const PARSE_SYSTEM_PROMPT = `You are a strict resume extraction engine.
+
+CONFLICT RESOLUTION ORDER:
+1. Schema validity - must return valid JSON matching our resume shape
+2. Source fidelity - exactly what the CV states
+3. Omit uncertain values - never guess
+
+HARD CONSTRAINTS:
+1. Extract only explicitly stated information
+2. Never fabricate, infer, or normalize missing data
+3. Keep original wording and original language
+4. When uncertain, omit the field entirely - leave null
+5. Do not use external knowledge
+
+EXTRACTION RULES:
+- Ignore OCR noise, watermarks, repeated headers/footers, broken line wraps
+- Dates: preserve exactly as written
+- URLs: include only full URLs explicitly present
+- Contact data: copy as-is, do not reformat
+- Skills: include only explicitly stated skills - never infer
+- Descriptions: preserve original bullet structure
+- If PDF is low quality or partially unreadable: return best-effort for readable parts only
+
+OUTPUT CONTRACT:
+- Return only one raw JSON object
+- No markdown, no commentary, no extra keys
+- Missing fields return null, never a guessed value`;
+
+function buildParseUserPrompt({ text }) {
+  return `RAW EXTRACTED CV TEXT (may contain OCR noise, broken line wraps, watermarks):
+<<<
+${text}
+>>>
+
+Extract into the canonical CVPassport resume shape:
+{ name, email, phone, location, title, summary,
+  nationality, visaStatus, dob, gender, maritalStatus,
+  experience: [...], education: [...],
+  skills, languages, certifications: [...],
+  technicalSkills, projects, volunteerWork, publications,
+  availability, drivingLicense, willingToRelocate, references }
+
+experience[i] = { company, role, location, period, points, startDate, endDate, present }
+education[i]  = { school, degree, year, fieldOfStudy, startDate, endDate, location }
+certifications[i] = { name, issuer, year }
+
+Rules:
+- points = newline-separated bullet sentences as written, no leading bullets or dashes.
+- Missing scalar fields = null. Empty arrays = [].
+- Preserve dates verbatim (do not normalize formats).
+- Output ONE JSON object only, no markdown, no commentary.`;
+}
+
+async function callClaudeParse({ text }) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: TRANSFORM_MODEL,
+      max_tokens: TRANSFORM_MAX_TOKENS,
+      temperature: 0,
+      system: PARSE_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: buildParseUserPrompt({ text }) }],
+    }),
+  });
+  if (!r.ok) {
+    const t = await r.text().catch(() => '');
+    const err = new Error(`Anthropic ${r.status}: ${t.slice(0, 300)}`);
+    err.code = 'claude_http_' + r.status;
+    throw err;
+  }
+  const data = await r.json();
+  const raw = (Array.isArray(data.content) && data.content[0]?.text) || '';
+  const cleaned = String(raw).replace(/```json|```/g, '').trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    const err = new Error(`Parse JSON failed: ${e.message}`);
+    err.code = 'parse_json_failed';
+    throw err;
+  }
+  return {
+    parsed,
+    usage: {
+      tokens_in: data?.usage?.input_tokens ?? null,
+      tokens_out: data?.usage?.output_tokens ?? null,
+    },
+  };
+}
+
+async function handleParse(req, res, body) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ ok: false, error: 'Server not configured: ANTHROPIC_API_KEY missing' });
+  }
+  const ctx = await requireAuthAndDb(req, res);
+  if (!ctx) return;
+  const { user, db } = ctx;
+
+  const sessionId = typeof body.session_id === 'string' ? body.session_id.trim() : '';
+  if (!sessionId || !UUID_RE.test(sessionId)) {
+    return res.status(400).json({ ok: false, error: 'session_id (uuid) required' });
+  }
+
+  const { data: session, error: loadErr } = await db
+    .from('transform_sessions')
+    .select('id, user_id, status, raw_extracted_text, parsed_cv')
+    .eq('id', sessionId).eq('user_id', user.id).maybeSingle();
+  if (loadErr) {
+    console.error('[transform/parse] session load failed:', JSON.stringify(loadErr));
+    return res.status(500).json({ ok: false, error: 'Could not load session' });
+  }
+  if (!session) {
+    return res.status(404).json({ ok: false, error: 'Session not found' });
+  }
+
+  // Idempotency: parse already complete (or further along the pipeline).
+  if ((session.status === 'parsed' || session.status === 'transforming' || session.status === 'transformed')
+      && session.parsed_cv) {
+    return res.status(200).json({
+      ok: true,
+      session_id: session.id,
+      status: session.status,
+      next: nextHintFor(session.status),
+    });
+  }
+
+  if (session.status === 'created' || session.status === 'awaiting_payment') {
+    return res.status(402).json({
+      ok: false,
+      error: 'Session unpaid',
+      status: session.status,
+    });
+  }
+
+  // 'parsed' without parsed_cv is anomalous (e.g. row state drift) - allow re-parse.
+  if (session.status !== 'paid' && session.status !== 'error' && session.status !== 'parsed') {
+    return res.status(409).json({ ok: false, error: `Unexpected session status: ${session.status}` });
+  }
+
+  if (!session.raw_extracted_text) {
+    return res.status(410).json({
+      ok: false,
+      error: 'Session expired. Please upload your CV again.',
+      code: 'session_expired',
+    });
+  }
+
+  console.log('[transform/parse] starting parse', JSON.stringify({
+    session_id: sessionId,
+    user_id: user.id,
+    model: TRANSFORM_MODEL,
+    text_chars: session.raw_extracted_text.length,
+  }));
+
+  let parsedCv;
+  let usage;
+  try {
+    const result = await callClaudeParse({ text: session.raw_extracted_text });
+    parsedCv = result.parsed;
+    usage = result.usage;
+  } catch (e) {
+    const code = e?.code || 'parse_failed';
+    const msg = String(e?.message || e).slice(0, 1000);
+    console.error('[transform/parse] Claude failed:', code, msg);
+    await db.from('transform_sessions')
+      .update({ status: 'error', error_code: code, error_message: msg })
+      .eq('id', sessionId);
+    return res.status(502).json({
+      ok: false,
+      error: 'AI parse unavailable',
+      code,
+    });
+  }
+
+  const { error: saveErr } = await db
+    .from('transform_sessions')
+    .update({
+      status: 'parsed',
+      parsed_cv: parsedCv,
+      error_code: null,
+      error_message: null,
+    })
+    .eq('id', sessionId).eq('user_id', user.id);
+  if (saveErr) {
+    console.error('[transform/parse] save failed:', JSON.stringify(saveErr));
+    return res.status(500).json({ ok: false, error: 'Could not persist parsed CV' });
+  }
+
+  console.log('[transform/parse] parse complete', JSON.stringify({
+    session_id: sessionId,
+    tokens_in: usage.tokens_in,
+    tokens_out: usage.tokens_out,
+  }));
+
+  return res.status(200).json({
+    ok: true,
+    session_id: sessionId,
+    status: 'parsed',
+    next: 'run',
+  });
+}
+
+// =====================================================================
 // Branch 4 — status (was api/transform-session/[id].js)
 // =====================================================================
 
@@ -968,6 +1228,7 @@ function nextHintFor(status) {
     case 'created':           return 'pay';
     case 'awaiting_payment':  return 'wait';
     case 'paid':              return 'run';
+    case 'parsed':            return 'run';
     case 'transforming':      return 'wait';
     case 'transformed':       return 'done';
     case 'error':             return 'error';
@@ -1072,6 +1333,10 @@ export default async function handler(req, res) {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST required for pay' });
       return handlePay(req, res, body);
 
+    case 'parse':
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST required for parse' });
+      return handleParse(req, res, body);
+
     case 'run':
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST required for run' });
       return handleRun(req, res, body);
@@ -1090,7 +1355,7 @@ export default async function handler(req, res) {
     default:
       return res.status(400).json({
         ok: false,
-        error: 'Missing or unknown action. Use ?action=upload|update_intake|pay|run|status.',
+        error: 'Missing or unknown action. Use ?action=upload|update_intake|pay|parse|run|status.',
       });
   }
 }
