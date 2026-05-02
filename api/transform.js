@@ -84,7 +84,11 @@ const REQUIRED_INTAKE_KEYS = [
 ];
 
 const TRANSFORM_MODEL = process.env.TRANSFORM_MODEL || 'claude-sonnet-4-6';
-const TRANSFORM_MAX_TOKENS = 3500;
+// Bumped from 3500 to 6000 when run started emitting { cv, analysis } in
+// one response. Worst-case payload (long CV rewrite + 10 suggestions +
+// scorecard + strengths) lands around 4-5k tokens; 6000 gives margin so
+// truncation never produces a half-parsed JSON.
+const TRANSFORM_MAX_TOKENS = 6000;
 const TRANSFORM_RETAIN_RAW = (process.env.TRANSFORM_RETAIN_RAW || '0') === '1';
 const TRANSFORM_STALE_MS = 5 * 60 * 1000;
 
@@ -632,9 +636,9 @@ const EMPTY_EDU = {
 };
 
 const SYSTEM_PROMPT = `You are an expert CV writer specialising in the UAE/GCC and Indian job markets.
-You rewrite a candidate's existing CV into a regionally-tuned, ATS-optimised CV in CVPassport's canonical JSON shape.
+You rewrite a candidate's existing CV into a regionally-tuned, ATS-optimised CV in CVPassport's canonical JSON shape, AND produce a structured analysis of the ORIGINAL CV (before rewrite).
 Output is rendered on A4 page (794px wide, 1123px per page). Keep content density appropriate for A4.
-Output VALID JSON only - no markdown fences, no commentary, no preamble.
+Output VALID JSON only - one object with two top-level keys: "cv" and "analysis". No markdown fences, no commentary, no preamble.
 
 FORMATTING RULES - NEVER VIOLATE:
 1. No emdashes or endashes. Use hyphens, commas, or semicolons instead.
@@ -649,7 +653,16 @@ HALLUCINATION RULES - NEVER VIOLATE:
 3. Never infer skills not present in original CV text.
 4. If a required field is missing from intake: omit it, never guess.
 5. If data is ambiguous: use what is there, do not normalize or improve it.
-6. Output is rendered on A4 page (794px wide). Keep content density appropriate.`;
+6. Output is rendered on A4 page (794px wide). Keep content density appropriate.
+
+ANALYSIS RULES - NEVER VIOLATE:
+1. The analysis object scores the ORIGINAL CV (the source text) before rewrite, not the rewrite itself.
+2. overallScore: integer 0-100. Be honest. Do not inflate. A weak CV scores low.
+3. scorecard: 4-6 dimensions drawn from {Clarity, Impact & Quantification, ATS Compatibility, Structure & Completeness, Regional Fit, Language Quality}. Each rationale is one sentence, evidence-based on the original CV's actual content.
+4. suggestions: maximum 10. Order by impact (high first, then medium, then low). Each suggestion is actionable and specific to the candidate's CV, not generic advice.
+5. strengths: maximum 5. What the original CV already does well.
+6. Never invent facts in the analysis. Quote or paraphrase only what the original CV states.
+7. If data is missing in the original CV, call it out explicitly in suggestions rather than fabricating coverage.`;
 
 function buildUserPrompt({ text, intake }) {
   return `SOURCE CV TEXT (raw extracted, may be noisy):
@@ -669,7 +682,9 @@ REGIONAL INTAKE:
 
 DIRECTIVES (apply ALL):
 
-1. Output ONE JSON object conforming EXACTLY to this canonical shape:
+1. Output ONE JSON object with EXACTLY two top-level keys: "cv" and "analysis".
+
+   "cv" is the rewritten resume conforming EXACTLY to this canonical shape:
    { name, email, phone, location, title, summary,
      nationality, visaStatus, dob, gender, maritalStatus,
      experience: [...], education: [...],
@@ -678,7 +693,11 @@ DIRECTIVES (apply ALL):
      builderExtraSectionIds: [],
      customFields: [...],
      availability, drivingLicense, willingToRelocate, references }
-   Use "" for unknown scalar fields. Never null. Never omit a key.
+   Inside "cv": use "" for unknown scalar fields. Never null. Never omit a key.
+
+   "analysis" is the structured analysis object specified in directive 10.
+   Inside "analysis": use null where specified (e.g. exampleRewrite when not applicable).
+   Never inflate scores. Never fabricate facts. Score the ORIGINAL CV, not the rewrite.
 
 2. experience[i] = { company, role, location, period, points, startDate, endDate, present }.
    - MAXIMUM 5 bullets per role. No exceptions (3-5 ideal).
@@ -745,7 +764,34 @@ DIRECTIVES (apply ALL):
        Only when explicitly stated in the source CV. Never infer.
    Omit entries with no value. customFields = [] if no regional data is present.
 
-10. Output VALID JSON only. No backticks. No leading text. No commentary.`;
+10. analysis object - score the ORIGINAL CV (the source text), NOT the rewrite. Shape:
+    {
+      "overallScore": 0-100 integer,
+      "scorecard": [
+        { "dimension": "...", "score": 0-100 integer, "rationale": "one sentence" }
+      ],
+      "suggestions": [
+        {
+          "title": "short clear label",
+          "impact": "high" | "medium" | "low",
+          "why": "one sentence on why this matters for ATS or recruiter scan",
+          "exampleRewrite": "actual before/after string" | null,
+          "copyPrompt": "ready-to-use prompt the user can paste into another LLM"
+        }
+      ],
+      "strengths": ["string", "string"]
+    }
+    - overallScore: honest assessment of the original CV. A weak source scores low.
+    - scorecard: 4-6 dimensions from {Clarity, Impact & Quantification, ATS Compatibility,
+      Structure & Completeness, Regional Fit, Language Quality}. Rationales evidence-based.
+    - suggestions: maximum 10, sorted by impact descending. exampleRewrite is the actual
+      before/after content when applicable; null when the suggestion is structural advice.
+      copyPrompt is one paste-ready prompt the user can fire at any LLM to fix that specific
+      section (e.g. "Rewrite my experience bullets to emphasize measurable outcomes...").
+    - strengths: maximum 5, specific to this candidate's CV. No generic praise.
+    - Never invent achievements, certifications, or metrics in the analysis.
+
+11. Output VALID JSON only. No backticks. No leading text. No commentary.`;
 }
 
 function normalizeCvData(raw, intake) {
@@ -802,6 +848,65 @@ function normalizeCvData(raw, intake) {
   return merged;
 }
 
+// Coerces Claude's analysis block into a stable shape for storage and
+// frontend rendering (research doc sections 2, 10). Anything malformed
+// is dropped rather than rejected - the contract is "if you see analysis,
+// each field is well-typed". Returns null when the input is unusable; a
+// null analysis must never fail the whole transform.
+const VALID_IMPACTS = new Set(['high', 'medium', 'low']);
+const MAX_SUGGESTIONS = 10;
+const MAX_STRENGTHS = 5;
+const MAX_SCORECARD = 6;
+
+function clampScore(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(100, v));
+}
+
+function normalizeAnalysis(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+
+  const overallScore = clampScore(raw.overallScore);
+
+  const scorecard = (Array.isArray(raw.scorecard) ? raw.scorecard : [])
+    .slice(0, MAX_SCORECARD)
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const dimension = String(item.dimension || '').trim();
+      if (!dimension) return null;
+      return {
+        dimension,
+        score: clampScore(item.score),
+        rationale: String(item.rationale || '').trim(),
+      };
+    })
+    .filter(Boolean);
+
+  const suggestions = (Array.isArray(raw.suggestions) ? raw.suggestions : [])
+    .slice(0, MAX_SUGGESTIONS)
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const title = String(item.title || '').trim();
+      if (!title) return null;
+      const impact = VALID_IMPACTS.has(item.impact) ? item.impact : 'low';
+      const why = String(item.why || '').trim();
+      const rawExample = item.exampleRewrite;
+      const exampleRewrite = (rawExample == null) ? null
+        : (String(rawExample).trim() || null);
+      const copyPrompt = String(item.copyPrompt || '').trim();
+      return { title, impact, why, exampleRewrite, copyPrompt };
+    })
+    .filter(Boolean);
+
+  const strengths = (Array.isArray(raw.strengths) ? raw.strengths : [])
+    .slice(0, MAX_STRENGTHS)
+    .map((s) => String(s || '').trim())
+    .filter(Boolean);
+
+  return { overallScore, scorecard, suggestions, strengths };
+}
+
 async function callClaude({ text, intake }) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -835,8 +940,24 @@ async function callClaude({ text, intake }) {
     err.code = 'json_parse_failed';
     throw err;
   }
+  // Run output is { cv, analysis }. Legacy fallback: a bare resume object
+  // (pre-Session-3 prompt) is treated as cv with no analysis. The analysis
+  // block is best-effort: if Claude omits it, we surface null and never
+  // fail the whole transform on its account.
+  let cv;
+  let analysis = null;
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      && parsed.cv && typeof parsed.cv === 'object' && !Array.isArray(parsed.cv)) {
+    cv = parsed.cv;
+    if (parsed.analysis && typeof parsed.analysis === 'object' && !Array.isArray(parsed.analysis)) {
+      analysis = parsed.analysis;
+    }
+  } else {
+    cv = parsed;
+  }
   return {
-    parsed,
+    cv,
+    analysis,
     usage: {
       tokens_in: data?.usage?.input_tokens ?? null,
       tokens_out: data?.usage?.output_tokens ?? null,
@@ -859,7 +980,7 @@ async function handleRun(req, res, body) {
 
   const { data: session, error: loadErr } = await db
     .from('transform_sessions')
-    .select('id, user_id, status, intake, raw_extracted_text, parsed_cv, cv_data, paid_at')
+    .select('id, user_id, status, intake, raw_extracted_text, parsed_cv, cv_data, analysis, paid_at')
     .eq('id', sessionId).eq('user_id', user.id).maybeSingle();
   if (loadErr) {
     console.error('[transform/run] session load failed:', JSON.stringify(loadErr));
@@ -875,6 +996,7 @@ async function handleRun(req, res, body) {
       session_id: session.id,
       status: 'transformed',
       cv_data: session.cv_data,
+      analysis: session.analysis ?? null,
     });
   }
 
@@ -962,11 +1084,13 @@ async function handleRun(req, res, body) {
     intake_keys: Object.keys(session.intake || {}),
   }));
 
-  let parsed;
+  let cvParsed;
+  let analysisParsed;
   let usage;
   try {
     const result = await callClaude({ text: sourceForClaude, intake: session.intake });
-    parsed = result.parsed;
+    cvParsed = result.cv;
+    analysisParsed = result.analysis;
     usage = result.usage;
   } catch (e) {
     const code = e?.code || 'claude_failed';
@@ -982,11 +1106,24 @@ async function handleRun(req, res, body) {
     });
   }
 
-  const cv_data = normalizeCvData(parsed, session.intake);
+  const cv_data = normalizeCvData(cvParsed, session.intake);
+
+  // Analysis is best-effort. Bad/missing analysis must never fail the
+  // transform - the rewrite is the primary product, the analysis panel
+  // is value-add. Wrap normalization in try/catch defensively even
+  // though normalizeAnalysis itself returns null for unusable input.
+  let analysis = null;
+  try {
+    analysis = normalizeAnalysis(analysisParsed);
+  } catch (e) {
+    console.warn('[transform/run] analysis normalization failed:', String(e?.message || e).slice(0, 300));
+    analysis = null;
+  }
 
   const updateRow = {
     status: 'transformed',
     cv_data,
+    analysis,
     model: TRANSFORM_MODEL,
     tokens_in: usage.tokens_in,
     tokens_out: usage.tokens_out,
@@ -1007,6 +1144,7 @@ async function handleRun(req, res, body) {
       session_id: sessionId,
       status: 'transformed',
       cv_data,
+      analysis,
       warning: 'Transform succeeded but could not be persisted',
     });
   }
@@ -1015,6 +1153,8 @@ async function handleRun(req, res, body) {
     session_id: sessionId,
     tokens_in: usage.tokens_in,
     tokens_out: usage.tokens_out,
+    analysis_present: analysis !== null,
+    suggestion_count: analysis ? analysis.suggestions.length : 0,
   }));
 
   return res.status(200).json({
@@ -1022,6 +1162,7 @@ async function handleRun(req, res, body) {
     session_id: sessionId,
     status: 'transformed',
     cv_data,
+    analysis,
   });
 }
 
@@ -1291,15 +1432,15 @@ async function handleStatus(req, res, sessionId) {
   if (!ctx) return;
   const { user, db } = ctx;
 
-  // raw_extracted_text is intentionally absent. cv_data is selected
-  // but only returned when status='transformed' (the contract: "if you
-  // see cv_data, it's final").
+  // raw_extracted_text is intentionally absent. cv_data and analysis are
+  // selected but only returned when status='transformed' (the contract:
+  // "if you see cv_data, it's final"; analysis follows the same gate).
   const { data: session, error: loadErr } = await db
     .from('transform_sessions')
     .select(`
       id, user_id, status, user_plan, intake,
       source_kind, source_chars,
-      cv_data, model, tokens_in, tokens_out,
+      cv_data, analysis, model, tokens_in, tokens_out,
       amount_fils, payment_intent_id, payment_url, paid_at,
       error_code, error_message,
       created_at
@@ -1315,6 +1456,7 @@ async function handleStatus(req, res, sessionId) {
   }
 
   const cvData = session.status === 'transformed' ? session.cv_data : null;
+  const analysisData = session.status === 'transformed' ? (session.analysis ?? null) : null;
 
   return res.status(200).json({
     ok: true,
@@ -1328,6 +1470,7 @@ async function handleStatus(req, res, sessionId) {
     payment_url: session.payment_url,
     payment_intent_id: session.payment_intent_id,
     cv_data: cvData,
+    analysis: analysisData,
     model: session.model,
     tokens_in: session.tokens_in,
     tokens_out: session.tokens_out,

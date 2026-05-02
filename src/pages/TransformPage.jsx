@@ -576,13 +576,117 @@ function CvHeaderPreview({ cvData }) {
   );
 }
 
-function PreviewScreen({ cvData, intake, isPaid, onUnlock, onDownload, payLoading }) {
+// SVG score ring for the analysis "ATS Score" card. Distinct namespace
+// from .cvp-tf-ring (loading screen progress ring) - do not merge.
+function CircularScore({ value }) {
+  const v = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (v / 100) * circumference;
+  return (
+    <div className="cvp-tf-score-ring" role="img" aria-label={`ATS score ${v} of 100`}>
+      <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true">
+        <circle cx="38" cy="38" r={radius} className="cvp-tf-score-ring-track" />
+        <circle
+          cx="38" cy="38" r={radius}
+          className="cvp-tf-score-ring-fill"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <span className="cvp-tf-score-ring-num">{v}</span>
+    </div>
+  );
+}
+
+// Renders the structured analysis from /api/transform when available
+// (research doc sections 2, 10). Falls back to deriveAtsSummary in
+// PreviewScreen when analysis is null/empty - that path renders the
+// original hardcoded card pair.
+function AnalysisAside({ analysis, isPaid }) {
+  const [expandedIdx, setExpandedIdx] = useState(null);
+  const overallScore = Math.max(0, Math.min(100, Math.round(Number(analysis?.overallScore) || 0)));
+  const suggestions = Array.isArray(analysis?.suggestions) ? analysis.suggestions : [];
+  const strengths = Array.isArray(analysis?.strengths) ? analysis.strengths : [];
+
+  return (
+    <>
+      <div className="cvp-tf-side-card cvp-tf-side-card--score">
+        <div className="cvp-tf-score-row">
+          <CircularScore value={overallScore} />
+          <div>
+            <div className="cvp-tf-side-title">ATS Score</div>
+            <div className="cvp-tf-side-sub">Original CV before rewrite</div>
+          </div>
+        </div>
+      </div>
+
+      {suggestions.length > 0 && (
+        <div className="cvp-tf-side-card cvp-tf-side-card--list">
+          <div className="cvp-tf-side-h">What we fixed</div>
+          <ul className="cvp-tf-fix-list">
+            {suggestions.map((s, i) => {
+              const open = expandedIdx === i;
+              const impact = ['high', 'medium', 'low'].includes(s.impact) ? s.impact : 'low';
+              return (
+                <li key={i} className={'cvp-tf-fix-item' + (open ? ' is-open' : '')}>
+                  <button
+                    type="button"
+                    className="cvp-tf-fix-head"
+                    onClick={() => setExpandedIdx(open ? null : i)}
+                    aria-expanded={open}
+                  >
+                    <span className="cvp-tf-fix-title">{s.title}</span>
+                    <span className={'cvp-tf-impact cvp-tf-impact--' + impact}>{impact}</span>
+                  </button>
+                  {open && (
+                    <div className="cvp-tf-fix-body">
+                      {s.why && <p className="cvp-tf-fix-why">{s.why}</p>}
+                      {s.exampleRewrite && (
+                        isPaid ? (
+                          <div className="cvp-tf-fix-example">{s.exampleRewrite}</div>
+                        ) : (
+                          <div className="cvp-tf-fix-locked">
+                            <Lock size={12} strokeWidth={2.2} aria-hidden="true" />
+                            <span>Unlock to see the rewrite</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {strengths.length > 0 && (
+        <div className="cvp-tf-side-card cvp-tf-side-card--list">
+          <div className="cvp-tf-side-h">Strengths</div>
+          <ul className="cvp-tf-side-list">
+            {strengths.map((s, i) => (
+              <li key={i}>
+                <Check size={13} strokeWidth={2.4} aria-hidden="true" />
+                <span>{s}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+function PreviewScreen({ cvData, analysis, intake, isPaid, onUnlock, onDownload, payLoading }) {
   const summary = useMemo(() => deriveAtsSummary(cvData), [cvData]);
   const fixes = summary.fixes.length > 0 ? summary.fixes : [
     'Rewrite tuned to your target market',
     'ATS-friendly section ordering',
     'Date and location formatting normalised',
   ];
+  const hasAnalysis = !!(analysis && typeof analysis === 'object'
+    && Array.isArray(analysis.suggestions) && analysis.suggestions.length > 0);
 
   return (
     <motion.div
@@ -603,27 +707,33 @@ function PreviewScreen({ cvData, intake, isPaid, onUnlock, onDownload, payLoadin
 
       <div className="cvp-tf-preview-grid">
         <aside className="cvp-tf-side">
-          <div className="cvp-tf-side-card">
-            <div className="cvp-tf-side-icon">
-              <ShieldCheck size={18} strokeWidth={2} />
-            </div>
-            <div className="cvp-tf-side-title">ATS-Optimised</div>
-            <div className="cvp-tf-side-sub">
-              {summary.sectionsFilled} of {summary.sectionsTotal} CV sections populated
-            </div>
-          </div>
+          {hasAnalysis ? (
+            <AnalysisAside analysis={analysis} isPaid={isPaid} />
+          ) : (
+            <>
+              <div className="cvp-tf-side-card">
+                <div className="cvp-tf-side-icon">
+                  <ShieldCheck size={18} strokeWidth={2} />
+                </div>
+                <div className="cvp-tf-side-title">ATS-Optimised</div>
+                <div className="cvp-tf-side-sub">
+                  {summary.sectionsFilled} of {summary.sectionsTotal} CV sections populated
+                </div>
+              </div>
 
-          <div className="cvp-tf-side-card cvp-tf-side-card--list">
-            <div className="cvp-tf-side-h">What we fixed</div>
-            <ul className="cvp-tf-side-list">
-              {fixes.map((f) => (
-                <li key={f}>
-                  <Check size={13} strokeWidth={2.4} aria-hidden="true" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <div className="cvp-tf-side-card cvp-tf-side-card--list">
+                <div className="cvp-tf-side-h">What we fixed</div>
+                <ul className="cvp-tf-side-list">
+                  {fixes.map((f) => (
+                    <li key={f}>
+                      <Check size={13} strokeWidth={2.4} aria-hidden="true" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
         </aside>
 
         <main className={'cvp-tf-cv-wrap' + (isPaid ? '' : ' is-locked')}>
@@ -947,6 +1057,7 @@ export default function TransformPage({ user }) {
             {screen === 'preview' && (
               <PreviewScreen
                 cvData={sessionData?.cv_data}
+                analysis={sessionData?.analysis}
                 intake={sessionData?.intake}
                 isPaid={isPaid}
                 onUnlock={handleUnlock}
@@ -1460,6 +1571,128 @@ export default function TransformPage({ user }) {
           max-width: 44ch;
           text-align: center;
         }
+
+        /* analysis aside - score ring + suggestion list + strengths */
+        .cvp-tf-side-card--score { padding: 18px 20px; }
+        .cvp-tf-score-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        .cvp-tf-score-ring {
+          position: relative;
+          width: 76px;
+          height: 76px;
+          flex-shrink: 0;
+        }
+        .cvp-tf-score-ring svg { transform: rotate(-90deg); }
+        .cvp-tf-score-ring-track { fill: none; stroke: #2A2A2A; stroke-width: 6; }
+        .cvp-tf-score-ring-fill {
+          fill: none;
+          stroke: #378ADD;
+          stroke-width: 6;
+          stroke-linecap: round;
+          transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cvp-tf-score-ring-num {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Outfit', 'Inter', sans-serif;
+          font-size: 20px;
+          font-weight: 700;
+          color: #F5F5F7;
+        }
+
+        .cvp-tf-fix-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .cvp-tf-fix-item { border-top: 1px solid #2A2A2A; }
+        .cvp-tf-fix-item:first-child { border-top: none; }
+        .cvp-tf-fix-head {
+          width: 100%;
+          background: transparent;
+          border: 0;
+          color: #C0C0C5;
+          text-align: left;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 11px 0;
+          cursor: pointer;
+          font: inherit;
+          transition: color 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cvp-tf-fix-head:hover { color: #F5F5F7; }
+        .cvp-tf-fix-title {
+          font-size: 13.5px;
+          line-height: 1.4;
+          flex: 1;
+        }
+        .cvp-tf-impact {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          padding: 3px 8px;
+          border-radius: 999px;
+          flex-shrink: 0;
+        }
+        .cvp-tf-impact--high {
+          background: rgba(220, 38, 38, 0.14);
+          color: #F87171;
+        }
+        .cvp-tf-impact--medium {
+          background: rgba(217, 119, 6, 0.14);
+          color: #D97706;
+        }
+        .cvp-tf-impact--low {
+          background: rgba(160, 160, 160, 0.12);
+          color: #A0A0A0;
+        }
+        .cvp-tf-fix-body {
+          padding: 0 0 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .cvp-tf-fix-why {
+          font-size: 12.5px;
+          line-height: 1.5;
+          color: #A0A0A0;
+          margin: 0;
+        }
+        .cvp-tf-fix-example {
+          font-size: 12px;
+          line-height: 1.55;
+          color: #E5E5EA;
+          background: #1C1C1C;
+          border: 1px solid #2A2A2A;
+          border-radius: 8px;
+          padding: 10px 12px;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+        .cvp-tf-fix-locked {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          color: #A0A0A0;
+          background: rgba(217, 119, 6, 0.08);
+          border: 1px solid rgba(217, 119, 6, 0.24);
+          border-radius: 8px;
+          padding: 7px 10px;
+          align-self: flex-start;
+        }
+        .cvp-tf-fix-locked svg { color: #D97706; }
 
         /* responsive */
         @media (max-width: 880px) {
