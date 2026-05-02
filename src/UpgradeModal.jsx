@@ -29,12 +29,27 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
   if (!isOpen) return null;
 
   const isAts = feature === "ats";
+  const isBuilderAi = feature === "builder_ai";
+
+  // builder_ai is a virtual feature key for the in-builder AI assist
+  // exhaustion path. It maps to activeHunter for payment - the AED 29/mo
+  // plan that lifts the credit cap. Done here (rather than at every
+  // caller) so the call sites can stay declarative about *why* the modal
+  // is open, not which Ziina link to hit.
+  const paymentFeature = isBuilderAi ? "activeHunter" : feature;
+
   const heading = isAts
     ? "Your free ATS scan is used up"
-    : "You're one step away from more interviews";
+    : isBuilderAi
+      ? "You've used your 2 free AI rewrites"
+      : "You're one step away from more interviews";
+
   const subtext = isAts
     ? "Most jobs in UAE get 200+ applicants. Only ATS-optimised CVs make it to the hiring manager. Don't leave it to chance."
-    : "Job seekers using AI-matched CVs get 3x more callbacks. Unlock Job Match and Cover Letter Generator with CVPassport Pro.";
+    : isBuilderAi
+      ? "Unlock unlimited AI rewrites with Active Hunter. Tailor every section in your CV without thinking about credits."
+      : "Job seekers using AI-matched CVs get 3x more callbacks. Unlock Job Match and Cover Letter Generator with CVPassport Pro.";
+
   const features = isAts
     ? [
         "Unlimited ATS scans",
@@ -42,16 +57,26 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
         "Cover letter generator in seconds",
         "All premium templates, unlimited CVs",
       ]
-    : [
-        "Match your CV to any job description instantly",
-        "Generate a professional cover letter in seconds",
-        "All premium templates, unlimited CVs",
-      ];
+    : isBuilderAi
+      ? [
+          "Unlimited AI summary rewrites",
+          "Unlimited AI bullet rewrites",
+          "Match your CV to any job description",
+          "All premium templates, unlimited CVs",
+        ]
+      : [
+          "Match your CV to any job description instantly",
+          "Generate a professional cover letter in seconds",
+          "All premium templates, unlimited CVs",
+        ];
+
   const ctaLabel = isAts
     ? "Unlock Pro — AED 29/month"
-    : feature === "coverLetter"
-      ? "Upgrade to Pro — AED 10"
-      : "Upgrade to Pro — AED 29/month";
+    : isBuilderAi
+      ? "Unlock unlimited — AED 29/month"
+      : feature === "coverLetter"
+        ? "Upgrade to Pro — AED 10"
+        : "Upgrade to Pro — AED 29/month";
 
   return (
     <div
@@ -113,7 +138,7 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
             <button
               type="button"
               onClick={async () => {
-                const url = await getPaymentLink(feature);
+                const url = await getPaymentLink(paymentFeature);
                 if (url) window.location.href = url;
               }}
               style={{

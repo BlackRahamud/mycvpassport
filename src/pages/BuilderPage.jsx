@@ -16,11 +16,14 @@ import {
   GripVertical,
   Lightbulb,
   List,
+  Loader2,
   Pencil,
+  Sparkles,
   Star,
   Trash2,
   X,
 } from "lucide-react";
+import { supabase } from "../appSupabaseClient";
 import JobMatch from "../JobMatch";
 import ATSChecker from "../ATSChecker";
 import CoverLetterModal from "../CoverLetterModal";
@@ -719,17 +722,105 @@ function skillsArrayForChipRender(skills) {
       : [];
 }
 
-function ProfessionalSummaryField({ summary, onChange, saveSuccessTick = 0 }) {
+function ProfessionalSummaryField({
+  summary,
+  onChange,
+  saveSuccessTick = 0,
+  // Optional in-builder AI assist props (Session B). When cvContext is
+  // null the "Write with AI" button does not render, so call sites that
+  // do not wire AI keep their original behaviour.
+  cvContext = null,
+  creditsRemaining = null,
+  onAIRewriteSuccess = null,
+  onAIExhausted = null,
+}) {
   const [clearAsk, setClearAsk] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiToast, setAiToast] = useState(null); // { kind: 'success'|'error'|'info', text }
 
   useEffect(() => {
     setIsDirty(false);
   }, [saveSuccessTick]);
 
+  // Auto-clear toast. Success fades faster; errors / info linger so the
+  // user can read them.
+  useEffect(() => {
+    if (!aiToast) return undefined;
+    const ms = aiToast.kind === "success" ? 2000 : 3500;
+    const t = setTimeout(() => setAiToast(null), ms);
+    return () => clearTimeout(t);
+  }, [aiToast]);
+
+  const aiEnabled = cvContext != null;
+
+  async function runAIRewrite() {
+    if (aiLoading) return;
+    setAiLoading(true);
+    setAiToast(null);
+    try {
+      const { data: { session } = {} } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        setAiToast({ kind: "error", text: "Please sign in again." });
+        return;
+      }
+      const res = await fetch("/api/ai?action=tailor", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          section: "summary",
+          input: {
+            summary: String(summary || ""),
+            target_role: String(cvContext?.title || ""),
+            target_market: String(cvContext?.targetMarket || ""),
+            name: String(cvContext?.name || ""),
+          },
+        }),
+      });
+      let data = {};
+      try { data = await res.json(); } catch { /* leave as {} */ }
+
+      if (res.status === 402) {
+        // Free-tier exhausted. Surface the upgrade modal via the parent
+        // and reflect 0 credits locally so the button label updates
+        // before the modal opens.
+        if (onAIRewriteSuccess) onAIRewriteSuccess(0);
+        if (onAIExhausted) onAIExhausted();
+        return;
+      }
+      if (!res.ok || !data.ok) {
+        setAiToast({ kind: "error", text: data?.error || "AI is busy, please try again." });
+        return;
+      }
+      onChange(String(data.result || ""));
+      setIsDirty(true);
+      if (onAIRewriteSuccess) onAIRewriteSuccess(data.credits_remaining);
+      setAiToast({ kind: "success", text: "Summary rewritten" });
+    } catch (e) {
+      setAiToast({ kind: "error", text: "AI is busy, please try again." });
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  const aiButtonLabel = aiLoading
+    ? "Writing..."
+    : `Write with AI${creditsRemaining !== null ? ` (${creditsRemaining} left)` : ""}`;
+
   return (
     <div style={{ position: "relative" }}>
       <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes cvp-ai-spin { to { transform: rotate(360deg); } }
+        .cvp-ai-write-btn:hover:not(:disabled) {
+          background-color: rgba(217,119,6,0.22) !important;
+          border-color: rgba(217,119,6,0.65) !important;
+        }
+      ` }} />
       <div style={{ position: "relative", width: "100%" }}>
         <textarea
           className="cvp-builder-ph"
@@ -763,9 +854,68 @@ function ProfessionalSummaryField({ summary, onChange, saveSuccessTick = 0 }) {
           {String(summary || "").length}
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 8 }}>
-        <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
-        <span style={{ fontSize: 11, color: "#555" }}>Keep it to 2–3 sentences — recruiters scan this first</span>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginTop: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+          <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
+          <span style={{ fontSize: 11, color: "#555" }}>Keep it to 2–3 sentences — recruiters scan this first</span>
+        </div>
+        {aiEnabled && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            {aiToast && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 500,
+                  color:
+                    aiToast.kind === "success" ? "#1D9E75"
+                      : aiToast.kind === "error" ? "#DC2626"
+                      : "#A0A0A0",
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                {aiToast.kind === "success" ? "✓ " : ""}{aiToast.text}
+              </span>
+            )}
+            <button
+              type="button"
+              className="cvp-ai-write-btn"
+              onClick={runAIRewrite}
+              disabled={aiLoading}
+              aria-label="Rewrite summary with AI"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "5px 11px",
+                border: "1px solid rgba(217,119,6,0.45)",
+                borderRadius: 999,
+                background: "rgba(217,119,6,0.12)",
+                color: "#D97706",
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: aiLoading ? "default" : "pointer",
+                opacity: aiLoading ? 0.7 : 1,
+                transition:
+                  "background-color 0.16s cubic-bezier(0.4,0,0.2,1), border-color 0.16s cubic-bezier(0.4,0,0.2,1)",
+              }}
+            >
+              {aiLoading
+                ? <Loader2 size={12} strokeWidth={2.4} style={{ animation: "cvp-ai-spin 0.8s linear infinite" }} />
+                : <Sparkles size={12} strokeWidth={2.4} />}
+              <span>{aiButtonLabel}</span>
+            </button>
+          </div>
+        )}
       </div>
       {clearAsk ? (
         <div
@@ -2315,6 +2465,25 @@ function ResumeBuilder({
   }, [mobilePreviewContainerWidth]);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  // Per-call-site reason for the upgrade modal. null falls through to
+  // the existing default copy. Used by the Session B AI assist
+  // exhaustion path ("builder_ai") and reserved for Session C bullets.
+  const [upgradeFeature, setUpgradeFeature] = useState(null);
+
+  // Free-tier AI rewrite credits remaining. null means "unlimited"
+  // (Pro / Express / unknown profile state). Mirrors the response
+  // contract from /api/ai?action=tailor: paid tiers receive
+  // credits_remaining=null; free tier receives 0..2.
+  const deriveAiCreditsRemaining = useCallback((p) => {
+    if (!p) return null;
+    if (p.is_pro) return null;
+    const used = Number(p.ai_credits_used) || 0;
+    return Math.max(0, 2 - used);
+  }, []);
+  const [aiCreditsRemaining, setAiCreditsRemaining] = useState(() => deriveAiCreditsRemaining(profile));
+  useEffect(() => {
+    setAiCreditsRemaining(deriveAiCreditsRemaining(profile));
+  }, [profile, deriveAiCreditsRemaining]);
   const [templatePickPending, setTemplatePickPending] = useState(null);
   const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
@@ -3685,7 +3854,25 @@ function ResumeBuilder({
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} saveSuccessTick={saveSuccessTick} />
+                  <ProfessionalSummaryField
+                    summary={resume.summary}
+                    onChange={(v) => set("summary", v)}
+                    saveSuccessTick={saveSuccessTick}
+                    cvContext={{
+                      title: resume.title,
+                      targetMarket: resume.targetMarket,
+                      name: resume.name,
+                    }}
+                    creditsRemaining={aiCreditsRemaining}
+                    onAIRewriteSuccess={(remaining) => {
+                      setAiCreditsRemaining(remaining);
+                      if (refreshProfile) refreshProfile();
+                    }}
+                    onAIExhausted={() => {
+                      setUpgradeFeature("builder_ai");
+                      setUpgradeOpen(true);
+                    }}
+                  />
                 </div>
               </AccordionSection>
 
@@ -4220,7 +4407,25 @@ function ResumeBuilder({
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-                  <ProfessionalSummaryField summary={resume.summary} onChange={(v) => set("summary", v)} saveSuccessTick={saveSuccessTick} />
+                  <ProfessionalSummaryField
+                    summary={resume.summary}
+                    onChange={(v) => set("summary", v)}
+                    saveSuccessTick={saveSuccessTick}
+                    cvContext={{
+                      title: resume.title,
+                      targetMarket: resume.targetMarket,
+                      name: resume.name,
+                    }}
+                    creditsRemaining={aiCreditsRemaining}
+                    onAIRewriteSuccess={(remaining) => {
+                      setAiCreditsRemaining(remaining);
+                      if (refreshProfile) refreshProfile();
+                    }}
+                    onAIExhausted={() => {
+                      setUpgradeFeature("builder_ai");
+                      setUpgradeOpen(true);
+                    }}
+                  />
                 </div>
               </AccordionSection>
 
@@ -4865,7 +5070,11 @@ function ResumeBuilder({
         onClose={() => setCoverLetterOpen(false)}
         resume={resume}
       />
-      <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+      <UpgradeModal
+        isOpen={upgradeOpen}
+        onClose={() => { setUpgradeOpen(false); setUpgradeFeature(null); }}
+        feature={upgradeFeature}
+      />
 
       {menuDrawerOpen ? (
         <div className="cvp-builder-drawer-root" style={{ position: "fixed", inset: 0, zIndex: 360 }}>
