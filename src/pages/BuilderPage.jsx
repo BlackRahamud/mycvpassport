@@ -30,6 +30,7 @@ import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import AIRewriteModal from "../components/AIRewriteModal";
 import { hasFeatureAccess } from "../utils/paywall";
+import { deriveAiButtonLabel, isAiExhausted } from "../lib/aiButtonLabel";
 import SynthesisOverlay from "../components/SynthesisOverlay";
 import CompletionScreen from "../components/CompletionScreen";
 import { FAB } from "../components/FAB";
@@ -808,9 +809,23 @@ function ProfessionalSummaryField({
     }
   }
 
-  const aiButtonLabel = aiLoading
-    ? "Writing..."
-    : `Write with AI${creditsRemaining !== null ? ` (${creditsRemaining} left)` : ""}`;
+  // Free-tier 0-credit state short-circuits to the upgrade modal instead
+  // of POSTing to /api/ai (server would 402; this avoids the round-trip
+  // and removes the spinner-then-paywall lag).
+  const aiExhausted = isAiExhausted(creditsRemaining);
+  const aiButtonLabel = deriveAiButtonLabel({
+    aiLoading,
+    creditsRemaining,
+    idleLabel: "Write with AI",
+    loadingLabel: "Writing...",
+  });
+  const handleAiButtonClick = () => {
+    if (aiExhausted) {
+      if (onAIExhausted) onAIExhausted();
+      return;
+    }
+    runAIRewrite();
+  };
 
   return (
     <div style={{ position: "relative" }}>
@@ -890,9 +905,9 @@ function ProfessionalSummaryField({
             <button
               type="button"
               className="cvp-ai-write-btn"
-              onClick={runAIRewrite}
+              onClick={handleAiButtonClick}
               disabled={aiLoading}
-              aria-label="Rewrite summary with AI"
+              aria-label={aiExhausted ? "Upgrade for unlimited AI" : "Rewrite summary with AI"}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -5544,8 +5559,15 @@ function ResumeBuilder({
                     {aiRewriteBullets.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => setAiRewriteOpen(true)}
-                        aria-label="Improve a bullet with AI"
+                        onClick={() => {
+                          if (isAiExhausted(aiCreditsRemaining)) {
+                            setUpgradeFeature("builder_ai");
+                            setUpgradeOpen(true);
+                            return;
+                          }
+                          setAiRewriteOpen(true);
+                        }}
+                        aria-label={isAiExhausted(aiCreditsRemaining) ? "Upgrade for unlimited AI" : "Improve a bullet with AI"}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
@@ -5573,8 +5595,11 @@ function ResumeBuilder({
                       >
                         <Sparkles size={12} strokeWidth={2.4} aria-hidden />
                         <span>
-                          Improve with AI
-                          {aiCreditsRemaining !== null ? ` (${aiCreditsRemaining} left)` : ""}
+                          {deriveAiButtonLabel({
+                            aiLoading: false,
+                            creditsRemaining: aiCreditsRemaining,
+                            idleLabel: "Improve with AI",
+                          })}
                         </span>
                       </button>
                     )}

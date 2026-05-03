@@ -84,6 +84,38 @@ export default function HeroSection({ user }) {
             text-align: center;
           }
         }
+        .cvp-hero-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 12px;
+          margin: 0 0 18px;
+          border: 1px solid rgba(217,119,6,0.45);
+          background: rgba(217,119,6,0.12);
+          border-radius: 999px;
+          color: #D97706;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          width: max-content;
+          font-family: inherit;
+        }
+        .cvp-hero-pill-tag {
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          font-size: 11px;
+        }
+        .cvp-hero-pill-dot {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: rgba(217,119,6,0.55);
+          flex-shrink: 0;
+        }
+        @media (max-width: 900px) {
+          .cvp-hero-pill { margin-left: auto; margin-right: auto; }
+        }
         .cvp-hero-h1 {
           font-size: 64px;
           font-weight: 510;
@@ -330,6 +362,12 @@ export default function HeroSection({ user }) {
         initial="hidden"
         animate="show"
       >
+        <motion.div className="cvp-hero-pill" variants={variants} custom={0} aria-label="New: AI-powered summary rewrites">
+          <span aria-hidden="true">✨</span>
+          <span className="cvp-hero-pill-tag">New</span>
+          <span className="cvp-hero-pill-dot" aria-hidden="true" />
+          <span>AI-powered summary rewrites</span>
+        </motion.div>
         <motion.h1 id="cvp-hero-h1" className="cvp-hero-h1" variants={variants} custom={0}>
           Get More <span className="hero-headline-shimmer">Interviews.</span>
         </motion.h1>
