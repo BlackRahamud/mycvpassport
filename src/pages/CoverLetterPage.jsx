@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import mammoth from "mammoth";
 import { generateCoverLetterFromTemplate } from "../coverLetterDataBank.generated";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
@@ -523,6 +522,7 @@ function CoverLetterPage({ user, profile, onBack }) {
     }
     try {
       if (isDocx) {
+        const mammoth = (await import(/* webpackChunkName: "mammoth" */ "mammoth")).default;
         const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
         const base = file.name.replace(/\.docx$/i, "").replace(/_/g, " ");
         const r = resumeFromPdfText(value, base);

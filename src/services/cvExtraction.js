@@ -20,8 +20,6 @@
  * follow-up.
  */
 
-import mammoth from "mammoth";
-
 export class CvExtractionError extends Error {
   constructor(code, message, hint) {
     super(message);
@@ -80,6 +78,7 @@ async function extractPdf(buffer) {
 
 async function extractDocx(buffer) {
   try {
+    const mammoth = (await import(/* webpackChunkName: "mammoth" */ "mammoth")).default;
     const { value } = await mammoth.extractRawText({ arrayBuffer: buffer });
     const text = (value ?? "").trim();
     if (text.length < MIN_TEXT_LENGTH) {

@@ -1,46 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import ReactGA from "react-ga4";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
 import NavigateToAuth from "./lib/auth/navigateToAuth";
-import PricingPage from "./pages/PricingPage";
 import LandingPage from "./LandingPage";
-import AdminPanelV2 from "./AdminPanelV2";
-import AuthPage from "./pages/AuthPage";
-import AuthCallback from "./pages/AuthCallback";
-import CoverLetterPage from "./pages/CoverLetterPage";
-import BuilderPage from "./pages/BuilderPage";
-import DashboardPage from "./pages/DashboardPage";
-import ATSPage from "./pages/ATSPage";
-import WalkInPage from "./pages/WalkInPage";
-import AccountPage from "./pages/AccountPage";
-import TemplatesPage from "./pages/TemplatesPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import RefundPage from "./pages/RefundPage";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import ResetPassword from "./pages/ResetPassword";
-import HRPortal from "./pages/HRPortal";
-import JobPage from "./pages/JobPage";
-import JobsListPage from "./pages/JobsListPage";
-import ApplicationsPage from "./pages/ApplicationsPage";
-import LinkedInOptimizer from "./pages/LinkedInOptimizer";
-import SalarySwitcher from "./pages/SalarySwitcher";
-import ScoutDashboard from "./pages/ScoutDashboard";
-import TransformPage from "./pages/TransformPage";
-import TransformSuccessPage from "./pages/TransformSuccessPage";
-import ToolsPage from "./pages/ToolsPage";
-import BlogPage from "./pages/BlogPage";
-import BlogPostPage from "./pages/BlogPostPage";
-import AboutPage from "./pages/AboutPage";
-import IndiaToUaePage from "./pages/IndiaToUaePage";
-import AttestationPage from "./pages/AttestationPage";
-import AdminCostPage from "./pages/AdminCostPage";
-import GulfCareerPage from "./pages/GulfCareerPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
+
+// Route-level code splitting. Every page below the homepage is loaded
+// on-demand so visitors who only see the landing page never download
+// the builder, dashboard, admin, scout, transform, blog etc.
+const PricingPage          = lazy(() => import(/* webpackChunkName: "pricing" */     "./pages/PricingPage"));
+const AdminPanelV2         = lazy(() => import(/* webpackChunkName: "admin" */       "./AdminPanelV2"));
+const AuthPage             = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/AuthPage"));
+const AuthCallback         = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/AuthCallback"));
+const CoverLetterPage      = lazy(() => import(/* webpackChunkName: "cover-letter" */ "./pages/CoverLetterPage"));
+const BuilderPage          = lazy(() => import(/* webpackChunkName: "builder" */     "./pages/BuilderPage"));
+const DashboardPage        = lazy(() => import(/* webpackChunkName: "dashboard" */   "./pages/DashboardPage"));
+const ATSPage              = lazy(() => import(/* webpackChunkName: "ats" */         "./pages/ATSPage"));
+const WalkInPage           = lazy(() => import(/* webpackChunkName: "walk-in" */     "./pages/WalkInPage"));
+const AccountPage          = lazy(() => import(/* webpackChunkName: "account" */     "./pages/AccountPage"));
+const TemplatesPage        = lazy(() => import(/* webpackChunkName: "templates" */   "./pages/TemplatesPage"));
+const TermsPage            = lazy(() => import(/* webpackChunkName: "legal" */       "./pages/TermsPage"));
+const PrivacyPage          = lazy(() => import(/* webpackChunkName: "legal" */       "./pages/PrivacyPage"));
+const RefundPage           = lazy(() => import(/* webpackChunkName: "legal" */       "./pages/RefundPage"));
+const PaymentSuccess       = lazy(() => import(/* webpackChunkName: "payment" */     "./pages/PaymentSuccess"));
+const ResetPassword        = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/ResetPassword"));
+const HRPortal             = lazy(() => import(/* webpackChunkName: "hr" */          "./pages/HRPortal"));
+const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
+const JobsListPage         = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobsListPage"));
+const ApplicationsPage     = lazy(() => import(/* webpackChunkName: "applications" */ "./pages/ApplicationsPage"));
+const LinkedInOptimizer    = lazy(() => import(/* webpackChunkName: "linkedin" */    "./pages/LinkedInOptimizer"));
+const SalarySwitcher       = lazy(() => import(/* webpackChunkName: "salary" */      "./pages/SalarySwitcher"));
+const ScoutDashboard       = lazy(() => import(/* webpackChunkName: "scout" */       "./pages/ScoutDashboard"));
+const TransformPage        = lazy(() => import(/* webpackChunkName: "transform" */   "./pages/TransformPage"));
+const TransformSuccessPage = lazy(() => import(/* webpackChunkName: "transform" */   "./pages/TransformSuccessPage"));
+const ToolsPage            = lazy(() => import(/* webpackChunkName: "tools" */       "./pages/ToolsPage"));
+const BlogPage             = lazy(() => import(/* webpackChunkName: "blog" */        "./pages/BlogPage"));
+const BlogPostPage         = lazy(() => import(/* webpackChunkName: "blog" */        "./pages/BlogPostPage"));
+const AboutPage            = lazy(() => import(/* webpackChunkName: "about" */       "./pages/AboutPage"));
+const IndiaToUaePage       = lazy(() => import(/* webpackChunkName: "india-to-uae" */ "./pages/IndiaToUaePage"));
+const AttestationPage      = lazy(() => import(/* webpackChunkName: "attestation" */ "./pages/AttestationPage"));
+const AdminCostPage        = lazy(() => import(/* webpackChunkName: "admin" */       "./pages/AdminCostPage"));
+const GulfCareerPage       = lazy(() => import(/* webpackChunkName: "gulf-career" */ "./pages/GulfCareerPage"));
 
 const S = {
   app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
@@ -130,6 +134,7 @@ export default function App() {
   return (
     <>
       <PostAuthIntermission active={postAuthIntermission} />
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
@@ -280,7 +285,26 @@ export default function App() {
         }
       />
     </Routes>
+    </Suspense>
     </>
+  );
+}
+
+/**
+ * Suspense fallback for route-level code splitting. Matches the dark
+ * background so chunk loads don't flash white. Intentionally minimal —
+ * most chunks are <100KB gzipped and load in well under 200ms on 4G.
+ */
+function RouteFallback() {
+  return (
+    <div
+      aria-hidden
+      style={{
+        minHeight: "100vh",
+        width: "100%",
+        background: C.bg,
+      }}
+    />
   );
 }
 
