@@ -2402,7 +2402,7 @@ function ResumeBuilder({
     if (draft?.resumeId) return draft.resumeId;
     return initialResumeId || null;
   });
-  const [resume, setResume] = useState(() => {
+  const [resume, setResumeRaw] = useState(() => {
     const draft = initialDraftRef.current;
     if (draft?.cv) {
       const base = normalizeResumeForBuilder(draft.cv);
@@ -2569,7 +2569,26 @@ function ResumeBuilder({
   const [savedAtMs, setSavedAtMs] = useState(null);
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
   const lastSavedSnapshotRef = useRef(null);
-  const [showUnsavedBanner, setShowUnsavedBanner] = useState(false);
+  // Replaces the old JSON-diff-vs-snapshot dirty detection. Flips true ONLY
+  // on user-driven mutations (any call site using `setResume`). Data-load
+  // paths must use `setResumeAsLoad` so initial CV injection (e.g. from
+  // /transform/success → "Edit in Builder") doesn't register as an edit.
+  const [userHasEdited, setUserHasEdited] = useState(false);
+  // User-driven setter: every call flips the dirty flag. Subcomponents
+  // that mutate via the `setResume` prop (CertificationsBuilderSection,
+  // TechnicalSkillsEditor, etc.) get this wrapper transparently.
+  const setResume = useCallback((updaterOrValue) => {
+    setResumeRaw(updaterOrValue);
+    setUserHasEdited(true);
+  }, []);
+  // Data-injection setter: skips the dirty flag and re-baselines the
+  // Discard target so a future Discard reverts to the just-loaded state.
+  const setResumeAsLoad = useCallback((value) => {
+    setResumeRaw(value);
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      lastSavedSnapshotRef.current = snapshotResumeForDiscard(value);
+    }
+  }, []);
   const [cvpBannerDismissedStored, setCvpBannerDismissedStored] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem("cvp_banner_dismissed") === "true"
   );
@@ -2651,14 +2670,18 @@ function ResumeBuilder({
     });
   }, []);
 
+  // One-time snapshot capture for the Discard target. Runs on mount only
+  // (empty deps) so a post-mount data injection via setResumeAsLoad —
+  // which re-baselines the snapshot itself — is not overwritten.
+  // `isNew` flow keeps the snapshot null; Discard is hidden in that case
+  // because userHasEdited only flips on user input.
   useEffect(() => {
     if (isNew) return;
     if (lastSavedSnapshotRef.current == null) {
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
-      return;
     }
-    setShowUnsavedBanner(JSON.stringify(resume) !== JSON.stringify(lastSavedSnapshotRef.current));
-  }, [resume, isNew]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debounced mirror of the working CV to localStorage. Survives tab-focus
   // remounts, token-refresh cascades, and accidental reloads.
@@ -2829,7 +2852,10 @@ function ResumeBuilder({
     // overwrite further user edits.
     if (st.cvpInitialResume && typeof st.cvpInitialResume === "object") {
       const incoming = normalizeResumeForBuilder(st.cvpInitialResume);
-      setResume({
+      // Data injection — must NOT mark the resume as user-edited.
+      // setResumeAsLoad also re-baselines the Discard snapshot so the
+      // user can revert to the loaded CV (not the empty pre-load state).
+      setResumeAsLoad({
         ...incoming,
         technicalSkills: normalizeTechnicalSkillsState(incoming.technicalSkills),
       });
@@ -2838,7 +2864,7 @@ function ResumeBuilder({
     }
     if (!dirty) return;
     navigate(location.pathname, { replace: true, state: Object.keys(next).length ? next : undefined });
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, navigate, setResumeAsLoad]);
 
   useEffect(() => {
     if (isMobile) return undefined;
@@ -3053,7 +3079,7 @@ function ResumeBuilder({
 
   const reorderBuilderSection = useCallback((sectionId, direction) => {
     setResume((r) => applyBuilderSectionReorder(r, sectionId, direction));
-  }, []);
+  }, [setResume]);
 
   const score = builderAtsScore(resume);
 
@@ -3087,7 +3113,7 @@ function ResumeBuilder({
       setResumeId(saved.id);
       setSaveStatus("saved");
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(resume);
-      setShowUnsavedBanner(false);
+      setUserHasEdited(false);
       setSavedAtMs(Date.now());
       setSaveSuccessTick((t) => t + 1);
       clearCvDraft(draftStorageKey);
@@ -5860,7 +5886,7 @@ function ResumeBuilder({
         </div>
       )}
 
-      {showUnsavedBanner && !cvpBannerDismissedStored ? (
+      {userHasEdited && !cvpBannerDismissedStored ? (
         <div
           className="cvp-builder-unsaved-banner"
           style={{
@@ -5903,13 +5929,16 @@ function ResumeBuilder({
               onClick={() => {
                 const snap = lastSavedSnapshotRef.current;
                 if (snap) {
-                  setResume({
+                  // Discard is a revert, not a user edit — use the raw
+                  // setter so the dirty flag isn't flipped by the revert
+                  // itself. We then explicitly clear the flag below.
+                  setResumeRaw({
                     ...snap,
                     technicalSkills: normalizeTechnicalSkillsState(snap.technicalSkills),
                   });
                 }
                 clearCvDraft(draftStorageKey);
-                setShowUnsavedBanner(false);
+                setUserHasEdited(false);
               }}
               style={{
                 background: "#3B82F6",
