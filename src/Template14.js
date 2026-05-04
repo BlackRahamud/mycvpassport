@@ -24,6 +24,9 @@ export function Template14({ cv, mobileMode = false }) {
     ? (Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean))
     : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
+  const languagesItems = cv.languages
+    ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean)
+    : [];
 
   return (
     <div
@@ -264,6 +267,28 @@ export function Template14({ cv, mobileMode = false }) {
                     );
                   })()}
                 </div>
+              </section>
+            )}
+
+            {languagesItems.length > 0 && (
+              <section
+                data-section="languages"
+                style={{ marginTop: skillsItems.length > 0 || hasTechnicalSkills ? "24px" : 0 }}
+              >
+                <h2
+                  style={{
+                    fontSize: "12pt",
+                    color: ACCENT_BLUE,
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    marginBottom: "15px",
+                  }}
+                >
+                  Languages
+                </h2>
+                <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
+                  {languagesItems.join(", ")}
+                </p>
               </section>
             )}
           </div>

@@ -27,6 +27,10 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
     .map((s) => s.trim())
     .filter(Boolean);
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
+  const languageList = (cv.languages || "")
+    .split(",")
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   const SectionBand = ({ children }) => (
     <div
@@ -251,6 +255,24 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
                   );
                 })()
               )}
+            </div>
+          </section>
+        )}
+
+        {/* Languages */}
+        {languageList.length > 0 && (
+          <section data-section="languages">
+            <SectionBand>Languages</SectionBand>
+            <div
+              style={{
+                fontSize: pt(9.5),
+                color: TEXT_PRIMARY,
+                textAlign: "center",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {languageList.join(" • ")}
             </div>
           </section>
         )}

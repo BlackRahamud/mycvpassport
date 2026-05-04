@@ -49,6 +49,10 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
     .map((s) => s.trim())
     .filter(Boolean);
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
+  const languageList = (cv.languages || "")
+    .split(",")
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   return (
     <div
@@ -250,6 +254,23 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
                   <div style={{ fontSize: pt(9.5), color: TEXT_SECONDARY }}>{edu.degree}</div>
                 </div>
               ))}
+          </section>
+        )}
+
+        {/* Languages */}
+        {languageList.length > 0 && (
+          <section data-section="languages">
+            <SectionTitle>Languages</SectionTitle>
+            <div
+              style={{
+                fontSize: pt(10),
+                color: TEXT_PRIMARY,
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {languageList.join(" • ")}
+            </div>
           </section>
         )}
       </div>

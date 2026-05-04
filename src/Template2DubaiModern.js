@@ -61,6 +61,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
   );
 
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   return (
@@ -227,6 +228,23 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
             ))
         )}
       </section>
+
+      {/* Languages */}
+      {languages.length > 0 && (
+        <section data-section="languages">
+          <SectionTitle>Languages</SectionTitle>
+          <div
+            style={{
+              fontSize: pt(10),
+              lineHeight: 1.8,
+              color: TEXT_BODY,
+              fontWeight: "bold",
+            }}
+          >
+            {languages.join(" • ")}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

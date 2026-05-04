@@ -29,6 +29,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
 
   const SectionTitle = ({ children }) => (
@@ -231,6 +232,16 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
               </div>
             ))
           )}
+        </section>
+      )}
+
+      {/* Languages */}
+      {languages.length > 0 && (
+        <section data-section="languages" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Languages</SectionTitle>
+          <p style={{ fontSize: pt(10), margin: 0, color: "#333" }}>
+            {languages.join(" • ")}
+          </p>
         </section>
       )}
     </div>

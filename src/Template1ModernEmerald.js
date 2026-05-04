@@ -30,6 +30,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
 
   // Data parsing
   const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const languageList = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
 
   const SectionTitle = ({ children, first }) => (
     <div
@@ -230,6 +231,16 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
               </EntryWrap>
             ))
           )}
+        </section>
+      )}
+
+      {/* Languages */}
+      {languageList.length > 0 && (
+        <section data-section="languages">
+          <SectionTitle>Languages</SectionTitle>
+          <div style={{ fontSize: pt(10.5), lineHeight: 1.5 }}>
+            {languageList.join(", ")}
+          </div>
         </section>
       )}
     </div>

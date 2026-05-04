@@ -35,6 +35,9 @@ export function Template12Split({ cv, mobileMode = false }) {
     ? (Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean))
     : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
+  const languageItems = cv.languages
+    ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean)
+    : [];
 
   // KEEP position:relative on containerStyle — outermost template root, conservative bias against future absolute descendants re-anchoring (Phase 3 audit)
   const containerStyle = {
@@ -191,6 +194,26 @@ export function Template12Split({ cv, mobileMode = false }) {
                   );
                 })()}
               </div>
+            </div>
+          )}
+
+          {languageItems.length > 0 && (
+            <div data-section="languages" style={{ marginTop: "40px" }}>
+              <h3
+                style={{
+                  fontSize: "11pt",
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  borderBottom: "1.5px solid #000000",
+                  paddingBottom: "5px",
+                  marginBottom: "15px",
+                }}
+              >
+                Languages
+              </h3>
+              <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
+                {languageItems.join(", ")}
+              </p>
             </div>
           )}
         </aside>
