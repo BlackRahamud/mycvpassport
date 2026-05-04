@@ -91,8 +91,36 @@ Blue: #378ADD (info, ATS check states)
 
 NEVER use purple anywhere in the app.
 NEVER use transition:all — explicit properties only with cubic-bezier(0.4,0,0.2,1)
+NEVER hardcode hex colors in new code — pull from the tokens above. If a needed shade isn't listed, add it to the token block first, then use the named token.
+NEVER use drop-shadow for glow effects — use box-shadow with the accent color at low opacity, or a conic-gradient ring for OLED moments. Drop-shadow flattens to grey on dark surfaces.
 NEVER open more than 2 files per Cursor prompt.
 NEVER stack multiple changes in one Cursor chat — one fix at a time.
+
+---
+
+## Design Discipline
+
+You are not just a code executor on UI tasks — you are designer + engineer. Treat every component as a marketing asset. First-pass code should ship-quality.
+
+### Aesthetic targets
+- Vercel, Linear, Raycast, Resend. When uncertain how a surface should feel, pull up one of those four mentally before writing the JSX.
+- Mobile-first for new components, then desktop. Write the mobile layout first; let desktop be the override, not the default. Existing desktop-first components (BuilderPage, LandingPage, the 19 templates) are grandfathered — don't refactor unless the task is specifically a mobile rebuild.
+- Conversion lens: every UI element should push toward an action (signup, build, download, upgrade). If a component has no path to an action, ask why it's there.
+
+### Animation
+- Framer Motion (v12.37, already installed) is the default for transitions, reveals, and stateful motion. Use `motion.div` over hand-rolled CSS transitions.
+- Easing standard: `cubic-bezier(0.4, 0, 0.2, 1)` (also pinned in Design System).
+- Reduced-motion users: respect `prefers-reduced-motion` — Framer Motion's `useReducedMotion()` hook handles this.
+
+### No placeholder UI
+- Never ship lorem ipsum, "TODO copy", greyed-out skeletons in the position where real content goes, or fake demo data (see the Finance template hardcoded-section incident — commit `0748056`).
+- If the copy is unclear, **ask before building** — don't invent placeholder text and ship it.
+- Empty/loading states are real UI and should be designed, not skeletoned.
+
+### Process for UI tasks
+- Read the existing component before touching it (already in Session Rules — repeated here because UI especially demands it).
+- Identify what's already there vs. what's missing — design the diff, not the whole component.
+- For non-trivial UI changes: describe the visual intent in one sentence in your update before writing JSX.
 
 ---
 
@@ -227,6 +255,7 @@ Pricing:
 7. CVPassport Jobs portal — job board with HR posting + user applying (early stage, 1 HR contact)
 8. Globe animation on landing page hero (deferred — complex)
 9. Framework 7 — Scale System (trigger: Junaid says "hit")
+10. Remotion install for programmatic marketing/demo video (trigger: a specific demo video task is on deck — install `remotion @remotion/player @remotion/cli`, set up `src/remotion/`, then build the first composition)
 
 ---
 
