@@ -99,13 +99,22 @@ export default function AtsGapsActionCard({
       animate={{ opacity: 1, y: 0 }}
       transition={reduce ? { duration: 0 } : { duration: 0.4, delay: 1.2, ease: EASE }}
       style={{
-        background: "#141414",
-        border: "1px solid #1F1F1F",
-        borderRadius: 18,
-        padding: "20px 18px",
+        position: "relative",
+        background: "linear-gradient(180deg, #181818 0%, #121212 100%)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 20,
+        padding: "22px 20px",
         marginTop: 24,
         marginBottom: 28,
-        boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        // Layered depth: faint amber edge ring + top-edge highlight + grounded
+        // drop + wide outward amber spill so the card lifts off the page
+        // without a heavy frame.
+        boxShadow: [
+          "0 0 0 1px rgba(217,119,6,0.06)",
+          "inset 0 1px 0 rgba(255,255,255,0.04)",
+          "0 24px 48px -12px rgba(0,0,0,0.6)",
+          "0 0 60px -20px rgba(217,119,6,0.18)",
+        ].join(", "),
         fontFamily: "'DM Sans', sans-serif",
       }}
     >
@@ -131,7 +140,7 @@ export default function AtsGapsActionCard({
           marginBottom: 22,
         }}
       >
-        {/* now */}
+        {/* now — dim desaturated red ring; reads as a warning, not a placeholder */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
           <div
             style={{
@@ -141,8 +150,9 @@ export default function AtsGapsActionCard({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "rgba(239,68,68,0.06)",
+              border: "1.5px solid rgba(239,68,68,0.32)",
+              boxShadow: "inset 0 0 12px rgba(239,68,68,0.06)",
             }}
           >
             <span
@@ -150,8 +160,9 @@ export default function AtsGapsActionCard({
                 fontSize: 22,
                 fontWeight: 700,
                 lineHeight: 1,
-                color: "#A0A0A0",
+                color: "#F87171",
                 letterSpacing: "-0.5px",
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {score}
@@ -160,10 +171,11 @@ export default function AtsGapsActionCard({
           <span
             style={{
               fontSize: 9,
-              color: "#666",
+              color: "rgba(248,113,113,0.65)",
               marginTop: 6,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
+              fontWeight: 600,
             }}
           >
             Now
@@ -191,7 +203,8 @@ export default function AtsGapsActionCard({
               height: 4,
               borderRadius: 999,
               background: "linear-gradient(90deg, #EF4444 0%, #F59E0B 45%, #22C55E 100%)",
-              boxShadow: "0 0 10px rgba(74,222,128,0.25)",
+              boxShadow:
+                "0 0 4px rgba(74,222,128,0.65), 0 0 14px rgba(74,222,128,0.35)",
             }}
           />
         </div>
@@ -223,7 +236,9 @@ export default function AtsGapsActionCard({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "rgba(74,222,128,0.06)",
+                background:
+                  "radial-gradient(circle at 50% 30%, rgba(74,222,128,0.18) 0%, rgba(74,222,128,0.06) 70%)",
+                boxShadow: "inset 0 0 18px rgba(74,222,128,0.08)",
               }}
             >
               <span
@@ -234,6 +249,7 @@ export default function AtsGapsActionCard({
                   color: "#4ADE80",
                   letterSpacing: "-0.5px",
                   fontVariantNumeric: "tabular-nums",
+                  textShadow: "0 0 14px rgba(74,222,128,0.55)",
                 }}
               >
                 {displayProjected}
@@ -244,10 +260,11 @@ export default function AtsGapsActionCard({
             style={{
               fontSize: 9,
               color: "#4ADE80",
-              opacity: 0.75,
+              opacity: 0.85,
               marginTop: 6,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
+              fontWeight: 600,
             }}
           >
             Projected
@@ -255,8 +272,8 @@ export default function AtsGapsActionCard({
         </div>
       </div>
 
-      {/* Three named gaps — staggered reveal */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
+      {/* Three named gaps — each row reads as a finding, not a list item */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
         {gaps.map((g, i) => (
           <motion.div
             key={g}
@@ -266,9 +283,13 @@ export default function AtsGapsActionCard({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 12,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "rgba(255,255,255,0.025)",
+              border: "1px solid rgba(255,255,255,0.05)",
               fontSize: 14,
-              color: "#E5E5E5",
+              color: "#A0A0A0",
               lineHeight: 1.45,
             }}
           >
@@ -277,26 +298,81 @@ export default function AtsGapsActionCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 18,
-                height: 18,
-                borderRadius: 4,
-                background: "rgba(217,119,6,0.10)",
-                border: "1px solid rgba(217,119,6,0.28)",
-                color: "#D97706",
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background:
+                  "linear-gradient(180deg, rgba(217,119,6,0.18) 0%, rgba(217,119,6,0.08) 100%)",
+                border: "1px solid rgba(217,119,6,0.35)",
+                color: "#F59E0B",
                 flexShrink: 0,
+                boxShadow: "0 0 8px rgba(217,119,6,0.18)",
               }}
             >
-              <PlusIcon size={11} />
+              <PlusIcon size={12} />
             </span>
-            <span>
+            <span style={{ flex: 1, minWidth: 0 }}>
               Add{" "}
-              <span style={{ fontWeight: 600, color: "#FFFFFF" }}>{g}</span>
+              <span style={{ fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.005em" }}>
+                {g}
+              </span>
             </span>
+            {i === 0 && (
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: "#D97706",
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(217,119,6,0.35)",
+                  background: "rgba(217,119,6,0.08)",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                High impact
+              </span>
+            )}
           </motion.div>
         ))}
       </div>
 
-      {/* Primary CTA */}
+      {/* Urgency line — relocated above the CTA so it primes the click */}
+      <motion.div
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={reduce ? { duration: 0 } : { duration: 0.4, delay: 1.85, ease: EASE }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          marginBottom: 12,
+          fontSize: 12,
+          fontWeight: 600,
+          color: "#D97706",
+          letterSpacing: "0.005em",
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: "50%",
+            background: "#D97706",
+            boxShadow: "0 0 8px rgba(217,119,6,0.7)",
+            flexShrink: 0,
+          }}
+        />
+        Most Gulf roles fill in 48 hours.
+      </motion.div>
+
+      {/* Primary CTA — sharp white text on an amber gradient with the
+          glow spilling outward like the score-ring on the ATS page */}
       <motion.button
         type="button"
         onClick={handlePrimary}
@@ -309,23 +385,28 @@ export default function AtsGapsActionCard({
           alignItems: "center",
           justifyContent: "center",
           gap: 8,
-          background: "#D97706",
-          color: "#0A0A0A",
+          background: "linear-gradient(180deg, #E08810 0%, #B25E03 100%)",
+          color: "#FFFFFF",
           border: "none",
-          padding: "13px 18px",
+          padding: "14px 18px",
           borderRadius: 9999,
           fontSize: 14,
           fontWeight: 700,
           cursor: "pointer",
           fontFamily: "inherit",
-          letterSpacing: "-0.01em",
-          boxShadow:
-            "0 0 24px rgba(217,119,6,0.35), 0 4px 14px rgba(217,119,6,0.18)",
+          letterSpacing: "-0.005em",
+          boxShadow: [
+            "inset 0 1px 0 rgba(255,255,255,0.18)",
+            "0 0 0 1px rgba(217,119,6,0.45)",
+            "0 0 24px rgba(217,119,6,0.45)",
+            "0 0 60px -8px rgba(217,119,6,0.55)",
+            "0 6px 20px rgba(217,119,6,0.30)",
+          ].join(", "),
           transition:
             "filter 160ms cubic-bezier(0.4,0,0.2,1), transform 160ms cubic-bezier(0.4,0,0.2,1)",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.filter = "brightness(0.94)";
+          e.currentTarget.style.filter = "brightness(1.05)";
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.filter = "none";
@@ -338,7 +419,7 @@ export default function AtsGapsActionCard({
         }}
       >
         <span>Fix the first one — free</span>
-        <ArrowRightIcon size={14} color="#0A0A0A" />
+        <ArrowRightIcon size={14} color="#FFFFFF" />
       </motion.button>
 
       {/* Pro upsell — hidden for users who already have access */}
@@ -372,20 +453,6 @@ export default function AtsGapsActionCard({
         </button>
       )}
 
-      {/* Quiet regional urgency */}
-      <div
-        style={{
-          marginTop: isPro ? 16 : 14,
-          paddingTop: 14,
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          fontSize: 11,
-          color: "#666",
-          textAlign: "center",
-          letterSpacing: "0.02em",
-        }}
-      >
-        Most Gulf roles fill in 48 hours.
-      </div>
     </motion.div>
   );
 }
