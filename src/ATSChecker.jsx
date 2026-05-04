@@ -326,6 +326,31 @@ export default function ATSChecker({
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
 
+  // ─── DEV MOCK — REMOVE BEFORE MERGE (search: MOCKATS_DEV_BYPASS) ──────────
+  // Visit /ats?mockats=true to skip the upload + scan flow and render the
+  // post-score view with hardcoded data. Used for visually QA-ing
+  // AtsGapsActionCard + the /builder?from=ats&gaps=... → AtsGapsRibbon flow
+  // without a real CV upload. Delete this entire block before merging the
+  // standing PR to main.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mockats") !== "true") return;
+    setResults({
+      score: 42,
+      keywordsScore: 28,
+      structureScore: 35,
+      contentScore: 48,
+      visibilityBoosters: ["Negotiation", "CRM", "Client Relations"],
+      rankTriggers: ["RERA Certified", "Off-plan Sales", "KYC"],
+      industry: "Finance",
+      topPercent: 60,
+    });
+    setPhase("results");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // ─── END MOCKATS_DEV_BYPASS ───────────────────────────────────────────────
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
