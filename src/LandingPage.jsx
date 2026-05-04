@@ -5,13 +5,16 @@ import { Helmet } from 'react-helmet-async';
 import CVPassportLogo from './components/CVPassportLogo';
 import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
+import MobileNav from './components/navigation/MobileNav';
+import DesktopNav from './components/navigation/DesktopNav';
 // May-2026 restructure — landing renders exactly 9 sections in a fixed
 // order (see CLAUDE.md / restructure brief). Walk-In Mode, Salary
 // Intelligence, Free-tools row and the Final-CTA block were removed
 // from the landing; their functionality remains on dedicated routes
-// and is reachable via the footer Free-tools subgroup. The full-width
-// DesktopNav / MobileNav drawer is replaced inline below by a 3-link
-// nav (Live demo · Templates · Pricing).
+// and is reachable via the footer Free-tools subgroup. The center nav
+// uses DesktopNav / MobileNav (driven by src/config/navItems.js) so
+// Free Tools, Build CV and Explore sections are reachable from the
+// landing header.
 import HeroSection from './components/landing/HeroSection';
 import LiveAIDemo from './components/landing/LiveAIDemo';
 import UploadTransformSection from './components/landing/UploadTransformSection';
@@ -628,41 +631,9 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             <CVPassportLogo height={40} />
           </Link>
 
-          {/* Desktop nav — simplified 3-link layout per May-2026 restructure.
-              Live demo / Templates / Pricing all smooth-scroll to anchor
-              ids placed around their corresponding sections below. */}
-          <div
-            className="lp-nav-center lp-nav-desktop"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 22,
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            <a
-              href="#live-demo"
-              className="lp-nav-link"
-              style={{ color: T.textSecondary, textDecoration: 'none', padding: '6px 4px' }}
-            >
-              Live demo
-            </a>
-            <a
-              href="#templates"
-              className="lp-nav-link"
-              style={{ color: T.textSecondary, textDecoration: 'none', padding: '6px 4px' }}
-            >
-              Templates
-            </a>
-            <a
-              href="#pricing"
-              className="lp-nav-link"
-              style={{ color: T.textSecondary, textDecoration: 'none', padding: '6px 4px' }}
-            >
-              Pricing
-            </a>
-          </div>
+          {/* Desktop nav — section-grouped dropdowns (freebie-first).
+              See src/components/navigation/DesktopNav.jsx + src/config/navItems.js. */}
+          <DesktopNav user={user} isPro={isPro} />
 
           {/* Right actions — desktop only */}
           <div className="lp-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -833,117 +804,19 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
           </div>
         </nav>
 
-        {/* Mobile nav drawer — simplified to match the 3-link desktop nav.
-            Live demo / Templates / Pricing scroll to anchors. Auth and
-            primary CTA are mirrored from the right-side nav actions so
-            mobile users still have a clear path to /auth and /builder. */}
-        {mobileMenuOpen && (
-          <div
-            className="lp-mobile-menu"
-            style={{
-              position: 'fixed',
-              top: 64,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 99,
-              background: T.bgPage,
-              padding: '24px 20px 32px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 0,
-              borderTop: `1px solid ${T.navBorder}`,
-            }}
-            role="dialog"
-            aria-label="Mobile navigation"
-          >
-            <a
-              href="#live-demo"
-              className="lp-hamburger-link"
-              onClick={closeMobileMenu}
-              style={{ color: T.textPrimary, textDecoration: 'none' }}
-            >
-              Live demo <span aria-hidden="true">→</span>
-            </a>
-            <a
-              href="#templates"
-              className="lp-hamburger-link"
-              onClick={closeMobileMenu}
-              style={{ color: T.textPrimary, textDecoration: 'none' }}
-            >
-              Templates <span aria-hidden="true">→</span>
-            </a>
-            <a
-              href="#pricing"
-              className="lp-hamburger-link"
-              onClick={closeMobileMenu}
-              style={{ color: T.textPrimary, textDecoration: 'none' }}
-            >
-              Pricing <span aria-hidden="true">→</span>
-            </a>
-
-            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {user ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => { closeMobileMenu(); navigate(avatarDest); }}
-                    style={{
-                      background: T.btnPrimary, color: T.btnPrimaryTxt,
-                      border: 'none', borderRadius: 20, padding: '12px 18px',
-                      fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    {userType === 'recruiter' ? 'Go to Portal' : 'Go to Dashboard'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      closeMobileMenu();
-                      if (supabase) await supabase.auth.signOut();
-                      navigate('/');
-                    }}
-                    style={{
-                      background: 'transparent', color: T.btnGhostTxt,
-                      border: `1px solid ${T.btnGhostBorder}`, borderRadius: 20,
-                      padding: '12px 18px', fontSize: 14, fontWeight: 600,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    Sign out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => { closeMobileMenu(); navigate('/builder'); }}
-                    style={{
-                      background: '#D4860A', color: '#000', border: 'none',
-                      borderRadius: 20, padding: '12px 18px', fontSize: 14,
-                      fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    Build my CV — free →
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { closeMobileMenu(); onLogin?.(); }}
-                    style={{
-                      background: 'transparent', color: T.btnGhostTxt,
-                      border: `1px solid ${T.btnGhostBorder}`, borderRadius: 20,
-                      padding: '12px 18px', fontSize: 14, fontWeight: 600,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    Sign In
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Mobile nav drawer — freebie-first sections, routes only real paths.
+            See src/components/navigation/MobileNav.jsx + src/config/navItems.js. */}
+        <MobileNav
+          isOpen={mobileMenuOpen}
+          onClose={closeMobileMenu}
+          user={user}
+          isPro={isPro}
+          userType={userType}
+          avatarDest={avatarDest}
+          onLogin={onLogin}
+          onSignup={onSignup}
+          onSignOut={onSignOut}
+        />
 
         {/* ──────────────────────────────────────────────────────────────
             May-2026 landing — section order:
