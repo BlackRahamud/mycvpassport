@@ -7,8 +7,29 @@
    match the bundle's landing.css so styling is intentional, not
    improvised. */
 
-import React, { useState as useHS, useEffect as useHE } from "react";
-import { motion as HMotion } from "framer-motion";
+import React, {
+  useState as useHS,
+  useEffect as useHE,
+  useRef as useHR,
+  useMemo as useHM,
+} from "react";
+import { motion as HMotion, useReducedMotion } from "framer-motion";
+
+/* Treats hardwareConcurrency<4 or deviceMemory<4 as a low-end signal.
+   Cycle slows from 3.2s → 4.5s per state on those devices so each
+   transition has more breathing room and the GPU gets idle frames
+   between cross-fades. Both APIs are best-effort; defaults to fast on
+   browsers that don't expose them (Safari/iOS for deviceMemory). */
+function isLowEndDevice() {
+  if (typeof navigator === "undefined") return false;
+  try {
+    const cores = navigator.hardwareConcurrency || 8;
+    const memory = navigator.deviceMemory || 8;
+    return cores < 4 || memory < 4;
+  } catch {
+    return false;
+  }
+}
 
 /* ------------------------------------------------------------------
    STATE 1 — Layla's CV (the FULL original — generic orgs only)
@@ -231,73 +252,120 @@ function HeroStateCalendar() {
 }
 
 /* ------------------------------------------------------------------
-   The billboard — auto-loops through 4 states (~3.2s each)
+   The billboard — auto-loops through 4 states.
+   Perf budget targets:
+     - desktop: 60 FPS sustained
+     - mid-range Android (Pixel 6a, A-series): 30 FPS minimum
+   Optimisations live here, not in the state components themselves:
+     1. Animate ONLY opacity + transform — no filter:blur, no width/height.
+     2. IntersectionObserver pauses the cycle when scrolled past.
+     3. useReducedMotion freezes on state 1 (Layla CV) for accessibility
+        + acts as an escape hatch on devices that hate compositor work.
+     4. isLowEndDevice() throttles the interval (3.2s → 4.5s).
+     5. Layered states are pre-mounted; we only toggle opacity/translate.
+     6. .cvp-h-state-layer is GPU-promoted via translateZ(0) +
+        will-change: opacity, transform. pointer-events lives in CSS so
+        framer-motion isn't asked to "animate" a non-numeric prop.
 ------------------------------------------------------------------ */
 const HERO_STATES = 4;
-const HERO_INTERVAL_MS = 3200;
+const HERO_INTERVAL_MS_FAST = 3200;
+const HERO_INTERVAL_MS_SLOW = 4500;
 
 function HeroBillboard() {
+  const reduce = useReducedMotion();
   const [idx, setIdx] = useHS(0);
+  const [inView, setInView] = useHS(true);
+  const stageRef = useHR(null);
+
+  // Pause the cycle when the phone is not in the viewport. setInterval
+  // is gated below on `inView` so a scrolled-past hero burns no CPU.
   useHE(() => {
-    const id = setInterval(() => setIdx((n) => (n + 1) % HERO_STATES), HERO_INTERVAL_MS);
-    return () => clearInterval(id);
+    const el = stageRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return undefined;
+    const obs = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.15, rootMargin: "0px 0px 100px 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
-  const variants = [
-  <HeroStateCV key="v-cv" />,
-  <HeroStateInbox key="v-inbox" />,
-  <HeroStateWhatsApp key="v-wa" />,
-  <HeroStateCalendar key="v-cal" />];
+  useHE(() => {
+    if (reduce) return undefined;
+    if (!inView) return undefined;
+    const interval = isLowEndDevice() ? HERO_INTERVAL_MS_SLOW : HERO_INTERVAL_MS_FAST;
+    const id = setInterval(() => setIdx((n) => (n + 1) % HERO_STATES), interval);
+    return () => clearInterval(id);
+  }, [reduce, inView]);
 
+  // Memoised so the children identity is stable across re-renders —
+  // framer-motion can then short-circuit prop diffing on the inactive
+  // layers and avoid touching the DOM for them at all.
+  const variants = useHM(
+    () => [
+      <HeroStateCV key="v-cv" />,
+      <HeroStateInbox key="v-inbox" />,
+      <HeroStateWhatsApp key="v-wa" />,
+      <HeroStateCalendar key="v-cal" />,
+    ],
+    []
+  );
+
+  // prefers-reduced-motion: render state 1 statically. No interval, no
+  // framer-motion subscriptions, no compositor layers. Doubles as a
+  // last-resort perf escape hatch.
+  if (reduce) {
+    return (
+      <div ref={stageRef} className="cvp-hphone-stage">
+        <div className="cvp-h-state-layer is-active">{variants[0]}</div>
+      </div>
+    );
+  }
 
   if (!HMotion) {
     return (
-      <div className="cvp-hphone-stage">
+      <div ref={stageRef} className="cvp-hphone-stage">
         {variants[idx]}
         <div className="cvp-h-dots" aria-hidden>
           {Array.from({ length: HERO_STATES }).map((_, i) =>
-          <div key={i} className={`cvp-h-dot${idx === i ? " on" : ""}`}></div>
+            <div key={i} className={`cvp-h-dot${idx === i ? " on" : ""}`}></div>
           )}
         </div>
-      </div>);
-
+      </div>
+    );
   }
 
-  const baseStyle = { position: "absolute", inset: 0, willChange: "opacity, transform, filter" };
   const tx = { duration: 0.45, ease: [0.4, 0, 0.2, 1] };
 
   return (
-    <div className="cvp-hphone-stage">
+    <div ref={stageRef} className="cvp-hphone-stage">
       {variants.map((v, i) => {
         const active = idx === i;
-        // direction: enter from right when this index is the active one,
-        // exit to left after it stops being active. Compute relative offset.
+        // Directional slide kept (right-to-left = "next state arriving"),
+        // but blur is gone — opacity + translate is all the GPU has to
+        // composite. `pointer-events` is class-driven, not animated.
         const rel = (i - idx + HERO_STATES) % HERO_STATES;
         const x = active ? 0 : rel === 1 ? 28 : -28;
         return (
           // eslint-disable-next-line react/jsx-pascal-case
           <HMotion.div
             key={"hstate-" + i}
-            style={baseStyle}
-            animate={{
-              opacity: active ? 1 : 0,
-              x,
-              filter: active ? "blur(0px)" : "blur(4px)",
-              pointerEvents: active ? "auto" : "none"
-            }}
-            transition={tx}>
-
+            className={`cvp-h-state-layer${active ? " is-active" : ""}`}
+            initial={false}
+            animate={{ opacity: active ? 1 : 0, x }}
+            transition={tx}
+          >
             {v}
-          </HMotion.div>);
-
+          </HMotion.div>
+        );
       })}
       <div className="cvp-h-dots" aria-hidden>
         {Array.from({ length: HERO_STATES }).map((_, i) =>
-        <div key={i} className={`cvp-h-dot${idx === i ? " on" : ""}`}></div>
+          <div key={i} className={`cvp-h-dot${idx === i ? " on" : ""}`}></div>
         )}
       </div>
-    </div>);
-
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------
@@ -356,7 +424,25 @@ const HERO_PHONE_STYLES = `
   inset: 0;
   overflow: hidden;
   border-radius: 32px;
+  /* Containing block + compositor layer — keeps the layered states on
+     the GPU side and lets the browser skip rasterising the static
+     background while transforms tick. No fixed-position descendants
+     here, so this is safe under Safari's containing-block rule. */
+  transform: translateZ(0);
 }
+/* Wrapper around each of the four layered states. Stays GPU-promoted
+   for the lifetime of the cycle; opacity + translate are the only
+   things the compositor has to do per frame. pointer-events is
+   class-driven so framer-motion doesn't touch it. */
+.cvp-h-state-layer {
+  position: absolute;
+  inset: 0;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+.cvp-h-state-layer.is-active { pointer-events: auto; }
 .cvp-h-state {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
