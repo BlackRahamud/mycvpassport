@@ -1,6 +1,6 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
-import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
+import { parseExperiencePoints } from "./experiencePointsPreview";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -154,12 +154,14 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
                 <div style={{ fontSize: pt(10), fontWeight: "bold", fontStyle: "italic", marginBottom: "2mm" }}>
                   {e.company} {e.location && `| ${e.location}`}
                 </div>
-                {e.points &&
-                  splitExperiencePointsForPreview(e.points).map((p, j) => (
+                {e.points && (() => {
+                  const { bullets, format } = parseExperiencePoints(e.points);
+                  return bullets.map((p, j) => (
                     <p key={j} style={{ fontSize: pt(9.5), margin: "0 0 1.5mm", lineHeight: 1.4, paddingLeft: "4mm" }}>
-                      • {p}
+                      {format === "list" ? `• ${p}` : p}
                     </p>
-                  ))}
+                  ));
+                })()}
               </EntryWrap>
             ))
         )}

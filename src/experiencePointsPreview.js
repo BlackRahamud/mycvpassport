@@ -1,65 +1,88 @@
 /**
- * Experience / achievement text → preview bullet strings (one per bullet).
+ * Experience / achievement text → structured bullets (one per detected line).
  *
- * 1) Newlines that are NOT a new bullet (line doesn't start with • / - / *) merge
- *    into the previous bullet — fixes accidental line breaks mid-sentence.
- * 2) Inline " • " segments split into separate bullets — fixes one-line bullet lists.
+ * STRICT PARSER — never hallucinates a split. Rules:
+ *   1. Blank line (\n\n+) = forced bullet break.
+ *   2. Within a paragraph: a line is a NEW bullet only if its first
+ *      non-whitespace token matches BULLET_LINE.
+ *   3. Lines without a marker merge into the previous bullet (a continuation
+ *      from wrapped or pasted text).
+ *   4. Inline mid-line markers do NOT split. "Built X • Y • Z" stays as one
+ *      bullet — a too-long bullet beats a sentence cut in half.
+ *   5. If no markers and no blank lines → format: 'paragraph' (templates
+ *      render as prose, no leading •).
  */
 
-function stripLeadingBulletToken(s) {
-  return String(s ?? "")
-    .replace(/^\s*[-•*]\s*/, "")
-    .trim();
+// Line-leading bullet markers:
+//   •  ·  *           — strip even without trailing space (often pasted as "•Built")
+//   -  –              — require a trailing space (avoids "-2024", "-3.5%")
+//   1. / 1) / 1:      — require a trailing space (avoids "1.5 million users")
+const BULLET_LINE = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
+
+function isBulletLine(line) {
+  return BULLET_LINE.test(line);
 }
 
-function isNewBulletLine(line) {
-  return /^\s*[-•*]/.test(line);
+function stripMarker(line) {
+  return String(line ?? "").replace(BULLET_LINE, "").trim();
 }
 
-function mergeContinuationLines(lines) {
-  if (lines.length === 0) return [];
-  const blocks = [];
-  let cur = stripLeadingBulletToken(lines[0]);
+/**
+ * @param {string|null|undefined} text
+ * @returns {{ bullets: string[], format: 'list' | 'paragraph' }}
+ */
+export function parseExperiencePoints(text) {
+  if (text == null || text === "") return { bullets: [], format: "list" };
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (isNewBulletLine(line)) {
-      blocks.push(cur);
-      cur = stripLeadingBulletToken(line);
-    } else {
-      cur = `${cur} ${stripLeadingBulletToken(line)}`.trim();
+  const raw = String(text);
+  const paragraphs = raw.split(/\r?\n\s*\r?\n+/);
+
+  let sawAnyMarker = false;
+  const bullets = [];
+
+  for (const para of paragraphs) {
+    const lines = para.split(/\r?\n/);
+    let current = null;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      if (isBulletLine(line)) {
+        sawAnyMarker = true;
+        if (current != null) bullets.push(current);
+        current = stripMarker(line);
+      } else if (current == null) {
+        current = line;
+      } else {
+        current = `${current} ${line}`.trim();
+      }
     }
+    if (current != null && current.length > 0) bullets.push(current);
   }
-  blocks.push(cur);
-  return blocks;
+
+  const nonEmptyParas = paragraphs.filter((p) => p.trim()).length;
+  const format = sawAnyMarker || nonEmptyParas > 1 ? "list" : "paragraph";
+
+  return { bullets: bullets.filter(Boolean), format };
 }
 
-function splitInlineBulletSegments(block) {
-  const t = String(block ?? "").trim();
-  if (!t) return [];
-  return t
-    .split(/\s*•\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-export function splitExperiencePointsForPreview(text) {
-  if (text == null || text === "") return [];
-
-  const rawLines = String(text)
+/**
+ * Strip every line-leading bullet marker from a multi-line string.
+ * Used by the "Clear formatting" toolbar action — preserves line structure,
+ * just removes the markers themselves.
+ */
+export function clearBulletMarkers(text) {
+  if (text == null) return "";
+  return String(text)
     .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+    .map((line) => line.replace(BULLET_LINE, ""))
+    .join("\n");
+}
 
-  if (rawLines.length === 0) return [];
-
-  const mergedBlocks = mergeContinuationLines(rawLines);
-  const out = [];
-  for (const block of mergedBlocks) {
-    out.push(...splitInlineBulletSegments(block));
-  }
-
-  return out.map((s) => s.replace(/^•\s*/, "").trim()).filter(Boolean);
+/** Back-compat wrapper. Pre-existing callers get just the bullet array. */
+export function splitExperiencePointsForPreview(text) {
+  return parseExperiencePoints(text).bullets;
 }
 
 /**

@@ -5,6 +5,7 @@
 
 import GhostChip from "./components/GhostChip";
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
+import { parseExperiencePoints } from "./experiencePointsPreview";
 import {
   PDF_CONTENT_BOTTOM_Y,
   PDF_NEW_PAGE_TOP_Y,
@@ -25,30 +26,6 @@ const BG = "#FFFFFF";
 
 const SERIF = 'Georgia, "Times New Roman", serif';
 const SANS = 'Arial, "Helvetica Neue", Helvetica, sans-serif';
-
-function experienceBulletItems(points) {
-  if (points == null) return [];
-  if (Array.isArray(points)) {
-    return points.flatMap((p) =>
-      experienceBulletItems(typeof p === "string" ? p : p == null ? "" : String(p)),
-    );
-  }
-  const raw = String(points).trim();
-  if (!raw) return [];
-  const byNl = raw.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-  if (byNl.length > 1) {
-    return byNl.flatMap((line) =>
-      line.includes("•")
-        ? line.split("•").map((s) => s.trim()).filter(Boolean)
-        : [line],
-    );
-  }
-  const one = byNl[0] ?? raw;
-  if (one.includes("•")) {
-    return one.split("•").map((s) => s.trim()).filter(Boolean);
-  }
-  return [one];
-}
 
 function certificationLines(cv) {
   const raw = cv.certifications;
@@ -286,26 +263,30 @@ export function PreviewSlateCarbon({ cv, mobileMode = false }) {
                       {e.location ? ` — ${e.location}` : ""}
                     </div>
                   </div>
-                  {e.points && (
-                    <div>
-                      {experienceBulletItems(e.points).map((line, j) => (
-                        <div
-                          key={j}
-                          style={{
-                            display: "block",
-                            marginBottom: "4px",
-                            paddingLeft: 12,
-                            textIndent: -12,
-                            lineHeight: 1.5,
-                            fontSize: pt(10),
-                            color: BULLET_COLOR,
-                          }}
-                        >
-                          • {line}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {e.points && (() => {
+                    const { bullets, format } = parseExperiencePoints(e.points);
+                    if (bullets.length === 0) return null;
+                    return (
+                      <div>
+                        {bullets.map((line, j) => (
+                          <div
+                            key={j}
+                            style={{
+                              display: "block",
+                              marginBottom: "4px",
+                              paddingLeft: format === "list" ? 12 : 0,
+                              textIndent: format === "list" ? -12 : 0,
+                              lineHeight: 1.5,
+                              fontSize: pt(10),
+                              color: BULLET_COLOR,
+                            }}
+                          >
+                            {format === "list" ? `• ${line}` : line}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </EntryWrap>
               ))}
           </div>

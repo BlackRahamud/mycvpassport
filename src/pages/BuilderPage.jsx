@@ -39,6 +39,7 @@ import { invalidateGatekeeperCache } from "../services/gatekeeper";
 import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
 import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
+import { clearBulletMarkers } from "../experiencePointsPreview";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
@@ -2467,6 +2468,7 @@ function ResumeBuilder({
   const mobilePreviewFitRef = useRef(null);
   const desktopCvPreviewRef = useRef(null);
   const mobileCvPreviewRef = useRef(null);
+  const expDescriptionRef = useRef(null);
   const [desktopPreviewContainerWidth, setDesktopPreviewContainerWidth] = useState(0);
   const [mobilePreviewContainerWidth, setMobilePreviewContainerWidth] = useState(0);
 
@@ -5557,8 +5559,83 @@ function ResumeBuilder({
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Description</label>
                   <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
-                  <div style={{ position: "relative", width: "100%", marginTop: 4 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      marginTop: 4,
+                      marginBottom: 4,
+                    }}
+                  >
+                    {(() => {
+                      const TOOLBAR_BTN = {
+                        background: "transparent",
+                        border: "none",
+                        padding: "3px 6px",
+                        fontSize: 11,
+                        color: "#A0A0A0",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        borderRadius: 4,
+                      };
+                      const setPointsAndCursor = (next, caret) => {
+                        setExpModalHighEffortDirty(true);
+                        if (String(next || "").trim()) setExpModalBulletWarn(false);
+                        setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: next } } : null));
+                        // Restore cursor after React commits.
+                        requestAnimationFrame(() => {
+                          const el = expDescriptionRef.current;
+                          if (!el) return;
+                          el.focus();
+                          el.setSelectionRange(caret, caret);
+                        });
+                      };
+                      const insertAtCursor = (insert) => {
+                        const el = expDescriptionRef.current;
+                        const value = String(experienceEditor?.draft?.points || "");
+                        const start = el ? el.selectionStart ?? value.length : value.length;
+                        const end = el ? el.selectionEnd ?? value.length : value.length;
+                        const next = value.slice(0, start) + insert + value.slice(end);
+                        setPointsAndCursor(next, start + insert.length);
+                      };
+                      const handleAddBullet = () => {
+                        const el = expDescriptionRef.current;
+                        const value = String(experienceEditor?.draft?.points || "");
+                        const start = el ? el.selectionStart ?? value.length : value.length;
+                        // If cursor is at column 0 of an empty line (or value
+                        // is empty), insert "• " inline. Otherwise insert
+                        // "\n• " so the new bullet starts on its own line.
+                        const before = value.slice(0, start);
+                        const atLineStart = before.length === 0 || before.endsWith("\n");
+                        const insert = atLineStart ? "• " : "\n• ";
+                        insertAtCursor(insert);
+                      };
+                      const handleClearFormatting = () => {
+                        const value = String(experienceEditor?.draft?.points || "");
+                        const cleared = clearBulletMarkers(value);
+                        const el = expDescriptionRef.current;
+                        const caret = el ? Math.min(el.selectionStart ?? cleared.length, cleared.length) : cleared.length;
+                        setPointsAndCursor(cleared, caret);
+                      };
+                      return (
+                        <>
+                          <button type="button" style={TOOLBAR_BTN} onMouseDown={(e) => e.preventDefault()} onClick={handleAddBullet}>
+                            • Add bullet
+                          </button>
+                          <button type="button" style={TOOLBAR_BTN} onMouseDown={(e) => e.preventDefault()} onClick={() => insertAtCursor("\n")}>
+                            ↵ New line
+                          </button>
+                          <button type="button" style={TOOLBAR_BTN} onMouseDown={(e) => e.preventDefault()} onClick={handleClearFormatting}>
+                            Clear formatting
+                          </button>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  <div style={{ position: "relative", width: "100%" }}>
                     <textarea
+                      ref={expDescriptionRef}
                       className="cvp-builder-ph"
                       style={BUILDER_DESCR_TEXTAREA}
                       placeholder={EXP_POINTS_PLACEHOLDER}

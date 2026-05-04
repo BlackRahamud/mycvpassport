@@ -1,6 +1,6 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
-import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
+import { parseExperiencePoints } from "./experiencePointsPreview";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -123,8 +123,9 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
                 <span style={{ fontSize: pt(9.5), fontWeight: "bold", color: textColor }}>{exp.period}</span>
               </div>
               <div style={{ textAlign: "right", fontSize: pt(9), color: greyColor, marginBottom: "2mm" }}>{exp.location}</div>
-              {exp.points &&
-                splitExperiencePointsForPreview(exp.points).map((point, idx) => (
+              {exp.points && (() => {
+                const { bullets, format } = parseExperiencePoints(exp.points);
+                return bullets.map((point, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -136,10 +137,11 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
                       color: textColor,
                     }}
                   >
-                    <span>•</span>
+                    {format === "list" && <span>•</span>}
                     <span>{point}</span>
                   </div>
-                ))}
+                ));
+              })()}
             </div>
           ))}
         </section>

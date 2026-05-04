@@ -19,7 +19,7 @@
 // =============================================================
 
 import React from "react";
-import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
+import { parseExperiencePoints } from "./experiencePointsPreview";
 
 const COLORS = {
   ACCENT_SKY:    "#0EA5E9",   // sky-500 - top bar, dot bullets, separators
@@ -240,7 +240,9 @@ function ExperienceItem({ exp }) {
   const role = trimStr(exp.role);
   const period = trimStr(exp.period);
   const companyParts = [trimStr(exp.company), trimStr(exp.location)].filter(Boolean).join(" · ");
-  const bullets = trimStr(exp.points) ? splitExperiencePointsForPreview(exp.points) : [];
+  const parsed = trimStr(exp.points) ? parseExperiencePoints(exp.points) : { bullets: [], format: "list" };
+  const bullets = parsed.bullets;
+  const bulletFormat = parsed.format;
 
   return (
     <div
@@ -283,15 +285,17 @@ function ExperienceItem({ exp }) {
             breakInside: "avoid",
           }}
         >
-          <span
-            style={{
-              marginRight: "10px",
-              color: COLORS.ACCENT_SKY,
-              fontWeight: 700,
-            }}
-          >
-            &middot;
-          </span>
+          {bulletFormat === "list" && (
+            <span
+              style={{
+                marginRight: "10px",
+                color: COLORS.ACCENT_SKY,
+                fontWeight: 700,
+              }}
+            >
+              &middot;
+            </span>
+          )}
           <span>{b}</span>
         </div>
       ))}

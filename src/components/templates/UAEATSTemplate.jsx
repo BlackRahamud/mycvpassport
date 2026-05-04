@@ -25,7 +25,7 @@
 // =============================================================
 
 import React from "react";
-import { splitExperiencePointsForPreview } from "../../experiencePointsPreview";
+import { parseExperiencePoints } from "../../experiencePointsPreview";
 
 const SECTION_TITLES = {
   summary: "Summary",
@@ -301,7 +301,9 @@ function ExperienceItem({ item }) {
   const location = trimStr(item.location);
   const period = trimStr(item.period);
   const points = trimStr(item.points);
-  const bullets = points ? splitExperiencePointsForPreview(points) : [];
+  const parsed = points ? parseExperiencePoints(points) : { bullets: [], format: "list" };
+  const bullets = parsed.bullets;
+  const bulletFormat = parsed.format;
   const leading = location ? `${role || ""} (${location})`.trim() : role;
 
   return (
@@ -312,11 +314,15 @@ function ExperienceItem({ item }) {
         <span className="uae-ats-inline-trailing">{period}</span>
       </div>
       {bullets.length > 0 && (
-        <ul>
-          {bullets.map((b, i) => (
-            <li key={i}>{b}</li>
-          ))}
-        </ul>
+        bulletFormat === "list" ? (
+          <ul>
+            {bullets.map((b, i) => (
+              <li key={i}>{b}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>{bullets[0]}</p>
+        )
       )}
     </div>
   );

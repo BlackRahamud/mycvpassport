@@ -1,5 +1,6 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
+import { parseExperiencePoints } from "./experiencePointsPreview";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -19,7 +20,6 @@ export function Template14({ cv, mobileMode = false }) {
   const ACCENT_ORANGE = "#EA580C";
   const TEXT_MAIN = "#1F2937";
 
-  const splitPoints = (pts) => (pts ? pts.split("\n").filter((p) => p.trim()) : []);
   const skillsItems = cv.skills
     ? (Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean))
     : [];
@@ -176,21 +176,24 @@ export function Template14({ cv, mobileMode = false }) {
                     {exp.company}
                   </div>
 
-                  {splitPoints(exp.points).map((p, pIdx) => (
-                    <div
-                      key={pIdx}
-                      style={{
-                        fontSize: "10pt",
-                        display: "flex",
-                        gap: "8px",
-                        marginBottom: "4px",
-                        lineHeight: "1.5",
-                      }}
-                    >
-                      <span style={{ color: ACCENT_ORANGE }}>•</span>
-                      <span>{p}</span>
-                    </div>
-                  ))}
+                  {(() => {
+                    const { bullets, format } = parseExperiencePoints(exp.points);
+                    return bullets.map((p, pIdx) => (
+                      <div
+                        key={pIdx}
+                        style={{
+                          fontSize: "10pt",
+                          display: "flex",
+                          gap: "8px",
+                          marginBottom: "4px",
+                          lineHeight: "1.5",
+                        }}
+                      >
+                        {format === "list" && <span style={{ color: ACCENT_ORANGE }}>•</span>}
+                        <span>{p}</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               ))}
           </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
-import { splitExperiencePointsForPreview } from "./experiencePointsPreview";
+import { parseExperiencePoints } from "./experiencePointsPreview";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -198,12 +198,14 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
                   <div style={{ fontSize: pt(10.5), fontWeight: "bold", color: TEXT_MUTED, marginBottom: "2mm" }}>
                     {e.company} {e.location && `| ${e.location}`}
                   </div>
-                  {e.points &&
-                    splitExperiencePointsForPreview(e.points).map((p, j) => (
+                  {e.points && (() => {
+                    const { bullets, format } = parseExperiencePoints(e.points);
+                    return bullets.map((p, j) => (
                       <p key={j} style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>
-                        • {p}
+                        {format === "list" ? `• ${p}` : p}
                       </p>
-                    ))}
+                    ));
+                  })()}
                 </div>
               </EntryWrap>
             ))
