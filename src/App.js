@@ -45,6 +45,7 @@ const IndiaToUaePage       = lazy(() => import(/* webpackChunkName: "india-to-ua
 const AttestationPage      = lazy(() => import(/* webpackChunkName: "attestation" */ "./pages/AttestationPage"));
 const AdminCostPage        = lazy(() => import(/* webpackChunkName: "admin" */       "./pages/AdminCostPage"));
 const GulfCareerPage       = lazy(() => import(/* webpackChunkName: "gulf-career" */ "./pages/GulfCareerPage"));
+const GulfSalaryPage       = lazy(() => import(/* webpackChunkName: "gulf-salary" */ "./pages/GulfSalaryPage"));
 
 const S = {
   app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
@@ -266,6 +267,7 @@ export default function App() {
               <Route path="/transform/success" element={!authReady ? null : <TransformSuccessPage user={user} isPro={isPro} />} />
               <Route path="/gulf-career" element={<GulfCareerPage />} />
               <Route path="/gulf/:reportId" element={<GulfCareerPage />} />
+              <Route path="/gulf-salary" element={<GulfSalaryPage />} />
               <Route path="/tools" element={<ToolsPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />

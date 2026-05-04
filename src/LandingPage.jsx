@@ -5,23 +5,20 @@ import { Helmet } from 'react-helmet-async';
 import CVPassportLogo from './components/CVPassportLogo';
 import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
-import MobileNav from './components/navigation/MobileNav';
-import DesktopNav from './components/navigation/DesktopNav';
-// W18 — 5-block conversion layout. See
-// /5-HANDOFF/[READY]_landing_page_conversion_rewrite_W18.json.
+// May-2026 restructure — landing renders exactly 9 sections in a fixed
+// order (see CLAUDE.md / restructure brief). Walk-In Mode, Salary
+// Intelligence, Free-tools row and the Final-CTA block were removed
+// from the landing; their functionality remains on dedicated routes
+// and is reachable via the footer Free-tools subgroup. The full-width
+// DesktopNav / MobileNav drawer is replaced inline below by a 3-link
+// nav (Live demo · Templates · Pricing).
 import HeroSection from './components/landing/HeroSection';
-import UploadTransformSection from './components/landing/UploadTransformSection';
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import TemplatesSection from './components/landing/TemplatesSection';
 import FloatingActionButton from './components/landing/FloatingActionButton';
-import GulfBillboardCard from './components/landing/GulfBillboardCard';
-import ShowSection from './components/landing/ShowSection';
-import FeatureCardGrid from './components/landing/FeatureCardGrid';
+import MergedProblemFixSection from './components/landing/MergedProblemFixSection';
 import FoundersNoteSection from './components/landing/FoundersNoteSection';
 import PricingAnchorSection from './components/landing/PricingAnchorSection';
-import FinalCTASection from './components/landing/FinalCTASection';
-// W18 reinforcements — free-tools bar above the fold and real
-// testimonials row above the Founder's Note.
 import TestimonialsRow from './components/marketing/TestimonialsRow';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
@@ -628,9 +625,41 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             <CVPassportLogo height={40} />
           </Link>
 
-          {/* Desktop nav — section-grouped dropdowns (freebie-first).
-              See src/components/navigation/DesktopNav.jsx + src/config/navItems.js. */}
-          <DesktopNav user={user} isPro={isPro} />
+          {/* Desktop nav — simplified 3-link layout per May-2026 restructure.
+              Live demo / Templates / Pricing all smooth-scroll to anchor
+              ids placed around their corresponding sections below. */}
+          <div
+            className="lp-nav-center lp-nav-desktop"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 22,
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            <a
+              href="#live-demo"
+              className="lp-nav-link"
+              style={{ color: T.textSecondary, textDecoration: 'none', padding: '6px 4px' }}
+            >
+              Live demo
+            </a>
+            <a
+              href="#templates"
+              className="lp-nav-link"
+              style={{ color: T.textSecondary, textDecoration: 'none', padding: '6px 4px' }}
+            >
+              Templates
+            </a>
+            <a
+              href="#pricing"
+              className="lp-nav-link"
+              style={{ color: T.textSecondary, textDecoration: 'none', padding: '6px 4px' }}
+            >
+              Pricing
+            </a>
+          </div>
 
           {/* Right actions — desktop only */}
           <div className="lp-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -801,32 +830,181 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
           </div>
         </nav>
 
-        {/* Mobile nav drawer — freebie-first sections, routes only real paths.
-            See src/components/navigation/MobileNav.jsx + src/config/navItems.js. */}
-        <MobileNav
-          isOpen={mobileMenuOpen}
-          onClose={closeMobileMenu}
-          user={user}
-          isPro={isPro}
-          userType={userType}
-          avatarDest={avatarDest}
-          onLogin={onLogin}
-          onSignup={onSignup}
-          onSignOut={onSignOut}
-        />
+        {/* Mobile nav drawer — simplified to match the 3-link desktop nav.
+            Live demo / Templates / Pricing scroll to anchors. Auth and
+            primary CTA are mirrored from the right-side nav actions so
+            mobile users still have a clear path to /auth and /builder. */}
+        {mobileMenuOpen && (
+          <div
+            className="lp-mobile-menu"
+            style={{
+              position: 'fixed',
+              top: 64,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 99,
+              background: T.bgPage,
+              padding: '24px 20px 32px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0,
+              borderTop: `1px solid ${T.navBorder}`,
+            }}
+            role="dialog"
+            aria-label="Mobile navigation"
+          >
+            <a
+              href="#live-demo"
+              className="lp-hamburger-link"
+              onClick={closeMobileMenu}
+              style={{ color: T.textPrimary, textDecoration: 'none' }}
+            >
+              Live demo <span aria-hidden="true">→</span>
+            </a>
+            <a
+              href="#templates"
+              className="lp-hamburger-link"
+              onClick={closeMobileMenu}
+              style={{ color: T.textPrimary, textDecoration: 'none' }}
+            >
+              Templates <span aria-hidden="true">→</span>
+            </a>
+            <a
+              href="#pricing"
+              className="lp-hamburger-link"
+              onClick={closeMobileMenu}
+              style={{ color: T.textPrimary, textDecoration: 'none' }}
+            >
+              Pricing <span aria-hidden="true">→</span>
+            </a>
 
-        {/* ── W18 LANDING — 5-block conversion layout ───────────── */}
+            <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {user ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { closeMobileMenu(); navigate(avatarDest); }}
+                    style={{
+                      background: T.btnPrimary, color: T.btnPrimaryTxt,
+                      border: 'none', borderRadius: 20, padding: '12px 18px',
+                      fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {userType === 'recruiter' ? 'Go to Portal' : 'Go to Dashboard'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      closeMobileMenu();
+                      if (supabase) await supabase.auth.signOut();
+                      navigate('/');
+                    }}
+                    style={{
+                      background: 'transparent', color: T.btnGhostTxt,
+                      border: `1px solid ${T.btnGhostBorder}`, borderRadius: 20,
+                      padding: '12px 18px', fontSize: 14, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { closeMobileMenu(); navigate('/builder'); }}
+                    style={{
+                      background: '#D4860A', color: '#000', border: 'none',
+                      borderRadius: 20, padding: '12px 18px', fontSize: 14,
+                      fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    Build my CV — free →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { closeMobileMenu(); onLogin?.(); }}
+                    style={{
+                      background: 'transparent', color: T.btnGhostTxt,
+                      border: `1px solid ${T.btnGhostBorder}`, borderRadius: 20,
+                      padding: '12px 18px', fontSize: 14, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    Sign In
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ──────────────────────────────────────────────────────────────
+            May-2026 landing — exactly 9 sections, in this order:
+              1. Header + simplified nav  (above this block)
+              2. Hero (with animated 4-state phone slot)
+              3. Merged problem section (Quiet Truth + The Fix)
+              4. Three steps. Five minutes. (Step 02 = Live AI Demo slot)
+              5. Templates
+              6. +52 stat banner slot + Real people. Real results.
+              7. Founder note
+              8. Pricing
+              9. FAQ + Footer  (below this block)
+            ────────────────────────────────────────────────────────────── */}
+
+        {/* 2 — Hero */}
         <HeroSection user={user} />
-        <UploadTransformSection user={user} />
+
+        {/* 3 — Merged problem section: Quiet Truth (rejection reel) +
+                The Fix · 60 Seconds. Single section, both copies kept. */}
+        <MergedProblemFixSection user={user} />
+
+        {/* 4 — Three steps. Five minutes. Anchor target for the
+                "Live demo" nav link. Step 02 hosts the Live AI Demo slot. */}
+        <span id="live-demo" aria-hidden="true" />
         <HowItWorksSection />
+
+        {/* 5 — Templates. Anchor target for the "Templates" nav link. */}
+        <span id="templates" aria-hidden="true" />
         <TemplatesSection />
-        <GulfBillboardCard />
-        <ShowSection />
-        <FeatureCardGrid />
+
+        {/* 6 — +52 ATS score lift stat banner (slot) above
+                "Real people. Real results." testimonials grid. */}
+        {/* ────────────────────────────────────────────────────────────
+            SLOT: "+52 average ATS score lift" stat banner
+            Component will be pasted here by the user. Renders directly
+            above the TestimonialsRow heading as a horizontal banner.
+            ──────────────────────────────────────────────────────── */}
+        <div
+          data-slot="ats-score-lift-stat-banner"
+          style={{
+            maxWidth: 1100,
+            margin: '64px auto 0',
+            padding: '24px',
+            border: '1px dashed rgba(217,119,6,0.35)',
+            borderRadius: 14,
+            background: 'rgba(217,119,6,0.04)',
+            color: 'rgba(255,255,255,0.45)',
+            fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            textAlign: 'center',
+          }}
+        >
+          slot · +52 ats score lift stat banner
+        </div>
         <TestimonialsRow />
+
+        {/* 7 — Founder note */}
         <FoundersNoteSection />
+
+        {/* 8 — Pricing. Anchor target for the "Pricing" nav link. */}
+        <span id="pricing" aria-hidden="true" />
         <PricingAnchorSection />
-        <FinalCTASection user={user} />
 
         <footer className="lp-footer-disclaimer">
           <p>
@@ -893,28 +1071,29 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                   <Link className="lp-site-footer-link" to="/builder?tab=templates">Templates</Link>
                   <Link className="lp-site-footer-link" to="/ats">ATS Score</Link>
                   <Link className="lp-site-footer-link" to="/cover-letter">Cover Letter</Link>
-                  <Link className="lp-site-footer-link" to="/walk-in">Walk-In Mode</Link>
-                  <Link
-                    className="lp-site-footer-link"
-                    to="/salary-switcher"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+
+                  {/* Free tools subgroup — added May-2026 when the Free
+                      Tools row + Salary Intelligence section came off the
+                      landing page. The tools themselves still live at
+                      their existing routes; this is the only on-site
+                      breadcrumb to them now. */}
+                  <p
+                    className="lp-site-footer-col-h"
+                    style={{ marginTop: 20, marginBottom: 8 }}
                   >
+                    Free tools
+                  </p>
+                  <Link className="lp-site-footer-link" to="/salary-switcher">
                     Salary Switcher
-                    <span
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        color: '#1D9E75',
-                        background: 'rgba(29,158,117,0.12)',
-                        border: '1px solid rgba(29,158,117,0.3)',
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                      }}
-                    >
-                      Free Tool
-                    </span>
+                  </Link>
+                  <Link className="lp-site-footer-link" to="/ats">
+                    Score my CV
+                  </Link>
+                  <Link className="lp-site-footer-link" to="/linkedin-optimizer">
+                    LinkedIn Optimizer
+                  </Link>
+                  <Link className="lp-site-footer-link" to="/gulf-salary">
+                    Gulf Salary Intelligence
                   </Link>
                 </div>
                 <div>

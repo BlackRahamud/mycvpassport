@@ -104,13 +104,30 @@ export default function TestimonialsRow() {
             letter-spacing: -0.176px;
           }
         }
+        /* 3 + 2 layout — top row of 3 cards, bottom row of 2 centered.
+           The 4th and 5th cards (one of which is the new Arabic
+           testimonial pasted in by the user) span 1.5 cols each on
+           wide screens so the bottom row reads as deliberately offset.
+           Mobile collapses to a single column.                          */
         .cvp-testimonials-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(6, 1fr);
           gap: 20px;
         }
-        @media (max-width: 768px) {
+        .cvp-testimonials-grid > .cvp-testimonials-card:nth-child(-n+3) {
+          grid-column: span 2;
+        }
+        .cvp-testimonials-grid > .cvp-testimonials-card:nth-child(n+4) {
+          grid-column: span 3;
+        }
+        @media (max-width: 900px) {
+          .cvp-testimonials-grid { grid-template-columns: repeat(2, 1fr); }
+          .cvp-testimonials-grid > .cvp-testimonials-card:nth-child(-n+3) { grid-column: span 1; }
+          .cvp-testimonials-grid > .cvp-testimonials-card:nth-child(n+4) { grid-column: span 1; }
+        }
+        @media (max-width: 600px) {
           .cvp-testimonials-grid { grid-template-columns: 1fr; gap: 16px; }
+          .cvp-testimonials-grid > .cvp-testimonials-card { grid-column: span 1 !important; }
         }
         .cvp-testimonials-card {
           position: relative;
@@ -255,6 +272,12 @@ export default function TestimonialsRow() {
               className="cvp-testimonials-card"
               style={{ '--card-ring': t.ring, '--card-bleed': t.bleedRGB }}
             >
+              {/* TODO (post-paste): once the user pastes the new Arabic
+                  testimonial card with its "+AED 8K/mo lift" pill, restyle
+                  these existing badges to match that pill's visual chip
+                  style. Pill text stays exactly the same — only chrome
+                  changes ("Got interviews", "Score: 23 → 91",
+                  "Interview in 4 days", "Relocated to Dubai"). */}
               <span
                 className="cvp-testimonials-badge"
                 style={{ background: t.badge.bg, color: t.badge.color }}
@@ -272,6 +295,38 @@ export default function TestimonialsRow() {
               </figcaption>
             </figure>
           ))}
+
+          {/* ────────────────────────────────────────────────────────────
+              SLOT: 5th testimonial card — Arabic testimonial
+              Fatima A. / Marketing Lead / Cairo → Dubai
+              "+AED 8K/mo lift" pill. Component will be pasted by the
+              user as the 5th figure inside this grid. The grid is
+              already configured for a 3 + 2 layout (top row 3 cards,
+              bottom row 2 cards spanning 3 cols each on wide screens).
+              Drop the new <figure className="cvp-testimonials-card">
+              in place of this placeholder.
+              ──────────────────────────────────────────────────────── */}
+          <figure
+            data-slot="arabic-testimonial-card"
+            className="cvp-testimonials-card"
+            style={{
+              '--card-ring': 'rgba(217,119,6,0.35)',
+              '--card-bleed': '217,119,6',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              minHeight: 220,
+              border: '1px dashed rgba(217,119,6,0.35)',
+              background: 'rgba(217,119,6,0.04)',
+              color: 'rgba(255,255,255,0.45)',
+              fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+            }}
+          >
+            slot · arabic testimonial (fatima a.)
+          </figure>
         </div>
       </div>
     </section>
