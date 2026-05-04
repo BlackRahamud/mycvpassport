@@ -35,7 +35,7 @@ function pickTopMissing(resume) {
 
 const EASE = [0.4, 0, 0.2, 1];
 
-export default function CompletionStrip({ progress, resume, onDownload, onOpenSection }) {
+export default function CompletionStrip({ progress, resume, onDownload, onOpenSection, stickyTop = 0 }) {
   const reduce = useReducedMotion();
   const { percent, label, completedSections } = progress;
   const isComplete = percent >= 100;
@@ -79,7 +79,11 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
     const delay = target.open ? 100 : 0;
     window.setTimeout(() => {
       const el = document.querySelector(target.dom);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (!el) return;
+      // Account for the sticky topbar (stickyTop) + this sticky strip
+      // (~70px). Without scroll-margin, the target lands behind both.
+      el.style.scrollMarginTop = `${stickyTop + 70}px`;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, delay);
   };
 
@@ -87,7 +91,9 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
     <div
       ref={wrapRef}
       style={{
-        position: "relative",
+        position: "sticky",
+        top: stickyTop,
+        zIndex: 50,
         background: "#0F0F0F",
         border: "1px solid #1A1A1A",
         borderRadius: 12,

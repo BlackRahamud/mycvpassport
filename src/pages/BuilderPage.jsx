@@ -3748,6 +3748,7 @@ function ResumeBuilder({
                 resume={resume}
                 onDownload={handleDownload}
                 onOpenSection={setOpenSection}
+                stickyTop={56}
               />
 
               {/* Personal info card — always visible */}
@@ -4226,6 +4227,7 @@ function ResumeBuilder({
                   resume={resume}
                   onDownload={handleDownload}
                   onOpenSection={setOpenSection}
+                  stickyTop={0}
                 />
                 <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
