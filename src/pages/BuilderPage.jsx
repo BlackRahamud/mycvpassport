@@ -40,6 +40,8 @@ import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
 import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { clearBulletMarkers } from "../experiencePointsPreview";
+import CompletionStrip from "../components/CompletionStrip";
+import AtsGapsRibbon from "../components/AtsGapsRibbon";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
@@ -59,7 +61,7 @@ import {
 import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI, S } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
-import { useCvProgress, SECTIONS as CV_PROGRESS_SECTIONS } from "../hooks/useCvProgress";
+import { useCvProgress } from "../hooks/useCvProgress";
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
   const list = normalizeCertificationsArray(resume.certifications);
@@ -2567,6 +2569,34 @@ function ResumeBuilder({
   const scheduleBuilderIdleRef = useRef(() => {});
   const prevBuilderTabRef = useRef(null);
   const cvCompletionProgress = useCvProgress(resume);
+
+  // Hook #2 — ATS Gaps deep-link. Reads the comma-separated keyword list
+  // out of ?gaps= so the builder can show a slim ribbon at the top of
+  // the Content tab. No new state machinery — derived from the URL each
+  // render, dismissal lives in sessionStorage inside the ribbon itself.
+  const atsGaps = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("from") !== "ats") return [];
+    const raw = params.get("gaps");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((g) => {
+        try { return decodeURIComponent(g).trim(); } catch { return g.trim(); }
+      })
+      .filter(Boolean);
+  }, [location.search]);
+
+  const handleAtsRibbonChipClick = useCallback(() => {
+    setOpenSection("competencies");
+    window.setTimeout(() => {
+      const el = document.querySelector('[data-cvp-accordion="competencies"]');
+      if (!el) return;
+      // Account for sticky topbar (56) + sticky CompletionStrip (~70).
+      el.style.scrollMarginTop = "130px";
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }, []);
   const [pdfTargetPages, setPdfTargetPages] = useState(2);
   const [savedAtMs, setSavedAtMs] = useState(null);
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
@@ -2594,9 +2624,6 @@ function ResumeBuilder({
   const [cvpBannerDismissedStored, setCvpBannerDismissedStored] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem("cvp_banner_dismissed") === "true"
   );
-  const [progressTooltipOpen, setProgressTooltipOpen] = useState(false);
-  const progressRingWrapRef = useRef(null);
-  const progressRingWrapMobileRef = useRef(null);
   const expModalBodyRef = useRef(null);
   const [expModalScrollShadow, setExpModalScrollShadow] = useState(false);
   const [expModalBulletWarn, setExpModalBulletWarn] = useState(false);
@@ -2736,20 +2763,6 @@ function ResumeBuilder({
     const id = window.setInterval(tick, 15000);
     return () => clearInterval(id);
   }, [savedAtMs]);
-
-  useEffect(() => {
-    if (!progressTooltipOpen) return;
-    const close = (e) => {
-      const a = progressRingWrapRef.current?.contains(e.target);
-      const b = progressRingWrapMobileRef.current?.contains(e.target);
-      if (!a && !b) setProgressTooltipOpen(false);
-    };
-    const t = window.setTimeout(() => document.addEventListener("click", close), 10);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener("click", close);
-    };
-  }, [progressTooltipOpen]);
 
   useEffect(() => {
     if (!experienceEditor) {
@@ -3698,6 +3711,11 @@ function ResumeBuilder({
         >
           {builderTab === "content" && (
             <>
+              <AtsGapsRibbon
+                gaps={atsGaps}
+                resume={resume}
+                onChipClick={handleAtsRibbonChipClick}
+              />
               <div
                 style={{
                   display: "flex",
@@ -3755,96 +3773,17 @@ function ResumeBuilder({
                       2 pg
                     </button>
                   </div>
-                  <div ref={progressRingWrapRef} style={{ position: "relative", display: "inline-flex" }}>
-                    <button
-                      type="button"
-                      aria-label="CV completion breakdown"
-                      onClick={() => setProgressTooltipOpen((v) => !v)}
-                      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", lineHeight: 0 }}
-                    >
-                      <svg width={42} height={42} viewBox="0 0 42 42" style={{ transform: "rotate(-90deg)" }} aria-hidden>
-                        <circle cx="21" cy="21" r="17" fill="none" stroke="#2A2A2A" strokeWidth="3" />
-                        <circle
-                          cx="21"
-                          cy="21"
-                          r="17"
-                          fill="none"
-                          stroke="#3B82F6"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeDasharray="106.8"
-                          strokeDashoffset={106.8 - (106.8 * Math.min(100, Math.max(0, cvCompletionProgress.percent))) / 100}
-                          style={{ transition: "stroke-dashoffset 0.45s ease" }}
-                        />
-                      </svg>
-                      <span
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 9,
-                          fontWeight: 700,
-                          color: "#60A5FA",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        {Math.round(cvCompletionProgress.percent)}%
-                      </span>
-                    </button>
-                    {progressTooltipOpen ? (
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: "calc(100% + 10px)",
-                          right: 0,
-                          background: "#1C1C1C",
-                          border: "1px solid #2A2A2A",
-                          borderRadius: 12,
-                          padding: 12,
-                          width: 200,
-                          zIndex: 120,
-                          boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                        }}
-                      >
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "#60A5FA", marginBottom: 8 }}>CV Completion</div>
-                        {CV_PROGRESS_SECTIONS.map((sec) => {
-                          const ok = sec.isComplete(resume);
-                          const skillCount = splitCommaItems(resume.skills).length;
-                          const needSkills = Math.max(0, 3 - skillCount);
-                          const warnContent = !ok && sec.id === "skills" && needSkills > 0 ? String(needSkills) : !ok ? "!" : "✓";
-                          return (
-                            <div
-                              key={sec.id}
-                              style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#A0A0A0", padding: "3px 0" }}
-                            >
-                              <span
-                                style={{
-                                  width: 14,
-                                  height: 14,
-                                  borderRadius: "50%",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: 8,
-                                  flexShrink: 0,
-                                  background: ok ? "rgba(74,222,128,0.15)" : "rgba(59,130,246,0.12)",
-                                  color: ok ? "#4ADE80" : "#3B82F6",
-                                }}
-                              >
-                                {ok ? "✓" : warnContent}
-                              </span>
-                              {sec.completedLabel}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
                 </div>
                 )}
               </div>
+
+              <CompletionStrip
+                progress={cvCompletionProgress}
+                resume={resume}
+                onDownload={handleDownload}
+                onOpenSection={setOpenSection}
+                stickyTop={56}
+              />
 
               {/* Personal info card — always visible */}
               <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
@@ -4257,6 +4196,11 @@ function ResumeBuilder({
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
             {builderTab === "content" && (
               <>
+                <AtsGapsRibbon
+                  gaps={atsGaps}
+                  resume={resume}
+                  onChipClick={handleAtsRibbonChipClick}
+                />
                 <div
                   style={{
                     display: "flex",
@@ -4314,96 +4258,16 @@ function ResumeBuilder({
                         2 pg
                       </button>
                     </div>
-                    <div ref={progressRingWrapMobileRef} style={{ position: "relative", display: "inline-flex" }}>
-                      <button
-                        type="button"
-                        aria-label="CV completion breakdown"
-                        onClick={() => setProgressTooltipOpen((v) => !v)}
-                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "block", lineHeight: 0 }}
-                      >
-                        <svg width={42} height={42} viewBox="0 0 42 42" style={{ transform: "rotate(-90deg)" }} aria-hidden>
-                          <circle cx="21" cy="21" r="17" fill="none" stroke="#2A2A2A" strokeWidth="3" />
-                          <circle
-                            cx="21"
-                            cy="21"
-                            r="17"
-                            fill="none"
-                            stroke="#3B82F6"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeDasharray="106.8"
-                            strokeDashoffset={106.8 - (106.8 * Math.min(100, Math.max(0, cvCompletionProgress.percent))) / 100}
-                            style={{ transition: "stroke-dashoffset 0.45s ease" }}
-                          />
-                        </svg>
-                        <span
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 9,
-                            fontWeight: 700,
-                            color: "#60A5FA",
-                            pointerEvents: "none",
-                          }}
-                        >
-                          {Math.round(cvCompletionProgress.percent)}%
-                        </span>
-                      </button>
-                      {progressTooltipOpen ? (
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: "calc(100% + 10px)",
-                            right: 0,
-                            background: "#1C1C1C",
-                            border: "1px solid #2A2A2A",
-                            borderRadius: 12,
-                            padding: 12,
-                            width: 200,
-                            zIndex: 120,
-                            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                          }}
-                        >
-                          <div style={{ fontSize: 11, fontWeight: 600, color: "#60A5FA", marginBottom: 8 }}>CV Completion</div>
-                          {CV_PROGRESS_SECTIONS.map((sec) => {
-                            const ok = sec.isComplete(resume);
-                            const skillCount = splitCommaItems(resume.skills).length;
-                            const needSkills = Math.max(0, 3 - skillCount);
-                            const warnContent = !ok && sec.id === "skills" && needSkills > 0 ? String(needSkills) : !ok ? "!" : "✓";
-                            return (
-                              <div
-                                key={`m-${sec.id}`}
-                                style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#A0A0A0", padding: "3px 0" }}
-                              >
-                                <span
-                                  style={{
-                                    width: 14,
-                                    height: 14,
-                                    borderRadius: "50%",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    fontSize: 8,
-                                    flexShrink: 0,
-                                    background: ok ? "rgba(74,222,128,0.15)" : "rgba(59,130,246,0.12)",
-                                    color: ok ? "#4ADE80" : "#3B82F6",
-                                  }}
-                                >
-                                  {ok ? "✓" : warnContent}
-                                </span>
-                                {sec.completedLabel}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-                    </div>
                   </div>
                   )}
                 </div>
+                <CompletionStrip
+                  progress={cvCompletionProgress}
+                  resume={resume}
+                  onDownload={handleDownload}
+                  onOpenSection={setOpenSection}
+                  stickyTop={0}
+                />
                 <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
                     <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />

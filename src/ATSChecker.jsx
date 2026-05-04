@@ -8,6 +8,7 @@ import { extractCvText, CvExtractionError } from "./services/cvExtraction";
 import { logEvent } from "./lib/analytics/logEvent";
 import CvOnlyResult from "./components/CvOnlyResult";
 import UpgradeModal from "./UpgradeModal";
+import AtsGapsActionCard from "./components/AtsGapsActionCard";
 
 // Sprint #4: Cloudflare Turnstile site key (public). When unset locally
 // the widget is skipped entirely and the Edge Function fail-opens in dev.
@@ -324,6 +325,31 @@ export default function ATSChecker({
 
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
+
+  // ─── DEV MOCK — REMOVE BEFORE MERGE (search: MOCKATS_DEV_BYPASS) ──────────
+  // Visit /ats?mockats=true to skip the upload + scan flow and render the
+  // post-score view with hardcoded data. Used for visually QA-ing
+  // AtsGapsActionCard + the /builder?from=ats&gaps=... → AtsGapsRibbon flow
+  // without a real CV upload. Delete this entire block before merging the
+  // standing PR to main.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mockats") !== "true") return;
+    setResults({
+      score: 42,
+      keywordsScore: 28,
+      structureScore: 35,
+      contentScore: 48,
+      visibilityBoosters: ["Negotiation", "CRM", "Client Relations"],
+      rankTriggers: ["RERA Certified", "Off-plan Sales", "KYC"],
+      industry: "Finance",
+      topPercent: 60,
+    });
+    setPhase("results");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // ─── END MOCKATS_DEV_BYPASS ───────────────────────────────────────────────
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -999,7 +1025,6 @@ export default function ATSChecker({
   const rankTriggers = results?.rankTriggers ?? ["RERA Certified", "Off-plan Sales", "KYC", "AML"];
   const industry = results?.industry ?? "Finance";
   const topPercent = results?.topPercent ?? 15;
-  const isFreeTier = !isPro;
   const isMonthlyPro = isPro && gatePlanName === "Active Hunter";
   return (
     <>
@@ -1032,6 +1057,13 @@ export default function ATSChecker({
             </div>
             <div style={{ fontSize: 12, color: '#444', textAlign: 'center', marginBottom: 16, letterSpacing: '0.3px' }}>Analyzed against real GCC &amp; India hiring data</div>
           </div>
+
+          <AtsGapsActionCard
+            score={score}
+            visibilityBoosters={visibilityBoosters}
+            isPro={isPro}
+            onUpgrade={() => setShowPaywall(true)}
+          />
 
           {/* Gradient bar */}
           <div style={{ marginBottom: 36 }}>
@@ -1128,102 +1160,6 @@ export default function ATSChecker({
             </div>
           </div>
 
-          {/* Conversion card — shown to free users only */}
-          {isFreeTier && (
-          <div style={{
-            background: '#0A0A0A',
-            borderRadius: 20,
-            padding: '32px 24px',
-            textAlign: 'center',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            {/* Running white light border */}
-            <div aria-hidden style={{
-              position: 'absolute', inset: 0, borderRadius: 20, padding: 1,
-              background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)',
-              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude',
-              pointerEvents: 'none',
-              animation: 'ats-spin-border 3s linear infinite',
-            }} />
-
-            {/* Pulsing lock circle */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <div style={{
-                background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 70%, rgba(255,255,255,0.8) 85%, transparent 100%)',
-                borderRadius: '50%',
-                padding: 1.5,
-                display: 'inline-block',
-                animation: 'ats-spin-border 3s linear infinite',
-              }}>
-                <div style={{
-                  width: 72, height: 72, borderRadius: '50%',
-                  background: '#0A0A0A',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative',
-                }}>
-                  <div aria-hidden style={{
-                    position: 'absolute', inset: -6, borderRadius: '50%',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    animation: 'ats-pulse-out 2.5s ease-out infinite',
-                  }} />
-                  <div aria-hidden style={{
-                    position: 'absolute', inset: -6, borderRadius: '50%',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    animation: 'ats-pulse-out 2.5s ease-out infinite 0.8s',
-                  }} />
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/>
-                    <path d="M7 11V7a5 5 0 0110 0v4"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', lineHeight: 1.4, marginBottom: 8 }}>
-              Your CV was filtered out by the ATS.
-            </div>
-            <div style={{ fontSize: 13, color: '#666', lineHeight: 1.65, marginBottom: 24, maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
-              {"You\u2019re in the bottom 40% of applicants for this role. Unlock the exact keyword gaps and AI-rewrite suggestions \u2014 analyzed against live UAE & Gulf job listings."}
-            </div>
-
-            {/* Unlock button with running border */}
-            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 12, marginBottom: 12 }}>
-              <button
-                onClick={() => setShowPaywall(true)}
-                style={{
-                  width: '100%', background: '#0A0A0A', color: '#fff',
-                  border: 'none', borderRadius: 12,
-                  padding: '16px 24px', fontSize: 15, fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  gap: 8, letterSpacing: -0.3,
-                  transition: 'opacity 0.15s',
-                }}
-              >
-                <div aria-hidden style={{
-                  position: 'absolute', inset: 0, borderRadius: 12, padding: 1,
-                  background: 'conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)',
-                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                  WebkitMaskComposite: 'xor',
-                  maskComposite: 'exclude',
-                  pointerEvents: 'none',
-                  animation: 'ats-spin-border 2s linear infinite',
-                }} />
-                {'Get to the Top 10% \u2014 AED 29/mo'}
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </button>
-            </div>
-
-            <div style={{ fontSize: 11, color: '#333' }}>
-              Cancel anytime · Instant access · 500+ UAE job seekers
-            </div>
-          </div>
-          )}
 
           {isMonthlyPro && (
             <div style={{ textAlign: 'center', marginTop: 8 }}>
