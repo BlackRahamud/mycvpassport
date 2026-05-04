@@ -18,7 +18,10 @@ import React, {
   useState as useDS,
   useEffect as useDE,
   useRef as useDR,
+  useCallback as useDCB,
 } from "react";
+import { useNavigate } from "react-router-dom";
+import { logEvent } from "../../lib/analytics/logEvent";
 
 /* The bullet the user "picks" (item index 2 — the aviation-specific one) */
 const BULLETS_BEFORE = [
@@ -63,6 +66,7 @@ function Typer({ text, speed = 14, onDone }) {
 }
 
 export default function LiveAIDemo() {
+  const navigate = useNavigate();
   const [phase, setPhase] = useDS("idle");
   const [muted, setMuted] = useDS(true);
 
@@ -206,6 +210,25 @@ export default function LiveAIDemo() {
     setPhase("done");
   }
 
+  // "Rewrite mine now — free" CTA inside the post-rewrite done overlay.
+  // Stops any in-flight demo timers, fires the funnel event, then deep-
+  // links into the builder's experience editor in add-mode with the
+  // "Improve with AI" affordance visible. Guests are NOT gated — the
+  // /builder route is open and sign-up is only required at download.
+  const handleRewriteCTA = useDCB(() => {
+    reset();
+    setPhase("idle");
+    try {
+      logEvent("cta_rewrite_mine_clicked", {
+        source: "live_ai_demo_modal",
+        cta_text: "Rewrite mine now — free",
+        cta_destination: "/builder?step=experience&ai=open",
+      });
+    } catch { /* analytics failure must not block navigation */ }
+    navigate("/builder?step=experience&ai=open");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
+
   /* --------------------------- render --------------------------- */
   return (
     <section className="cvp-d-section" id="demo">
@@ -272,7 +295,9 @@ export default function LiveAIDemo() {
                 <div className="cvp-d-done-t">That's the rewrite. On every bullet of your CV.</div>
                 <div className="cvp-d-done-row">
                   <button className="cvp-d-replay" onClick={play}>↻ Replay</button>
-                  <button className="cvp-d-cta">Rewrite mine now → free →</button>
+                  <button className="cvp-d-cta" onClick={handleRewriteCTA}>
+                    Rewrite mine now → free →
+                  </button>
                 </div>
               </div>
             </div> :

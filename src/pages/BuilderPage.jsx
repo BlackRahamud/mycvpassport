@@ -2611,6 +2611,29 @@ function ResumeBuilder({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') === 'templates') setBuilderTab('templates');
+
+    // Deep-link from the landing-page Live AI Demo modal:
+    //   /builder?step=experience&ai=open
+    // Lands the visitor on the Content tab with the experience accordion
+    // open, the experience section scrolled into view, and (when ai=open)
+    // the experience editor opened in add-mode so the "Improve with AI"
+    // button is visible immediately.
+    const step = params.get('step');
+    const ai = params.get('ai');
+    if (step === 'experience') {
+      setBuilderTab('content');
+      setOpenSection('experience');
+      setTimeout(() => {
+        document
+          .getElementById('section-experience')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+      if (ai === 'open') {
+        setTimeout(() => {
+          setExperienceEditor({ mode: 'add', index: -1, draft: { ...EMPTY_EXP } });
+        }, 240);
+      }
+    }
   }, []);
 
   useEffect(() => {
