@@ -1,16 +1,66 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
+
+const EASE = [0.4, 0, 0.2, 1];
 
 function LockIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "-2px" }}>
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+// Inline SVGs drawn for this page — no glyph fonts, no emoji.
+function StarIcon({ size = 12, color = "#FBBF24" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true">
+      <path d="M12 2l2.39 6.95H22l-6.18 4.49L18.18 22 12 17.27 5.82 22l2.36-8.56L2 8.95h7.61L12 2z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ size = 14, open = false }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{
+        transform: open ? "rotate(180deg)" : "none",
+        transition: "transform 200ms cubic-bezier(0.4,0,0.2,1)",
+      }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon({ size = 14, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12h14M12 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+function CheckIcon({ size = 12, color = "#4ADE80" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }
@@ -34,6 +84,8 @@ export default function PricingPage() {
   const [authReady, setAuthReady] = useState(false);
   const [checkoutSheet, setCheckoutSheet] = useState({ open: false, planId: null, priceLabel: "" });
   const [checkoutError, setCheckoutError] = useState(null);
+  const [allPlansOpen, setAllPlansOpen] = useState(false);
+  const reduce = useReducedMotion();
 
   // GA4: view_pricing_plan
   useEffect(() => {
@@ -373,50 +425,9 @@ export default function PricingPage() {
           }}>
             Simple, Transparent Pricing
           </h1>
-          <p style={{ fontSize: isMobile ? "14px" : "16px", color: "#A0A0A0", margin: "0 0 28px" }}>
+          <p style={{ fontSize: isMobile ? "14px" : "16px", color: "#A0A0A0", margin: 0 }}>
             Built for UAE and India job seekers. No surprises.
           </p>
-
-          {/* BILLING TOGGLE */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: "0",
-            backgroundColor: "#141414", border: "1px solid #2A2A2A",
-            borderRadius: "100px", padding: "4px",
-          }}>
-            <button
-              onClick={() => setBilling("monthly")}
-              style={{
-                padding: "8px 20px", borderRadius: "100px", border: "none",
-                backgroundColor: billing === "monthly" ? "#FFFFFF" : "transparent",
-                color: billing === "monthly" ? "#000000" : "#A0A0A0",
-                fontSize: "13px", fontWeight: "600", cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBilling("annual")}
-              style={{
-                padding: "8px 20px", borderRadius: "100px", border: "none",
-                backgroundColor: billing === "annual" ? "#FFFFFF" : "transparent",
-                color: billing === "annual" ? "#000000" : "#A0A0A0",
-                fontSize: "13px", fontWeight: "600", cursor: "pointer",
-                transition: "all 0.2s",
-                display: "flex", alignItems: "center", gap: "6px",
-              }}
-            >
-              Annual
-              <span style={{
-                backgroundColor: "rgba(217,119,6,0.15)", color: "#D97706",
-                border: "1px solid rgba(217,119,6,0.3)",
-                fontSize: "10px", fontWeight: "700", padding: "2px 6px",
-                borderRadius: "100px",
-              }}>
-                Save 40%
-              </span>
-            </button>
-          </div>
         </div>
 
         {/* CHECKOUT ERROR BANNER */}
@@ -459,210 +470,616 @@ export default function PricingPage() {
           </div>
         ) : null}
 
-        {/* PLAN CARDS */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)",
-          gap: "20px",
-          marginBottom: isMobile ? "40px" : "60px",
-        }}>
-          {plans.map((plan) => {
-            const isHunter = plan.id === "hunter";
-            const isCurrent = isCurrentPlan(plan);
-
-            // Parse price for large display
-            let priceLarge = null;
-            let priceSuffix = "";
-            if (plan.id === "explorer") {
-              priceLarge = "Free";
-            } else if (plan.id === "pro") {
-              priceLarge = currency === "AED" ? "199" : "999";
-              priceSuffix = "/yr";
-            } else {
-              const prices = currency === "AED" ? plan.priceAED : plan.priceINR;
-              const price = billing === "monthly" ? prices.monthly : prices.annual;
-              priceLarge = String(price);
-              priceSuffix = "/mo";
-            }
-
+        {/* HERO — two-card anchor: Free (subdued) + Active Hunter (dominant) */}
+        <motion.div
+          initial={reduce ? false : "hidden"}
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1.05fr",
+            gap: isMobile ? 16 : 20,
+            marginBottom: 32,
+            alignItems: "stretch",
+          }}
+        >
+          {/* FREE — anchors the price */}
+          {(() => {
+            const explorerPlan = plans.find((p) => p.id === "explorer");
+            const isCurrent = !!explorerPlan && isCurrentPlan(explorerPlan);
             return (
-              <div
-                key={plan.id}
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 8 },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE } },
+                }}
                 style={{
                   backgroundColor: "#141414",
-                  border: isHunter ? "1px solid #D97706" : "1px solid #2A2A2A",
-                  borderTop: isHunter ? "2px solid #D97706" : undefined,
-                  borderRadius: "16px",
-                  padding: isHunter ? (isMobile ? "24px 20px" : "36px 28px") : cardPad,
+                  border: "1px solid #2A2A2A",
+                  borderRadius: 16,
+                  padding: isMobile ? "24px 20px" : "28px 24px",
                   display: "flex",
                   flexDirection: "column",
-                  boxShadow: isHunter ? "0 0 24px rgba(217,119,6,0.15)" : "none",
-                  position: "relative",
                 }}
               >
-                {/* Badge */}
-                {plan.badge && (
-                  <div style={{ marginBottom: "12px" }}>
-                    <span style={{
-                      border: `1px solid ${isHunter ? "#D97706" : "#FFFFFF"}`,
-                      color: isHunter ? "#D97706" : "#FFFFFF",
-                      fontSize: "10px", fontWeight: "700",
-                      padding: "3px 10px", borderRadius: "100px",
-                      textTransform: "uppercase", letterSpacing: "0.05em",
-                    }}>
-                      {plan.badge}
-                    </span>
-                  </div>
-                )}
-                {!plan.badge && <div style={{ height: "26px" }} />}
-
-                {/* Plan name */}
-                <div style={{ fontSize: "16px", fontWeight: "700", color: "#FFFFFF", marginBottom: "16px" }}>
-                  {plan.name}
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "#A0A0A0",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    marginBottom: 14,
+                  }}
+                >
+                  Start free
                 </div>
-
-                {/* Price */}
-                <div style={{ marginBottom: "6px", display: "flex", alignItems: "baseline", gap: "2px" }}>
-                  {plan.id !== "explorer" && plan.id !== "pro" && (
-                    <span style={{ fontSize: "20px", fontWeight: "700", color: "#FFFFFF" }}>
-                      {currency === "AED" ? "AED " : "₹"}
-                    </span>
-                  )}
-                  <span style={{ fontSize: "40px", fontWeight: "700", color: "#FFFFFF", lineHeight: 1 }}>
-                    {plan.id === "explorer" ? "Free" : plan.id === "pro" ? (currency === "AED" ? "AED 199" : "₹999") : priceLarge}
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
+                  <span style={{ fontSize: 36, fontWeight: 700, color: "#FFFFFF", lineHeight: 1, letterSpacing: "-0.02em" }}>
+                    {currency === "AED" ? "AED 0" : "₹0"}
                   </span>
-                  {plan.id !== "explorer" && (
-                    <span style={{ fontSize: "13px", color: "#A0A0A0", marginLeft: "2px" }}>{priceSuffix}</span>
-                  )}
                 </div>
-
-                {/* Annual savings callout */}
-                {isHunter && billing === "annual" && (
-                  <div style={{ fontSize: "12px", color: "#A0A0A0", marginBottom: "6px" }}>
-                    {currency === "AED" ? "Save AED 144/year" : "Save ₹960/year"}
-                  </div>
-                )}
-
-                {/* Description */}
-                <div style={{ fontSize: "13px", color: "#A0A0A0", marginBottom: "24px" }}>
-                  {plan.description}
+                <div style={{ fontSize: 13, color: "#A0A0A0", marginBottom: 24 }}>
+                  No card. No catch.
                 </div>
-
-                {/* Features */}
-                <div style={{ flex: 1, marginBottom: "28px" }}>
-                  {plan.features.map((f, i) => (
-                    <div key={i} style={{
-                      display: "flex", alignItems: "center", gap: "10px",
-                      marginBottom: "10px", fontSize: "13px",
-                      color: f.included ? "#FFFFFF" : "#4A4A4A",
-                    }}>
-                      <span style={{
-                        color: f.included ? "#16A34A" : "#4A4A4A",
-                        fontWeight: "700", fontSize: "14px", flexShrink: 0,
-                      }}>
-                        {f.included ? "✓" : "×"}
+                <div style={{ flex: 1, marginBottom: 24, display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    "Build 3 CVs free",
+                    "Score your CV against any job",
+                    "Pick from starter templates",
+                  ].map((line) => (
+                    <div
+                      key={line}
+                      style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#E5E5E5" }}
+                    >
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, flexShrink: 0 }}>
+                        <CheckIcon size={12} color="#4ADE80" />
                       </span>
-                      {f.text}
+                      {line}
                     </div>
                   ))}
                 </div>
-
-                {/* CTA */}
                 {isCurrent ? (
                   <button
                     disabled
                     style={{
-                      width: "100%", height: "44px", borderRadius: "12px",
+                      width: "100%", height: 44, borderRadius: 12,
                       backgroundColor: "transparent", color: "#A0A0A0",
-                      border: "1px solid #2A2A2A", fontSize: "14px",
-                      fontWeight: "600", cursor: "not-allowed",
+                      border: "1px solid #2A2A2A", fontSize: 14,
+                      fontWeight: 600, cursor: "not-allowed",
+                      fontFamily: "inherit",
                     }}
                   >
                     Current Plan
                   </button>
-                ) : plan.id === "explorer" ? (
-                  <button
-                    onClick={() => handleCTA(plan)}
-                    style={{
-                      width: "100%", height: "44px", borderRadius: "12px",
-                      backgroundColor: "transparent", color: "#FFFFFF",
-                      border: "1px solid #FFFFFF", fontSize: "14px",
-                      fontWeight: "600", cursor: "pointer",
-                    }}
-                  >
-                    {plan.cta}
-                  </button>
                 ) : (
                   <button
-                    onClick={() => handleCTA(plan)}
+                    type="button"
+                    onClick={() => explorerPlan && handleCTA(explorerPlan)}
                     style={{
-                      width: "100%", height: "44px", borderRadius: "12px",
-                      backgroundColor: "#FFFFFF", color: "#000000",
-                      border: "none", fontSize: "14px",
-                      fontWeight: "600", cursor: "pointer",
+                      width: "100%", height: 44, borderRadius: 12,
+                      backgroundColor: "transparent", color: "#FFFFFF",
+                      border: "1px solid rgba(255,255,255,0.5)",
+                      fontSize: 14, fontWeight: 600, cursor: "pointer",
+                      fontFamily: "inherit",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      transition: "border-color 160ms cubic-bezier(0.4,0,0.2,1), background-color 160ms cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#FFFFFF";
+                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)";
+                      e.currentTarget.style.backgroundColor = "transparent";
                     }}
                   >
-                    {plan.cta}
+                    <span>Build your first CV</span>
+                    <ArrowRightIcon size={14} color="#FFFFFF" />
                   </button>
                 )}
-              </div>
+              </motion.div>
             );
-          })}
+          })()}
+
+          {/* ACTIVE HUNTER — dominant, the inevitable choice */}
+          {(() => {
+            const hunterPlan = plans.find((p) => p.id === "hunter");
+            const isCurrent = !!hunterPlan && isCurrentPlan(hunterPlan);
+            const cancelLine = currency === "AED" ? "Cancel anytime · AED 29/mo" : "Cancel anytime · ₹199/mo";
+            return (
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 8 },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.36, ease: EASE } },
+                }}
+                style={{
+                  position: "relative",
+                  background: "linear-gradient(180deg, #181818 0%, #121212 100%)",
+                  border: "1px solid rgba(217,119,6,0.32)",
+                  borderRadius: 18,
+                  padding: isMobile ? "26px 20px 24px" : "32px 28px 28px",
+                  display: "flex",
+                  flexDirection: "column",
+                  // Faint amber glow edge + top-edge highlight + grounded drop
+                  // + wide outward amber spill — same depth language as the
+                  // AtsGapsActionCard so the two surfaces feel related.
+                  boxShadow: [
+                    "0 0 0 1px rgba(217,119,6,0.08)",
+                    "inset 0 1px 0 rgba(255,255,255,0.05)",
+                    "0 24px 56px -14px rgba(0,0,0,0.6)",
+                    "0 0 80px -28px rgba(217,119,6,0.30)",
+                  ].join(", "),
+                }}
+              >
+                <div style={{ marginBottom: 14 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#D97706",
+                      padding: "4px 10px",
+                      borderRadius: 9999,
+                      border: "1px solid rgba(217,119,6,0.32)",
+                      background: "rgba(217,119,6,0.08)",
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Most chosen · Gulf job seekers
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.005em" }}>
+                    {currency === "AED" ? "AED " : "₹"}
+                  </span>
+                  <span style={{ fontSize: 44, fontWeight: 700, color: "#FFFFFF", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+                    {currency === "AED" ? "29" : "199"}
+                  </span>
+                  <span style={{ fontSize: 14, color: "#A0A0A0", marginLeft: 4 }}>/mo</span>
+                </div>
+
+                <div style={{ fontSize: 13, color: "#D97706", marginBottom: 24, fontWeight: 500 }}>
+                  Less than a coffee. More than a recruiter.
+                </div>
+
+                <div style={{ flex: 1, marginBottom: 28, display: "flex", flexDirection: "column", gap: 12 }}>
+                  {[
+                    "Unlimited CVs, any template",
+                    "AI rewrites your bullets to beat ATS filters",
+                    "Cover letter in 20 seconds",
+                    "Scout — search 10,000+ Gulf & India jobs",
+                    "Download-ready in minutes",
+                  ].map((line) => (
+                    <div
+                      key={line}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        fontSize: 14,
+                        color: "#FFFFFF",
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 20, flexShrink: 0 }}>
+                        <CheckIcon size={13} color="#4ADE80" />
+                      </span>
+                      <span>{line}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {isCurrent ? (
+                  <button
+                    disabled
+                    style={{
+                      width: "100%", height: 48, borderRadius: 9999,
+                      backgroundColor: "transparent", color: "#A0A0A0",
+                      border: "1px solid #2A2A2A", fontSize: 14,
+                      fontWeight: 600, cursor: "not-allowed",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <motion.button
+                    type="button"
+                    onClick={() => hunterPlan && handleCTA(hunterPlan)}
+                    initial={reduce ? false : { boxShadow: "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30)" }}
+                    animate={reduce ? undefined : {
+                      boxShadow: [
+                        "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30), 0 0 48px -8px rgba(217,119,6,0.40), 0 6px 18px rgba(217,119,6,0.24)",
+                        "0 0 0 1px rgba(217,119,6,0.55), 0 0 32px rgba(217,119,6,0.55), 0 0 72px -8px rgba(217,119,6,0.65), 0 6px 22px rgba(217,119,6,0.34)",
+                        "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30), 0 0 48px -8px rgba(217,119,6,0.40), 0 6px 18px rgba(217,119,6,0.24)",
+                      ],
+                    }}
+                    transition={reduce ? undefined : { duration: 1.6, times: [0, 0.5, 1], delay: 0.5, ease: EASE }}
+                    style={{
+                      width: "100%", height: 48, borderRadius: 9999,
+                      background: "linear-gradient(180deg, #E08810 0%, #B25E03 100%)",
+                      color: "#FFFFFF", border: "none",
+                      fontSize: 15, fontWeight: 700, cursor: "pointer",
+                      fontFamily: "inherit",
+                      letterSpacing: "-0.005em",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      transition: "filter 160ms cubic-bezier(0.4,0,0.2,1), transform 160ms cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.05)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.filter = "none"; }}
+                    onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
+                    onMouseUp={(e) => { e.currentTarget.style.transform = "none"; }}
+                  >
+                    <span>Start your hunt</span>
+                    <ArrowRightIcon size={14} color="#FFFFFF" />
+                  </motion.button>
+                )}
+
+                <div style={{ fontSize: 12, color: "#A0A0A0", textAlign: "center", marginTop: 12 }}>
+                  {cancelLine}
+                </div>
+              </motion.div>
+            );
+          })()}
+        </motion.div>
+
+        {/* SOCIAL PROOF — directly under the cards, the decision moment */}
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 44, padding: "0 16px" }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              fontSize: 13,
+              color: "#A0A0A0",
+              marginBottom: 8,
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}
+          >
+            <span style={{ display: "inline-flex", gap: 2 }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <StarIcon key={i} size={13} color="#FBBF24" />
+              ))}
+            </span>
+            <span>2,400+ job seekers across UAE and India</span>
+          </div>
+          <div style={{ fontSize: 13, color: "#666", maxWidth: 560, margin: "0 auto", lineHeight: 1.55 }}>
+            Built for the Gulf hiring market — ATS-engineered for systems Dubai recruiters use.
+          </div>
         </div>
 
-        {/* COMPARISON TABLE — desktop only */}
-        {!isMobile && (
-          <div style={{ marginBottom: "60px" }}>
-            <table style={{
-              width: "100%", borderCollapse: "collapse",
-              backgroundColor: "#141414", border: "1px solid #2A2A2A",
-              borderRadius: "12px", overflow: "hidden",
-            }}>
-              <thead>
-                <tr>
-                  <th style={{
-                    textAlign: "left", padding: "16px 20px",
-                    fontSize: "13px", fontWeight: "600", color: "#A0A0A0",
-                    borderBottom: "1px solid #2A2A2A",
-                  }}>
-                    Feature
-                  </th>
-                  {["Explorer", "Express Pass", "Active Hunter", "Career Pro"].map((col, i) => (
-                    <th key={col} style={{
-                      padding: "16px 20px", fontSize: "13px", fontWeight: "600",
-                      color: i === 2 ? "#D97706" : "#FFFFFF",
-                      backgroundColor: i === 2 ? "rgba(217,119,6,0.1)" : "transparent",
-                      borderBottom: "1px solid #2A2A2A", textAlign: "center",
-                    }}>
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {compRows.map((row, ri) => (
-                  <tr key={row.feature} style={{ backgroundColor: ri % 2 === 0 ? "#141414" : "#1C1C1C" }}>
-                    <td style={{
-                      padding: "14px 20px", fontSize: "13px", color: "#FFFFFF",
-                      borderBottom: "1px solid #2A2A2A",
-                    }}>
-                      {row.feature}
-                    </td>
-                    {row.vals.map((val, vi) => (
-                      <td key={vi} style={{
-                        padding: "14px 20px", textAlign: "center",
-                        borderBottom: "1px solid #2A2A2A",
-                        backgroundColor: vi === 2 ? "rgba(217,119,6,0.05)" : "transparent",
-                      }}>
-                        {renderCell(val)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* DISCLOSURE — Express Pass + Career Pro + comparison table */}
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={() => setAllPlansOpen((v) => !v)}
+              aria-expanded={allPlansOpen}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "8px 12px",
+                color: "#A0A0A0",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "color 160ms cubic-bezier(0.4,0,0.2,1)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
+            >
+              <span>
+                {allPlansOpen
+                  ? "Hide other plans"
+                  : "See all plans including one-time and annual options"}
+              </span>
+              <ChevronDownIcon size={14} open={allPlansOpen} />
+            </button>
           </div>
-        )}
+
+          <AnimatePresence initial={false}>
+            {allPlansOpen && (
+              <motion.div
+                key="all-plans-disclosure"
+                initial={reduce ? { opacity: 1, height: "auto" } : { opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={reduce ? { opacity: 0, height: 0 } : { opacity: 0, height: 0 }}
+                transition={reduce ? { duration: 0 } : { duration: 0.32, ease: EASE }}
+                style={{ overflow: "hidden" }}
+              >
+                <div style={{ paddingTop: 28 }}>
+                  {/* Billing toggle — relevant only for the annual options inside */}
+                  <div style={{ textAlign: "center", marginBottom: 24 }}>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0,
+                        backgroundColor: "#141414",
+                        border: "1px solid #2A2A2A",
+                        borderRadius: 100,
+                        padding: 4,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setBilling("monthly")}
+                        style={{
+                          padding: "8px 20px", borderRadius: 100, border: "none",
+                          backgroundColor: billing === "monthly" ? "#FFFFFF" : "transparent",
+                          color: billing === "monthly" ? "#000000" : "#A0A0A0",
+                          fontSize: 13, fontWeight: 600, cursor: "pointer",
+                          transition: "all 0.2s", fontFamily: "inherit",
+                        }}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBilling("annual")}
+                        style={{
+                          padding: "8px 20px", borderRadius: 100, border: "none",
+                          backgroundColor: billing === "annual" ? "#FFFFFF" : "transparent",
+                          color: billing === "annual" ? "#000000" : "#A0A0A0",
+                          fontSize: 13, fontWeight: 600, cursor: "pointer",
+                          transition: "all 0.2s", fontFamily: "inherit",
+                          display: "flex", alignItems: "center", gap: 6,
+                        }}
+                      >
+                        Annual
+                        <span
+                          style={{
+                            backgroundColor: "rgba(217,119,6,0.15)",
+                            color: "#D97706",
+                            border: "1px solid rgba(217,119,6,0.3)",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 100,
+                          }}
+                        >
+                          Save 40%
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Express Pass + Career Pro — preserve existing card markup */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+                      gap: 20,
+                      marginBottom: 36,
+                    }}
+                  >
+                    {plans
+                      .filter((p) => p.id === "express" || p.id === "pro")
+                      .map((plan) => {
+                        const isCurrent = isCurrentPlan(plan);
+                        let priceLarge = null;
+                        let priceSuffix = "";
+                        if (plan.id === "pro") {
+                          priceLarge = currency === "AED" ? "199" : "999";
+                          priceSuffix = "/yr";
+                        } else {
+                          const prices = currency === "AED" ? plan.priceAED : plan.priceINR;
+                          const price = billing === "monthly" ? prices.monthly : prices.annual;
+                          priceLarge = String(price);
+                          priceSuffix = "/mo";
+                        }
+                        return (
+                          <div
+                            key={plan.id}
+                            style={{
+                              backgroundColor: "#141414",
+                              border: "1px solid #2A2A2A",
+                              borderRadius: 16,
+                              padding: cardPad,
+                              display: "flex",
+                              flexDirection: "column",
+                              position: "relative",
+                            }}
+                          >
+                            {plan.badge ? (
+                              <div style={{ marginBottom: 12 }}>
+                                <span
+                                  style={{
+                                    border: "1px solid #FFFFFF",
+                                    color: "#FFFFFF",
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: "3px 10px",
+                                    borderRadius: 100,
+                                    textTransform: "uppercase",
+                                    letterSpacing: "0.05em",
+                                  }}
+                                >
+                                  {plan.badge}
+                                </span>
+                              </div>
+                            ) : (
+                              <div style={{ height: 26 }} />
+                            )}
+                            <div style={{ fontSize: 16, fontWeight: 700, color: "#FFFFFF", marginBottom: 16 }}>
+                              {plan.name}
+                            </div>
+                            <div style={{ marginBottom: 6, display: "flex", alignItems: "baseline", gap: 2 }}>
+                              {plan.id !== "pro" && (
+                                <span style={{ fontSize: 20, fontWeight: 700, color: "#FFFFFF" }}>
+                                  {currency === "AED" ? "AED " : "₹"}
+                                </span>
+                              )}
+                              <span style={{ fontSize: 40, fontWeight: 700, color: "#FFFFFF", lineHeight: 1 }}>
+                                {plan.id === "pro" ? (currency === "AED" ? "AED 199" : "₹999") : priceLarge}
+                              </span>
+                              <span style={{ fontSize: 13, color: "#A0A0A0", marginLeft: 2 }}>{priceSuffix}</span>
+                            </div>
+                            <div style={{ fontSize: 13, color: "#A0A0A0", marginBottom: 24 }}>
+                              {plan.description}
+                            </div>
+                            <div style={{ flex: 1, marginBottom: 28 }}>
+                              {plan.features.map((f, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    marginBottom: 10,
+                                    fontSize: 13,
+                                    color: f.included ? "#FFFFFF" : "#4A4A4A",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      color: f.included ? "#16A34A" : "#4A4A4A",
+                                      fontWeight: 700,
+                                      fontSize: 14,
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {f.included ? "✓" : "×"}
+                                  </span>
+                                  {f.text}
+                                </div>
+                              ))}
+                            </div>
+                            {isCurrent ? (
+                              <button
+                                disabled
+                                style={{
+                                  width: "100%",
+                                  height: 44,
+                                  borderRadius: 12,
+                                  backgroundColor: "transparent",
+                                  color: "#A0A0A0",
+                                  border: "1px solid #2A2A2A",
+                                  fontSize: 14,
+                                  fontWeight: 600,
+                                  cursor: "not-allowed",
+                                  fontFamily: "inherit",
+                                }}
+                              >
+                                Current Plan
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleCTA(plan)}
+                                style={{
+                                  width: "100%",
+                                  height: 44,
+                                  borderRadius: 12,
+                                  backgroundColor: "#FFFFFF",
+                                  color: "#000000",
+                                  border: "none",
+                                  fontSize: 14,
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  fontFamily: "inherit",
+                                }}
+                              >
+                                {plan.cta}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  {/* Comparison table — desktop only, preserved verbatim */}
+                  {!isMobile && (
+                    <div style={{ marginBottom: 0 }}>
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                          backgroundColor: "#141414",
+                          border: "1px solid #2A2A2A",
+                          borderRadius: 12,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <thead>
+                          <tr>
+                            <th
+                              style={{
+                                textAlign: "left",
+                                padding: "16px 20px",
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: "#A0A0A0",
+                                borderBottom: "1px solid #2A2A2A",
+                              }}
+                            >
+                              Feature
+                            </th>
+                            {["Explorer", "Express Pass", "Active Hunter", "Career Pro"].map((col, i) => (
+                              <th
+                                key={col}
+                                style={{
+                                  padding: "16px 20px",
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: i === 2 ? "#D97706" : "#FFFFFF",
+                                  backgroundColor: i === 2 ? "rgba(217,119,6,0.1)" : "transparent",
+                                  borderBottom: "1px solid #2A2A2A",
+                                  textAlign: "center",
+                                }}
+                              >
+                                {col}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {compRows.map((row, ri) => (
+                            <tr key={row.feature} style={{ backgroundColor: ri % 2 === 0 ? "#141414" : "#1C1C1C" }}>
+                              <td
+                                style={{
+                                  padding: "14px 20px",
+                                  fontSize: 13,
+                                  color: "#FFFFFF",
+                                  borderBottom: "1px solid #2A2A2A",
+                                }}
+                              >
+                                {row.feature}
+                              </td>
+                              {row.vals.map((val, vi) => (
+                                <td
+                                  key={vi}
+                                  style={{
+                                    padding: "14px 20px",
+                                    textAlign: "center",
+                                    borderBottom: "1px solid #2A2A2A",
+                                    backgroundColor: vi === 2 ? "rgba(217,119,6,0.05)" : "transparent",
+                                  }}
+                                >
+                                  {renderCell(val)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* TRUST SIGNALS */}
         <div style={{
@@ -689,10 +1106,7 @@ export default function PricingPage() {
               No Hidden Fees ✓
             </span>
           </div>
-          <PaymentTrustBar style={{ marginTop: 20, marginBottom: 20 }} />
-          <div style={{ textAlign: "center", fontSize: "13px", color: "#A0A0A0" }}>
-            Join 2,400+ job seekers across UAE and India
-          </div>
+          <PaymentTrustBar style={{ marginTop: 20, marginBottom: 0 }} />
         </div>
 
       </div>
