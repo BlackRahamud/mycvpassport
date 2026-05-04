@@ -13,10 +13,12 @@ import PaymentTrustBar from './components/PaymentTrustBar';
 // DesktopNav / MobileNav drawer is replaced inline below by a 3-link
 // nav (Live demo · Templates · Pricing).
 import HeroSection from './components/landing/HeroSection';
+import LiveAIDemo from './components/landing/LiveAIDemo';
+import UploadTransformSection from './components/landing/UploadTransformSection';
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import TemplatesSection from './components/landing/TemplatesSection';
 import FloatingActionButton from './components/landing/FloatingActionButton';
-import MergedProblemFixSection from './components/landing/MergedProblemFixSection';
+import ShowSection from './components/landing/ShowSection';
 import FoundersNoteSection from './components/landing/FoundersNoteSection';
 import PricingAnchorSection from './components/landing/PricingAnchorSection';
 import AtsScoreLiftBanner from './components/landing/AtsScoreLiftBanner';
@@ -944,43 +946,53 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         )}
 
         {/* ──────────────────────────────────────────────────────────────
-            May-2026 landing — exactly 9 sections, in this order:
-              1. Header + simplified nav  (above this block)
-              2. Hero (with animated 4-state phone slot)
-              3. Merged problem section (Quiet Truth + The Fix)
-              4. Three steps. Five minutes. (Step 02 = Live AI Demo slot)
-              5. Templates
-              6. +52 stat banner slot + Real people. Real results.
-              7. Founder note
-              8. Pricing
-              9. FAQ + Footer  (below this block)
+            May-2026 landing — section order:
+              1. Header + simplified nav (above)
+              2. Hero (animated phone + iPad billboard)
+              3. Live AI Demo (dedicated section, anchor #live-demo)
+              4. Upload & Transform — "Have an existing CV? Fix in 60s"
+              5. Three steps. Five minutes. (Step 02 reverted to original)
+              6. Templates (anchor #templates)
+              7. Rejection reel (Quiet Truth)
+              8. +52 ATS score lift stat banner
+              9. Real people. Real results. testimonials (5 cards)
+             10. Founder note
+             11. Pricing (anchor #pricing)
+             12. FAQ + Footer (below)
             ────────────────────────────────────────────────────────────── */}
 
-        {/* 2 — Hero */}
+        {/* 2 — Hero with animated phone + iPad billboard */}
         <HeroSection user={user} />
 
-        {/* 3 — Merged problem section: Quiet Truth (rejection reel) +
-                The Fix · 60 Seconds. Single section, both copies kept. */}
-        <MergedProblemFixSection user={user} />
-
-        {/* 4 — Three steps. Five minutes. Anchor target for the
-                "Live demo" nav link. Step 02 hosts the Live AI Demo slot. */}
+        {/* 3 — Live AI Demo. Anchor target for the "Live demo" nav link. */}
         <span id="live-demo" aria-hidden="true" />
+        <LiveAIDemo />
+
+        {/* 4 — "Have an existing CV? Fix it in 60 seconds." Upload &
+                Transform — high-funnel CTA for users with an existing CV. */}
+        <UploadTransformSection user={user} />
+
+        {/* 5 — Three steps. Five minutes. Reverted to original Step 02
+                (Step02Stage). No demo embedded. */}
         <HowItWorksSection />
 
-        {/* 5 — Templates. Anchor target for the "Templates" nav link. */}
+        {/* 6 — Templates. Anchor target for the "Templates" nav link. */}
         <span id="templates" aria-hidden="true" />
         <TemplatesSection />
 
-        {/* 6 — +52 ATS score lift stat banner above the
-                "Real people. Real results." testimonials grid. */}
+        {/* 7 — The Quiet Truth rejection-reel section. Note: this used
+                to be merged with Upload & Transform; the merge was
+                undone when Upload moved up to position 4. */}
+        <ShowSection />
+
+        {/* 8 + 9 — +52 stat banner above "Real people. Real results." */}
         <AtsScoreLiftBanner />
         <TestimonialsRow />
 
-        {/* 7 — Founder note */}
+        {/* 10 — Founder note */}
         <FoundersNoteSection />
 
-        {/* 8 — Pricing. Anchor target for the "Pricing" nav link. */}
+        {/* 11 — Pricing. Anchor target for the "Pricing" nav link. */}
         <span id="pricing" aria-hidden="true" />
         <PricingAnchorSection />
 

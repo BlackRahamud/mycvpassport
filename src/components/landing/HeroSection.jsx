@@ -1,9 +1,12 @@
 import React, { useCallback } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-// May-2026: HeroDualTablet was replaced by the animated 4-state phone
-// (HeroAnimatedPhone) ported from the Claude Design bundle.
+// Hero billboard — animated 4-state iPhone on the left + static iPad
+// with the 94 score ring on the right. Both ported from the Claude
+// Design bundle. They overlap (phone z-index 2, tablet z-index 1) to
+// recreate the bundle's hardware-stack layout.
 import HeroAnimatedPhone from './HeroAnimatedPhone';
+import HeroBillboardTablet from './HeroBillboardTablet';
 import { logEvent } from '../../lib/analytics/logEvent';
 
 // W18 copy rewrite v2 — Founder-locked 2026-04-22 in
@@ -355,6 +358,26 @@ export default function HeroSection({ user }) {
           display: flex;
           align-items: center;
           justify-content: center;
+          min-height: 600px;
+        }
+        .cvp-hero-visual::before {
+          content: "";
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse at center, rgba(217,119,6,0.10) 0%, transparent 60%);
+          filter: blur(60px);
+          pointer-events: none;
+          z-index: 0;
+        }
+        @media (max-width: 900px) {
+          .cvp-hero-visual { min-height: 540px; }
+        }
+        @media (max-width: 600px) {
+          .cvp-hero-visual {
+            flex-direction: column;
+            min-height: auto;
+            gap: 20px;
+            padding: 20px 0;
+          }
         }
       `}</style>
 
@@ -466,10 +489,11 @@ export default function HeroSection({ user }) {
           : { duration: 0.48, delay: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
         aria-hidden="true"
       >
-        {/* Animated 4-state hero phone — Layla CV → Inbox → WhatsApp →
-            Calendar, looping every 3.2s with framer-motion. Ported
-            verbatim from the Claude Design bundle (landing-hero.jsx). */}
+        {/* Hero billboard — animated phone (CV → Inbox → WhatsApp →
+            Calendar, 3.2s loop) overlapping the static iPad with the
+            94 score ring. Both ported from the Claude Design bundle. */}
         <HeroAnimatedPhone />
+        <HeroBillboardTablet />
       </motion.div>
     </section>
   );

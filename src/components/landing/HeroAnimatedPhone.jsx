@@ -310,12 +310,10 @@ export default function HeroAnimatedPhone() {
   return (
     <>
       <style>{HERO_PHONE_STYLES}</style>
-      <div className="cvp-hphone-wrapper" aria-hidden>
-        <div className="cvp-hphone">
-          <div className="cvp-hphone-screen" style={{ padding: 0 }}>
-            <div className="notch"></div>
-            <HeroBillboard />
-          </div>
+      <div className="cvp-hphone" aria-hidden>
+        <div className="cvp-hphone-screen" style={{ padding: 0 }}>
+          <div className="notch"></div>
+          <HeroBillboard />
         </div>
       </div>
     </>
@@ -327,20 +325,6 @@ export default function HeroAnimatedPhone() {
    styling from the bundle is intentionally NOT included — the slot's
    parent (cvp-hero-visual in HeroSection.jsx) already owns layout. */
 const HERO_PHONE_STYLES = `
-.cvp-hphone-wrapper {
-  position: relative;
-  width: 100%;
-  display: flex; align-items: center; justify-content: center;
-  min-height: 580px;
-}
-.cvp-hphone-wrapper::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at center, rgba(217,119,6,0.10) 0%, transparent 60%);
-  filter: blur(60px);
-  pointer-events: none;
-}
-
 .cvp-hphone {
   position: relative; z-index: 2;
   width: 300px; aspect-ratio: 9/19;
@@ -349,6 +333,9 @@ const HERO_PHONE_STYLES = `
   border: 1px solid rgba(255,255,255,0.12);
   box-shadow: 0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
   padding: 12px;
+  /* phone overlaps the iPad to its right (matches the bundle's design) */
+  margin-right: -36px;
+  flex-shrink: 0;
 }
 .cvp-hphone-screen {
   width: 100%; height: 100%;
@@ -595,8 +582,10 @@ const HERO_PHONE_STYLES = `
 }
 
 @media (max-width: 900px) {
-  .cvp-hphone-wrapper { min-height: 480px; }
-  .cvp-hphone { width: 240px; }
+  .cvp-hphone { width: 240px; margin-right: -28px; }
+}
+@media (max-width: 600px) {
+  .cvp-hphone { margin-right: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cvp-h-cal2-foot .dot { animation: none; }

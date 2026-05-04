@@ -4,7 +4,6 @@ import { motion, useReducedMotion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import OLEDScoreRing, { OLEDRingStyles } from './OLEDScoreRing';
-import LiveAIDemo from './LiveAIDemo';
 
 const STEPS = [
   { n: '01', title: 'Pick a Gulf-tested template',
@@ -227,13 +226,6 @@ const SCAN_MS = 3000;
 const HOLD_MS = 1000;
 const CYCLE_MS = SCAN_MS + HOLD_MS;
 
-// Step02Stage is the previous static "scanning CV + ATS ring" visual
-// for Step 02. Retained intact while the new Live AI Demo component is
-// pasted into its slot (see HowItWorksSection JSX). Once the new
-// component ships, this function and its supporting constants
-// (TYPING_TEXT, DOC_LINE_WIDTHS, SCAN_MS, HOLD_MS, CYCLE_MS) can be
-// removed.
-// eslint-disable-next-line no-unused-vars
 function Step02Stage({ revealed }) {
   const reduce = useReducedMotion();
   const [scanT, setScanT] = useState(reduce ? 1 : 0);
@@ -758,7 +750,7 @@ export default function HowItWorksSection() {
 
             {s.n === '01' && <FannedThumbStack revealed={inView} />}
 
-            {s.n === '02' && <LiveAIDemo />}
+            {s.n === '02' && <Step02Stage revealed={inView} />}
 
             {s.n === '03' && (
               <div className="cvp-hiw-pdf">
