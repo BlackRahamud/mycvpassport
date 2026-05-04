@@ -19,6 +19,7 @@ import FloatingActionButton from './components/landing/FloatingActionButton';
 import MergedProblemFixSection from './components/landing/MergedProblemFixSection';
 import FoundersNoteSection from './components/landing/FoundersNoteSection';
 import PricingAnchorSection from './components/landing/PricingAnchorSection';
+import AtsScoreLiftBanner from './components/landing/AtsScoreLiftBanner';
 import TestimonialsRow from './components/marketing/TestimonialsRow';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
@@ -971,32 +972,9 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         <span id="templates" aria-hidden="true" />
         <TemplatesSection />
 
-        {/* 6 — +52 ATS score lift stat banner (slot) above
+        {/* 6 — +52 ATS score lift stat banner above the
                 "Real people. Real results." testimonials grid. */}
-        {/* ────────────────────────────────────────────────────────────
-            SLOT: "+52 average ATS score lift" stat banner
-            Component will be pasted here by the user. Renders directly
-            above the TestimonialsRow heading as a horizontal banner.
-            ──────────────────────────────────────────────────────── */}
-        <div
-          data-slot="ats-score-lift-stat-banner"
-          style={{
-            maxWidth: 1100,
-            margin: '64px auto 0',
-            padding: '24px',
-            border: '1px dashed rgba(217,119,6,0.35)',
-            borderRadius: 14,
-            background: 'rgba(217,119,6,0.04)',
-            color: 'rgba(255,255,255,0.45)',
-            fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-            fontSize: 11,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            textAlign: 'center',
-          }}
-        >
-          slot · +52 ats score lift stat banner
-        </div>
+        <AtsScoreLiftBanner />
         <TestimonialsRow />
 
         {/* 7 — Founder note */}

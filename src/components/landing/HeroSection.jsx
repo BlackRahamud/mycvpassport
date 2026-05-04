@@ -1,11 +1,9 @@
 import React, { useCallback } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-// HeroDualTablet is being replaced by the animated 4-state phone component
-// (pasted in by the user as a separate message). The slot below is where
-// the new component will land. Old import retained as a reference but
-// commented out so eslint stays clean.
-// import HeroDualTablet from '../marketing/HeroDualTablet';
+// May-2026: HeroDualTablet was replaced by the animated 4-state phone
+// (HeroAnimatedPhone) ported from the Claude Design bundle.
+import HeroAnimatedPhone from './HeroAnimatedPhone';
 import { logEvent } from '../../lib/analytics/logEvent';
 
 // W18 copy rewrite v2 — Founder-locked 2026-04-22 in
@@ -468,32 +466,10 @@ export default function HeroSection({ user }) {
           : { duration: 0.48, delay: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
         aria-hidden="true"
       >
-        {/* ────────────────────────────────────────────────────────────
-            SLOT: animated 4-state hero phone
-            Component will be pasted here by the user. Replaces the old
-            static <HeroDualTablet /> Layla CV phone. The hero column
-            copy (H1, body, stat, stars, CTAs, trustline) remains intact
-            above and is NOT to be touched.
-            ──────────────────────────────────────────────────────────── */}
-        <div
-          data-slot="hero-animated-phone"
-          style={{
-            minHeight: 480,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px dashed rgba(217,119,6,0.35)',
-            borderRadius: 18,
-            background: 'rgba(217,119,6,0.04)',
-            color: 'rgba(255,255,255,0.45)',
-            fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-            fontSize: 12,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-          }}
-        >
-          slot · animated 4-state phone
-        </div>
+        {/* Animated 4-state hero phone — Layla CV → Inbox → WhatsApp →
+            Calendar, looping every 3.2s with framer-motion. Ported
+            verbatim from the Claude Design bundle (landing-hero.jsx). */}
+        <HeroAnimatedPhone />
       </motion.div>
     </section>
   );

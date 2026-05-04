@@ -4,6 +4,7 @@ import { motion, useReducedMotion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import OLEDScoreRing, { OLEDRingStyles } from './OLEDScoreRing';
+import LiveAIDemo from './LiveAIDemo';
 
 const STEPS = [
   { n: '01', title: 'Pick a Gulf-tested template',
@@ -757,37 +758,7 @@ export default function HowItWorksSection() {
 
             {s.n === '01' && <FannedThumbStack revealed={inView} />}
 
-            {s.n === '02' && (
-              /* ──────────────────────────────────────────────────────
-                 SLOT: Live AI Demo (orange play-button, ~11s walkthrough)
-                 Component will be pasted here by the user. Replaces the
-                 old static ATS-score 78 image / <Step02Stage />. Step 01
-                 (template fan) and Step 03 (PDF + payment cards) are
-                 untouched.
-                 ────────────────────────────────────────────────────── */
-              <div
-                data-slot="live-ai-demo"
-                style={{
-                  marginTop: 'auto',
-                  minHeight: 280,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px dashed rgba(217,119,6,0.35)',
-                  borderRadius: 14,
-                  background: 'rgba(217,119,6,0.04)',
-                  color: 'rgba(255,255,255,0.45)',
-                  fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-                  fontSize: 11,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  textAlign: 'center',
-                  padding: 16,
-                }}
-              >
-                slot · live ai demo
-              </div>
-            )}
+            {s.n === '02' && <LiveAIDemo />}
 
             {s.n === '03' && (
               <div className="cvp-hiw-pdf">

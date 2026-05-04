@@ -3,6 +3,9 @@ import React from 'react';
 // 4 static testimonial cards — slots between FeatureCardGrid and
 // FoundersNoteSection. No stars, no photos, no carousel.
 
+// May-2026: pill chrome upgraded to the bundle's gradient chip style
+// (matches the "+AED 8K/mo lift" pill on the new Arabic 5th card).
+// Pill text is unchanged — only the visual style upgraded.
 const TESTIMONIALS = [
   {
     id: 't1',
@@ -11,7 +14,8 @@ const TESTIMONIALS = [
     location: 'Dubai, UAE',
     quote:
       "I'd been applying for 3 months with zero callbacks. Ran my CV through the ATS checker — it scored 31. Fixed what it flagged, rebuilt with CVPassport. Within 10 days I had 3 interviews lined up. Same experience, completely different result.",
-    badge: { text: 'Got interviews', bg: '#EAF3DE', color: '#3B6D11' },
+    pillText: 'Got interviews',
+    pillTone: 'green',
     ring: '#E5B24D',
     bleedRGB: '217,117,6',
   },
@@ -22,7 +26,8 @@ const TESTIMONIALS = [
     location: 'Abu Dhabi, UAE',
     quote:
       "My CV was scoring 23. I thought it was fine & it looked good. The checker showed me I was missing 14 keywords recruiters search for. Fixed it in 20 minutes. Next application got a call the same day.",
-    badge: { text: 'Score: 23 → 91', bg: '#E6F1FB', color: '#185FA5' },
+    pillText: 'Score: 23 → 91',
+    pillTone: 'blue',
     ring: '#6FA8FF',
     bleedRGB: '59,130,246',
   },
@@ -33,7 +38,8 @@ const TESTIMONIALS = [
     location: 'Sharjah, UAE',
     quote:
       "7 months sending the same CV. Nothing. A friend told me about CVPassport. I rebuilt my CV in under an hour  it felt tailored to how Gulf recruiters actually think. Got my first interview call 4 days later. I wish I found this earlier.",
-    badge: { text: 'Interview in 4 days', bg: '#EAF3DE', color: '#3B6D11' },
+    pillText: 'Interview in 4 days',
+    pillTone: 'green',
     ring: '#E0604A',
     bleedRGB: '220,38,38',
   },
@@ -44,9 +50,27 @@ const TESTIMONIALS = [
     location: 'Bangalore → Dubai',
     quote:
       "Moving from Bangalore to Dubai means competing with candidates who know the local market. CVPassport understood that  the templates are built for Gulf employers, not generic Western formats. My CV finally looked like it belonged here.",
-    badge: { text: 'Relocated to Dubai', bg: '#E6F1FB', color: '#185FA5' },
+    pillText: 'Relocated to Dubai',
+    pillTone: 'blue',
     ring: '#46C99A',
     bleedRGB: '16,185,129',
+  },
+  // 5th card — Arabic testimonial, Fatima A. (Cairo → Dubai). Quote and
+  // pill text ported from the design bundle (landing-testimonials.jsx).
+  {
+    id: 't5',
+    name: 'Fatima A.',
+    role: 'Marketing Lead',
+    location: 'Cairo → Dubai',
+    quote:
+      'كنت أتقدم لوظائف في دبي لمدة ٤ أشهر بدون أي رد. أعدت بناء سيرتي الذاتية مع CVPassport في ساعة واحدة فقط. حصلت على ٣ مقابلات في الأسبوع الأول، وقبلت عرضاً برفع ٨ آلاف درهم شهرياً عن وظيفتي السابقة. أخيراً، نظام يفهم سوق العمل في الخليج.',
+    quoteEn:
+      '"Three interviews in one week — after six months of silence. Accepted an offer with an AED 8K/mo lift over my last role."',
+    pillText: '+AED 8K/mo lift',
+    pillTone: 'green',
+    ring: '#6EE7A1',
+    bleedRGB: '74,222,128',
+    rtl: true,
   },
 ];
 
@@ -194,18 +218,69 @@ export default function TestimonialsRow() {
             transparent 55%
           );
         }
+        /* Pill chip — gradient fill + bold weight + soft shadow,
+           ported from the bundle's "+AED 8K/mo lift" pill style
+           (.cvp-tt-pill / .cvp-tt-pill-green / -blue) so all 5 cards
+           speak the same visual language. */
         .cvp-testimonials-badge {
           position: absolute;
           top: 24px;
           right: 24px;
           z-index: 3;
-          font-size: 10px;
-          font-weight: 500;
-          line-height: 1.2;
-          padding: 4px 10px;
+          display: inline-flex;
+          align-items: center;
+          height: 26px;
+          padding: 0 12px;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: -0.005em;
+          line-height: 1;
           border-radius: 999px;
           white-space: nowrap;
           font-family: inherit;
+          direction: ltr;
+          unicode-bidi: isolate;
+          box-shadow: 0 4px 14px -2px rgba(0,0,0,0.45),
+                      inset 0 1px 0 rgba(255,255,255,0.18);
+        }
+        .cvp-testimonials-badge--green {
+          background: linear-gradient(180deg, #6EE7A1 0%, #4ADE80 100%);
+          color: #08311A;
+          border: 1px solid rgba(74,222,128,0.55);
+        }
+        .cvp-testimonials-badge--blue {
+          background: linear-gradient(180deg, #93C5FD 0%, #60A5FA 100%);
+          color: #0B2748;
+          border: 1px solid rgba(96,165,250,0.55);
+        }
+        /* RTL Arabic card — pill anchors to the left, quote uses
+           Cairo for Arabic legibility, attribution flips. */
+        .cvp-testimonials-card.is-rtl { direction: rtl; }
+        .cvp-testimonials-card.is-rtl .cvp-testimonials-badge {
+          right: auto; left: 24px;
+        }
+        .cvp-testimonials-card.is-rtl .cvp-testimonials-quote-ar {
+          font-family: 'Cairo', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+          font-style: normal;
+          font-size: 16px;
+          line-height: 1.75;
+          letter-spacing: 0;
+          color: #FFFFFF;
+        }
+        .cvp-testimonials-card.is-rtl .cvp-testimonials-quote-en {
+          direction: ltr;
+          font-style: italic;
+          font-size: 14px;
+          color: #A0A0A0;
+          margin-top: 10px;
+        }
+        .cvp-testimonials-card.is-rtl .cvp-testimonials-attribution {
+          text-align: right;
+        }
+        .cvp-testimonials-card.is-rtl .cvp-testimonials-name,
+        .cvp-testimonials-card.is-rtl .cvp-testimonials-role,
+        .cvp-testimonials-card.is-rtl .cvp-testimonials-location {
+          unicode-bidi: plaintext;
         }
         .cvp-testimonials-stars {
           position: relative;
@@ -269,25 +344,28 @@ export default function TestimonialsRow() {
           {TESTIMONIALS.map((t) => (
             <figure
               key={t.id}
-              className="cvp-testimonials-card"
+              className={`cvp-testimonials-card${t.rtl ? ' is-rtl' : ''}`}
               style={{ '--card-ring': t.ring, '--card-bleed': t.bleedRGB }}
+              dir={t.rtl ? 'rtl' : undefined}
             >
-              {/* TODO (post-paste): once the user pastes the new Arabic
-                  testimonial card with its "+AED 8K/mo lift" pill, restyle
-                  these existing badges to match that pill's visual chip
-                  style. Pill text stays exactly the same — only chrome
-                  changes ("Got interviews", "Score: 23 → 91",
-                  "Interview in 4 days", "Relocated to Dubai"). */}
-              <span
-                className="cvp-testimonials-badge"
-                style={{ background: t.badge.bg, color: t.badge.color }}
-              >
-                {t.badge.text}
+              <span className={`cvp-testimonials-badge cvp-testimonials-badge--${t.pillTone}`}>
+                {t.pillText}
               </span>
               <div className="cvp-testimonials-stars" aria-label="5 out of 5 stars">
                 ★★★★★
               </div>
-              <blockquote className="cvp-testimonials-quote">{t.quote}</blockquote>
+              {t.rtl ? (
+                <blockquote className="cvp-testimonials-quote">
+                  <span className="cvp-testimonials-quote-ar">{t.quote}</span>
+                  {t.quoteEn ? (
+                    <span className="cvp-testimonials-quote-en" style={{ display: 'block' }}>
+                      {t.quoteEn}
+                    </span>
+                  ) : null}
+                </blockquote>
+              ) : (
+                <blockquote className="cvp-testimonials-quote">{t.quote}</blockquote>
+              )}
               <figcaption className="cvp-testimonials-attribution">
                 <p className="cvp-testimonials-name">{t.name}</p>
                 <p className="cvp-testimonials-role">{t.role}</p>
@@ -295,38 +373,6 @@ export default function TestimonialsRow() {
               </figcaption>
             </figure>
           ))}
-
-          {/* ────────────────────────────────────────────────────────────
-              SLOT: 5th testimonial card — Arabic testimonial
-              Fatima A. / Marketing Lead / Cairo → Dubai
-              "+AED 8K/mo lift" pill. Component will be pasted by the
-              user as the 5th figure inside this grid. The grid is
-              already configured for a 3 + 2 layout (top row 3 cards,
-              bottom row 2 cards spanning 3 cols each on wide screens).
-              Drop the new <figure className="cvp-testimonials-card">
-              in place of this placeholder.
-              ──────────────────────────────────────────────────────── */}
-          <figure
-            data-slot="arabic-testimonial-card"
-            className="cvp-testimonials-card"
-            style={{
-              '--card-ring': 'rgba(217,119,6,0.35)',
-              '--card-bleed': '217,119,6',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              minHeight: 220,
-              border: '1px dashed rgba(217,119,6,0.35)',
-              background: 'rgba(217,119,6,0.04)',
-              color: 'rgba(255,255,255,0.45)',
-              fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
-              fontSize: 11,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-            }}
-          >
-            slot · arabic testimonial (fatima a.)
-          </figure>
         </div>
       </div>
     </section>
