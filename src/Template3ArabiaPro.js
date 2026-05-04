@@ -123,27 +123,30 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
       </header>
 
       {/* Profile */}
-      <section data-section="summary">
-        <SectionHeader>Professional Profile</SectionHeader>
-        <GhostChip>
-          {cv.summary ||
-            "Strategically-minded professional with an MBA and extensive experience in strategy and relationship building..."}
-        </GhostChip>
-        <p
-          style={{
-            fontSize: pt(10),
-            lineHeight: 1.6,
-            margin: 0,
-            textAlign: "center",
-            color: isEmpty ? SKELETON : TEXT_BODY,
-          }}
-        >
-          {cv.summary ||
-            "Strategically-minded professional with an MBA and extensive experience in strategy and relationship building..."}
-        </p>
-      </section>
+      {(cv.summary || isEmpty) && (
+        <section data-section="summary">
+          <SectionHeader>Professional Profile</SectionHeader>
+          <GhostChip>
+            {cv.summary ||
+              "Strategically-minded professional with an MBA and extensive experience in strategy and relationship building..."}
+          </GhostChip>
+          <p
+            style={{
+              fontSize: pt(10),
+              lineHeight: 1.6,
+              margin: 0,
+              textAlign: "center",
+              color: isEmpty ? SKELETON : TEXT_BODY,
+            }}
+          >
+            {cv.summary ||
+              "Strategically-minded professional with an MBA and extensive experience in strategy and relationship building..."}
+          </p>
+        </section>
+      )}
 
       {/* Experience - T11 Structural Flow */}
+      {((Array.isArray(cv.experience) && cv.experience.filter((e) => e.company).length > 0) || isEmpty) && (
       <section data-section="experience">
         <SectionHeader>Work Experience</SectionHeader>
         {isEmpty ? (
@@ -188,8 +191,10 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
             ))
         )}
       </section>
+      )}
 
       {/* Education */}
+      {((Array.isArray(cv.education) && cv.education.filter((edu) => edu.school).length > 0) || isEmpty) && (
       <section data-section="education">
         <SectionHeader>Education</SectionHeader>
         {isEmpty ? (
@@ -208,6 +213,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
             ))
         )}
       </section>
+      )}
 
       {/* Skills */}
       {(skillsCells.length > 0 || isEmpty) && (

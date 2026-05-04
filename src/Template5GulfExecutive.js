@@ -146,6 +146,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
         )}
 
         {/* Experience */}
+        {experience.filter((e) => e.company).length > 0 && (
         <section data-section="experience">
           <SectionTitle>Experience</SectionTitle>
           {experience
@@ -186,6 +187,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
               </div>
             ))}
         </section>
+        )}
 
         {/* Skills */}
         {(skillsCells.length > 0 || isEmpty) && (

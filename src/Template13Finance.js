@@ -132,42 +132,46 @@ export function PreviewFinance({ cv, mobileMode = false }) {
 
         <div style={{ display: "flex", flexDirection: "row", gap: "40px", padding: "0 32px 32px 32px" }}>
           <div style={{ flex: "0 0 62%" }}>
-            <div data-section="experience">
-            <SectionHeading>Experience</SectionHeading>
-            {experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid", position: "relative" }}>
-                <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
-                <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "14px" }}>{exp.role}</div>
-                <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px", marginBottom: "6px" }}>
-                  {exp.company} • {exp.period}
-                </div>
-                {exp.points && (() => {
-                  const { bullets, format } = parseExperiencePoints(exp.points);
-                  return bullets.map((point, j) => (
-                    <div
-                      key={j}
-                      style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, marginBottom: "4px", display: "flex", lineHeight: "1.5" }}
-                    >
-                      {format === "list" && <span style={{ marginRight: "8px" }}>•</span>}
-                      <span>{point}</span>
+            {experience.length > 0 && (
+              <div data-section="experience">
+                <SectionHeading>Experience</SectionHeading>
+                {experience.map((exp, i) => (
+                  <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid", position: "relative" }}>
+                    <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
+                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "14px" }}>{exp.role}</div>
+                    <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px", marginBottom: "6px" }}>
+                      {exp.company} • {exp.period}
                     </div>
-                  ));
-                })()}
+                    {exp.points && (() => {
+                      const { bullets, format } = parseExperiencePoints(exp.points);
+                      return bullets.map((point, j) => (
+                        <div
+                          key={j}
+                          style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, marginBottom: "4px", display: "flex", lineHeight: "1.5" }}
+                        >
+                          {format === "list" && <span style={{ marginRight: "8px" }}>•</span>}
+                          <span>{point}</span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                ))}
               </div>
-            ))}
-            </div>
+            )}
 
-            <div data-section="education">
-            <SectionHeading>Education</SectionHeading>
-            {education.map((edu, i) => (
-              <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "13px" }}>{edu.degree}</div>
-                <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px" }}>
-                  {edu.school} • {edu.year}
-                </div>
+            {education.length > 0 && (
+              <div data-section="education">
+                <SectionHeading>Education</SectionHeading>
+                {education.map((edu, i) => (
+                  <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
+                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "13px" }}>{edu.degree}</div>
+                    <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px" }}>
+                      {edu.school} • {edu.year}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-            </div>
+            )}
 
             {skills.length > 0 && (
               <div data-section="competencies">
@@ -206,53 +210,37 @@ export function PreviewFinance({ cv, mobileMode = false }) {
           </div>
 
           <div style={{ flex: "1" }}>
-            <div data-section="summary">
-            <SectionHeading>Professional Summary</SectionHeading>
-            <div style={{ position: "relative", margin: "0 0 24px 0" }}>
-              <GhostChip>{cv.summary}</GhostChip>
-              <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: 0 }}>{cv.summary}</p>
-            </div>
-            </div>
-
-            <SectionHeading>Key Metrics</SectionHeading>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px" }}>
-              <div style={{ fontSize: "12px" }}>
-                <span style={{ color: COLORS.ACCENT, fontWeight: "bold" }}>Portfolio:</span> $2.5M+
+            {cv.summary && (
+              <div data-section="summary">
+                <SectionHeading>Professional Summary</SectionHeading>
+                <div style={{ position: "relative", margin: "0 0 24px 0" }}>
+                  <GhostChip>{cv.summary}</GhostChip>
+                  <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: 0 }}>{cv.summary}</p>
+                </div>
               </div>
-              <div style={{ fontSize: "12px" }}>
-                <span style={{ color: COLORS.ACCENT, fontWeight: "bold" }}>Cost Reduction:</span> 15%
-              </div>
-            </div>
+            )}
 
-            <div data-section="certifications">
-            <SectionHeading>Certifications</SectionHeading>
-            <div style={{ fontSize: "12px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.8", marginBottom: "24px" }}>
-              {certifications.length
-                ? certifications.map((c, i) => (
+            {certifications.length > 0 && (
+              <div data-section="certifications">
+                <SectionHeading>Certifications</SectionHeading>
+                <div style={{ fontSize: "12px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.8", marginBottom: "24px" }}>
+                  {certifications.map((c, i) => (
                     <div key={i}>• {c}</div>
-                  ))
-                : "CFA Level 1"}
-            </div>
-            </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div data-section="languages">
-            <SectionHeading>Languages</SectionHeading>
-            <div style={{ fontSize: "12px", color: COLORS.TEXT_PRIMARY }}>
-              {languages.map((l, i) => (
-                <div key={i}>{l} — Fluent</div>
-              ))}
-            </div>
-            </div>
-
-            <SectionHeading>Courses</SectionHeading>
-            <div style={{ marginBottom: "16px" }}>
-              <div style={{ color: COLORS.TEXT_PRIMARY, fontWeight: "bold", fontSize: "12px" }}>Advanced System Design</div>
-              <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "11px" }}>Focus on scalability and fault tolerance.</div>
-            </div>
-
-            <SectionHeading>Interests</SectionHeading>
-            <div style={{ color: COLORS.ACCENT, fontWeight: "bold", fontSize: "12px" }}>UI/UX Research</div>
-            <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "11px" }}>Passionate about accessible design patterns.</div>
+            {languages.length > 0 && (
+              <div data-section="languages">
+                <SectionHeading>Languages</SectionHeading>
+                <div style={{ fontSize: "12px", color: COLORS.TEXT_PRIMARY }}>
+                  {languages.map((l, i) => (
+                    <div key={i}>{l}</div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

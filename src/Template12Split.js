@@ -120,27 +120,27 @@ export function Template12Split({ cv, mobileMode = false }) {
             boxSizing: "border-box",
           }}
         >
-          <div data-section="summary">
-            <GhostChip>
-              {cv.summary || "Add your professional summary here."}
-            </GhostChip>
-            <h3
-              style={{
-                fontSize: "11pt",
-                fontWeight: "bold",
-                textTransform: "uppercase",
-                borderBottom: "1.5px solid #000000",
-                paddingBottom: "5px",
-                marginBottom: "15px",
-                marginTop: 0,
-              }}
-            >
-              Summary
-            </h3>
-            <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
-              {cv.summary || "Add your professional summary here."}
-            </p>
-          </div>
+          {cv.summary && (
+            <div data-section="summary">
+              <GhostChip>{cv.summary}</GhostChip>
+              <h3
+                style={{
+                  fontSize: "11pt",
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  borderBottom: "1.5px solid #000000",
+                  paddingBottom: "5px",
+                  marginBottom: "15px",
+                  marginTop: 0,
+                }}
+              >
+                Summary
+              </h3>
+              <p style={{ fontSize: "10pt", lineHeight: "1.6", margin: 0 }}>
+                {cv.summary}
+              </p>
+            </div>
+          )}
 
           {skillItems.length > 0 && (
             <div data-section="competencies" style={{ marginTop: "40px" }}>
@@ -223,17 +223,19 @@ export function Template12Split({ cv, mobileMode = false }) {
           data-section="experience"
           style={{ width: "65%", padding: "40px 40px", boxSizing: "border-box" }}
         >
-          <h3
-            style={{
-              fontSize: "11pt",
-              fontWeight: "bold",
-              textTransform: "uppercase",
-              marginBottom: "20px",
-              marginTop: 0,
-            }}
-          >
-            Experience
-          </h3>
+          {Array.isArray(cv.experience) && cv.experience.length > 0 && (
+            <h3
+              style={{
+                fontSize: "11pt",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                marginBottom: "20px",
+                marginTop: 0,
+              }}
+            >
+              Experience
+            </h3>
+          )}
 
           {cv.experience &&
             cv.experience.map((exp, idx) => (

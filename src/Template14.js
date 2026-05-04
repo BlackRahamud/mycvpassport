@@ -89,25 +89,28 @@ export function Template14({ cv, mobileMode = false }) {
 
       <div style={{ padding: "40px 50px" }}>
         {/* SUMMARY */}
-        <section data-section="summary" style={{ marginBottom: "35px" }}>
-          <GhostChip>{cv.summary}</GhostChip>
-          <h2
-            style={{
-              fontSize: "12pt",
-              color: ACCENT_BLUE,
-              fontWeight: "bold",
-              textTransform: "uppercase",
-              marginBottom: "12px",
-            }}
-          >
-            Summary
-          </h2>
-          <p style={{ fontSize: "10.5pt", lineHeight: "1.6", margin: 0 }}>
-            {cv.summary}
-          </p>
-        </section>
+        {cv.summary && (
+          <section data-section="summary" style={{ marginBottom: "35px" }}>
+            <GhostChip>{cv.summary}</GhostChip>
+            <h2
+              style={{
+                fontSize: "12pt",
+                color: ACCENT_BLUE,
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                marginBottom: "12px",
+              }}
+            >
+              Summary
+            </h2>
+            <p style={{ fontSize: "10.5pt", lineHeight: "1.6", margin: 0 }}>
+              {cv.summary}
+            </p>
+          </section>
+        )}
 
         {/* EXPERIENCE WITH T11 TIMELINE LOGIC */}
+        {Array.isArray(cv.experience) && cv.experience.length > 0 && (
         <section data-section="experience" style={{ marginBottom: "35px" }}>
           <h2
             style={{
@@ -198,29 +201,31 @@ export function Template14({ cv, mobileMode = false }) {
               ))}
           </div>
         </section>
+        )}
 
         {/* 2-COLUMN GRID FOR ACHIEVEMENTS/SKILLS */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
-          <section data-section="education">
-            <h2
-              style={{
-                fontSize: "12pt",
-                color: ACCENT_BLUE,
-                fontWeight: "bold",
-                textTransform: "uppercase",
-                marginBottom: "15px",
-              }}
-            >
-              Education
-            </h2>
-            {cv.education &&
-              cv.education.map((edu, i) => (
+          {Array.isArray(cv.education) && cv.education.length > 0 && (
+            <section data-section="education">
+              <h2
+                style={{
+                  fontSize: "12pt",
+                  color: ACCENT_BLUE,
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  marginBottom: "15px",
+                }}
+              >
+                Education
+              </h2>
+              {cv.education.map((edu, i) => (
                 <div key={i} style={{ marginBottom: "12px" }}>
                   <div style={{ fontSize: "10pt", fontWeight: "bold" }}>{edu.degree}</div>
                   <div style={{ fontSize: "9pt", color: ACCENT_ORANGE }}>{edu.school}</div>
                 </div>
               ))}
-          </section>
+            </section>
+          )}
           <div>
             {skillsItems.length > 0 && (
               <section data-section="competencies">

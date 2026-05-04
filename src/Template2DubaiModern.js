@@ -120,19 +120,22 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       </header>
 
       {/* Summary */}
-      <section data-section="summary">
-        <SectionTitle first>Executive Summary</SectionTitle>
-        <GhostChip>
-          {cv.summary ||
-            "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
-        </GhostChip>
-        <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
-          {cv.summary ||
-            "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
-        </p>
-      </section>
+      {(cv.summary || isEmpty) && (
+        <section data-section="summary">
+          <SectionTitle first>Executive Summary</SectionTitle>
+          <GhostChip>
+            {cv.summary ||
+              "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
+          </GhostChip>
+          <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
+            {cv.summary ||
+              "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
+          </p>
+        </section>
+      )}
 
       {/* Experience */}
+      {((Array.isArray(cv.experience) && cv.experience.filter((e) => e.company).length > 0) || isEmpty) && (
       <section data-section="experience">
         <SectionTitle>Work History</SectionTitle>
         {isEmpty ? (
@@ -166,6 +169,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
             ))
         )}
       </section>
+      )}
 
       {/* Skills */}
       {(skills.length > 0 || isEmpty) && (
@@ -212,6 +216,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       )}
 
       {/* Education */}
+      {((Array.isArray(cv.education) && cv.education.filter((edu) => edu.school).length > 0) || isEmpty) && (
       <section data-section="education">
         <SectionTitle>Academic Background</SectionTitle>
         {isEmpty ? (
@@ -230,6 +235,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
             ))
         )}
       </section>
+      )}
 
       {/* Languages */}
       {languages.length > 0 && (

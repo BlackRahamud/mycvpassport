@@ -132,26 +132,29 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
 
       <div style={{ padding: "0 15mm" }}>
         {/* Profile */}
-        <section data-section="summary">
-          <GhostChip>
-            {cv.summary ||
-              "Strategically-minded professional with 10+ years of experience..."}
-          </GhostChip>
-          <SectionBand>Professional Profile</SectionBand>
-          <p
-            style={{
-              fontSize: pt(10),
-              lineHeight: 1.6,
-              margin: 0,
-              textAlign: "center",
-              color: TEXT_SECONDARY,
-            }}
-          >
-            {cv.summary || "Strategically-minded professional with 10+ years of experience..."}
-          </p>
-        </section>
+        {(cv.summary || isEmpty) && (
+          <section data-section="summary">
+            <GhostChip>
+              {cv.summary ||
+                "Strategically-minded professional with 10+ years of experience..."}
+            </GhostChip>
+            <SectionBand>Professional Profile</SectionBand>
+            <p
+              style={{
+                fontSize: pt(10),
+                lineHeight: 1.6,
+                margin: 0,
+                textAlign: "center",
+                color: TEXT_SECONDARY,
+              }}
+            >
+              {cv.summary || "Strategically-minded professional with 10+ years of experience..."}
+            </p>
+          </section>
+        )}
 
         {/* Experience - Two Column Feel within Single Column */}
+        {Array.isArray(cv.experience) && cv.experience.filter((e) => e.company).length > 0 && (
         <section data-section="experience">
           <SectionBand>Work History</SectionBand>
           {cv.experience.filter((e) => e.company).map((e, i) => (
@@ -201,6 +204,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
             </div>
           ))}
         </section>
+        )}
 
         {/* Skills */}
         {(skillsCells.length > 0 || isEmpty) && (
