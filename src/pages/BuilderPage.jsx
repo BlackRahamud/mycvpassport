@@ -41,6 +41,7 @@ import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { clearBulletMarkers } from "../experiencePointsPreview";
 import CompletionStrip from "../components/CompletionStrip";
+import AtsGapsRibbon from "../components/AtsGapsRibbon";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
@@ -2568,6 +2569,34 @@ function ResumeBuilder({
   const scheduleBuilderIdleRef = useRef(() => {});
   const prevBuilderTabRef = useRef(null);
   const cvCompletionProgress = useCvProgress(resume);
+
+  // Hook #2 — ATS Gaps deep-link. Reads the comma-separated keyword list
+  // out of ?gaps= so the builder can show a slim ribbon at the top of
+  // the Content tab. No new state machinery — derived from the URL each
+  // render, dismissal lives in sessionStorage inside the ribbon itself.
+  const atsGaps = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("from") !== "ats") return [];
+    const raw = params.get("gaps");
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((g) => {
+        try { return decodeURIComponent(g).trim(); } catch { return g.trim(); }
+      })
+      .filter(Boolean);
+  }, [location.search]);
+
+  const handleAtsRibbonChipClick = useCallback(() => {
+    setOpenSection("competencies");
+    window.setTimeout(() => {
+      const el = document.querySelector('[data-cvp-accordion="competencies"]');
+      if (!el) return;
+      // Account for sticky topbar (56) + sticky CompletionStrip (~70).
+      el.style.scrollMarginTop = "130px";
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }, []);
   const [pdfTargetPages, setPdfTargetPages] = useState(2);
   const [savedAtMs, setSavedAtMs] = useState(null);
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
@@ -3682,6 +3711,11 @@ function ResumeBuilder({
         >
           {builderTab === "content" && (
             <>
+              <AtsGapsRibbon
+                gaps={atsGaps}
+                resume={resume}
+                onChipClick={handleAtsRibbonChipClick}
+              />
               <div
                 style={{
                   display: "flex",
@@ -4162,6 +4196,11 @@ function ResumeBuilder({
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
             {builderTab === "content" && (
               <>
+                <AtsGapsRibbon
+                  gaps={atsGaps}
+                  resume={resume}
+                  onChipClick={handleAtsRibbonChipClick}
+                />
                 <div
                   style={{
                     display: "flex",
