@@ -4,7 +4,8 @@
    the surrounding dark CVPassport shell can never bleed in.
    ──────────────────────────────────────────────────────────────── */
 
-.pj-root {
+/* Tokens at :root so portal-rendered overlays (modal, drawer) can resolve --pj-* vars too. */
+:root {
   --pj-bg: #FFFFFF;
   --pj-surface: #FFFFFF;
   --pj-text: #14131F;
@@ -28,7 +29,9 @@
   --pj-radius-lg: 16px;
   --pj-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --pj-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
 
+.pj-root {
   background: var(--pj-bg);
   color: var(--pj-text);
   font-family: var(--pj-font);
@@ -36,6 +39,14 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Overlay scope: modal and drawer aren't children of .pj-root so they need their own font + color anchor. */
+.pj-modal-wrap, .pj-drawer-wrap, .pj-backdrop {
+  font-family: var(--pj-font);
+  color: var(--pj-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -800,10 +811,369 @@
   color: var(--pj-text-soft);
 }
 
+/* ── Years stepper (no currency prefix) ─────────────────────── */
+.pj-num--plain .pj-num__prefix { display: none; }
+.pj-num--compact { height: 36px; }
+.pj-num--compact input { font-size: 13.5px; padding-left: 10px; }
+
+/* ── Trash / icon button ────────────────────────────────────── */
+.pj-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: #DC2626;
+  transition: background 160ms var(--pj-ease), color 160ms var(--pj-ease);
+  padding: 0;
+  font-family: var(--pj-font);
+}
+
+.pj-icon-btn:hover { background: #FEF2F2; }
+.pj-icon-btn--neutral { color: var(--pj-muted); }
+.pj-icon-btn--neutral:hover { background: var(--pj-input-bg); color: var(--pj-text); }
+
+/* ── Link button ────────────────────────────────────────────── */
+.pj-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  color: var(--pj-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 160ms var(--pj-ease);
+  font-family: var(--pj-font);
+}
+
+.pj-link-btn:hover { color: var(--pj-primary-hover); }
+
+/* ── Qualification row (slider + radios + trash) ────────────── */
+.pj-qual-block { margin-bottom: 18px; }
+
+.pj-qual-block .pj-num-row { grid-template-columns: 90px 90px; gap: 10px; max-width: 200px; }
+
+.pj-qual-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+}
+
+.pj-range--compact { height: 22px; margin: 4px 6px 12px; max-width: 220px; }
+
+/* ── Saved question summary row ─────────────────────────────── */
+.pj-saved-q {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 14px;
+  background: var(--pj-input-bg);
+  border-radius: var(--pj-radius-md);
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.pj-saved-q__label { flex: 1; font-size: 13.5px; color: var(--pj-text); }
+
+.pj-saved-q__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--pj-muted);
+}
+
+/* ── Backdrop (modal + drawer share) ────────────────────────── */
+.pj-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 12, 30, 0.42);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+}
+
+/* ── Modal (Screen 4) ───────────────────────────────────────── */
+.pj-modal-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.pj-modal {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  background: #FFFFFF;
+  border-radius: 14px;
+  box-shadow:
+    0 30px 80px -28px rgba(15, 12, 30, 0.35),
+    0 14px 36px -14px rgba(15, 12, 30, 0.18);
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.pj-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 14px;
+}
+
+.pj-modal__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--pj-text);
+  letter-spacing: -0.01em;
+}
+
+.pj-modal__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--pj-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 160ms var(--pj-ease), color 160ms var(--pj-ease);
+}
+.pj-modal__close:hover { background: var(--pj-input-bg); color: var(--pj-text); }
+
+.pj-modal__body { padding: 6px 24px 26px; }
+
+.pj-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pj-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding: 0 10px;
+  background: var(--pj-bg);
+  border: 1px solid var(--pj-border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pj-text);
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease), border-color 160ms var(--pj-ease), color 160ms var(--pj-ease);
+  font-family: var(--pj-font);
+  text-align: left;
+  gap: 6px;
+  letter-spacing: -0.005em;
+}
+
+.pj-cat-chip:hover { border-color: var(--pj-primary); color: var(--pj-primary); }
+
+.pj-cat-chip__plus {
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--pj-muted);
+  flex-shrink: 0;
+}
+
+.pj-cat-chip:hover .pj-cat-chip__plus { color: var(--pj-primary); }
+
+.pj-cat-chip__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pj-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--pj-primary);
+  color: #FFFFFF;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Drawer (Screen 5) ──────────────────────────────────────── */
+.pj-drawer-wrap {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 100%;
+  max-width: 520px;
+  background: #FFFFFF;
+  z-index: 110;
+  box-shadow: -24px 0 60px -28px rgba(15, 12, 30, 0.28);
+  display: flex;
+  flex-direction: column;
+}
+
+.pj-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--pj-border);
+  flex-shrink: 0;
+}
+
+.pj-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px 22px;
+}
+
+.pj-drawer__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--pj-border);
+  background: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.pj-qcard {
+  position: relative;
+  border: 1px solid var(--pj-border);
+  border-radius: var(--pj-radius-md);
+  padding: 16px;
+  margin-bottom: 14px;
+  background: #FFFFFF;
+}
+
+.pj-qcard__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pj-qcard__head-label { font-size: 13px; font-weight: 600; color: var(--pj-text); }
+
+.pj-qcard__sub { font-size: 11.5px; color: var(--pj-muted); margin: 0 0 8px; }
+
+.pj-qcard__textarea {
+  width: 100%;
+  min-height: 38px;
+  background: var(--pj-input-bg);
+  border: 1px solid transparent;
+  border-radius: var(--pj-radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--pj-text);
+  outline: none;
+  resize: vertical;
+  font-family: var(--pj-font);
+  transition: border-color 180ms var(--pj-ease), background 180ms var(--pj-ease), box-shadow 180ms var(--pj-ease);
+  box-sizing: border-box;
+}
+
+.pj-qcard__textarea::placeholder { color: var(--pj-muted); }
+.pj-qcard__textarea:focus {
+  background: var(--pj-input-bg-focus);
+  border-color: var(--pj-primary);
+  box-shadow: 0 0 0 3px var(--pj-primary-ring);
+}
+
+.pj-qcard__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: end;
+}
+
+.pj-qcard__field { min-width: 0; }
+.pj-qcard__field .pj-label { font-size: 11.5px; }
+
+.pj-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--pj-text);
+  cursor: pointer;
+  user-select: none;
+  height: 36px;
+}
+
+.pj-checkbox input { position: absolute; opacity: 0; pointer-events: none; }
+
+.pj-checkbox__box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.6px solid var(--pj-border-strong);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 160ms var(--pj-ease), border-color 160ms var(--pj-ease);
+}
+
+.pj-checkbox input:checked + .pj-checkbox__box {
+  background: var(--pj-primary);
+  border-color: var(--pj-primary);
+}
+
+.pj-checkbox input:checked + .pj-checkbox__box::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 4px; height: 8px;
+  border: solid #FFFFFF;
+  border-width: 0 2px 2px 0;
+  transform: translate(0, -1px) rotate(45deg);
+}
+
+.pj-qcard__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--pj-input-bg);
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pj-muted);
+  transition: background 160ms var(--pj-ease), color 160ms var(--pj-ease);
+}
+.pj-qcard__close:hover { background: var(--pj-border); color: var(--pj-text); }
+
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .pj-input, .pj-radio__circle, .pj-radio__circle::after, .pj-btn, .pj-step, .pj-step__dot,
-  .pj-select, .pj-chip, .pj-num, .pj-tag-input, .pj-range input[type="range"]::-webkit-slider-thumb {
+  .pj-select, .pj-chip, .pj-num, .pj-tag-input, .pj-range input[type="range"]::-webkit-slider-thumb,
+  .pj-cat-chip, .pj-checkbox__box, .pj-modal, .pj-drawer-wrap {
     transition: none !important;
   }
 }
