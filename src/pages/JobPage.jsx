@@ -3,6 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { BadgeCheck, Check, ChevronDown, Upload, Zap } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
 import CVPassportLogo from "../components/CVPassportLogo";
+import { saveApplyIntent, consumeApplyIntent } from "../lib/auth/applyIntent";
+
+const RETURN_PATH_KEY = "cvp_return_path";
 
 // ─── DESIGN TOKENS (Public page) ─────────────────────────────────
 const T = {
@@ -243,21 +246,22 @@ function StepProgress({ step }) {
 }
 
 // ─── APPLY FORM ──────────────────────────────────────────────────
-function ApplyForm({ job, user }) {
+function ApplyForm({ job, user, replayIntent }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    email: user?.email || "",
-    phone: "",
-    visa_status: "",
+    first_name: replayIntent?.form?.first_name || "",
+    last_name:  replayIntent?.form?.last_name  || "",
+    email:      replayIntent?.form?.email      || user?.email || "",
+    phone:      replayIntent?.form?.phone      || "",
+    visa_status: replayIntent?.form?.visa_status || "",
     cv_file: null,
     cv_filename: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [existingApp, setExistingApp] = useState(null);
   const [cooldownDays, setCooldownDays] = useState(null);
+  const replayedRef = useRef(false);
 
   // Check if user already applied + cooldown
   useEffect(() => {
@@ -280,6 +284,25 @@ function ApplyForm({ job, user }) {
       }
     })();
   }, [user?.id, job?.id]);
+
+  // Replay on auth return: when the user came back from /auth with an
+  // intent stash for this job, auto-submit the application using the
+  // form data they already entered. Single-shot — replayedRef gates
+  // re-runs across re-renders, the parent consumed the sessionStorage
+  // entry on mount so a fresh visit won't fire this branch.
+  useEffect(() => {
+    if (replayedRef.current) return;
+    if (!replayIntent || !user?.id || !job?.id) return;
+    if (cooldownDays) return; // already applied; respect cooldown
+    replayedRef.current = true;
+    // Defer one microtask so the form-state initializer (driven by the
+    // same replayIntent) has settled into the closure submit reads from.
+    Promise.resolve().then(() => submitApplication(false));
+    // submitApplication closes over form state and isn't memoised; the
+    // ref guard above plus the existence-check on replayIntent give us
+    // single-shot semantics, so depending on it would only thrash.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayIntent, user?.id, job?.id, cooldownDays]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -315,6 +338,23 @@ function ApplyForm({ job, user }) {
 
   const submitApplication = async (isEasyApply) => {
     if (submitting) return;
+
+    // Logged-out submit: stash form + jobId in sessionStorage, mark
+    // /jobs/<id> as the post-auth return path, then route to /auth.
+    // Once auth completes useCvpAuth lands the user back here and the
+    // replay branch in JobPage's mount effect re-fires the submit with
+    // the same form data — no re-keying.
+    if (!user?.id) {
+      saveApplyIntent({ jobId: job.id, form });
+      try {
+        if (typeof window !== "undefined" && window.sessionStorage) {
+          window.sessionStorage.setItem(RETURN_PATH_KEY, `/jobs/${job.id}`);
+        }
+      } catch { /* private mode etc. */ }
+      navigate("/auth");
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (!supabase) { setStep(3); return; }
@@ -326,7 +366,7 @@ function ApplyForm({ job, user }) {
         : `${form.first_name} ${form.last_name}`;
 
       const appData = {
-        candidate_id: user?.id || null,
+        candidate_id: user.id,
         job_id: job.id,
         hr_id: job.hr_id,
         ats_score: 0,
@@ -334,7 +374,7 @@ function ApplyForm({ job, user }) {
         missing_keywords: [],
         is_visible_to_hr: true,
         cooldown_expires_at: cooldownDate.toISOString(),
-        status: "submitted",
+        status: "new",
         candidate_name: candidateName,
         candidate_email: isEasyApply ? user.email : form.email,
         candidate_phone: form.phone,
@@ -677,6 +717,11 @@ export default function JobPage() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  // Read once on mount and pass down — single-shot. Stays the same
+  // across re-renders so the ApplyForm replay effect can latch onto a
+  // stable reference. consumeApplyIntent removes the stash on read so
+  // a refresh / second visit won't re-fire the application.
+  const [replayIntent] = useState(() => consumeApplyIntent(jobId));
 
   useEffect(() => {
     if (!supabase) return;
@@ -897,7 +942,7 @@ export default function JobPage() {
         </div>
 
         {/* Apply form */}
-        <ApplyForm job={job} user={user} />
+        <ApplyForm job={job} user={user} replayIntent={replayIntent} />
       </div>
     </div>
   );

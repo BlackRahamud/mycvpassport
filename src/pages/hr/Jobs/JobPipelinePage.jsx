@@ -9,7 +9,7 @@ import "./jobPipeline.css";
    Pipeline stages B-F. Order matters: it determines tab order, the
    "next stage" advance target, and how DB statuses map onto a tab. */
 const STAGES = [
-  { key: "shortlist",   label: "Shortlist",   dbValues: ["submitted", "viewed", "shortlisted"],
+  { key: "shortlist",   label: "Shortlist",   dbValues: ["new", "submitted", "viewed", "shortlisted"],
     actionLabel: "Interviewed", advanceTo: "interviewed",
     statusLine: (date) => `Shortlisted   ${date}`,
     nextLine: "Click Interviewed to request a screening call, or Pass to remove from Shortlist." },
@@ -17,7 +17,7 @@ const STAGES = [
     actionLabel: "Interviewed", advanceTo: "interviewed",
     statusLine: (date) => `Ready to interview   ${date}`,
     nextLine: "Schedule the interview and confirm when it has been completed." },
-  { key: "interviewed", label: "Interviewed", dbValues: ["interviewed"],
+  { key: "interviewed", label: "Interviewed", dbValues: ["interviewed", "interviewing"],
     actionLabel: "Give offer",  advanceTo: "offered",
     statusLine: (date) => `Interviewed   ${date}`,
     nextLine: "If you want to hire, extend an offer via email soon and cc your Account Manager so you don't lose the candidate." },
@@ -36,7 +36,7 @@ const STAGE_BY_DB = STAGES.reduce((m, s) => {
   return m;
 }, {});
 
-const NEW_STATUSES = new Set(["submitted", "viewed"]);
+const NEW_STATUSES = new Set(["new", "submitted", "viewed"]);
 
 /* ───────── Inline icons ───────── */
 const ChevLeft = () => (
