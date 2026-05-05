@@ -5,6 +5,7 @@ import { supabase } from "../appSupabaseClient";
 import CVPassportLogo from "../components/CVPassportLogo";
 import { saveApplyIntent, consumeApplyIntent } from "../lib/auth/applyIntent";
 import { scoreApplicationStopgap } from "../lib/ats/stopgapScorer";
+import UserMenu from "../components/UserMenu/UserMenu";
 
 const RETURN_PATH_KEY = "cvp_return_path";
 
@@ -744,6 +745,7 @@ export default function JobPage() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   // Read once on mount and pass down — single-shot. Stays the same
   // across re-renders so the ApplyForm replay effect can latch onto a
   // stable reference. consumeApplyIntent removes the stash on read so
@@ -756,6 +758,22 @@ export default function JobPage() {
       if (session?.user) setUser(session.user);
     });
   }, []);
+
+  // Plan + display name for the UserMenu popover. Best-effort: a
+  // missing profile row falls back to "Free plan" inside UserMenu.
+  useEffect(() => {
+    if (!supabase || !user?.id) return;
+    let live = true;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (live) setProfile(data || null);
+    })();
+    return () => { live = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!supabase || !jobId) return;
@@ -832,22 +850,33 @@ export default function JobPage() {
         >
           <CVPassportLogo height={24} />
         </button>
-        <button
-          type="button"
-          onClick={() => navigate("/auth")}
-          style={{
-            background: "none",
-            border: `1px solid ${T.border}`,
-            color: T.text,
-            fontSize: 13,
-            padding: "6px 16px",
-            borderRadius: 8,
-            cursor: "pointer",
-            fontFamily: T.font,
-          }}
-        >
-          Sign in
-        </button>
+        {user ? (
+          <UserMenu
+            email={user.email || ""}
+            name={profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || ""}
+            plan={profile?.plan}
+            switchTo={{ label: "Switch to HR", path: "/hr/jobs" }}
+            settingsPath="/account"
+            theme="dark"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => navigate("/auth")}
+            style={{
+              background: "none",
+              border: `1px solid ${T.border}`,
+              color: T.text,
+              fontSize: 13,
+              padding: "6px 16px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontFamily: T.font,
+            }}
+          >
+            Sign in
+          </button>
+        )}
       </nav>
 
       {/* Content */}
