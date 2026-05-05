@@ -4,6 +4,7 @@ import { BadgeCheck, Check, ChevronDown, Upload, Zap } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
 import CVPassportLogo from "../components/CVPassportLogo";
 import { saveApplyIntent, consumeApplyIntent } from "../lib/auth/applyIntent";
+import { scoreApplicationStopgap } from "../lib/ats/stopgapScorer";
 
 const RETURN_PATH_KEY = "cvp_return_path";
 
@@ -365,13 +366,39 @@ function ApplyForm({ job, user, replayIntent }) {
         ? (user.user_metadata?.name || user.email?.split("@")[0] || "")
         : `${form.first_name} ${form.last_name}`;
 
+      // Pre-Phase-1 stopgap scoring. Pull the user's most recent CV
+      // blob (cvs.cv_data) and overlap-match its skills/experience
+      // against job.requirements. Tagged score_source='stopgap_keyword'
+      // so the Phase 1 retro-rescan can overwrite these rows cleanly.
+      // Manual upload (non-easy-apply) has no parsed CV yet — leave
+      // ats_score=0 with score_source still tagged so the row is in
+      // the rescan pool.
+      let cvBlob = null;
+      try {
+        const { data: cvRow } = await supabase
+          .from("cvs")
+          .select("cv_data")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        cvBlob = cvRow?.cv_data || null;
+      } catch (_e) { /* best-effort — fall through with no CV */ }
+
+      const scored = scoreApplicationStopgap({
+        jobRequirements: job.requirements,
+        candidateCv: cvBlob,
+      });
+
       const appData = {
         candidate_id: user.id,
         job_id: job.id,
         hr_id: job.hr_id,
-        ats_score: 0,
-        match_keywords: [],
-        missing_keywords: [],
+        cv_snapshot: cvBlob || null,
+        ats_score: scored.score,
+        match_keywords: scored.match_keywords,
+        missing_keywords: scored.missing_keywords,
+        score_source: scored.score_source,
         is_visible_to_hr: true,
         cooldown_expires_at: cooldownDate.toISOString(),
         status: "new",
