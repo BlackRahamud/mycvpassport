@@ -4,11 +4,20 @@ import "./postJob.css";
 import PostJobShell from "./PostJobShell";
 import PostJobPreview from "./PostJobPreview";
 import StartStep from "./steps/StartStep";
+import NewJobStep from "./steps/NewJobStep";
 
 const INITIAL_JOB = {
+  // Step 1 — Start
   jobTitle: "",
   position: "remote",
   jobType: "full-time",
+  // Step 2 — Skills & Salary
+  educationLevel: "",
+  salaryUnit: "per Hour",
+  salaryMin: 50,
+  salaryMax: 1000,
+  relevantSkills: ["react-native"],
+  tools: ["Java"],
 };
 
 const STEP_ORDER = ["start", "new-job", "qualifications", "job-description", "hire"];
@@ -26,6 +35,7 @@ export default function PostJobPage() {
 
   const idx = STEP_ORDER.indexOf(step);
   const goNext = () => { if (idx < STEP_ORDER.length - 1) setStep(STEP_ORDER[idx + 1]); };
+  const goPrev = () => { if (idx > 0) setStep(STEP_ORDER[idx - 1]); };
 
   const left = (
     <AnimatePresence mode="wait">
@@ -34,8 +44,13 @@ export default function PostJobPage() {
           <StartStep value={job} onChange={setJob} onContinue={goNext} />
         </motion.div>
       )}
+      {step === "new-job" && (
+        <motion.div key="new-job" {...stepMotion} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          <NewJobStep value={job} onChange={setJob} onContinue={goNext} onBack={goPrev} />
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 
-  return <PostJobShell currentStep={step} leftSlot={left} rightSlot={<PostJobPreview />} />;
+  return <PostJobShell currentStep={step} leftSlot={left} rightSlot={<PostJobPreview step={step} job={job} />} />;
 }
