@@ -233,11 +233,20 @@ export default function JobPipelinePage() {
     (async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, title, status, posted_at, created_at, location, market, job_type, salary_min, salary_max, currency, hr_id, company, department, requirements, summary, screening_questions")
+        .select("id, title, status, posted_at, created_at, location, market, job_type, salary_min, salary_max, currency, hr_id, company, department, requirements, description, screening_questions")
         .eq("id", jobId)
         .maybeSingle();
       if (!live) return;
-      if (error) { setJobError(error.message); return; }
+      if (error) {
+        // Surface the actual PostgREST message so column / RLS issues
+        // show up in DevTools instead of silently rendering "Job not
+        // found" — the previous swallow hid a column-name typo for a
+        // full session.
+        // eslint-disable-next-line no-console
+        console.warn("[pipeline] job load failed:", error.message, error);
+        setJobError(error.message);
+        return;
+      }
       setJob(data || null);
     })();
     return () => { live = false; };
