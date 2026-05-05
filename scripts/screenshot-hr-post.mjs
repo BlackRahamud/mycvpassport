@@ -19,7 +19,7 @@ async function continueOnce({ typeJobTitle = false } = {}) {
   await page.waitForTimeout(450);
 }
 
-const stepBySCREEN = { "1": 1, "2": 2, "3": 3, "4": 3, "5": 3, "6": 3 };
+const stepBySCREEN = { "1": 1, "2": 2, "3": 3, "4": 3, "5": 3, "6": 3, "7": 4, "8": 5 };
 const targetStep = stepBySCREEN[SCREEN] || 1;
 for (let s = 1; s < targetStep; s++) {
   await continueOnce({ typeJobTitle: s === 1 });
@@ -33,6 +33,12 @@ if (SCREEN === "4" || SCREEN === "5") {
 if (SCREEN === "5") {
   await page.getByRole("button", { name: /^Background Check/ }).click();
   await page.waitForTimeout(450);
+}
+
+if (SCREEN === "8") {
+  const boxes = await page.$$(".pj-consent .pj-checkbox__box");
+  for (const b of boxes) await b.click();
+  await page.waitForTimeout(250);
 }
 
 if (SCREEN === "6") {

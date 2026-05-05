@@ -135,7 +135,7 @@ export default function ScreeningDrawer({ open, categoryKey, onClose, onSave }) 
               <div className="pj-qcard__head">
                 <span className="pj-qcard__head-label">Write a custom screening question.</span>
               </div>
-              <p className="pj-qcard__sub">Help keep LinkedIn respectful and professional</p>
+              <p className="pj-qcard__sub">Help keep CVPassport respectful and professional</p>
               <textarea
                 className="pj-qcard__textarea"
                 value={q.text}

@@ -6,6 +6,8 @@ import PostJobPreview from "./PostJobPreview";
 import StartStep from "./steps/StartStep";
 import NewJobStep from "./steps/NewJobStep";
 import QualificationsStep from "./steps/QualificationsStep";
+import JobDescriptionStep from "./steps/JobDescriptionStep";
+import HireStep from "./steps/HireStep";
 import ScreeningCategoryModal from "./screening/ScreeningCategoryModal";
 import ScreeningDrawer from "./screening/ScreeningDrawer";
 
@@ -26,6 +28,11 @@ const INITIAL_JOB = {
   yearsExperiencePolicy: "required",
   workAuthPolicy: "required",
   screeningQuestionGroups: [],
+  // Step 4 — Job Description
+  jobDescription: "",
+  // Step 5 — Hire
+  consentSubscription: false,
+  consentTerms: false,
 };
 
 const STEP_ORDER = ["start", "new-job", "qualifications", "job-description", "hire"];
@@ -73,13 +80,20 @@ export default function PostJobPage() {
       {step === "qualifications" && (
         <motion.div key="qualifications" {...stepMotion} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
           <QualificationsStep
-            value={job}
-            onChange={setJob}
-            onContinue={goNext}
-            onBack={goPrev}
+            value={job} onChange={setJob} onContinue={goNext} onBack={goPrev}
             onAddScreeningQuestion={(catKey) => { if (catKey) pickCategory(catKey); else openCategoryPicker(); }}
             onViewQuestionGroup={(catKey) => pickCategory(catKey)}
           />
+        </motion.div>
+      )}
+      {step === "job-description" && (
+        <motion.div key="job-description" {...stepMotion} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          <JobDescriptionStep value={job} onChange={setJob} onContinue={goNext} onBack={goPrev} />
+        </motion.div>
+      )}
+      {step === "hire" && (
+        <motion.div key="hire" {...stepMotion} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          <HireStep value={job} onChange={setJob} onHire={() => { /* TODO: post + navigate */ }} onBack={goPrev} />
         </motion.div>
       )}
     </AnimatePresence>
