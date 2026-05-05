@@ -28,7 +28,11 @@ const PrivacyPage          = lazy(() => import(/* webpackChunkName: "legal" */  
 const RefundPage           = lazy(() => import(/* webpackChunkName: "legal" */       "./pages/RefundPage"));
 const PaymentSuccess       = lazy(() => import(/* webpackChunkName: "payment" */     "./pages/PaymentSuccess"));
 const ResetPassword        = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/ResetPassword"));
-const HRPortal             = lazy(() => import(/* webpackChunkName: "hr" */          "./pages/HRPortal"));
+// /hr is now an alias for /hr/jobs — the legacy HRPortal page (a
+// parallel candidate-pipeline UI) was deleted on 2026-05-05 in favour
+// of the unified /hr/jobs + /hr/jobs/:id stack. The shared ScoreRing
+// and scoreBand it once owned moved to src/components/hr/ +
+// src/lib/ats/ before the deletion.
 const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */     "./pages/hr/PostJob/PostJobPage"));
 const HRJobsListPage       = lazy(() => import(/* webpackChunkName: "hr-jobs" */     "./pages/hr/Jobs/JobsListPage"));
 const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline" */ "./pages/hr/Jobs/JobPipelinePage"));
@@ -144,7 +148,7 @@ export default function App() {
     <Routes>
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
-      <Route path="/hr" element={<HRPortal />} />
+      <Route path="/hr" element={<Navigate to="/hr/jobs" replace />} />
       <Route path="/hr/post" element={<PostJobPage />} />
       <Route path="/hr/jobs" element={<HRJobsListPage />} />
       <Route path="/hr/jobs/:id" element={<JobPipelinePage />} />
