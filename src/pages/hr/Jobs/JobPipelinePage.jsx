@@ -139,6 +139,58 @@ function timeAgo(s) {
 
 function getCv(c) { return c?.cv_snapshot || c?.cv_data || {}; }
 
+/* ───────── Score helpers ─────────
+   Score band = the chip's tone. 80+ green, 50-79 amber, <50 muted,
+   no-source = dashed grey (never scored). The colour decision is
+   deliberately coarse so a 79 vs 80 nudge reads as a real shift on
+   the card, not a continuous gradient that hides ranking. */
+function scoreBand(score, source) {
+  if (!source) return "none";
+  if (score >= 80) return "high";
+  if (score >= 50) return "mid";
+  return "low";
+}
+
+function ScoreChip({ score, source }) {
+  const band = scoreBand(score || 0, source);
+  if (band === "none") {
+    return <span className="jpp-score-chip jpp-score-chip--none" title="Not yet scored">— </span>;
+  }
+  const tag = source === "phase_1_full" ? "AI" : "kw";
+  return (
+    <span className={`jpp-score-chip jpp-score-chip--${band}`} title={`ATS match · ${source}`}>
+      <span className="jpp-score-chip__num">{score}</span>
+      <span className="jpp-score-chip__tag">{tag}</span>
+    </span>
+  );
+}
+
+function ScoreMeter({ score, source }) {
+  const band = scoreBand(score || 0, source);
+  if (!source) {
+    return (
+      <div className="jpp-score-meter jpp-score-meter--none">
+        <span className="jpp-score-meter__num">—</span>
+        <span className="jpp-score-meter__label">Not yet scored</span>
+      </div>
+    );
+  }
+  return (
+    <div className={`jpp-score-meter jpp-score-meter--${band}`}>
+      <div className="jpp-score-meter__num">{score}<span className="jpp-score-meter__unit">/100</span></div>
+      <div className="jpp-score-meter__label">
+        ATS match
+        <span className="jpp-score-meter__source">
+          {source === "phase_1_full" ? "Phase 1 scorer" : "Keyword overlap (stopgap)"}
+        </span>
+      </div>
+      <div className="jpp-score-meter__bar" aria-hidden="true">
+        <div className="jpp-score-meter__fill" style={{ width: `${Math.max(0, Math.min(100, score || 0))}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function deriveSkills(c) {
   const cv = getCv(c);
   const list = cv.skills || cv.skill_list || cv.tools || [];
@@ -198,7 +250,7 @@ export default function JobPipelinePage() {
     (async () => {
       const { data, error } = await supabase
         .from("applications")
-        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, status, recruiter_notes, created_at, viewed_at, updated_at, is_visible_to_hr")
+        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, match_keywords, missing_keywords, score_source, status, recruiter_notes, created_at, viewed_at, updated_at, is_visible_to_hr")
         .eq("job_id", jobId)
         .neq("status", "rejected")
         .order("ats_score", { ascending: false });
@@ -419,14 +471,17 @@ export default function JobPipelinePage() {
                           <span className="jpp-card__badge" aria-hidden={!isNew} style={{ visibility: isNew ? "visible" : "hidden" }}>
                             New Applicant
                           </span>
-                          <input
-                            type="checkbox"
-                            className="jpp-card__check"
-                            checked={isActive}
-                            onChange={(e) => { e.stopPropagation(); setSelectedAppId(c.id); }}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={`Select ${c.candidate_name || "candidate"}`}
-                          />
+                          <span className="jpp-card__top-right">
+                            <ScoreChip score={c.ats_score} source={c.score_source} />
+                            <input
+                              type="checkbox"
+                              className="jpp-card__check"
+                              checked={isActive}
+                              onChange={(e) => { e.stopPropagation(); setSelectedAppId(c.id); }}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`Select ${c.candidate_name || "candidate"}`}
+                            />
+                          </span>
                         </div>
                         <div className="jpp-card__name">{c.candidate_name || "Unnamed candidate"}</div>
                         <div className="jpp-card__line">
@@ -555,6 +610,8 @@ function CandidateDetail({
     ? candidate.cv_snapshot.screening_answers
     : (Array.isArray(candidate.screening_answers) ? candidate.screening_answers : []);
   const recruiterNotes = Array.isArray(candidate.recruiter_notes) ? candidate.recruiter_notes : [];
+  const matchedKw = Array.isArray(candidate.match_keywords)   ? candidate.match_keywords   : [];
+  const missingKw = Array.isArray(candidate.missing_keywords) ? candidate.missing_keywords : [];
 
   return (
     <motion.aside
@@ -596,6 +653,34 @@ function CandidateDetail({
           </button>
         </div>
       </header>
+
+      <section className="jpp-section jpp-section--score">
+        <ScoreMeter score={candidate.ats_score} source={candidate.score_source} />
+        {(matchedKw.length + missingKw.length) > 0 && (
+          <div className="jpp-match">
+            {matchedKw.length > 0 && (
+              <div className="jpp-match__col">
+                <span className="jpp-match__label">Matched</span>
+                <div className="jpp-match__chips">
+                  {matchedKw.slice(0, 8).map((k, i) => (
+                    <span key={`m-${i}`} className="jpp-match__chip jpp-match__chip--hit">{k}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {missingKw.length > 0 && (
+              <div className="jpp-match__col">
+                <span className="jpp-match__label">Missing</span>
+                <div className="jpp-match__chips">
+                  {missingKw.slice(0, 8).map((k, i) => (
+                    <span key={`x-${i}`} className="jpp-match__chip jpp-match__chip--miss">{k}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {skills.length > 0 && (
         <section className="jpp-section">
