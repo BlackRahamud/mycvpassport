@@ -19,6 +19,15 @@ async function continueOnce({ typeJobTitle = false } = {}) {
   await page.waitForTimeout(450);
 }
 
+if (SCREEN === "10") {
+  await page.goto("http://localhost:3000/jobs?mock=1", { waitUntil: "networkidle" });
+  await page.waitForTimeout(1100);
+  await page.screenshot({ path: OUT, fullPage: false });
+  console.log("Saved:", OUT, "screen:", SCREEN);
+  await browser.close();
+  process.exit(0);
+}
+
 const stepBySCREEN = { "1": 1, "2": 2, "3": 3, "4": 3, "5": 3, "6": 3, "7": 4, "8": 5, "9": 5 };
 const targetStep = stepBySCREEN[SCREEN] || 1;
 for (let s = 1; s < targetStep; s++) {

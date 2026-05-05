@@ -31,7 +31,9 @@ const ResetPassword        = lazy(() => import(/* webpackChunkName: "auth" */   
 const HRPortal             = lazy(() => import(/* webpackChunkName: "hr" */          "./pages/HRPortal"));
 const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */     "./pages/hr/PostJob/PostJobPage"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
-const JobsListPage         = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobsListPage"));
+// JobsListPage (dark-theme corridor list) replaced by JobBoardPage on 2026-05-05.
+// Kept the file in-place for one-PR cleanup; remove import after follow-up sweep.
+const JobBoardPage         = lazy(() => import(/* webpackChunkName: "jobs-board" */  "./pages/jobs/JobBoardPage"));
 const ApplicationsPage     = lazy(() => import(/* webpackChunkName: "applications" */ "./pages/ApplicationsPage"));
 const LinkedInOptimizer    = lazy(() => import(/* webpackChunkName: "linkedin" */    "./pages/LinkedInOptimizer"));
 const SalarySwitcher       = lazy(() => import(/* webpackChunkName: "salary" */      "./pages/SalarySwitcher"));
@@ -142,7 +144,7 @@ export default function App() {
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/hr" element={<HRPortal />} />
       <Route path="/hr/post" element={<PostJobPage />} />
-      <Route path="/jobs" element={<JobsListPage />} />
+      <Route path="/jobs" element={<JobBoardPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />
       <Route
         path="*"
