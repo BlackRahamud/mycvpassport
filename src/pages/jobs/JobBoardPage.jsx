@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import "../hr/PostJob/postJob.css"; // reuse :root tokens
@@ -11,36 +11,36 @@ const JOB_CATEGORIES = ["Engineering", "Admin & Customer Support", "Marketing & 
 const EXPERIENCE_BUCKETS = ["Less than 1 Years", "1 - 2 Years", "3 - 5 Years", "5 Years +"];
 const LAST_UPDATED = ["Recently", "24 Hours", "1 Week", "Anytime"];
 
-/* ───────── Mock data — only used when ?mock=1 is present.
-   Production renders from Supabase `jobs` table; empty state otherwise. ───────── */
-const MOCK_JOBS = Array.from({ length: 5 }).map((_, i) => ({
-  id: `mock-${i + 1}`,
-  title: "Data analytics business analyst",
-  category: "Engineering",
-  job_type: "Contract",
-  remote: true,
-  location: "Ithaca, New York",
-  experience_label: "5 Years +",
-  salary_label: "$65 per hour",
-  posted_label: "12 Hours ago",
-}));
-
 /* ───────── Map a Supabase job row → card-friendly shape ───────── */
+const POSITION_TO_LABEL = { remote: "Remote", hybrid: "Hybrid", onsite: "Onsite" };
+const JOB_TYPE_TO_LABEL = { "full-time": "Full-time", "part-time": "Part-time", contract: "Contract" };
+
+function experienceLabel(row) {
+  if (row.experience_min == null && row.experience_max == null) return "Any";
+  if (row.experience_min != null && row.experience_max != null) return `${row.experience_min}–${row.experience_max} Years`;
+  if (row.experience_min != null) return `${row.experience_min}+ Years`;
+  return `Up to ${row.experience_max} Years`;
+}
+
+function salaryLabel(row) {
+  const unit = row.salary_unit || "";
+  if (row.salary_min && row.salary_max) return `$${row.salary_min}–$${row.salary_max} ${unit}`.trim();
+  if (row.salary_min) return `$${row.salary_min}+ ${unit}`.trim();
+  if (row.salary_max) return `Up to $${row.salary_max} ${unit}`.trim();
+  return "—";
+}
+
 function adaptRow(row) {
   return {
     id: row.id,
     title: row.title,
-    category: row.category || row.department || "Engineering",
-    job_type: row.job_type || "Full-time",
-    remote: !!row.remote,
-    location: row.location || "Remote",
-    experience_label: row.experience_label || (row.years_experience_min ? `${row.years_experience_min}+ Years` : "Any"),
-    salary_label:
-      row.salary_min && row.salary_max
-        ? `$${row.salary_min} – $${row.salary_max}`
-        : row.salary_min
-          ? `$${row.salary_min}+`
-          : "—",
+    category: row.department || JOB_CATEGORIES[0],
+    job_type: JOB_TYPE_TO_LABEL[row.job_type] || row.job_type || "Full-time",
+    remote: row.position === "remote",
+    position_label: POSITION_TO_LABEL[row.position] || row.location || "Remote",
+    location: row.location || POSITION_TO_LABEL[row.position] || "Remote",
+    experience_label: experienceLabel(row),
+    salary_label: salaryLabel(row),
     posted_label: relativeTime(row.posted_at || row.created_at),
   };
 }
@@ -166,11 +166,9 @@ function JobCard({ job, onApply, index }) {
 export default function JobBoardPage() {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const useMock = searchParams.get("mock") === "1";
 
   const [user, setUser] = useState(null);
-  const [jobs, setJobs] = useState(useMock ? MOCK_JOBS : null); // null = loading
+  const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -180,14 +178,14 @@ export default function JobBoardPage() {
   }, []);
 
   useEffect(() => {
-    if (useMock) return;
     let live = true;
     (async () => {
       try {
         const { data, error: e } = await supabase
           .from("jobs")
           .select("*")
-          .eq("source", "hr_portal")  // only HR-posted; never Scout
+          .eq("source", "hr_portal") // only HR-posted; never Scout
+          .in("status", ["active", "published"]) // matches public-read RLS in 011
           .order("posted_at", { ascending: false })
           .limit(50);
         if (!live) return;
@@ -201,7 +199,7 @@ export default function JobBoardPage() {
       }
     })();
     return () => { live = false; };
-  }, [useMock]);
+  }, []);
 
   const greetingName = useMemo(() => {
     const meta = user?.user_metadata || {};

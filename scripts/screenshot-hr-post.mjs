@@ -20,8 +20,11 @@ async function continueOnce({ typeJobTitle = false } = {}) {
 }
 
 if (SCREEN === "10") {
-  await page.goto("http://localhost:3000/jobs?mock=1", { waitUntil: "networkidle" });
-  await page.waitForTimeout(1100);
+  // /jobs is now fully wired to Supabase. The mock=1 demo path was removed
+  // when the wizard started persisting real jobs — empty state renders
+  // until the table has rows with source='hr_portal' and status='active'.
+  await page.goto("http://localhost:3000/jobs", { waitUntil: "networkidle" });
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: OUT, fullPage: false });
   console.log("Saved:", OUT, "screen:", SCREEN);
   await browser.close();
