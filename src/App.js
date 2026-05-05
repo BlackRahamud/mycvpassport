@@ -29,6 +29,7 @@ const RefundPage           = lazy(() => import(/* webpackChunkName: "legal" */  
 const PaymentSuccess       = lazy(() => import(/* webpackChunkName: "payment" */     "./pages/PaymentSuccess"));
 const ResetPassword        = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/ResetPassword"));
 const HRPortal             = lazy(() => import(/* webpackChunkName: "hr" */          "./pages/HRPortal"));
+const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */     "./pages/hr/PostJob/PostJobPage"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
 const JobsListPage         = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobsListPage"));
 const ApplicationsPage     = lazy(() => import(/* webpackChunkName: "applications" */ "./pages/ApplicationsPage"));
@@ -140,6 +141,7 @@ export default function App() {
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/hr" element={<HRPortal />} />
+      <Route path="/hr/post" element={<PostJobPage />} />
       <Route path="/jobs" element={<JobsListPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />
       <Route

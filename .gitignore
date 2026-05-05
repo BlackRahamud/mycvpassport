@@ -39,3 +39,6 @@ supabase/.temp/
 # scripts/render-t11-real.js). Local diagnostics only — do not commit
 # rendered PDFs or trace logs.
 /out/
+
+# Local screenshot output from scripts/screenshot-hr-post.mjs — design-review captures only
+scripts/.screenshots/
