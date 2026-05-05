@@ -30,19 +30,19 @@
   gap: 8px;
 }
 
-.jb-topbar__logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--pj-primary), #5B21B6);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #FFFFFF;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.02em;
+.jb-wordmark {
   font-family: var(--pj-font);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--pj-primary);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  user-select: none;
+}
+
+.jb-wordmark span {
+  color: var(--pj-text);
+  font-weight: 600;
 }
 
 .jb-topbar__center {

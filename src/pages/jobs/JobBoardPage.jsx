@@ -219,7 +219,7 @@ export default function JobBoardPage() {
     <div className="jb-root">
       <header className="jb-topbar">
         <div className="jb-topbar__brand">
-          <span className="jb-topbar__logo">M</span>
+          <a href="/" className="jb-wordmark">CV<span>Passport</span></a>
         </div>
         <div className="jb-topbar__center">
           <button type="button" className="jb-browse-cta">
