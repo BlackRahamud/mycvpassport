@@ -36,6 +36,31 @@ function formatStartDate(s) {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
+function formatSalary(j) {
+  const lo = j?.salary_min, hi = j?.salary_max;
+  if (!lo && !hi) return "—";
+  const cur = j.currency || "AED";
+  const fmt = (n) => Number(n).toLocaleString();
+  if (lo && hi && lo !== hi) return `${cur} ${fmt(lo)}–${fmt(hi)}`;
+  return `${cur} ${fmt(lo || hi)}`;
+}
+
+function isActiveStatus(s) {
+  return s === "active" || s === "published";
+}
+
+/* Stats roll-up tile. value === null prints an em-dash (truthful when
+   the stats query failed) — value === 0 prints "0" (a real fact). */
+function StatTile({ label, value, suffix = "", accent }) {
+  const display = value == null ? "—" : `${value.toLocaleString()}${suffix}`;
+  return (
+    <div className={`hjl-stat${accent ? ` hjl-stat--${accent}` : ""}`}>
+      <div className="hjl-stat__label">{label}</div>
+      <div className="hjl-stat__value">{display}</div>
+    </div>
+  );
+}
+
 function relativeFromNow(s) {
   if (!s) return "—";
   const t = new Date(s).getTime();
@@ -65,6 +90,7 @@ export default function JobsListPage() {
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
+  const [stats, setStats] = useState({ total: null, active: null, applicants: null, avgScore: null });
 
   useEffect(() => {
     let live = true;
@@ -73,6 +99,7 @@ export default function JobsListPage() {
   }, []);
 
   useEffect(() => {
+    if (!user?.id) return;
     let live = true;
     (async () => {
       try {
@@ -81,8 +108,9 @@ export default function JobsListPage() {
           : ["closed"];
         const { data, error: e } = await supabase
           .from("jobs")
-          .select("id, title, status, posted_at, created_at, hr_id")
+          .select("id, title, status, posted_at, created_at, hr_id, salary_min, salary_max, currency")
           .eq("source", "hr_portal")
+          .eq("hr_id", user.id)
           .in("status", statusFilter)
           .order("posted_at", { ascending: false })
           .limit(200);
@@ -96,7 +124,60 @@ export default function JobsListPage() {
       }
     })();
     return () => { live = false; };
-  }, [view]);
+  }, [view, user?.id]);
+
+  // Stats bar — four roll-ups across the HR's whole portfolio. Counts
+  // use head:true so Supabase returns the count without shipping rows.
+  // Avg score pulls only the ats_score column (small payload) and only
+  // for rows that have actually been scored, so the average isn't
+  // dragged down by un-scored rows from the legacy pre-stopgap window.
+  useEffect(() => {
+    if (!user?.id) return;
+    let live = true;
+    (async () => {
+      try {
+        const [
+          { count: total },
+          { count: active },
+          { count: applicants },
+          { data: scoreRows },
+        ] = await Promise.all([
+          supabase.from("jobs")
+            .select("id", { count: "exact", head: true })
+            .eq("hr_id", user.id)
+            .eq("source", "hr_portal"),
+          supabase.from("jobs")
+            .select("id", { count: "exact", head: true })
+            .eq("hr_id", user.id)
+            .eq("source", "hr_portal")
+            .in("status", ["active", "published"]),
+          supabase.from("applications")
+            .select("id", { count: "exact", head: true })
+            .eq("hr_id", user.id),
+          supabase.from("applications")
+            .select("ats_score")
+            .eq("hr_id", user.id)
+            .not("score_source", "is", null)
+            .gt("ats_score", 0),
+        ]);
+        if (!live) return;
+        const sum = (scoreRows || []).reduce((acc, r) => acc + (r.ats_score || 0), 0);
+        const avg = scoreRows && scoreRows.length ? Math.round(sum / scoreRows.length) : null;
+        setStats({
+          total:      total ?? 0,
+          active:     active ?? 0,
+          applicants: applicants ?? 0,
+          avgScore:   avg,
+        });
+      } catch (_e) {
+        if (!live) return;
+        // Stats are decorative — leave them as nulls so the UI shows
+        // an em-dash rather than zeros that would lie about state.
+        setStats({ total: null, active: null, applicants: null, avgScore: null });
+      }
+    })();
+    return () => { live = false; };
+  }, [user?.id]);
 
   const filtered = useMemo(() => {
     if (!jobs) return null;
@@ -137,10 +218,23 @@ export default function JobsListPage() {
 
       <main className="hjl-page">
         <motion.div
-          className="hjl-header"
+          className="hjl-stats"
           initial={reduce ? false : { opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
+          aria-label="Portfolio summary"
+        >
+          <StatTile label="Total Jobs"       value={stats.total} />
+          <StatTile label="Active Jobs"      value={stats.active} accent="ok" />
+          <StatTile label="Total Applicants" value={stats.applicants} />
+          <StatTile label="Avg ATS Match"    value={stats.avgScore} suffix={stats.avgScore == null ? "" : "%"} />
+        </motion.div>
+
+        <motion.div
+          className="hjl-header"
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1], delay: 0.04 }}
         >
           <span className="hjl-count">
             <span className="hjl-count__icon" aria-hidden><BriefcaseIc size={12} white /></span>
@@ -201,36 +295,44 @@ export default function JobsListPage() {
           >
             <div className="hjl-table__head">
               <span>Job Title</span>
-              <span>Shortlisted</span>
-              <span>Selected</span>
+              <span>Salary</span>
               <span>Start Date</span>
               <span>Last Activity</span>
+              <span className="hjl-table__head--action">Action</span>
             </div>
-            {filtered.map((j, i) => (
-              <motion.div
-                key={j.id}
-                className="hjl-table__row"
-                onClick={() => navigate(`/hr/jobs/${j.id}`)}
-                role="link"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/hr/jobs/${j.id}`); }}
-                initial={reduce ? false : { opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1], delay: Math.min(i * 0.025, 0.18) }}
-              >
-                <div>
-                  <p className="hjl-table__title">{j.title}</p>
-                  <p className="hjl-table__id">{shortJobRef(j.id)}</p>
-                </div>
-                {/* Application counts (shortlisted / selected) become live in the
-                    Apply-flow batch — Task 3 will populate these from the
-                    applications table. Until then, render a quiet "—". */}
-                <span className="hjl-table__cell hjl-table__cell--muted">—</span>
-                <span className="hjl-table__cell hjl-table__cell--muted">—</span>
-                <span className="hjl-table__cell">{formatStartDate(j.posted_at || j.created_at)}</span>
-                <span className="hjl-table__cell hjl-table__cell--muted">{relativeFromNow(j.posted_at || j.created_at)}</span>
-              </motion.div>
-            ))}
+            {filtered.map((j, i) => {
+              const live = isActiveStatus(j.status);
+              return (
+                <motion.div
+                  key={j.id}
+                  className="hjl-table__row"
+                  initial={reduce ? false : { opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1], delay: Math.min(i * 0.025, 0.18) }}
+                >
+                  <div className="hjl-table__title-cell">
+                    <div className="hjl-table__title-row">
+                      <p className="hjl-table__title">{j.title}</p>
+                      <span className={`hjl-status-badge hjl-status-badge--${live ? "active" : "inactive"}`}>
+                        <span className="hjl-status-badge__dot" aria-hidden />
+                        {live ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <p className="hjl-table__id">{shortJobRef(j.id)}</p>
+                  </div>
+                  <span className="hjl-table__cell hjl-table__cell--salary">{formatSalary(j)}</span>
+                  <span className="hjl-table__cell">{formatStartDate(j.posted_at || j.created_at)}</span>
+                  <span className="hjl-table__cell hjl-table__cell--muted">{relativeFromNow(j.posted_at || j.created_at)}</span>
+                  <button
+                    type="button"
+                    className="hjl-row-action"
+                    onClick={() => navigate(`/hr/jobs/${j.id}`)}
+                  >
+                    View Applicants
+                  </button>
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </main>

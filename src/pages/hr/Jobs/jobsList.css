@@ -244,12 +244,16 @@
 }
 
 .hjl-table__head, .hjl-table__row {
+  /* Title (with status badge + ref) | Salary | Start Date |
+     Last Activity | View Applicants button. The action column has
+     no fixed min so the button right-aligns naturally. */
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 130px 130px 140px 160px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 2.2fr) 170px 130px 140px auto;
+  gap: 18px;
   align-items: center;
   padding: 14px 22px;
 }
+.hjl-table__head--action { text-align: right; }
 
 .hjl-table__head {
   background: #FAFAFB;
@@ -263,21 +267,28 @@
 
 .hjl-table__row {
   border-bottom: 1px solid var(--pj-border);
-  cursor: pointer;
   transition: background 140ms var(--pj-ease);
 }
 .hjl-table__row:last-child { border-bottom: 0; }
 .hjl-table__row:hover { background: #FAFAFB; }
 
+.hjl-table__title-cell { min-width: 0; }
+.hjl-table__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
 .hjl-table__title {
   font-size: 14px;
   font-weight: 600;
   color: var(--hjl-ink);
   letter-spacing: -0.005em;
   margin: 0;
-  transition: color 140ms var(--pj-ease);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.hjl-table__row:hover .hjl-table__title { color: #000; text-decoration: underline; text-underline-offset: 3px; }
 
 .hjl-table__id {
   font-size: 11px;
@@ -291,8 +302,105 @@
   color: var(--pj-text);
   font-feature-settings: "tnum";
 }
-
+.hjl-table__cell--salary { font-weight: 600; color: var(--hjl-ink); }
 .hjl-table__cell--muted { color: var(--pj-text-soft); }
+
+/* ── Status badge ───────────────────────────────────────────── */
+.hjl-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+.hjl-status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.hjl-status-badge--active {
+  background: rgba(5, 150, 105, 0.10);
+  color: #047857;
+  border-color: rgba(5, 150, 105, 0.20);
+}
+.hjl-status-badge--active .hjl-status-badge__dot {
+  background: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+.hjl-status-badge--inactive {
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  border-color: var(--pj-border);
+}
+.hjl-status-badge--inactive .hjl-status-badge__dot { background: var(--pj-muted-2); }
+
+/* ── Row action button ──────────────────────────────────────── */
+.hjl-row-action {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--hjl-ink);
+  color: #FFFFFF;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  justify-self: end;
+  transition: background 140ms var(--pj-ease), transform 140ms var(--pj-ease);
+}
+.hjl-row-action:hover { background: var(--hjl-ink-hover); transform: translateY(-1px); }
+
+/* ── Stats bar ──────────────────────────────────────────────── */
+.hjl-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.hjl-stat {
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 140ms var(--pj-ease), box-shadow 140ms var(--pj-ease);
+}
+.hjl-stat:hover {
+  border-color: var(--pj-border-strong);
+  box-shadow: 0 4px 12px -8px rgba(20, 19, 31, 0.10);
+}
+.hjl-stat__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+}
+.hjl-stat__value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--hjl-ink);
+  font-feature-settings: "tnum";
+}
+.hjl-stat--ok .hjl-stat__value { color: #047857; }
+
+@media (max-width: 720px) {
+  .hjl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hjl-table__head, .hjl-table__row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .hjl-table__head > :nth-child(n+2), .hjl-table__row > :nth-child(n+2):not(.hjl-row-action) { display: none; }
+}
 
 /* ── Empty / loading ────────────────────────────────────────── */
 .hjl-empty, .hjl-loading {
