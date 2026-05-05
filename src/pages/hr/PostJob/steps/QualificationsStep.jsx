@@ -1,4 +1,18 @@
 import { motion, useReducedMotion } from "framer-motion";
+import SegmentedToggle from "../components/SegmentedToggle";
+
+const VISA_STATUSES = [
+  { value: "freelance",  label: "Freelance Visa" },
+  { value: "visit",      label: "Visit Visa" },
+  { value: "company",    label: "Company Visa" },
+  { value: "employment", label: "Employment Visa" },
+  { value: "resident",   label: "Resident" },
+];
+
+const YES_NO = [
+  { value: true,  label: "Yes" },
+  { value: false, label: "No" },
+];
 
 const SCREENING_CATEGORY_LABELS = {
   "background-check":  "Background Check",
@@ -129,6 +143,55 @@ export default function QualificationsStep({ value, onChange, onContinue, onBack
       <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
         <span className="pj-label">Legally authorized to work in the United States</span>
         <PolicyRow policy={value.workAuthPolicy} onPolicy={(p) => set({ workAuthPolicy: p })} onRemove={() => set({ workAuthEnabled: false })} />
+      </motion.div>
+
+      <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
+        <span className="pj-label">Visa Status (accepted)</span>
+        <div className="pj-chip-grid" role="group" aria-label="Visa status">
+          {VISA_STATUSES.map((v) => {
+            const active = (value.visaStatus || []).includes(v.value);
+            return (
+              <motion.button
+                key={v.value}
+                type="button"
+                className={`pj-chip${active ? " pj-chip--active" : ""}`}
+                onClick={() => {
+                  const cur = value.visaStatus || [];
+                  const next = active ? cur.filter((x) => x !== v.value) : [...cur, v.value];
+                  set({ visaStatus: next });
+                }}
+                whileTap={reduce ? undefined : { scale: 0.96 }}
+                transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
+                aria-pressed={active}
+              >
+                {v.label}
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+          <span className="pj-label" style={{ marginBottom: 0 }}>UAE Driving License</span>
+          <SegmentedToggle
+            options={YES_NO}
+            value={!!value.uaeDrivingLicense}
+            onChange={(v) => set({ uaeDrivingLicense: v })}
+            ariaLabel="UAE driving license required"
+            size="sm"
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <span className="pj-label" style={{ marginBottom: 0 }}>Origin Country License</span>
+          <SegmentedToggle
+            options={YES_NO}
+            value={!!value.originDrivingLicense}
+            onChange={(v) => set({ originDrivingLicense: v })}
+            ariaLabel="Origin country driving license required"
+            size="sm"
+          />
+        </div>
       </motion.div>
 
       {groups.length > 0 && (

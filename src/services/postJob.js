@@ -67,6 +67,8 @@ export async function countActiveListings(userId) {
  */
 function buildPayload(job, { hrId, companyName }) {
   const positionLabel = ({ remote: "Remote", hybrid: "Hybrid", onsite: "Onsite" })[job.position] || "Remote";
+  const phone = (job.hrPhone || "").trim();
+  const fullPhone = phone ? `${job.hrPhoneCountryCode || "+971"} ${phone}` : null;
   return {
     hr_id: hrId,
     title: (job.jobTitle || "").trim(),
@@ -74,6 +76,7 @@ function buildPayload(job, { hrId, companyName }) {
     location: positionLabel,
     position: job.position || "remote",
     job_type: job.jobType || "full-time",
+    currency: job.currency || "AED",
     salary_min: Number(job.salaryMin) || null,
     salary_max: Number(job.salaryMax) || null,
     salary_unit: job.salaryUnit || "per Hour",
@@ -84,8 +87,12 @@ function buildPayload(job, { hrId, companyName }) {
     experience_max: Number(job.yearsExperience?.max ?? 0),
     experience_policy: job.yearsExperiencePolicy || "required",
     work_auth_policy:  job.workAuthPolicy || "required",
+    visa_status: Array.isArray(job.visaStatus) ? job.visaStatus : [],
+    uae_driving_license: !!job.uaeDrivingLicense,
+    origin_driving_license: !!job.originDrivingLicense,
     screening_questions: Array.isArray(job.screeningQuestionGroups) ? job.screeningQuestionGroups : [],
     description: job.jobDescription || "",
+    hr_phone: fullPhone,
     source: "hr_portal",
     status: "active",
   };

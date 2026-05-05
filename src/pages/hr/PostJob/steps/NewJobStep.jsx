@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import SegmentedToggle from "../components/SegmentedToggle";
+
+const CURRENCY_PREFIX = { AED: "AED", INR: "₹", USD: "$" };
+const CURRENCY_OPTIONS = ["AED", "INR", "USD"];
 
 const EDUCATION_LEVELS = [
   { value: "",            label: "Enter minimum education level" },
@@ -61,12 +65,12 @@ function DualRange({ min, max, valueMin, valueMax, onChange }) {
   );
 }
 
-function NumberStepper({ value, onChange, min = 0, max = 999999, step = 1 }) {
+function NumberStepper({ value, onChange, min = 0, max = 999999, step = 1, prefix = "$" }) {
   const inc = () => onChange(Math.min(max, Number(value) + step));
   const dec = () => onChange(Math.max(min, Number(value) - step));
   return (
     <div className="pj-num">
-      <span className="pj-num__prefix">$</span>
+      <span className="pj-num__prefix">{prefix}</span>
       <input type="number" value={value} onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))} min={min} max={max} />
       <div className="pj-num__steppers">
         <button type="button" className="pj-num__step" onClick={inc} aria-label="Increase"><Caret /></button>
@@ -134,14 +138,23 @@ export default function NewJobStep({ value, onChange, onContinue, onBack }) {
           </div>
         </div>
         <div className="pj-field">
-          <div className="pj-salary-head">
-            <span className="pj-label">Salary</span>
-            <button type="button" className="pj-unit-pill">{value.salaryUnit}</button>
+          <div className="pj-row-with-toggle">
+            <div className="pj-salary-head" style={{ marginBottom: 0 }}>
+              <span className="pj-label">Salary</span>
+              <button type="button" className="pj-unit-pill">{value.salaryUnit}</button>
+            </div>
+            <SegmentedToggle
+              options={CURRENCY_OPTIONS}
+              value={value.currency || "AED"}
+              onChange={(c) => set({ currency: c })}
+              ariaLabel="Salary currency"
+              size="sm"
+            />
           </div>
           <DualRange min={SALARY_RANGE.min} max={SALARY_RANGE.max} valueMin={Number(value.salaryMin) || 0} valueMax={Number(value.salaryMax) || 0} onChange={({ min, max }) => set({ salaryMin: min, salaryMax: max })} />
           <div className="pj-num-row">
-            <NumberStepper value={value.salaryMin} onChange={(v) => set({ salaryMin: v })} min={0} max={value.salaryMax - 1} />
-            <NumberStepper value={value.salaryMax} onChange={(v) => set({ salaryMax: v })} min={value.salaryMin + 1} max={SALARY_RANGE.max} />
+            <NumberStepper value={value.salaryMin} onChange={(v) => set({ salaryMin: v })} min={0} max={value.salaryMax - 1} prefix={CURRENCY_PREFIX[value.currency || "AED"]} />
+            <NumberStepper value={value.salaryMax} onChange={(v) => set({ salaryMax: v })} min={value.salaryMin + 1} max={SALARY_RANGE.max} prefix={CURRENCY_PREFIX[value.currency || "AED"]} />
           </div>
         </div>
       </motion.div>

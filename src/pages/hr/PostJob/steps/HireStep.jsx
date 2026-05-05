@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
+import PhoneInput from "../components/PhoneInput";
 
 export default function HireStep({ value, onChange, onHire, onBack, submitting = false, errorMessage = null }) {
   const reduce = useReducedMotion();
@@ -23,6 +24,15 @@ export default function HireStep({ value, onChange, onHire, onBack, submitting =
       >
         <b style={{ color: "var(--pj-text)" }}>What happens next:</b> Our dedicated staffing team will reach out to you to share qualified leads, and gather further information if necessary. Only pay when you make a hire.
       </motion.p>
+
+      <motion.div className="pj-field" variants={item} style={{ marginTop: 22, marginBottom: 4 }}>
+        <span className="pj-label">Contact phone <span className="pj-label-hint">(optional — for candidate questions)</span></span>
+        <PhoneInput
+          countryCode={value.hrPhoneCountryCode || "+971"}
+          number={value.hrPhone || ""}
+          onChange={({ countryCode, number }) => set({ hrPhoneCountryCode: countryCode, hrPhone: number })}
+        />
+      </motion.div>
 
       <motion.div className="pj-consent-list" variants={item}>
         <label className="pj-consent">

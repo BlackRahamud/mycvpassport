@@ -51,6 +51,34 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Autofill override ──────────────────────────────────────────
+   Chrome (and Safari) paint a yellow inset background + a thicker
+   border on autofilled fields, which read as a second border under
+   the purple focus ring. Kill it with a giant inset shadow that
+   matches our token bg, and re-assert our text colour. */
+.pj-input:-webkit-autofill,
+.pj-num input:-webkit-autofill,
+.pj-tag-input__input:-webkit-autofill,
+.pj-select:-webkit-autofill,
+.pj-qcard__textarea:-webkit-autofill,
+.pj-phone__number:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--pj-input-bg) inset;
+  -webkit-text-fill-color: var(--pj-text);
+  caret-color: var(--pj-text);
+  border: 1px solid transparent;
+  transition: background-color 9999s ease-out 0s; /* defeat Chrome's bg fade-in */
+}
+
+.pj-input:-webkit-autofill:focus,
+.pj-num input:-webkit-autofill:focus,
+.pj-tag-input__input:-webkit-autofill:focus,
+.pj-select:-webkit-autofill:focus,
+.pj-qcard__textarea:-webkit-autofill:focus,
+.pj-phone__number:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--pj-input-bg-focus) inset, 0 0 0 4px var(--pj-primary-ring);
+  border: 1px solid var(--pj-primary);
+}
+
 /* ── Top bar ─────────────────────────────────────────────────── */
 .pj-topbar {
   display: flex;
@@ -588,10 +616,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  min-width: 28px;
+  padding: 0 8px;
   height: 100%;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--pj-text-soft);
+  letter-spacing: 0.01em;
   border-right: 1px solid transparent;
 }
 
@@ -1363,11 +1394,163 @@ input[type="checkbox"]:checked + .pj-checkbox__box::after {
   font-style: italic;
 }
 
+/* ── Segmented toggle (currency 3-way, Yes/No 2-way) ─────────── */
+.pj-segtoggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--pj-input-bg);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  font-family: var(--pj-font);
+}
+
+.pj-segtoggle--sm { padding: 2px; }
+
+.pj-segtoggle__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pj-text-soft);
+  cursor: pointer;
+  font-family: var(--pj-font);
+  transition: background 160ms var(--pj-ease), color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease);
+  letter-spacing: 0.005em;
+  min-width: 48px;
+}
+
+.pj-segtoggle--sm .pj-segtoggle__btn { height: 26px; padding: 0 10px; font-size: 11.5px; min-width: 38px; }
+
+.pj-segtoggle__btn:hover { color: var(--pj-text); }
+
+.pj-segtoggle__btn--active {
+  background: #FFFFFF;
+  color: var(--pj-primary);
+  box-shadow: 0 1px 3px rgba(20, 19, 31, 0.10), 0 0 0 1px var(--pj-border);
+}
+
+.pj-segtoggle__btn--active:hover { color: var(--pj-primary); }
+
+/* Header row that pairs a label with a small inline toggle (e.g. Salary + currency) */
+.pj-row-with-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+/* ── Phone input (country code + number) ────────────────────── */
+.pj-phone {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  background: var(--pj-input-bg);
+  border: 1px solid transparent;
+  border-radius: var(--pj-radius-md);
+  height: 44px;
+  transition: border-color 180ms var(--pj-ease), background 180ms var(--pj-ease), box-shadow 180ms var(--pj-ease);
+  box-sizing: border-box;
+}
+
+.pj-phone:focus-within {
+  background: var(--pj-input-bg-focus);
+  border-color: var(--pj-primary);
+  box-shadow: 0 0 0 4px var(--pj-primary-ring);
+}
+
+.pj-phone__country {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 14px;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--pj-border);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--pj-text);
+  font-family: var(--pj-font);
+  white-space: nowrap;
+  transition: color 160ms var(--pj-ease);
+}
+
+.pj-phone__country:hover { color: var(--pj-primary); }
+
+.pj-phone__country-code { letter-spacing: 0.01em; }
+
+.pj-phone__number {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--pj-text);
+  font-family: var(--pj-font);
+  min-width: 0;
+}
+
+.pj-phone__number::placeholder { color: var(--pj-muted); }
+
+.pj-phone__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 4px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  list-style: none;
+  box-shadow: 0 18px 40px -18px rgba(20, 19, 31, 0.22), 0 8px 16px -8px rgba(20, 19, 31, 0.10);
+  min-width: 220px;
+}
+
+.pj-phone__menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  color: var(--pj-text);
+  font-family: var(--pj-font);
+  text-align: left;
+  transition: background 140ms var(--pj-ease);
+}
+
+.pj-phone__menu-item:hover { background: var(--pj-input-bg); }
+
+.pj-phone__menu-item--active { background: var(--pj-primary-soft); color: var(--pj-primary); }
+.pj-phone__menu-item--active:hover { background: var(--pj-primary-soft); }
+
+.pj-phone__menu-flag { display: inline-flex; align-items: center; gap: 6px; }
+.pj-phone__menu-code { color: var(--pj-muted); font-feature-settings: "tnum"; font-size: 12px; }
+
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .pj-input, .pj-radio__circle, .pj-radio__circle::after, .pj-btn, .pj-step, .pj-step__dot,
   .pj-select, .pj-chip, .pj-num, .pj-tag-input, .pj-range input[type="range"]::-webkit-slider-thumb,
-  .pj-cat-chip, .pj-checkbox__box, .pj-modal, .pj-drawer-wrap, .pj-tool-btn, .pj-editor {
+  .pj-cat-chip, .pj-checkbox__box, .pj-modal, .pj-drawer-wrap, .pj-tool-btn, .pj-editor,
+  .pj-segtoggle__btn, .pj-phone, .pj-phone__menu-item {
     transition: none !important;
   }
 }

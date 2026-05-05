@@ -26,6 +26,7 @@ const INITIAL_JOB = {
   jobType: "full-time",
   // Step 2 — Skills & Salary
   educationLevel: "",
+  currency: "AED",
   salaryUnit: "per Hour",
   salaryMin: 50,
   salaryMax: 1000,
@@ -35,10 +36,15 @@ const INITIAL_JOB = {
   yearsExperience: { min: 18, max: 25 },
   yearsExperiencePolicy: "required",
   workAuthPolicy: "required",
+  visaStatus: [],
+  uaeDrivingLicense: false,
+  originDrivingLicense: false,
   screeningQuestionGroups: [],
   // Step 4 — Job Description
   jobDescription: "",
   // Step 5 — Hire
+  hrPhoneCountryCode: "+971",
+  hrPhone: "",
   consentSubscription: false,
   consentTerms: false,
 };
