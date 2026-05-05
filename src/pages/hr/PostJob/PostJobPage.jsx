@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { supabase } from "../../../appSupabaseClient";
+import { getGatekeeperData } from "../../../services/gatekeeper";
+import { freeTierStatus } from "../../../utils/freeTier";
+import FreeTierBanner from "../../../components/FreeTierBanner/FreeTierBanner";
 import "./postJob.css";
 import PostJobShell from "./PostJobShell";
 import PostJobPreview from "./PostJobPreview";
+import PostJobExpiredPaywall from "./PostJobExpiredPaywall";
 import StartStep from "./steps/StartStep";
 import NewJobStep from "./steps/NewJobStep";
 import QualificationsStep from "./steps/QualificationsStep";
@@ -52,6 +57,21 @@ export default function PostJobPage() {
   const [job, setJob] = useState(INITIAL_JOB);
   const [screeningView, setScreeningView] = useState(null);
   const [drawerCategory, setDrawerCategory] = useState(null);
+  const [user, setUser] = useState(null);
+  const [gate, setGate] = useState(null);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([supabase.auth.getUser(), getGatekeeperData()])
+      .then(([{ data }, g]) => { if (!live) return; setUser(data?.user || null); setGate(g); })
+      .catch(() => { if (!live) return; setGate({ isPaidUser: false }); });
+    return () => { live = false; };
+  }, []);
+
+  const tier = user ? freeTierStatus(user) : null;
+  const isFreeTier = gate ? !gate.isPaidUser : false;
+  const showPaywall = isFreeTier && tier?.isExpired;
+  const showBanner  = isFreeTier && tier?.showBanner && !tier?.isExpired;
 
   const idx = STEP_ORDER.indexOf(step);
   const goNext = () => { if (idx < STEP_ORDER.length - 1) setStep(STEP_ORDER[idx + 1]); };
@@ -106,9 +126,18 @@ export default function PostJobPage() {
     return <PostJobSuccess onGoToJobList={() => navigate("/hr")} />;
   }
 
+  if (showPaywall) {
+    return <PostJobExpiredPaywall daysSinceSignup={tier?.daysSinceSignup} />;
+  }
+
   return (
     <>
-      <PostJobShell currentStep={step} leftSlot={left} rightSlot={<PostJobPreview step={step} job={job} />} />
+      <PostJobShell
+        currentStep={step}
+        topSlot={showBanner ? <FreeTierBanner daysRemaining={tier.daysRemaining} /> : null}
+        leftSlot={left}
+        rightSlot={<PostJobPreview step={step} job={job} />}
+      />
       <AnimatePresence>
         {screeningView === "categories" && (
           <ScreeningCategoryModal key="cat-modal" open onClose={closeScreening} onPickCategory={pickCategory} />

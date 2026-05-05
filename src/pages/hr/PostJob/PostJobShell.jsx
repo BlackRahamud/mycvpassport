@@ -32,7 +32,7 @@ function Stepper({ currentStep }) {
   );
 }
 
-export default function PostJobShell({ currentStep, leftSlot, rightSlot }) {
+export default function PostJobShell({ currentStep, leftSlot, rightSlot, topSlot }) {
   const reduce = useReducedMotion();
   return (
     <div className="pj-root">
@@ -42,6 +42,8 @@ export default function PostJobShell({ currentStep, leftSlot, rightSlot }) {
         </a>
         <Stepper currentStep={currentStep} />
       </header>
+
+      {topSlot}
 
       <main className="pj-main">
         <motion.section

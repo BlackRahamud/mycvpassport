@@ -122,7 +122,7 @@ export default function PostJobSuccess({ onGoToJobList }) {
             variants={item}
             style={{ margin: 0, fontSize: 14, color: "var(--pj-muted)" }}
           >
-            You&rsquo;ve been successfully Request Talent.
+            Your job has been successfully posted.
           </motion.p>
           <motion.button
             type="button"

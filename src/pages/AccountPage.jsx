@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCvpPricingCurrencyCode } from "../components/FAB/FABLogic";
 import { getGatekeeperData } from "../services/gatekeeper";
+import { supabase } from "../appSupabaseClient";
+import { FREE_TIER, freeTierStatus } from "../utils/freeTier";
 import "../components/FAB/FAB.css";
 
 function normTier(raw) {
@@ -52,6 +54,7 @@ export default function AccountPage() {
   const [gate, setGate] = useState(null);
   const [planTier, setPlanTier] = useState(null);
   const [profileIsPro, setProfileIsPro] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     let cancel = false;
@@ -68,10 +71,17 @@ export default function AccountPage() {
         setPlanTier(null);
         setProfileIsPro(false);
       });
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancel) return;
+      setUser(data?.user || null);
+    });
     return () => {
       cancel = true;
     };
   }, []);
+
+  const tier = user ? freeTierStatus(user) : null;
+  const showFreeTierCard = gate && !gate.isPaidUser;
 
   const currency = getCvpPricingCurrencyCode();
   const subs = useMemo(
@@ -351,7 +361,112 @@ export default function AccountPage() {
               </button>
             </>
           )}
+
+          {showFreeTierCard && (
+            <FreeTierStatusCard tier={tier} />
+          )}
         </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Free-tier status card — only renders for users without a paid plan.
+ * Shows a 90-day countdown plus the included limits, with an inline
+ * upgrade CTA when ≤14 days remain.
+ */
+function FreeTierStatusCard({ tier }) {
+  const navigate = useNavigate();
+  const daysRemaining = tier?.daysRemaining ?? FREE_TIER.days;
+  const isWindowKnown = !!tier?.hasSignupDate;
+  const isExpired = !!tier?.isExpired;
+  const isUrgent = isWindowKnown && tier && tier.daysRemaining <= FREE_TIER.bannerThresholdDays;
+
+  const ringColor = isExpired ? "#DC2626" : isUrgent ? "#D97706" : "#378ADD";
+  const subColor  = isExpired ? "#F87171" : isUrgent ? "#F59E0B" : "#A0A0A0";
+  const noun = daysRemaining === 1 ? "day" : "days";
+
+  const items = [
+    `Up to ${FREE_TIER.jobLimit} active job listings`,
+    `${FREE_TIER.applicantsPerMonth} applicants per month`,
+    "Full ATS access",
+    `${FREE_TIER.days} days from signup`,
+  ];
+
+  return (
+    <div
+      style={{
+        marginTop: 24,
+        padding: 16,
+        borderRadius: 12,
+        background: "#141414",
+        border: `1px solid ${isExpired ? "#5F1D1D" : isUrgent ? "#5A3A14" : "#2A2A2A"}`,
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "#A0A0A0", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>Free trial</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF", marginTop: 4 }}>
+            {isExpired
+              ? "Trial ended"
+              : isWindowKnown
+                ? `${daysRemaining} ${noun} remaining`
+                : `${FREE_TIER.days}-day free trial`}
+          </div>
+          {isWindowKnown && !isExpired && (
+            <div style={{ fontSize: 11, color: subColor, marginTop: 2 }}>
+              Day {tier.daysSinceSignup} of {FREE_TIER.days}
+            </div>
+          )}
+        </div>
+        <div
+          aria-hidden
+          style={{
+            width: 44, height: 44, borderRadius: "50%",
+            border: `2px solid ${ringColor}`,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            color: ringColor, fontSize: 13, fontWeight: 700,
+            background: "#0F0F0F",
+          }}
+        >
+          {isExpired ? "0" : isWindowKnown ? daysRemaining : FREE_TIER.days}
+        </div>
+      </div>
+
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, color: "#A0A0A0" }}>
+        {items.map((it) => (
+          <li key={it} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span aria-hidden style={{ width: 14, height: 14, borderRadius: 999, background: "rgba(29, 158, 117, 0.15)", color: "#1D9E75", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            {it}
+          </li>
+        ))}
+      </ul>
+
+      {(isExpired || isUrgent) && (
+        <button
+          type="button"
+          onClick={() => navigate("/pricing")}
+          style={{
+            marginTop: 4,
+            padding: "10px 14px",
+            background: ringColor,
+            color: "#FFFFFF",
+            border: 0,
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          {isExpired ? "Upgrade to keep posting" : "Upgrade now"}
+        </button>
       )}
     </div>
   );
