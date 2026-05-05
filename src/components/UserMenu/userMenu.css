@@ -1,0 +1,155 @@
+/* ────────────────────────────────────────────────────────────────
+   UserMenu — global avatar pill + popover
+   ──────────────────────────────────────────────────────────────── */
+
+.um-root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ── Trigger pill ───────────────────────────────────────────── */
+.um-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-family: inherit;
+  transition: background 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.um-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+}
+
+.um-trigger__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+.um-trigger__name { font-size: 13px; font-weight: 600; }
+.um-trigger__role { font-size: 11px; opacity: 0.7; }
+
+/* ── Popover ─────────────────────────────────────────────────── */
+.um-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 260px;
+  padding: 6px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 50;
+}
+
+.um-email {
+  padding: 10px 12px 6px;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.um-divider {
+  height: 1px;
+  margin: 4px 0;
+}
+
+.um-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.um-plan-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.um-plan-dot--green { background: #10B981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18); }
+.um-plan-dot--gold  { background: #D97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18); }
+.um-plan-dot--neutral { background: #9CA3AF; }
+
+.um-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  transition: background 140ms cubic-bezier(0.4, 0, 0.2, 1), color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Light theme (HR portal, candidate /jobs board) ─────────── */
+.um-root--light .um-avatar       { background: #DBE3F5; color: #1E3A8A; }
+.um-root--light .um-trigger      { color: #14131F; }
+.um-root--light .um-trigger:hover { background: #F6F6F9; }
+.um-root--light .um-popover      {
+  background: #FFFFFF;
+  border: 1px solid #E7E7EE;
+  box-shadow: 0 18px 40px -22px rgba(20, 19, 31, 0.18), 0 6px 14px -8px rgba(20, 19, 31, 0.08);
+  color: #14131F;
+}
+.um-root--light .um-email        { color: #4B4A5E; }
+.um-root--light .um-divider      { background: #E7E7EE; }
+.um-root--light .um-plan         { color: #14131F; }
+.um-root--light .um-item         { color: #14131F; }
+.um-root--light .um-item:hover   { background: #F6F6F9; }
+.um-root--light .um-item--logout         { color: #B91C1C; }
+.um-root--light .um-item--logout:hover   { background: rgba(220, 38, 38, 0.06); }
+
+/* ── Dark theme (OLED app shell) ────────────────────────────── */
+.um-root--dark .um-avatar        { background: #1C1C1C; color: #FFFFFF; border: 1px solid #2A2A2A; }
+.um-root--dark .um-trigger       { color: #FFFFFF; }
+.um-root--dark .um-trigger:hover { background: rgba(255, 255, 255, 0.06); }
+.um-root--dark .um-popover       {
+  background: #141414;
+  border: 1px solid #2A2A2A;
+  box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.6);
+  color: #FFFFFF;
+}
+.um-root--dark .um-email         { color: #A0A0A0; }
+.um-root--dark .um-divider       { background: #2A2A2A; }
+.um-root--dark .um-plan          { color: #FFFFFF; }
+.um-root--dark .um-item          { color: #FFFFFF; }
+.um-root--dark .um-item:hover    { background: rgba(255, 255, 255, 0.06); }
+.um-root--dark .um-item--logout         { color: #F87171; }
+.um-root--dark .um-item--logout:hover   { background: rgba(220, 38, 38, 0.10); }
+
+/* ── Reduced motion ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .um-trigger, .um-item { transition: none !important; }
+}

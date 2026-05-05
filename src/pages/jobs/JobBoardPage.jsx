@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
+import UserMenu from "../../components/UserMenu/UserMenu";
 import "../hr/PostJob/postJob.css"; // reuse :root tokens
 import "./jobBoard.css";
 
@@ -71,11 +72,6 @@ const PinIc = () => (
 const BellIc = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-  </svg>
-);
-const ChevDown = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9"/>
   </svg>
 );
 const ChevRight = () => (
@@ -168,6 +164,7 @@ export default function JobBoardPage() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
 
@@ -176,6 +173,22 @@ export default function JobBoardPage() {
     supabase.auth.getUser().then(({ data }) => { if (live) setUser(data?.user || null); });
     return () => { live = false; };
   }, []);
+
+  // Plan + display name for the UserMenu popover. Best-effort: a
+  // missing profile row falls back to "Free plan" inside UserMenu.
+  useEffect(() => {
+    if (!user?.id) return;
+    let live = true;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (live) setProfile(data || null);
+    })();
+    return () => { live = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     let live = true;
@@ -227,11 +240,21 @@ export default function JobBoardPage() {
         </div>
         <div className="jb-topbar__right">
           <button type="button" className="jb-icon-btn" aria-label="Notifications"><BellIc /></button>
-          <button type="button" className="jb-user-pill">
-            <span className="jb-avatar">{(greetingName?.[0] || "?").toUpperCase()}</span>
-            <span>{greetingName || "Sign in"}</span>
-            <ChevDown />
-          </button>
+          {user ? (
+            <UserMenu
+              email={user.email || ""}
+              name={profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || greetingName || ""}
+              plan={profile?.plan}
+              switchTo={{ label: "Switch to HR", path: "/hr/jobs" }}
+              settingsPath="/account"
+              theme="light"
+            />
+          ) : (
+            <button type="button" className="jb-user-pill" onClick={() => navigate("/auth")}>
+              <span className="jb-avatar">?</span>
+              <span>Sign in</span>
+            </button>
+          )}
         </div>
       </header>
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import ScoreRing from "../../../components/hr/ScoreRing";
+import UserMenu from "../../../components/UserMenu/UserMenu";
 import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
@@ -194,6 +195,7 @@ export default function JobPipelinePage() {
   const { id: jobId } = useParams();
 
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [job, setJob] = useState(null);
   const [jobError, setJobError] = useState(null);
   const [apps, setApps] = useState(null); // null = loading
@@ -210,6 +212,21 @@ export default function JobPipelinePage() {
     supabase.auth.getUser().then(({ data }) => { if (live) setUser(data?.user || null); });
     return () => { live = false; };
   }, []);
+
+  /* Profile (for the UserMenu plan badge) */
+  useEffect(() => {
+    if (!user?.id) return;
+    let live = true;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (live) setProfile(data || null);
+    })();
+    return () => { live = false; };
+  }, [user?.id]);
 
   /* Load job */
   useEffect(() => {
@@ -346,11 +363,6 @@ export default function JobPipelinePage() {
   }, [noteDraft, selected]);
 
   /* ── Renderers ─────────────────────────────────────────────── */
-  const greeting = (() => {
-    const meta = user?.user_metadata || {};
-    return meta.full_name || meta.name || user?.email?.split("@")[0] || "Sign in";
-  })();
-
   return (
     <div className="jpp-root">
       <header className="jpp-topbar">
@@ -363,7 +375,15 @@ export default function JobPipelinePage() {
         </div>
         <div className="jpp-topbar__right">
           <button type="button" className="jpp-icon-btn" aria-label="Notifications"><BellIc /></button>
-          <span style={{ fontSize: 13, color: "var(--pj-text)", fontWeight: 600 }}>{greeting}</span>
+          <UserMenu
+            email={user?.email || ""}
+            name={profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
+            plan={profile?.plan}
+            roleLabel="Admin"
+            switchTo={{ label: "Switch to Candidate", path: "/dashboard" }}
+            settingsPath="/account"
+            theme="light"
+          />
         </div>
       </header>
 

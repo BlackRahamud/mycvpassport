@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
+import UserMenu from "../../../components/UserMenu/UserMenu";
 import "../PostJob/postJob.css"; // :root tokens
 import "./jobsList.css";
 
@@ -21,12 +22,6 @@ const BellIc = () => (
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
   </svg>
 );
-const ChevDown = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9"/>
-  </svg>
-);
-
 /* ───────── Helpers ───────── */
 function formatStartDate(s) {
   if (!s) return "—";
@@ -86,6 +81,7 @@ export default function JobsListPage() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [view, setView] = useState("open"); // open | past
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState(null); // null = loading
@@ -97,6 +93,23 @@ export default function JobsListPage() {
     supabase.auth.getUser().then(({ data }) => { if (live) setUser(data?.user || null); });
     return () => { live = false; };
   }, []);
+
+  // Pull profile.plan once we know the user — feeds the UserMenu
+  // popover's plan badge. Best-effort: a missing row falls back to
+  // "Free plan" inside UserMenu so the popover never breaks.
+  useEffect(() => {
+    if (!user?.id) return;
+    let live = true;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (live) setProfile(data || null);
+    })();
+    return () => { live = false; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -205,14 +218,15 @@ export default function JobsListPage() {
         </div>
         <div className="hjl-right">
           <button type="button" className="hjl-icon-btn" aria-label="Notifications"><BellIc /></button>
-          <button type="button" className="hjl-userpill">
-            <span className="hjl-avatar">{(greetingName?.[0] || "?").toUpperCase()}</span>
-            <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.2 }}>
-              <span className="hjl-userpill__name">{greetingName}</span>
-              <span className="hjl-userpill__role">Admin</span>
-            </span>
-            <ChevDown />
-          </button>
+          <UserMenu
+            email={user?.email || ""}
+            name={profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || greetingName}
+            plan={profile?.plan}
+            roleLabel="Admin"
+            switchTo={{ label: "Switch to Candidate", path: "/dashboard" }}
+            settingsPath="/account"
+            theme="light"
+          />
         </div>
       </header>
 
