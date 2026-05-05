@@ -2151,7 +2151,7 @@ export default function HRPortal() {
         active={activeNav}
         onNav={(k) => { setActiveNav(k); }}
         unread={unreadCount}
-        onPostJob={() => { setShowPostJob(true); setMobileNavOpen(false); }}
+        onPostJob={() => { navigate("/hr/post"); setMobileNavOpen(false); }}
         openOnMobile={mobileNavOpen}
         onCloseMobile={() => setMobileNavOpen(false)}
         hrProfile={hrProfile}
@@ -2177,7 +2177,7 @@ export default function HRPortal() {
           <div style={{ fontSize: 14, fontWeight: 600 }}>{pageTitle}</div>
           <button
             type="button"
-            onClick={() => setShowPostJob(true)}
+            onClick={() => navigate("/hr/post")}
             aria-label="Post a job"
             style={{
               background: T.accent, color: "#fff",
@@ -2195,7 +2195,7 @@ export default function HRPortal() {
             <JobsPage
               jobs={jobs}
               isLoading={jobsLoading}
-              onPostJob={() => setShowPostJob(true)}
+              onPostJob={() => navigate("/hr/post")}
               onViewApplicants={handleViewApplicants}
               onEditJob={(job) => setEditingJob(job)}
             />
