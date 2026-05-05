@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../appSupabaseClient";
+import ScoreRing from "../components/hr/ScoreRing";
+import { scoreBand, BAND_COLORS } from "../lib/ats/scoreBand";
 
 // ─── White-light HR design tokens ───────────────────────────────
 const T = {
@@ -126,10 +128,14 @@ function statusColor(s) {
   }
 }
 
+// Wrapper around the shared band → colour map (src/lib/ats/scoreBand.js).
+// Kept as `atsColor(score)` for the existing call sites in this file
+// (the horizontal score bar in CandidateRow). New surfaces should call
+// scoreBand + BAND_COLORS directly. Threshold change vs the original
+// 80/65/<65 cut: the shared band is 80/50/<50 so the legacy portal
+// matches the new pipeline during the unification window.
 function atsColor(score) {
-  if (score >= 80) return T.success;
-  if (score >= 65) return T.warning;
-  return T.muted2;
+  return BAND_COLORS[scoreBand(score, "stopgap_keyword")];
 }
 
 function timeAgo(dateStr) {
@@ -384,49 +390,11 @@ function Toggle({ value, onChange }) {
   );
 }
 
-function ScoreRing({ score, size = 76 }) {
-  const [animScore, setAnimScore] = useState(0);
-  const radius = (size - 8) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const stroke = atsColor(score);
-
-  useEffect(() => {
-    let frame;
-    const start = performance.now();
-    const duration = 800;
-    const animate = (now) => {
-      const progress = Math.min((now - start) / duration, 1);
-      setAnimScore(Math.round(progress * score));
-      if (progress < 1) frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [score]);
-
-  return (
-    <div style={{ position: "relative", width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={T.border} strokeWidth={4} />
-        <circle
-          cx={size / 2} cy={size / 2} r={radius} fill="none"
-          stroke={stroke} strokeWidth={4}
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference - (circumference * animScore) / 100}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 50ms linear" }}
-        />
-      </svg>
-      <div style={{
-        position: "absolute", inset: 0,
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-      }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: T.text, fontFamily: T.font }}>{animScore}%</span>
-        <span style={{ fontSize: 9, color: T.muted, fontFamily: T.font }}>match</span>
-      </div>
-    </div>
-  );
-}
+// ScoreRing has been lifted to `src/components/hr/ScoreRing.jsx` so
+// the new `/hr/jobs/:id` pipeline can reuse it. The legacy portal
+// imports it at the top of this file and passes the dark-mode-ish
+// tokens it already uses (T.border + T.text + T.muted) so the visual
+// is unchanged.
 
 // ─── Sidebar ─────────────────────────────────────────────────────
 function Sidebar({ active, onNav, unread, onPostJob, openOnMobile, onCloseMobile, hrProfile, onSwitchCandidate, onSignOut }) {
@@ -1591,7 +1559,14 @@ function CVPanel({ candidate, hrCompany, jobTitle, onClose, onStatusChange, onSa
             )}
           </div>
         </div>
-        <ScoreRing score={candidate.ats_score || 0} />
+        <ScoreRing
+          score={candidate.ats_score || 0}
+          source={candidate.score_source || "stopgap_keyword"}
+          trackColor={T.border}
+          textColor={T.text}
+          labelColor={T.muted}
+          font={T.font}
+        />
       </div>
 
       <div style={{ padding: "0 20px 20px" }}>
