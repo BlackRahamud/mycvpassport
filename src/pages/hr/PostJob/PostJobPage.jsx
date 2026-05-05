@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import "./postJob.css";
 import PostJobShell from "./PostJobShell";
@@ -8,6 +9,7 @@ import NewJobStep from "./steps/NewJobStep";
 import QualificationsStep from "./steps/QualificationsStep";
 import JobDescriptionStep from "./steps/JobDescriptionStep";
 import HireStep from "./steps/HireStep";
+import PostJobSuccess from "./PostJobSuccess";
 import ScreeningCategoryModal from "./screening/ScreeningCategoryModal";
 import ScreeningDrawer from "./screening/ScreeningDrawer";
 
@@ -45,6 +47,7 @@ const stepMotion = {
 };
 
 export default function PostJobPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState("start");
   const [job, setJob] = useState(INITIAL_JOB);
   const [screeningView, setScreeningView] = useState(null);
@@ -93,11 +96,15 @@ export default function PostJobPage() {
       )}
       {step === "hire" && (
         <motion.div key="hire" {...stepMotion} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <HireStep value={job} onChange={setJob} onHire={() => { /* TODO: post + navigate */ }} onBack={goPrev} />
+          <HireStep value={job} onChange={setJob} onHire={() => setStep("success")} onBack={goPrev} />
         </motion.div>
       )}
     </AnimatePresence>
   );
+
+  if (step === "success") {
+    return <PostJobSuccess onGoToJobList={() => navigate("/hr")} />;
+  }
 
   return (
     <>

@@ -19,7 +19,7 @@ async function continueOnce({ typeJobTitle = false } = {}) {
   await page.waitForTimeout(450);
 }
 
-const stepBySCREEN = { "1": 1, "2": 2, "3": 3, "4": 3, "5": 3, "6": 3, "7": 4, "8": 5 };
+const stepBySCREEN = { "1": 1, "2": 2, "3": 3, "4": 3, "5": 3, "6": 3, "7": 4, "8": 5, "9": 5 };
 const targetStep = stepBySCREEN[SCREEN] || 1;
 for (let s = 1; s < targetStep; s++) {
   await continueOnce({ typeJobTitle: s === 1 });
@@ -35,10 +35,15 @@ if (SCREEN === "5") {
   await page.waitForTimeout(450);
 }
 
-if (SCREEN === "8") {
+if (SCREEN === "8" || SCREEN === "9") {
   const boxes = await page.$$(".pj-consent .pj-checkbox__box");
   for (const b of boxes) await b.click();
   await page.waitForTimeout(250);
+}
+
+if (SCREEN === "9") {
+  await page.getByRole("button", { name: "Hire Now" }).click();
+  await page.waitForTimeout(900);
 }
 
 if (SCREEN === "6") {
