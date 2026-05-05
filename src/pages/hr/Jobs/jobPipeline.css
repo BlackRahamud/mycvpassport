@@ -463,41 +463,31 @@
   font-weight: 600;
 }
 
-/* ── Score meter (detail header) ────────────────────────────── */
-.jpp-section--score { gap: 14px; }
-
-.jpp-score-meter {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  column-gap: 18px;
-  row-gap: 6px;
+/* ── Visa chip (detail header) ──────────────────────────────── */
+.jpp-visa-chip {
+  display: inline-flex;
   align-items: center;
-  padding: 16px 20px;
-  border-radius: 12px;
-  background: var(--pj-input-bg);
-  border: 1px solid var(--pj-border);
+  align-self: flex-start;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  margin: 4px 0 4px;
 }
-.jpp-score-meter__num {
-  grid-row: 1 / span 2;
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--pj-text);
-  font-feature-settings: "tnum";
-}
-.jpp-score-meter__unit { font-size: 14px; font-weight: 500; color: var(--pj-muted); margin-left: 2px; }
-.jpp-score-meter__label {
-  grid-column: 2;
-  grid-row: 1;
+.jpp-visa-chip--ok      { background: rgba(5, 150, 105, 0.10);  color: #047857; border-color: rgba(5, 150, 105, 0.20); }
+.jpp-visa-chip--warn    { background: rgba(217, 119, 6, 0.10);  color: #B45309; border-color: rgba(217, 119, 6, 0.22); }
+.jpp-visa-chip--neutral { background: var(--pj-input-bg);       color: var(--pj-text-soft); border-color: var(--pj-border); }
+
+/* ── ATS section title source pill ──────────────────────────── */
+.jpp-section__title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--pj-text);
 }
-.jpp-score-meter__source {
+.jpp-section__source {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -505,32 +495,9 @@
   color: var(--pj-muted);
   padding: 3px 8px;
   border-radius: 999px;
-  background: #FFFFFF;
+  background: var(--pj-input-bg);
   border: 1px solid var(--pj-border);
 }
-.jpp-score-meter__bar {
-  grid-column: 2;
-  grid-row: 2;
-  height: 6px;
-  background: #FFFFFF;
-  border-radius: 999px;
-  overflow: hidden;
-  border: 1px solid var(--pj-border);
-}
-.jpp-score-meter__fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 360ms var(--pj-ease);
-}
-.jpp-score-meter--high .jpp-score-meter__fill { background: linear-gradient(90deg, #10B981, #059669); }
-.jpp-score-meter--mid  .jpp-score-meter__fill { background: linear-gradient(90deg, #F59E0B, #D97706); }
-.jpp-score-meter--low  .jpp-score-meter__fill { background: linear-gradient(90deg, #F87171, #DC2626); }
-.jpp-score-meter--none {
-  border-style: dashed;
-  background: transparent;
-}
-.jpp-score-meter--none .jpp-score-meter__num { color: var(--pj-muted); font-size: 22px; }
-.jpp-score-meter--none .jpp-score-meter__bar { display: none; }
 
 /* ── Match keyword chips ────────────────────────────────────── */
 .jpp-match {
@@ -573,7 +540,6 @@
 
 @media (max-width: 700px) {
   .jpp-match { grid-template-columns: 1fr; }
-  .jpp-score-meter { grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; }
 }
 
 /* ── Right column: detail panel ─────────────────────────────── */
@@ -593,6 +559,11 @@
   grid-template-columns: 96px minmax(0, 1fr) auto;
   gap: 22px;
   align-items: center;
+}
+.jpp-detail__identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .jpp-detail__avatar {
   width: 96px;
@@ -638,16 +609,24 @@
 }
 .jpp-detail__contact a:hover { color: var(--pj-text); }
 
+/* Actions row: lives on its own line below the head — fits Message
+   + Email + (spacer) + Advance + Pass without the header crowding
+   the ScoreRing. The spacer uses flex:1 so the primary/pass pair
+   right-aligns while message/email stay left-aligned. */
 .jpp-detail__actions {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  align-self: flex-start;
 }
+.jpp-action__spacer { flex: 1 1 auto; }
 
 .jpp-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   height: 38px;
-  padding: 0 22px;
+  padding: 0 18px;
   background: var(--hjl-ink);
   color: #FFFFFF;
   border: 0;
@@ -657,20 +636,49 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 160ms var(--pj-ease), transform 160ms var(--pj-ease);
+  text-decoration: none;
+  transition: background 160ms var(--pj-ease), transform 160ms var(--pj-ease), color 160ms var(--pj-ease), border-color 160ms var(--pj-ease);
 }
 .jpp-action:hover { background: var(--hjl-ink-hover); transform: translateY(-1px); }
-.jpp-action[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
+.jpp-action[disabled], .jpp-action[aria-disabled="true"] {
+  opacity: 0.55; cursor: not-allowed; transform: none;
+}
 
+/* Primary advance — kept ink-on-white via the base style. */
+.jpp-action--primary { background: var(--hjl-ink); color: #FFFFFF; }
+
+/* Message — green WhatsApp pill. Mirrors the legacy /hr "Message
+   {firstName}" CTA so HRs see the same visual cue across surfaces. */
+.jpp-action--message {
+  background: var(--hjl-whatsapp);
+  color: #FFFFFF;
+}
+.jpp-action--message:hover { background: var(--hjl-whatsapp-hover); }
+
+/* Ghost — used for Email; white outline that lifts on hover. */
 .jpp-action--ghost {
+  background: #FFFFFF;
+  color: var(--pj-text);
+  border: 1px solid var(--pj-border);
+}
+.jpp-action--ghost:hover {
+  background: var(--pj-input-bg);
+  color: var(--pj-text);
+  border-color: var(--pj-border-strong);
+  transform: translateY(-1px);
+}
+
+/* Pass — destructive outline. */
+.jpp-action--pass {
   background: #FFFFFF;
   color: var(--hjl-pass);
   border: 1px solid var(--pj-border);
 }
-.jpp-action--ghost:hover {
+.jpp-action--pass:hover {
   background: var(--hjl-pass-soft);
-  color: var(--hjl-pass);
   border-color: var(--hjl-pass);
+  color: var(--hjl-pass);
+  transform: translateY(-1px);
 }
 
 .jpp-section { display: flex; flex-direction: column; gap: 12px; }
@@ -901,6 +909,62 @@
 }
 .jpp-modal__actions { display: flex; justify-content: flex-end; gap: 10px; }
 
+/* ── Status override (bottom of detail panel) ─────────────────
+   An admin escape hatch — the tab CTAs are the happy path; this
+   drops a candidate straight into any stage. Kept visually quieter
+   than the action buttons so it doesn't compete for attention. */
+.jpp-section--status { gap: 10px; }
+.jpp-status-override {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  background: var(--pj-input-bg);
+}
+.jpp-status-override__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+}
+.jpp-status-override__hint {
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--pj-text-soft);
+}
+.jpp-status-override__select {
+  height: 36px;
+  padding: 0 36px 0 14px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 8px;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pj-text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease);
+  /* Native chevron — keep platform feel rather than rolling a
+     headless select for an admin-rare control. */
+  appearance: auto;
+}
+.jpp-status-override__select:focus {
+  border-color: var(--hjl-ink);
+  box-shadow: 0 0 0 3px var(--hjl-ink-ring);
+}
+.jpp-status-override__select[disabled] { opacity: 0.55; cursor: not-allowed; }
+
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .jpp-cta, .jpp-icon-btn, .jpp-tab, .jpp-card, .jpp-action, .jpp-card__wa, .jpp-note__input, .jpp-note__add { transition: none !important; }
@@ -913,8 +977,12 @@
   .jpp-header { grid-template-columns: 1fr; }
   .jpp-am { width: max-content; }
   .jpp-detail { padding: 22px 18px; }
-  .jpp-detail__head { grid-template-columns: 72px minmax(0, 1fr); }
-  .jpp-detail__avatar { width: 72px; height: 72px; font-size: 26px; }
-  .jpp-detail__actions { grid-column: 1 / -1; align-self: stretch; justify-content: flex-start; flex-wrap: wrap; }
+  /* Drop the ring under the identity on narrow screens — it's
+     readable but stops squeezing the name/role line. */
+  .jpp-detail__head { grid-template-columns: 64px minmax(0, 1fr); row-gap: 14px; }
+  .jpp-detail__head > :nth-child(3) { grid-column: 1 / -1; justify-self: start; }
+  .jpp-detail__avatar { width: 64px; height: 64px; font-size: 22px; }
+  .jpp-action__spacer { display: none; }
   .jpp-grid3 { grid-template-columns: 1fr 1fr; }
+  .jpp-status-override { grid-template-columns: 1fr; }
 }

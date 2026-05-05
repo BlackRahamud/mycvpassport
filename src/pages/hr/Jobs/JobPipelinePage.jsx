@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
+import ScoreRing from "../../../components/hr/ScoreRing";
+import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
@@ -139,18 +141,27 @@ function timeAgo(s) {
 
 function getCv(c) { return c?.cv_snapshot || c?.cv_data || {}; }
 
-/* ───────── Score helpers ─────────
-   Score band = the chip's tone. 80+ green, 50-79 amber, <50 muted,
-   no-source = dashed grey (never scored). The colour decision is
-   deliberately coarse so a 79 vs 80 nudge reads as a real shift on
-   the card, not a continuous gradient that hides ranking. */
-function scoreBand(score, source) {
-  if (!source) return "none";
-  if (score >= 80) return "high";
-  if (score >= 50) return "mid";
-  return "low";
+function firstName(full) {
+  return String(full || "").trim().split(/\s+/)[0] || "candidate";
 }
 
+/* Visa-status colour split — mirrors the legacy /hr portal so HRs see
+   the same flag they're used to. 'Sponsored' is amber (HR has work to
+   do), 'Own visa' is green (candidate is plug-and-play), other values
+   read as neutral. Anything not in this list falls through to neutral
+   so a free-text visa status still renders. */
+function visaTone(visa) {
+  const v = String(visa || "").toLowerCase();
+  if (v.includes("own"))       return "ok";       // Own visa, Own residency, etc.
+  if (v.includes("sponsor"))   return "warn";     // Need sponsorship
+  if (v.includes("freelance")) return "ok";
+  return "neutral";
+}
+
+/* ───────── Card-level score chip ─────────
+   The detail panel uses the bigger ScoreRing (lifted to
+   src/components/hr/ScoreRing.jsx). On the cards we want a smaller
+   compact pill — same band logic, different surface. */
 function ScoreChip({ score, source }) {
   const band = scoreBand(score || 0, source);
   if (band === "none") {
@@ -162,32 +173,6 @@ function ScoreChip({ score, source }) {
       <span className="jpp-score-chip__num">{score}</span>
       <span className="jpp-score-chip__tag">{tag}</span>
     </span>
-  );
-}
-
-function ScoreMeter({ score, source }) {
-  const band = scoreBand(score || 0, source);
-  if (!source) {
-    return (
-      <div className="jpp-score-meter jpp-score-meter--none">
-        <span className="jpp-score-meter__num">—</span>
-        <span className="jpp-score-meter__label">Not yet scored</span>
-      </div>
-    );
-  }
-  return (
-    <div className={`jpp-score-meter jpp-score-meter--${band}`}>
-      <div className="jpp-score-meter__num">{score}<span className="jpp-score-meter__unit">/100</span></div>
-      <div className="jpp-score-meter__label">
-        ATS match
-        <span className="jpp-score-meter__source">
-          {source === "phase_1_full" ? "Phase 1 scorer" : "Keyword overlap (stopgap)"}
-        </span>
-      </div>
-      <div className="jpp-score-meter__bar" aria-hidden="true">
-        <div className="jpp-score-meter__fill" style={{ width: `${Math.max(0, Math.min(100, score || 0))}%` }} />
-      </div>
-    </div>
   );
 }
 
@@ -532,6 +517,7 @@ export default function JobPipelinePage() {
             advancing={advancing}
             onAdvance={handleAdvance}
             onPass={handlePass}
+            onStatusChange={(s) => selected && updateStatus(selected.id, s, selected.status)}
             noteDraft={noteDraft}
             onNoteDraftChange={setNoteDraft}
             onAddNote={handleAddNote}
@@ -584,9 +570,22 @@ export default function JobPipelinePage() {
 }
 
 /* ───────── Candidate Detail panel ───────── */
+/* All status values the dropdown surfaces. Mirrors the CHECK
+   constraint set by migration 013 — adding a value here without the
+   matching DB widening will get rejected at update time. */
+const STATUS_OVERRIDE_OPTIONS = [
+  { value: "new",          label: "New" },
+  { value: "shortlisted",  label: "Shortlisted" },
+  { value: "ready",        label: "Ready to interview" },
+  { value: "interviewed",  label: "Interviewed" },
+  { value: "offered",      label: "Offer extended" },
+  { value: "hired",        label: "Hired" },
+  { value: "rejected",     label: "Rejected" },
+];
+
 function CandidateDetail({
   candidate, stageDef, jobTitle, company, screeningQuestions,
-  advancing, onAdvance, onPass,
+  advancing, onAdvance, onPass, onStatusChange,
   noteDraft, onNoteDraftChange, onAddNote, noteSubmitting,
   reduce,
 }) {
@@ -632,9 +631,14 @@ function CandidateDetail({
     >
       <header className="jpp-detail__head">
         <div className="jpp-detail__avatar">{initials}</div>
-        <div>
+        <div className="jpp-detail__identity">
           <h2 className="jpp-detail__name">{candidate.candidate_name || "Unnamed candidate"}</h2>
           <p className="jpp-detail__role">{desiredJob || jobTitle || "Candidate"}</p>
+          {candidate.visa_status && (
+            <span className={`jpp-visa-chip jpp-visa-chip--${visaTone(candidate.visa_status)}`}>
+              {candidate.visa_status}
+            </span>
+          )}
           <div className="jpp-detail__contact">
             {personal.location && <span><MapPinIc /> {personal.location}</span>}
             {candidate.candidate_email && (
@@ -649,23 +653,51 @@ function CandidateDetail({
             )}
           </div>
         </div>
-        <div className="jpp-detail__actions">
-          {stageDef.actionLabel ? (
-            <button type="button" className="jpp-action" disabled={advancing} onClick={onAdvance}>
-              {stageDef.actionLabel}
-            </button>
-          ) : (
-            <button type="button" className="jpp-action" disabled aria-disabled="true">Hired</button>
-          )}
-          <button type="button" className="jpp-action jpp-action--ghost" disabled={advancing} onClick={onPass}>
-            Pass
-          </button>
-        </div>
+        <ScoreRing
+          score={candidate.ats_score || 0}
+          source={candidate.score_source}
+          size={84}
+        />
       </header>
 
-      <section className="jpp-section jpp-section--score">
-        <ScoreMeter score={candidate.ats_score} source={candidate.score_source} />
-        {(matchedKw.length + missingKw.length) > 0 && (
+      <div className="jpp-detail__actions">
+        <a
+          className="jpp-action jpp-action--message"
+          href={whatsappHref(candidate.candidate_phone, candidate.candidate_name, jobTitle, company)}
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          <WhatsAppIc /> Message {firstName(candidate.candidate_name)}
+        </a>
+        {candidate.candidate_email && (
+          <a
+            className="jpp-action jpp-action--ghost"
+            href={`mailto:${candidate.candidate_email}?subject=${encodeURIComponent(`Re: ${jobTitle || "your application"}`)}`}
+          >
+            <MailIc /> Email {firstName(candidate.candidate_name)}
+          </a>
+        )}
+        <span className="jpp-action__spacer" />
+        {stageDef.actionLabel ? (
+          <button type="button" className="jpp-action jpp-action--primary" disabled={advancing} onClick={onAdvance}>
+            {stageDef.actionLabel}
+          </button>
+        ) : (
+          <button type="button" className="jpp-action jpp-action--primary" disabled aria-disabled="true">Hired</button>
+        )}
+        <button type="button" className="jpp-action jpp-action--pass" disabled={advancing} onClick={onPass}>
+          Pass
+        </button>
+      </div>
+
+      {(matchedKw.length + missingKw.length) > 0 && (
+        <section className="jpp-section">
+          <h3 className="jpp-section__title">
+            ATS Keyword Match
+            <span className="jpp-section__source">
+              {candidate.score_source === "phase_1_full" ? "Phase 1 scorer" : "Keyword overlap (stopgap)"}
+            </span>
+          </h3>
           <div className="jpp-match">
             {matchedKw.length > 0 && (
               <div className="jpp-match__col">
@@ -688,8 +720,8 @@ function CandidateDetail({
               </div>
             )}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {skills.length > 0 && (
         <section className="jpp-section">
@@ -825,6 +857,34 @@ function CandidateDetail({
               ))}
             </ul>
           )}
+        </div>
+      </section>
+
+      <section className="jpp-section jpp-section--status">
+        <div className="jpp-status-override">
+          <label className="jpp-status-override__label" htmlFor={`jpp-status-${candidate.id}`}>
+            Status override
+            <span className="jpp-status-override__hint">
+              Use the tab CTAs for normal flow — this drops the candidate straight into any stage.
+            </span>
+          </label>
+          <select
+            id={`jpp-status-${candidate.id}`}
+            className="jpp-status-override__select"
+            value={candidate.status || "new"}
+            disabled={advancing || !onStatusChange}
+            onChange={(e) => onStatusChange && onStatusChange(e.target.value)}
+          >
+            {/* Surface the current status even if it's outside the override
+                set (e.g. legacy 'submitted' / 'viewed' / 'interviewing' rows
+                from before migration 013) so the select shows truth. */}
+            {!STATUS_OVERRIDE_OPTIONS.some((o) => o.value === (candidate.status || "new")) && (
+              <option value={candidate.status} disabled>{candidate.status}</option>
+            )}
+            {STATUS_OVERRIDE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
       </section>
     </motion.aside>
