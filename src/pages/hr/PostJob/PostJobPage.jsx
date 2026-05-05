@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import { getGatekeeperData } from "../../../services/gatekeeper";
+import { submitJob } from "../../../services/postJob";
 import { freeTierStatus } from "../../../utils/freeTier";
 import FreeTierBanner from "../../../components/FreeTierBanner/FreeTierBanner";
 import "./postJob.css";
@@ -59,6 +60,9 @@ export default function PostJobPage() {
   const [drawerCategory, setDrawerCategory] = useState(null);
   const [user, setUser] = useState(null);
   const [gate, setGate] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [postedJobId, setPostedJobId] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -86,6 +90,24 @@ export default function PostJobPage() {
       return { ...j, screeningQuestionGroups: [...others, group] };
     });
     closeScreening();
+  };
+
+  const handleHire = async () => {
+    if (submitting) return;
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const inserted = await submitJob({ user, job });
+      setPostedJobId(inserted?.id || null);
+      setStep("success");
+    } catch (err) {
+      const msg = err?.code === "unauthenticated"
+        ? "Sign in to post a job. We'll bring you back here."
+        : err?.message || "Couldn't post the job. Try again.";
+      setSubmitError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const left = (
@@ -116,14 +138,21 @@ export default function PostJobPage() {
       )}
       {step === "hire" && (
         <motion.div key="hire" {...stepMotion} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <HireStep value={job} onChange={setJob} onHire={() => setStep("success")} onBack={goPrev} />
+          <HireStep
+            value={job}
+            onChange={setJob}
+            onHire={handleHire}
+            onBack={goPrev}
+            submitting={submitting}
+            errorMessage={submitError}
+          />
         </motion.div>
       )}
     </AnimatePresence>
   );
 
   if (step === "success") {
-    return <PostJobSuccess onGoToJobList={() => navigate("/hr")} />;
+    return <PostJobSuccess onGoToJobList={() => navigate("/jobs")} postedJobId={postedJobId} />;
   }
 
   if (showPaywall) {

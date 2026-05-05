@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 
-export default function HireStep({ value, onChange, onHire, onBack }) {
+export default function HireStep({ value, onChange, onHire, onBack, submitting = false, errorMessage = null }) {
   const reduce = useReducedMotion();
   const set = (patch) => onChange({ ...value, ...patch });
 
@@ -11,7 +11,7 @@ export default function HireStep({ value, onChange, onHire, onBack }) {
 
   const consentSubscription = !!value.consentSubscription;
   const consentTerms        = !!value.consentTerms;
-  const canHire = consentSubscription && consentTerms;
+  const canHire = consentSubscription && consentTerms && !submitting;
 
   return (
     <motion.div variants={containerVariants} initial="initial" animate="animate" style={{ display: "flex", flexDirection: "column", flex: 1 }}>
@@ -61,9 +61,28 @@ export default function HireStep({ value, onChange, onHire, onBack }) {
         *If candidate is removed within 90 days of making a hire, get credit awards another hire at equivalent Subscription product.
       </motion.p>
 
+      {errorMessage && (
+        <motion.div
+          variants={item}
+          role="alert"
+          style={{
+            marginTop: 14,
+            padding: "10px 14px",
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: 8,
+            color: "#991B1B",
+            fontSize: 12.5,
+            lineHeight: 1.5,
+          }}
+        >
+          {errorMessage}
+        </motion.div>
+      )}
+
       <motion.div className="pj-actions" variants={item}>
-        <motion.button type="button" className="pj-btn pj-btn--ghost" onClick={onBack}
-          whileHover={reduce ? undefined : { y: -1 }} whileTap={reduce ? undefined : { scale: 0.985 }}
+        <motion.button type="button" className="pj-btn pj-btn--ghost" onClick={onBack} disabled={submitting}
+          whileHover={(reduce || submitting) ? undefined : { y: -1 }} whileTap={(reduce || submitting) ? undefined : { scale: 0.985 }}
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}>Previous</motion.button>
         <motion.button
           type="button"
@@ -75,7 +94,7 @@ export default function HireStep({ value, onChange, onHire, onBack }) {
           whileTap={(reduce || !canHire) ? undefined : { scale: 0.985 }}
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
         >
-          Hire Now
+          {submitting ? "Posting…" : "Hire Now"}
         </motion.button>
       </motion.div>
     </motion.div>
