@@ -274,6 +274,130 @@ select:focus,
 .cvp-input-message[data-tone="warning"] { color: var(--color-warn); }
 .cvp-input-message[data-tone="success"] { color: var(--color-success); }
 
+/* ── Builder visual polish atoms ──────────────────────────────────────
+   Premium-pass classes additive on top of the input atoms above. OLED
+   tokens only. No purple. No drop-shadow (CLAUDE.md design system). */
+
+/* Floating label wrapper — pure CSS via :placeholder-shown.
+   Required: input has placeholder=" " (single space) and a sibling label.
+   When empty: label sits centered like a placeholder.
+   When focused or filled: label floats up to the top, shrinks, amber. */
+.cvp-field {
+  position: relative;
+}
+.cvp-field > input.cvp-input {
+  padding-top: 22px;
+  padding-bottom: 8px;
+}
+.cvp-field > label {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transition: top 160ms var(--input-ease), transform 160ms var(--input-ease), font-size 160ms var(--input-ease), color 160ms var(--input-ease), letter-spacing 160ms var(--input-ease);
+}
+.cvp-field > input.cvp-input:focus ~ label,
+.cvp-field > input.cvp-input:not(:placeholder-shown) ~ label {
+  top: 8px;
+  transform: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Dashed ghost button — for "+ Add Experience", "+ Add Education", etc.
+   Communicates "this is where structure grows" rather than competing with
+   primary actions like Save. Mirrors .cvp-builder-add-section. */
+.cvp-add-row-ghost {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px dashed #333333;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 150ms var(--input-ease), color 150ms var(--input-ease), background-color 150ms var(--input-ease);
+}
+.cvp-add-row-ghost:hover:not(:disabled) {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+.cvp-add-row-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty-state ghost card — skeleton-like placeholder shown when an array
+   section (experience, education, certifications) has zero entries.
+   Static (no shimmer) to avoid the "loading" misread. Communicates the
+   structure visually — "this is where rows will appear". */
+.cvp-ghost-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed #2A2A2A;
+  border-radius: 12px;
+}
+.cvp-ghost-line {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.cvp-ghost-line--w80 { width: 80%; }
+.cvp-ghost-line--w60 { width: 60%; }
+.cvp-ghost-line--w40 { width: 40%; }
+.cvp-ghost-card-text {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.45;
+}
+
+/* Section list elevation — inset top hairline gives the card a "catches
+   light" premium feel without drop-shadow (which flattens to grey on
+   OLED). Larger radius for that brushed-surface vibe. */
+.cvp-sections-list {
+  background: #141414;
+  border: 1px solid #2A2A2A;
+  border-radius: 18px;
+  overflow: visible;
+  margin-bottom: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Personal Info card lift — same elevation cue as the section list. */
+.cvp-builder-personal-card {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Section row — left accent bar on the open section header. Replaces the
+   prior inline white 2px-on-open border with a persistent 3px amber that
+   only saturates when the section is active. Closed sections show no bar
+   (visual quiet); open sections anchor with the accent. */
+.cvp-section-row > .cvp-section-row-header {
+  border-left: 3px solid transparent;
+}
+.cvp-section-row.is-open > .cvp-section-row-header {
+  border-left: 3px solid var(--color-accent);
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;

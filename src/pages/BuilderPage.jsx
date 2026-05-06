@@ -178,7 +178,11 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
         </div>
       ) : null}
       {list.length === 0 && !certificationEditor && (
-        <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No certifications yet. Add one below.</p>
+        <div className="cvp-ghost-card" aria-hidden="true">
+          <div className="cvp-ghost-line cvp-ghost-line--w60" />
+          <div className="cvp-ghost-line cvp-ghost-line--w40" />
+          <p className="cvp-ghost-card-text">No certifications yet. Add one below.</p>
+        </div>
       )}
       {list.map((c, i) =>
         inlineNameEdit && inlineNameEdit.index === i ? (
@@ -334,8 +338,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
       )}
       <button
         type="button"
-        className="cvp-builder-add-entry-btn"
-        style={{ ...CB_UI.btn, width: "100%", display: "block", marginBottom: 8 }}
+        className="cvp-add-row-ghost cvp-builder-add-entry-btn"
         onClick={() => setCertificationEditor({ mode: "add", index: -1, draft: { ...EMPTY_CERT } })}
       >
         + Add Certification
@@ -3884,17 +3887,35 @@ function ResumeBuilder({
               ) : null}
 
               {/* Personal info card — always visible */}
-              <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+              <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 18, padding: 16, position: "relative" }}>
                 <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
                 <div style={{ display: "grid", gap: 10 }}>
-                  <input className="cvp-input" placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
-                  <input className="cvp-input" placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
-                  <input className="cvp-input" placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
-                  <input className="cvp-input" placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
-                  <input className="cvp-input" placeholder="LinkedIn URL" value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
-                  <input className="cvp-input" placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
+                  <div className="cvp-field">
+                    <input id="cvp-pi-name" className="cvp-input" placeholder=" " value={resume.name} onChange={e=>set("name",e.target.value)} />
+                    <label htmlFor="cvp-pi-name">Full name</label>
+                  </div>
+                  <div className="cvp-field">
+                    <input id="cvp-pi-title" className="cvp-input" placeholder=" " value={resume.title} onChange={e=>set("title",e.target.value)} />
+                    <label htmlFor="cvp-pi-title">Job title</label>
+                  </div>
+                  <div className="cvp-field">
+                    <input id="cvp-pi-email" className="cvp-input" placeholder=" " value={resume.email} onChange={e=>set("email",e.target.value)} />
+                    <label htmlFor="cvp-pi-email">Email</label>
+                  </div>
+                  <div className="cvp-field">
+                    <input id="cvp-pi-phone" className="cvp-input" placeholder=" " value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                    <label htmlFor="cvp-pi-phone">Phone</label>
+                  </div>
+                  <div className="cvp-field">
+                    <input id="cvp-pi-linkedin" className="cvp-input" placeholder=" " value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
+                    <label htmlFor="cvp-pi-linkedin">LinkedIn URL</label>
+                  </div>
+                  <div className="cvp-field">
+                    <input id="cvp-pi-location" className="cvp-input" placeholder=" " value={resume.location} onChange={e=>set("location",e.target.value)} />
+                    <label htmlFor="cvp-pi-location">Location</label>
+                  </div>
                 </div>
               </div>
 
@@ -4014,7 +4035,12 @@ function ResumeBuilder({
               >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
-                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
+                    <div className="cvp-ghost-card" aria-hidden="true">
+                      <div className="cvp-ghost-line cvp-ghost-line--w60" />
+                      <div className="cvp-ghost-line cvp-ghost-line--w80" />
+                      <div className="cvp-ghost-line cvp-ghost-line--w40" />
+                      <p className="cvp-ghost-card-text">No roles yet. Add your work history below.</p>
+                    </div>
                   )}
                   {resume.experience.map((exp, i) => {
                     const period = buildExperiencePeriod(exp) || exp.period || "";
@@ -4034,7 +4060,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Experience</button>
                 </div>
               </AccordionSection>
 
@@ -4051,7 +4077,11 @@ function ResumeBuilder({
               >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
-                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
+                    <div className="cvp-ghost-card" aria-hidden="true">
+                      <div className="cvp-ghost-line cvp-ghost-line--w60" />
+                      <div className="cvp-ghost-line cvp-ghost-line--w40" />
+                      <p className="cvp-ghost-card-text">No education entries yet.</p>
+                    </div>
                   )}
                   {resume.education.map((edu, i) => {
                     const yearLine = buildEducationYearLine(edu) || edu.year || "";
@@ -4071,7 +4101,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Education</button>
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Education</button>
                 </div>
               </AccordionSection>
 
@@ -4376,14 +4406,32 @@ function ResumeBuilder({
                 ) : isCvDataEmptyForTemplateApply(resume) ? (
                   <BuilderCvImport onImported={handleCvImported} />
                 ) : null}
-                <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
+                <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 18, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
-                    <input className="cvp-input" placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
-                    <input className="cvp-input" placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
-                    <input className="cvp-input" placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
-                    <input className="cvp-input" placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
-                    <input className="cvp-input" placeholder="LinkedIn URL" value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
-                    <input className="cvp-input" placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
+                    <div className="cvp-field">
+                      <input id="cvp-pi-name" className="cvp-input" placeholder=" " value={resume.name} onChange={e=>set("name",e.target.value)} />
+                      <label htmlFor="cvp-pi-name">Full name</label>
+                    </div>
+                    <div className="cvp-field">
+                      <input id="cvp-pi-title" className="cvp-input" placeholder=" " value={resume.title} onChange={e=>set("title",e.target.value)} />
+                      <label htmlFor="cvp-pi-title">Job title</label>
+                    </div>
+                    <div className="cvp-field">
+                      <input id="cvp-pi-email" className="cvp-input" placeholder=" " value={resume.email} onChange={e=>set("email",e.target.value)} />
+                      <label htmlFor="cvp-pi-email">Email</label>
+                    </div>
+                    <div className="cvp-field">
+                      <input id="cvp-pi-phone" className="cvp-input" placeholder=" " value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                      <label htmlFor="cvp-pi-phone">Phone</label>
+                    </div>
+                    <div className="cvp-field">
+                      <input id="cvp-pi-linkedin" className="cvp-input" placeholder=" " value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
+                      <label htmlFor="cvp-pi-linkedin">LinkedIn URL</label>
+                    </div>
+                    <div className="cvp-field">
+                      <input id="cvp-pi-location" className="cvp-input" placeholder=" " value={resume.location} onChange={e=>set("location",e.target.value)} />
+                      <label htmlFor="cvp-pi-location">Location</label>
+                    </div>
                   </div>
                 </div>
                 {cvJourneyChrome && !cvJourney.templateChosen ? (
@@ -4503,7 +4551,12 @@ function ResumeBuilder({
               >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
-                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No roles yet. Add your work history below.</p>
+                    <div className="cvp-ghost-card" aria-hidden="true">
+                      <div className="cvp-ghost-line cvp-ghost-line--w60" />
+                      <div className="cvp-ghost-line cvp-ghost-line--w80" />
+                      <div className="cvp-ghost-line cvp-ghost-line--w40" />
+                      <p className="cvp-ghost-card-text">No roles yet. Add your work history below.</p>
+                    </div>
                   )}
                   {resume.experience.map((exp, i) => {
                     const period = buildExperiencePeriod(exp) || exp.period || "";
@@ -4523,7 +4576,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Experience</button>
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Experience</button>
                 </div>
               </AccordionSection>
 
@@ -4541,7 +4594,11 @@ function ResumeBuilder({
               >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
-                    <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>No education entries yet.</p>
+                    <div className="cvp-ghost-card" aria-hidden="true">
+                      <div className="cvp-ghost-line cvp-ghost-line--w60" />
+                      <div className="cvp-ghost-line cvp-ghost-line--w40" />
+                      <p className="cvp-ghost-card-text">No education entries yet.</p>
+                    </div>
                   )}
                   {resume.education.map((edu, i) => {
                     const yearLine = buildEducationYearLine(edu) || edu.year || "";
@@ -4561,7 +4618,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-builder-add-entry-btn" style={{ ...CB_UI.btn }}>+ Add Education</button>
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Education</button>
                 </div>
               </AccordionSection>
 
@@ -6362,8 +6419,6 @@ function AccordionSection({
           gap: 12,
           padding: 16,
           background: "transparent",
-          border: "none",
-          borderLeft: isOpen ? "2px solid #FFFFFF" : "2px solid transparent",
           transition: `background-color 150ms ${EASE}, border-color 150ms ${EASE}`,
           boxSizing: "border-box",
         }}
