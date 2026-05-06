@@ -398,6 +398,74 @@ select:focus,
   border-left: 3px solid var(--color-accent);
 }
 
+/* Builder action bar — sticky bottom toolbar with Save + Export PDF.
+   Fixed positioning so it sits at the viewport bottom regardless of
+   which builder tab is active. z-100 keeps it above scrollable content
+   but below modals (z-200). The outer BuilderPage wrapper has
+   paddingBottom: 80 so the last content row clears the bar. */
+.cvp-builder-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-default);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+  padding: 12px 24px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+.cvp-builder-action-bar-inner {
+  max-width: 1536px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.cvp-builder-action-bar-secondary,
+.cvp-builder-action-bar-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 150ms var(--input-ease), color 150ms var(--input-ease), border-color 150ms var(--input-ease), opacity 150ms var(--input-ease);
+}
+.cvp-builder-action-bar-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+.cvp-builder-action-bar-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: #3A3A3A;
+}
+.cvp-builder-action-bar-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cvp-builder-action-bar-primary {
+  background: var(--text-primary);
+  color: #000000;
+  border: 1px solid var(--text-primary);
+  padding: 0 22px;
+}
+.cvp-builder-action-bar-primary:hover:not(:disabled) {
+  background: #E5E5E7;
+  border-color: #E5E5E7;
+}
+.cvp-builder-action-bar-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
@@ -787,7 +855,8 @@ select:focus,
   min-height: 1123px;
   padding: 32px;
   border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
   box-sizing: border-box;
 }
 

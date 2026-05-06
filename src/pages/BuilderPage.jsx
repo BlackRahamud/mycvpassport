@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Cpu,
+  Download,
   FileText,
   Globe,
   GraduationCap,
@@ -18,6 +19,7 @@ import {
   List,
   Loader2,
   Pencil,
+  Save,
   Sparkles,
   Star,
   Trash2,
@@ -420,6 +422,43 @@ function CvImportBanner({ filename, count, total }) {
         <p style={{ margin: "2px 0 0", fontSize: 11, color: "#A0A0A0" }}>
           {count} of {total} fields populated. Edit anything to dismiss.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function BuilderActionBar({ saving, saveStatus, isAuthed, downloadStatus, onSave, onExport }) {
+  const generating = downloadStatus === "synthesizing" || downloadStatus === "generating";
+  let saveLabel = "Save";
+  if (saving) saveLabel = "Saving…";
+  else if (saveStatus === "saved") saveLabel = "Saved ✓";
+  else if (saveStatus === "error") saveLabel = "Try again";
+  let exportLabel = "Export PDF";
+  if (downloadStatus === "synthesizing") exportLabel = "Preparing…";
+  else if (downloadStatus === "generating") exportLabel = "Generating…";
+  return (
+    <div className="cvp-builder-action-bar" role="toolbar" aria-label="Resume actions">
+      <div className="cvp-builder-action-bar-inner">
+        <button
+          type="button"
+          className="cvp-builder-action-bar-secondary"
+          onClick={onSave}
+          disabled={saving || !isAuthed}
+          aria-label="Save resume"
+        >
+          <Save size={14} strokeWidth={1.8} aria-hidden />
+          <span>{saveLabel}</span>
+        </button>
+        <button
+          type="button"
+          className="cvp-builder-action-bar-primary"
+          onClick={() => onExport()}
+          disabled={generating}
+          aria-label="Export resume as PDF"
+        >
+          <Download size={14} strokeWidth={1.8} aria-hidden />
+          <span>{exportLabel}</span>
+        </button>
       </div>
     </div>
   );
@@ -888,6 +927,15 @@ function ProfessionalSummaryField({
   const [isDirty, setIsDirty] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiToast, setAiToast] = useState(null); // { kind: 'success'|'error'|'info', text }
+  // Auto-expand: textarea grows with content, no internal scroll. Reruns
+  // on every `summary` change so AI rewrites + paste also resize cleanly.
+  const summaryRef = useRef(null);
+  useEffect(() => {
+    const el = summaryRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [summary]);
 
   useEffect(() => {
     setIsDirty(false);
@@ -987,8 +1035,9 @@ function ProfessionalSummaryField({
       ` }} />
       <div style={{ position: "relative", width: "100%" }}>
         <textarea
+          ref={summaryRef}
           className="cvp-builder-ph cvp-textarea"
-          style={{ minHeight: 130, paddingBottom: 30 }}
+          style={{ minHeight: 80, paddingBottom: 30, overflowY: "hidden", resize: "none" }}
           placeholder="2–3 lines on your strengths, focus, and what you bring to the role…"
           value={summary}
           onChange={(e) => {
@@ -3572,6 +3621,7 @@ function ResumeBuilder({
         background: "var(--bg-page)",
         color: "var(--text-primary)",
         fontFamily: "'DM Sans',sans-serif",
+        paddingBottom: 80,
       }}
     >
       {/* Top nav bar — tabs row + optional CV finder */}
@@ -6282,6 +6332,15 @@ function ResumeBuilder({
         />,
         document.body
       )}
+
+      <BuilderActionBar
+        saving={saving}
+        saveStatus={saveStatus}
+        isAuthed={!!user?.id}
+        downloadStatus={downloadState.status}
+        onSave={handleSave}
+        onExport={handleDownload}
+      />
     </div>
   );
 }
@@ -6443,21 +6502,24 @@ function AccordionSection({
           ) : null}
           <button
             type="button"
+            aria-label={isOpen ? "Close section editor" : "Edit section"}
             onClick={(e) => {
               e.stopPropagation();
               onToggle();
             }}
             style={{
               flexShrink: 0,
-              backgroundColor: activeGuideSection === `section-${id}` ? "#F59E0B" : "#FFFFFF",
-              color: "#000000",
-              border: "none",
-              borderRadius: 12,
-              padding: "6px 14px",
-              fontSize: 13,
-              fontWeight: 600,
+              width: 32,
+              height: 32,
+              padding: 0,
+              display: "grid",
+              placeItems: "center",
+              background: activeGuideSection === `section-${id}` ? "rgba(245,158,11,0.16)" : "transparent",
+              color: activeGuideSection === `section-${id}` ? "#D97706" : "#A0A0A0",
+              border: "1px solid #2A2A2A",
+              borderRadius: 8,
               cursor: "pointer",
-              letterSpacing: "0.01em",
+              transition: `background-color 150ms ${ease}, color 150ms ${ease}, border-color 150ms ${ease}`,
               animation: activeGuideSection === `section-${id}`
                 ? "fabGuideEditPulse 1.2s ease-in-out infinite"
                 : "none",
@@ -6465,8 +6527,20 @@ function AccordionSection({
                 ? "0 0 0 0 rgba(245,158,11,0.6)"
                 : "none",
             }}
+            onMouseEnter={(e) => {
+              if (activeGuideSection === `section-${id}`) return;
+              e.currentTarget.style.background = "#1C1C1C";
+              e.currentTarget.style.color = "#FFFFFF";
+              e.currentTarget.style.borderColor = "#3A3A3A";
+            }}
+            onMouseLeave={(e) => {
+              if (activeGuideSection === `section-${id}`) return;
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#A0A0A0";
+              e.currentTarget.style.borderColor = "#2A2A2A";
+            }}
           >
-            Edit
+            <Pencil size={14} strokeWidth={1.8} aria-hidden />
           </button>
           <button
             type="button"
@@ -6600,21 +6674,24 @@ function AccordionSection({
         ) : null}
         <button
           type="button"
+          aria-label={isOpen ? "Close section editor" : "Edit section"}
           onClick={(e) => {
             e.stopPropagation();
             onToggle();
           }}
           style={{
             flexShrink: 0,
-            backgroundColor: activeGuideSection === `section-${id}` ? "#F59E0B" : "#FFFFFF",
-            color: "#000000",
-            border: "none",
-            borderRadius: 12,
-            padding: "6px 14px",
-            fontSize: 13,
-            fontWeight: 600,
+            width: 32,
+            height: 32,
+            padding: 0,
+            display: "grid",
+            placeItems: "center",
+            background: activeGuideSection === `section-${id}` ? "rgba(245,158,11,0.16)" : "transparent",
+            color: activeGuideSection === `section-${id}` ? "#D97706" : "#A0A0A0",
+            border: "1px solid #2A2A2A",
+            borderRadius: 8,
             cursor: "pointer",
-            letterSpacing: "0.01em",
+            transition: `background-color 150ms ${ease}, color 150ms ${ease}, border-color 150ms ${ease}`,
             animation: activeGuideSection === `section-${id}`
               ? "fabGuideEditPulse 1.2s ease-in-out infinite"
               : "none",
@@ -6622,8 +6699,20 @@ function AccordionSection({
               ? "0 0 0 0 rgba(245,158,11,0.6)"
               : "none",
           }}
+          onMouseEnter={(e) => {
+            if (activeGuideSection === `section-${id}`) return;
+            e.currentTarget.style.background = "#1C1C1C";
+            e.currentTarget.style.color = "#FFFFFF";
+            e.currentTarget.style.borderColor = "#3A3A3A";
+          }}
+          onMouseLeave={(e) => {
+            if (activeGuideSection === `section-${id}`) return;
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "#A0A0A0";
+            e.currentTarget.style.borderColor = "#2A2A2A";
+          }}
         >
-          Edit
+          <Pencil size={14} strokeWidth={1.8} aria-hidden />
         </button>
         <button
           type="button"
