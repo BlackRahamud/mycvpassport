@@ -19,10 +19,12 @@ import {
   List,
   Loader2,
   Pencil,
+  Redo2,
   Save,
   Sparkles,
   Star,
   Trash2,
+  Undo2,
   User,
   X,
 } from "lucide-react";
@@ -427,7 +429,18 @@ function CvImportBanner({ filename, count, total }) {
   );
 }
 
-function BuilderActionBar({ saving, saveStatus, isAuthed, downloadStatus, onSave, onExport }) {
+function BuilderActionBar({
+  saving,
+  saveStatus,
+  isAuthed,
+  downloadStatus,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onSave,
+  onExport,
+}) {
   const generating = downloadStatus === "synthesizing" || downloadStatus === "generating";
   let saveLabel = "Save";
   if (saving) saveLabel = "Saving…";
@@ -439,26 +452,50 @@ function BuilderActionBar({ saving, saveStatus, isAuthed, downloadStatus, onSave
   return (
     <div className="cvp-builder-action-bar" role="toolbar" aria-label="Resume actions">
       <div className="cvp-builder-action-bar-inner">
-        <button
-          type="button"
-          className="cvp-builder-action-bar-secondary"
-          onClick={onSave}
-          disabled={saving || !isAuthed}
-          aria-label="Save resume"
-        >
-          <Save size={14} strokeWidth={1.8} aria-hidden />
-          <span>{saveLabel}</span>
-        </button>
-        <button
-          type="button"
-          className="cvp-builder-action-bar-primary"
-          onClick={() => onExport()}
-          disabled={generating}
-          aria-label="Export resume as PDF"
-        >
-          <Download size={14} strokeWidth={1.8} aria-hidden />
-          <span>{exportLabel}</span>
-        </button>
+        <div className="cvp-builder-action-bar-cluster">
+          <button
+            type="button"
+            className="cvp-builder-action-bar-icon"
+            onClick={onUndo}
+            disabled={!canUndo}
+            aria-label="Undo"
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo2 size={14} strokeWidth={1.8} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="cvp-builder-action-bar-icon"
+            onClick={onRedo}
+            disabled={!canRedo}
+            aria-label="Redo"
+            title="Redo (Ctrl+Shift+Z)"
+          >
+            <Redo2 size={14} strokeWidth={1.8} aria-hidden />
+          </button>
+        </div>
+        <div className="cvp-builder-action-bar-cluster">
+          <button
+            type="button"
+            className="cvp-builder-action-bar-secondary"
+            onClick={onSave}
+            disabled={saving || !isAuthed}
+            aria-label="Save resume"
+          >
+            <Save size={14} strokeWidth={1.8} aria-hidden />
+            <span>{saveLabel}</span>
+          </button>
+          <button
+            type="button"
+            className="cvp-builder-action-bar-primary"
+            onClick={() => onExport()}
+            disabled={generating}
+            aria-label="Export resume as PDF"
+          >
+            <Download size={14} strokeWidth={1.8} aria-hidden />
+            <span>{exportLabel}</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2775,21 +2812,91 @@ function ResumeBuilder({
   // paths must use `setResumeAsLoad` so initial CV injection (e.g. from
   // /transform/success → "Edit in Builder") doesn't register as an edit.
   const [userHasEdited, setUserHasEdited] = useState(false);
-  // User-driven setter: every call flips the dirty flag. Subcomponents
-  // that mutate via the `setResume` prop (CertificationsBuilderSection,
-  // TechnicalSkillsEditor, etc.) get this wrapper transparently.
+  // Tier 2: undo/redo stack. Single state object {entries, index} so push
+  // updates are atomic. Cap at 50 to bound memory; oldest entry drops
+  // when full. Initialised with the current resume as the first entry.
+  const [historyState, setHistoryState] = useState(() => ({ entries: [resume], index: 0 }));
+
+  // User-driven setter: every call flips the dirty flag and pushes a
+  // history entry. Subcomponents that mutate via the `setResume` prop
+  // (CertificationsBuilderSection, TechnicalSkillsEditor, etc.) get
+  // both behaviours transparently.
   const setResume = useCallback((updaterOrValue) => {
-    setResumeRaw(updaterOrValue);
+    setResumeRaw((prev) => {
+      const next = typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue;
+      setHistoryState((h) => {
+        // Truncate redo branch (any redo entries become invalid the
+        // moment a new edit lands) then push the fresh state.
+        const trimmed = h.entries.slice(0, h.index + 1);
+        trimmed.push(next);
+        const capped = trimmed.length > 50 ? trimmed.slice(trimmed.length - 50) : trimmed;
+        return { entries: capped, index: capped.length - 1 };
+      });
+      return next;
+    });
     setUserHasEdited(true);
   }, []);
   // Data-injection setter: skips the dirty flag and re-baselines the
   // Discard target so a future Discard reverts to the just-loaded state.
+  // Also resets the history stack — a load is not an undoable user
+  // action; pre-load state is recovered via Discard, not Undo.
   const setResumeAsLoad = useCallback((value) => {
     setResumeRaw(value);
     if (value && typeof value === "object" && !Array.isArray(value)) {
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(value);
     }
+    setHistoryState({ entries: [value], index: 0 });
   }, []);
+
+  const handleUndo = useCallback(() => {
+    setHistoryState((h) => {
+      if (h.index <= 0) return h;
+      const newIndex = h.index - 1;
+      setResumeRaw(h.entries[newIndex]);
+      setUserHasEdited(true);
+      return { ...h, index: newIndex };
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setHistoryState((h) => {
+      if (h.index >= h.entries.length - 1) return h;
+      const newIndex = h.index + 1;
+      setResumeRaw(h.entries[newIndex]);
+      setUserHasEdited(true);
+      return { ...h, index: newIndex };
+    });
+  }, []);
+
+  const canUndo = historyState.index > 0;
+  const canRedo = historyState.index < historyState.entries.length - 1;
+
+  // Keyboard shortcuts: ⌘/Ctrl+Z undo, ⌘⇧Z / Ctrl+Y redo. Only fires
+  // when focus is OUTSIDE form fields — inside inputs/textareas the
+  // browser's native undo handles per-character edits, which is what
+  // users expect.
+  useEffect(() => {
+    const onKey = (e) => {
+      const t = e.target;
+      const inField = t instanceof HTMLElement && (
+        t.tagName === "INPUT" ||
+        t.tagName === "TEXTAREA" ||
+        t.isContentEditable
+      );
+      if (inField) return;
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleUndo, handleRedo]);
   // CV import: confirmation dialog state when triggering import on a
   // non-empty draft. The pending payload holds the parsed cv_data + the
   // original filename, applied via setResumeAsLoad on confirm.
@@ -6221,6 +6328,10 @@ function ResumeBuilder({
         saveStatus={saveStatus}
         isAuthed={!!user?.id}
         downloadStatus={downloadState.status}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
         onSave={handleSave}
         onExport={handleDownload}
       />
