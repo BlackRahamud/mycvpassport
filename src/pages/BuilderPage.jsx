@@ -58,7 +58,9 @@ import {
   buildExperiencePeriod,
   buildEducationYearLine,
   builderAtsScore,
+  isCvDataEmptyForTemplateApply,
 } from "../cvShared";
+import BuilderCvImport from "../components/builder/BuilderCvImport";
 import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
@@ -2607,6 +2609,21 @@ function ResumeBuilder({
       lastSavedSnapshotRef.current = snapshotResumeForDiscard(value);
     }
   }, []);
+  // CV import: confirmation dialog state when triggering import on a
+  // non-empty draft. The pending payload holds the parsed cv_data + the
+  // original filename, applied via setResumeAsLoad on confirm.
+  const [cvImportPending, setCvImportPending] = useState(null);
+  const handleCvImported = useCallback(
+    (cvData, filename) => {
+      const empty = isCvDataEmptyForTemplateApply(resume);
+      if (!empty) {
+        setCvImportPending({ cvData, filename });
+        return;
+      }
+      setResumeAsLoad(normalizeResumeForBuilder(cvData));
+    },
+    [resume, setResumeAsLoad],
+  );
   const [cvpBannerDismissedStored, setCvpBannerDismissedStored] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem("cvp_banner_dismissed") === "true"
   );
@@ -3771,6 +3788,10 @@ function ResumeBuilder({
                 stickyTop={56}
               />
 
+              {isCvDataEmptyForTemplateApply(resume) ? (
+                <BuilderCvImport onImported={handleCvImported} />
+              ) : null}
+
               {/* Personal info card — always visible */}
               <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                 <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
@@ -4255,6 +4276,9 @@ function ResumeBuilder({
                   onOpenSection={setOpenSection}
                   stickyTop={0}
                 />
+                {isCvDataEmptyForTemplateApply(resume) ? (
+                  <BuilderCvImport onImported={handleCvImported} />
+                ) : null}
                 <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
                     <input className="cvp-input" placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
@@ -5748,6 +5772,56 @@ function ResumeBuilder({
                 }}
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cvImportPending && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 220,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setCvImportPending(null)}
+        >
+          <div
+            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 380, width: "100%" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>Replace your draft?</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#A0A0A0", lineHeight: 1.5 }}>
+              Importing <strong style={{ color: "#FFF" }}>{cvImportPending.filename}</strong> will replace what's currently in your builder. This can't be undone.
+            </p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+                onClick={() => setCvImportPending(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                style={CB_UI.btn}
+                onClick={() => {
+                  const pending = cvImportPending;
+                  setCvImportPending(null);
+                  if (pending?.cvData) {
+                    setResumeAsLoad(normalizeResumeForBuilder(pending.cvData));
+                  }
+                }}
+              >
+                Replace
               </button>
             </div>
           </div>
