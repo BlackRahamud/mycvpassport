@@ -84,6 +84,11 @@ const REQUIRED_INTAKE_KEYS = [
 ];
 
 const TRANSFORM_MODEL = process.env.TRANSFORM_MODEL || 'claude-sonnet-4-6';
+// Import-only mode (mode=import-only on upload + parse) uses a cheaper,
+// faster model with a Sonnet fallback on transient failures. Parse is
+// pure structured extraction — Haiku is sufficient for the happy path.
+const IMPORT_PARSE_MODEL_PRIMARY = process.env.IMPORT_PARSE_MODEL_PRIMARY || 'claude-haiku-4-5';
+const IMPORT_PARSE_MODEL_FALLBACK = process.env.IMPORT_PARSE_MODEL_FALLBACK || 'claude-sonnet-4-5';
 // Bumped from 3500 to 6000 when run started emitting { cv, analysis } in
 // one response. Worst-case payload (long CV rewrite + 10 suggestions +
 // scorecard + strengths) lands around 4-5k tokens; 6000 gives margin so
@@ -167,9 +172,20 @@ async function handleUpload(req, res, body) {
   }
   const text = rawText.length > MAX_TEXT_CHARS ? rawText.slice(0, MAX_TEXT_CHARS) : rawText;
 
-  const intakeResult = validateIntake(body.intake);
-  if (!intakeResult.ok) {
-    return res.status(400).json({ ok: false, error: intakeResult.reason });
+  // Import-only mode: parse the user's CV into the canonical builder shape
+  // and write directly to cv_data. Skips payment, skips regional tailoring,
+  // skips the run stage. Intake is synthetic — never goes to run.
+  const importMode = body.mode === 'import-only';
+
+  let intakeForRow;
+  if (importMode) {
+    intakeForRow = { import_mode: true };
+  } else {
+    const intakeResult = validateIntake(body.intake);
+    if (!intakeResult.ok) {
+      return res.status(400).json({ ok: false, error: intakeResult.reason });
+    }
+    intakeForRow = intakeResult.intake;
   }
 
   const sourceKind = typeof body.source_kind === 'string' && VALID_SOURCE_KIND.has(body.source_kind)
@@ -186,14 +202,16 @@ async function handleUpload(req, res, body) {
     return res.status(500).json({ ok: false, error: 'Could not load profile' });
   }
   const userPlan = classifyUserPlan(profile);
-  const skipPayment = userPlan === 'pro' || userPlan === 'express';
+  // Import mode bypasses payment unconditionally — Haiku is cheap, the
+  // paywall on transform/run still gates the regional rewrite product.
+  const skipPayment = importMode || userPlan === 'pro' || userPlan === 'express';
 
   const nowIso = new Date().toISOString();
   const insertRow = {
     user_id: user.id,
     status: skipPayment ? 'paid' : 'created',
     user_plan: userPlan,
-    intake: intakeResult.intake,
+    intake: intakeForRow,
     source_kind: sourceKind,
     source_chars: sourceChars,
     source_sha256: sha256(text),
@@ -225,7 +243,7 @@ async function handleUpload(req, res, body) {
     status: session.status,
     user_plan: session.user_plan,
     amount_fils: session.amount_fils,
-    next: skipPayment ? 'run' : 'pay',
+    next: importMode ? 'parse' : (skipPayment ? 'run' : 'pay'),
   });
 }
 
@@ -607,7 +625,7 @@ async function handlePay(req, res, body) {
 // EMPTY_EXP / EMPTY_EDU. Inlined here so api/ stays self-contained.
 // If cvShared.js changes, update these too.
 const EMPTY_RESUME = {
-  name: '', email: '', phone: '', location: 'Dubai, UAE',
+  name: '', email: '', phone: '', linkedin: '', location: 'Dubai, UAE',
   title: '', summary: '',
   nationality: '', visaStatus: '', dob: '', gender: '', maritalStatus: '',
   experience: [],
@@ -1225,7 +1243,7 @@ ${text}
 >>>
 
 Extract into the canonical CVPassport resume shape:
-{ name, email, phone, location, title, summary,
+{ name, email, phone, linkedin, location, title, summary,
   nationality, visaStatus, dob, gender, maritalStatus,
   experience: [...], education: [...],
   skills, languages, certifications: [...],
@@ -1248,12 +1266,13 @@ Omit entries with no source value. customFields = [] if no regional data present
 
 Rules:
 - points = newline-separated bullet sentences as written, no leading bullets or dashes.
+- linkedin = full profile URL only (e.g. "https://linkedin.com/in/jane-doe"). Omit short handles or partial URLs.
 - Missing scalar fields = null. Empty arrays = [].
 - Preserve dates verbatim (do not normalize formats).
 - Output ONE JSON object only, no markdown, no commentary.`;
 }
 
-async function callClaudeParse({ text }) {
+async function callClaudeParse({ text, model = TRANSFORM_MODEL }) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -1262,7 +1281,7 @@ async function callClaudeParse({ text }) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: TRANSFORM_MODEL,
+      model,
       max_tokens: TRANSFORM_MAX_TOKENS,
       temperature: 0,
       system: PARSE_SYSTEM_PROMPT,
@@ -1273,6 +1292,7 @@ async function callClaudeParse({ text }) {
     const t = await r.text().catch(() => '');
     const err = new Error(`Anthropic ${r.status}: ${t.slice(0, 300)}`);
     err.code = 'claude_http_' + r.status;
+    err.status = r.status;
     throw err;
   }
   const data = await r.json();
@@ -1288,11 +1308,37 @@ async function callClaudeParse({ text }) {
   }
   return {
     parsed,
+    model,
     usage: {
       tokens_in: data?.usage?.input_tokens ?? null,
       tokens_out: data?.usage?.output_tokens ?? null,
     },
   };
+}
+
+// Haiku-primary, Sonnet-fallback cascade for import-only parsing. Falls
+// back on HTTP 5xx (incl. 529 overload) or JSON parse failure. Client-side
+// (4xx) errors do NOT trigger fallback - those are user-input issues that
+// won't fix themselves with a different model.
+async function callClaudeParseWithCascade({ text }) {
+  const shouldFallback = (err) => {
+    if (!err) return false;
+    if (err.code === 'parse_json_failed') return true;
+    if (typeof err.status === 'number' && err.status >= 500) return true;
+    return false;
+  };
+  try {
+    return await callClaudeParse({ text, model: IMPORT_PARSE_MODEL_PRIMARY });
+  } catch (primaryErr) {
+    if (!shouldFallback(primaryErr)) throw primaryErr;
+    console.warn('[transform/parse] primary model failed, falling back', JSON.stringify({
+      primary_model: IMPORT_PARSE_MODEL_PRIMARY,
+      fallback_model: IMPORT_PARSE_MODEL_FALLBACK,
+      code: primaryErr.code,
+      status: primaryErr.status ?? null,
+    }));
+    return callClaudeParse({ text, model: IMPORT_PARSE_MODEL_FALLBACK });
+  }
 }
 
 async function handleParse(req, res, body) {
@@ -1310,7 +1356,7 @@ async function handleParse(req, res, body) {
 
   const { data: session, error: loadErr } = await db
     .from('transform_sessions')
-    .select('id, user_id, status, raw_extracted_text, parsed_cv')
+    .select('id, user_id, status, intake, raw_extracted_text, parsed_cv, cv_data')
     .eq('id', sessionId).eq('user_id', user.id).maybeSingle();
   if (loadErr) {
     console.error('[transform/parse] session load failed:', JSON.stringify(loadErr));
@@ -1320,8 +1366,22 @@ async function handleParse(req, res, body) {
     return res.status(404).json({ ok: false, error: 'Session not found' });
   }
 
+  const importMode = session.intake?.import_mode === true;
+
   // Idempotency: parse already complete (or further along the pipeline).
-  if ((session.status === 'parsed' || session.status === 'transforming' || session.status === 'transformed')
+  // Import mode short-circuits to status='transformed' on its first parse,
+  // so the relevant idempotency signal is cv_data (not parsed_cv).
+  if (importMode) {
+    if (session.status === 'transformed' && session.cv_data) {
+      return res.status(200).json({
+        ok: true,
+        session_id: session.id,
+        status: 'transformed',
+        cv_data: session.cv_data,
+        next: 'done',
+      });
+    }
+  } else if ((session.status === 'parsed' || session.status === 'transforming' || session.status === 'transformed')
       && session.parsed_cv) {
     return res.status(200).json({
       ok: true,
@@ -1355,16 +1415,20 @@ async function handleParse(req, res, body) {
   console.log('[transform/parse] starting parse', JSON.stringify({
     session_id: sessionId,
     user_id: user.id,
-    model: TRANSFORM_MODEL,
+    mode: importMode ? 'import-only' : 'transform',
     text_chars: session.raw_extracted_text.length,
   }));
 
   let parsedCv;
   let usage;
+  let modelUsed;
   try {
-    const result = await callClaudeParse({ text: session.raw_extracted_text });
+    const result = importMode
+      ? await callClaudeParseWithCascade({ text: session.raw_extracted_text })
+      : await callClaudeParse({ text: session.raw_extracted_text });
     parsedCv = result.parsed;
     usage = result.usage;
+    modelUsed = result.model;
   } catch (e) {
     const code = e?.code || 'parse_failed';
     const msg = String(e?.message || e).slice(0, 1000);
@@ -1376,6 +1440,50 @@ async function handleParse(req, res, body) {
       ok: false,
       error: 'AI parse unavailable',
       code,
+    });
+  }
+
+  // Import mode: normalize to canonical builder shape and write straight
+  // to cv_data with status='transformed'. No regional rewrite, no analysis,
+  // no run stage. The client navigates to /builder with cv_data and the
+  // banner renders immediately.
+  if (importMode) {
+    const cvData = normalizeCvData(parsedCv, null);
+    const updateRow = {
+      status: 'transformed',
+      cv_data: cvData,
+      parsed_cv: parsedCv,
+      model: modelUsed,
+      tokens_in: usage.tokens_in,
+      tokens_out: usage.tokens_out,
+      error_code: null,
+      error_message: null,
+    };
+    if (!TRANSFORM_RETAIN_RAW) {
+      updateRow.raw_extracted_text = null;
+    }
+    const { error: saveErr } = await db
+      .from('transform_sessions')
+      .update(updateRow)
+      .eq('id', sessionId).eq('user_id', user.id);
+    if (saveErr) {
+      console.error('[transform/parse] import save failed:', JSON.stringify(saveErr));
+      return res.status(500).json({ ok: false, error: 'Could not persist imported CV' });
+    }
+
+    console.log('[transform/parse] import complete', JSON.stringify({
+      session_id: sessionId,
+      model: modelUsed,
+      tokens_in: usage.tokens_in,
+      tokens_out: usage.tokens_out,
+    }));
+
+    return res.status(200).json({
+      ok: true,
+      session_id: sessionId,
+      status: 'transformed',
+      cv_data: cvData,
+      next: 'done',
     });
   }
 
