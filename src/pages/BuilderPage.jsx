@@ -3756,12 +3756,10 @@ function ResumeBuilder({
             <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 0 }}>
               {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
-            <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
-              {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
-            </button>
-            {/* Top-bar Download CV button removed — sticky BuilderActionBar
-                at viewport bottom now hosts Export PDF (calls the same
-                handleDownload, same synthesis overlay, same PDF flow). */}
+            {/* Top-bar Save + Download CV buttons removed — the sticky
+                BuilderActionBar at viewport bottom now owns both. Same
+                handleSave / handleDownload, same Supabase write path,
+                same SynthesisOverlay + PDF flow. */}
           </div>
         </div>
         {cvJourneyChrome ? (
@@ -4894,60 +4892,8 @@ function ResumeBuilder({
               </div>
             )}
             {builderTab === "coverletter" && guideCoverLetterPreview}
-            <div className="cvp-builder-mobile-download-row" style={{ padding: `12px 10px ${fabMode === 'guide' ? '220px' : '88px'}`, marginTop: "auto", display: (builderTab === "templates" || builderTab === "ats" || builderTab === "jobmatch") ? "none" : undefined }}>
-              <div style={{
-                padding: '1.5px',
-                borderRadius: 14,
-                background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 80%, #1C1C1C 100%)',
-                backgroundSize: '300% 100%',
-                animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2.5s linear infinite',
-                margin: '0 10px',
-                boxSizing: 'border-box',
-                width: 'calc(100% - 20px)',
-              }}>
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  disabled={downloadState.status !== 'idle'}
-                  style={{
-                    width: '100%',
-                    height: 54,
-                    borderRadius: 12,
-                    border: 'none',
-                    background: downloadState.status === 'generating' ? '#1C1C1C' : '#141414',
-                    color: '#fff',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    letterSpacing: '-0.01em',
-                    cursor: downloadState.status !== 'idle' ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    fontFamily: 'inherit',
-                    transition: 'transform 0.15s ease, background 0.3s ease',
-                  }}
-                  onMouseEnter={e => { if (downloadState.status === 'idle') e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
-                >
-                  {downloadState.status === 'generating' ? (
-                    <>
-                      <BuilderCvPdfSpinner20 />
-                      <span>Generating your CV...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      <span>Download CV</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+            {/* Mobile bottom download row removed — sticky
+                BuilderActionBar handles Export PDF on mobile too. */}
             {showSavedBridge ? (
               <div
                 role="status"
