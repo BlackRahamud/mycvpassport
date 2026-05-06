@@ -722,6 +722,11 @@ function OptionalBuilderAccordionSections({
   orderedSectionIds,
   onSectionReorder,
   activeGuideSection = null,
+  dragState,
+  setDragState,
+  onArmDrag,
+  isDragArmed,
+  onSectionDrop,
 }) {
   return OPTIONAL_BUILDER_SECTIONS.filter(filter).map((opt) => (
     <AccordionSection
@@ -736,6 +741,11 @@ function OptionalBuilderAccordionSections({
       orderedSectionIds={orderedSectionIds}
       onSectionReorder={onSectionReorder ? (dir) => onSectionReorder(opt.id, dir) : undefined}
       activeGuideSection={activeGuideSection}
+      dragState={dragState}
+      setDragState={setDragState}
+      onArmDrag={onArmDrag}
+      isDragArmed={isDragArmed}
+      onSectionDrop={onSectionDrop}
     >
       {opt.id === "certifications" ? (
         <div data-cvp-highlight="certifications" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
@@ -1585,6 +1595,24 @@ function applyBuilderSectionReorder(resume, sectionId, direction) {
   if (j < 0 || j >= ordered.length) return resume;
   const next = [...ordered];
   [next[i], next[j]] = [next[j], next[i]];
+  return { ...resume, builderSectionOrder: next };
+}
+
+// Drag-and-drop reorder: insert fromId before|after toId. Used by Tier 3
+// HTML5 DnD; runs once per drop (not during dragover) so a single drop
+// produces one history entry. position ∈ {"before","after"}.
+function applyBuilderSectionReorderByDrop(resume, fromId, toId, position) {
+  if (!fromId || !toId || fromId === toId) return resume;
+  const ordered = resolveOrderedBuilderSectionIds(resume);
+  const fromIdx = ordered.indexOf(fromId);
+  const toIdx = ordered.indexOf(toId);
+  if (fromIdx < 0 || toIdx < 0) return resume;
+  const next = [...ordered];
+  next.splice(fromIdx, 1);
+  // After splice the target index may have shifted — recompute by id.
+  const remainingTo = next.indexOf(toId);
+  const insertAt = position === "before" ? remainingTo : remainingTo + 1;
+  next.splice(insertAt, 0, fromId);
   return { ...resume, builderSectionOrder: next };
 }
 
@@ -2803,6 +2831,10 @@ function ResumeBuilder({
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   }, []);
+  // pdfTargetPages drives the PDF generation pipeline; setter is unused
+  // since the 1pg/2pg toggle was removed. Keeping the state in case a
+  // settings surface re-introduces user control.
+  // eslint-disable-next-line no-unused-vars
   const [pdfTargetPages, setPdfTargetPages] = useState(2);
   const [savedAtMs, setSavedAtMs] = useState(null);
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
@@ -3464,6 +3496,35 @@ function ResumeBuilder({
     setResume((r) => applyBuilderSectionReorder(r, sectionId, direction));
   }, [setResume]);
 
+  // Tier 3 — section drag-and-drop. Single shared dragState drives the
+  // is-dragging opacity and the drop indicator line on each card.
+  // dragArmedRef gates draggable={true}: the card only initiates drag
+  // when mousedown originated on the GripVertical handle, so clicks on
+  // the title / chevrons / pencil never accidentally drag.
+  const [dragState, setDragState] = useState({ draggingId: null, overId: null, overPosition: null });
+  const dragArmedRef = useRef(false);
+  useEffect(() => {
+    const clear = () => { dragArmedRef.current = false; };
+    window.addEventListener("mouseup", clear);
+    window.addEventListener("dragend", clear);
+    return () => {
+      window.removeEventListener("mouseup", clear);
+      window.removeEventListener("dragend", clear);
+    };
+  }, []);
+  const armSectionDrag = useCallback(() => { dragArmedRef.current = true; }, []);
+  const isSectionDragArmed = useCallback(() => dragArmedRef.current, []);
+  const reorderBuilderSectionByDrop = useCallback((fromId, toId, position) => {
+    setResume((r) => applyBuilderSectionReorderByDrop(r, fromId, toId, position));
+  }, [setResume]);
+  const dndProps = useMemo(() => ({
+    dragState,
+    setDragState,
+    onArmDrag: armSectionDrag,
+    isDragArmed: isSectionDragArmed,
+    onSectionDrop: reorderBuilderSectionByDrop,
+  }), [dragState, armSectionDrag, isSectionDragArmed, reorderBuilderSectionByDrop]);
+
   const score = builderAtsScore(resume);
 
   const templateFabRecommendNames = useMemo(() => {
@@ -4019,44 +4080,9 @@ function ResumeBuilder({
                   ) : null}
                 </div>
                 <BuilderCvImport variant="header-button" onImported={handleCvImported} />
-                {fabMode !== "guide" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
-                    <button
-                      type="button"
-                      onClick={() => setPdfTargetPages(1)}
-                      style={{
-                        border: "none",
-                        background: pdfTargetPages === 1 ? "#3B82F6" : "transparent",
-                        color: pdfTargetPages === 1 ? "#FFFFFF" : "#A0A0A0",
-                        fontSize: 11,
-                        fontWeight: pdfTargetPages === 1 ? 600 : 500,
-                        padding: "5px 10px",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      1 pg
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPdfTargetPages(2)}
-                      style={{
-                        border: "none",
-                        background: pdfTargetPages === 2 ? "#3B82F6" : "transparent",
-                        color: pdfTargetPages === 2 ? "#FFFFFF" : "#A0A0A0",
-                        fontSize: 11,
-                        fontWeight: pdfTargetPages === 2 ? 600 : 500,
-                        padding: "5px 10px",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      2 pg
-                    </button>
-                  </div>
-                </div>
-                )}
+                {/* 1pg / 2pg toggle removed — page count stays at the
+                    pdfTargetPages default; expose later via Settings if
+                    needed. State preserved for the PDF generation path. */}
               </div>
 
               <CompletionStrip
@@ -4191,6 +4217,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <ProfessionalSummaryField
@@ -4225,6 +4252,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
@@ -4267,6 +4295,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
@@ -4309,6 +4338,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               />
 
               <AccordionSection
@@ -4321,6 +4351,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <SkillsEditorSection
                   resume={resume}
@@ -4390,6 +4421,7 @@ function ResumeBuilder({
                   orderedSectionIds={orderedBuilderSectionIdList}
                   onSectionReorder={reorderBuilderSection}
                   activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                  {...dndProps}
                 >
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                     <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
@@ -4407,6 +4439,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -4435,6 +4468,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               />
               </div>
 
@@ -4545,44 +4579,7 @@ function ResumeBuilder({
                     ) : null}
                   </div>
                   <BuilderCvImport variant="header-button" onImported={handleCvImported} />
-                  {fabMode !== "guide" && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
-                      <button
-                        type="button"
-                        onClick={() => setPdfTargetPages(1)}
-                        style={{
-                          border: "none",
-                          background: pdfTargetPages === 1 ? "#3B82F6" : "transparent",
-                          color: pdfTargetPages === 1 ? "#FFFFFF" : "#A0A0A0",
-                          fontSize: 11,
-                          fontWeight: pdfTargetPages === 1 ? 600 : 500,
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        1 pg
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPdfTargetPages(2)}
-                        style={{
-                          border: "none",
-                          background: pdfTargetPages === 2 ? "#3B82F6" : "transparent",
-                          color: pdfTargetPages === 2 ? "#FFFFFF" : "#A0A0A0",
-                          fontSize: 11,
-                          fontWeight: pdfTargetPages === 2 ? 600 : 500,
-                          padding: "5px 10px",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        2 pg
-                      </button>
-                    </div>
-                  </div>
-                  )}
+                  {/* 1pg / 2pg toggle removed — see desktop layout note above. */}
                 </div>
                 <CompletionStrip
                   progress={cvCompletionProgress}
@@ -4708,6 +4705,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="summary" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                   <ProfessionalSummaryField
@@ -4743,6 +4741,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="experience" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.experience.length === 0 && (
@@ -4786,6 +4785,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="education" style={{ display: "grid", gap: 10, borderRadius: 8, padding: 2, margin: -2 }}>
                   {resume.education.length === 0 && (
@@ -4829,6 +4829,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               />
 
               <AccordionSection
@@ -4842,6 +4843,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <SkillsEditorSection
                   resume={resume}
@@ -4912,6 +4914,7 @@ function ResumeBuilder({
                   orderedSectionIds={orderedBuilderSectionIdList}
                   onSectionReorder={reorderBuilderSection}
                   activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                  {...dndProps}
                 >
                   <div style={{ borderRadius: 8, padding: 2, margin: -2 }}>
                     <TechnicalSkillsEditor resume={resume} setResume={setResume} jobTitle={resume.title} />
@@ -4930,6 +4933,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               >
                 <div data-cvp-highlight="languages" style={{ display: "grid", gap: 12, borderRadius: 8, padding: 2, margin: -2 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -4959,6 +4963,7 @@ function ResumeBuilder({
                 orderedSectionIds={orderedBuilderSectionIdList}
                 onSectionReorder={reorderBuilderSection}
                 activeGuideSection={fabMode === "guide" ? (GUIDE_STEPS[guideStep]?.sectionId ?? null) : null}
+                {...dndProps}
               />
                 </div>
                 {builderTab === "content" && (
@@ -6387,6 +6392,11 @@ function AccordionSection({
   orderedSectionIds,
   onSectionReorder,
   activeGuideSection = null,
+  dragState = null,
+  setDragState = null,
+  onArmDrag = null,
+  isDragArmed = null,
+  onSectionDrop = null,
 }) {
   const ease = "cubic-bezier(0.4,0,0.2,1)";
   const idx = orderedSectionIds ? orderedSectionIds.indexOf(id) : -1;
@@ -6403,6 +6413,72 @@ function AccordionSection({
   const reorderDown = (e) => {
     e.stopPropagation();
     if (canMoveDown) onSectionReorder("down");
+  };
+
+  // Tier 3 — DnD wiring. Active only when all DnD props are present
+  // (parent passes them on desktop; mobileRow renders without DnD).
+  // dragEnterCounterRef avoids the dragenter/dragleave child-element
+  // flicker by counting nested enter/leave pairs.
+  const dndEnabled = Boolean(setDragState && onSectionDrop && isDragArmed && onArmDrag);
+  const dragEnterCounterRef = useRef(0);
+  const isDraggingThis = dndEnabled && dragState?.draggingId === id;
+  const isOverThis = dndEnabled && dragState?.overId === id && dragState?.draggingId !== id;
+  const dropPos = isOverThis ? dragState?.overPosition : null;
+
+  const handleDragStart = (e) => {
+    if (!dndEnabled) return;
+    if (!isDragArmed()) {
+      e.preventDefault();
+      return;
+    }
+    try {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", id);
+    } catch {
+      /* some browsers throw on cross-origin iframes — ignore */
+    }
+    setDragState({ draggingId: id, overId: null, overPosition: null });
+  };
+  const handleDragEnd = () => {
+    if (!dndEnabled) return;
+    setDragState({ draggingId: null, overId: null, overPosition: null });
+    dragEnterCounterRef.current = 0;
+  };
+  const handleDragEnter = (e) => {
+    if (!dndEnabled || !dragState?.draggingId || dragState.draggingId === id) return;
+    e.preventDefault();
+    dragEnterCounterRef.current += 1;
+    if (dragState.overId !== id) {
+      setDragState((s) => ({ ...s, overId: id }));
+    }
+  };
+  const handleDragOver = (e) => {
+    if (!dndEnabled || !dragState?.draggingId || dragState.draggingId === id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    const pos = e.clientY < mid ? "before" : "after";
+    if (dragState.overId !== id || dragState.overPosition !== pos) {
+      setDragState((s) => ({ ...s, overId: id, overPosition: pos }));
+    }
+  };
+  const handleDragLeave = () => {
+    if (!dndEnabled) return;
+    dragEnterCounterRef.current -= 1;
+    if (dragEnterCounterRef.current <= 0) {
+      dragEnterCounterRef.current = 0;
+      setDragState((s) => (s.overId === id ? { ...s, overId: null, overPosition: null } : s));
+    }
+  };
+  const handleDrop = (e) => {
+    if (!dndEnabled) return;
+    e.preventDefault();
+    const fromId = dragState?.draggingId;
+    const pos = dragState?.overPosition || "after";
+    setDragState({ draggingId: null, overId: null, overPosition: null });
+    dragEnterCounterRef.current = 0;
+    if (fromId && fromId !== id) onSectionDrop(fromId, id, pos);
   };
 
   const guideSectionDomId = ["summary", "experience", "education", "skills", "languages"].includes(id) ? `section-${id}` : undefined;
@@ -6578,8 +6654,23 @@ function AccordionSection({
       </div>
     );
   }
+  const rowClass = `cvp-section-row${isOpen ? " is-open" : ""}${isDraggingThis ? " is-dragging" : ""}`;
+  const dropAttr = dropPos ? { "data-drop-pos": dropPos } : {};
   return (
-    <div id={guideSectionDomId} data-cvp-accordion={id} className={`cvp-section-row${isOpen ? " is-open" : ""}`} style={{ order: flexOrder }}>
+    <div
+      id={guideSectionDomId}
+      data-cvp-accordion={id}
+      className={rowClass}
+      style={{ order: flexOrder }}
+      draggable={dndEnabled}
+      onDragStart={dndEnabled ? handleDragStart : undefined}
+      onDragEnd={dndEnabled ? handleDragEnd : undefined}
+      onDragEnter={dndEnabled ? handleDragEnter : undefined}
+      onDragOver={dndEnabled ? handleDragOver : undefined}
+      onDragLeave={dndEnabled ? handleDragLeave : undefined}
+      onDrop={dndEnabled ? handleDrop : undefined}
+      {...dropAttr}
+    >
       <div
         className="cvp-section-row-header"
         style={{
@@ -6594,6 +6685,17 @@ function AccordionSection({
           boxSizing: "border-box",
         }}
       >
+        {dndEnabled ? (
+          <button
+            type="button"
+            className="cvp-builder-section-grip"
+            aria-label="Drag to reorder section"
+            title="Drag to reorder"
+            onMouseDown={() => onArmDrag()}
+          >
+            <GripVertical size={14} strokeWidth={1.8} aria-hidden />
+          </button>
+        ) : null}
         <div style={ACCORDION_ICON_BOX}>
           <AccordionSectionLucideIcon id={id} icon={icon} />
         </div>
