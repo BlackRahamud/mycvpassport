@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { Component, useRef } from "react";
 import { PreviewModernEmerald } from "./Template1ModernEmerald";
 import { PreviewTwoCol } from "./Template2DubaiModern";
 import { PreviewSidebar } from "./Template3ArabiaPro";
@@ -47,6 +47,68 @@ export function ResumePreview({ cv, template, mobileMode = false }) {
 /** A4 page at 96dpi — matches dynamic scale math (containerWidth / 794) */
 export const A4_PREVIEW_WIDTH_PX = 794;
 export const A4_PREVIEW_HEIGHT_PX = 1123;
+
+// Error boundary for in-app preview surfaces only. PDF generation paths
+// must NOT use this — a silent fallback would produce a "Couldn't render"
+// PDF instead of failing loudly. resetKey lets the caller re-arm the
+// boundary when context changes (switching template after a crash).
+function ResumePreviewFallback() {
+  return (
+    <div
+      role="alert"
+      style={{
+        width: "100%",
+        minHeight: 200,
+        background: "#FFFFFF",
+        padding: "40px 24px",
+        display: "grid",
+        placeItems: "center",
+        textAlign: "center",
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ maxWidth: 360 }}>
+        <div style={{ fontSize: 28, marginBottom: 10, color: "#DC2626", lineHeight: 1 }} aria-hidden>
+          ⚠
+        </div>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#111827" }}>
+          Couldn&apos;t render this preview
+        </p>
+        <p style={{ margin: "8px 0 0", fontSize: 13, color: "#6B7280", lineHeight: 1.5 }}>
+          The CV data may be malformed. Try switching to a different template, or edit your fields manually.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export class ResumePreviewBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    // eslint-disable-next-line no-console
+    console.error(
+      "[ResumePreview] render crashed:",
+      error && error.message ? error.message : error,
+      info && info.componentStack ? info.componentStack.slice(0, 600) : null,
+    );
+  }
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false });
+    }
+  }
+  render() {
+    if (this.state.hasError) return <ResumePreviewFallback />;
+    return this.props.children;
+  }
+}
 
 export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, previewCardRef, onSectionHold, pendingSection }) {
   const longPressTimer = useRef(null);
@@ -108,7 +170,9 @@ export function BuilderA4PreviewScaled({ cv, template, scale, fitRef, padded, pr
         }}
       >
         <div className="cvp-builder-a4-fit" ref={previewCardRef}>
-          <ResumePreview cv={cv} template={template} />
+          <ResumePreviewBoundary resetKey={template?.id}>
+            <ResumePreview cv={cv} template={template} />
+          </ResumePreviewBoundary>
         </div>
       </div>
     </div>

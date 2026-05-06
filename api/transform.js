@@ -1294,6 +1294,8 @@ Omit entries with no source value. customFields = [] if no regional data present
 Rules:
 - points = newline-separated bullet sentences as written, no leading bullets or dashes.
 - linkedin = full profile URL only (e.g. "https://linkedin.com/in/jane-doe"). Omit short handles or partial URLs.
+- skills = comma-separated string e.g. "JavaScript, Python, SQL". NEVER an array. NEVER an object. If no skills are present, return "" (empty string), not null.
+- languages = comma-separated string e.g. "English, Hindi, Arabic". NEVER an array. NEVER an object. If no languages are present, return "" (empty string), not null.
 - Missing scalar fields = null. Empty arrays = [].
 - Preserve dates verbatim (do not normalize formats).
 - Output ONE JSON object only, no markdown, no commentary.`;
