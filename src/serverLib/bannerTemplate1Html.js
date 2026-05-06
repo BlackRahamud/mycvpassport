@@ -52,7 +52,7 @@ function pdfModernEmerald(cv) {
           <div class="name">${cv.name || "Your Name"}</div>
           <div class="title">${cv.title || "Your Professional Title"}</div>
           <div class="contact">
-            ${[cv.email, cv.phone, cv.location].filter(Boolean).join(" &nbsp; • &nbsp; ")}
+            ${[cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean).join(" &nbsp; • &nbsp; ")}
           </div>
         </header>
 

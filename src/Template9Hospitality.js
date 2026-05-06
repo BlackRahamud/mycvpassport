@@ -90,7 +90,9 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
           {cv.email && <span>{cv.email}</span>}
           {cv.email && cv.phone && <span>|</span>}
           {cv.phone && <span>{cv.phone}</span>}
-          {(cv.phone || cv.email) && cv.location && <span>|</span>}
+          {(cv.phone || cv.email) && cv.linkedin && <span>|</span>}
+          {cv.linkedin && <span>{cv.linkedin}</span>}
+          {(cv.phone || cv.email || cv.linkedin) && cv.location && <span>|</span>}
           {cv.location && <span>{cv.location}</span>}
         </div>
       </header>

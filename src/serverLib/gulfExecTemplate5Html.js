@@ -64,6 +64,7 @@ function pdfEditorialDark(cv) {
           <div class="contact-row">
             ${cv.email ? `<span>${cv.email}</span>` : ""}
             ${cv.phone ? `<span>${cv.phone}</span>` : ""}
+            ${cv.linkedin ? `<span>${cv.linkedin}</span>` : ""}
             ${cv.location ? `<span>${cv.location}</span>` : ""}
           </div>
         </header>

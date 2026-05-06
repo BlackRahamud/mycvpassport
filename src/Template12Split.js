@@ -105,6 +105,7 @@ export function Template12Split({ cv, mobileMode = false }) {
         >
           {cv.email && <span>{cv.email}</span>}
           {cv.phone && <span>{cv.phone}</span>}
+          {cv.linkedin && <span>{cv.linkedin}</span>}
           {cv.location && <span>{cv.location}</span>}
         </div>
       </header>

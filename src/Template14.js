@@ -83,6 +83,7 @@ export function Template14({ cv, mobileMode = false }) {
         >
           <span>{cv.phone}</span>
           <span>{cv.email}</span>
+          {cv.linkedin && <span>{cv.linkedin}</span>}
           <span>{cv.location}</span>
         </div>
       </header>

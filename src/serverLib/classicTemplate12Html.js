@@ -29,7 +29,7 @@ function buildClassicTemplate12Html(rawCv) {
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
 
-  const contactParts = [cv.email, cv.phone, cv.location, cv.nationality].filter(Boolean).map((x) => escapeHtml(stripEmojiPictographs(x)));
+  const contactParts = [cv.email, cv.phone, cv.linkedin, cv.location, cv.nationality].filter(Boolean).map((x) => escapeHtml(stripEmojiPictographs(x)));
   const row2 = [];
   if (cv.visaStatus) row2.push(escapeHtml(stripEmojiPictographs(cv.visaStatus)));
   if (cv.dob) row2.push(`DOB: ${escapeHtml(stripEmojiPictographs(cv.dob))}`);

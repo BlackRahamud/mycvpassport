@@ -59,6 +59,7 @@ import {
   buildEducationYearLine,
   builderAtsScore,
   isCvDataEmptyForTemplateApply,
+  isGulfLocation,
 } from "../cvShared";
 import BuilderCvImport from "../components/builder/BuilderCvImport";
 import { getRoleSuggestions } from "../utils/detectRole";
@@ -420,6 +421,64 @@ function CvImportBanner({ filename, count, total }) {
           {count} of {total} fields populated. Edit anything to dismiss.
         </p>
       </div>
+    </div>
+  );
+}
+
+function PersonalDetailsNudge({ onDismiss }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 14px",
+        borderRadius: 12,
+        background: "rgba(217, 119, 6, 0.08)",
+        border: "1px solid rgba(217, 119, 6, 0.35)",
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 22,
+          height: 22,
+          flexShrink: 0,
+          borderRadius: 999,
+          background: "rgba(217, 119, 6, 0.16)",
+          color: "#D97706",
+          fontSize: 12,
+          fontWeight: 700,
+          lineHeight: 1,
+        }}
+      >
+        ✦
+      </span>
+      <p style={{ margin: 0, flex: 1, fontSize: 13, color: "#FFFFFF", lineHeight: 1.4 }}>
+        Gulf employers often expect these details &mdash; we&apos;ve added the Personal Details section for you.
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        style={{
+          flexShrink: 0,
+          padding: "5px 12px",
+          background: "transparent",
+          border: "1px solid rgba(217, 119, 6, 0.45)",
+          color: "#D97706",
+          borderRadius: 8,
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        Got it
+      </button>
     </div>
   );
 }
@@ -2690,6 +2749,10 @@ function ResumeBuilder({
   // Cleared on first user edit (userHasEdited flip) so the banner
   // naturally disappears the moment the user starts working.
   const [cvImportedFilename, setCvImportedFilename] = useState(null);
+  // Personal Details auto-add nudge: shown once when we surface the
+  // section for a Gulf-bound user. Persisted via localStorage so we
+  // don't auto-add again if the user removes the section.
+  const [personalDetailsNudgeOpen, setPersonalDetailsNudgeOpen] = useState(false);
   const applyImportedCv = useCallback(
     (cvData, filename) => {
       setResumeAsLoad(normalizeResumeForBuilder(cvData));
@@ -2712,6 +2775,41 @@ function ResumeBuilder({
     },
     [resume, applyImportedCv],
   );
+  // Auto-surface Personal Details for Gulf-bound users on first builder
+  // load. Uses setResumeRaw so the auto-add isn't treated as a user edit
+  // (no dirty flag flip; no Discard target shift). Persists a localStorage
+  // flag so we never re-add if the user later removes the section.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let alreadyDone = false;
+    try {
+      alreadyDone = window.localStorage.getItem("cvp_pd_auto_added") === "true";
+    } catch {
+      /* private mode — fail open: still try once per session */
+    }
+    if (alreadyDone) return;
+    if ((resume.builderExtraSectionIds || []).includes("personalDetails")) return;
+    if (!isGulfLocation(resume.location)) return;
+    setResumeRaw((r) => ({
+      ...r,
+      builderExtraSectionIds: [
+        ...(r.builderExtraSectionIds || []),
+        "personalDetails",
+      ],
+    }));
+    setPersonalDetailsNudgeOpen(true);
+    try {
+      window.localStorage.setItem("cvp_pd_auto_added", "true");
+    } catch {
+      /* ignore */
+    }
+    // Run-once on mount: we read resume.location / builderExtraSectionIds
+    // intentionally as initial values, not subscribed deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const dismissPersonalDetailsNudge = useCallback(() => {
+    setPersonalDetailsNudgeOpen(false);
+  }, []);
   const [cvpBannerDismissedStored, setCvpBannerDismissedStored] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem("cvp_banner_dismissed") === "true"
   );
@@ -3886,6 +3984,10 @@ function ResumeBuilder({
                 <BuilderCvImport onImported={handleCvImported} />
               ) : null}
 
+              {personalDetailsNudgeOpen ? (
+                <PersonalDetailsNudge onDismiss={dismissPersonalDetailsNudge} />
+              ) : null}
+
               {/* Personal info card — always visible */}
               <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 18, padding: 16, position: "relative" }}>
                 <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
@@ -4405,6 +4507,9 @@ function ResumeBuilder({
                   />
                 ) : isCvDataEmptyForTemplateApply(resume) ? (
                   <BuilderCvImport onImported={handleCvImported} />
+                ) : null}
+                {personalDetailsNudgeOpen ? (
+                  <PersonalDetailsNudge onDismiss={dismissPersonalDetailsNudge} />
                 ) : null}
                 <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 18, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>

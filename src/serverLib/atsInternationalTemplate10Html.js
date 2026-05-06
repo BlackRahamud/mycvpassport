@@ -74,7 +74,7 @@ function technicalSkillsGroupsForTemplate(raw) {
 }
 
 function buildContactPipes(cv) {
-  return [cv.phone, cv.email, cv.location]
+  return [cv.phone, cv.email, cv.linkedin, cv.location]
     .map((x) => String(x || "").trim())
     .filter(Boolean);
 }

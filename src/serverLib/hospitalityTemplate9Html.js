@@ -17,7 +17,7 @@ function pdfMinimalistPurple(cv) {
   const skills = cv.skills ? String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean) : [];
 
-  const contactParts = [cv.email, cv.phone, cv.location].filter(Boolean);
+  const contactParts = [cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean);
 
   return `
     <html>

@@ -58,7 +58,7 @@ function trimStr(v) {
 }
 
 function buildContactRow(cv) {
-  return [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.location)].filter(Boolean);
+  return [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.linkedin), trimStr(cv.location)].filter(Boolean);
 }
 
 function buildStatusEntries(cv) {

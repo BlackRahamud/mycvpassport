@@ -95,6 +95,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
         >
           {cv.email && <span>{cv.email}</span>}
           {cv.phone && <span>{cv.phone}</span>}
+          {cv.linkedin && <span>{cv.linkedin}</span>}
           {cv.location && <span>{cv.location}</span>}
           {isEmpty && <span style={{ color: SKELETON }}>email@address.com • Phone Number • Location</span>}
         </div>

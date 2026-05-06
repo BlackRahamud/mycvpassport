@@ -175,6 +175,68 @@ function toStrField(v, joinWith = ", ") {
   return String(v);
 }
 
+// languages-specific flattener: Haiku occasionally returns objects per
+// language ({ name: "English", level: "Fluent" } or similar). toStrField
+// would render those as "[object Object]". This helper produces the
+// canonical "English (Fluent), Hindi (Native)" string regardless of
+// whether items arrived as strings, {name, level}, {language, proficiency},
+// or any common shape.
+export function flattenLanguagesField(v) {
+  if (typeof v === "string") return v;
+  if (v == null) return "";
+  if (!Array.isArray(v)) return String(v);
+  return v
+    .map((item) => {
+      if (item == null) return "";
+      if (typeof item === "string") return item.trim();
+      if (typeof item !== "object") return String(item).trim();
+      const name = String(item.name || item.language || item.lang || "").trim();
+      const level = String(
+        item.level || item.proficiency || item.fluency || item.skill_level || ""
+      ).trim();
+      if (!name) return "";
+      return level ? `${name} (${level})` : name;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
+// Gulf-location detection — matches UAE emirates, GCC capitals, AED, and
+// "GCC" itself. Used by the builder to auto-surface the Personal Details
+// section for Gulf-bound users on first builder load.
+const GULF_LOCATION_SIGNALS = [
+  "uae", "u.a.e",
+  "dubai", "abu dhabi", "sharjah", "ajman",
+  "ras al khaimah", "ras al-khaimah", "fujairah",
+  "umm al quwain", "umm al-quwain", "al ain",
+  "aed", "dirham",
+  "qatar", "doha",
+  "saudi", "ksa", "riyadh", "jeddah", "mecca", "medina", "dammam", "al khobar",
+  "kuwait",
+  "bahrain", "manama",
+  "oman", "muscat", "salalah",
+  "gcc", "gulf",
+];
+
+export function isGulfLocation(location) {
+  if (!location || typeof location !== "string") return false;
+  const lower = location.toLowerCase();
+  return GULF_LOCATION_SIGNALS.some((signal) => lower.includes(signal));
+}
+
+// True iff at least one of the eight Personal Details fields is populated.
+// Used by templates to skip rendering the section header + body when the
+// user hasn't filled any of them — same rule as how Projects / Volunteer
+// already work.
+export function hasAnyPersonalDetail(cv) {
+  if (!cv || typeof cv !== "object") return false;
+  const keys = [
+    "dob", "gender", "nationality", "maritalStatus",
+    "visaStatus", "drivingLicense", "availability", "willingToRelocate",
+  ];
+  return keys.some((k) => String(cv[k] || "").trim().length > 0);
+}
+
 const RESUME_STRING_FIELDS = [
   "name", "email", "phone", "linkedin", "location", "title", "summary",
   "nationality", "visaStatus", "dob", "gender", "maritalStatus",
@@ -214,6 +276,9 @@ export function normalizeResumeForBuilder(cv) {
     builderExtraSectionIds: Array.isArray(cv.builderExtraSectionIds) ? cv.builderExtraSectionIds : [],
   };
   for (const k of RESUME_STRING_FIELDS) merged[k] = toStrField(merged[k]);
+  // languages may arrive as [{name,level}, ...] from Haiku; toStrField
+  // would render objects as "[object Object]". Flatten properly here.
+  merged.languages = flattenLanguagesField(cv.languages);
   return merged;
 }
 

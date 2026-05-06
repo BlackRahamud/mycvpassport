@@ -72,6 +72,10 @@ function buildFinanceTemplate13Html(rawCv) {
     if (contactParts.length) contactParts.push("•");
     contactParts.push(escapeHtml(stripEmojiPictographs(cv.email)));
   }
+  if (cv.linkedin) {
+    if (contactParts.length) contactParts.push("•");
+    contactParts.push(escapeHtml(stripEmojiPictographs(cv.linkedin)));
+  }
   if (cv.location) {
     if (contactParts.length) contactParts.push("•");
     contactParts.push(escapeHtml(stripEmojiPictographs(cv.location)));

@@ -52,7 +52,7 @@ function pdfSlateMinimalist(cv) {
           <div class="header-name">${cv.name}</div>
           <div class="header-title">${cv.title}</div>
           <div class="contact-line">
-            ${cv.email} &nbsp; | &nbsp; ${cv.phone} &nbsp; | &nbsp; ${cv.location}
+            ${[cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean).join(" &nbsp; | &nbsp; ")}
           </div>
         </header>
 

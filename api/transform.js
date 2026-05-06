@@ -822,6 +822,29 @@ function toStrField(v, joinWith = ', ') {
   return String(v);
 }
 
+// languages-specific: Haiku may return [{name, level}, ...]. toStrField
+// would produce "[object Object]" for object items. Flatten to canonical
+// "English (Fluent), Hindi (Native)" string regardless of input shape.
+function flattenLanguagesField(v) {
+  if (typeof v === 'string') return v;
+  if (v == null) return '';
+  if (!Array.isArray(v)) return String(v);
+  return v
+    .map((item) => {
+      if (item == null) return '';
+      if (typeof item === 'string') return item.trim();
+      if (typeof item !== 'object') return String(item).trim();
+      const name = String(item.name || item.language || item.lang || '').trim();
+      const level = String(
+        item.level || item.proficiency || item.fluency || item.skill_level || ''
+      ).trim();
+      if (!name) return '';
+      return level ? `${name} (${level})` : name;
+    })
+    .filter(Boolean)
+    .join(', ');
+}
+
 const RESUME_STRING_FIELDS = [
   'name', 'email', 'phone', 'linkedin', 'location', 'title', 'summary',
   'nationality', 'visaStatus', 'dob', 'gender', 'maritalStatus',
@@ -852,6 +875,7 @@ function normalizeCvData(raw, intake) {
     return base;
   });
   for (const k of RESUME_STRING_FIELDS) merged[k] = toStrField(merged[k]);
+  merged.languages = flattenLanguagesField(obj.languages);
   merged.certifications = certArr
     .map((c) => {
       if (typeof c === 'string') {

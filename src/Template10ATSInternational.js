@@ -161,7 +161,7 @@ function PipeRow({ items, color, sepColor, sepBold }) {
 function Header({ cv }) {
   const name = trimStr(cv.name) || "Your Name";
   const role = trimStr(cv.title);
-  const contactItems = [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.location)].filter(Boolean);
+  const contactItems = [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.linkedin), trimStr(cv.location)].filter(Boolean);
 
   const visa = readCustomField(cv, ["visa_status"], "visaStatus");
   const notice = readCustomField(cv, ["notice_period"], null);
