@@ -351,6 +351,76 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
   );
 }
 
+const CV_IMPORT_FIELDS = [
+  (r) => Boolean(String(r.name || "").trim()),
+  (r) => Boolean(String(r.title || "").trim()),
+  (r) => Boolean(String(r.email || "").trim()),
+  (r) => Boolean(String(r.phone || "").trim()),
+  (r) => Boolean(String(r.linkedin || "").trim()),
+  (r) => Boolean(String(r.location || "").trim() && String(r.location).trim() !== "Dubai, UAE"),
+  (r) => Boolean(String(r.summary || "").trim()),
+  (r) => Boolean(String(r.skills || "").trim()),
+  (r) => Boolean(String(r.languages || "").trim() && String(r.languages).trim() !== "English, Hindi"),
+  (r) => Array.isArray(r.experience) && r.experience.some((e) => e?.company || e?.role),
+  (r) => Array.isArray(r.education) && r.education.some((e) => e?.school || e?.degree),
+  (r) => Array.isArray(r.certifications) && r.certifications.some((c) => c?.name),
+];
+const CV_IMPORT_FIELD_TOTAL = CV_IMPORT_FIELDS.length;
+
+function countCvImportFields(resume) {
+  if (!resume || typeof resume !== "object") return 0;
+  let n = 0;
+  for (const test of CV_IMPORT_FIELDS) {
+    if (test(resume)) n += 1;
+  }
+  return n;
+}
+
+function CvImportBanner({ filename, count, total }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 14px",
+        borderRadius: 12,
+        background: "rgba(29, 158, 117, 0.08)",
+        border: "1px solid rgba(29, 158, 117, 0.35)",
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 20,
+          height: 20,
+          flexShrink: 0,
+          borderRadius: 999,
+          background: "#1D9E75",
+          color: "#0A0A0A",
+          fontSize: 12,
+          fontWeight: 700,
+          lineHeight: 1,
+        }}
+      >
+        ✓
+      </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <p style={{ margin: 0, fontSize: 13, color: "#FFFFFF", fontWeight: 600 }}>
+          Imported from <span style={{ color: "#A0A0A0", fontWeight: 500 }}>{filename}</span>
+        </p>
+        <p style={{ margin: "2px 0 0", fontSize: 11, color: "#A0A0A0" }}>
+          {count} of {total} fields populated. Edit anything to dismiss.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const PERSONAL_DETAIL_FIELDS = [
   { key: "dob", label: "Date of birth", placeholder: "DD MMM YYYY" },
   { key: "gender", label: "Gender", placeholder: "Male / Female / Prefer not to say" },
@@ -2613,6 +2683,21 @@ function ResumeBuilder({
   // non-empty draft. The pending payload holds the parsed cv_data + the
   // original filename, applied via setResumeAsLoad on confirm.
   const [cvImportPending, setCvImportPending] = useState(null);
+  // Hydration banner: filename of the most recent successful import.
+  // Cleared on first user edit (userHasEdited flip) so the banner
+  // naturally disappears the moment the user starts working.
+  const [cvImportedFilename, setCvImportedFilename] = useState(null);
+  const applyImportedCv = useCallback(
+    (cvData, filename) => {
+      setResumeAsLoad(normalizeResumeForBuilder(cvData));
+      setCvImportedFilename(filename || null);
+    },
+    [setResumeAsLoad],
+  );
+  const cvImportedFieldCount = useMemo(
+    () => (cvImportedFilename ? countCvImportFields(resume) : 0),
+    [cvImportedFilename, resume],
+  );
   const handleCvImported = useCallback(
     (cvData, filename) => {
       const empty = isCvDataEmptyForTemplateApply(resume);
@@ -2620,9 +2705,9 @@ function ResumeBuilder({
         setCvImportPending({ cvData, filename });
         return;
       }
-      setResumeAsLoad(normalizeResumeForBuilder(cvData));
+      applyImportedCv(cvData, filename);
     },
-    [resume, setResumeAsLoad],
+    [resume, applyImportedCv],
   );
   const [cvpBannerDismissedStored, setCvpBannerDismissedStored] = useState(
     () => typeof window !== "undefined" && window.localStorage.getItem("cvp_banner_dismissed") === "true"
@@ -3788,7 +3873,13 @@ function ResumeBuilder({
                 stickyTop={56}
               />
 
-              {isCvDataEmptyForTemplateApply(resume) ? (
+              {cvImportedFilename && !userHasEdited ? (
+                <CvImportBanner
+                  filename={cvImportedFilename}
+                  count={cvImportedFieldCount}
+                  total={CV_IMPORT_FIELD_TOTAL}
+                />
+              ) : isCvDataEmptyForTemplateApply(resume) ? (
                 <BuilderCvImport onImported={handleCvImported} />
               ) : null}
 
@@ -4276,7 +4367,13 @@ function ResumeBuilder({
                   onOpenSection={setOpenSection}
                   stickyTop={0}
                 />
-                {isCvDataEmptyForTemplateApply(resume) ? (
+                {cvImportedFilename && !userHasEdited ? (
+                  <CvImportBanner
+                    filename={cvImportedFilename}
+                    count={cvImportedFieldCount}
+                    total={CV_IMPORT_FIELD_TOTAL}
+                  />
+                ) : isCvDataEmptyForTemplateApply(resume) ? (
                   <BuilderCvImport onImported={handleCvImported} />
                 ) : null}
                 <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
@@ -5817,7 +5914,7 @@ function ResumeBuilder({
                   const pending = cvImportPending;
                   setCvImportPending(null);
                   if (pending?.cvData) {
-                    setResumeAsLoad(normalizeResumeForBuilder(pending.cvData));
+                    applyImportedCv(pending.cvData, pending.filename);
                   }
                 }}
               >
