@@ -277,7 +277,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
         )
       )}
       {certificationEditor && (
-        <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 8, padding: 16, display: "grid", gap: 10 }}>
+        <div className="cvp-glass-modal" style={{ padding: 16, display: "grid", gap: 10 }}>
           <div>
             <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Name</label>
             <input
@@ -318,7 +318,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             ) : null}
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-            <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setCertificationEditor(null)}>Cancel</button>
+            <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setCertificationEditor(null)}>Cancel</button>
             <button
               type="button"
               style={CB_UI.btn}
@@ -5605,24 +5605,13 @@ function ResumeBuilder({
         <div
           role="dialog"
           aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 200,
-            background: "rgba(0,0,0,0.75)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
+          className="cvp-glass-modal-overlay"
           onClick={askCloseExperienceModal}
         >
           <div
+            className="cvp-glass-modal"
             style={{
               position: "relative",
-              background: "#1C1C1C",
-              border: "1px solid #2A2A2A",
-              borderRadius: 12,
               maxWidth: 520,
               width: "100%",
               maxHeight: "90vh",
@@ -5952,7 +5941,7 @@ function ResumeBuilder({
               </div>
             </div>
             <div style={{ flexShrink: 0, borderTop: "1px solid #2A2A2A", padding: "12px 20px 20px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={askCloseExperienceModal}>
+              <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={askCloseExperienceModal}>
                 Cancel
               </button>
               <button
@@ -6026,20 +6015,12 @@ function ResumeBuilder({
         <div
           role="dialog"
           aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 200,
-            background: "rgba(0,0,0,0.75)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
+          className="cvp-glass-modal-overlay"
           onClick={() => setEducationEditor(null)}
         >
           <div
-            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
+            className="cvp-glass-modal"
+            style={{ padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>{educationEditor.mode === "add" ? "Add education" : "Edit education"}</h3>
@@ -6096,7 +6077,7 @@ function ResumeBuilder({
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (optional)</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-              <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setEducationEditor(null)}>Cancel</button>
+              <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setEducationEditor(null)}>Cancel</button>
               <button
                 type="button"
                 style={CB_UI.btn}

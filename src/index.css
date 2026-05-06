@@ -1540,6 +1540,72 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   cursor: grabbing;
 }
 
+/* ── Glassmorphism edit panels ────────────────────────────────────────
+   "Frosted glass" treatment for Experience / Education / Certifications
+   edit panels. The overlay blurs the builder behind it; the panel itself
+   floats with a subtle white tint, hairline highlight, and soft shadow.
+   Inputs sit on a barely-there white wash so the glass effect reads
+   through. CSS only — no JSX wiring touched. */
+
+.cvp-glass-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.cvp-glass-modal {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* Inputs / textareas inside a glass modal — semi-transparent so the
+   blurred backdrop reads through the field. Specificity (2 classes)
+   beats the base .cvp-input rule. */
+.cvp-glass-modal .cvp-input,
+.cvp-glass-modal .cvp-textarea {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.cvp-glass-modal .cvp-input:focus,
+.cvp-glass-modal .cvp-textarea:focus {
+  border-color: rgba(217, 119, 6, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.16) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Labels inside the glass modal — uppercase muted spec. Targets bare
+   <label> elements to override the inline label styles each modal
+   currently uses. */
+.cvp-glass-modal label {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* Cancel button override — ghost with a glass-tinted border. */
+.cvp-glass-modal-cancel {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.cvp-glass-modal-cancel:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
 .cvp-builder-add-section:hover {
   border-color: #FFFFFF;
   color: #FFFFFF;
