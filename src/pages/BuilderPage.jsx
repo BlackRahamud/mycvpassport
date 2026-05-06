@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, useReducer, Fragment } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect, useReducer, Fragment, forwardRef } from "react";
 import { flushSync, createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -710,6 +710,45 @@ function processMmYyyyInput(rawInput, { allowPresent }) {
   return { value: raw, error: mmYyyyErrorForDisplay(raw), cursor: raw.length };
 }
 
+// Textarea that grows with its content. Mirrors the Summary field's
+// pattern (set height='auto' then to scrollHeight on every value change).
+// forwardRef so callers like the Experience editor can still attach an
+// external ref for cursor / focus management.
+const AutoExpandTextarea = forwardRef(function AutoExpandTextarea(
+  { value, style, onInput, ...rest },
+  externalRef,
+) {
+  const localRef = useRef(null);
+  const setRef = useCallback((node) => {
+    localRef.current = node;
+    if (typeof externalRef === "function") externalRef(node);
+    else if (externalRef) externalRef.current = node;
+  }, [externalRef]);
+  useEffect(() => {
+    const el = localRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  const handleInput = useCallback((e) => {
+    const el = localRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+    if (onInput) onInput(e);
+  }, [onInput]);
+  return (
+    <textarea
+      ref={setRef}
+      value={value}
+      onInput={handleInput}
+      style={{ minHeight: 80, overflowY: "hidden", resize: "none", ...style }}
+      {...rest}
+    />
+  );
+});
+
 function OptionalBuilderAccordionSections({
   resume,
   setResume,
@@ -777,9 +816,9 @@ function OptionalBuilderAccordionSections({
             <>
               <div style={{ position: "relative", width: "100%" }}>
                 <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
-                <textarea
+                <AutoExpandTextarea
                   className="cvp-builder-ph cvp-textarea"
-                  style={{ minHeight: 130, paddingBottom: 30 }}
+                  style={{ paddingBottom: 30 }}
                   placeholder={opt.label}
                   value={resume[opt.field] || ""}
                   onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))}
@@ -5802,10 +5841,10 @@ function ResumeBuilder({
                     })()}
                   </div>
                   <div style={{ position: "relative", width: "100%" }}>
-                    <textarea
+                    <AutoExpandTextarea
                       ref={expDescriptionRef}
                       className="cvp-builder-ph cvp-textarea"
-                      style={{ minHeight: 130, paddingBottom: 30 }}
+                      style={{ paddingBottom: 30 }}
                       placeholder={EXP_POINTS_PLACEHOLDER}
                       value={experienceEditor.draft.points}
                       onChange={(e) => {
