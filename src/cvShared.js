@@ -162,22 +162,59 @@ export function normalizeCustomFieldsArray(raw) {
     .filter(Boolean);
 }
 
+// Defensive coercion for fields that templates assume are strings.
+// AI-imported CVs (transform import-only mode, Haiku) occasionally return
+// arrays or nulls where the builder + templates expect strings. Without
+// this, e.g. `cv.skills.split(",")` in Template1ModernEmerald crashes the
+// preview. Joins arrays with the supplied separator (comma for CSV-shaped
+// fields, newline for experience.points), nulls become "".
+function toStrField(v, joinWith = ", ") {
+  if (typeof v === "string") return v;
+  if (v == null) return "";
+  if (Array.isArray(v)) return v.filter((x) => x != null && x !== "").map((x) => String(x)).join(joinWith);
+  return String(v);
+}
+
+const RESUME_STRING_FIELDS = [
+  "name", "email", "phone", "linkedin", "location", "title", "summary",
+  "nationality", "visaStatus", "dob", "gender", "maritalStatus",
+  "skills", "languages", "technicalSkills",
+  "projects", "volunteerWork", "publications",
+  "availability", "drivingLicense", "willingToRelocate", "references",
+];
+
+const EXP_STRING_FIELDS = ["company", "role", "location", "period", "startDate", "endDate"];
+const EDU_STRING_FIELDS = ["school", "degree", "year", "fieldOfStudy", "startDate", "endDate", "location"];
+
 export function normalizeResumeForBuilder(cv) {
   if (!cv || typeof cv !== "object") return { ...EMPTY_RESUME };
   const exp = Array.isArray(cv.experience) ? cv.experience : [];
   const edu = Array.isArray(cv.education) ? cv.education : [];
-  return {
+  const merged = {
     ...EMPTY_RESUME,
     ...cv,
-    experience: exp.length ? exp.map((e) => ({ ...EMPTY_EXP, ...e })) : [],
-    education: edu.length ? edu.map((e) => ({ ...EMPTY_EDU, ...e })) : [],
+    experience: exp.length
+      ? exp.map((e) => {
+          const base = { ...EMPTY_EXP, ...(e && typeof e === "object" ? e : {}) };
+          for (const k of EXP_STRING_FIELDS) base[k] = toStrField(base[k]);
+          base.points = toStrField(base.points, "\n");
+          base.present = Boolean(base.present);
+          return base;
+        })
+      : [],
+    education: edu.length
+      ? edu.map((e) => {
+          const base = { ...EMPTY_EDU, ...(e && typeof e === "object" ? e : {}) };
+          for (const k of EDU_STRING_FIELDS) base[k] = toStrField(base[k]);
+          return base;
+        })
+      : [],
     certifications: normalizeCertificationsArray(cv.certifications),
     customFields: normalizeCustomFieldsArray(cv.customFields),
     builderExtraSectionIds: Array.isArray(cv.builderExtraSectionIds) ? cv.builderExtraSectionIds : [],
-    projects: cv.projects ?? "",
-    volunteerWork: cv.volunteerWork ?? "",
-    publications: cv.publications ?? "",
   };
+  for (const k of RESUME_STRING_FIELDS) merged[k] = toStrField(merged[k]);
+  return merged;
 }
 
 export function splitCommaItems(str) {

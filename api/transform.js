@@ -812,6 +812,26 @@ DIRECTIVES (apply ALL):
 11. Output VALID JSON only. No backticks. No leading text. No commentary.`;
 }
 
+// Defensive coercion mirrored from src/cvShared.js. Templates assume
+// scalar fields are strings; Haiku occasionally returns arrays or nulls,
+// which crash render (e.g. `cv.skills.split` in Template1ModernEmerald).
+function toStrField(v, joinWith = ', ') {
+  if (typeof v === 'string') return v;
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.filter((x) => x != null && x !== '').map((x) => String(x)).join(joinWith);
+  return String(v);
+}
+
+const RESUME_STRING_FIELDS = [
+  'name', 'email', 'phone', 'linkedin', 'location', 'title', 'summary',
+  'nationality', 'visaStatus', 'dob', 'gender', 'maritalStatus',
+  'skills', 'languages', 'technicalSkills',
+  'projects', 'volunteerWork', 'publications',
+  'availability', 'drivingLicense', 'willingToRelocate', 'references',
+];
+const EXP_STRING_FIELDS = ['company', 'role', 'location', 'period', 'startDate', 'endDate'];
+const EDU_STRING_FIELDS = ['school', 'degree', 'year', 'fieldOfStudy', 'startDate', 'endDate', 'location'];
+
 function normalizeCvData(raw, intake) {
   const obj = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
   const expArr = Array.isArray(obj.experience) ? obj.experience : [];
@@ -819,12 +839,19 @@ function normalizeCvData(raw, intake) {
   const certArr = Array.isArray(obj.certifications) ? obj.certifications : [];
 
   const merged = { ...EMPTY_RESUME, ...obj };
-  merged.experience = expArr.map((e) =>
-    ({ ...EMPTY_EXP, ...(e && typeof e === 'object' ? e : {}) })
-  );
-  merged.education = eduArr.map((e) =>
-    ({ ...EMPTY_EDU, ...(e && typeof e === 'object' ? e : {}) })
-  );
+  merged.experience = expArr.map((e) => {
+    const base = { ...EMPTY_EXP, ...(e && typeof e === 'object' ? e : {}) };
+    for (const k of EXP_STRING_FIELDS) base[k] = toStrField(base[k]);
+    base.points = toStrField(base.points, '\n');
+    base.present = Boolean(base.present);
+    return base;
+  });
+  merged.education = eduArr.map((e) => {
+    const base = { ...EMPTY_EDU, ...(e && typeof e === 'object' ? e : {}) };
+    for (const k of EDU_STRING_FIELDS) base[k] = toStrField(base[k]);
+    return base;
+  });
+  for (const k of RESUME_STRING_FIELDS) merged[k] = toStrField(merged[k]);
   merged.certifications = certArr
     .map((c) => {
       if (typeof c === 'string') {
