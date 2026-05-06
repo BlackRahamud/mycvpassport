@@ -457,6 +457,39 @@ select:focus,
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* Builder topbar — compact "Import CV" ghost button. Sits between
+   the CVPassport logo and the page-count toggle. Always visible —
+   replaces the empty-state-only import card. */
+.cvp-builder-import-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 150ms var(--input-ease), border-color 150ms var(--input-ease), background-color 150ms var(--input-ease);
+}
+.cvp-builder-import-header-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: #3A3A3A;
+  background: rgba(255, 255, 255, 0.04);
+}
+.cvp-builder-import-header-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.cvp-builder-import-header-btn[data-state="error"] {
+  color: var(--color-danger);
+  border-color: rgba(248, 113, 113, 0.45);
+}
 .cvp-builder-action-bar-secondary,
 .cvp-builder-action-bar-primary {
   display: inline-flex;

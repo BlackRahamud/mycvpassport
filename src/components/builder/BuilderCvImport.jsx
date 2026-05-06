@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { Upload } from 'lucide-react';
 import { supabase } from '../../appSupabaseClient';
 import { extractCvText } from '../../services/cvExtraction';
 
@@ -6,7 +7,15 @@ const ACCEPT =
   '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const MAX_BYTES = 10 * 1024 * 1024;
 
-export default function BuilderCvImport({ onImported }) {
+/**
+ * variant:
+ *   "card"          (default) — full empty-state card with title + description
+ *   "header-button"           — compact ghost button for the builder topbar
+ *
+ * Both share the same extract → upload (mode=import-only) → parse pipeline
+ * and fire onImported(cv_data, filename) on success.
+ */
+export default function BuilderCvImport({ onImported, variant = "card" }) {
   const inputRef = useRef(null);
   const [stage, setStage] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -119,6 +128,40 @@ export default function BuilderCvImport({ onImported }) {
       : stage === 'uploading' ? 'Sending to AI…'
         : stage === 'parsing' ? 'Extracting your details…'
           : null;
+
+  if (variant === "header-button") {
+    const hasError = stage === "error";
+    const compactLabel = stageLabel
+      || (hasError ? "Try again" : "Import CV");
+    const tooltip = hasError
+      ? `${errorMsg || "Import failed"}${errorHint ? " — " + errorHint : ""}`
+      : "Upload your existing CV (PDF or DOCX)";
+    return (
+      <>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPT}
+          onChange={onPickerChange}
+          style={{ display: 'none' }}
+          aria-hidden
+          tabIndex={-1}
+        />
+        <button
+          type="button"
+          onClick={openPicker}
+          disabled={isBusy}
+          aria-label="Import existing CV"
+          title={tooltip}
+          className="cvp-builder-import-header-btn"
+          data-state={hasError ? "error" : (isBusy ? "busy" : "idle")}
+        >
+          <Upload size={12} strokeWidth={1.8} aria-hidden />
+          <span>{compactLabel}</span>
+        </button>
+      </>
+    );
+  }
 
   return (
     <div

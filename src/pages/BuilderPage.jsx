@@ -4018,6 +4018,7 @@ function ResumeBuilder({
                     </span>
                   ) : null}
                 </div>
+                <BuilderCvImport variant="header-button" onImported={handleCvImported} />
                 {fabMode !== "guide" && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
@@ -4072,8 +4073,6 @@ function ResumeBuilder({
                   count={cvImportedFieldCount}
                   total={CV_IMPORT_FIELD_TOTAL}
                 />
-              ) : isCvDataEmptyForTemplateApply(resume) ? (
-                <BuilderCvImport onImported={handleCvImported} />
               ) : null}
 
               {personalDetailsNudgeOpen ? (
@@ -4545,6 +4544,7 @@ function ResumeBuilder({
                       </span>
                     ) : null}
                   </div>
+                  <BuilderCvImport variant="header-button" onImported={handleCvImported} />
                   {fabMode !== "guide" && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", background: "#1C1C1C", border: "1px solid #2A2A2A", borderRadius: 8, overflow: "hidden", fontSize: 11 }}>
@@ -4597,8 +4597,6 @@ function ResumeBuilder({
                     count={cvImportedFieldCount}
                     total={CV_IMPORT_FIELD_TOTAL}
                   />
-                ) : isCvDataEmptyForTemplateApply(resume) ? (
-                  <BuilderCvImport onImported={handleCvImported} />
                 ) : null}
                 {personalDetailsNudgeOpen ? (
                   <PersonalDetailsNudge onDismiss={dismissPersonalDetailsNudge} />
