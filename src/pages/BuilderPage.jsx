@@ -1411,6 +1411,22 @@ function SkillsEditorSection({
                 addSkillsFromInput();
               }
             }}
+            onPaste={(e) => {
+              const text = e.clipboardData?.getData("text") || "";
+              if (!/[,;\n]/.test(text)) return;
+              e.preventDefault();
+              const parts = splitSkillInputSegments(text);
+              if (parts.length === 0) return;
+              setResume((r) => {
+                const cur = splitCommaItems(r.skills);
+                const next = [...cur];
+                for (const p of parts) {
+                  if (!next.some((x) => x.toLowerCase() === p.toLowerCase())) next.push(p);
+                }
+                return { ...r, skills: next.join(", ") };
+              });
+              setSkillInput("");
+            }}
           />
           <button
             type="button"
@@ -1561,7 +1577,11 @@ function normalizeTechnicalSkillsState(ts) {
     }
   }
   if (typeof ts === "string" && ts.trim()) {
-    return [{ category: "Technical Skills", chips: ts.split("|").map((s) => s.trim()).filter(Boolean) }];
+    // Accept pipe (legacy), comma (Haiku import format), semicolon, or
+    // newline as separators. Without comma support, an imported
+    // technicalSkills="JavaScript, Python, SQL" became one massive chip.
+    const chips = ts.split(/[|,;\n]+/).map((s) => s.trim()).filter(Boolean);
+    return [{ category: "Technical Skills", chips }];
   }
   return [];
 }
@@ -2468,6 +2488,27 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                   });
                   setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
                 }
+              }}
+              onPaste={(e) => {
+                const text = e.clipboardData?.getData("text") || "";
+                if (!/[,;\n]/.test(text)) return;
+                e.preventDefault();
+                const parts = splitSkillInputSegments(text);
+                if (parts.length === 0) return;
+                updateGroups((arr) => {
+                  const ng = [...arr];
+                  const cur = skillsArrayForChipRender(ng[i].chips);
+                  const seen = new Set(cur.map((c) => c.toLowerCase()));
+                  for (const t of parts) {
+                    if (!seen.has(t.toLowerCase())) {
+                      cur.push(t);
+                      seen.add(t.toLowerCase());
+                    }
+                  }
+                  ng[i] = { ...ng[i], chips: cur };
+                  return ng;
+                });
+                setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
               }}
             />
             <button
