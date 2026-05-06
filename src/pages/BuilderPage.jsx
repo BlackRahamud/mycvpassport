@@ -3759,72 +3759,9 @@ function ResumeBuilder({
             <button type="button" onClick={handleSave} disabled={saving} className="cvp-builder-topbar-save" style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #2A2A2A", background: "transparent", color: "#A0A0A0", fontSize: 14, cursor: saving ? "not-allowed" : "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; } }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#A0A0A0"; }}>
               {saving ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save"}
             </button>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{
-                borderRadius: 10,
-                padding: '1.5px',
-                background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 70%, #1C1C1C 100%)',
-                backgroundSize: '300% 100%',
-                animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2.5s linear infinite',
-                display: 'inline-block',
-              }}>
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  disabled={downloadState.status === 'generating'}
-                  className="cvp-builder-topbar-download"
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: 9,
-                    border: 'none',
-                    background: '#141414',
-                    color: downloadState.status === 'generating' ? '#888' : '#fff',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: downloadState.status === 'generating' ? 'not-allowed' : 'pointer',
-                    transition: 'opacity 150ms cubic-bezier(0.4,0,0.2,1)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    minWidth: 0,
-                    position: 'relative',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (downloadState.status !== 'generating') e.currentTarget.style.opacity = "0.9";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = "1";
-                  }}
-                >
-                  {downloadState.status === 'generating' ? (
-                    <>
-                      <BuilderCvPdfSpinner20 />
-                      <span>Generating your CV...</span>
-                    </>
-                  ) : null}
-                  {downloadState.status === 'idle' ? <span>Download CV</span> : null}
-                  {downloadState.status === 'completed' ? (
-                    <>
-                      <span style={{ color: "#22C55E", fontSize: 16, lineHeight: 1 }} aria-hidden>
-                        ✓
-                      </span>
-                      <span>Download CV</span>
-                    </>
-                  ) : null}
-                  {downloadState.status === 'error' ? (
-                    <>
-                      <span>Download CV</span>
-                      <span style={{ color: "#EF4444", fontSize: 12, fontWeight: 600 }}>Failed, try again</span>
-                    </>
-                  ) : null}
-                </button>
-              </div>
-              {downloadState.status === 'generating' ? (
-                <p style={{ fontSize: "12px", color: "#A0A0A0", textAlign: "center", marginTop: "8px" }}>
-                  Optimizing for Gulf/Indian ATS standards... almost there
-                </p>
-              ) : null}
-            </div>
+            {/* Top-bar Download CV button removed — sticky BuilderActionBar
+                at viewport bottom now hosts Export PDF (calls the same
+                handleDownload, same synthesis overlay, same PDF flow). */}
           </div>
         </div>
         {cvJourneyChrome ? (
