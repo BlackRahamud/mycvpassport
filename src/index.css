@@ -68,6 +68,23 @@ html {
   --color-danger: #F87171;
   --radius-pill: 9999px;
   --radius-lg: 18px;
+
+  /* Builder input/textarea tokens — anchored to runtime values of
+     S.input / CB_UI.input / BUILDER_DESCR_TEXTAREA / BUILDER_SKILL_INPUT_BASE
+     so the className migration is visually neutral. */
+  --input-bg: #1C1C1C;
+  --input-bg-textarea: #141414;
+  --input-border: #2A2A2A;
+  --input-border-error: #EF4444;
+  --input-radius: 10px;
+  --input-radius-textarea: 14px;
+  --input-padding-y: 14px;
+  --input-padding-x: 16px;
+  --input-textarea-padding-y: 13px;
+  --input-textarea-padding-x: 14px;
+  --input-line-height: 1.5;
+  --input-textarea-line-height: 1.7;
+  --input-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cvp-theme-light {
@@ -179,6 +196,83 @@ select:focus,
   border-color: rgba(245, 158, 11, 0.7) !important;
   background-color: inherit !important;
 }
+
+/* Builder input/textarea atoms — class-based replacements for the
+   per-section inline style objects (S.input, CB_UI.input,
+   BUILDER_DESCR_TEXTAREA, BUILDER_SKILL_INPUT_BASE). Visual values match
+   inline runtime so swapping style for className is visually neutral.
+   Default focus ring inherits from the input:focus rule above (amber).
+   Error state overrides via aria-invalid / data-state="error". */
+.cvp-input {
+  width: 100%;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-radius);
+  padding: var(--input-padding-y) var(--input-padding-x);
+  line-height: var(--input-line-height);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 180ms var(--input-ease), box-shadow 180ms var(--input-ease);
+}
+
+.cvp-textarea {
+  width: 100%;
+  background-color: var(--input-bg-textarea);
+  color: var(--text-primary);
+  border: 1px solid var(--input-border);
+  border-radius: var(--input-radius-textarea);
+  padding: var(--input-textarea-padding-y) var(--input-textarea-padding-x);
+  line-height: var(--input-textarea-line-height);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 180ms var(--input-ease), box-shadow 180ms var(--input-ease);
+}
+
+.cvp-input:disabled,
+.cvp-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cvp-input[aria-invalid="true"],
+.cvp-input[data-state="error"],
+.cvp-textarea[aria-invalid="true"],
+.cvp-textarea[data-state="error"] {
+  border-color: var(--input-border-error) !important;
+}
+
+.cvp-input[aria-invalid="true"]:focus,
+.cvp-input[data-state="error"]:focus,
+.cvp-textarea[aria-invalid="true"]:focus,
+.cvp-textarea[data-state="error"]:focus {
+  border-color: var(--input-border-error) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.45) !important;
+}
+
+.cvp-input-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.cvp-input-message {
+  display: block;
+  font-size: 12px;
+  margin-top: 6px;
+  color: var(--text-secondary);
+}
+
+.cvp-input-message[data-tone="error"] { color: var(--color-danger); }
+.cvp-input-message[data-tone="warning"] { color: var(--color-warn); }
+.cvp-input-message[data-tone="success"] { color: var(--color-success); }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {

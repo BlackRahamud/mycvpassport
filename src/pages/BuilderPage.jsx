@@ -59,7 +59,7 @@ import {
   builderAtsScore,
 } from "../cvShared";
 import { getRoleSuggestions } from "../utils/detectRole";
-import { CB_UI, S } from "../builderStyles";
+import { CB_UI } from "../builderStyles";
 import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 import { useCvProgress } from "../hooks/useCvProgress";
 
@@ -191,7 +191,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
           >
             <div style={{ display: "grid", gap: 8 }}>
               <input
-                style={{ ...CB_UI.input, marginTop: 0, minHeight: undefined }}
+                className="cvp-input"
                 value={inlineNameEdit.draft}
                 onChange={(e) => setInlineNameEdit({ index: i, draft: e.target.value })}
                 aria-label="Certification name"
@@ -269,7 +269,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
           <div>
             <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Name</label>
             <input
-              style={{ ...CB_UI.input, marginTop: 0, minHeight: undefined }}
+              className="cvp-input"
               placeholder="Certification name"
               value={certificationEditor.draft.name}
               onChange={(e) => setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, name: e.target.value } } : null))}
@@ -278,7 +278,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
           <div>
             <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Issuer</label>
             <input
-              style={{ ...CB_UI.input, marginTop: 0, minHeight: undefined }}
+              className="cvp-input"
               placeholder="Issuing organisation (optional)"
               value={certificationEditor.draft.issuer}
               onChange={(e) => setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, issuer: e.target.value } } : null))}
@@ -288,13 +288,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Date issued (MM/YYYY)</label>
             <input
               ref={certYearInputRef}
-              style={{
-                ...CB_UI.input,
-                marginTop: 0,
-                minHeight: undefined,
-                borderColor: certYearError ? "#EF4444" : undefined,
-                transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-              }}
+              className="cvp-input"
               placeholder="08/2023 (optional)"
               value={certificationEditor.draft.year}
               onChange={(e) => {
@@ -509,19 +503,11 @@ function OptionalBuilderAccordionSections({
               <div style={{ position: "relative", width: "100%" }}>
                 <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
                 <textarea
-                  className="cvp-builder-ph"
-                  style={BUILDER_DESCR_TEXTAREA}
+                  className="cvp-builder-ph cvp-textarea"
+                  style={{ minHeight: 130, paddingBottom: 30 }}
                   placeholder={opt.label}
                   value={resume[opt.field] || ""}
                   onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "rgba(59,130,246,0.45)";
-                    e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "#2A2A2A";
-                    e.target.style.boxShadow = "none";
-                  }}
                 />
                 <span
                   style={{
@@ -543,7 +529,7 @@ function OptionalBuilderAccordionSections({
             </>
           ) : (
             <input
-              style={{ ...CB_UI.input, minHeight: undefined }}
+              className="cvp-input"
               value={resume[opt.field] || ""}
               onChange={(e) => setResume((r) => ({ ...r, [opt.field]: e.target.value }))}
             />
@@ -584,19 +570,6 @@ const BUILDER_SHEET_SURFACE = {
 
 const CVP_BUILDER_PH_CSS = ".cvp-builder-ph::placeholder{color:rgba(255,255,255,0.22);font-style:italic}";
 
-const BUILDER_SKILL_INPUT_BASE = {
-  background: "#141414",
-  border: "1px solid #2A2A2A",
-  borderRadius: 12,
-  color: "#fff",
-  fontSize: 13,
-  padding: "11px 14px",
-  outline: "none",
-  width: "100%",
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
-
 /** Inline "+ Add" next to skill inputs — layout/size from `.cvp-builder-skill-add-btn` in index.css */
 const BUILDER_SKILL_ADD_BTN = {
   background: "#fff",
@@ -604,23 +577,6 @@ const BUILDER_SKILL_ADD_BTN = {
   color: "#000",
   fontWeight: 700,
   cursor: "pointer",
-  fontFamily: "inherit",
-};
-
-const BUILDER_DESCR_TEXTAREA = {
-  minHeight: 130,
-  background: "#141414",
-  border: "1px solid #2A2A2A",
-  borderRadius: 14,
-  color: "#fff",
-  fontSize: 13,
-  lineHeight: 1.7,
-  padding: "13px 14px",
-  paddingBottom: 30,
-  outline: "none",
-  resize: "vertical",
-  width: "100%",
-  boxSizing: "border-box",
   fontFamily: "inherit",
 };
 
@@ -842,21 +798,13 @@ function ProfessionalSummaryField({
       ` }} />
       <div style={{ position: "relative", width: "100%" }}>
         <textarea
-          className="cvp-builder-ph"
-          style={BUILDER_DESCR_TEXTAREA}
+          className="cvp-builder-ph cvp-textarea"
+          style={{ minHeight: 130, paddingBottom: 30 }}
           placeholder="2–3 lines on your strengths, focus, and what you bring to the role…"
           value={summary}
           onChange={(e) => {
             setIsDirty(true);
             onChange(e.target.value);
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = "rgba(59,130,246,0.45)";
-            e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = "#2A2A2A";
-            e.target.style.boxShadow = "none";
           }}
           data-cvp-summary-dirty={isDirty ? "1" : "0"}
         />
@@ -1097,12 +1045,8 @@ function SkillsEditorSection({
             onClick={(e) => e.stopPropagation()}
           >
             <textarea
-              style={{
-                ...CB_UI.input,
-                minHeight: 120,
-                resize: "vertical",
-                fontSize: 14,
-              }}
+              className="cvp-textarea"
+              style={{ minHeight: 120 }}
               placeholder="Paste skills separated by commas e.g. Problem-Solving, Communication, Teamwork"
               value={skillsPasteDraft}
               onChange={(e) => setSkillsPasteDraft(e.target.value)}
@@ -1133,8 +1077,7 @@ function SkillsEditorSection({
         <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
         <div className="cvp-skills-add-row">
           <input
-            className="cvp-builder-ph cvp-skills-skill-input"
-            style={{ ...BUILDER_SKILL_INPUT_BASE }}
+            className="cvp-input cvp-builder-ph cvp-skills-skill-input"
             placeholder="Add a skill…"
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
@@ -1143,14 +1086,6 @@ function SkillsEditorSection({
                 e.preventDefault();
                 addSkillsFromInput();
               }
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = "rgba(59,130,246,0.45)";
-              e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = "#2A2A2A";
-              e.target.style.boxShadow = "none";
             }}
           />
           <button
@@ -1952,12 +1887,8 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             onClick={(e) => e.stopPropagation()}
           >
             <textarea
-              style={{
-                ...CB_UI.input,
-                minHeight: 140,
-                resize: "vertical",
-                fontSize: 14,
-              }}
+              className="cvp-textarea"
+              style={{ minHeight: 140 }}
               readOnly={pastePreview != null}
               placeholder='Paste your skills here, one category per line e.g. IT Support Tools: ManageEngine, RDP'
               value={pasteText}
@@ -2006,7 +1937,8 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
         <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <input
-            style={{ ...CB_UI.input, minHeight: undefined, flex: "1 1 160px" }}
+            className="cvp-input"
+            style={{ flex: "1 1 160px" }}
             placeholder="Category name (e.g. IT Support Tools)"
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
@@ -2161,8 +2093,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
           </div>
           <div className="cvp-skills-add-row" style={{ marginBottom: 10 }}>
             <input
-              className="cvp-builder-ph cvp-skills-skill-input"
-              style={{ ...BUILDER_SKILL_INPUT_BASE }}
+              className="cvp-input cvp-builder-ph cvp-skills-skill-input"
               placeholder="Skill or tool name…"
               value={chipDraftByIndex[i] ?? ""}
               onChange={(e) => setChipDraftByIndex((d) => ({ ...d, [i]: e.target.value }))}
@@ -2187,14 +2118,6 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                   });
                   setChipDraftByIndex((d) => ({ ...d, [i]: "" }));
                 }
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "rgba(59,130,246,0.45)";
-                e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "#2A2A2A";
-                e.target.style.boxShadow = "none";
               }}
             />
             <button
@@ -3791,11 +3714,11 @@ function ResumeBuilder({
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
                 <div style={{ display: "grid", gap: 10 }}>
-                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
-                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
-                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
-                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
-                  <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
+                  <input className="cvp-input" placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
+                  <input className="cvp-input" placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
+                  <input className="cvp-input" placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
+                  <input className="cvp-input" placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                  <input className="cvp-input" placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                 </div>
               </div>
 
@@ -4096,7 +4019,7 @@ function ResumeBuilder({
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 0, minHeight: undefined }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
+                    <input className="cvp-input" style={{ flex: 1, minWidth: 0 }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
                     <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); }}>+ Add</button>
                   </div>
                 </div>
@@ -4270,11 +4193,11 @@ function ResumeBuilder({
                 />
                 <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
-                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
-                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
-                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
-                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
-                    <input style={{ ...S.input, background: "#1C1C1C", border: "1px solid #2A2A2A", color: "#FFF" }} placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
+                    <input className="cvp-input" placeholder="Full name" value={resume.name} onChange={e=>set("name",e.target.value)} />
+                    <input className="cvp-input" placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
+                    <input className="cvp-input" placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
+                    <input className="cvp-input" placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                    <input className="cvp-input" placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                   </div>
                 </div>
                 {cvJourneyChrome && !cvJourney.templateChosen ? (
@@ -4580,7 +4503,7 @@ function ResumeBuilder({
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input style={{ ...CB_UI.input, flex: 1, minWidth: 0, minHeight: undefined }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
+                    <input className="cvp-input" style={{ flex: 1, minWidth: 0 }} placeholder='e.g. English (Fluent)' value={langInput} onChange={e => setLangInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); } }} />
                     <button type="button" style={{ ...CB_UI.btn }} onClick={() => { const t = langInput.trim(); if (!t) return; const cur = splitCommaItems(resume.languages); if (cur.includes(t)) return; setResume(r => ({ ...r, languages: [...cur, t].join(", ") })); setLangInput(""); }}>+ Add</button>
                   </div>
                 </div>
@@ -5339,24 +5262,19 @@ function ResumeBuilder({
               <div style={{ display: "grid", gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Company name</label>
-                  <input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.company} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, company: e.target.value } } : null))} />
+                  <input className="cvp-input" style={{ marginTop: 4 }} value={experienceEditor.draft.company} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, company: e.target.value } } : null))} />
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job title</label>
-                  <input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.role} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, role: e.target.value } } : null))} />
+                  <input className="cvp-input" style={{ marginTop: 4 }} value={experienceEditor.draft.role} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, role: e.target.value } } : null))} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Start (MM/YYYY)</label>
                     <input
                       id="cvp-exp-start-date"
-                      style={{
-                        ...CB_UI.input,
-                        marginTop: 4,
-                        minHeight: undefined,
-                        borderColor: experienceDateErrors.start ? "#EF4444" : undefined,
-                        transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-                      }}
+                      className="cvp-input"
+                      style={{ marginTop: 4 }}
                       placeholder="01/2020"
                       value={experienceEditor.draft.startDate}
                       onChange={(e) => {
@@ -5377,13 +5295,8 @@ function ResumeBuilder({
                     <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>End (MM/YYYY)</label>
                     <input
                       id="cvp-exp-end-date"
-                      style={{
-                        ...CB_UI.input,
-                        marginTop: 4,
-                        minHeight: undefined,
-                        borderColor: experienceDateErrors.end ? "#EF4444" : undefined,
-                        transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-                      }}
+                      className="cvp-input"
+                      style={{ marginTop: 4 }}
                       placeholder="12/2023"
                       disabled={experienceEditor.draft.present}
                       value={experienceEditor.draft.endDate}
@@ -5418,7 +5331,7 @@ function ResumeBuilder({
                 </label>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Location</label>
-                  <input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={experienceEditor.draft.location} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} />
+                  <input className="cvp-input" style={{ marginTop: 4 }} value={experienceEditor.draft.location} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} />
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Description</label>
@@ -5500,8 +5413,8 @@ function ResumeBuilder({
                   <div style={{ position: "relative", width: "100%" }}>
                     <textarea
                       ref={expDescriptionRef}
-                      className="cvp-builder-ph"
-                      style={BUILDER_DESCR_TEXTAREA}
+                      className="cvp-builder-ph cvp-textarea"
+                      style={{ minHeight: 130, paddingBottom: 30 }}
                       placeholder={EXP_POINTS_PLACEHOLDER}
                       value={experienceEditor.draft.points}
                       onChange={(e) => {
@@ -5509,14 +5422,6 @@ function ResumeBuilder({
                         setExpModalHighEffortDirty(true);
                         if (String(v || "").trim()) setExpModalBulletWarn(false);
                         setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: v } } : null));
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = "rgba(59,130,246,0.45)";
-                        e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)";
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = "#2A2A2A";
-                        e.target.style.boxShadow = "none";
                       }}
                     />
                     <span
@@ -5709,21 +5614,16 @@ function ResumeBuilder({
           >
             <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>{educationEditor.mode === "add" ? "Add education" : "Edit education"}</h3>
             <div style={{ display: "grid", gap: 12 }}>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Institution name</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Degree / qualification</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Field of study</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Institution name</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Degree / qualification</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Field of study</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
                   <label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label>
                   <input
                     id="cvp-edu-start-date"
-                    style={{
-                      ...CB_UI.input,
-                      marginTop: 4,
-                      minHeight: undefined,
-                      borderColor: educationDateErrors.start ? "#EF4444" : undefined,
-                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-                    }}
+                    className="cvp-input"
+                    style={{ marginTop: 4 }}
                     placeholder="09/2018"
                     value={educationEditor.draft.startDate || ""}
                     onChange={(e) => {
@@ -5744,13 +5644,8 @@ function ResumeBuilder({
                   <label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label>
                   <input
                     id="cvp-edu-end-date"
-                    style={{
-                      ...CB_UI.input,
-                      marginTop: 4,
-                      minHeight: undefined,
-                      borderColor: educationDateErrors.end ? "#EF4444" : undefined,
-                      transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-                    }}
+                    className="cvp-input"
+                    style={{ marginTop: 4 }}
                     placeholder="06/2022"
                     value={educationEditor.draft.endDate || ""}
                     onChange={(e) => {
@@ -5768,7 +5663,7 @@ function ResumeBuilder({
                   ) : null}
                 </div>
               </div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (optional)</label><input style={{ ...CB_UI.input, marginTop: 4, minHeight: undefined }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (optional)</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
               <button type="button" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setEducationEditor(null)}>Cancel</button>
