@@ -21,6 +21,7 @@ import {
   Sparkles,
   Star,
   Trash2,
+  User,
   X,
 } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
@@ -348,6 +349,50 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
   );
 }
 
+const PERSONAL_DETAIL_FIELDS = [
+  { key: "dob", label: "Date of birth", placeholder: "DD MMM YYYY" },
+  { key: "gender", label: "Gender", placeholder: "Male / Female / Prefer not to say" },
+  { key: "nationality", label: "Nationality", placeholder: "e.g. Indian" },
+  { key: "maritalStatus", label: "Marital status", placeholder: "Single / Married" },
+  { key: "visaStatus", label: "Visa status", placeholder: "e.g. Resident Visa" },
+  { key: "drivingLicense", label: "Driving license", placeholder: "e.g. UAE Driving License" },
+  { key: "availability", label: "Availability", placeholder: "Immediately Available" },
+  { key: "willingToRelocate", label: "Willing to relocate", placeholder: "Yes / No" },
+];
+
+function PersonalDetailsBuilderSection({ resume, setResume, onRemoveSection }) {
+  const setField = (key, value) =>
+    setResume((r) => ({ ...r, [key]: value }));
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <p style={{ fontSize: 12, color: "#A0A0A0", margin: 0, lineHeight: 1.45 }}>
+        Optional fields commonly expected on Gulf-region CVs. Leave any blank if not relevant to your role.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+        {PERSONAL_DETAIL_FIELDS.map(({ key, label, placeholder }) => (
+          <div key={key}>
+            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>{label}</label>
+            <input
+              className="cvp-input"
+              placeholder={placeholder}
+              value={resume[key] || ""}
+              onChange={(e) => setField(key, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+        onClick={onRemoveSection}
+      >
+        Remove section
+      </button>
+    </div>
+  );
+}
+
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
 const MM_YYYY_MONTH_ERR = "Enter a valid month (01–12)";
@@ -494,6 +539,16 @@ function OptionalBuilderAccordionSections({
               setCertificationEditor(null);
               setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }));
             }}
+          />
+        </div>
+      ) : opt.id === "personalDetails" ? (
+        <div data-cvp-highlight="personalDetails" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
+          <PersonalDetailsBuilderSection
+            resume={resume}
+            setResume={setResume}
+            onRemoveSection={() =>
+              setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))
+            }
           />
         </div>
       ) : (
@@ -1265,6 +1320,7 @@ const BUILDER_SECTION_DEFAULT_ORDER = [
   "skills",
   "technicalSkills",
   "languages",
+  "personalDetails",
   "projects",
   "volunteer",
   "publications",
@@ -1345,6 +1401,13 @@ function builderSectionMeta(resume, sectionId) {
     case "languages": {
       const n = splitCommaItems(resume.languages).length;
       return `${n} language${n === 1 ? "" : "s"}`;
+    }
+    case "personalDetails": {
+      const filled = PERSONAL_DETAIL_FIELDS.filter(
+        ({ key }) => String(resume[key] || "").trim()
+      ).length;
+      if (filled === 0) return "Empty";
+      return `${filled} of ${PERSONAL_DETAIL_FIELDS.length} filled`;
     }
     default: {
       for (const opt of OPTIONAL_BUILDER_SECTIONS) {
@@ -3718,6 +3781,7 @@ function ResumeBuilder({
                   <input className="cvp-input" placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
                   <input className="cvp-input" placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
                   <input className="cvp-input" placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                  <input className="cvp-input" placeholder="LinkedIn URL" value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
                   <input className="cvp-input" placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                 </div>
               </div>
@@ -4197,6 +4261,7 @@ function ResumeBuilder({
                     <input className="cvp-input" placeholder="Job title" value={resume.title} onChange={e=>set("title",e.target.value)} />
                     <input className="cvp-input" placeholder="Email" value={resume.email} onChange={e=>set("email",e.target.value)} />
                     <input className="cvp-input" placeholder="Phone" value={resume.phone} onChange={e=>set("phone",e.target.value)} />
+                    <input className="cvp-input" placeholder="LinkedIn URL" value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
                     <input className="cvp-input" placeholder="Location" value={resume.location} onChange={e=>set("location",e.target.value)} />
                   </div>
                 </div>
@@ -5906,6 +5971,7 @@ function AccordionSectionLucideIcon({ id, icon }) {
   const sw = 1.8;
   if (id === "technicalSkills") return <Cpu size={size} color={stroke} strokeWidth={sw} aria-hidden />;
   if (id === "certifications" || icon === "certifications") return <Award size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  if (id === "personalDetails" || icon === "personalDetails") return <User size={size} color={stroke} strokeWidth={sw} aria-hidden />;
   if (icon === "summary" || id === "summary") return <FileText size={size} color={stroke} strokeWidth={sw} aria-hidden />;
   if (icon === "experience" || id === "experience") return <Briefcase size={size} color={stroke} strokeWidth={sw} aria-hidden />;
   if (icon === "education" || id === "education") return <GraduationCap size={size} color={stroke} strokeWidth={sw} aria-hidden />;

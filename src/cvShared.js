@@ -61,6 +61,7 @@ export const EMPTY_RESUME = {
   name: "",
   email: "",
   phone: "",
+  linkedin: "",
   location: "Dubai, UAE",
   title: "",
   summary: "",
@@ -88,6 +89,7 @@ export const EMPTY_RESUME = {
 
 export const OPTIONAL_BUILDER_SECTIONS = [
   { id: "certifications", label: "Certifications", field: "certifications", multiline: false },
+  { id: "personalDetails", label: "Personal Details", custom: true },
   { id: "projects", label: "Projects", field: "projects", multiline: true },
   { id: "volunteer", label: "Volunteer Work", field: "volunteerWork", multiline: true },
   { id: "publications", label: "Publications", field: "publications", multiline: true },
