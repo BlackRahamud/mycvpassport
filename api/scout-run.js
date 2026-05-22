@@ -61,6 +61,9 @@ const FOUNDER_USER_ID = 'bc4a800f-0ab7-47d5-85ed-a9e014020c64';
 const JSEARCH_PAGE_SIZE = parseInt(process.env.SCOUT_JSEARCH_PAGE_SIZE || '10', 10);
 const JOOBLE_PAGE_SIZE = parseInt(process.env.SCOUT_JOOBLE_PAGE_SIZE || '10', 10);
 const JOOBLE_TIMEOUT_MS = parseInt(process.env.SCOUT_JOOBLE_TIMEOUT_MS || '8000', 10);
+const WHATJOBS_PUBLISHER_ID = '6876';
+const WHATJOBS_PAGE_SIZE = parseInt(process.env.SCOUT_WHATJOBS_PAGE_SIZE || '50', 10);
+const WHATJOBS_TIMEOUT_MS = parseInt(process.env.SCOUT_WHATJOBS_TIMEOUT_MS || '8000', 10);
 const SERPAPI_PAGE_SIZE = parseInt(process.env.SCOUT_SERPAPI_PAGE_SIZE || '10', 10);
 const SERPAPI_TIMEOUT_MS = parseInt(process.env.SCOUT_SERPAPI_TIMEOUT_MS || '8000', 10);
 const CLAUDE_MODEL = process.env.SCOUT_CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
@@ -580,6 +583,21 @@ function normaliseJoobleJob(j, expectedCountry) {
   };
 }
 
+function normaliseWhatJobsJob(j, expectedCountry) {
+  return {
+    job_title: j.title || '',
+    employer_name: j.company || '',
+    job_apply_link: j.url || '',
+    job_description: j.snippet || '',
+    job_posted_at_datetime_utc: null,
+    job_country: expectedCountry || null,
+    job_city: j.location || '',
+    job_publisher: 'WhatJobs',
+    job_id: `whatjobs-${j.url || Math.random()}`,
+    job_salary: j.salary || '',
+  };
+}
+
 async function fetchJoobleJobs({ keywords, location, expectedCountry }) {
   if (!JOOBLE_API_KEY) {
     console.warn('[scout-run] JOOBLE_API_KEY not set — skipping Jooble fetch');
@@ -607,6 +625,41 @@ async function fetchJoobleJobs({ keywords, location, expectedCountry }) {
       console.error(`[scout-run] Jooble timed out after ${JOOBLE_TIMEOUT_MS}ms`);
     } else {
       console.error('[scout-run] Jooble fetch failed:', e.message || e);
+    }
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchWhatJobsJobs({ keywords, location, expectedCountry, userIp }) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), WHATJOBS_TIMEOUT_MS);
+  try {
+    const params = new URLSearchParams({
+      publisher: WHATJOBS_PUBLISHER_ID,
+      user_ip: userIp || '1.1.1.1',
+      keyword: keywords || '',
+      location: location || '',
+      limit: String(WHATJOBS_PAGE_SIZE),
+      page: '1',
+    });
+    const r = await fetch(`https://api.whatjobs.com/api/v1/jobs.json?${params}`, {
+      signal: controller.signal,
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.error(`[scout-run] WhatJobs ${r.status}: ${text.slice(0, 200)}`);
+      return [];
+    }
+    const json = await r.json();
+    const jobs = Array.isArray(json?.data) ? json.data.slice(0, WHATJOBS_PAGE_SIZE) : [];
+    return jobs.map((j) => normaliseWhatJobsJob(j, expectedCountry));
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      console.error(`[scout-run] WhatJobs timed out after ${WHATJOBS_TIMEOUT_MS}ms`);
+    } else {
+      console.error('[scout-run] WhatJobs fetch failed:', e?.message || e);
     }
     return [];
   } finally {
@@ -889,7 +942,7 @@ async function scoreWithClaude(cvText, jobs, prefs, keySkills = []) {
 }
 
 export default async function handler(req, res) {
-  console.log(`Scout-run started - JOOBLE_KEY present: ${!!JOOBLE_API_KEY}, SERPAPI_KEY present: ${!!SERPAPI_KEY}`);
+  console.log(`Scout-run started - JOOBLE_KEY present: ${!!JOOBLE_API_KEY}, SERPAPI_KEY present: ${!!SERPAPI_KEY}, WHATJOBS: active (publisher 6876)`);
 
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
@@ -1009,15 +1062,18 @@ export default async function handler(req, res) {
   console.log('Jooble query:', joobleKeywords);
   console.log('SerpApi query:', joobleKeywords);
   console.log('CHECKPOINT 2: Firing JSearch + Jooble + SerpApi (separate queries above)');
-  const [jsearchResult, joobleResult, serpapiResult] = await Promise.allSettled([
+  const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '1.1.1.1';
+  const [jsearchResult, joobleResult, serpapiResult, whatJobsResult] = await Promise.allSettled([
     fetchJSearchJobs({ role: jsearchKeywords, location, jobType, datePosted }),
     fetchJoobleJobs({ keywords: joobleKeywords, location: joobleLocationFor(location), expectedCountry }),
     searchSerpApiJobs(joobleKeywords, location),
+    fetchWhatJobsJobs({ keywords: joobleKeywords, location, expectedCountry, userIp }),
   ]);
 
   let jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
   const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
   const serpapiJobs = serpapiResult.status === 'fulfilled' ? serpapiResult.value : [];
+  const whatJobsJobs = whatJobsResult.status === 'fulfilled' ? whatJobsResult.value : [];
   if (jsearchResult.status === 'rejected') console.error('[scout-run] JSearch failed:', jsearchResult.reason);
   if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
   if (serpapiResult.status === 'rejected') console.error('[scout-run] SerpApi failed:', serpapiResult.reason);
@@ -1091,7 +1147,7 @@ export default async function handler(req, res) {
   const isSerpApi = (j) => String(j.job_id || '').startsWith('serpapi_');
 
   // ── Step 2: merge ────────────────────────────────────────────────────────
-  const merged = [...jsearchJobs, ...joobleJobs, ...serpapiJobs];
+  const merged = [...jsearchJobs, ...joobleJobs, ...serpapiJobs, ...whatJobsJobs];
   console.log('FUNNEL SerpApi after merge:', merged.filter(isSerpApi).length);
 
   // ── Step 2b: apply-URL blocklist ────────────────────────────────────────
