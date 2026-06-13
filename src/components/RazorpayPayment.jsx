@@ -52,7 +52,7 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure 
           throw new Error("Please sign in to continue");
         }
 
-        const orderRes = await fetch("/api/razorpay-order", {
+        const orderRes = await fetch("/api/razorpay?action=order", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -92,7 +92,7 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure 
           theme: { color: "#ffffff" },
           handler: async (response) => {
             try {
-              const verifyRes = await fetch("/api/razorpay-verify", {
+              const verifyRes = await fetch("/api/razorpay?action=verify", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
