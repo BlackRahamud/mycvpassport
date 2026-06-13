@@ -6,6 +6,7 @@ import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
+import RazorpayPayment from "../components/RazorpayPayment";
 
 const EASE = [0.4, 0, 0.2, 1];
 
@@ -72,6 +73,12 @@ const PLAN_MAP = {
   pro: "CAREER_PRO",
 };
 
+const RAZORPAY_PLANS = {
+  express: { plan: "express_pass", amount: 39900 },
+  hunter: { plan: "active_hunter", amount: 19900 },
+  pro: { plan: "career_pro", amount: 99900 },
+};
+
 export default function PricingPage() {
   const navigate = useNavigate();
 
@@ -85,6 +92,7 @@ export default function PricingPage() {
   const [checkoutSheet, setCheckoutSheet] = useState({ open: false, planId: null, priceLabel: "" });
   const [checkoutError, setCheckoutError] = useState(null);
   const [allPlansOpen, setAllPlansOpen] = useState(false);
+  const [razorpayCheckout, setRazorpayCheckout] = useState(null);
   const reduce = useReducedMotion();
 
   // GA4: view_pricing_plan
@@ -239,7 +247,27 @@ export default function PricingPage() {
     return currency === "AED" ? `AED ${price}/mo` : `₹${price}/mo`;
   }, [currency, billing]);
 
-  const fireZiina = useCallback(async (planAction) => {
+  const handleRazorpaySuccess = useCallback(() => {
+    setRazorpayCheckout(null);
+    setShowSuccess(true);
+    window.history.replaceState({}, "", "/pricing?payment=success");
+  }, []);
+
+  const handleRazorpayFailure = useCallback((msg) => {
+    setRazorpayCheckout(null);
+    if (msg !== "Payment cancelled") {
+      setCheckoutError(msg || "Couldn't complete payment. Please try again.");
+    }
+  }, []);
+
+  const firePayment = useCallback(async (planAction) => {
+    if (currency === "INR") {
+      const cfg = RAZORPAY_PLANS[planAction];
+      if (!cfg) return;
+      setCheckoutError(null);
+      setRazorpayCheckout(cfg);
+      return;
+    }
     const featureMap = { express: "expressPass", hunter: "activeHunter", pro: "careerPro" };
     const feature = featureMap[planAction];
     if (!feature) return;
@@ -250,7 +278,7 @@ export default function PricingPage() {
     } else {
       setCheckoutError("Couldn't start checkout. Please try again in a moment.");
     }
-  }, []);
+  }, [currency]);
 
   const handleCTA = async (plan) => {
     if (typeof window.gtag === "function") {
@@ -270,7 +298,7 @@ export default function PricingPage() {
       });
       return;
     }
-    await fireZiina(plan.ctaAction);
+    await firePayment(plan.ctaAction);
   };
 
   // Resume checkout after OAuth return: /pricing?resume=<plan>
@@ -282,8 +310,8 @@ export default function PricingPage() {
     params.delete("resume");
     const qs = params.toString();
     window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
-    fireZiina(resume);
-  }, [authReady, authUser, fireZiina]);
+    firePayment(resume);
+  }, [authReady, authUser, firePayment]);
 
   const isCurrentPlan = (plan) => userPlan && userPlan === PLAN_MAP[plan.id];
 
@@ -1097,7 +1125,7 @@ export default function PricingPage() {
             marginBottom: "20px",
           }}>
             <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              Secured by Ziina <LockIcon />
+              Secured by {currency === "INR" ? "Razorpay" : "Ziina"} <LockIcon />
             </span>
             <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
               Cancel Anytime ↩
@@ -1118,7 +1146,21 @@ export default function PricingPage() {
       planId={checkoutSheet.planId}
       priceLabel={checkoutSheet.priceLabel}
       isMobile={isMobile}
+      currency={currency}
+      onRazorpayCheckout={(planAction) => {
+        setCheckoutSheet((s) => ({ ...s, open: false }));
+        firePayment(planAction);
+      }}
     />
+
+    {razorpayCheckout ? (
+      <RazorpayPayment
+        plan={razorpayCheckout.plan}
+        amountINR={razorpayCheckout.amount}
+        onSuccess={handleRazorpaySuccess}
+        onFailure={handleRazorpayFailure}
+      />
+    ) : null}
     </>
   );
 }

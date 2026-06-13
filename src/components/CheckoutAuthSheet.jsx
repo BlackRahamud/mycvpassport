@@ -19,7 +19,7 @@ const FEATURE_MAP = {
 const EASE_SHEET = "cubic-bezier(0.32, 0.72, 0, 1)";
 const EASE_UI = "cubic-bezier(0.4, 0, 0.2, 1)";
 
-export default function CheckoutAuthSheet({ open, onClose, planId, priceLabel, isMobile }) {
+export default function CheckoutAuthSheet({ open, onClose, planId, priceLabel, isMobile, currency = "AED", onRazorpayCheckout }) {
   const [visible, setVisible] = useState(false);
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
@@ -76,6 +76,11 @@ export default function CheckoutAuthSheet({ open, onClose, planId, priceLabel, i
   const startCheckout = useCallback(async () => {
     setPostAuthBusy(true);
     setNotice(null);
+    if (currency === "INR" && onRazorpayCheckout) {
+      onRazorpayCheckout(planId);
+      setPostAuthBusy(false);
+      return;
+    }
     const feature = FEATURE_MAP[planId];
     if (!feature) {
       setNotice({ kind: "error", text: "Couldn't resolve plan. Please try again." });
@@ -89,7 +94,7 @@ export default function CheckoutAuthSheet({ open, onClose, planId, priceLabel, i
     }
     setNotice({ kind: "error", text: "Couldn't start checkout. Please try again in a moment." });
     setPostAuthBusy(false);
-  }, [planId]);
+  }, [planId, currency, onRazorpayCheckout]);
 
   const handleGoogle = async () => {
     if (loading) return;
@@ -623,7 +628,7 @@ export default function CheckoutAuthSheet({ open, onClose, planId, priceLabel, i
           }}
         >
           <LockIcon />
-          Secure checkout by Ziina
+          Secure checkout by {currency === "INR" ? "Razorpay" : "Ziina"}
         </div>
       </div>
 
