@@ -633,6 +633,7 @@ async function fetchJoobleJobs({ keywords, location, expectedCountry }) {
 }
 
 async function fetchWhatJobsJobs({ keywords, location, expectedCountry, userIp }) {
+  console.log('[WhatJobs] firing request, userIp:', userIp, 'keywords:', keywords, 'location:', location);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), WHATJOBS_TIMEOUT_MS);
   try {
@@ -653,6 +654,7 @@ async function fetchWhatJobsJobs({ keywords, location, expectedCountry, userIp }
       return [];
     }
     const json = await r.json();
+    console.log('[WhatJobs] response keys:', Object.keys(json || {}), 'data length:', Array.isArray(json?.data) ? json.data.length : 'not array');
     const jobs = Array.isArray(json?.data) ? json.data.slice(0, WHATJOBS_PAGE_SIZE) : [];
     return jobs.map((j) => normaliseWhatJobsJob(j, expectedCountry));
   } catch (e) {
@@ -661,6 +663,7 @@ async function fetchWhatJobsJobs({ keywords, location, expectedCountry, userIp }
     } else {
       console.error('[scout-run] WhatJobs fetch failed:', e?.message || e);
     }
+    console.log('[WhatJobs] caught error:', e?.name, e?.message);
     return [];
   } finally {
     clearTimeout(timer);
@@ -1074,6 +1077,7 @@ export default async function handler(req, res) {
   const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
   const serpapiJobs = serpapiResult.status === 'fulfilled' ? serpapiResult.value : [];
   const whatJobsJobs = whatJobsResult.status === 'fulfilled' ? whatJobsResult.value : [];
+  console.log('[WhatJobs] allSettled status:', whatJobsResult.status, 'count:', whatJobsResult.value?.length ?? 'no value');
   if (jsearchResult.status === 'rejected') console.error('[scout-run] JSearch failed:', jsearchResult.reason);
   if (joobleResult.status === 'rejected') console.error('[scout-run] Jooble failed:', joobleResult.reason);
   if (serpapiResult.status === 'rejected') console.error('[scout-run] SerpApi failed:', serpapiResult.reason);
