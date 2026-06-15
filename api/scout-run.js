@@ -1062,7 +1062,7 @@ export default async function handler(req, res) {
   console.log('Jooble query:', joobleKeywords);
   console.log('SerpApi query:', joobleKeywords);
   console.log('CHECKPOINT 2: Firing JSearch + Jooble + SerpApi (separate queries above)');
-  const userIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '1.1.1.1';
+  const userIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || '1.1.1.1';
   const [jsearchResult, joobleResult, serpapiResult, whatJobsResult] = await Promise.allSettled([
     fetchJSearchJobs({ role: jsearchKeywords, location, jobType, datePosted }),
     fetchJoobleJobs({ keywords: joobleKeywords, location: joobleLocationFor(location), expectedCountry }),
