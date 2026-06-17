@@ -1295,19 +1295,19 @@ export default async function handler(req, res) {
   const candidates = filtered.slice(0, 20);
   console.log('FUNNEL SerpApi into Claude scorer:', candidates.filter(isSerpApi).length);
 
-  let scores;
+ let scores = [];
   try {
-    scores = await scoreWithClaude(
-      cvText,
-      candidates,
-      {
-        target_role: role,
-        location,
-        experience_years: experience,
-        salary_min: minSalary,
-      },
-      enriched.key_skills,
-    );
+    const SCORE_BATCH_SIZE = 15;
+    for (let i = 0; i < candidates.length; i += SCORE_BATCH_SIZE) {
+      const batch = candidates.slice(i, i + SCORE_BATCH_SIZE);
+      const batchScores = await scoreWithClaude(
+        cvText,
+        batch,
+        { target_role: role, location, experience_years: experience, salary_min: minSalary },
+        enriched.key_skills,
+      );
+      scores = scores.concat(batchScores);
+    }
   } catch (e) {
     console.error('[scout-run] Claude scoring failed:', e);
     return res.status(502).json({ ok: false, error: 'AI scorer unavailable' });
