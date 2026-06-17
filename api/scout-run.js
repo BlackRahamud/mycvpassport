@@ -1292,7 +1292,7 @@ export default async function handler(req, res) {
   }
 
   // ── Step 5: top 20 to Claude ─────────────────────────────────────────────
-  const candidates = filtered.slice(0, 20);
+  const candidates = filtered.slice(0, 30);
   console.log('FUNNEL SerpApi into Claude scorer:', candidates.filter(isSerpApi).length);
 
  let scores = [];
