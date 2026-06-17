@@ -1070,7 +1070,7 @@ export default async function handler(req, res) {
     fetchJSearchJobs({ role: jsearchKeywords, location, jobType, datePosted }),
     fetchJoobleJobs({ keywords: joobleKeywords, location: joobleLocationFor(location), expectedCountry }),
     searchSerpApiJobs(joobleKeywords, location),
-    fetchWhatJobsJobs({ keywords: joobleKeywords, location: location.split(',')[0].trim(), expectedCountry, userIp }),
+    fetchWhatJobsJobs({ keywords: jsearchKeywords, location: location.split(',')[0].trim(), expectedCountry, userIp }),
 ]);
   let jsearchJobs = jsearchResult.status === 'fulfilled' ? jsearchResult.value : [];
   const joobleJobs = joobleResult.status === 'fulfilled' ? joobleResult.value : [];
