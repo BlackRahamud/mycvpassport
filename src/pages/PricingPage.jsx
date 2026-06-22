@@ -7,6 +7,13 @@ import { getPaymentLink } from "../utils/paywall";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
 import RazorpayPayment from "../components/RazorpayPayment";
+import {
+  TIERS,
+  TIER_TO_PROFILE_PLAN,
+  UI_SLUG_TO_TIER,
+  getDisplayPrice,
+  getServerAmount,
+} from "../config/tierConfig";
 
 const EASE = [0.4, 0, 0.2, 1];
 
@@ -66,24 +73,25 @@ function CheckIcon({ size = 12, color = "#4ADE80" }) {
   );
 }
 
-const PLAN_MAP = {
-  explorer: "FREE",
-  express: "EXPRESS_PASS",
-  hunter: "ACTIVE_HUNTER",
-  pro: "CAREER_PRO",
-};
+// UI short slug ('express') -> profiles.plan enum ('EXPRESS_PASS'). Derived
+// from tierConfig so a new tier doesn't drift between display + storage.
+const PLAN_MAP = Object.entries(UI_SLUG_TO_TIER).reduce((acc, [uiSlug, tierSlug]) => {
+  acc[uiSlug] = TIER_TO_PROFILE_PLAN[tierSlug];
+  return acc;
+}, {});
 
-const RAZORPAY_PLANS = {
-  express: { plan: "express_pass", amount: 39900 },
-  hunter: { plan: "active_hunter", amount: 19900 },
-  pro: { plan: "career_pro", amount: 99900 },
-};
+function razorpayConfigFor(uiSlug) {
+  const tierSlug = UI_SLUG_TO_TIER[uiSlug];
+  if (!tierSlug) return null;
+  const amount = getServerAmount(tierSlug, "INR");
+  if (amount == null) return null;
+  return { plan: tierSlug, amount };
+}
 
 export default function PricingPage() {
   const navigate = useNavigate();
 
   const [currency, setCurrency] = useState("AED");
-  const [billing, setBilling] = useState("monthly");
   const [userPlan, setUserPlan] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -153,15 +161,15 @@ export default function PricingPage() {
       id: "explorer",
       name: "Explorer",
       badge: null,
-      priceAED: { monthly: 0, annual: 0 },
-      priceINR: { monthly: 0, annual: 0 },
+      priceAED: 0,
+      priceINR: 0,
       description: "Get started for free",
       cta: "Get Started Free",
       ctaAction: "free",
       features: [
         { text: "3 CV templates", included: true },
         { text: "ATS Checker (basic)", included: true },
-        { text: "3 PDF downloads", included: true },
+        { text: "Live CV preview", included: true },
         { text: "Walk-In Mode", included: true },
         { text: "Cover Letter Generator", included: false },
         { text: "Job Match Keywords", included: false },
@@ -173,12 +181,12 @@ export default function PricingPage() {
     },
     {
       id: "express",
-      name: "Express Pass",
+      name: TIERS.express_pass.displayName,
       badge: null,
-      priceAED: { monthly: 49, annual: 29 },
-      priceINR: { monthly: 399, annual: 239 },
-      description: "One-time payment, lifetime access",
-      cta: "Buy Now",
+      priceAED: TIERS.express_pass.prices.AED,
+      priceINR: TIERS.express_pass.prices.INR,
+      description: "Permanent single-CV unlock",
+      cta: "Get single-CV unlock",
       ctaAction: "express",
       features: [
         { text: "All templates", included: true },
@@ -195,12 +203,12 @@ export default function PricingPage() {
     },
     {
       id: "hunter",
-      name: "Active Hunter",
+      name: TIERS.active_hunter.displayName,
       badge: "Most Popular",
-      priceAED: { monthly: 29, annual: 17 },
-      priceINR: { monthly: 199, annual: 119 },
-      description: "Best for active job seekers",
-      cta: "Start Hunting",
+      priceAED: TIERS.active_hunter.prices.AED,
+      priceINR: TIERS.active_hunter.prices.INR,
+      description: "30-day access pass",
+      cta: "Get 30-day pass",
       ctaAction: "hunter",
       features: [
         { text: "All templates", included: true },
@@ -217,12 +225,12 @@ export default function PricingPage() {
     },
     {
       id: "pro",
-      name: "Career Pro",
+      name: TIERS.career_pro.displayName,
       badge: "Best Value",
-      priceAED: { monthly: null, annual: 199 },
-      priceINR: { monthly: null, annual: 999 },
-      description: "Full year, maximum results",
-      cta: "Go Annual",
+      priceAED: TIERS.career_pro.prices.AED,
+      priceINR: TIERS.career_pro.prices.INR,
+      description: "1-year access pass",
+      cta: "Get 1-year pass",
       ctaAction: "pro",
       features: [
         { text: "All templates", included: true },
@@ -241,11 +249,9 @@ export default function PricingPage() {
 
   const priceLabelFor = useCallback((plan) => {
     if (plan.id === "explorer") return "Free";
-    if (plan.id === "pro") return currency === "AED" ? "AED 199/yr" : "₹999/yr";
-    const prices = currency === "AED" ? plan.priceAED : plan.priceINR;
-    const price = billing === "monthly" ? prices.monthly : prices.annual;
-    return currency === "AED" ? `AED ${price}/mo` : `₹${price}/mo`;
-  }, [currency, billing]);
+    const price = currency === "AED" ? plan.priceAED : plan.priceINR;
+    return currency === "AED" ? `AED ${price}` : `₹${price}`;
+  }, [currency]);
 
   const handleRazorpaySuccess = useCallback(() => {
     setRazorpayCheckout(null);
@@ -262,7 +268,7 @@ export default function PricingPage() {
 
   const firePayment = useCallback(async (planAction) => {
     if (currency === "INR") {
-      const cfg = RAZORPAY_PLANS[planAction];
+      const cfg = razorpayConfigFor(planAction);
       if (!cfg) return;
       setCheckoutError(null);
       setRazorpayCheckout(cfg);
@@ -407,12 +413,12 @@ export default function PricingPage() {
     <>
       <Helmet>
         <title>CVPassport Pricing — CV Builder Plans for UAE, GCC &amp; India</title>
-        <meta name="description" content="Plans from AED 49 or ₹399. ATS CV builder for UAE, GCC & India job seekers. Free to start — no credit card required." />
+        <meta name="description" content="Plans from AED 19 or ₹149. ATS CV builder for UAE, GCC & India job seekers. Free to start — no credit card required." />
         <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://mycvpassport.com/pricing" />
         <meta property="og:title" content="CVPassport Pricing — CV Builder Plans for UAE, GCC &amp; India" />
-        <meta property="og:description" content="Plans from AED 49 or ₹399. ATS CV builder for UAE, GCC & India job seekers. Free to start — no credit card required." />
+        <meta property="og:description" content="Plans from AED 19 or ₹149. ATS CV builder for UAE, GCC & India job seekers. Free to start — no credit card required." />
         <meta property="og:url" content="https://mycvpassport.com/pricing" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
@@ -614,7 +620,7 @@ export default function PricingPage() {
           {(() => {
             const hunterPlan = plans.find((p) => p.id === "hunter");
             const isCurrent = !!hunterPlan && isCurrentPlan(hunterPlan);
-            const cancelLine = currency === "AED" ? "Cancel anytime · AED 29/mo" : "Cancel anytime · ₹199/mo";
+            const hunterPrice = getDisplayPrice("active_hunter", currency);
             return (
               <motion.div
                 variants={{
@@ -666,9 +672,9 @@ export default function PricingPage() {
                     {currency === "AED" ? "AED " : "₹"}
                   </span>
                   <span style={{ fontSize: 44, fontWeight: 700, color: "#FFFFFF", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
-                    {currency === "AED" ? "29" : "199"}
+                    {hunterPrice}
                   </span>
-                  <span style={{ fontSize: 14, color: "#A0A0A0", marginLeft: 4 }}>/mo</span>
+                  <span style={{ fontSize: 14, color: "#A0A0A0", marginLeft: 6 }}>· 30-day pass</span>
                 </div>
 
                 <div style={{ fontSize: 13, color: "#D97706", marginBottom: 24, fontWeight: 500 }}>
@@ -749,7 +755,7 @@ export default function PricingPage() {
                 )}
 
                 <div style={{ fontSize: 12, color: "#A0A0A0", textAlign: "center", marginTop: 12 }}>
-                  {cancelLine}
+                  One-time payment · access for 30 days
                 </div>
               </motion.div>
             );
@@ -808,8 +814,8 @@ export default function PricingPage() {
             >
               <span>
                 {allPlansOpen
-                  ? "Hide other plans"
-                  : "See all plans including one-time and annual options"}
+                  ? "Hide other passes"
+                  : "See all passes — single-CV unlock and 1-year pass"}
               </span>
               <ChevronDownIcon size={14} open={allPlansOpen} />
             </button>
@@ -826,62 +832,6 @@ export default function PricingPage() {
                 style={{ overflow: "hidden" }}
               >
                 <div style={{ paddingTop: 28 }}>
-                  {/* Billing toggle — relevant only for the annual options inside */}
-                  <div style={{ textAlign: "center", marginBottom: 24 }}>
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 0,
-                        backgroundColor: "#141414",
-                        border: "1px solid #2A2A2A",
-                        borderRadius: 100,
-                        padding: 4,
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setBilling("monthly")}
-                        style={{
-                          padding: "8px 20px", borderRadius: 100, border: "none",
-                          backgroundColor: billing === "monthly" ? "#FFFFFF" : "transparent",
-                          color: billing === "monthly" ? "#000000" : "#A0A0A0",
-                          fontSize: 13, fontWeight: 600, cursor: "pointer",
-                          transition: "all 0.2s", fontFamily: "inherit",
-                        }}
-                      >
-                        Monthly
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBilling("annual")}
-                        style={{
-                          padding: "8px 20px", borderRadius: 100, border: "none",
-                          backgroundColor: billing === "annual" ? "#FFFFFF" : "transparent",
-                          color: billing === "annual" ? "#000000" : "#A0A0A0",
-                          fontSize: 13, fontWeight: 600, cursor: "pointer",
-                          transition: "all 0.2s", fontFamily: "inherit",
-                          display: "flex", alignItems: "center", gap: 6,
-                        }}
-                      >
-                        Annual
-                        <span
-                          style={{
-                            backgroundColor: "rgba(217,119,6,0.15)",
-                            color: "#D97706",
-                            border: "1px solid rgba(217,119,6,0.3)",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: 100,
-                          }}
-                        >
-                          Save 40%
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-
                   {/* Express Pass + Career Pro — preserve existing card markup */}
                   <div
                     style={{
@@ -895,17 +845,12 @@ export default function PricingPage() {
                       .filter((p) => p.id === "express" || p.id === "pro")
                       .map((plan) => {
                         const isCurrent = isCurrentPlan(plan);
-                        let priceLarge = null;
-                        let priceSuffix = "";
-                        if (plan.id === "pro") {
-                          priceLarge = currency === "AED" ? "199" : "999";
-                          priceSuffix = "/yr";
-                        } else {
-                          const prices = currency === "AED" ? plan.priceAED : plan.priceINR;
-                          const price = billing === "monthly" ? prices.monthly : prices.annual;
-                          priceLarge = String(price);
-                          priceSuffix = "/mo";
-                        }
+                        const price = currency === "AED" ? plan.priceAED : plan.priceINR;
+                        const priceLarge = String(price);
+                        // Pass duration drives the suffix — Express Pass is
+                        // permanent (single-CV unlock); Career Pro is the
+                        // 1-year pass.
+                        const priceSuffix = plan.id === "pro" ? "· 1-year pass" : "· single CV";
                         return (
                           <div
                             key={plan.id}
@@ -943,15 +888,13 @@ export default function PricingPage() {
                               {plan.name}
                             </div>
                             <div style={{ marginBottom: 6, display: "flex", alignItems: "baseline", gap: 2 }}>
-                              {plan.id !== "pro" && (
-                                <span style={{ fontSize: 20, fontWeight: 700, color: "#FFFFFF" }}>
-                                  {currency === "AED" ? "AED " : "₹"}
-                                </span>
-                              )}
-                              <span style={{ fontSize: 40, fontWeight: 700, color: "#FFFFFF", lineHeight: 1 }}>
-                                {plan.id === "pro" ? (currency === "AED" ? "AED 199" : "₹999") : priceLarge}
+                              <span style={{ fontSize: 20, fontWeight: 700, color: "#FFFFFF" }}>
+                                {currency === "AED" ? "AED " : "₹"}
                               </span>
-                              <span style={{ fontSize: 13, color: "#A0A0A0", marginLeft: 2 }}>{priceSuffix}</span>
+                              <span style={{ fontSize: 40, fontWeight: 700, color: "#FFFFFF", lineHeight: 1 }}>
+                                {priceLarge}
+                              </span>
+                              <span style={{ fontSize: 13, color: "#A0A0A0", marginLeft: 6 }}>{priceSuffix}</span>
                             </div>
                             <div style={{ fontSize: 13, color: "#A0A0A0", marginBottom: 24 }}>
                               {plan.description}
@@ -1128,7 +1071,7 @@ export default function PricingPage() {
               Secured by {currency === "INR" ? "Razorpay" : "Ziina"} <LockIcon />
             </span>
             <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
-              Cancel Anytime ↩
+              One-time payment ✓
             </span>
             <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
               No Hidden Fees ✓

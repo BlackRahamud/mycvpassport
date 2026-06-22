@@ -11,6 +11,7 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
+import { PAID_TIER_SLUGS, TIERS, TIER_TO_PROFILE_PLAN, getServerAmount } from '../src/config/tierConfig.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -21,13 +22,7 @@ const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_SECRET = process.env.RAZORPAY_SECRET;
 const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-const PLAN_AMOUNTS = {
-  express_pass: 39900,
-  active_hunter: 19900,
-  career_pro: 99900,
-};
-
-const VALID_PLANS = new Set(Object.keys(PLAN_AMOUNTS));
+const VALID_PLANS = new Set(PAID_TIER_SLUGS);
 
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -136,8 +131,8 @@ async function handleOrder(req, res, body) {
     return res.status(400).json({ error: 'Invalid plan' });
   }
 
-  const expectedAmount = PLAN_AMOUNTS[plan];
-  if (Number(amount) !== expectedAmount) {
+  const expectedAmount = getServerAmount(plan, 'INR');
+  if (!expectedAmount || Number(amount) !== expectedAmount) {
     return res.status(400).json({ error: 'Amount does not match plan' });
   }
 
@@ -204,27 +199,11 @@ async function handleVerify(req, res, body) {
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
-  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  const { error } = await db
-    .from('profiles')
-    .update({ is_pro: true, plan })
-    .eq('id', userId);
-
-  if (error) {
-    console.error('[razorpay] verify profile update failed', { error: error.message, userId });
-    return res.status(500).json({ error: 'Failed to activate plan' });
-  }
-
-  await recordPayment(db, {
-    user_id: userId,
-    service: plan,
-    external_ref: razorpay_order_id,
-    payment_intent_id: razorpay_payment_id,
-  });
-
+  // Verify is UI/return only — the webhook is the sole durable source of
+  // truth for access flips and audit rows. Returning success here just
+  // confirms to the client that the payment was legitimately signed by
+  // Razorpay; the webhook will arrive moments later and apply the
+  // access change idempotently.
   return res.status(200).json({ success: true });
 }
 
@@ -301,18 +280,14 @@ async function handleWebhook(req, res, rawBody) {
     return res.status(200).json({ received: true, idempotent: true });
   }
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({ is_pro: true, plan })
-    .eq('id', userId);
-
-  if (error) {
-    console.error('[razorpay] webhook profile update failed', {
-      error: error.message,
+  const accessError = await applyPaidTier(supabase, userId, plan);
+  if (accessError) {
+    console.error('[razorpay] webhook access update failed', {
+      error: accessError.message,
       userId,
       plan,
     });
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: accessError.message });
   }
 
   await recordPayment(supabase, {
@@ -323,8 +298,45 @@ async function handleWebhook(req, res, rawBody) {
     payment_intent_id: payment.id,
   });
 
-  console.log('[razorpay] webhook user upgraded', { userId, plan, payment_id: payment.id });
+  console.log('[razorpay] webhook tier applied', { userId, plan, payment_id: payment.id });
   return res.status(200).json({ success: true });
+}
+
+// Applies a paid-tier purchase to the user's profile. Express Pass
+// increments download_credits (permanent single-CV unlocks); the
+// time-bounded passes (Active Hunter, Career Pro) extend
+// pro_access_expires_at by tier.duration_days via the atomic SQL
+// function. Returns null on success, or an error-shape on failure.
+async function applyPaidTier(db, userId, tierSlug) {
+  const tier = TIERS[tierSlug];
+  if (!tier) return new Error(`Unknown tier: ${tierSlug}`);
+
+  if (tier.model === 'permanent') {
+    const { error: creditsErr } = await db.rpc('grant_download_credits', {
+      p_user_id: userId,
+      p_credits: 1,
+    });
+    if (creditsErr) return creditsErr;
+    return null;
+  }
+
+  const { error: rpcErr } = await db.rpc('extend_pro_access', {
+    p_user_id: userId,
+    p_days: tier.duration_days,
+  });
+  if (rpcErr) return rpcErr;
+
+  // Mirror the tier name onto profiles.plan for the existing UI
+  // (PricingPage's "Current Plan" highlight reads from this column).
+  const planEnum = TIER_TO_PROFILE_PLAN[tierSlug];
+  if (planEnum) {
+    const { error: planErr } = await db
+      .from('profiles')
+      .update({ plan: planEnum })
+      .eq('id', userId);
+    if (planErr) return planErr;
+  }
+  return null;
 }
 
 export default async function handler(req, res) {

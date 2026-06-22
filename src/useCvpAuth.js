@@ -7,6 +7,7 @@ import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 import { identifyClarity } from "./lib/analytics/clarity";
 import { identifyPostHog, resetPostHog } from "./lib/analytics/posthog";
 import { setCurrentAuthUserId } from "./lib/analytics/authState";
+import { hasProAccess } from "./config/access";
 
 const extractName = (u) => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
@@ -58,7 +59,13 @@ export function useCvpAuth() {
   });
   const [user, setUser] = useState(null);
   const [isPro, setIsPro] = useState(false);
-  const [profile, setProfile] = useState({ is_pro: false, plan: "FREE", features: {} });
+  const [profile, setProfile] = useState({
+    is_pro: false,
+    plan: "FREE",
+    features: {},
+    pro_access_expires_at: null,
+    download_credits: 0,
+  });
   const [authLoading, setAuthLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState(null);
@@ -125,23 +132,36 @@ export function useCvpAuth() {
     let cancelled = false;
     const fetchProStatus = async (userId, traits = {}) => {
       try {
-        const { data: row } = await supabase.from("profiles").select("is_pro, plan, features").eq("id", userId).single();
+        const { data: row } = await supabase
+          .from("profiles")
+          .select("is_pro, plan, features, pro_access_expires_at, download_credits")
+          .eq("id", userId)
+          .single();
         if (!cancelled) {
-          setIsPro(!!row?.is_pro);
+          const derivedIsPro = hasProAccess(row);
+          setIsPro(derivedIsPro);
           setProfile({
-            is_pro: !!row?.is_pro,
+            is_pro: derivedIsPro,
             plan: row?.plan || "FREE",
             features: row?.features || {},
+            pro_access_expires_at: row?.pro_access_expires_at || null,
+            download_credits: row?.download_credits || 0,
           });
           // Re-identify with plan trait now that we know it.
-          const planTrait = row?.is_pro ? "pro" : "free";
+          const planTrait = derivedIsPro ? "pro" : "free";
           identifyClarity(userId, { ...traits, plan: planTrait });
           identifyPostHog(userId, { ...traits, plan: planTrait });
         }
       } catch {
         if (!cancelled) {
           setIsPro(false);
-          setProfile({ is_pro: false, plan: "FREE", features: {} });
+          setProfile({
+            is_pro: false,
+            plan: "FREE",
+            features: {},
+            pro_access_expires_at: null,
+            download_credits: 0,
+          });
         }
       }
     };
@@ -174,8 +194,21 @@ export function useCvpAuth() {
         setUser((prev) => (prev === null ? prev : null));
         setIsPro((prev) => (prev === false ? prev : false));
         setProfile((prev) => {
-          if (prev && prev.is_pro === false && prev.plan === "FREE" && Object.keys(prev.features || {}).length === 0) return prev;
-          return { is_pro: false, plan: "FREE", features: {} };
+          if (
+            prev
+            && prev.is_pro === false
+            && prev.plan === "FREE"
+            && Object.keys(prev.features || {}).length === 0
+            && prev.pro_access_expires_at == null
+            && (prev.download_credits || 0) === 0
+          ) return prev;
+          return {
+            is_pro: false,
+            plan: "FREE",
+            features: {},
+            pro_access_expires_at: null,
+            download_credits: 0,
+          };
         });
         if (lastIdentifiedIdRef.current != null) {
           resetPostHog();
@@ -240,14 +273,17 @@ export function useCvpAuth() {
     try {
       const { data: row } = await supabase
         .from("profiles")
-        .select("is_pro, plan, features")
+        .select("is_pro, plan, features, pro_access_expires_at, download_credits")
         .eq("id", user.id)
         .single();
-      setIsPro(!!row?.is_pro);
+      const derivedIsPro = hasProAccess(row);
+      setIsPro(derivedIsPro);
       setProfile({
-        is_pro: !!row?.is_pro,
+        is_pro: derivedIsPro,
         plan: row?.plan || "FREE",
         features: row?.features || {},
+        pro_access_expires_at: row?.pro_access_expires_at || null,
+        download_credits: row?.download_credits || 0,
       });
     } catch {
       /* leave current values on failure */
@@ -501,7 +537,13 @@ export function useCvpAuth() {
     if (supabase) await supabase.auth.signOut();
     setUser(null);
     setIsPro(false);
-    setProfile({ is_pro: false, plan: "FREE", features: {} });
+    setProfile({
+      is_pro: false,
+      plan: "FREE",
+      features: {},
+      pro_access_expires_at: null,
+      download_credits: 0,
+    });
     navigate("/");
   };
 

@@ -1,3 +1,18 @@
+import { ZIINA_FEATURE_TO_TIER, getServerAmount } from '../src/config/tierConfig.js';
+
+// A-la-carte (non-tier) unlock prices stay local — they route through
+// the permissions table, not the tier/profiles.plan path. Tier prices
+// live in tierConfig and are looked up below via getServerAmount.
+const A_LA_CARTE_FILS = {
+  coverLetter:       1000,
+  ats:               2900,
+  jobMatch:          2900,
+  templates:         2900,
+  linkedinOptimizer: 4900,
+};
+
+const DEFAULT_FILS = 2900;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -6,18 +21,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing fields' });
   }
 
-  const AMOUNTS = {
-    coverLetter:       1000,
-    expressPass:       4900,
-    activeHunter:      2900,
-    careerPro:         19900,
-    ats:               2900,
-    jobMatch:          2900,
-    templates:         2900,
-    linkedinOptimizer: 4900,
-  };
-
-  const amount = AMOUNTS[feature] || 2900;
+  const tierSlug = ZIINA_FEATURE_TO_TIER[feature];
+  const amount = tierSlug
+    ? getServerAmount(tierSlug, 'AED')
+    : (A_LA_CARTE_FILS[feature] || DEFAULT_FILS);
 
   // A-la-carte services (non-plan unlocks) route through the permissions table
   // rather than flipping profiles.is_pro. The webhook keys off the suffix on

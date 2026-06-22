@@ -113,13 +113,29 @@ export async function downloadResumeFromPreview(cvInput, captureElement, opts = 
   const baseName = `${(cv.name || "Resume").replace(/\s+/g, "_")}_CVPassport`;
 
   const maxPages = opts.maxPages === 1 ? 1 : opts.maxPages === 2 ? 2 : undefined;
+
+  // Builder CV download path — gated by the server credit logic. We send
+  // the user's access token so the server can validate the session, and
+  // `consumeCredit: true` so the server applies the
+  // hasProAccess-OR-credit gate and decrements on success. Other callers
+  // of /api/generate-pdf (Walk-In, Cover Letter, Transform, Scout) skip
+  // both — they have their own paywalls or are free flows.
+  const headers = { "Content-Type": "application/json" };
+  if (supabase) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  }
+
   const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       html,
       filename: baseName,
       cv,
+      consumeCredit: true,
       ...(templateId != null ? { templateId } : {}),
       ...(maxPages != null ? { maxPages } : {}),
     }),

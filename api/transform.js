@@ -54,6 +54,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { hasProAccess } from '../src/config/access.js';
 
 export const config = { maxDuration: 60 };
 
@@ -104,8 +105,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // =====================================================================
 
 function classifyUserPlan(profile) {
-  if (!profile?.is_pro) return 'free';
-  if (profile.plan === 'express_pass') return 'express';
+  if (!hasProAccess(profile)) return 'free';
+  // profiles.plan has historic inconsistency (old rows lowercase, new rows
+  // UPPERCASE_SNAKE — see TIER_TO_PROFILE_PLAN). Normalize before matching.
+  if (String(profile?.plan || '').toLowerCase() === 'express_pass') return 'express';
   return 'pro';
 }
 
@@ -196,7 +199,7 @@ async function handleUpload(req, res, body) {
     : text.length;
 
   const { data: profile, error: profErr } = await db
-    .from('profiles').select('is_pro, plan').eq('id', user.id).maybeSingle();
+    .from('profiles').select('is_pro, plan, pro_access_expires_at').eq('id', user.id).maybeSingle();
   if (profErr) {
     console.error('[transform/upload] profile lookup failed:', JSON.stringify(profErr));
     return res.status(500).json({ ok: false, error: 'Could not load profile' });
@@ -386,7 +389,7 @@ async function handlePay(req, res, body) {
   // Re-classify live (the upload-time snapshot may be stale if the
   // user upgraded mid-flow).
   const { data: profile, error: profErr } = await db
-    .from('profiles').select('is_pro, plan').eq('id', user.id).maybeSingle();
+    .from('profiles').select('is_pro, plan, pro_access_expires_at').eq('id', user.id).maybeSingle();
   if (profErr) {
     console.error('[transform/pay] profile lookup failed:', JSON.stringify(profErr));
     return res.status(500).json({

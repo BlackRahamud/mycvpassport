@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
+import { TIERS, UI_SLUG_TO_TIER, TIER_TO_ZIINA_FEATURE } from "../config/tierConfig";
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
 
-const PLAN_DISPLAY = {
-  express: "Express Pass",
-  hunter: "Active Hunter",
-  pro: "Career Pro",
-};
+// UI short slug ('express') -> { displayName, ziina feature key }. Derived
+// from tierConfig so new tiers don't need a parallel map here.
+const PLAN_DISPLAY = Object.entries(UI_SLUG_TO_TIER).reduce((acc, [uiSlug, tierSlug]) => {
+  const t = TIERS[tierSlug];
+  if (t) acc[uiSlug] = t.displayName;
+  return acc;
+}, {});
 
-const FEATURE_MAP = {
-  express: "expressPass",
-  hunter: "activeHunter",
-  pro: "careerPro",
-};
+const FEATURE_MAP = Object.entries(UI_SLUG_TO_TIER).reduce((acc, [uiSlug, tierSlug]) => {
+  const feature = TIER_TO_ZIINA_FEATURE[tierSlug];
+  if (feature) acc[uiSlug] = feature;
+  return acc;
+}, {});
 
 const EASE_SHEET = "cubic-bezier(0.32, 0.72, 0, 1)";
 const EASE_UI = "cubic-bezier(0.4, 0, 0.2, 1)";

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizeResumeText } from './normalizeResumeText';
+import { hasProAccess } from './config/access';
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -16,7 +17,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 /**
  * Fetch the current authenticated user together with their profile row.
- * Centralises the `is_pro` flag lookup so the rest of the app can stay simple.
+ * Access is DERIVED from pro_access_expires_at (the canonical source of
+ * truth) rather than the raw is_pro flag, so this stays correct once a
+ * user's pass lapses.
  */
 export async function getCurrentUserProfile() {
   const {
@@ -29,7 +32,7 @@ export async function getCurrentUserProfile() {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, is_pro, ats_scans_used')
+    .select('id, is_pro, ats_scans_used, pro_access_expires_at, download_credits')
     .eq('id', user.id)
     .single();
 
@@ -38,7 +41,7 @@ export async function getCurrentUserProfile() {
     throw profileError;
   }
 
-  const isPro = !!profile?.is_pro;
+  const isPro = hasProAccess(profile);
   return { user, profile, isPro };
 }
 
@@ -48,9 +51,8 @@ export async function getCurrentUserProfile() {
  * Returns: structured JSON on success, or { error: "..." } when not Pro / on API failure.
  */
 export async function parseResumeToStructuredJSON(rawText) {
-  const { profile } = await getCurrentUserProfile();
+  const { isPro: userIsPro } = await getCurrentUserProfile();
 
-  const userIsPro = !!(profile && profile.is_pro);
   if (!userIsPro) {
     return { error: 'Subscription required for premium AI parsing.' };
   }

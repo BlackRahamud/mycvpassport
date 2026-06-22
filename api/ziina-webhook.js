@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { PAID_TIER_SLUGS, TIERS, TIER_TO_PROFILE_PLAN, getServerAmount } from '../src/config/tierConfig.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -8,12 +9,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const PLAN_MAP = {
-  4900:  { plan: 'express_pass',  is_pro: true },
-  2900:  { plan: 'active_hunter', is_pro: true },
-  19900: { plan: 'career_pro',    is_pro: true },
-  1000:  { plan: 'cover_letter',  is_pro: false },
-};
+// Tier amounts in fils → tier slug. Built from tierConfig so prices are
+// never duplicated. Cover Letter and other a-la-carte unlocks stay
+// hardcoded here because they route through the permissions table, not
+// profiles.plan.
+const PLAN_MAP = PAID_TIER_SLUGS.reduce((acc, slug) => {
+  const fils = getServerAmount(slug, 'AED');
+  if (fils != null) acc[fils] = { plan: slug, is_pro: true };
+  return acc;
+}, {
+  1000: { plan: 'cover_letter', is_pro: false },
+});
 
 // Upload & Transform sessions encode their session id in the
 // external_reference as "transform:<uuid>". Used by the transform
@@ -238,17 +244,28 @@ export default async function handler(req, res) {
 
   const upgrade = PLAN_MAP[amount] || { plan: 'active_hunter', is_pro: true };
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({ is_pro: upgrade.is_pro, plan: upgrade.plan })
-    .eq('id', external_reference);
+  // Idempotency — Ziina retries failed webhook deliveries. Stacking
+  // expiry / incrementing download_credits must not double-apply on
+  // a retry, so we short-circuit if we've already recorded an audit
+  // row for this payment_intent_id.
+  if (payment_intent_id) {
+    const { data: existingAudit } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('payment_intent_id', payment_intent_id)
+      .maybeSingle();
+    if (existingAudit) {
+      return res.status(200).json({ received: true, idempotent: true });
+    }
+  }
 
-  if (error) {
+  const accessError = await applyZiinaPaidTier(external_reference, upgrade.plan);
+  if (accessError) {
     console.error('Supabase update failed', {
-      error: error.message,
-      userId: external_reference
+      error: accessError.message,
+      userId: external_reference,
     });
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: accessError.message });
   }
 
   await recordPayment({ user_id: external_reference, service: upgrade.plan });
@@ -259,4 +276,37 @@ export default async function handler(req, res) {
   });
 
   return res.status(200).json({ success: true });
+}
+
+// Mirrors the Razorpay webhook's applyPaidTier: express_pass increments
+// download_credits, time-bounded passes extend pro_access_expires_at
+// atomically via the SQL function. Returns null on success.
+async function applyZiinaPaidTier(userId, tierSlug) {
+  const tier = TIERS[tierSlug];
+  if (!tier) return new Error(`Unknown tier: ${tierSlug}`);
+
+  if (tier.model === 'permanent') {
+    const { error: creditsErr } = await supabase.rpc('grant_download_credits', {
+      p_user_id: userId,
+      p_credits: 1,
+    });
+    if (creditsErr) return creditsErr;
+    return null;
+  }
+
+  const { error: rpcErr } = await supabase.rpc('extend_pro_access', {
+    p_user_id: userId,
+    p_days: tier.duration_days,
+  });
+  if (rpcErr) return rpcErr;
+
+  const planEnum = TIER_TO_PROFILE_PLAN[tierSlug];
+  if (planEnum) {
+    const { error: planErr } = await supabase
+      .from('profiles')
+      .update({ plan: planEnum })
+      .eq('id', userId);
+    if (planErr) return planErr;
+  }
+  return null;
 }

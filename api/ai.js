@@ -47,6 +47,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { hasProAccess } from '../src/config/access.js';
 
 export const config = { maxDuration: 60 };
 
@@ -338,17 +339,17 @@ async function handleParseResume(req, res, body) {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, is_pro')
+    .select('id, is_pro, pro_access_expires_at')
     .eq('id', user.id)
     .single();
 
   // PGRST116 = "no rows" — treat as "no profile yet", which the
-  // is_pro check below will reject. Any other error is a real DB
+  // hasProAccess check below will reject. Any other error is a real DB
   // failure and we surface it.
   if (profileError && profileError.code !== 'PGRST116') {
     return res.status(500).json({ error: 'Could not verify subscription.' });
   }
-  if (!profile || !profile.is_pro) {
+  if (!hasProAccess(profile)) {
     return res.status(403).json({ error: 'Subscription required for premium AI parsing.' });
   }
 
@@ -430,8 +431,10 @@ const VALID_TAILOR_SECTIONS = new Set(['summary', 'experience_bullet']);
 // 'anonymous' | 'free' | 'paid' | 'paid_pro'. Active Hunter / Career
 // Pro count as paid_pro; Express Pass (one-off) as paid.
 function classifyTier(profile) {
-  if (!profile?.is_pro) return 'free';
-  if (profile.plan === 'express_pass') return 'paid';
+  if (!hasProAccess(profile)) return 'free';
+  // profiles.plan has historic inconsistency (old rows lowercase, new rows
+  // UPPERCASE_SNAKE — see TIER_TO_PROFILE_PLAN). Normalize before matching.
+  if (String(profile?.plan || '').toLowerCase() === 'express_pass') return 'paid';
   return 'paid_pro';
 }
 
@@ -682,7 +685,7 @@ async function handleTailor(req, res, body) {
   // 4. Profile + tier classification (re-classified live every call).
   const { data: profile, error: profileErr } = await db
     .from('profiles')
-    .select('id, is_pro, plan, ai_credits_used')
+    .select('id, is_pro, plan, ai_credits_used, pro_access_expires_at')
     .eq('id', user.id)
     .maybeSingle();
   if (profileErr) {

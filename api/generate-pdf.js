@@ -1,5 +1,19 @@
 const chromium = require("@sparticuz/chromium-min");
 const puppeteer = require("puppeteer-core");
+const { createClient } = require("@supabase/supabase-js");
+
+// Shared access helper lives as ESM in src/config/access.js. This file is
+// authored as CJS for compatibility with the puppeteer/chromium toolchain,
+// so we dynamic-import the helper on first use and cache it.
+let _accessModule;
+async function loadAccess() {
+  if (!_accessModule) _accessModule = await import("../src/config/access.js");
+  return _accessModule;
+}
+
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const { pdfModernEmerald } = require("../src/serverLib/bannerTemplate1Html");
 const { buildTwocolTemplate2Html } = require("../src/serverLib/twocolTemplate2Html");
@@ -51,7 +65,61 @@ module.exports = async (req, res) => {
     try { body = JSON.parse(body); } catch { return res.status(400).json({ error: "Invalid JSON" }); }
   }
 
-  const { html, templateId, cv, atsMode, maxPages } = body;
+  const { html, templateId, cv, atsMode, maxPages, consumeCredit } = body;
+
+  // Credit gate — opt-in via `consumeCredit: true` from the builder's main
+  // download path (src/downloadResumeFromPreview.js). Other callers (Walk-In
+  // Mode, Cover Letter, Transform success, Scout) don't send this flag and
+  // bypass the gate, preserving their existing free / pre-paid flows.
+  //
+  // When the flag is set we require a valid Supabase session and enforce:
+  //   * hasProAccess(profile) → unlimited, no decrement
+  //   * download_credits > 0  → allowed; ONE credit decremented on success
+  //   * neither               → 402 with paywall payload
+  //
+  // The userId is taken from the verified token, never from the body.
+  let creditConsumer = null; // populated only when a decrement should fire
+  if (consumeCredit === true) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+      return res.status(500).json({ error: "Server not configured" });
+    }
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { user } = {}, error: userErr } = await authClient.auth.getUser(token);
+    if (userErr || !user) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+    const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: profile, error: profErr } = await db
+      .from("profiles")
+      .select("id, is_pro, pro_access_expires_at, download_credits")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profErr) {
+      console.error("[generate-pdf] profile lookup failed", profErr.message);
+      return res.status(500).json({ error: "Could not verify entitlement" });
+    }
+    const { hasProAccess } = await loadAccess();
+    if (hasProAccess(profile)) {
+      // Pro / Career Pro / grandfathered: unlimited downloads, no decrement.
+    } else if ((profile?.download_credits || 0) > 0) {
+      // Express Pass holder with credits remaining. Schedule a decrement
+      // that fires only after the PDF render succeeds.
+      creditConsumer = { db, userId: user.id };
+    } else {
+      return res.status(402).json({
+        error: "Download requires a paid pass or unlock",
+        code: "no_credit",
+        paywall: true,
+      });
+    }
+  }
 
   const rawCvForLog = body.cv != null ? body.cv : cv;
   if (rawCvForLog && typeof rawCvForLog === "object") {
@@ -403,6 +471,32 @@ module.exports = async (req, res) => {
     //     drawSeparator: true,
     //   });
     // }
+
+    // Atomic decrement on successful render. The RPC's `download_credits > 0`
+    // guard makes this race-safe — concurrent downloads can't drive the
+    // counter negative, and a row already at zero returns NULL.
+    if (creditConsumer) {
+      const { data: remaining, error: decErr } = await creditConsumer.db.rpc(
+        "consume_download_credit",
+        { p_user_id: creditConsumer.userId },
+      );
+      if (decErr) {
+        console.error("[generate-pdf] credit decrement failed", {
+          userId: creditConsumer.userId,
+          error: decErr.message,
+        });
+        // Fall through — user paid for the unlock, ship the PDF anyway.
+      } else if (remaining == null) {
+        console.warn("[generate-pdf] credit decrement matched zero rows", {
+          userId: creditConsumer.userId,
+        });
+      } else {
+        console.log("[generate-pdf] credit consumed", {
+          userId: creditConsumer.userId,
+          remaining,
+        });
+      }
+    }
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", 'attachment; filename="cv.pdf"');

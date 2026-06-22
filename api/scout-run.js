@@ -42,6 +42,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
+import { hasProAccess } from '../src/config/access.js';
 
 export const config = { maxDuration: 60 };
 
@@ -995,10 +996,10 @@ export default async function handler(req, res) {
 
   const { data: profile } = await db
     .from('profiles')
-    .select('is_pro')
+    .select('is_pro, pro_access_expires_at')
     .eq('id', user.id)
     .single();
-  if (!profile?.is_pro) {
+  if (!hasProAccess(profile)) {
     return res.status(402).json({ ok: false, error: 'Scout requires a paid plan' });
   }
 
