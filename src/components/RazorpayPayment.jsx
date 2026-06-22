@@ -28,7 +28,7 @@ function loadRazorpayScript() {
   });
 }
 
-export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure }) {
+export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure, onModalOpen }) {
   const startedRef = useRef(false);
   const [busy, setBusy] = useState(true);
 
@@ -126,6 +126,7 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure 
           if (onFailure) onFailure(msg);
         });
 
+        if (onModalOpen) onModalOpen();
         setBusy(false);
         rzp.open();
       } catch (err) {
@@ -141,7 +142,7 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure 
     return () => {
       cancelled = true;
     };
-  }, [plan, amountINR, onSuccess, onFailure]);
+  }, [plan, amountINR, onSuccess, onFailure, onModalOpen]);
 
   if (!busy) return null;
 

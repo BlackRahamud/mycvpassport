@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -106,6 +106,24 @@ export default function PricingPage() {
   const [checkoutError, setCheckoutError] = useState(null);
   const [allPlansOpen, setAllPlansOpen] = useState(false);
   const [razorpayCheckout, setRazorpayCheckout] = useState(null);
+  // Conversion-moment "we're working on it" overlay. Set the moment a CTA
+  // is clicked; cleared by every terminal Razorpay outcome (modal open /
+  // success / failure / dismiss) and by every Ziina path exit (redirect
+  // requires no clear since the page is unloading; error clears + surfaces
+  // the inline error). launchingRef is a hard re-entry guard for clicks
+  // faster than React's render commit.
+  const [paymentLaunching, setPaymentLaunching] = useState({
+    active: false, planAction: null, kind: null,
+  });
+  const launchingRef = useRef(false);
+  const clearLaunching = useCallback(() => {
+    launchingRef.current = false;
+    setPaymentLaunching({ active: false, planAction: null, kind: null });
+  }, []);
+  const planDisplayName = (planAction) => {
+    const tierSlug = UI_SLUG_TO_TIER[planAction];
+    return tierSlug ? TIERS[tierSlug]?.displayName : "your plan";
+  };
   const reduce = useReducedMotion();
 
   // GA4: view_pricing_plan
@@ -267,36 +285,60 @@ export default function PricingPage() {
 
   const handleRazorpaySuccess = useCallback(() => {
     setRazorpayCheckout(null);
+    clearLaunching();
     setShowSuccess(true);
     window.history.replaceState({}, "", "/pricing?payment=success");
-  }, []);
+  }, [clearLaunching]);
 
   const handleRazorpayFailure = useCallback((msg) => {
     setRazorpayCheckout(null);
+    clearLaunching();
     if (msg !== "Payment cancelled") {
       setCheckoutError(msg || "Couldn't complete payment. Please try again.");
     }
-  }, []);
+  }, [clearLaunching]);
+
+  // Fires the instant Razorpay calls rzp.open() — the checkout iframe is
+  // about to paint, so the launching overlay has done its job. The Razorpay
+  // modal renders on top with its own backdrop.
+  const handleRazorpayModalOpen = useCallback(() => {
+    clearLaunching();
+  }, [clearLaunching]);
 
   const firePayment = useCallback(async (planAction) => {
+    // Hard re-entry guard — protects against a second click landing
+    // before React commits the disabled-button render.
+    if (launchingRef.current) return;
+    launchingRef.current = true;
+    setCheckoutError(null);
+
     if (currency === "INR") {
       const cfg = razorpayConfigFor(planAction);
-      if (!cfg) return;
-      setCheckoutError(null);
+      if (!cfg) { launchingRef.current = false; return; }
+      setPaymentLaunching({ active: true, planAction, kind: "razorpay" });
       setRazorpayCheckout(cfg);
+      // Overlay clears on onModalOpen / onSuccess / onFailure / dismiss.
       return;
     }
     const featureMap = { express: "expressPass", hunter: "activeHunter", pro: "careerPro" };
     const feature = featureMap[planAction];
-    if (!feature) return;
-    setCheckoutError(null);
-    const url = await getPaymentLink(feature);
-    if (url) {
-      window.location.href = url;
-    } else {
-      setCheckoutError("Couldn't start checkout. Please try again in a moment.");
+    if (!feature) { launchingRef.current = false; return; }
+
+    setPaymentLaunching({ active: true, planAction, kind: "ziina" });
+    try {
+      const url = await getPaymentLink(feature);
+      if (url) {
+        // Keep the overlay up until navigation fires.
+        window.location.href = url;
+        return;
+      }
+      clearLaunching();
+      setCheckoutError("Couldn't start checkout — please try again.");
+    } catch {
+      clearLaunching();
+      setCheckoutError("Couldn't start checkout — please try again.");
     }
-  }, [currency]);
+  }, [currency, clearLaunching]);
 
   const handleCTA = async (plan) => {
     if (typeof window.gtag === "function") {
@@ -601,6 +643,7 @@ export default function PricingPage() {
                 ) : (
                   <button
                     type="button"
+                    disabled={paymentLaunching.active}
                     onClick={() => explorerPlan && handleCTA(explorerPlan)}
                     style={{
                       width: "100%", height: 44, borderRadius: 12,
@@ -736,6 +779,7 @@ export default function PricingPage() {
                 ) : (
                   <motion.button
                     type="button"
+                    disabled={paymentLaunching.active}
                     onClick={() => hunterPlan && handleCTA(hunterPlan)}
                     initial={reduce ? false : { boxShadow: "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30)" }}
                     animate={reduce ? undefined : {
@@ -959,6 +1003,7 @@ export default function PricingPage() {
                             ) : (
                               <button
                                 type="button"
+                                disabled={paymentLaunching.active}
                                 onClick={() => handleCTA(plan)}
                                 style={{
                                   width: "100%",
@@ -1114,8 +1159,66 @@ export default function PricingPage() {
         amountINR={razorpayCheckout.amount}
         onSuccess={handleRazorpaySuccess}
         onFailure={handleRazorpayFailure}
+        onModalOpen={handleRazorpayModalOpen}
       />
     ) : null}
+
+    {paymentLaunching.active ? (
+      <LaunchingOverlay
+        message={paymentLaunching.kind === "ziina"
+          ? "Redirecting to secure checkout…"
+          : `Setting up your ${planDisplayName(paymentLaunching.planAction)} checkout…`}
+      />
+    ) : null}
+    </>
+  );
+}
+
+// Conversion-moment processing indicator. Reuses the conic-gradient ring
+// pattern from OLEDScoreRing — same @property + spin keyframes, amber
+// token (#D97706, the accent in CLAUDE.md), OLED-dark surface. Smaller
+// than the score ring (88px vs 220px) because this is a transient
+// "we're working" beat, not a reveal.
+function LaunchingOverlay({ message }) {
+  return (
+    <>
+      <style>{`
+        @property --cvp-launching-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        @keyframes cvp-launching-spin { to { --cvp-launching-angle: 360deg; } }
+      `}</style>
+      <div
+        role="alert"
+        aria-live="polite"
+        style={{
+          position: "fixed", inset: 0, zIndex: 9998,
+          background: "rgba(10,10,10,0.92)",
+          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 24,
+          fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+        }}
+      >
+        <div style={{ position: "relative", width: 88, height: 88 }}>
+          <div aria-hidden="true" style={{
+            position: "absolute", inset: 0, borderRadius: "50%", padding: 2,
+            background: "conic-gradient(from var(--cvp-launching-angle, 0deg), transparent 60%, #D97706 80%, transparent 100%)",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            animation: "cvp-launching-spin 2.4s linear infinite",
+          }} />
+          <div style={{
+            position: "absolute", inset: 2, borderRadius: "50%",
+            background: "#0A0A0A",
+          }} />
+        </div>
+        <div style={{
+          fontSize: 15, color: "#FFFFFF", fontWeight: 500, textAlign: "center",
+          maxWidth: 320, padding: "0 24px", letterSpacing: "-0.005em",
+          lineHeight: 1.5,
+        }}>{message}</div>
+      </div>
     </>
   );
 }
