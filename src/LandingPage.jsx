@@ -21,7 +21,6 @@ import UploadTransformSection from './components/landing/UploadTransformSection'
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import TemplatesSection from './components/landing/TemplatesSection';
 import FloatingActionButton from './components/landing/FloatingActionButton';
-import ShowSection from './components/landing/ShowSection';
 import FoundersNoteSection from './components/landing/FoundersNoteSection';
 import PricingAnchorSection from './components/landing/PricingAnchorSection';
 import AtsScoreLiftBanner from './components/landing/AtsScoreLiftBanner';
@@ -852,11 +851,6 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         {/* 6 — Templates. Anchor target for the "Templates" nav link. */}
         <span id="templates" aria-hidden="true" />
         <TemplatesSection />
-
-        {/* 7 — The Quiet Truth rejection-reel section. Note: this used
-                to be merged with Upload & Transform; the merge was
-                undone when Upload moved up to position 4. */}
-        <ShowSection />
 
         {/* 8 + 9 — +52 stat banner above "Real people. Real results." */}
         <AtsScoreLiftBanner />
