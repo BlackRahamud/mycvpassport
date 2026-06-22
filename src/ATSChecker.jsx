@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, Lock, ChevronDown, Sparkles, Plus, ArrowRight, CheckCircle } from "lucide-react";
+import { Upload, Lock, ChevronDown, Sparkles, Plus, CheckCircle } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase } from "./supabaseClient";
 import { getGatekeeperData } from "./services/gatekeeper";
@@ -650,33 +650,25 @@ export default function ATSChecker({
           Upload your CV, paste the job description. Get your score in seconds — based on real regional hiring data.
         </p>
 
-        <div style={{ position: "relative", borderRadius: 16, marginBottom: 14 }}>
-          <div aria-hidden style={{
-            position: "absolute", inset: 0, borderRadius: 16, padding: 1,
-            background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.5) 80%, transparent 100%)",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-            pointerEvents: "none",
-            animation: "ats-spin-border 4s linear infinite",
-          }} />
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
-            style={{ position: "relative", background: "#0f0f0f", border: "none", borderRadius: 16, padding: "44px 24px", textAlign: "center", cursor: "pointer", overflow: "hidden" }}
-          >
-            <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} onChange={onFileChange} />
-            <div style={{ width: 52, height: 52, background: uploadedFile ? "rgba(74,222,128,0.1)" : "rgba(255,255,255,0.06)", border: `1px solid ${uploadedFile ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.12)"}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
-              {uploadedFile ? <CheckCircle size={22} color={T.green} /> : <Upload size={22} color="rgba(255,255,255,0.5)" />}
-            </div>
-            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: uploadedFile ? T.green : T.text, marginBottom: 6 }}>
-              {uploadedFile ? uploadedFile.name : "Drop your CV here"}
-            </div>
-            <div style={{ fontSize: 13, color: T.muted }}>
-              {uploadedFile ? "File ready · click to replace" : <>or <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>browse your CV</span></>}
-            </div>
-            <div style={{ marginTop: 14, fontSize: 11, color: "rgba(160,160,160,0.5)", letterSpacing: 0.5 }}>PDF · DOCX · Max 10MB</div>
+        {/* Dropzone: static border so the orbiting Analyze CTA below is the
+            only animated element on this surface. File-ready signal lives in
+            the green-tinted icon container + filename swap. */}
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
+          style={{ position: "relative", background: "#0f0f0f", border: "1px solid #2A2A2A", borderRadius: 16, padding: "44px 24px", textAlign: "center", cursor: "pointer", overflow: "hidden", marginBottom: 14 }}
+        >
+          <input ref={fileInputRef} type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style={{ display: "none" }} onChange={onFileChange} />
+          <div style={{ width: 52, height: 52, background: uploadedFile ? "rgba(74,222,128,0.1)" : "rgba(255,255,255,0.06)", border: `1px solid ${uploadedFile ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.12)"}`, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+            {uploadedFile ? <CheckCircle size={22} color={T.green} /> : <Upload size={22} color="rgba(255,255,255,0.5)" />}
           </div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: uploadedFile ? T.green : T.text, marginBottom: 6 }}>
+            {uploadedFile ? uploadedFile.name : "Drop your CV here"}
+          </div>
+          <div style={{ fontSize: 13, color: T.muted }}>
+            {uploadedFile ? "File ready · click to replace" : <>or <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>browse your CV</span></>}
+          </div>
+          <div style={{ marginTop: 14, fontSize: 11, color: "rgba(160,160,160,0.5)", letterSpacing: 0.5 }}>PDF · DOCX · Max 10MB</div>
         </div>
 
         <div style={{ position: "relative", marginBottom: 16 }}>
@@ -791,43 +783,29 @@ export default function ATSChecker({
           })()
         )}
 
-        <div style={{ position: "relative", borderRadius: 12, overflow: "hidden" }}>
-          <div aria-hidden style={{
-            position: "absolute", inset: 0, borderRadius: 12, padding: 1,
-            background: "conic-gradient(from var(--ats-angle, 0deg), transparent 60%, rgba(255,255,255,0.6) 80%, transparent 100%)",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-            pointerEvents: "none",
-            animation: "ats-spin-border 4s linear infinite",
-          }} />
+        {/* Primary action — designed orbiting-amber CTA. The whole .cvp-analyze-cta
+            rule set (markup, hover, focus, disabled, reduced-motion, the ::before
+            bright orbit and ::after blurred bloom) lives in src/index.css, sharing
+            the canonical --ats-angle / ats-spin-border animation engine with the
+            rest of the conversion-moment surfaces. Speed knob (--cta-speed)
+            overrides at 1.2s while analysis runs so the orbit reads as "working". */}
+        <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
           <button
+            type="button"
+            className="cvp-analyze-cta"
             onClick={handleAnalyze}
-            disabled={!isPro && TURNSTILE_SITE_KEY && !turnstileToken}
-            style={{
-              width: "100%",
-              background: "#0A0A0A",
-              color: "#fff",
-              border: "none",
-              borderRadius: 12,
-              padding: "18px 24px",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 16,
-              fontWeight: 700,
-              cursor: !isPro && TURNSTILE_SITE_KEY && !turnstileToken ? "not-allowed" : "pointer",
-              opacity: !isPro && TURNSTILE_SITE_KEY && !turnstileToken ? 0.55 : 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              letterSpacing: -0.3,
-              transition: "opacity 0.15s, transform 0.15s",
-              position: "relative",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+            disabled={(phase === "loading") || (!isPro && TURNSTILE_SITE_KEY && !turnstileToken)}
+            aria-busy={phase === "loading" || undefined}
+            style={phase === "loading" ? { "--cta-speed": "1.2s" } : undefined}
           >
-            Analyze My CV <ArrowRight size={18} />
+            {phase === "loading" ? "Analyzing…" : "Analyze My CV"}
+            {phase !== "loading" && (
+              <span className="cvp-analyze-cta__arrow" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            )}
           </button>
         </div>
 

@@ -59,6 +59,11 @@ html {
   --color-accent: #D97706;
   --color-accent-soft: rgba(217,119,6,0.12);
   --color-accent-line: rgba(217,119,6,0.45);
+  /* Bright amber stops used by gradient highlights (orbiting CTA ring head,
+     conversion-moment glows). Sit alongside the canonical --color-accent
+     (deep brand amber, #D97706) and complete the gradient palette. */
+  --color-accent-bright: #F59E0B;
+  --color-accent-tint:   #FFD79A;
   --color-text-primary: #F5F5F7;
   --color-text-secondary: #A0A0A0;
   --color-text-tertiary: rgba(255,255,255,0.55);
@@ -2226,3 +2231,149 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     display: block;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Canonical spinning-border engine — the SINGLE source of truth for
+   conic-gradient running borders used across the app (ATS score ring,
+   download glow, paywall surfaces, post-payment overlay, the
+   "Analyze My CV" CTA below). Several components currently inject
+   their own identical copy inline; those are harmless duplicates and
+   can be cleaned up in a follow-up. Do not introduce a parallel
+   variable/keyframe — share this one.
+   ───────────────────────────────────────────────────────────────── */
+@property --ats-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes ats-spin-border { to { --ats-angle: 360deg; } }
+
+/* ─────────────────────────────────────────────────────────────────
+   .cvp-analyze-cta — orbiting-amber primary action on the ATS page.
+   Two-layer ring: ::before is the bright orbit head masked to the
+   border; ::after is the soft blurred bloom trailing it. Both reuse
+   the canonical --ats-angle / ats-spin-border above.
+   Speed knob: override --cta-speed on the element (e.g. while the
+   analysis is in flight) to accelerate the orbit. Reduced-motion
+   freezes the head at 312° so the ring stays visible without animating.
+   ───────────────────────────────────────────────────────────────── */
+.cvp-analyze-cta {
+  --cta-speed: 3s;
+  --cta-ring: 2px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 40px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, var(--color-surface-02), var(--color-surface-01));
+  color: var(--color-text-primary);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  isolation: isolate;
+  transition: transform .25s cubic-bezier(.2,.7,.3,1),
+              box-shadow .3s ease,
+              opacity .15s ease;
+}
+
+.cvp-analyze-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: var(--cta-ring);
+  background: conic-gradient(
+    from var(--ats-angle, 0deg),
+    transparent 0deg,
+    transparent 200deg,
+    rgba(245,158,11,0.15) 268deg,
+    var(--color-accent)        318deg,
+    var(--color-accent-bright) 345deg,
+    var(--color-accent-tint)   360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  animation: ats-spin-border var(--cta-speed) linear infinite;
+}
+
+.cvp-analyze-cta::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -2;
+  border-radius: inherit;
+  padding: calc(var(--cta-ring) + 1px);
+  background: conic-gradient(
+    from var(--ats-angle, 0deg),
+    transparent 0deg,
+    transparent 230deg,
+    rgba(217,119,6,0.45) 320deg,
+    rgba(245,158,11,0.85) 358deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+          mask-composite: exclude;
+  filter: blur(7px);
+  opacity: 0.9;
+  animation: ats-spin-border var(--cta-speed) linear infinite;
+}
+
+.cvp-analyze-cta__arrow {
+  display: inline-flex;
+  color: var(--color-accent-bright);
+  transition: transform .25s cubic-bezier(.2,.7,.3,1);
+}
+
+.cvp-analyze-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -8px rgba(245,158,11,0.35);
+}
+.cvp-analyze-cta:hover:not(:disabled)::after {
+  opacity: 1;
+  filter: blur(9px);
+}
+.cvp-analyze-cta:hover:not(:disabled) .cvp-analyze-cta__arrow {
+  transform: translateX(4px);
+}
+.cvp-analyze-cta:active:not(:disabled) { transform: translateY(0); }
+.cvp-analyze-cta:focus-visible {
+  outline: 2px solid var(--color-accent-bright);
+  outline-offset: 3px;
+}
+.cvp-analyze-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+.cvp-analyze-cta:disabled::before,
+.cvp-analyze-cta:disabled::after {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cvp-analyze-cta::before,
+  .cvp-analyze-cta::after {
+    animation: none;
+    --ats-angle: 312deg;
+  }
+}
+
