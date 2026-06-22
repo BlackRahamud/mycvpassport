@@ -279,6 +279,139 @@ export function PremiumScoreCircle({ score }) {
   );
 }
 
+// ─── Upgrade conversion block ─────────────────────────────────────────────────
+// Shared by BOTH result paths:
+//   * mode="matched"   — full JD analysis. missingCount = visibilityBoosters
+//                        + rankTriggers (real missing-keyword arrays).
+//   * mode="cv_only"   — CV-health only (no JD). missingCount =
+//                        structureIssues.length (real model-flagged parseability
+//                        problems, each with claim/evidence/weight).
+//
+// Every claim traces to real analyze-cv response data:
+//   current/target/withinReach = arithmetic on current,
+//   missingCount               = whichever real array the active path carries,
+//   "AI tailor"                = real api/ai.js handleTailor feature,
+//   "every flagged bullet"     = /builder?from=ats&gaps=… handoff implemented
+//                                by AtsGapsActionCard:92-94.
+// No fabricated bullets, no fake issue count, no guaranteed gain.
+function UpgradeConversionBlock({ current, mode, missingCount, industry, onUpgrade }) {
+  if (current >= 85 || missingCount <= 0) return null;
+  const withinReach = 100 - current;
+  const target = current + withinReach;
+  const industryLabel = industry ? String(industry).trim() : null;
+
+  let proofLine;
+  if (mode === "matched") {
+    proofLine = (
+      <>
+        We found <strong style={{ color: "var(--color-accent-bright)" }}>{missingCount} keyword{missingCount === 1 ? "" : "s"}</strong>
+        {industryLabel
+          ? <> <strong style={{ color: "#fff" }}>{industryLabel}</strong> recruiters search for </>
+          : <> recruiters search for </>}
+        that your CV is missing.
+      </>
+    );
+  } else {
+    proofLine = (
+      <>
+        We flagged <strong style={{ color: "var(--color-accent-bright)" }}>{missingCount} parseability issue{missingCount === 1 ? "" : "s"}</strong>
+        {industryLabel
+          ? <> <strong style={{ color: "#fff" }}>{industryLabel}</strong> recruiters&apos; ATS </>
+          : <> recruiters&apos; ATS </>}
+        will trip on.
+      </>
+    );
+  }
+
+  return (
+    <div style={{
+      background: "var(--color-surface-01)",
+      border: "1px solid rgba(217,119,6,0.22)",
+      borderRadius: 16,
+      padding: "26px 22px",
+      marginBottom: 32,
+      position: "relative",
+      overflow: "hidden",
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      <div aria-hidden style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 1,
+        background: "linear-gradient(90deg, transparent, var(--color-accent-bright), transparent)",
+        opacity: 0.55,
+      }} />
+
+      <div style={{ textAlign: "center", marginBottom: 18 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-accent-bright)", marginBottom: 14 }}>
+          Your gap to the top
+        </div>
+        <div style={{ display: "inline-flex", alignItems: "baseline", gap: 14, marginBottom: 12 }}>
+          <span style={{ fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1, letterSpacing: "-1.5px" }}>{current}</span>
+          <span aria-hidden style={{ fontSize: 20, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>→</span>
+          <span style={{ fontSize: 44, fontWeight: 700, color: "var(--color-accent-bright)", lineHeight: 1, letterSpacing: "-1.5px" }}>{target}</span>
+        </div>
+        <div style={{ fontSize: 15, color: "rgba(255,255,255,0.78)", maxWidth: 360, margin: "0 auto", lineHeight: 1.5, fontWeight: 500 }}>
+          Top-ranked CVs hit {target}. You&apos;re <strong style={{ color: "#fff" }}>{withinReach} points off the top.</strong>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 13.5, color: "#F9B879", marginBottom: 16, textAlign: "center", lineHeight: 1.55, fontWeight: 500, padding: "0 8px" }}>
+        {current < 70
+          ? "Right now, your CV is getting filtered out before a recruiter ever sees it."
+          : "Your CV passes the bot, but ranks low. Recruiters scroll past in seconds."}
+      </div>
+
+      <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginBottom: 22, textAlign: "center", lineHeight: 1.55, padding: "0 8px" }}>
+        {proofLine}
+      </div>
+
+      <div style={{
+        background: "#0F0F0F",
+        border: "1px solid #1A1A1A",
+        borderRadius: 12,
+        padding: "14px 16px 16px",
+        marginBottom: 22,
+      }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--color-accent-bright)", marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Lock size={11} color="var(--color-accent-bright)" /> Locked
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 10, lineHeight: 1.4, letterSpacing: "-0.2px" }}>
+          Unlock the AI tailor.
+        </div>
+        <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55, marginBottom: 14 }}>
+          It rewrites every flagged bullet to chase the {withinReach} points you&apos;re missing.
+        </div>
+        <div aria-hidden style={{
+          filter: "blur(5px)",
+          userSelect: "none",
+          pointerEvents: "none",
+          opacity: 0.45,
+          fontSize: 12.5,
+          color: "#9E9E9E",
+          lineHeight: 1.6,
+          fontStyle: "italic",
+        }}>
+          Your bullet → rewritten with full keyword coverage…
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <button
+          type="button"
+          className="cvp-analyze-cta"
+          onClick={onUpgrade}
+        >
+          Unlock my +{withinReach} plan
+          <span className="cvp-analyze-cta__arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ATSChecker({
   onResultsVisible,
@@ -974,6 +1107,12 @@ export default function ATSChecker({
   // the next response (mode === "matched") falls through to the full
   // result render below.
   if (results?.mode === "cv_only") {
+    // cv_only schema uses `cvHealthScore` (0-100 parseability score) where
+    // matched uses `score` (fit score). The block reads cvHealthScore and
+    // uses structureIssues.length as the proof-line count — both real on
+    // this path, neither overlap with the keyword/JD framing used on matched.
+    const cvOnlyCurrent = typeof results.cvHealthScore === "number" ? results.cvHealthScore : 0;
+    const cvOnlyIssueCount = Array.isArray(results.structureIssues) ? results.structureIssues.length : 0;
     return (
       <>
         <Nav back={() => { setPhase("idle"); setResults(null); setUploadedFile(null); setJobDescription(""); }} />
@@ -982,6 +1121,17 @@ export default function ATSChecker({
           onAnalyze={handleNudgeAnalyze}
           isAnalyzing={isReanalyzing}
         />
+        {!isPro && (
+          <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 28px 100px" }}>
+            <UpgradeConversionBlock
+              current={cvOnlyCurrent}
+              mode="cv_only"
+              missingCount={cvOnlyIssueCount}
+              industry={results.industry}
+              onUpgrade={() => setShowPaywall(true)}
+            />
+          </div>
+        )}
         {error && (
           <div role="alert" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", color: T.red, fontSize: 13, padding: "10px 16px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
             {error}
@@ -1036,121 +1186,15 @@ export default function ATSChecker({
             <div style={{ fontSize: 12, color: '#444', textAlign: 'center', marginBottom: 16, letterSpacing: '0.3px' }}>Analyzed against real GCC &amp; India hiring data</div>
           </div>
 
-          {/* ATS upgrade conversion block — gated on !isPro + score under the
-              Market Ready threshold + at least one detected keyword gap. Every
-              claim traces to real analyze-cv response data:
-                current/target/withinReach = arithmetic on score,
-                missing-keyword count = visibilityBoosters + rankTriggers,
-                "AI tailor" = real api/ai.js handleTailor feature,
-                "every flagged bullet" = /builder?from=ats&gaps=… handoff
-                that AtsGapsActionCard already implements.
-              No fabricated bullets, no fake issue count, no guaranteed gain. */}
-          {(() => {
-            const withinReach = 100 - score;
-            const target = score + withinReach;
-            const missingKeywordCount = visibilityBoosters.length + rankTriggers.length;
-            if (isPro || score >= 85 || missingKeywordCount <= 0) return null;
-            const industryPhrase = industry
-              ? <> <strong style={{ color: "#fff" }}>{industry}</strong> recruiters search for </>
-              : <> recruiters search for </>;
-            return (
-              <div style={{
-                background: "var(--color-surface-01)",
-                border: "1px solid rgba(217,119,6,0.22)",
-                borderRadius: 16,
-                padding: "26px 22px",
-                marginBottom: 32,
-                position: "relative",
-                overflow: "hidden",
-                fontFamily: "'DM Sans', sans-serif",
-              }}>
-                <div aria-hidden style={{
-                  position: "absolute", top: 0, left: 0, right: 0, height: 1,
-                  background: "linear-gradient(90deg, transparent, var(--color-accent-bright), transparent)",
-                  opacity: 0.55,
-                }} />
-
-                {/* Hook */}
-                <div style={{ textAlign: "center", marginBottom: 18 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-accent-bright)", marginBottom: 14 }}>
-                    Your gap to the top
-                  </div>
-                  <div style={{ display: "inline-flex", alignItems: "baseline", gap: 14, marginBottom: 12 }}>
-                    <span style={{ fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1, letterSpacing: "-1.5px" }}>{score}</span>
-                    <span aria-hidden style={{ fontSize: 20, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>→</span>
-                    <span style={{ fontSize: 44, fontWeight: 700, color: "var(--color-accent-bright)", lineHeight: 1, letterSpacing: "-1.5px" }}>{target}</span>
-                  </div>
-                  <div style={{ fontSize: 15, color: "rgba(255,255,255,0.78)", maxWidth: 360, margin: "0 auto", lineHeight: 1.5, fontWeight: 500 }}>
-                    Top-ranked CVs hit {target}. You're <strong style={{ color: "#fff" }}>{withinReach} points off the top.</strong>
-                  </div>
-                </div>
-
-                {/* Stakes — band-conditional so the claim is true for whoever sees it */}
-                <div style={{ fontSize: 13.5, color: "#F9B879", marginBottom: 16, textAlign: "center", lineHeight: 1.55, fontWeight: 500, padding: "0 8px" }}>
-                  {score < 70
-                    ? "Right now, your CV is getting filtered out before a recruiter ever sees it."
-                    : "Your CV passes the bot, but ranks low. Recruiters scroll past in seconds."}
-                </div>
-
-                {/* Proof — real keyword gap count from the analyze-cv response */}
-                <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", marginBottom: 22, textAlign: "center", lineHeight: 1.55, padding: "0 8px" }}>
-                  We found <strong style={{ color: "var(--color-accent-bright)" }}>{missingKeywordCount} keywords</strong>
-                  {industryPhrase}
-                  that your CV is missing.
-                </div>
-
-                {/* Locked tease — promises the real AI tailor feature, blurred
-                    placeholder is generic shape only (no fabricated content) */}
-                <div style={{
-                  background: "#0F0F0F",
-                  border: "1px solid #1A1A1A",
-                  borderRadius: 12,
-                  padding: "14px 16px 16px",
-                  marginBottom: 22,
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--color-accent-bright)", marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Lock size={11} color="var(--color-accent-bright)" /> Locked
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 10, lineHeight: 1.4, letterSpacing: "-0.2px" }}>
-                    Unlock the AI tailor.
-                  </div>
-                  <div style={{ fontSize: 13.5, color: "rgba(255,255,255,0.7)", lineHeight: 1.55, marginBottom: 14 }}>
-                    It rewrites every flagged bullet to chase the {withinReach} points you're missing.
-                  </div>
-                  <div aria-hidden style={{
-                    filter: "blur(5px)",
-                    userSelect: "none",
-                    pointerEvents: "none",
-                    opacity: 0.45,
-                    fontSize: 12.5,
-                    color: "#9E9E9E",
-                    lineHeight: 1.6,
-                    fontStyle: "italic",
-                  }}>
-                    Your bullet → rewritten with full keyword coverage…
-                  </div>
-                </div>
-
-                {/* CTA — reuses the global .cvp-analyze-cta orbiting-amber pattern
-                    introduced in the previous commit. Same animation engine,
-                    same tokens, just a different label. */}
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <button
-                    type="button"
-                    className="cvp-analyze-cta"
-                    onClick={() => setShowPaywall(true)}
-                  >
-                    Unlock my +{withinReach} plan
-                    <span className="cvp-analyze-cta__arrow" aria-hidden="true">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
+          {!isPro && (
+            <UpgradeConversionBlock
+              current={score}
+              mode="matched"
+              missingCount={visibilityBoosters.length + rankTriggers.length}
+              industry={industry}
+              onUpgrade={() => setShowPaywall(true)}
+            />
+          )}
 
           <AtsGapsActionCard
             score={score}
