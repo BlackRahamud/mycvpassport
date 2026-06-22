@@ -256,6 +256,30 @@ export default async function handler(req, res) {
       .eq('payment_intent_id', payment_intent_id)
       .maybeSingle();
     if (existingAudit) {
+      // Access-grant idempotency holds; do NOT re-run applyZiinaPaidTier.
+      // But if issueDocument failed on first delivery (Resend down, missing
+      // RPC pre-migration), the buyer has no receipt. Self-heal: call
+      // issueDocument iff no invoice row exists for this payment_id. The
+      // invoices.payment_id UNIQUE constraint is the second-layer guard
+      // against any double-issue.
+      const { data: existingInvoice } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('payment_id', payment_intent_id)
+        .maybeSingle();
+      if (!existingInvoice) {
+        console.log('[ziina-webhook] retry — payment audited but no receipt; healing', { payment_id: payment_intent_id });
+        await issueDocument(supabase, {
+          user_id: external_reference,
+          payment_id: payment_intent_id,
+          gateway: 'ziina',
+          entity: 'AE',
+          kind: 'receipt',
+          tier_slug: upgrade.plan,
+          amount_minor: amount,
+          currency: 'AED',
+        });
+      }
       return res.status(200).json({ received: true, idempotent: true });
     }
   }

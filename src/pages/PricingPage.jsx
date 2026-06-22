@@ -7,6 +7,7 @@ import { getPaymentLink } from "../utils/paywall";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
 import RazorpayPayment from "../components/RazorpayPayment";
+import PostPaymentOverlay from "../invoices/PostPaymentOverlay";
 import {
   TIERS,
   TIER_TO_PROFILE_PLAN,
@@ -88,7 +89,7 @@ function razorpayConfigFor(uiSlug) {
   return { plan: tierSlug, amount };
 }
 
-export default function PricingPage() {
+export default function PricingPage({ refreshProfile } = {}) {
   const navigate = useNavigate();
 
   // Default to INR — the cheaper currency. If the server's geo resolve
@@ -106,6 +107,10 @@ export default function PricingPage() {
   const [checkoutError, setCheckoutError] = useState(null);
   const [allPlansOpen, setAllPlansOpen] = useState(false);
   const [razorpayCheckout, setRazorpayCheckout] = useState(null);
+  // Captured at handleRazorpaySuccess time so PostPaymentOverlay can render
+  // the plan's display name. razorpayCheckout itself is cleared before the
+  // overlay mounts; this preserves the tier slug across that transition.
+  const [lastPaidTier, setLastPaidTier] = useState(null);
   // Conversion-moment "we're working on it" overlay. Set the moment a CTA
   // is clicked; cleared by every terminal Razorpay outcome (modal open /
   // success / failure / dismiss) and by every Ziina path exit (redirect
@@ -284,11 +289,16 @@ export default function PricingPage() {
   }, [currency]);
 
   const handleRazorpaySuccess = useCallback(() => {
+    // Snapshot the tier slug before clearing razorpayCheckout — the overlay
+    // needs it for the "Welcome to <plan>" line. Access is NOT granted here;
+    // PostPaymentOverlay polls the invoices table until the webhook chain
+    // has confirmed activation before exposing nav CTAs.
+    setLastPaidTier((prev) => razorpayCheckout?.plan || prev);
     setRazorpayCheckout(null);
     clearLaunching();
     setShowSuccess(true);
     window.history.replaceState({}, "", "/pricing?payment=success");
-  }, [clearLaunching]);
+  }, [razorpayCheckout, clearLaunching]);
 
   const handleRazorpayFailure = useCallback((msg) => {
     setRazorpayCheckout(null);
@@ -379,69 +389,22 @@ export default function PricingPage() {
   const cardPad = isMobile ? "20px" : "28px";
 
   // ====== SUCCESS OVERLAY ======
+  // PostPaymentOverlay polls the invoices table until the webhook chain
+  // (applyPaidTier + recordPayment + issueDocument) has completed, then
+  // surfaces the nav CTAs. CTAs are hidden during the activating window
+  // so a buyer never clicks into a Free experience before the access flip
+  // has landed. The lastPaidTier snapshot drives the "Welcome to X" line.
   if (showSuccess) {
+    const planLabel = lastPaidTier ? TIERS[lastPaidTier]?.displayName : null;
     return (
-      <>
-        <style>{`
-          @keyframes pulse-ring {
-            0% { transform: scale(1); opacity: 0.6; }
-            100% { transform: scale(1.6); opacity: 0; }
-          }
-        `}</style>
-        <div style={{
-          position: "fixed", inset: 0, backgroundColor: "#0A0A0A",
-          display: "flex", flexDirection: "column", alignItems: "center",
-          justifyContent: "center", zIndex: 9999, fontFamily: "Inter, -apple-system, system-ui, sans-serif",
-        }}>
-          <div style={{ fontSize: "24px", fontWeight: "700", color: "#FFFFFF", marginBottom: "40px" }}>
-            CVPassport
-          </div>
-          <div style={{ position: "relative", marginBottom: "32px" }}>
-            {/* Pulse ring */}
-            <div style={{
-              position: "absolute", inset: 0, borderRadius: "50%",
-              backgroundColor: "#16A34A", opacity: 0.3,
-              animation: "pulse-ring 1.5s ease-out infinite",
-            }} />
-            <div style={{
-              width: "80px", height: "80px", borderRadius: "50%",
-              backgroundColor: "#16A34A", display: "flex",
-              alignItems: "center", justifyContent: "center",
-              position: "relative", zIndex: 1,
-            }}>
-              <span style={{ fontSize: "48px", color: "#FFFFFF", lineHeight: 1 }}>✓</span>
-            </div>
-          </div>
-          <div style={{ fontSize: "28px", fontWeight: "700", color: "#FFFFFF", marginBottom: "12px" }}>
-            Payment Successful
-          </div>
-          <div style={{ fontSize: "15px", color: "#A0A0A0", marginBottom: "40px", textAlign: "center", maxWidth: "360px" }}>
-            Your plan has been activated. Welcome to CVPassport.
-          </div>
-          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "12px" }}>
-            <button
-              onClick={() => navigate("/dashboard")}
-              style={{
-                backgroundColor: "#FFFFFF", color: "#000000",
-                border: "none", borderRadius: "12px", padding: "14px 28px",
-                fontSize: "14px", fontWeight: "600", cursor: "pointer",
-              }}
-            >
-              Go to Dashboard
-            </button>
-            <button
-              onClick={() => navigate("/builder")}
-              style={{
-                backgroundColor: "transparent", color: "#FFFFFF",
-                border: "1px solid #FFFFFF", borderRadius: "12px", padding: "14px 28px",
-                fontSize: "14px", fontWeight: "600", cursor: "pointer",
-              }}
-            >
-              Build My CV Now
-            </button>
-          </div>
-        </div>
-      </>
+      <PostPaymentOverlay
+        gateway="razorpay"
+        planLabel={planLabel}
+        onActivated={() => { if (refreshProfile) refreshProfile(); }}
+        onGoToDashboard={() => navigate("/dashboard")}
+        onBuildCv={() => navigate("/builder")}
+        isMobile={isMobile}
+      />
     );
   }
 

@@ -148,8 +148,8 @@ export default function App() {
       <PostAuthIntermission active={postAuthIntermission} />
     <Suspense fallback={<RouteFallback />}>
     <Routes>
-      <Route path="/pricing" element={<PricingPage />} />
-      <Route path="/payment-success" element={<PaymentSuccess />} />
+      <Route path="/pricing" element={<PricingPage refreshProfile={refreshProfile} />} />
+      <Route path="/payment-success" element={<PaymentSuccess refreshProfile={refreshProfile} />} />
       <Route path="/hr" element={<Navigate to="/hr/jobs" replace />} />
       <Route path="/hr/post" element={<PostJobPage />} />
       <Route path="/hr/jobs" element={<HRJobsListPage />} />

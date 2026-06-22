@@ -284,6 +284,30 @@ async function handleWebhook(req, res, rawBody) {
     .maybeSingle();
 
   if (existingAudit) {
+    // Access-grant + audit-row idempotency holds; do NOT re-run applyPaidTier.
+    // But if issueDocument failed on the first delivery (e.g. Resend down,
+    // missing RPC pre-migration), the buyer has no invoice. Self-heal here:
+    // call issueDocument iff no invoice row exists for this payment_id. The
+    // invoices.payment_id UNIQUE constraint is the second-layer guard against
+    // any double-issue.
+    const { data: existingInvoice } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('payment_id', payment.id)
+      .maybeSingle();
+    if (!existingInvoice) {
+      console.log('[razorpay] retry — payment audited but no invoice; healing', { payment_id: payment.id });
+      await issueDocument(supabase, {
+        user_id: userId,
+        payment_id: payment.id,
+        gateway: 'razorpay',
+        entity: 'IN',
+        kind: 'invoice',
+        tier_slug: plan,
+        amount_minor: payment.amount,
+        currency: 'INR',
+      });
+    }
     return res.status(200).json({ received: true, idempotent: true });
   }
 

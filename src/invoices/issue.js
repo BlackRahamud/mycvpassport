@@ -228,12 +228,12 @@ export async function issueDocument(db, opts) {
       detail_url,
       support_email: seller.seller_support_email,
     });
-    const subjectLabel = kind === 'receipt' ? invoice_number : invoice_number;
+    const subjectKind = kind === 'receipt' ? 'receipt' : 'invoice';
     await resend.emails.send({
       from: 'CVPassport <noreply@mycvpassport.com>',
       to: customer.email,
       reply_to: 'billing@mycvpassport.com',
-      subject: `Your CVPassport receipt — ${subjectLabel}`,
+      subject: `Your CVPassport ${subjectKind} — ${invoice_number}`,
       html,
     });
     // Mark sent. Failure to record is non-fatal.
