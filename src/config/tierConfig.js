@@ -92,6 +92,19 @@ export function gatewayForCurrency(currency) {
   return currency === 'INR' ? 'razorpay' : 'ziina';
 }
 
+// Countries whose users should be charged in AED (UAE + GCC corridor).
+// Anything not in this set and not 'IN' falls through to INR — the
+// cheaper currency, so a misdetect under-charges rather than over-charges.
+// Conservative on purpose: never silently route an unknown user to AED.
+const AED_COUNTRIES = new Set(['AE', 'SA', 'KW', 'BH', 'QA', 'OM']);
+
+export function currencyForCountry(country) {
+  const cc = String(country || '').toUpperCase();
+  if (cc === 'IN') return 'INR';
+  if (AED_COUNTRIES.has(cc)) return 'AED';
+  return 'INR';
+}
+
 // Server amount in the smallest unit (paise for INR, fils for AED).
 export function getServerAmount(slug, currency) {
   const tier = TIERS[slug];

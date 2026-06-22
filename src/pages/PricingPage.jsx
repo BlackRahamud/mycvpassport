@@ -91,7 +91,12 @@ function razorpayConfigFor(uiSlug) {
 export default function PricingPage() {
   const navigate = useNavigate();
 
-  const [currency, setCurrency] = useState("AED");
+  // Default to INR — the cheaper currency. If the server's geo resolve
+  // (Vercel x-vercel-ip-country) identifies a GCC country, this flips
+  // to AED. Default-AED was the source of multiple India users being
+  // routed to Ziina at AED 45 instead of Razorpay at ₹349 when the
+  // pre-payment geo lookup failed or was slow.
+  const [currency, setCurrency] = useState("INR");
   const [userPlan, setUserPlan] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -112,12 +117,19 @@ export default function PricingPage() {
     }
   }, []);
 
-  // Geo detection
+  // Geo detection via Vercel's edge-injected country header. Same-origin
+  // call, no third-party rate limit, far more reliable than ipapi.co.
+  // On any failure we stay on INR (cheaper default).
   useEffect(() => {
-    fetch("https://ipapi.co/json/")
-      .then((r) => r.json())
-      .then((d) => { if (d.country === "IN") setCurrency("INR"); })
-      .catch(() => setCurrency("AED"));
+    let cancelled = false;
+    fetch("/api/razorpay?action=geo")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled) return;
+        if (d?.currency === "AED") setCurrency("AED");
+      })
+      .catch(() => { /* stay on INR — cheaper default */ });
+    return () => { cancelled = true; };
   }, []);
 
   // Auth state + current plan detection

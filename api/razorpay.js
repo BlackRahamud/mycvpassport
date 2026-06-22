@@ -11,7 +11,13 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
-import { PAID_TIER_SLUGS, TIERS, TIER_TO_PROFILE_PLAN, getServerAmount } from '../src/config/tierConfig.js';
+import {
+  PAID_TIER_SLUGS,
+  TIERS,
+  TIER_TO_PROFILE_PLAN,
+  currencyForCountry,
+  getServerAmount,
+} from '../src/config/tierConfig.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -125,19 +131,19 @@ async function handleOrder(req, res, body) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
-  const { amount, currency = 'INR', plan } = body || {};
+  const { plan } = body || {};
+  // Razorpay path is INR-only by design — the gateway is only configured
+  // for the India market. Currency and amount are NEVER read from the
+  // client; both are derived from tierConfig server-side.
+  const currency = 'INR';
 
   if (!plan || !VALID_PLANS.has(plan)) {
     return res.status(400).json({ error: 'Invalid plan' });
   }
 
-  const expectedAmount = getServerAmount(plan, 'INR');
-  if (!expectedAmount || Number(amount) !== expectedAmount) {
-    return res.status(400).json({ error: 'Amount does not match plan' });
-  }
-
-  if (currency !== 'INR') {
-    return res.status(400).json({ error: 'Only INR is supported' });
+  const expectedAmount = getServerAmount(plan, currency);
+  if (!expectedAmount) {
+    return res.status(400).json({ error: 'Invalid plan' });
   }
 
   try {
@@ -148,7 +154,7 @@ async function handleOrder(req, res, body) {
 
     const order = await razorpay.orders.create({
       amount: expectedAmount,
-      currency: 'INR',
+      currency,
       receipt: `cvp_${user.id.slice(0, 8)}_${Date.now()}`,
       notes: {
         userId: user.id,
@@ -339,7 +345,28 @@ async function applyPaidTier(db, userId, tierSlug) {
   return null;
 }
 
+// Geo resolution — reads Vercel's edge-injected country header. Cheap
+// (header lookup, no upstream call, no rate limit), per-request, and
+// far more reliable than the prior client-side ipapi.co fetch. The
+// browser calls GET /api/razorpay?action=geo on the pricing page load
+// and uses the returned currency to pick the gateway. When the header
+// is missing or the country is unknown, currencyForCountry returns
+// INR (the cheaper currency) so a misdetect under-charges.
+function handleGeo(req, res) {
+  const country = String(req.headers['x-vercel-ip-country'] || '').toUpperCase();
+  const currency = currencyForCountry(country);
+  // Short cache: a user's geo doesn't change within a session, but a
+  // fresh resolve on each page load is cheap and avoids stale CDN
+  // entries for travelling users.
+  res.setHeader('Cache-Control', 'private, max-age=60');
+  return res.status(200).json({ country: country || null, currency });
+}
+
 export default async function handler(req, res) {
+  // Geo is a read-only endpoint and uses GET. Everything else is POST.
+  if (req.method === 'GET' && req.query?.action === 'geo') {
+    return handleGeo(req, res);
+  }
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -359,6 +386,10 @@ export default async function handler(req, res) {
 
   if (action === 'webhook') {
     return handleWebhook(req, res, rawBody);
+  }
+
+  if (action === 'geo') {
+    return handleGeo(req, res);
   }
 
   if (action === 'order') {

@@ -58,11 +58,10 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure 
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            amount: amountINR,
-            currency: "INR",
-            plan,
-          }),
+          // Server derives amount + currency from tierConfig — client
+          // only needs to identify the plan. amountINR is still received
+          // as a prop for display/analytics but never transmitted.
+          body: JSON.stringify({ plan }),
         });
 
         const orderData = await orderRes.json().catch(() => ({}));
