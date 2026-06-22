@@ -91,7 +91,6 @@ const STYLES = `
 
   .doc-meta { text-align: right; min-width: 200px; }
   .doc-title { font-size: 30px; font-weight: 700; letter-spacing: 0.16em; margin: 0 0 16px; color: var(--ink); }
-  .doc-title.receipt { font-size: 24px; letter-spacing: 0.14em; }
   .meta-row { display: flex; justify-content: flex-end; gap: 18px; font-size: 11.5px; line-height: 1.5; padding: 4px 0; }
   .meta-row .k { color: var(--ink-mute); }
   .meta-row .v { color: var(--ink); font-weight: 500; min-width: 96px; text-align: right; }
@@ -275,11 +274,11 @@ function renderInvoiceSection(inv) {
 </section>`;
 }
 
-// AE-entity receipt section. Minimal per brief:
-//   * Title "PAYMENT RECEIPT"
-//   * Single AED amount line (no tax row, no subtotal/tax split)
-//   * Seller block: "CVPassport · mycvpassport.com · billing@mycvpassport.com" only
-//   * Footer: "This receipt confirms payment received. Thank you."
+// AE-entity receipt section. Designed Sample B from the Receipt template
+// (source: https://claude.ai/design/p/5e517895-c802-42f4-82a2-33d82ec3e30a).
+// Layout preserved byte-for-byte; only placeholders are bound to variables.
+// Seller block is the FIXED CVPassport identity per spec — no licence
+// number, no TRN, no address. Status badge reads RECEIVED.
 function renderReceiptSection(inv) {
   const accessTail = inv.access_days ? `<small>${inv.access_days}-day Pro access</small>` : '';
   return `
@@ -288,23 +287,22 @@ function renderReceiptSection(inv) {
     <div>
       <div class="brand-row"><div class="mark">${MARK_SVG}</div><div class="wordmark">CV<b>Passport</b></div></div>
       <div class="seller">
-        <div class="legal">CVPassport</div>
-        <div>mycvpassport.com · <a href="mailto:billing@mycvpassport.com">billing@mycvpassport.com</a></div>
+        <div>CVPassport · mycvpassport.com</div>
+        <div><a href="mailto:billing@mycvpassport.com">billing@mycvpassport.com</a></div>
       </div>
     </div>
     <div class="doc-meta">
-      <div class="doc-title receipt">PAYMENT RECEIPT</div>
+      <div class="doc-title" style="font-size:22px;">PAYMENT RECEIPT</div>
       <div class="meta-row"><span class="k">Receipt no.</span><span class="v mono">${esc(inv.invoice_number)}</span></div>
-      <div class="meta-row"><span class="k">Issue date</span><span class="v">${esc(formatDate(inv.issued_at))}</span></div>
-      <div class="meta-row" style="align-items:center;"><span class="k">Status</span><span class="v"><span class="badge">PAID</span></span></div>
-      <div class="meta-row"><span class="k">Payment ID</span><span class="v mono">${esc(inv.payment_id)}</span></div>
+      <div class="meta-row"><span class="k">Date paid</span><span class="v">${esc(formatDate(inv.issued_at))}</span></div>
+      <div class="meta-row" style="align-items:center;"><span class="k">Status</span><span class="v"><span class="badge">RECEIVED</span></span></div>
     </div>
   </div>
 
   <hr class="rule">
 
   <div class="billto">
-    <div class="label">Received from</div>
+    <div class="label">Paid by</div>
     <div class="who">${esc(inv.customer_name || '—')}</div>
     <div class="meta"><span>${esc(inv.customer_email || '')}</span><span class="dot"></span><span>${esc(inv.customer_country || '')}</span></div>
   </div>
@@ -326,12 +324,18 @@ function renderReceiptSection(inv) {
     </tbody>
   </table>
 
+  <div class="totals-wrap">
+    <div class="totals">
+      <div class="trow grand"><span class="tlabel">Amount paid</span><span class="tval mono">${formatMoney(inv.currency, inv.total)}</span></div>
+    </div>
+  </div>
+
   <div class="pay">
     <div class="label" style="margin-bottom:10px;">Payment details</div>
     <div class="pay-grid">
-      <div class="cell"><div class="k">Method</div><div class="v">${esc(gatewayDisplay(inv.gateway))}</div></div>
-      <div class="cell"><div class="k">Payment ID</div><div class="v mono">${esc(inv.payment_id)}</div></div>
-      <div class="cell"><div class="k">Paid date</div><div class="v">${esc(formatDate(inv.issued_at))}</div></div>
+      <div class="cell"><div class="k">Method</div><div class="v">Ziina</div></div>
+      <div class="cell"><div class="k">Transaction ID</div><div class="v mono">${esc(inv.payment_id)}</div></div>
+      <div class="cell"><div class="k">Date paid</div><div class="v">${esc(formatDate(inv.issued_at))}</div></div>
       <div class="cell"><div class="k">Currency</div><div class="v">${esc(currencyDisplay(inv.currency))}</div></div>
     </div>
   </div>
@@ -339,6 +343,7 @@ function renderReceiptSection(inv) {
   <div class="foot">
     <div>
       <div class="thanks">This receipt confirms payment received. Thank you.</div>
+      <div>Support · <a href="mailto:billing@mycvpassport.com">billing@mycvpassport.com</a></div>
     </div>
   </div>
 </section>`;
