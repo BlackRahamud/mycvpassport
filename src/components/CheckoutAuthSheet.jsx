@@ -107,7 +107,11 @@ export default function CheckoutAuthSheet({ open, onClose, planId, priceLabel, i
       localStorage.setItem("postAuthRedirect", `/pricing?resume=${planId}`);
       const { error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth` },
+        // The origin root is the project's Site URL and is always allowlisted —
+        // asking for /auth (which may not be in the OAuth allowlist) makes
+        // Supabase silently fall back to Site URL anyway. Be explicit so the
+        // landing URL is predictable and useCvpAuth can handle the resume from /.
+        options: { redirectTo: `${window.location.origin}/` },
       });
       if (oauthErr) {
         localStorage.removeItem("postAuthRedirect");

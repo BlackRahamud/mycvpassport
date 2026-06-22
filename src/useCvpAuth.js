@@ -243,8 +243,14 @@ export function useCvpAuth() {
       const hasOAuthMarker = url
         ? (/[?&]code=/.test(url.search || "") || (url.hash || "").includes("access_token"))
         : false;
-      const willSetFreshSignIn = event === "SIGNED_IN"
-        && !authLoginSuccessHoldRef.current
+      // Don't gate on event === "SIGNED_IN". On an OAuth return, Supabase's
+      // detectSessionInUrl exchanges the ?code= -> session BEFORE the first
+      // onAuthStateChange fires, so the event we observe is INITIAL_SESSION
+      // (or TOKEN_REFRESHED if the token was already in storage). The reliable
+      // discriminator is hasOAuthMarker — the URL still has ?code=/#access_token=
+      // at this point in the event loop, and a non-null user means the exchange
+      // succeeded. prevId === null still guards against tab-focus re-fires.
+      const willSetFreshSignIn = !authLoginSuccessHoldRef.current
         && prevId === null
         && !!nextId
         && hasOAuthMarker;
@@ -349,9 +355,24 @@ export function useCvpAuth() {
         isFreshOAuthSignIn,
         queryUserId: user.id,
       });
-      // Route based on user_type from profile, unless a landing-page CTA
-      // stashed an explicit postAuthRedirect target (e.g. ATSPreview).
       justSignedInRef.current = false;
+      const stored = consumePostAuthRedirect();
+      const sessionReturn = consumeReturnPath();
+
+      // If the caller stashed an explicit destination (CheckoutAuthSheet's
+      // Google handler, ATSPreview, NavigateToAuth), honor it and skip the
+      // user_type lookup — that query is only needed for the no-intent
+      // default-routing case. This makes the resume independent of any
+      // profile read succeeding.
+      if (stored || sessionReturn) {
+        const target = stored || sessionReturn;
+        console.log("[cvp-auth-trace] postAuth navigating (stored intent)", { target });
+        runPostAuthNavigate(target, { replace: true });
+        return;
+      }
+
+      // No stored intent — fall back to user_type-based default routing.
+      // Failure here must not block navigation; default to /dashboard.
       (async () => {
         let dest = "/dashboard";
         try {
@@ -359,7 +380,7 @@ export function useCvpAuth() {
             .from("profiles")
             .select("user_type")
             .eq("id", user.id)
-            .single();
+            .maybeSingle();
           console.log("[cvp-auth-trace] postAuth profile query result", {
             userId: user.id,
             prof,
@@ -370,11 +391,8 @@ export function useCvpAuth() {
           console.log("[cvp-auth-trace] postAuth profile query threw", e);
           /* default to /dashboard */
         }
-        const stored = consumePostAuthRedirect();
-        const sessionReturn = consumeReturnPath();
-        const target = stored || sessionReturn || dest;
-        console.log("[cvp-auth-trace] postAuth navigating", { dest: target, stored, sessionReturn });
-        runPostAuthNavigate(target, { replace: true });
+        console.log("[cvp-auth-trace] postAuth navigating (default routing)", { dest });
+        runPostAuthNavigate(dest, { replace: true });
       })();
       return;
     }

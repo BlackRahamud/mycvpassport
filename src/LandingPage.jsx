@@ -132,7 +132,9 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase.from('profiles').select('user_type, full_name').eq('id', user.id).single();
+        // full_name is on auth.users.user_metadata, NOT public.profiles —
+        // selecting it here caused a 400 on every signed-in landing.
+        const { data } = await supabase.from('profiles').select('user_type').eq('id', user.id).maybeSingle();
         if (!cancelled && data) setUserProfile(data);
       } catch { /* ignore */ }
     })();
