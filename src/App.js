@@ -22,6 +22,8 @@ const DashboardPage        = lazy(() => import(/* webpackChunkName: "dashboard" 
 const ATSPage              = lazy(() => import(/* webpackChunkName: "ats" */         "./pages/ATSPage"));
 const WalkInPage           = lazy(() => import(/* webpackChunkName: "walk-in" */     "./pages/WalkInPage"));
 const AccountPage          = lazy(() => import(/* webpackChunkName: "account" */     "./pages/AccountPage"));
+const InvoicesList         = lazy(() => import(/* webpackChunkName: "account" */     "./pages/account/InvoicesList"));
+const InvoiceDetail        = lazy(() => import(/* webpackChunkName: "account" */     "./pages/account/InvoiceDetail"));
 const TemplatesPage        = lazy(() => import(/* webpackChunkName: "templates" */   "./pages/TemplatesPage"));
 const TermsPage            = lazy(() => import(/* webpackChunkName: "legal" */       "./pages/TermsPage"));
 const PrivacyPage          = lazy(() => import(/* webpackChunkName: "legal" */       "./pages/PrivacyPage"));
@@ -255,6 +257,8 @@ export default function App() {
                 }
               />
               <Route path="/account" element={user ? <AccountPage /> : <Navigate to="/" replace />} />
+              <Route path="/account/invoices" element={user ? <InvoicesList /> : <Navigate to="/" replace />} />
+              <Route path="/account/invoices/:id" element={user ? <InvoiceDetail /> : <Navigate to="/" replace />} />
               <Route
                 path="/builder"
                 element={

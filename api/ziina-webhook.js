@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { PAID_TIER_SLUGS, TIERS, TIER_TO_PROFILE_PLAN, getServerAmount } from '../src/config/tierConfig.js';
+import { issueDocument } from '../src/invoices/issue.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -269,6 +270,19 @@ export default async function handler(req, res) {
   }
 
   await recordPayment({ user_id: external_reference, service: upgrade.plan });
+
+  // Issue receipt + email (AE entity, RCP-AE-2026-NNNN series). Idempotent
+  // on payment_id; email is best-effort and does not fail the webhook.
+  await issueDocument(supabase, {
+    user_id: external_reference,
+    payment_id: payment_intent_id,
+    gateway: 'ziina',
+    entity: 'AE',
+    kind: 'receipt',
+    tier_slug: upgrade.plan,
+    amount_minor: amount,
+    currency: 'AED',
+  });
 
   console.log('User upgraded successfully', {
     userId: external_reference,

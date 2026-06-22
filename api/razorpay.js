@@ -18,6 +18,7 @@ import {
   currencyForCountry,
   getServerAmount,
 } from '../src/config/tierConfig.js';
+import { issueDocument } from '../src/invoices/issue.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -302,6 +303,20 @@ async function handleWebhook(req, res, rawBody) {
     amount: payment.amount,
     external_ref: payment.order_id,
     payment_intent_id: payment.id,
+  });
+
+  // Issue invoice + email. Idempotent on payment_id; email is best-effort
+  // and does not fail the webhook (the row is durable, the buyer can
+  // re-fetch from /account/invoices). Service-role DB client is reused.
+  await issueDocument(supabase, {
+    user_id: userId,
+    payment_id: payment.id,
+    gateway: 'razorpay',
+    entity: 'IN',
+    kind: 'invoice',
+    tier_slug: plan,
+    amount_minor: payment.amount,
+    currency: 'INR',
   });
 
   console.log('[razorpay] webhook tier applied', { userId, plan, payment_id: payment.id });
