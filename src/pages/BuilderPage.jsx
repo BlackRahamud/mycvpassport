@@ -47,6 +47,7 @@ import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { clearBulletMarkers } from "../experiencePointsPreview";
 import CompletionStrip from "../components/CompletionStrip";
 import AtsGapsRibbon from "../components/AtsGapsRibbon";
+import { getDraftStorageKey, readCvDraft, writeCvDraft, clearCvDraft } from "../lib/cvDraft";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
@@ -1779,52 +1780,11 @@ function snapshotResumeForDiscard(r) {
 }
 
 // ── CV draft persistence ──────────────────────────────────────────────────
-// Tab focus, token refresh, or accidental refresh can remount BuilderPage
-// and wipe in-memory resume state. We mirror the working draft to
-// localStorage so the user never loses unsaved work. Cleared on explicit
-// save or discard; otherwise kept until the TTL elapses.
-const CVP_DRAFT_PREFIX = "cvp_cv_draft";
-const CVP_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-function getDraftStorageKey(initialResumeId, locationSearch) {
-  if (initialResumeId) return `${CVP_DRAFT_PREFIX}:edit:${initialResumeId}`;
-  let sessionId = "default";
-  try {
-    const params = new URLSearchParams(locationSearch || "");
-    sessionId = params.get("new") || "default";
-  } catch { /* noop */ }
-  return `${CVP_DRAFT_PREFIX}:new:${sessionId}`;
-}
-
-function readCvDraft(key) {
-  if (!key || typeof window === "undefined" || !window.localStorage) return null;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || !parsed.cv) return null;
-    const age = Date.now() - (Number(parsed.updatedAt) || 0);
-    if (age > CVP_DRAFT_TTL_MS) {
-      window.localStorage.removeItem(key);
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writeCvDraft(key, payload) {
-  if (!key || typeof window === "undefined" || !window.localStorage) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify({ ...payload, updatedAt: Date.now() }));
-  } catch { /* quota / private mode */ }
-}
-
-function clearCvDraft(key) {
-  if (!key || typeof window === "undefined" || !window.localStorage) return;
-  try { window.localStorage.removeItem(key); } catch { /* noop */ }
-}
+// Builder CV-draft localStorage helpers live in ../lib/cvDraft so the ATS →
+// AI-tailor handoff (ATSChecker) can write a draft under the EXACT key the
+// Builder reads here on mount. Tab focus, token refresh, or accidental refresh
+// can remount BuilderPage and wipe in-memory resume state; the draft mirror
+// (cleared on explicit save or discard, else kept until TTL) recovers it.
 
 /** @param {{ title: string, subtitle: string, onRowClick: () => void, onMoveUp: () => void, onMoveDown: () => void, disableUp: boolean, disableDown: boolean, onEdit: () => void, onDelete: () => void }} props */
 function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {

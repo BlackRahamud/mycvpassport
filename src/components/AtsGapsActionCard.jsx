@@ -49,6 +49,12 @@ export default function AtsGapsActionCard({
   visibilityBoosters,
   isPro,
   onUpgrade,
+  // When provided, the primary CTA delegates to this (so the caller can parse
+  // the scanned CV into the Builder before routing). Falls back to a plain
+  // /builder?from=ats&gaps=… navigation when absent. primaryBusy drives the
+  // CTA spinner while that parse runs.
+  onPrimary = null,
+  primaryBusy = false,
 }) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
@@ -89,6 +95,11 @@ export default function AtsGapsActionCard({
   if (!shouldShow) return null;
 
   const handlePrimary = () => {
+    if (primaryBusy) return;
+    if (onPrimary) {
+      onPrimary(gaps);
+      return;
+    }
     const encoded = gaps.map((g) => encodeURIComponent(g)).join(",");
     navigate(`/builder?from=ats&gaps=${encoded}`);
   };
@@ -376,6 +387,8 @@ export default function AtsGapsActionCard({
       <motion.button
         type="button"
         onClick={handlePrimary}
+        disabled={primaryBusy}
+        aria-busy={primaryBusy}
         initial={reduce ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={reduce ? { duration: 0 } : { duration: 0.4, delay: 1.95, ease: EASE }}
@@ -418,8 +431,8 @@ export default function AtsGapsActionCard({
           e.currentTarget.style.transform = "none";
         }}
       >
-        <span>Fix the first one — free</span>
-        <ArrowRightIcon size={14} color="#FFFFFF" />
+        <span>{primaryBusy ? "Preparing your CV…" : "Fix the first one — free"}</span>
+        {!primaryBusy && <ArrowRightIcon size={14} color="#FFFFFF" />}
       </motion.button>
 
       {/* Pro upsell — hidden for users who already have access */}

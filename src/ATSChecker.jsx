@@ -9,6 +9,7 @@ import { logEvent } from "./lib/analytics/logEvent";
 import CvOnlyResult from "./components/CvOnlyResult";
 import UpgradeModal from "./UpgradeModal";
 import AtsGapsActionCard from "./components/AtsGapsActionCard";
+import { getDraftStorageKey, writeCvDraft } from "./lib/cvDraft";
 
 // Sprint #4: Cloudflare Turnstile site key (public). When unset locally
 // the widget is skipped entirely and the Edge Function fail-opens in dev.
@@ -421,9 +422,10 @@ function UpgradeConversionBlock({ current, mode, missingCount, industry, onUpgra
 //
 // Gating mirrors UpgradeConversionBlock exactly (current < 85 && missingCount
 // > 0) so the shared slot appears and disappears under identical conditions
-// for both tiers. `onTailor` carries the real flagged array — encoded at the
-// call site where the results live (structureIssues claims on cv_only).
-function ProTailorBlock({ current, missingCount, onTailor }) {
+// for both tiers. `onTailor` triggers the parse → draft → Builder handoff;
+// `preparing` reflects the ~10s strict-fidelity parse (existing /api/transform
+// import-only pipeline) so the CTA can show progress instead of dead-clicking.
+function ProTailorBlock({ current, missingCount, onTailor, preparing = false, tailorError = null }) {
   if (current >= 85 || missingCount <= 0) return null;
   const withinReach = 100 - current;
   const target = current + withinReach;
@@ -468,15 +470,24 @@ function ProTailorBlock({ current, missingCount, onTailor }) {
           type="button"
           className="cvp-analyze-cta"
           onClick={onTailor}
+          disabled={preparing}
+          aria-busy={preparing}
         >
-          Open the AI tailor
-          <span className="cvp-analyze-cta__arrow" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
+          {preparing ? "Preparing your CV…" : "Open the AI tailor"}
+          {!preparing && (
+            <span className="cvp-analyze-cta__arrow" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          )}
         </button>
       </div>
+      {tailorError && (
+        <div role="alert" style={{ marginTop: 12, textAlign: "center", fontSize: 12.5, color: "#F87171", lineHeight: 1.5 }}>
+          {tailorError}
+        </div>
+      )}
     </div>
   );
 }
@@ -523,10 +534,19 @@ export default function ATSChecker({
   const [spend, setSpend] = useState(null);
   // JD-nudge sprint: in-place re-scan from CvOnlyResult (no loading-page swap)
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  // ATS → AI-tailor handoff: parses the scanned CV (existing /api/transform
+  // import-only pipeline) into the canonical builder shape, writes it to the
+  // from=ats draft, then routes to /builder. tailorPreparing drives the CTA
+  // spinner; tailorError surfaces a recoverable failure inline.
+  const [tailorPreparing, setTailorPreparing] = useState(false);
+  const [tailorError, setTailorError] = useState(null);
   const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
   const outerRef = useRef(null);
+  // Raw text extracted during the scan — reused for the tailor handoff so we
+  // don't re-read the file. Falls back to re-extraction if absent.
+  const scannedCvTextRef = useRef("");
 
   // ─── DEV MOCK — REMOVE BEFORE MERGE (search: MOCKATS_DEV_BYPASS) ──────────
   // Visit /ats?mockats=true to skip the upload + scan flow and render the
@@ -675,6 +695,7 @@ export default function ATSChecker({
     try {
       const extracted = await extractCvText(uploadedFile);
       cvText = extracted.text;
+      scannedCvTextRef.current = cvText;
     } catch (err) {
       if (err instanceof CvExtractionError) {
         setError(err.hint || err.message);
@@ -815,6 +836,84 @@ export default function ATSChecker({
     (jdText) => handleAnalyze({ jdOverride: jdText, fromNudge: true }),
     [handleAnalyze],
   );
+
+  // ── ATS → AI-tailor handoff ───────────────────────────────────────────────
+  // Ships CLAUDE.md pending #6 (CV import) for this flow: parse the SCANNED CV
+  // into the canonical builder shape via the existing /api/transform
+  // import-only pipeline (the proven strict-source-fidelity PARSE_SYSTEM_PROMPT
+  // — transcription only, no rewriting; the AI tailor is the only step that
+  // changes content), write it to the from=ats draft, then route to the
+  // Builder. The draft key is computed with the SAME getDraftStorageKey the
+  // Builder reads on mount, so writer and reader can never drift.
+  const openAiTailor = useCallback(async (gaps) => {
+    if (tailorPreparing) return;
+    setTailorError(null);
+
+    const gapList = Array.isArray(gaps) ? gaps.map((g) => String(g)).filter(Boolean) : [];
+    const encoded = gapList.map((g) => encodeURIComponent(g)).join(",");
+    const search = encoded ? `?from=ats&gaps=${encoded}` : "?from=ats";
+    // Key the Builder will read on mount — derived identically here.
+    const draftKey = getDraftStorageKey(null, search);
+
+    if (!uploadedFile) {
+      // No file to parse (e.g. a remounted session). Route anyway so the gaps
+      // ribbon still shows; the Builder falls back to its normal resume.
+      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: false, gapsCount: gapList.length });
+      navigate(`/builder${search}`);
+      return;
+    }
+
+    setTailorPreparing(true);
+    try {
+      const cvText = scannedCvTextRef.current
+        || (await extractCvText(uploadedFile)).text;
+
+      const { data: { session } = {} } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        setTailorError("Please sign in again to open the tailor.");
+        setTailorPreparing(false);
+        return;
+      }
+
+      const uploadRes = await fetch("/api/transform?action=upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ text: cvText, mode: "import-only", source_chars: cvText.length }),
+      });
+      const uploadJson = await uploadRes.json().catch(() => ({}));
+      if (!uploadRes.ok || !uploadJson.ok || !uploadJson.session_id) {
+        setTailorError(uploadJson.error || "Could not prepare your CV. Please try again.");
+        setTailorPreparing(false);
+        return;
+      }
+
+      const parseRes = await fetch("/api/transform?action=parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ session_id: uploadJson.session_id }),
+      });
+      const parseJson = await parseRes.json().catch(() => ({}));
+      if (!parseRes.ok || !parseJson.ok || !parseJson.cv_data) {
+        setTailorError(parseJson.error || "Could not read your CV. Please try again.");
+        setTailorPreparing(false);
+        return;
+      }
+
+      // Hand the faithfully-parsed CV to the Builder via the from=ats draft.
+      writeCvDraft(draftKey, {
+        version: 1,
+        cv: parseJson.cv_data,
+        templateId: null,
+        resumeId: null,
+      });
+      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: true, gapsCount: gapList.length });
+      navigate(`/builder${search}`);
+    } catch (e) {
+      setTailorError("Something went wrong preparing your CV. Please try again.");
+      setTailorPreparing(false);
+    }
+  }, [uploadedFile, tailorPreparing, navigate]);
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (
@@ -1193,20 +1292,16 @@ export default function ATSChecker({
             <ProTailorBlock
               current={cvOnlyCurrent}
               missingCount={cvOnlyIssueCount}
+              preparing={tailorPreparing}
+              tailorError={tailorError}
               onTailor={() => {
                 // Real flagged data only — the model-flagged structure issues
-                // this block already counts. Fed to the Builder AI-tailor via
-                // the existing /builder?from=ats&gaps=… deep-link.
+                // this block already counts. The handoff parses the scanned CV
+                // into the builder, then routes with these gaps as the ribbon.
                 const gaps = Array.isArray(results.structureIssues)
                   ? results.structureIssues.map((i) => i?.claim).filter(Boolean)
                   : [];
-                logEvent("ats_pro_tailor_clicked", {
-                  source: "cv_only_result",
-                  current: cvOnlyCurrent,
-                  gapsCount: gaps.length,
-                });
-                const encoded = gaps.map((g) => encodeURIComponent(g)).join(",");
-                navigate(`/builder?from=ats&gaps=${encoded}`);
+                openAiTailor(gaps);
               }}
             />
           ) : (
@@ -1288,7 +1383,14 @@ export default function ATSChecker({
             visibilityBoosters={visibilityBoosters}
             isPro={isPro}
             onUpgrade={() => setShowPaywall(true)}
+            onPrimary={(gaps) => openAiTailor(gaps)}
+            primaryBusy={tailorPreparing}
           />
+          {tailorError && (
+            <div role="alert" style={{ marginTop: -16, marginBottom: 24, textAlign: "center", fontSize: 12.5, color: T.red, lineHeight: 1.5 }}>
+              {tailorError}
+            </div>
+          )}
 
           {/* Gradient bar */}
           <div style={{ marginBottom: 36 }}>
