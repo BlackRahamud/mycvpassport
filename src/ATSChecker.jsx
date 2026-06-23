@@ -10,6 +10,7 @@ import CvOnlyResult from "./components/CvOnlyResult";
 import UpgradeModal from "./UpgradeModal";
 import AtsGapsActionCard from "./components/AtsGapsActionCard";
 import { getDraftStorageKey, writeCvDraft } from "./lib/cvDraft";
+import { buildStructuralGaps } from "./lib/ats/atsGaps";
 
 // Sprint #4: Cloudflare Turnstile site key (public). When unset locally
 // the widget is skipped entirely and the Edge Function fail-opens in dev.
@@ -845,20 +846,22 @@ export default function ATSChecker({
   // changes content), write it to the from=ats draft, then route to the
   // Builder. The draft key is computed with the SAME getDraftStorageKey the
   // Builder reads on mount, so writer and reader can never drift.
-  const openAiTailor = useCallback(async (gaps) => {
+  const openAiTailor = useCallback(async () => {
     if (tailorPreparing) return;
     setTailorError(null);
 
-    const gapList = Array.isArray(gaps) ? gaps.map((g) => String(g)).filter(Boolean) : [];
-    const encoded = gapList.map((g) => encodeURIComponent(g)).join(",");
-    const search = encoded ? `?from=ats&gaps=${encoded}` : "?from=ats";
+    // Tag gaps at the source: structureIssues + atsFlags → typed STRUCTURAL
+    // gaps (Phase A). Type + weight are preserved by carrying them in the
+    // draft, NOT the URL (too small for typed objects).
+    const typedGaps = buildStructuralGaps(results);
+    const search = "?from=ats";
     // Key the Builder will read on mount — derived identically here.
     const draftKey = getDraftStorageKey(null, search);
 
     if (!uploadedFile) {
-      // No file to parse (e.g. a remounted session). Route anyway so the gaps
-      // ribbon still shows; the Builder falls back to its normal resume.
-      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: false, gapsCount: gapList.length });
+      // No file to parse (e.g. a remounted session). Route anyway; the Builder
+      // falls back to its normal resume and shows no fixes panel.
+      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: false, gapsCount: typedGaps.length });
       navigate(`/builder${search}`);
       return;
     }
@@ -900,20 +903,22 @@ export default function ATSChecker({
         return;
       }
 
-      // Hand the faithfully-parsed CV to the Builder via the from=ats draft.
+      // Hand the faithfully-parsed CV + typed gaps to the Builder via the
+      // from=ats draft (v2 payload). Writer and reader use the same key.
       writeCvDraft(draftKey, {
-        version: 1,
+        version: 2,
         cv: parseJson.cv_data,
+        atsGaps: typedGaps,
         templateId: null,
         resumeId: null,
       });
-      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: true, gapsCount: gapList.length });
+      logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: true, gapsCount: typedGaps.length });
       navigate(`/builder${search}`);
     } catch (e) {
       setTailorError("Something went wrong preparing your CV. Please try again.");
       setTailorPreparing(false);
     }
-  }, [uploadedFile, tailorPreparing, navigate]);
+  }, [uploadedFile, tailorPreparing, navigate, results]);
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (
@@ -1294,15 +1299,7 @@ export default function ATSChecker({
               missingCount={cvOnlyIssueCount}
               preparing={tailorPreparing}
               tailorError={tailorError}
-              onTailor={() => {
-                // Real flagged data only — the model-flagged structure issues
-                // this block already counts. The handoff parses the scanned CV
-                // into the builder, then routes with these gaps as the ribbon.
-                const gaps = Array.isArray(results.structureIssues)
-                  ? results.structureIssues.map((i) => i?.claim).filter(Boolean)
-                  : [];
-                openAiTailor(gaps);
-              }}
+              onTailor={() => openAiTailor()}
             />
           ) : (
             <UpgradeConversionBlock
@@ -1383,7 +1380,7 @@ export default function ATSChecker({
             visibilityBoosters={visibilityBoosters}
             isPro={isPro}
             onUpgrade={() => setShowPaywall(true)}
-            onPrimary={(gaps) => openAiTailor(gaps)}
+            onPrimary={() => openAiTailor()}
             primaryBusy={tailorPreparing}
           />
           {tailorError && (

@@ -46,8 +46,9 @@ import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { clearBulletMarkers } from "../experiencePointsPreview";
 import CompletionStrip from "../components/CompletionStrip";
-import AtsGapsRibbon from "../components/AtsGapsRibbon";
+import AtsFixesPanel from "../components/ats/AtsFixesPanel";
 import { getDraftStorageKey, readCvDraft, writeCvDraft, clearCvDraft } from "../lib/cvDraft";
+import { normalizeAtsGaps, gapsFromLegacyParam } from "../lib/ats/atsGaps";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
@@ -2844,33 +2845,29 @@ function ResumeBuilder({
   const prevBuilderTabRef = useRef(null);
   const cvCompletionProgress = useCvProgress(resume);
 
-  // Hook #2 — ATS Gaps deep-link. Reads the comma-separated keyword list
-  // out of ?gaps= so the builder can show a slim ribbon at the top of
-  // the Content tab. No new state machinery — derived from the URL each
-  // render, dismissal lives in sessionStorage inside the ribbon itself.
+  // ATS fixes deep-link. Typed gaps (structural, with weight + category) are
+  // carried in the from=ats draft written by ATSChecker — preferred. Legacy
+  // ?gaps= strings (old links) fall back to untyped review chips. The tiered
+  // AtsFixesPanel re-evaluates resolution live against `resume`.
   const atsGaps = useMemo(() => {
+    const fromDraft = normalizeAtsGaps(initialDraftRef.current?.atsGaps);
+    if (fromDraft.length) return fromDraft;
     const params = new URLSearchParams(location.search);
     if (params.get("from") !== "ats") return [];
-    const raw = params.get("gaps");
-    if (!raw) return [];
-    return raw
-      .split(",")
-      .map((g) => {
-        try { return decodeURIComponent(g).trim(); } catch { return g.trim(); }
-      })
-      .filter(Boolean);
+    return gapsFromLegacyParam(params.get("gaps"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
+  // Mirror into a ref so the debounced draft auto-save can persist gaps
+  // across reloads (the auto-save payload otherwise omits them).
+  const atsGapsRef = useRef([]);
+  atsGapsRef.current = atsGaps;
 
-  const handleAtsRibbonChipClick = useCallback(() => {
-    setOpenSection("competencies");
-    window.setTimeout(() => {
-      const el = document.querySelector('[data-cvp-accordion="competencies"]');
-      if (!el) return;
-      // Account for sticky topbar (56) + sticky CompletionStrip (~70).
-      el.style.scrollMarginTop = "130px";
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  }, []);
+  // Template ATS-safety drives honest resolution of the tables/columns gap:
+  // only an ATS-tagged template lets that gap mark ✓.
+  const templateIsAtsSafe = useMemo(() => {
+    const tags = Array.isArray(selectedTemplate?.tags) ? selectedTemplate.tags : [];
+    return tags.some((t) => String(t).toLowerCase().includes("ats"));
+  }, [selectedTemplate]);
   // pdfTargetPages drives the PDF generation pipeline; setter is unused
   // since the 1pg/2pg toggle was removed. Keeping the state in case a
   // settings surface re-introduces user control.
@@ -3158,10 +3155,12 @@ function ResumeBuilder({
     if (!draftStorageKey) return undefined;
     const timer = setTimeout(() => {
       writeCvDraft(draftStorageKey, {
-        version: 1,
+        version: 2,
         cv: { ...resume, technicalSkills: sanitizeTechnicalSkillsForPersist(resume.technicalSkills) },
         templateId: selectedTemplate?.id || null,
         resumeId: resumeId || null,
+        // Preserve ATS gaps (from=ats handoff) so a reload keeps the fixes panel.
+        atsGaps: atsGapsRef.current && atsGapsRef.current.length ? atsGapsRef.current : undefined,
       });
     }, 500);
     return () => clearTimeout(timer);
@@ -3405,6 +3404,47 @@ function ResumeBuilder({
       }, 280);
     });
   }, []);
+
+  // ── ATS fixes: route a gap to ITS real field (not always Skills) ──────────
+  const gotoAtsTarget = useCallback((action) => {
+    if (!action) return;
+    if (action.kind === "goto_template") {
+      setBuilderTab("templates");
+      return;
+    }
+    if (action.kind !== "goto_field") return;
+    if (action.field === "contact") {
+      // Contact lives in the always-visible personal card, not an accordion.
+      setBuilderTab("content");
+      window.requestAnimationFrame(() => {
+        document.getElementById("section-personal")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const first = Array.isArray(action.missing) && action.missing.length ? action.missing[0] : "name";
+        window.setTimeout(() => document.getElementById(`cvp-pi-${first}`)?.focus(), 320);
+      });
+      return;
+    }
+    onCvFinderResultActivate(action.field);
+  }, [onCvFinderResultActivate]);
+
+  // ── ATS fixes: mechanical merge of split skills sections ──────────────────
+  // Fold every technicalSkills chip into the comma-separated skills list
+  // (case-insensitive dedup), then clear technicalSkills. A user-driven
+  // mutation → setResume flips the dirty flag and the split_skills gap
+  // re-evaluates to resolved on the next render.
+  const handleMergeSkills = useCallback(() => {
+    setResume((r) => {
+      const base = splitCommaItems(r.skills);
+      const techChips = normalizeTechnicalSkillsState(r.technicalSkills).flatMap((g) => g.chips);
+      const seen = new Set(base.map((s) => s.toLowerCase()));
+      const merged = [...base];
+      for (const c of techChips) {
+        const k = String(c).trim().toLowerCase();
+        if (k && !seen.has(k)) { seen.add(k); merged.push(String(c).trim()); }
+      }
+      return { ...r, skills: merged.join(", "), technicalSkills: "" };
+    });
+    onCvFinderResultActivate("skills");
+  }, [onCvFinderResultActivate, setResume]);
 
   const onBuilderGuideSheetOpenChange = useCallback((open) => {
     if (!open) scheduleBuilderIdleRef.current();
@@ -4093,10 +4133,12 @@ function ResumeBuilder({
         >
           {builderTab === "content" && (
             <>
-              <AtsGapsRibbon
+              <AtsFixesPanel
                 gaps={atsGaps}
                 resume={resume}
-                onChipClick={handleAtsRibbonChipClick}
+                templateIsAtsSafe={templateIsAtsSafe}
+                onGoto={gotoAtsTarget}
+                onMergeSkills={handleMergeSkills}
               />
               <div
                 style={{
@@ -4592,10 +4634,12 @@ function ResumeBuilder({
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
             {builderTab === "content" && (
               <>
-                <AtsGapsRibbon
+                <AtsFixesPanel
                   gaps={atsGaps}
                   resume={resume}
-                  onChipClick={handleAtsRibbonChipClick}
+                  templateIsAtsSafe={templateIsAtsSafe}
+                  onGoto={gotoAtsTarget}
+                  onMergeSkills={handleMergeSkills}
                 />
                 <div
                   style={{
