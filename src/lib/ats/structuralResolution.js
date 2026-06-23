@@ -162,10 +162,19 @@ export function evaluateStructuralGap(gap, cvData, ctx = {}) {
       if (ctx.templateIsAtsSafe === true) {
         return resolved("Rendered in an ATS-safe single-column flow by your template.");
       }
+      // We know which template is ATS-safe — give the answer, don't punt to a
+      // picker. ctx.atsRecommendation = { id, name } is computed by the Builder
+      // (industry/tier aware). Fall back to the picker only if absent.
+      const rec = ctx.atsRecommendation;
+      const reason = "Your current template isn't ATS-single-column.";
       if (ctx.templateIsAtsSafe === false) {
-        return action("Your current template isn't ATS-single-column.", { kind: "goto_template" }, "Choose ATS template");
+        return rec && rec.id
+          ? action(reason, { kind: "switch_template", templateId: rec.id }, `Switch to ${rec.name}`)
+          : action(reason, { kind: "goto_template" }, "Choose ATS template");
       }
-      return review("Confirm your template is an ATS single-column layout.", { kind: "goto_template" }, "Choose ATS template");
+      return rec && rec.id
+        ? review("Confirm an ATS single-column layout.", { kind: "switch_template", templateId: rec.id }, `Switch to ${rec.name}`)
+        : review("Confirm your template is an ATS single-column layout.", { kind: "goto_template" }, "Choose ATS template");
     }
 
     case "letter_spacing": {
@@ -230,8 +239,20 @@ export function evaluateStructuralGap(gap, cvData, ctx = {}) {
       return action("Some roles are missing dates.", { kind: "open_experience", expIndex: idx }, "Add dates");
     }
 
-    default:
-      // Unknown: never auto-✓. Send the user to review it themselves.
+    default: {
+      // Unknown: never auto-✓. But if the evidence pins it to a specific role,
+      // OPEN that exact entry in edit mode (not the top of Work History).
+      const res = locateGapInCv(gap, cv);
+      const ref = res.ref;
+      if (ref && (ref.kind === "bullet" || (ref.kind === "field" && ref.field === "experience"))) {
+        const isDate = /\bdate|dated|future|expire|\b(19|20)\d{2}\b/i.test(`${gap?.label || ""} ${gap?.evidence || ""}`);
+        return review(
+          isDate ? "Open this role and fix its dates." : "Open this role and review it.",
+          { kind: "open_experience", expIndex: ref.expIndex, focus: isDate ? "dates" : "points" },
+          isDate ? "Fix date" : "Open role",
+        );
+      }
       return review("Open the relevant section and confirm this reads cleanly.", { kind: "focus_field", field: "experience" }, "Review");
+    }
   }
 }

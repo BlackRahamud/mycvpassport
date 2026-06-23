@@ -46,7 +46,11 @@ function candidates(cv) {
   add({ kind: "field", field: "skills" }, cv?.skills);
   add({ kind: "field", field: "technicalSkills" }, cv?.technicalSkills);
   (Array.isArray(cv?.experience) ? cv.experience : []).forEach((e, expIndex) => {
-    add({ kind: "field", field: "experience", expIndex, sub: "header" }, `${e?.role || ""} ${e?.company || ""}`);
+    // Include dates so date-based evidence ("Oct 2025") locates the entry.
+    add(
+      { kind: "field", field: "experience", expIndex, sub: "header" },
+      `${e?.role || ""} ${e?.company || ""} ${e?.period || ""} ${e?.startDate || ""} ${e?.endDate || ""}`,
+    );
     String(e?.points || "").split("\n").forEach((line, lineIndex) => {
       if (line.trim()) add({ kind: "bullet", expIndex, lineIndex }, line);
     });

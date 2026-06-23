@@ -52,6 +52,7 @@ export default function AtsFixesPanel({
   gaps,
   resume,
   templateIsAtsSafe,
+  atsRecommendation,
   onGoto,
   onMergeSkills,
 }) {
@@ -73,8 +74,8 @@ export default function AtsFixesPanel({
   const [fixedOpen, setFixedOpen] = useState(false);
 
   const { fixed, todo } = useMemo(
-    () => partitionGapsByResolution(structural, resume, { templateIsAtsSafe }),
-    [structural, resume, templateIsAtsSafe],
+    () => partitionGapsByResolution(structural, resume, { templateIsAtsSafe, atsRecommendation }),
+    [structural, resume, templateIsAtsSafe, atsRecommendation],
   );
 
   if (!structural.length || dismissed) return null;

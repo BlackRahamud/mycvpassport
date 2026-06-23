@@ -2870,6 +2870,21 @@ function ResumeBuilder({
     return tags.some((t) => String(t).toLowerCase().includes("ats"));
   }, [selectedTemplate]);
 
+  // We know which template is ATS-safe — recommend it so the gap CTA gives the
+  // answer instead of a picker. Default: UAE ATS (#19, free, single-column).
+  // Pro + finance industry (carried in the from=ats draft) → Finance (#13).
+  const atsRecommendation = useMemo(() => {
+    const industry = String(initialDraftRef.current?.industry || "").toLowerCase();
+    const financeLike = /financ|bank|account|audit|invest/.test(industry);
+    if (isPro && financeLike) {
+      const fin = TEMPLATES.find((t) => t.id === 13);
+      if (fin) return { id: fin.id, name: fin.name };
+    }
+    const ats = TEMPLATES.find((t) => t.id === 19);
+    return ats ? { id: ats.id, name: ats.name } : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPro]);
+
   // One-time CV-import welcome popup. Shows once per from=ats import (flag lives
   // in the draft so it survives reload; flipped to "seen" after first view).
   const [showAtsWelcome, setShowAtsWelcome] = useState(() => {
@@ -2879,8 +2894,8 @@ function ResumeBuilder({
   const atsWelcomeRef = useRef(initialDraftRef.current?.atsWelcome || null);
   // Real, never-padded split shared with the fixes panel.
   const atsWelcomePartition = useMemo(
-    () => partitionGapsByResolution(atsGaps, resume, { templateIsAtsSafe }),
-    [atsGaps, resume, templateIsAtsSafe],
+    () => partitionGapsByResolution(atsGaps, resume, { templateIsAtsSafe, atsRecommendation }),
+    [atsGaps, resume, templateIsAtsSafe, atsRecommendation],
   );
   // Lightweight toast for ATS quick-fix removals (undoable via Ctrl+Z).
   const [atsToast, setAtsToast] = useState(null);
@@ -3184,6 +3199,8 @@ function ResumeBuilder({
         atsGaps: atsGapsRef.current && atsGapsRef.current.length ? atsGapsRef.current : undefined,
         // Preserve the welcome-popup flag so it stays one-time across reloads.
         atsWelcome: atsWelcomeRef.current || undefined,
+        // Preserve inferred industry so the ATS-template recommendation holds.
+        industry: initialDraftRef.current?.industry || undefined,
       });
     }, 500);
     return () => clearTimeout(timer);
@@ -3500,19 +3517,33 @@ function ResumeBuilder({
       }
       return r;
     });
-    setAtsToast(`Removed ${label || "block"} · Ctrl+Z to undo`);
-  }, [setResume]);
+    setAtsToast({ text: `Removed ${label || "block"}`, onUndo: handleUndo });
+  }, [setResume, handleUndo]);
 
   // ── ATS fixes: route a gap to ITS real field + element, per action kind ────
   const gotoAtsTarget = useCallback((action) => {
     if (!action) return;
     if (action.kind === "merge_skills") { handleMergeSkills(); return; }
     if (action.kind === "goto_template") { setBuilderTab("templates"); return; }
+    if (action.kind === "switch_template") {
+      const tpl = TEMPLATES.find((t) => t.id === action.templateId);
+      if (!tpl) { setBuilderTab("templates"); return; }
+      const prev = selectedTemplate;
+      setSelectedTemplate(tpl);
+      // Template isn't in the resume undo history; offer an explicit revert.
+      setAtsToast({ text: `Switched to ${tpl.name}`, onUndo: prev ? () => setSelectedTemplate(prev) : null });
+      return;
+    }
     if (action.kind === "remove_element") { removeAtsElement(action.target, action.label); return; }
     if (action.kind === "open_experience") {
       setBuilderTab("content");
       const e = resume.experience?.[action.expIndex];
       if (e) setExperienceEditor({ mode: "edit", index: action.expIndex, draft: { ...EMPTY_EXP, ...e } });
+      // Focus the exact field the gap is about.
+      window.setTimeout(() => {
+        if (action.focus === "dates") document.getElementById("cvp-exp-end-date")?.focus();
+        else expDescriptionRef.current?.focus?.();
+      }, 380);
       return;
     }
     if (action.kind === "focus_field") {
@@ -3533,7 +3564,7 @@ function ResumeBuilder({
         wrap?.querySelector("input, textarea")?.focus();
       }, 380);
     }
-  }, [onCvFinderResultActivate, handleMergeSkills, removeAtsElement, resume, setExperienceEditor]);
+  }, [onCvFinderResultActivate, handleMergeSkills, removeAtsElement, resume, setExperienceEditor, selectedTemplate]);
 
   // ── ATS welcome popup: mark seen (persist immediately) + actions ──────────
   const markAtsWelcomeSeen = useCallback(() => {
@@ -4252,6 +4283,7 @@ function ResumeBuilder({
                 gaps={atsGaps}
                 resume={resume}
                 templateIsAtsSafe={templateIsAtsSafe}
+                atsRecommendation={atsRecommendation}
                 onGoto={gotoAtsTarget}
                 onMergeSkills={handleMergeSkills}
               />
@@ -4753,6 +4785,7 @@ function ResumeBuilder({
                   gaps={atsGaps}
                   resume={resume}
                   templateIsAtsSafe={templateIsAtsSafe}
+                  atsRecommendation={atsRecommendation}
                   onGoto={gotoAtsTarget}
                   onMergeSkills={handleMergeSkills}
                 />
@@ -6148,17 +6181,39 @@ function ResumeBuilder({
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
             background: "#1C1C1C",
             border: "1px solid #2A2A2A",
             borderRadius: 999,
-            padding: "10px 18px",
+            padding: "10px 10px 10px 18px",
             fontSize: 13,
             color: "#FFFFFF",
             fontFamily: "'DM Sans', sans-serif",
             boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
           }}
         >
-          {atsToast}
+          <span>{atsToast.text}</span>
+          {atsToast.onUndo && (
+            <button
+              type="button"
+              onClick={() => { atsToast.onUndo(); setAtsToast(null); }}
+              style={{
+                background: "rgba(217,119,6,0.16)",
+                border: "1px solid rgba(217,119,6,0.4)",
+                color: "#F59E0B",
+                borderRadius: 999,
+                padding: "5px 12px",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Undo
+            </button>
+          )}
         </div>
       )}
 

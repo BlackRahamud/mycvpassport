@@ -909,6 +909,8 @@ export default function ATSChecker({
         version: 2,
         cv: parseJson.cv_data,
         atsGaps: typedGaps,
+        // Inferred industry drives the Builder's ATS-template recommendation.
+        industry: results?.industry || null,
         // One-time welcome popup trigger; Builder flips this to "seen" after
         // showing it once for this import.
         atsWelcome: "pending",

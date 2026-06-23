@@ -27,6 +27,17 @@ describe("locateGapInCv", () => {
     expect(isRemovableRef(ref)).toBe(false);
   });
 
+  test("locates an entry by its date (dates now in the header candidate)", () => {
+    const cv = {
+      experience: [
+        { role: "Analyst", company: "Acme", startDate: "Jan 2019", endDate: "Dec 2020", points: "Did things" },
+        { role: "Senior Analyst", company: "Globex", startDate: "Jan 2021", endDate: "Oct 2025", points: "More" },
+      ],
+    };
+    const { ref } = locateGapInCv({ evidence: "Senior Analyst Globex Oct 2025" }, cv);
+    expect(ref).toMatchObject({ kind: "field", field: "experience", expIndex: 1 });
+  });
+
   test("genuinely absent → ref null, low score", () => {
     const cv = { name: "Jane", summary: "Senior cloud engineer focused on reliability" };
     const { ref, score } = locateGapInCv({ evidence: "key metrics revenue inflated vanity" }, cv);

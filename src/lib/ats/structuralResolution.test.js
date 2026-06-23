@@ -79,6 +79,12 @@ describe("evaluateStructuralGap — honest resolution", () => {
     expect(evaluateStructuralGap({ category: "tables_columns" }, {}, {}).status).toBe("review");
   });
 
+  test("tables_columns: WITH a recommendation → one-click named switch (gives the answer)", () => {
+    const r = evaluateStructuralGap({ category: "tables_columns" }, {}, { templateIsAtsSafe: false, atsRecommendation: { id: 19, name: "UAE ATS" } });
+    expect(r.action).toEqual({ kind: "switch_template", templateId: 19 });
+    expect(r.cta).toBe("Switch to UAE ATS");
+  });
+
   test("image_or_nontext and decorative_fonts → always resolved (genuinely true of builder output)", () => {
     expect(evaluateStructuralGap({ category: "image_or_nontext" }, {}).status).toBe("resolved");
     expect(evaluateStructuralGap({ category: "decorative_fonts" }, {}).status).toBe("resolved");
@@ -94,6 +100,38 @@ describe("evaluateStructuralGap — honest resolution", () => {
     const r = evaluateStructuralGap({ category: "unknown" }, { name: "Jane" });
     expect(r.status).toBe("review");
     expect(r.resolved).toBe(false);
+  });
+
+  describe("unknown content gap → open the SPECIFIC role (not top of section)", () => {
+    test("evidence pins a bullet → open that entry, focus points", () => {
+      const cv = {
+        experience: [
+          { role: "X", company: "Y", points: "Generic duty" },
+          { role: "Manager", company: "Globex", points: "Led the regional sales pipeline end to end" },
+        ],
+      };
+      const r = evaluateStructuralGap(
+        { category: "unknown", label: "Job descriptions not anchored to employer", evidence: "Led the regional sales pipeline end to end" },
+        cv,
+      );
+      expect(r.action).toMatchObject({ kind: "open_experience", expIndex: 1, focus: "points" });
+      expect(r.cta).toBe("Open role");
+    });
+
+    test("date evidence → open that entry, focus dates", () => {
+      const cv = { experience: [{ role: "Senior Analyst", company: "Globex", startDate: "Jan 2021", endDate: "Oct 2025", points: "x" }] };
+      const r = evaluateStructuralGap(
+        { category: "unknown", label: "Future-dated role", evidence: "Senior Analyst Globex Oct 2025" },
+        cv,
+      );
+      expect(r.action).toMatchObject({ kind: "open_experience", expIndex: 0, focus: "dates" });
+      expect(r.cta).toBe("Fix date");
+    });
+
+    test("unlocatable → falls back to section review (no false precision)", () => {
+      const r = evaluateStructuralGap({ category: "unknown", label: "Something vague", evidence: "" }, { experience: [{ role: "A" }] });
+      expect(r.action).toEqual({ kind: "focus_field", field: "experience" });
+    });
   });
 
   describe("irrelevant_block (junk → remove, not rewrite)", () => {
