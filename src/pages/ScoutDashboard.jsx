@@ -36,6 +36,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { supabase } from '../appSupabaseClient';
+import safeFetch from '../lib/net/safeFetch';
 
 /* =====================================================================
    ScoutDashboard — Pro-only feature, static UI prototype.
@@ -76,7 +77,7 @@ async function authedFetch(url, options = {}) {
     err.code = 'NOT_SIGNED_IN';
     throw err;
   }
-  const r = await fetch(url, {
+  const r = await safeFetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ const SCAN_PROGRESS_MESSAGES = [
 ];
 
 async function triggerPdfDownload({ tailoredCv, templateId, baseName, signal }) {
-  const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+  const res = await safeFetch(`${window.location.origin}/api/generate-pdf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

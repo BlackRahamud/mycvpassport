@@ -29,6 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
+import safeFetch from "../lib/net/safeFetch";
 import JobMatch from "../JobMatch";
 import ATSChecker from "../ATSChecker";
 import CoverLetterModal from "../CoverLetterModal";
@@ -1000,6 +1001,29 @@ function skillsArrayForChipRender(skills) {
       : [];
 }
 
+// Client-side timeout budgets for the in-builder AI assist. Without these a
+// hung supabase.auth.getSession() (auth-lock contention / stuck refresh —
+// never throws) or a stalled serverless fetch leaves the "Write with AI"
+// button spinning forever with nothing logged. They convert a hang into a
+// visible, retryable error.
+const AI_SESSION_TIMEOUT_MS = 10000;
+const AI_FETCH_TIMEOUT_MS = 45000; // under the api/ai.js maxDuration (60s)
+
+// Races a no-abort promise (e.g. supabase.auth.getSession) against a timeout
+// so it can never block the UI indefinitely.
+function withAiTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => {
+        const e = new Error(label || "Timed out");
+        e.name = "TimeoutError";
+        reject(e);
+      }, ms)
+    ),
+  ]);
+}
+
 function ProfessionalSummaryField({
   summary,
   onChange,
@@ -1030,10 +1054,13 @@ function ProfessionalSummaryField({
     setIsDirty(false);
   }, [saveSuccessTick]);
 
-  // Auto-clear toast. Success fades faster; errors / info linger so the
-  // user can read them.
+  // Auto-clear toast. Success / info fade on their own; ERRORS persist
+  // until the next AI action or a manual edit so a failed rewrite can
+  // never present as a silent spinner-then-nothing (the user must be
+  // able to actually read what went wrong, including the HTTP status).
   useEffect(() => {
     if (!aiToast) return undefined;
+    if (aiToast.kind === "error") return undefined;
     const ms = aiToast.kind === "success" ? 2000 : 3500;
     const t = setTimeout(() => setAiToast(null), ms);
     return () => clearTimeout(t);
@@ -1045,15 +1072,26 @@ function ProfessionalSummaryField({
     if (aiLoading) return;
     setAiLoading(true);
     setAiToast(null);
+    // Hard ceiling on the fetch so a stalled serverless function can't spin
+    // the button forever.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AI_FETCH_TIMEOUT_MS);
     try {
-      const { data: { session } = {} } = await supabase.auth.getSession();
+      console.info("[builder AI summary] runAIRewrite start");
+      const { data: { session } = {} } = await withAiTimeout(
+        supabase.auth.getSession(),
+        AI_SESSION_TIMEOUT_MS,
+        "Session lookup timed out"
+      );
       const token = session?.access_token;
       if (!token) {
         setAiToast({ kind: "error", text: "Please sign in again." });
         return;
       }
-      const res = await fetch("/api/ai?action=tailor", {
+      console.info("[builder AI summary] session OK, firing tailor request");
+      const res = await safeFetch("/api/ai?action=tailor", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -1068,8 +1106,13 @@ function ProfessionalSummaryField({
           },
         }),
       });
+      console.info("[builder AI summary] tailor responded", res.status);
       let data = {};
-      try { data = await res.json(); } catch { /* leave as {} */ }
+      let rawBody = "";
+      try {
+        rawBody = await res.text();
+        data = rawBody ? JSON.parse(rawBody) : {};
+      } catch { /* non-JSON body (e.g. an HTML error page) — leave data as {} */ }
 
       if (res.status === 402) {
         // Free-tier exhausted. Surface the upgrade modal via the parent
@@ -1080,7 +1123,14 @@ function ProfessionalSummaryField({
         return;
       }
       if (!res.ok || !data.ok) {
-        setAiToast({ kind: "error", text: data?.error || "AI is busy, please try again." });
+        // Make the break diagnosable: log the real status + body, and
+        // show the user the status so 401/500/502 are distinguishable
+        // instead of a generic "busy".
+        console.error("[builder AI summary] tailor failed", res.status, data?.error || rawBody.slice(0, 300));
+        const text = data?.error
+          ? `${data.error} (${res.status})`
+          : `AI request failed (${res.status}). Please try again.`;
+        setAiToast({ kind: "error", text });
         return;
       }
       onChange(String(data.result || ""));
@@ -1088,8 +1138,18 @@ function ProfessionalSummaryField({
       if (onAIRewriteSuccess) onAIRewriteSuccess(data.credits_remaining);
       setAiToast({ kind: "success", text: "Summary rewritten" });
     } catch (e) {
-      setAiToast({ kind: "error", text: "AI is busy, please try again." });
+      // AbortError (our fetch timeout) or TimeoutError (getSession race) →
+      // the call never came back. Say so instead of leaving a dead button.
+      const isTimeout = e?.name === "AbortError" || e?.name === "TimeoutError";
+      console.error("[builder AI summary] tailor threw", e?.name, e?.message || e);
+      setAiToast({
+        kind: "error",
+        text: isTimeout
+          ? "Couldn't generate — the AI service didn't respond. Please try again."
+          : "Couldn't reach the AI service. Check your connection and retry.",
+      });
     } finally {
+      clearTimeout(timeoutId);
       setAiLoading(false);
     }
   }

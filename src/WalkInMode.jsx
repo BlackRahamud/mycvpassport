@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FAB } from "./components/FAB";
 import "./components/FAB/FAB.css";
 import { writeFabMemory } from "./components/FAB/FABLogic";
+import safeFetch from "./lib/net/safeFetch";
 
 /**
  * @typedef {Object} CVData
@@ -172,7 +173,7 @@ async function captureWalkInPdf(captureElement, fileNameBase) {
 </body>
 </html>`;
 
-  const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+  const res = await safeFetch(`${window.location.origin}/api/generate-pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ html }),

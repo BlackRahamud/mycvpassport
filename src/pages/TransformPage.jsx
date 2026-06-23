@@ -42,6 +42,7 @@ import {
 import { supabase } from '../appSupabaseClient';
 import { extractCvText } from '../services/cvExtraction';
 import { logEvent } from '../lib/analytics/logEvent';
+import safeFetch from '../lib/net/safeFetch';
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -103,7 +104,7 @@ async function authedFetch(url, init = {}) {
     e.code = 'NOT_SIGNED_IN';
     throw e;
   }
-  const r = await fetch(url, {
+  const r = await safeFetch(url, {
     ...init,
     headers: {
       'Content-Type': 'application/json',

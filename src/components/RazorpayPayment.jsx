@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
+import safeFetch from "../lib/net/safeFetch";
 
 const CHECKOUT_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -52,7 +53,7 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure,
           throw new Error("Please sign in to continue");
         }
 
-        const orderRes = await fetch("/api/razorpay?action=order", {
+        const orderRes = await safeFetch("/api/razorpay?action=order", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -91,7 +92,7 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure,
           theme: { color: "#ffffff" },
           handler: async (response) => {
             try {
-              const verifyRes = await fetch("/api/razorpay?action=verify", {
+              const verifyRes = await safeFetch("/api/razorpay?action=verify", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",

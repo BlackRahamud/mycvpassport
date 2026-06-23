@@ -38,6 +38,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '../appSupabaseClient';
+import safeFetch from '../lib/net/safeFetch';
 import { logEvent } from '../lib/analytics/logEvent';
 
 // ── Constants ──────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ async function authedFetch(url, init = {}) {
     e.code = 'NOT_SIGNED_IN';
     throw e;
   }
-  const r = await fetch(url, {
+  const r = await safeFetch(url, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -89,7 +90,7 @@ function safeFilename(name) {
 }
 
 async function triggerPdfDownload(cvData) {
-  const res = await fetch('/api/generate-pdf', {
+  const res = await safeFetch('/api/generate-pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ templateId: PDF_TEMPLATE_ID, cv: cvData }),

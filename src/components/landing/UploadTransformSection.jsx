@@ -17,6 +17,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../appSupabaseClient';
 import { extractCvText } from '../../services/cvExtraction';
+import safeFetch from '../../lib/net/safeFetch';
 import { logEvent } from '../../lib/analytics/logEvent';
 
 // ── Founder-locked copy ────────────────────────────────────────────
@@ -170,7 +171,7 @@ export default function UploadTransformSection({ user }) {
           return;
         }
 
-        const r = await fetch('/api/transform?action=upload', {
+        const r = await safeFetch('/api/transform?action=upload', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,3 +1,5 @@
+import safeFetch from '../lib/net/safeFetch';
+
 export async function getPaymentLink(feature, userId, userEmail) {
   try {
     if (!userId) {
@@ -8,7 +10,7 @@ export async function getPaymentLink(feature, userId, userEmail) {
         userEmail = userEmail || user.email;
       }
     }
-    const res = await fetch('/api/create-ziina-payment', {
+    const res = await safeFetch('/api/create-ziina-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ feature, userId, userEmail }),

@@ -72,9 +72,32 @@ const SONNET_OUTPUT_USD_PER_M = 15.0;
 // Shared retry helper. cover_letter used 10000ms backoff in the
 // legacy file; linkedin_headline used 8000ms — we accept the override
 // so each branch keeps its original retry profile.
-async function fetchWithRetry(url, options, attempts = 3, backoff = 10000) {
+//
+// Each attempt is bounded by an AbortController timeout (default 30s).
+// Without it, a stalled upstream socket (connection open, no response)
+// makes `await fetch` hang until the platform kills the function at
+// maxDuration (60s) — which surfaces to the client as an indefinite
+// spinner. On timeout we DON'T retry: we throw a clean error so the
+// caller can return a 5xx fast (well inside the function budget and the
+// client's own 45s ceiling). A real overloaded (429/529) response still
+// retries with backoff as before.
+async function fetchWithRetry(url, options, attempts = 3, backoff = 10000, timeoutMs = 30000) {
   for (let i = 0; i < attempts; i++) {
-    const response = await fetch(url, options);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let response;
+    try {
+      response = await fetch(url, { ...options, signal: controller.signal });
+    } catch (err) {
+      clearTimeout(timer);
+      if (err && err.name === 'AbortError') {
+        const e = new Error(`Upstream request timed out after ${timeoutMs}ms`);
+        e.code = 'upstream_timeout';
+        throw e;
+      }
+      throw err;
+    }
+    clearTimeout(timer);
     if (response.ok || (response.status !== 529 && response.status !== 429)) {
       return response;
     }

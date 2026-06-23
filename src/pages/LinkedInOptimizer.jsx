@@ -21,6 +21,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "../supabaseClient";
 import { useCvpAuth } from "../useCvpAuth";
+import safeFetch from "../lib/net/safeFetch";
 
 // ─── Market config ────────────────────────────────────────────────────────────
 // Copy + paywall pricing labels keyed to the Dubai / India toggle.
@@ -527,7 +528,7 @@ export default function LinkedInOptimizer() {
     const minDelay = new Promise((r) => setTimeout(r, 1400));
     try {
       const [res] = await Promise.all([
-        fetch("/api/ai?action=linkedin_headline", {
+        safeFetch("/api/ai?action=linkedin_headline", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ headline: trimmed, market }),
@@ -566,7 +567,7 @@ export default function LinkedInOptimizer() {
     }
     setPayingIntent(true);
     try {
-      const res = await fetch("/api/create-ziina-payment", {
+      const res = await safeFetch("/api/create-ziina-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ feature: "linkedinOptimizer", userId: user.id, userEmail: user.email }),

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Upload } from 'lucide-react';
 import { supabase } from '../../appSupabaseClient';
 import { extractCvText } from '../../services/cvExtraction';
+import safeFetch from '../../lib/net/safeFetch';
 
 const ACCEPT =
   '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -66,7 +67,7 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
           return;
         }
 
-        const uploadRes = await fetch('/api/transform?action=upload', {
+        const uploadRes = await safeFetch('/api/transform?action=upload', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -88,7 +89,7 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
         }
 
         setStage('parsing');
-        const parseRes = await fetch('/api/transform?action=parse', {
+        const parseRes = await safeFetch('/api/transform?action=parse', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

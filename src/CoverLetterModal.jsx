@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { generateCoverLetterFromTemplate } from "./coverLetterDataBank.generated";
 import UpgradeModal from "./UpgradeModal";
+import safeFetch from "./lib/net/safeFetch";
 
 function getTodayDateLabel() {
   return new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -85,7 +86,7 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
     setLoading(true);
     setLetterBody("");
     try {
-      const response = await fetch("/api/ai?action=cover_letter", {
+      const response = await safeFetch("/api/ai?action=cover_letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,7 +187,7 @@ ${letterBody}`
 </body>
 </html>`;
 
-    const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+    const res = await safeFetch(`${window.location.origin}/api/generate-pdf`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ html }),

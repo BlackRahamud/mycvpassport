@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
+import safeFetch from "../lib/net/safeFetch";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
 import RazorpayPayment from "../components/RazorpayPayment";
@@ -145,7 +146,7 @@ export default function PricingPage({ refreshProfile } = {}) {
   // On any failure we stay on INR (cheaper default).
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/razorpay?action=geo")
+    safeFetch("/api/razorpay?action=geo")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (cancelled) return;

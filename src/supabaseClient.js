@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { normalizeResumeText } from './normalizeResumeText';
 import { hasProAccess } from './config/access';
+import safeFetch from './lib/net/safeFetch';
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -68,7 +69,7 @@ export async function parseResumeToStructuredJSON(rawText) {
   const base = typeof window !== 'undefined' && window.location?.origin
     ? window.location.origin
     : '';
-  const res = await fetch(`${base}/api/ai?action=parse_resume`, {
+  const res = await safeFetch(`${base}/api/ai?action=parse_resume`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ text: cleaned }),

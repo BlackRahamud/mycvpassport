@@ -8,6 +8,11 @@ import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
 import { initClarity } from './lib/analytics/clarity';
 import { initPostHog } from './lib/analytics/posthog';
+import { captureNativeFetch } from './lib/net/safeFetch';
+
+// Capture a pristine fetch BEFORE any analytics tag (Clarity/GA/PostHog)
+// can monkey-patch window.fetch. Must run before the init calls below.
+captureNativeFetch();
 
 ReactGA.initialize('G-2NCBR90DMK');
 initClarity();

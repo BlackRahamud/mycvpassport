@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Upload, Lock, ChevronDown, Sparkles, Plus, CheckCircle } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase } from "./supabaseClient";
+import safeFetch from "./lib/net/safeFetch";
 import { getGatekeeperData } from "./services/gatekeeper";
 import { extractCvText, CvExtractionError } from "./services/cvExtraction";
 import { logEvent } from "./lib/analytics/logEvent";
@@ -720,7 +721,7 @@ export default function ATSChecker({
 
       // Sprint #4: use plain fetch so we can read the response body on
       // 429 (rate_limited) / 402 (spend_capped) / 403 (turnstile_blocked).
-      const response = await fetch(
+      const response = await safeFetch(
         `${SUPABASE_URL}/functions/v1/analyze-cv`,
         {
           method: "POST",
@@ -879,7 +880,7 @@ export default function ATSChecker({
         return;
       }
 
-      const uploadRes = await fetch("/api/transform?action=upload", {
+      const uploadRes = await safeFetch("/api/transform?action=upload", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ text: cvText, mode: "import-only", source_chars: cvText.length }),
@@ -891,7 +892,7 @@ export default function ATSChecker({
         return;
       }
 
-      const parseRes = await fetch("/api/transform?action=parse", {
+      const parseRes = await safeFetch("/api/transform?action=parse", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ session_id: uploadJson.session_id }),

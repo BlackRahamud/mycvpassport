@@ -27,6 +27,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, Loader2, X, AlertTriangle } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
+import safeFetch from "../lib/net/safeFetch";
+
+// Client-side timeout budgets. Without these a hung getSession() (auth-lock
+// contention / stuck token refresh — never throws) or a stalled serverless
+// fetch leaves the modal spinning on "Rewriting your bullet..." forever with
+// nothing logged. These convert a hang into a visible, retryable error.
+const SESSION_TIMEOUT_MS = 10000;
+const TAILOR_FETCH_TIMEOUT_MS = 45000; // under the api/ai.js maxDuration (60s)
+
+// Races a promise that has no native abort (e.g. supabase.auth.getSession)
+// against a timeout so it can never block the UI indefinitely.
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => {
+        const e = new Error(label || "Timed out");
+        e.name = "TimeoutError";
+        reject(e);
+      }, ms)
+    ),
+  ]);
+}
 
 const AI_REWRITE_MODAL_CSS = `
 .cvp-airw-overlay {
@@ -421,8 +444,18 @@ export default function AIRewriteModal({
     setSelectedAltIdx(null);
     setErrorMsg("");
 
+    // AbortController gives the fetch a hard ceiling so a stalled serverless
+    // function can't spin the modal forever.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TAILOR_FETCH_TIMEOUT_MS);
+
     try {
-      const { data: { session } = {} } = await supabase.auth.getSession();
+      console.info("[builder AI bullet] callAPI start", { bulletIdx });
+      const { data: { session } = {} } = await withTimeout(
+        supabase.auth.getSession(),
+        SESSION_TIMEOUT_MS,
+        "Session lookup timed out"
+      );
       const token = session?.access_token;
       if (!token) {
         if (cancelledRef.current) return;
@@ -430,9 +463,11 @@ export default function AIRewriteModal({
         setPhase("error");
         return;
       }
+      console.info("[builder AI bullet] session OK, firing tailor request");
 
-      const res = await fetch("/api/ai?action=tailor", {
+      const res = await safeFetch("/api/ai?action=tailor", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -447,9 +482,14 @@ export default function AIRewriteModal({
           },
         }),
       });
+      console.info("[builder AI bullet] tailor responded", res.status);
 
       let data = {};
-      try { data = await res.json(); } catch { /* leave empty */ }
+      let rawBody = "";
+      try {
+        rawBody = await res.text();
+        data = rawBody ? JSON.parse(rawBody) : {};
+      } catch { /* non-JSON body (e.g. an HTML error page) — leave data as {} */ }
 
       if (cancelledRef.current) return;
 
@@ -462,7 +502,14 @@ export default function AIRewriteModal({
       }
 
       if (!res.ok || !data.ok || !Array.isArray(data.alternatives) || data.alternatives.length < 3) {
-        setErrorMsg(data?.error || "AI is busy, please try again.");
+        // Log the real status + body so a failing call is diagnosable, and
+        // show the user the status so 401/500/502 are distinguishable.
+        console.error("[builder AI bullet] tailor failed", res.status, data?.error || rawBody.slice(0, 300));
+        setErrorMsg(
+          data?.error
+            ? `${data.error} (${res.status})`
+            : `AI request failed (${res.status}). Please try again.`
+        );
         setPhase("error");
         return;
       }
@@ -472,18 +519,38 @@ export default function AIRewriteModal({
       setPhase("alternatives");
     } catch (e) {
       if (cancelledRef.current) return;
-      setErrorMsg("AI is busy, please try again.");
+      // AbortError (our timeout) or TimeoutError (getSession race) → the call
+      // never came back. Make that explicit instead of an infinite spinner.
+      const isTimeout = e?.name === "AbortError" || e?.name === "TimeoutError";
+      console.error("[builder AI bullet] tailor threw", e?.name, e?.message || e);
+      setErrorMsg(
+        isTimeout
+          ? "Couldn't generate — the AI service didn't respond. Please try again."
+          : "Couldn't reach the AI service. Check your connection and retry."
+      );
       setPhase("error");
+    } finally {
+      clearTimeout(timeoutId);
     }
   }, [bullets, roleContext, onAIRewriteSuccess, onAIExhausted, onClose]);
 
   // Open / close lifecycle. Resets state on open. If only one bullet,
   // auto-skip the picker.
+  //
+  // Guarded to run ONCE per open: `bullets` (a fresh array from the parent
+  // every render) and `callAPI` (recreated each render) would otherwise
+  // re-trigger this effect on every parent re-render while the modal is
+  // open — resetting the phase mid-load or re-firing callAPI in a loop,
+  // which itself reads as a stuck/looping spinner.
+  const didInitForOpenRef = useRef(false);
   useEffect(() => {
     if (!isOpen) {
       cancelledRef.current = true;
+      didInitForOpenRef.current = false;
       return;
     }
+    if (didInitForOpenRef.current) return;
+    didInitForOpenRef.current = true;
     cancelledRef.current = false;
     setSelectedBulletIdx(null);
     setAlternatives([]);

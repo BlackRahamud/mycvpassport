@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { hasFeatureAccess, getPaymentLink } from "./utils/paywall";
 import { useGeoContent } from "./hooks/useGeoContent";
 import { supabase } from "./appSupabaseClient";
+import safeFetch from "./lib/net/safeFetch";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
@@ -336,7 +337,7 @@ export default function JobMatch({
 
       if (missing.length > 0) {
         try {
-          const aiRes = await fetch("/api/job-match-suggestion", {
+          const aiRes = await safeFetch("/api/job-match-suggestion", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

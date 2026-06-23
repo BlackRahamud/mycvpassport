@@ -1,6 +1,7 @@
 import { ANON_DOWNLOADS_KEY } from "./components/FAB/FABLogic";
 import { supabase } from "./appSupabaseClient";
 import { cvWithTemplateCertifications } from "./cvShared";
+import safeFetch from "./lib/net/safeFetch";
 
 /** Full HTML document for iLovePDF (fonts + A4 preview shell; mirrors index.css .cvp-builder-a4-fit desktop rules). */
 function buildCvPdfHtmlDocument(cvFragmentHtml, templateId) {
@@ -128,7 +129,7 @@ export async function downloadResumeFromPreview(cvInput, captureElement, opts = 
     }
   }
 
-  const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+  const res = await safeFetch(`${window.location.origin}/api/generate-pdf`, {
     method: "POST",
     headers,
     body: JSON.stringify({

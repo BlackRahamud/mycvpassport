@@ -8,6 +8,7 @@ import { buildCoverLetterHtml } from "../serverLib/coverLetterHtml";
 import { CoverLetterTemplate } from "../CoverLetterTemplate";
 import skillSuggestions from "../data/skillSuggestions";
 import { detectRole } from "../utils/detectRole";
+import safeFetch from "../lib/net/safeFetch";
 import "../components/FAB/FAB.css";
 
 const CL_GREEN = "#6EE7B7";
@@ -193,7 +194,7 @@ function CoverLetterPage({ user, profile, onBack }) {
             const doAutoRetry = async (attempt = 0) => {
               setPhase("loading");
               const minWait = new Promise((r) => setTimeout(r, 5000));
-              const apiCall = fetch("/api/ai?action=cover_letter", {
+              const apiCall = safeFetch("/api/ai?action=cover_letter", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -459,7 +460,7 @@ function CoverLetterPage({ user, profile, onBack }) {
       ],
     });
     try {
-      const res = await fetch(`${window.location.origin}/api/generate-pdf`, {
+      const res = await safeFetch(`${window.location.origin}/api/generate-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ html }),
@@ -634,7 +635,7 @@ function CoverLetterPage({ user, profile, onBack }) {
         setClTemplateVariant(null);
       }
       const minWait = new Promise((r) => setTimeout(r, 5000));
-      const apiCall = fetch("/api/ai?action=cover_letter", {
+      const apiCall = safeFetch("/api/ai?action=cover_letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestPayload),
@@ -679,7 +680,7 @@ function CoverLetterPage({ user, profile, onBack }) {
     setClUnlocking(true);
     setGenError("");
     try {
-      const response = await fetch("/api/ai?action=cover_letter", {
+      const response = await safeFetch("/api/ai?action=cover_letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
