@@ -412,6 +412,75 @@ function UpgradeConversionBlock({ current, mode, missingCount, industry, onUpgra
   );
 }
 
+// ─── Pro tailor block — served twin of UpgradeConversionBlock ─────────────────
+// Fills the SAME slot directly under the score, with the opposite framing.
+// Pro users already paid for the AI tailor, so there is NO lock / blur /
+// paywall — just a straight route into the Builder AI-tailor pre-loaded with
+// the flagged gaps via the existing /builder?from=ats&gaps=… deep-link (the
+// same one AtsGapsRibbon consumes on the matched path).
+//
+// Gating mirrors UpgradeConversionBlock exactly (current < 85 && missingCount
+// > 0) so the shared slot appears and disappears under identical conditions
+// for both tiers. `onTailor` carries the real flagged array — encoded at the
+// call site where the results live (structureIssues claims on cv_only).
+function ProTailorBlock({ current, missingCount, onTailor }) {
+  if (current >= 85 || missingCount <= 0) return null;
+  const withinReach = 100 - current;
+  const target = current + withinReach;
+
+  return (
+    <div style={{
+      background: "var(--color-surface-01)",
+      border: "1px solid rgba(217,119,6,0.22)",
+      borderRadius: 16,
+      padding: "26px 22px",
+      marginBottom: 32,
+      position: "relative",
+      overflow: "hidden",
+      fontFamily: "'DM Sans', sans-serif",
+    }}>
+      <div aria-hidden style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 1,
+        background: "linear-gradient(90deg, transparent, var(--color-accent-bright), transparent)",
+        opacity: 0.55,
+      }} />
+
+      <div style={{ textAlign: "center", marginBottom: 18 }}>
+        {/* Served eyebrow — green "pass" state, no lock glyph */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#4ADE80", marginBottom: 14 }}>
+          <CheckCircle size={12} color="#4ADE80" /> Included in your plan
+        </div>
+        <div style={{ display: "inline-flex", alignItems: "baseline", gap: 14, marginBottom: 12 }}>
+          <span style={{ fontSize: 44, fontWeight: 700, color: "#fff", lineHeight: 1, letterSpacing: "-1.5px" }}>{current}</span>
+          <span aria-hidden style={{ fontSize: 20, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>→</span>
+          <span style={{ fontSize: 44, fontWeight: 700, color: "var(--color-accent-bright)", lineHeight: 1, letterSpacing: "-1.5px" }}>{target}</span>
+        </div>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 8px", letterSpacing: "-0.4px" }}>
+          Your AI tailor is ready
+        </h2>
+        <div style={{ fontSize: 15, color: "rgba(255,255,255,0.78)", maxWidth: 380, margin: "0 auto", lineHeight: 1.5, fontWeight: 500 }}>
+          Rewrite every flagged bullet to close your <strong style={{ color: "#fff" }}>{withinReach}-point gap.</strong>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <button
+          type="button"
+          className="cvp-analyze-cta"
+          onClick={onTailor}
+        >
+          Open the AI tailor
+          <span className="cvp-analyze-cta__arrow" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function ATSChecker({
   onResultsVisible,
@@ -1120,7 +1189,27 @@ export default function ATSChecker({
           result={results}
           onAnalyze={handleNudgeAnalyze}
           isAnalyzing={isReanalyzing}
-          upgradeSlot={!isPro ? (
+          upgradeSlot={isPro ? (
+            <ProTailorBlock
+              current={cvOnlyCurrent}
+              missingCount={cvOnlyIssueCount}
+              onTailor={() => {
+                // Real flagged data only — the model-flagged structure issues
+                // this block already counts. Fed to the Builder AI-tailor via
+                // the existing /builder?from=ats&gaps=… deep-link.
+                const gaps = Array.isArray(results.structureIssues)
+                  ? results.structureIssues.map((i) => i?.claim).filter(Boolean)
+                  : [];
+                logEvent("ats_pro_tailor_clicked", {
+                  source: "cv_only_result",
+                  current: cvOnlyCurrent,
+                  gapsCount: gaps.length,
+                });
+                const encoded = gaps.map((g) => encodeURIComponent(g)).join(",");
+                navigate(`/builder?from=ats&gaps=${encoded}`);
+              }}
+            />
+          ) : (
             <UpgradeConversionBlock
               current={cvOnlyCurrent}
               mode="cv_only"
@@ -1128,7 +1217,7 @@ export default function ATSChecker({
               industry={results.industry}
               onUpgrade={() => setShowPaywall(true)}
             />
-          ) : null}
+          )}
         />
         {error && (
           <div role="alert" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", color: T.red, fontSize: 13, padding: "10px 16px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
