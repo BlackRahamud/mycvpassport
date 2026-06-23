@@ -33,6 +33,7 @@ const T = {
   text: "#FFFFFF",
   muted: "#A0A0A0",
   amber: "#D97706",
+  amberBright: "#F59E0B",
   amberDim: "rgba(217,119,6,0.12)",
   amberBorder: "rgba(217,119,6,0.35)",
   green: "#1D9E75",
@@ -466,17 +467,34 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false, u
           variants={itemVariants}
           style={{ marginTop: 32, position: "relative" }}
         >
-          {/* Secondary ask: kept below the upgrade block and visually quieter
-              (static card, no rotating conic ring) so there's one clear hero. */}
+          {/* Secondary ask: kept below the upgrade block and visually quieter.
+              Thin STATIC amber accent ring (no motion) + a faint glow — present,
+              but clearly subordinate to the upgrade CTA's bright rotating orbit,
+              so there's one clear hero ask. */}
           <div
             style={{
               position: "relative",
               borderRadius: 16,
               background: T.surface,
               border: `1px solid ${T.border}`,
+              boxShadow: `0 0 26px -10px ${withAlpha(T.amber, 0.3)}`,
               padding: "28px 24px 24px",
             }}
           >
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: 16,
+                padding: 1,
+                background: `conic-gradient(from 0deg, ${withAlpha(T.amber, 0.3)}, ${withAlpha(T.amberBright, 0.4)}, ${withAlpha(T.amber, 0.26)}, ${withAlpha(T.amberBright, 0.4)}, ${withAlpha(T.amber, 0.3)})`,
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                pointerEvents: "none",
+              }}
+            />
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", background: T.amberDim, border: `1px solid ${T.amberBorder}`, borderRadius: 999, marginBottom: 14, fontSize: 11, fontWeight: 700, letterSpacing: 1.1, textTransform: "uppercase", color: T.amber }}>
               <Sparkles size={13} aria-hidden />
               Unlock your match score
