@@ -5,7 +5,7 @@
 // `type` field is forward-compatible — Phase B adds type:'content' gaps from
 // reasons / rankTriggers without changing this contract.
 
-import { classifyStructuralGap } from "./structuralResolution";
+import { classifyStructuralGap, evaluateStructuralGap } from "./structuralResolution";
 
 function slug(s) {
   return String(s || "")
@@ -78,6 +78,25 @@ const WEIGHT_RANK = { high: 0, medium: 1, low: 2 };
 
 export function sortGapsByWeight(gaps) {
   return [...gaps].sort((a, b) => (WEIGHT_RANK[a.weight] ?? 1) - (WEIGHT_RANK[b.weight] ?? 1));
+}
+
+/**
+ * Single source of truth for "which gaps are fixed vs still need work", shared
+ * by the fixes panel AND the welcome modal so they can never disagree.
+ * Considers STRUCTURAL gaps only (Phase A); content gaps will flow into `todo`
+ * unchanged once Phase B tags them. Returns evaluated entries {gap, ev}.
+ *   fixed = status 'resolved' (genuine ✓)
+ *   todo  = status 'action' | 'review', sorted high→low weight
+ */
+export function partitionGapsByResolution(gaps, resume, ctx = {}) {
+  const structural = (Array.isArray(gaps) ? gaps : []).filter((g) => g && g.type === "structural");
+  const evaluated = structural.map((g) => ({ gap: g, ev: evaluateStructuralGap(g, resume, ctx) }));
+  const fixed = evaluated.filter((e) => e.ev.status === "resolved");
+  const todoEntries = evaluated.filter((e) => e.ev.status !== "resolved");
+  const todo = sortGapsByWeight(todoEntries.map((e) => e.gap)).map((g) =>
+    todoEntries.find((e) => e.gap.id === g.id),
+  );
+  return { fixed, todo };
 }
 
 /**

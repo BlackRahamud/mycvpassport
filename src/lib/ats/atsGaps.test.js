@@ -3,6 +3,7 @@ import {
   normalizeAtsGaps,
   gapsFromLegacyParam,
   sortGapsByWeight,
+  partitionGapsByResolution,
 } from "./atsGaps";
 
 describe("buildStructuralGaps", () => {
@@ -80,6 +81,38 @@ describe("gapsFromLegacyParam", () => {
   test("empty → []", () => {
     expect(gapsFromLegacyParam("")).toEqual([]);
     expect(gapsFromLegacyParam(null)).toEqual([]);
+  });
+});
+
+describe("partitionGapsByResolution", () => {
+  const gaps = [
+    { id: "g1", type: "structural", category: "missing_contact", weight: "high", label: "Add contact" },
+    { id: "g2", type: "structural", category: "split_skills", weight: "medium", label: "Skills split" },
+    { id: "g3", type: "structural", category: "image_or_nontext", weight: "low", label: "Images" },
+    { id: "c1", type: "content", category: "keyword", weight: "high", label: "Add RERA" },
+  ];
+
+  test("splits resolved vs todo honestly, ignores content gaps (Phase A)", () => {
+    const resume = {
+      name: "Jane",
+      email: "j@x.com",
+      phone: "123",
+      skills: "A, B",
+      technicalSkills: "React", // both populated → split_skills NOT resolved
+    };
+    const { fixed, todo } = partitionGapsByResolution(gaps, resume, { templateIsAtsSafe: true });
+    const fixedCats = fixed.map((e) => e.gap.category).sort();
+    expect(fixedCats).toEqual(["image_or_nontext", "missing_contact"]); // both genuinely resolved
+    expect(todo.map((e) => e.gap.category)).toEqual(["split_skills"]); // needs merge
+    // content gap c1 excluded from both (structural-only in Phase A)
+    expect([...fixed, ...todo].some((e) => e.gap.type === "content")).toBe(false);
+  });
+
+  test("todo is sorted high→low weight", () => {
+    const resume = { skills: "A", technicalSkills: "B" }; // missing contact + split skills both unresolved
+    const { todo } = partitionGapsByResolution(gaps, resume, { templateIsAtsSafe: true });
+    // missing_contact (high) before split_skills (medium)
+    expect(todo.map((e) => e.gap.category)).toEqual(["missing_contact", "split_skills"]);
   });
 });
 

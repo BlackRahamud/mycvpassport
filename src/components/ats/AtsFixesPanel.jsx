@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, AlertTriangle, ChevronDown, X, ArrowRight, Layers } from "lucide-react";
-import { evaluateStructuralGap } from "../../lib/ats/structuralResolution";
-import { sortGapsByWeight } from "../../lib/ats/atsGaps";
+import { partitionGapsByResolution } from "../../lib/ats/atsGaps";
 
 // Tiered ATS-fixes panel — replaces the old display-only gaps ribbon.
 //
@@ -73,18 +72,10 @@ export default function AtsFixesPanel({
   });
   const [fixedOpen, setFixedOpen] = useState(false);
 
-  const { fixed, todo } = useMemo(() => {
-    const evaluated = structural.map((g) => ({
-      gap: g,
-      ev: evaluateStructuralGap(g, resume, { templateIsAtsSafe }),
-    }));
-    return {
-      fixed: evaluated.filter((e) => e.ev.status === "resolved"),
-      todo: sortGapsByWeight(evaluated.filter((e) => e.ev.status !== "resolved").map((e) => e.gap)).map(
-        (g) => evaluated.find((e) => e.gap.id === g.id),
-      ),
-    };
-  }, [structural, resume, templateIsAtsSafe]);
+  const { fixed, todo } = useMemo(
+    () => partitionGapsByResolution(structural, resume, { templateIsAtsSafe }),
+    [structural, resume, templateIsAtsSafe],
+  );
 
   if (!structural.length || dismissed) return null;
 
@@ -114,6 +105,7 @@ export default function AtsFixesPanel({
       transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
       role="region"
       aria-label="ATS fixes from your scan"
+      data-cvp-ats-fixes="1"
       style={{
         background: "linear-gradient(180deg, rgba(217,119,6,0.06) 0%, rgba(217,119,6,0.02) 100%)",
         border: "1px solid rgba(217,119,6,0.22)",

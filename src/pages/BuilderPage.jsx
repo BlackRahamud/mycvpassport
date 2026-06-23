@@ -47,8 +47,9 @@ import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { clearBulletMarkers } from "../experiencePointsPreview";
 import CompletionStrip from "../components/CompletionStrip";
 import AtsFixesPanel from "../components/ats/AtsFixesPanel";
+import AtsWelcomeModal from "../components/ats/AtsWelcomeModal";
 import { getDraftStorageKey, readCvDraft, writeCvDraft, clearCvDraft } from "../lib/cvDraft";
-import { normalizeAtsGaps, gapsFromLegacyParam } from "../lib/ats/atsGaps";
+import { normalizeAtsGaps, gapsFromLegacyParam, partitionGapsByResolution } from "../lib/ats/atsGaps";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
 import {
@@ -2868,6 +2869,19 @@ function ResumeBuilder({
     const tags = Array.isArray(selectedTemplate?.tags) ? selectedTemplate.tags : [];
     return tags.some((t) => String(t).toLowerCase().includes("ats"));
   }, [selectedTemplate]);
+
+  // One-time CV-import welcome popup. Shows once per from=ats import (flag lives
+  // in the draft so it survives reload; flipped to "seen" after first view).
+  const [showAtsWelcome, setShowAtsWelcome] = useState(() => {
+    const d = initialDraftRef.current;
+    return d?.atsWelcome === "pending" && Array.isArray(d?.atsGaps) && d.atsGaps.length > 0;
+  });
+  const atsWelcomeRef = useRef(initialDraftRef.current?.atsWelcome || null);
+  // Real, never-padded split shared with the fixes panel.
+  const atsWelcomePartition = useMemo(
+    () => partitionGapsByResolution(atsGaps, resume, { templateIsAtsSafe }),
+    [atsGaps, resume, templateIsAtsSafe],
+  );
   // pdfTargetPages drives the PDF generation pipeline; setter is unused
   // since the 1pg/2pg toggle was removed. Keeping the state in case a
   // settings surface re-introduces user control.
@@ -3161,6 +3175,8 @@ function ResumeBuilder({
         resumeId: resumeId || null,
         // Preserve ATS gaps (from=ats handoff) so a reload keeps the fixes panel.
         atsGaps: atsGapsRef.current && atsGapsRef.current.length ? atsGapsRef.current : undefined,
+        // Preserve the welcome-popup flag so it stays one-time across reloads.
+        atsWelcome: atsWelcomeRef.current || undefined,
       });
     }, 500);
     return () => clearTimeout(timer);
@@ -3445,6 +3461,32 @@ function ResumeBuilder({
     });
     onCvFinderResultActivate("skills");
   }, [onCvFinderResultActivate, setResume]);
+
+  // ── ATS welcome popup: mark seen (persist immediately) + actions ──────────
+  const markAtsWelcomeSeen = useCallback(() => {
+    atsWelcomeRef.current = "seen";
+    try {
+      const cur = readCvDraft(draftStorageKey);
+      if (cur) writeCvDraft(draftStorageKey, { ...cur, atsWelcome: "seen" });
+    } catch { /* ignore — autosave will also persist "seen" */ }
+  }, [draftStorageKey]);
+
+  const closeAtsWelcome = useCallback(() => {
+    markAtsWelcomeSeen();
+    setShowAtsWelcome(false);
+  }, [markAtsWelcomeSeen]);
+
+  const reviewAtsWelcome = useCallback(() => {
+    markAtsWelcomeSeen();
+    setShowAtsWelcome(false);
+    setBuilderTab("content");
+    window.requestAnimationFrame(() => {
+      const el = Array.from(document.querySelectorAll("[data-cvp-ats-fixes]")).find(
+        (e) => e.offsetParent !== null,
+      );
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [markAtsWelcomeSeen]);
 
   const onBuilderGuideSheetOpenChange = useCallback((open) => {
     if (!open) scheduleBuilderIdleRef.current();
@@ -6015,6 +6057,14 @@ function ResumeBuilder({
           </div>
         </div>
       )}
+
+      <AtsWelcomeModal
+        open={showAtsWelcome}
+        fixed={atsWelcomePartition.fixed}
+        todo={atsWelcomePartition.todo}
+        onReview={reviewAtsWelcome}
+        onClose={closeAtsWelcome}
+      />
 
       <AIRewriteModal
         isOpen={aiRewriteOpen && !!experienceEditor}
