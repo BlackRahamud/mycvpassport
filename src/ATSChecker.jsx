@@ -1120,9 +1120,7 @@ export default function ATSChecker({
           result={results}
           onAnalyze={handleNudgeAnalyze}
           isAnalyzing={isReanalyzing}
-        />
-        {!isPro && (
-          <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 28px 100px" }}>
+          upgradeSlot={!isPro ? (
             <UpgradeConversionBlock
               current={cvOnlyCurrent}
               mode="cv_only"
@@ -1130,8 +1128,8 @@ export default function ATSChecker({
               industry={results.industry}
               onUpgrade={() => setShowPaywall(true)}
             />
-          </div>
-        )}
+          ) : null}
+        />
         {error && (
           <div role="alert" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", color: T.red, fontSize: 13, padding: "10px 16px", background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 10, backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
             {error}

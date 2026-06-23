@@ -151,7 +151,7 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] } },
 };
 
-export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false }) {
+export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false, upgradeSlot = null }) {
   const reduce = useReducedMotion();
   const [jdText, setJdText] = useState("");
   const [hasFiredFocused, setHasFiredFocused] = useState(false);
@@ -369,6 +369,15 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
           </div>
         </motion.section>
 
+        {/* ── UPGRADE CONVERSION BLOCK — hero ask, directly under score ── */}
+        {/* Rendered as a slot from ATSChecker so its content/gate/CTA wiring
+            stay owned there; CvOnlyResult only decides WHERE it lands. */}
+        {upgradeSlot && (
+          <motion.div variants={itemVariants}>
+            {upgradeSlot}
+          </motion.div>
+        )}
+
         {/* ── TOP SKILLS — categorised pills ──────────────────────────── */}
         {Array.isArray(result?.topSkills) && result.topSkills.length > 0 && (
           <motion.section variants={itemVariants} style={sectionStyle}>
@@ -457,29 +466,14 @@ export default function CvOnlyResult({ result, onAnalyze, isAnalyzing = false })
           variants={itemVariants}
           style={{ marginTop: 32, position: "relative" }}
         >
-          <div
-            className="cvp-cta-border"
-            aria-hidden
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: 20,
-              padding: 1.5,
-              background: `conic-gradient(from var(--cvp-hue, 0deg), ${T.amber}, ${T.green}, ${T.blue}, ${T.amber})`,
-              WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-              WebkitMaskComposite: "xor",
-              maskComposite: "exclude",
-              animation: "cvp-hue-rot 8s linear infinite",
-              pointerEvents: "none",
-            }}
-          />
+          {/* Secondary ask: kept below the upgrade block and visually quieter
+              (static card, no rotating conic ring) so there's one clear hero. */}
           <div
             style={{
               position: "relative",
-              borderRadius: 20,
-              background: "rgba(20, 20, 20, 0.62)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
+              borderRadius: 16,
+              background: T.surface,
+              border: `1px solid ${T.border}`,
               padding: "28px 24px 24px",
             }}
           >
