@@ -2882,6 +2882,13 @@ function ResumeBuilder({
     () => partitionGapsByResolution(atsGaps, resume, { templateIsAtsSafe }),
     [atsGaps, resume, templateIsAtsSafe],
   );
+  // Lightweight toast for ATS quick-fix removals (undoable via Ctrl+Z).
+  const [atsToast, setAtsToast] = useState(null);
+  useEffect(() => {
+    if (!atsToast) return undefined;
+    const t = setTimeout(() => setAtsToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [atsToast]);
   // pdfTargetPages drives the PDF generation pipeline; setter is unused
   // since the 1pg/2pg toggle was removed. Keeping the state in case a
   // settings surface re-introduces user control.
@@ -3421,27 +3428,6 @@ function ResumeBuilder({
     });
   }, []);
 
-  // ── ATS fixes: route a gap to ITS real field (not always Skills) ──────────
-  const gotoAtsTarget = useCallback((action) => {
-    if (!action) return;
-    if (action.kind === "goto_template") {
-      setBuilderTab("templates");
-      return;
-    }
-    if (action.kind !== "goto_field") return;
-    if (action.field === "contact") {
-      // Contact lives in the always-visible personal card, not an accordion.
-      setBuilderTab("content");
-      window.requestAnimationFrame(() => {
-        document.getElementById("section-personal")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        const first = Array.isArray(action.missing) && action.missing.length ? action.missing[0] : "name";
-        window.setTimeout(() => document.getElementById(`cvp-pi-${first}`)?.focus(), 320);
-      });
-      return;
-    }
-    onCvFinderResultActivate(action.field);
-  }, [onCvFinderResultActivate]);
-
   // ── ATS fixes: mechanical merge of split skills sections ──────────────────
   // Fold every technicalSkills chip into the comma-separated skills list
   // (case-insensitive dedup), then clear technicalSkills. A user-driven
@@ -3461,6 +3447,93 @@ function ResumeBuilder({
     });
     onCvFinderResultActivate("skills");
   }, [onCvFinderResultActivate, setResume]);
+
+  // ── ATS fixes: remove a located junk element (one-click, undoable) ────────
+  // Operates on the precise located element only — a bullet line, a custom
+  // field, a certification, or an optional free-text section. Core fields are
+  // never reached here (the engine routes those to focus_field instead). Goes
+  // through setResume → existing undo history (Ctrl+Z), and re-evaluates live.
+  const removeAtsElement = useCallback((target, label) => {
+    if (!target) return;
+    const section =
+      target.kind === "bullet" ? "experience"
+        : target.kind === "cert" ? "certifications"
+          : target.kind === "customField" ? "personalDetails"
+            : target.kind === "section" ? target.field
+              : null;
+    if (section) {
+      setBuilderTab("content");
+      setOpenSection(section);
+      window.requestAnimationFrame(() => {
+        const el = Array.from(document.querySelectorAll(`[data-cvp-highlight="${section}"]`)).find((e) => e.offsetParent !== null);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+        pulseCvpHighlight(el);
+      });
+    }
+    setResume((r) => {
+      if (target.kind === "bullet") {
+        const exp = Array.isArray(r.experience) ? [...r.experience] : [];
+        const e = exp[target.expIndex];
+        if (!e) return r;
+        const lines = String(e.points || "").split("\n");
+        if (target.lineIndex < 0 || target.lineIndex >= lines.length) return r;
+        lines.splice(target.lineIndex, 1);
+        exp[target.expIndex] = { ...e, points: lines.join("\n") };
+        return { ...r, experience: exp };
+      }
+      if (target.kind === "cert") {
+        const arr = normalizeCertificationsArray(r.certifications);
+        arr.splice(target.index, 1);
+        return { ...r, certifications: arr };
+      }
+      if (target.kind === "customField") {
+        const arr = Array.isArray(r.customFields) ? [...r.customFields] : [];
+        const next = target.customFieldId
+          ? arr.filter((c) => c?.id !== target.customFieldId)
+          : arr.filter((_, i) => i !== target.index);
+        return { ...r, customFields: next };
+      }
+      if (target.kind === "section") {
+        const optId = target.field === "volunteerWork" ? "volunteer" : target.field;
+        const extra = (r.builderExtraSectionIds || []).filter((id) => id !== optId);
+        return { ...r, [target.field]: "", builderExtraSectionIds: extra };
+      }
+      return r;
+    });
+    setAtsToast(`Removed ${label || "block"} · Ctrl+Z to undo`);
+  }, [setResume]);
+
+  // ── ATS fixes: route a gap to ITS real field + element, per action kind ────
+  const gotoAtsTarget = useCallback((action) => {
+    if (!action) return;
+    if (action.kind === "merge_skills") { handleMergeSkills(); return; }
+    if (action.kind === "goto_template") { setBuilderTab("templates"); return; }
+    if (action.kind === "remove_element") { removeAtsElement(action.target, action.label); return; }
+    if (action.kind === "open_experience") {
+      setBuilderTab("content");
+      const e = resume.experience?.[action.expIndex];
+      if (e) setExperienceEditor({ mode: "edit", index: action.expIndex, draft: { ...EMPTY_EXP, ...e } });
+      return;
+    }
+    if (action.kind === "focus_field") {
+      setBuilderTab("content");
+      if (action.field === "contact") {
+        // Contact lives in the always-visible personal card, not an accordion.
+        window.requestAnimationFrame(() => {
+          document.getElementById("section-personal")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          const first = Array.isArray(action.missing) && action.missing.length ? action.missing[0] : "name";
+          window.setTimeout(() => document.getElementById(`cvp-pi-${first}`)?.focus(), 320);
+        });
+        return;
+      }
+      onCvFinderResultActivate(action.field);
+      // Put the cursor in the section's first editable element.
+      window.setTimeout(() => {
+        const wrap = Array.from(document.querySelectorAll(`[data-cvp-highlight="${action.field}"]`)).find((e) => e.offsetParent !== null);
+        wrap?.querySelector("input, textarea")?.focus();
+      }, 380);
+    }
+  }, [onCvFinderResultActivate, handleMergeSkills, removeAtsElement, resume, setExperienceEditor]);
 
   // ── ATS welcome popup: mark seen (persist immediately) + actions ──────────
   const markAtsWelcomeSeen = useCallback(() => {
@@ -6065,6 +6138,29 @@ function ResumeBuilder({
         onReview={reviewAtsWelcome}
         onClose={closeAtsWelcome}
       />
+
+      {atsToast && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1100,
+            background: "#1C1C1C",
+            border: "1px solid #2A2A2A",
+            borderRadius: 999,
+            padding: "10px 18px",
+            fontSize: 13,
+            color: "#FFFFFF",
+            fontFamily: "'DM Sans', sans-serif",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          }}
+        >
+          {atsToast}
+        </div>
+      )}
 
       <AIRewriteModal
         isOpen={aiRewriteOpen && !!experienceEditor}

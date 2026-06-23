@@ -14,6 +14,7 @@ describe("classifyStructuralGap", () => {
     ["CV is image-heavy with a scanned photo", "image_or_nontext"],
     ["Uses a decorative script font", "decorative_fonts"],
     ["Inconsistent date format across roles", "date_format"],
+    ["KEY METRICS block with unsubstantiated figures", "irrelevant_block"],
     ["Something totally unrecognised about the layout", "unknown"],
   ])("%s → %s", (claim, expected) => {
     expect(classifyStructuralGap(claim)).toBe(expected);
@@ -29,11 +30,12 @@ describe("evaluateStructuralGap — honest resolution", () => {
     expect(r.resolved).toBe(true);
   });
 
-  test("missing_contact: missing email → NOT ✓ (action to contact)", () => {
+  test("missing_contact: missing email → NOT ✓ (focus contact email)", () => {
     const r = evaluateStructuralGap({ category: "missing_contact" }, { name: "Jane", phone: "123" });
     expect(r.status).toBe("action");
     expect(r.resolved).toBe(false);
-    expect(r.action).toEqual({ kind: "goto_field", field: "contact", missing: ["email"] });
+    expect(r.action).toEqual({ kind: "focus_field", field: "contact", missing: ["email"] });
+    expect(r.cta).toBe("Add email");
   });
 
   test("split_skills: both sections populated → merge action, NOT ✓", () => {
@@ -47,11 +49,12 @@ describe("evaluateStructuralGap — honest resolution", () => {
     expect(r.status).toBe("resolved");
   });
 
-  test("page_break_marker: marker still in a bullet → NOT ✓ (route to that field)", () => {
+  test("page_break_marker: marker still in a bullet → NOT ✓ (remove that line)", () => {
     const cv = { experience: [{ points: "Did X\nPage 1 of 2\nDid Y" }] };
     const r = evaluateStructuralGap({ category: "page_break_marker" }, cv);
     expect(r.status).toBe("action");
-    expect(r.action).toEqual({ kind: "goto_field", field: "experience" });
+    expect(r.action).toMatchObject({ kind: "remove_element", target: { kind: "bullet", expIndex: 0, lineIndex: 1 } });
+    expect(r.cta).toBe("Remove line");
   });
 
   test("page_break_marker: clean content → resolved ✓", () => {
@@ -59,10 +62,10 @@ describe("evaluateStructuralGap — honest resolution", () => {
     expect(r.status).toBe("resolved");
   });
 
-  test("letter_spacing: spaced letters remain in name → NOT ✓ (route to contact)", () => {
+  test("letter_spacing: spaced letters remain in name → NOT ✓ (focus contact)", () => {
     const r = evaluateStructuralGap({ category: "letter_spacing" }, { name: "J A N E   D O E" });
     expect(r.status).toBe("action");
-    expect(r.action).toEqual({ kind: "goto_field", field: "contact" });
+    expect(r.action).toEqual({ kind: "focus_field", field: "contact" });
   });
 
   test("letter_spacing: clean → resolved ✓", () => {
@@ -91,5 +94,38 @@ describe("evaluateStructuralGap — honest resolution", () => {
     const r = evaluateStructuralGap({ category: "unknown" }, { name: "Jane" });
     expect(r.status).toBe("review");
     expect(r.resolved).toBe(false);
+  });
+
+  describe("irrelevant_block (junk → remove, not rewrite)", () => {
+    const gap = { category: "irrelevant_block", label: "KEY METRICS block", evidence: "key metrics revenue inflated vanity figures" };
+
+    test("located in a bullet → Remove this", () => {
+      const cv = { experience: [{ points: "Led team\nKey metrics: revenue inflated by vanity figures\nShipped" }] };
+      const r = evaluateStructuralGap(gap, cv);
+      expect(r.status).toBe("action");
+      expect(r.action).toMatchObject({ kind: "remove_element", target: { kind: "bullet", expIndex: 0, lineIndex: 1 } });
+      expect(r.cta).toBe("Remove this");
+    });
+
+    test("located in a core field (summary) → review & edit, NOT a blind delete", () => {
+      const cv = { summary: "Key metrics: revenue inflated by vanity figures across the org" };
+      const r = evaluateStructuralGap(gap, cv);
+      expect(r.status).toBe("action");
+      expect(r.action).toEqual({ kind: "focus_field", field: "summary" });
+      expect(r.cta).toBe("Review & edit");
+    });
+
+    test("genuinely absent from cv_data → resolved ('removed in the clean rebuild')", () => {
+      const cv = { name: "Jane", summary: "Senior cloud engineer focused on reliability" };
+      const r = evaluateStructuralGap(gap, cv);
+      expect(r.status).toBe("resolved");
+      expect(r.reason).toMatch(/removed in the clean rebuild/i);
+    });
+
+    test("too-vague to locate → review, never a false ✓", () => {
+      const r = evaluateStructuralGap({ category: "irrelevant_block", label: "metrics", evidence: "metrics" }, { summary: "metrics here" });
+      expect(r.status).toBe("review");
+      expect(r.resolved).toBe(false);
+    });
   });
 });

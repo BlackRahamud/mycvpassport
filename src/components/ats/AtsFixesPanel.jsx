@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, AlertTriangle, ChevronDown, X, ArrowRight, Layers } from "lucide-react";
+import { Check, AlertTriangle, ChevronDown, X, ArrowRight, Layers, Trash2 } from "lucide-react";
 import { partitionGapsByResolution } from "../../lib/ats/atsGaps";
 
 // Tiered ATS-fixes panel — replaces the old display-only gaps ribbon.
@@ -98,6 +98,12 @@ export default function AtsFixesPanel({
     onGoto?.(act);
   };
 
+  const ctaStyle = (kind) => {
+    if (kind === "merge_skills") return { border: "rgba(29,158,117,0.45)", bg: "rgba(29,158,117,0.12)", fg: T.greenBright, Icon: Layers };
+    if (kind === "remove_element") return { border: "rgba(248,113,113,0.45)", bg: "rgba(248,113,113,0.12)", fg: "#F87171", Icon: Trash2 };
+    return { border: "rgba(217,119,6,0.45)", bg: "rgba(217,119,6,0.12)", fg: T.amber, Icon: ArrowRight };
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}
@@ -178,29 +184,34 @@ export default function AtsFixesPanel({
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleAction(ev)}
-                  style={{
-                    flexShrink: 0,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    padding: "6px 11px",
-                    borderRadius: 999,
-                    border: `1px solid ${ev.action?.kind === "merge_skills" ? "rgba(29,158,117,0.45)" : "rgba(217,119,6,0.45)"}`,
-                    background: ev.action?.kind === "merge_skills" ? "rgba(29,158,117,0.12)" : "rgba(217,119,6,0.12)",
-                    color: ev.action?.kind === "merge_skills" ? T.greenBright : T.amber,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {ev.action?.kind === "merge_skills" ? <Layers size={12} aria-hidden /> : <ArrowRight size={12} aria-hidden />}
-                  {actionLabel(ev.action)}
-                </button>
+                {(() => {
+                  const s = ctaStyle(ev.action?.kind);
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleAction(ev)}
+                      style={{
+                        flexShrink: 0,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "6px 11px",
+                        borderRadius: 999,
+                        border: `1px solid ${s.border}`,
+                        background: s.bg,
+                        color: s.fg,
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <s.Icon size={12} aria-hidden />
+                      {ev.cta || actionLabel(ev.action)}
+                    </button>
+                  );
+                })()}
               </motion.div>
             ))}
           </AnimatePresence>
