@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
+import HrInsightsPanel from "../Insights/HrInsightsPanel";
 import "../PostJob/postJob.css"; // :root tokens
 import "./jobsList.css";
 
@@ -87,6 +88,7 @@ export default function JobsListPage() {
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({ total: null, active: null, applicants: null, avgScore: null });
+  const [mainTab, setMainTab] = useState("jobs"); // jobs | insights
 
   useEffect(() => {
     let live = true;
@@ -231,6 +233,29 @@ export default function JobsListPage() {
       </header>
 
       <main className="hjl-page">
+        <div style={{ display: "flex", marginBottom: 18 }}>
+          <div className="hjl-toggle" role="tablist" aria-label="HR view" style={{ marginLeft: 0 }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === "jobs"}
+              className={`hjl-toggle__btn${mainTab === "jobs" ? " hjl-toggle__btn--active" : ""}`}
+              onClick={() => setMainTab("jobs")}
+            >Jobs</button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mainTab === "insights"}
+              className={`hjl-toggle__btn${mainTab === "insights" ? " hjl-toggle__btn--active" : ""}`}
+              onClick={() => setMainTab("insights")}
+            >Insights</button>
+          </div>
+        </div>
+
+        {mainTab === "insights" ? (
+          <HrInsightsPanel user={user} onGoToJobs={() => setMainTab("jobs")} />
+        ) : (
+        <>
         <motion.div
           className="hjl-stats"
           initial={reduce ? false : { opacity: 0, y: 6 }}
@@ -348,6 +373,8 @@ export default function JobsListPage() {
               );
             })}
           </motion.div>
+        )}
+        </>
         )}
       </main>
     </div>
