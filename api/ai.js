@@ -970,6 +970,124 @@ async function handleTailor(req, res, body) {
 }
 
 // =====================================================================
+// Branch 5 — whatsapp_draft (HR smart outreach composer)
+//
+// Drafts ONE short, warm, professional WhatsApp message for an HR to send
+// a candidate. Lives here (not as a standalone api/whatsapp-draft.js)
+// because the project is at the Vercel Hobby 12-function ceiling — the
+// same reason the cover_letter / linkedin / parse endpoints were merged.
+//
+// Auth: Bearer JWT (any signed-in user) — mirrors parse_resume.
+// Request:  { cvSnapshot?, jobTitle?, tone?: 'gulf'|'india' }
+// Response: 200 { message }
+// =====================================================================
+
+const WHATSAPP_DRAFT_MODEL = process.env.WHATSAPP_DRAFT_MODEL || 'claude-haiku-4-5-20251001';
+
+function summariseCvForOutreach(cv) {
+  if (!cv || typeof cv !== 'object') return '';
+  const personal = cv.personal || cv.basics || {};
+  const name = cv.name || personal.name || '';
+  const role = cv.desired_job || cv.target_role || personal.headline || '';
+  const skillsRaw = cv.skills || cv.skill_list || cv.tools || [];
+  const skills = Array.isArray(skillsRaw)
+    ? skillsRaw.map((s) => (typeof s === 'string' ? s : s?.name || s?.label)).filter(Boolean).slice(0, 10).join(', ')
+    : '';
+  const exp = Array.isArray(cv.experience)
+    ? cv.experience.slice(0, 3).map((e) => [e.title || e.role, e.company || e.employer].filter(Boolean).join(' at ')).filter(Boolean).join('; ')
+    : '';
+  return [
+    name && `Name: ${name}`,
+    role && `Target role: ${role}`,
+    skills && `Skills: ${skills}`,
+    exp && `Recent experience: ${exp}`,
+  ].filter(Boolean).join('\n').slice(0, 1500);
+}
+
+function buildWhatsappDraftPrompt({ cvSnapshot, jobTitle, tone }) {
+  const toneLine = tone === 'india'
+    ? 'Tone: formal, respectful Indian corporate style.'
+    : 'Tone: warm, confident Gulf corporate style appropriate for UAE/GCC.';
+  const cvText = summariseCvForOutreach(cvSnapshot);
+  return `Write ONE short WhatsApp message from a recruiter to a candidate about a role.
+
+${toneLine}
+
+Role: ${String(jobTitle || '').trim() || 'the role'}
+Candidate profile (optional context - do not list it back verbatim):
+${cvText || '(not provided)'}
+
+RULES:
+- 1 to 3 sentences. Conversational, professional, plain text.
+- Greet the candidate by first name if a name is present; otherwise a neutral greeting.
+- Invite a next step (a quick call or their availability).
+- No emoji. No markdown. No subject line. No sign-off block.
+- Do not invent facts, employer names, salaries, or guarantees.
+- No superlatives or unverifiable claims.
+
+Output only the message text.`;
+}
+
+async function handleWhatsappDraft(req, res, body) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'AI Engine is not configured.' });
+  }
+  // Light auth — any signed-in user (mirrors parse_resume).
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Unauthorized. Please sign in.' });
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { user } = {}, error } = await authClient.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid or expired session.' });
+    } catch {
+      return res.status(401).json({ error: 'Could not verify session.' });
+    }
+  }
+
+  const prompt = buildWhatsappDraftPrompt({
+    cvSnapshot: body.cvSnapshot,
+    jobTitle: body.jobTitle,
+    tone: body.tone === 'india' ? 'india' : 'gulf',
+  });
+
+  try {
+    const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: WHATSAPP_DRAFT_MODEL,
+        max_tokens: 300,
+        temperature: 0.7,
+        system: 'You are a recruiter writing concise, professional WhatsApp messages. Output one message, plain text, no emoji unless asked.',
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    }, 3, 8000);
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      return res.status(502).json({ error: 'AI Engine is busy, please try again.' });
+    }
+    let data;
+    try { data = JSON.parse(responseText); } catch { return res.status(502).json({ error: 'AI Engine is busy, please try again.' }); }
+    const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
+    const message = String(raw).trim();
+    if (!message) return res.status(502).json({ error: 'AI returned an empty draft. Please retry.' });
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).json({ message });
+  } catch (err) {
+    console.error('[ai/whatsapp_draft]', String(err?.message || err).slice(0, 200));
+    return res.status(502).json({ error: 'AI Engine is busy, please try again.' });
+  }
+}
+
+// =====================================================================
 // Router
 // =====================================================================
 
@@ -1003,9 +1121,10 @@ export default async function handler(req, res) {
     case 'linkedin_headline':  return handleLinkedInHeadline(req, res, body);
     case 'parse_resume':       return handleParseResume(req, res, body);
     case 'tailor':             return handleTailor(req, res, body);
+    case 'whatsapp_draft':     return handleWhatsappDraft(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft.',
       });
   }
 }

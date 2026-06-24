@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import ScoreRing from "../../../components/hr/ScoreRing";
+import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
@@ -97,7 +98,7 @@ function ScoreChip({ score, source }) {
 }
 
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
-function CandidateDetail({ candidate, onBack, reduce }) {
+function CandidateDetail({ candidate, onBack, onMessage, hrId, outreachTick, reduce }) {
   if (!candidate) {
     return (
       <aside className="jpp-detail jpp-detail--empty cand-detail-placeholder">
@@ -149,15 +150,18 @@ function CandidateDetail({ candidate, onBack, reduce }) {
       </header>
 
       <div className="jpp-detail__actions">
-        <a className="jpp-action jpp-action--message" href={whatsappHref(candidate.phone, candidate.name)} target="_blank" rel="noreferrer noopener">
+        <button type="button" className="jpp-action jpp-action--message" onClick={onMessage}>
           <WhatsAppIc /> Message {firstName(candidate.name)}
-        </a>
+        </button>
         {candidate.email && (
           <a className="jpp-action jpp-action--ghost" href={`mailto:${candidate.email}`}>
             <MailIc /> Email {firstName(candidate.name)}
           </a>
         )}
       </div>
+
+      <OutreachHistory hrId={hrId} candidateId={candidate.record?.candidate_id} refreshKey={outreachTick} />
+
 
       {/* Applied to — the cross-job view that makes this a CRM, not a list */}
       <section className="jpp-section">
@@ -238,6 +242,8 @@ export default function CandidatesPage() {
   const [status, setStatus] = useState("all");
   const [minScore, setMinScore] = useState("0");
   const [selectedKey, setSelectedKey] = useState(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [outreachTick, setOutreachTick] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -446,11 +452,32 @@ export default function CandidatesPage() {
             </div>
 
             <AnimatePresence mode="wait">
-              <CandidateDetail candidate={selected} onBack={() => setSelectedKey(null)} reduce={reduce} />
+              <CandidateDetail
+                candidate={selected}
+                onBack={() => setSelectedKey(null)}
+                onMessage={() => setComposerOpen(true)}
+                hrId={user?.id}
+                outreachTick={outreachTick}
+                reduce={reduce}
+              />
             </AnimatePresence>
           </div>
         )}
       </main>
+
+      <WhatsAppComposer
+        open={composerOpen && !!selected}
+        onClose={() => setComposerOpen(false)}
+        candidate={selected ? {
+          id: selected.record?.candidate_id,
+          name: selected.name,
+          phone: selected.phone,
+          cvSnapshot: getCv(selected.record),
+        } : null}
+        job={selected ? { id: selected.apps[0]?.job_id, title: selected.apps[0]?.jobTitle } : null}
+        hrId={user?.id}
+        onLogged={() => setOutreachTick((t) => t + 1)}
+      />
     </div>
   );
 }

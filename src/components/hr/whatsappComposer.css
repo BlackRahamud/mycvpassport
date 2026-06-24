@@ -1,0 +1,237 @@
+/* ────────────────────────────────────────────────────────────────
+   WhatsAppComposer — modal (desktop) / bottom-sheet (mobile).
+   HR portal: purple accent allowed. All colours from --pj-* tokens.
+   Depends on postJob.css :root tokens (loaded by the host HR pages).
+   ──────────────────────────────────────────────────────────────── */
+
+.wac-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(15, 12, 30, 0.42);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.wac-panel {
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -18px 50px -20px rgba(20, 19, 31, 0.30);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.wac-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--pj-border);
+}
+.wac-head__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pj-text);
+}
+.wac-head__wa {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pj-primary-soft);
+  color: var(--pj-primary);
+}
+.wac-close {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--pj-border);
+  background: var(--pj-bg);
+  color: var(--pj-muted);
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 160ms var(--pj-ease), border-color 160ms var(--pj-ease);
+}
+.wac-close:hover { color: var(--pj-text); border-color: var(--pj-border-strong); }
+
+.wac-body {
+  padding: 14px 18px 4px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wac-row { display: flex; flex-direction: column; gap: 7px; }
+.wac-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+}
+
+.wac-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wac-chip {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--pj-border);
+  background: var(--pj-bg);
+  color: var(--pj-text-soft);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms var(--pj-ease), color 160ms var(--pj-ease), background 160ms var(--pj-ease);
+}
+.wac-chip:hover { color: var(--pj-text); border-color: var(--pj-border-strong); }
+.wac-chip--active {
+  background: var(--pj-primary-soft);
+  color: var(--pj-primary);
+  border-color: var(--pj-primary);
+}
+
+.wac-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  background: var(--pj-input-bg);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.wac-toggle__btn {
+  height: 28px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pj-text-soft);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease), color 160ms var(--pj-ease);
+}
+.wac-toggle__btn--active { background: var(--pj-primary); color: #FFFFFF; }
+
+.wac-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 110px;
+  padding: 12px 14px;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  background: var(--pj-input-bg);
+  color: var(--pj-text);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13.5px;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease), background 160ms var(--pj-ease);
+}
+.wac-textarea:focus {
+  background: var(--pj-input-bg-focus);
+  border-color: var(--pj-primary);
+  box-shadow: 0 0 0 4px var(--pj-primary-ring);
+}
+
+.wac-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 30px; }
+.wac-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--pj-primary);
+  background: var(--pj-primary-soft);
+  color: var(--pj-primary);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease), opacity 160ms var(--pj-ease);
+}
+.wac-ai:hover:not(:disabled) { background: var(--pj-primary-ring); }
+.wac-ai:disabled { opacity: 0.6; cursor: default; }
+
+.wac-notice { font-size: 12px; font-weight: 500; }
+.wac-notice--error { color: #B91C1C; }
+.wac-notice--ok { color: var(--pj-success); }
+
+.wac-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--pj-border);
+  flex-shrink: 0;
+}
+.wac-foot__spacer { flex: 1 1 auto; }
+.wac-replied {
+  background: transparent;
+  border: 0;
+  padding: 6px 4px;
+  color: var(--pj-muted);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 160ms var(--pj-ease);
+}
+.wac-replied:hover { color: var(--pj-text); }
+
+.wac-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--pj-radius-md);
+  background: var(--pj-primary);
+  color: #FFFFFF;
+  box-shadow: var(--pj-shadow-button);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease), opacity 160ms var(--pj-ease), transform 160ms var(--pj-ease);
+}
+.wac-send:hover:not(:disabled) { background: var(--pj-primary-hover); transform: translateY(-1px); }
+.wac-send:disabled { opacity: 0.45; cursor: default; }
+
+.wac-history__icon { background: var(--pj-primary-soft) !important; color: var(--pj-primary) !important; }
+
+/* ── Desktop: centred modal ── */
+@media (min-width: 600px) {
+  .wac-overlay { align-items: center; padding: 24px; }
+  .wac-panel { border-radius: 16px; box-shadow: 0 24px 60px -28px rgba(20, 19, 31, 0.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wac-close, .wac-chip, .wac-toggle__btn, .wac-textarea, .wac-ai, .wac-send, .wac-replied { transition: none !important; }
+}

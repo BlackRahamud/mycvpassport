@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import ScoreRing from "../../../components/hr/ScoreRing";
 import UserMenu from "../../../components/UserMenu/UserMenu";
+import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
@@ -205,6 +206,8 @@ export default function JobPipelinePage() {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [showHiredModal, setShowHiredModal] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [outreachTick, setOutreachTick] = useState(0);
 
   /* Auth */
   useEffect(() => {
@@ -538,6 +541,9 @@ export default function JobPipelinePage() {
             onAdvance={handleAdvance}
             onPass={handlePass}
             onStatusChange={(s) => selected && updateStatus(selected.id, s, selected.status)}
+            onMessage={() => setComposerOpen(true)}
+            hrId={user?.id}
+            outreachTick={outreachTick}
             noteDraft={noteDraft}
             onNoteDraftChange={setNoteDraft}
             onAddNote={handleAddNote}
@@ -546,6 +552,20 @@ export default function JobPipelinePage() {
           />
         </div>
       </main>
+
+      <WhatsAppComposer
+        open={composerOpen && !!selected}
+        onClose={() => setComposerOpen(false)}
+        candidate={selected ? {
+          id: selected.candidate_id,
+          name: selected.candidate_name,
+          phone: selected.candidate_phone,
+          cvSnapshot: getCv(selected),
+        } : null}
+        job={job ? { id: job.id, title: job.title, company: job.company } : null}
+        hrId={user?.id}
+        onLogged={() => setOutreachTick((t) => t + 1)}
+      />
 
       <AnimatePresence>
         {showHiredModal && (
@@ -606,6 +626,7 @@ const STATUS_OVERRIDE_OPTIONS = [
 function CandidateDetail({
   candidate, stageDef, jobTitle, company, screeningQuestions,
   advancing, onAdvance, onPass, onStatusChange,
+  onMessage, hrId, outreachTick,
   noteDraft, onNoteDraftChange, onAddNote, noteSubmitting,
   reduce,
 }) {
@@ -681,14 +702,13 @@ function CandidateDetail({
       </header>
 
       <div className="jpp-detail__actions">
-        <a
+        <button
+          type="button"
           className="jpp-action jpp-action--message"
-          href={whatsappHref(candidate.candidate_phone, candidate.candidate_name, jobTitle, company)}
-          target="_blank"
-          rel="noreferrer noopener"
+          onClick={onMessage}
         >
           <WhatsAppIc /> Message {firstName(candidate.candidate_name)}
-        </a>
+        </button>
         {candidate.candidate_email && (
           <a
             className="jpp-action jpp-action--ghost"
@@ -709,6 +729,8 @@ function CandidateDetail({
           Pass
         </button>
       </div>
+
+      <OutreachHistory hrId={hrId} candidateId={candidate.candidate_id} refreshKey={outreachTick} />
 
       {(matchedKw.length + missingKw.length) > 0 && (
         <section className="jpp-section">
