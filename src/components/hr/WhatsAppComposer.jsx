@@ -96,7 +96,7 @@ const CloseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
 );
 
-export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, onLogged }) {
+export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, onLogged, initialMessage }) {
   const reduce = useReducedMotion();
   const [templateKey, setTemplateKey] = useState("intro");
   const [tone, setTone] = useState("gulf");
@@ -115,18 +115,24 @@ export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, 
     setMessage(substitute(tpl.body[nextTone] || tpl.body.gulf, vars));
   };
 
-  // Seed the message when the composer opens (once per open).
+  // Seed the message when the composer opens (once per open). When an
+  // initialMessage is supplied (e.g. the Verdict card's WhatsApp CTA),
+  // prefill with that; otherwise fall back to the default template.
   useEffect(() => {
     if (!open) return;
     setNotice(null);
     setTemplateKey("intro");
     setTone("gulf");
-    const tpl = TEMPLATES[0];
-    setMessage(substitute(tpl.body.gulf, {
-      first_name: firstNameOf(candidate?.name),
-      job_title: job?.title || "",
-      company: job?.company || "",
-    }));
+    if (initialMessage && String(initialMessage).trim()) {
+      setMessage(String(initialMessage));
+    } else {
+      const tpl = TEMPLATES[0];
+      setMessage(substitute(tpl.body.gulf, {
+        first_name: firstNameOf(candidate?.name),
+        job_title: job?.title || "",
+        company: job?.company || "",
+      }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, candidate?.id]);
 

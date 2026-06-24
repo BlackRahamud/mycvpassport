@@ -1,0 +1,158 @@
+/* ────────────────────────────────────────────────────────────────
+   VerdictCard — light decision card at the top of the HR candidate
+   detail. Chrome from --pj-* tokens; the semantic verdict palette
+   (green / amber / red / blue) is tokenised once here, mirroring the
+   CLAUDE.md design tokens, then referenced (no raw hex in the markup).
+   Premium feel via a low-opacity box-shadow — never drop-shadow.
+   ──────────────────────────────────────────────────────────────── */
+
+.vc-card {
+  --vc-green: #1D9E75;
+  --vc-amber: #D97706;
+  --vc-red: #DC2626;
+  --vc-blue: #378ADD;
+  --vc-green-soft: rgba(29, 158, 117, 0.12);
+  --vc-amber-soft: rgba(217, 119, 6, 0.12);
+  --vc-red-soft: rgba(220, 38, 38, 0.10);
+
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 10px 30px -18px rgba(20, 19, 31, 0.18), 0 2px 6px -3px rgba(20, 19, 31, 0.06);
+  margin-bottom: 18px;
+}
+
+/* ── Header ── */
+.vc-head { margin-bottom: 14px; }
+.vc-head__name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--hjl-ink, var(--pj-text));
+}
+.vc-head__role { margin: 2px 0 0; font-size: 12.5px; color: var(--pj-text-soft); }
+.vc-anchors { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.vc-anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vc-body { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Verdict + score ── */
+.vc-verdict { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vc-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vc-badge--strong { background: var(--vc-green-soft); color: var(--vc-green); }
+.vc-badge--maybe  { background: var(--vc-amber-soft); color: var(--vc-amber); }
+.vc-badge--pass   { background: var(--vc-red-soft);   color: var(--vc-red); }
+
+.vc-score { display: inline-flex; align-items: baseline; gap: 3px; }
+.vc-score__num {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-feature-settings: "tnum";
+  color: var(--pj-text);
+}
+.vc-score__num--strong { color: var(--vc-green); }
+.vc-score__num--maybe  { color: var(--vc-amber); }
+.vc-score__num--pass   { color: var(--vc-red); }
+.vc-score__unit { font-size: 13px; font-weight: 600; color: var(--pj-muted); }
+
+/* ── Reasons ── */
+.vc-why { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.vc-why__item { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; line-height: 1.45; color: var(--pj-text); }
+.vc-why__text { min-width: 0; }
+.vc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.vc-dot--match    { background: var(--vc-green); }
+.vc-dot--corridor { background: var(--vc-blue); }
+.vc-dot--gap      { background: var(--vc-red); }
+
+/* ── Actions ── */
+.vc-actions { display: flex; flex-direction: column; gap: 8px; }
+.vc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--pj-radius-md);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background 160ms var(--pj-ease), border-color 160ms var(--pj-ease), color 160ms var(--pj-ease), transform 160ms var(--pj-ease);
+}
+.vc-btn--ghost {
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border-strong);
+  color: var(--pj-text);
+}
+.vc-btn--ghost:hover { background: var(--pj-input-bg); }
+.vc-btn--solid {
+  background: var(--pj-primary);
+  border: 1px solid var(--pj-primary);
+  color: #FFFFFF;
+  box-shadow: var(--pj-shadow-button);
+}
+.vc-btn--solid:hover { background: var(--pj-primary-hover); transform: translateY(-1px); }
+
+/* ── Loading (designed, no skeleton) ── */
+.vc-loading { flex-direction: row; align-items: center; gap: 12px; padding: 6px 0; }
+.vc-loading__pulse {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--pj-primary);
+  flex-shrink: 0;
+}
+.vc-loading__text { font-size: 13px; color: var(--pj-text-soft); }
+
+.vc-error { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.vc-error__text { font-size: 12.5px; color: var(--pj-text-soft); }
+.vc-retry {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: 1px solid var(--pj-border-strong);
+  border-radius: 8px; padding: 6px 12px;
+  font: inherit; font-family: var(--pj-font); font-size: 12px; font-weight: 600;
+  color: var(--pj-text); cursor: pointer; flex-shrink: 0;
+}
+
+/* ── Desktop: actions side by side ── */
+@media (min-width: 480px) {
+  .vc-actions { flex-direction: row; }
+  .vc-btn { width: auto; flex: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vc-loading__pulse { animation: vc-pulse 1.1s ease-in-out infinite; }
+}
+@keyframes vc-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-btn { transition: none !important; }
+}

@@ -5,6 +5,7 @@ import { supabase } from "../../../appSupabaseClient";
 import ScoreRing from "../../../components/hr/ScoreRing";
 import UserMenu from "../../../components/UserMenu/UserMenu";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
+import VerdictCard from "../../../components/hr/VerdictCard";
 import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
@@ -207,6 +208,7 @@ export default function JobPipelinePage() {
   const [advancing, setAdvancing] = useState(false);
   const [showHiredModal, setShowHiredModal] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composerInitialMessage, setComposerInitialMessage] = useState(null);
   const [outreachTick, setOutreachTick] = useState(0);
 
   /* Auth */
@@ -238,7 +240,7 @@ export default function JobPipelinePage() {
     (async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, title, status, posted_at, created_at, location, market, job_type, salary_min, salary_max, currency, hr_id, company, department, requirements, description, screening_questions")
+        .select("id, title, status, posted_at, created_at, location, market, job_type, salary_min, salary_max, currency, hr_id, company, department, skills, requirements, description, screening_questions")
         .eq("id", jobId)
         .maybeSingle();
       if (!live) return;
@@ -533,6 +535,7 @@ export default function JobPipelinePage() {
           <CandidateDetail
             key={selected?.id || "empty"}
             candidate={selected}
+            job={job}
             stageDef={stageDef}
             jobTitle={jobTitle}
             company={company}
@@ -541,7 +544,8 @@ export default function JobPipelinePage() {
             onAdvance={handleAdvance}
             onPass={handlePass}
             onStatusChange={(s) => selected && updateStatus(selected.id, s, selected.status)}
-            onMessage={() => setComposerOpen(true)}
+            onMessage={() => { setComposerInitialMessage(null); setComposerOpen(true); }}
+            onReachOut={(template) => { setComposerInitialMessage(template); setComposerOpen(true); }}
             hrId={user?.id}
             outreachTick={outreachTick}
             noteDraft={noteDraft}
@@ -556,6 +560,7 @@ export default function JobPipelinePage() {
       <WhatsAppComposer
         open={composerOpen && !!selected}
         onClose={() => setComposerOpen(false)}
+        initialMessage={composerInitialMessage}
         candidate={selected ? {
           id: selected.candidate_id,
           name: selected.candidate_name,
@@ -624,12 +629,15 @@ const STATUS_OVERRIDE_OPTIONS = [
 ];
 
 function CandidateDetail({
-  candidate, stageDef, jobTitle, company, screeningQuestions,
+  candidate, job, stageDef, jobTitle, company, screeningQuestions,
   advancing, onAdvance, onPass, onStatusChange,
-  onMessage, hrId, outreachTick,
+  onMessage, onReachOut, hrId, outreachTick,
   noteDraft, onNoteDraftChange, onAddNote, noteSubmitting,
   reduce,
 }) {
+  // "View full fit analysis" reveals the old keyword score + chips; the
+  // Verdict card is the headline by default.
+  const [showAnalysis, setShowAnalysis] = useState(false);
   if (!candidate) {
     return (
       <motion.aside
@@ -670,6 +678,21 @@ function CandidateDetail({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
     >
+      <VerdictCard
+        cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
+        cvSnapshot={cv}
+        job={job}
+        header={{
+          name: candidate.candidate_name || "Unnamed candidate",
+          role: desiredJob || jobTitle || "Candidate",
+          location: personal.location || "",
+          visa: candidate.visa_status || "",
+          availability: cv.notice_period || cv.availability || personal.notice_period || "",
+        }}
+        onReachOut={onReachOut}
+        onViewAnalysis={() => setShowAnalysis(true)}
+      />
+
       <header className="jpp-detail__head">
         <div className="jpp-detail__avatar">{initials}</div>
         <div className="jpp-detail__identity">
@@ -694,11 +717,13 @@ function CandidateDetail({
             )}
           </div>
         </div>
-        <ScoreRing
-          score={candidate.ats_score || 0}
-          source={candidate.score_source}
-          size={84}
-        />
+        {showAnalysis && (
+          <ScoreRing
+            score={candidate.ats_score || 0}
+            source={candidate.score_source}
+            size={84}
+          />
+        )}
       </header>
 
       <div className="jpp-detail__actions">
@@ -732,7 +757,7 @@ function CandidateDetail({
 
       <OutreachHistory hrId={hrId} candidateId={candidate.candidate_id} refreshKey={outreachTick} />
 
-      {(matchedKw.length + missingKw.length) > 0 && (
+      {showAnalysis && (matchedKw.length + missingKw.length) > 0 && (
         <section className="jpp-section">
           <h3 className="jpp-section__title">
             ATS Keyword Match

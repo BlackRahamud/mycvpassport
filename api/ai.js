@@ -1088,6 +1088,190 @@ async function handleWhatsappDraft(req, res, body) {
 }
 
 // =====================================================================
+// Branch 6 — candidate_verdict (corridor-aware match verdict)
+//
+// Upgraded, semantic match score for the HR candidate detail. Replaces
+// the untrustworthy keyword overlap with an LLM that credits EQUIVALENT
+// real experience (not literal keyword hits), so strong candidates stop
+// scoring ~22%. Trust-critical -> claude-sonnet-4-6 (overridable),
+// low temperature. Server-side only. Folded in here (no new function)
+// because the project is at the Vercel Hobby 12-function ceiling.
+//
+// Request:  { cvSnapshot, job: { title, description, skills, requirements } }
+// Response: { verdict, score, two_second_why[3], whatsapp_cta_template }
+// =====================================================================
+
+const VERDICT_MODEL = process.env.VERDICT_MODEL || 'claude-sonnet-4-6';
+
+function summariseCvForVerdict(cv) {
+  if (!cv || typeof cv !== 'object') return '(no CV provided)';
+  const personal = cv.personal || cv.basics || {};
+  const name = cv.name || personal.name || '';
+  const role = cv.desired_job || cv.target_role || personal.headline || '';
+  const location = personal.location || cv.location || '';
+  const visa = cv.visa_status || personal.visa_status || '';
+  const notice = cv.notice_period || personal.notice_period || cv.availability || '';
+  const skillsRaw = cv.skills || cv.skill_list || cv.tools || [];
+  const skills = Array.isArray(skillsRaw)
+    ? skillsRaw.map((s) => (typeof s === 'string' ? s : s?.name || s?.label)).filter(Boolean).join(', ')
+    : '';
+  const exp = Array.isArray(cv.experience)
+    ? cv.experience.slice(0, 6).map((e) => {
+        const head = [e.title || e.role, e.company || e.employer].filter(Boolean).join(' at ');
+        const dates = [e.start_date, e.end_date].filter(Boolean).join(' - ');
+        const detail = Array.isArray(e.bullets) ? e.bullets.slice(0, 4).join('; ') : (e.description || e.summary || '');
+        return `- ${head}${dates ? ` (${dates})` : ''}: ${String(detail).slice(0, 400)}`;
+      }).join('\n')
+    : '';
+  const edu = Array.isArray(cv.education)
+    ? cv.education.slice(0, 3).map((e) => [e.degree, e.field, e.school || e.institution].filter(Boolean).join(', ')).filter(Boolean).join('; ')
+    : '';
+  return [
+    name && `Name: ${name}`,
+    role && `Current/target role: ${role}`,
+    location && `Location: ${location}`,
+    visa && `Visa status: ${visa}`,
+    notice && `Availability/notice: ${notice}`,
+    skills && `Skills: ${skills}`,
+    exp && `Experience:\n${exp}`,
+    edu && `Education: ${edu}`,
+  ].filter(Boolean).join('\n').slice(0, 6000) || '(no CV provided)';
+}
+
+function buildVerdictSystem() {
+  return `You are a corridor-aware HR matching engine for the India -> Gulf (UAE/GCC) recruitment corridor. You decide whether a candidate fits a specific role and return a calibrated verdict.
+
+SCORING WEIGHTS (sum to 100):
+- Core technical skills / non-negotiables: 50%
+- Domain-specific experience (same field/industry): 25%
+- Corridor logistics (visa status, location, notice period, GCC experience): 15%
+- Soft skills / secondary certifications: 10%
+
+CRITICAL - SEMANTIC EQUIVALENCE, NOT KEYWORD MATCHING:
+Credit real, equivalent experience even when the CV does not use the JD's exact words. Examples:
+- "IT Service Desk L2 / enterprise infrastructure support" SATISFIES a JD asking for "Windows Server / Active Directory".
+- "managed virtualised servers" SATISFIES "VMware / Hyper-V administration".
+Reward genuine capability. Only count a true GAP when the capability is genuinely absent from the CV - never penalise a strong candidate merely for missing an exact phrase. Do not inflate either: if a real non-negotiable is genuinely absent, reflect it in the score.
+
+VERDICT MUST MATCH SCORE:
+- score >= 80 -> "STRONG FIT"
+- score 50-79 -> "MAYBE"
+- score < 50 -> "PASS"
+
+OUTPUT - STRICT JSON ONLY, no markdown, no prose, no preamble:
+{
+  "verdict": "STRONG FIT" | "MAYBE" | "PASS",
+  "score": <integer 0-100>,
+  "two_second_why": ["Match: <strongest alignment to the JD>", "Corridor: <visa/location/notice/GCC-experience read>", "Gap: <single biggest risk or omission>"],
+  "whatsapp_cta_template": "<one short, warm, professional WhatsApp message to the candidate referencing a real strength and the role>"
+}
+
+two_second_why MUST be exactly 3 strings, each starting with "Match:", "Corridor:", "Gap:" in that order, each under 18 words. No emoji. ASCII punctuation only.`;
+}
+
+function buildVerdictUserPrompt({ cvSnapshot, job }) {
+  const j = job && typeof job === 'object' ? job : {};
+  const skills = Array.isArray(j.skills) ? j.skills.join(', ') : String(j.skills || '');
+  const reqs = Array.isArray(j.requirements)
+    ? j.requirements.map((r) => `- ${typeof r === 'string' ? r : (r?.label || r?.text || '')}`).filter((s) => s.trim() !== '-').join('\n')
+    : String(j.requirements || '');
+  return `ROLE:
+Title: ${String(j.title || '').slice(0, 200) || '(untitled)'}
+Required skills: ${skills.slice(0, 1000) || '(none listed)'}
+Requirements:
+${reqs.slice(0, 2000) || '(none listed)'}
+Description:
+${String(j.description || '').slice(0, 3000) || '(none)'}
+
+CANDIDATE CV:
+${summariseCvForVerdict(cvSnapshot)}
+
+Return the strict JSON verdict now.`;
+}
+
+function verdictFromScore(s) {
+  return s >= 80 ? 'STRONG FIT' : s >= 50 ? 'MAYBE' : 'PASS';
+}
+
+// Enforce the score<->verdict invariant + the exactly-3 prefixed bullets
+// server-side so the UI can trust the shape unconditionally.
+function normaliseVerdict(p) {
+  if (!p || typeof p !== 'object') return null;
+  let score = Math.round(Number(p.score));
+  if (!Number.isFinite(score)) return null;
+  score = Math.max(0, Math.min(100, score));
+  const verdict = verdictFromScore(score);
+  const why = Array.isArray(p.two_second_why) ? p.two_second_why.map((x) => String(x || '').trim()) : [];
+  const labels = ['Match', 'Corridor', 'Gap'];
+  const two_second_why = labels.map((lab, i) => {
+    let line = why[i] || '';
+    if (!new RegExp(`^${lab}\\s*:`, 'i').test(line)) line = `${lab}: ${line || '—'}`;
+    return line;
+  });
+  const cta = String(p.whatsapp_cta_template || '').trim();
+  if (!cta) return null;
+  return { verdict, score, two_second_why, whatsapp_cta_template: cta };
+}
+
+async function handleCandidateVerdict(req, res, body) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'AI Engine is not configured.' });
+  }
+  // Light auth — any signed-in user (mirrors parse_resume / whatsapp_draft).
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Unauthorized. Please sign in.' });
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { user } = {}, error } = await authClient.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid or expired session.' });
+    } catch {
+      return res.status(401).json({ error: 'Could not verify session.' });
+    }
+  }
+
+  const prompt = buildVerdictUserPrompt({ cvSnapshot: body.cvSnapshot, job: body.job });
+
+  try {
+    const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: VERDICT_MODEL,
+        max_tokens: 700,
+        temperature: 0.2,
+        system: buildVerdictSystem(),
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    }, 3, 8000);
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      return res.status(502).json({ error: 'AI Engine is busy, please try again.' });
+    }
+    let data;
+    try { data = JSON.parse(responseText); } catch { return res.status(502).json({ error: 'AI Engine is busy, please try again.' }); }
+    const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
+    const cleaned = String(raw).replace(/```json|```/g, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(cleaned); } catch { return res.status(502).json({ error: 'AI returned an unparseable verdict. Please retry.' }); }
+    const out = normaliseVerdict(parsed);
+    if (!out) return res.status(502).json({ error: 'AI returned an incomplete verdict. Please retry.' });
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).json(out);
+  } catch (err) {
+    console.error('[ai/candidate_verdict]', String(err?.message || err).slice(0, 200));
+    return res.status(502).json({ error: 'AI Engine is busy, please try again.' });
+  }
+}
+
+// =====================================================================
 // Router
 // =====================================================================
 
@@ -1122,9 +1306,10 @@ export default async function handler(req, res) {
     case 'parse_resume':       return handleParseResume(req, res, body);
     case 'tailor':             return handleTailor(req, res, body);
     case 'whatsapp_draft':     return handleWhatsappDraft(req, res, body);
+    case 'candidate_verdict':  return handleCandidateVerdict(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict.',
       });
   }
 }

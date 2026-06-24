@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import ScoreRing from "../../../components/hr/ScoreRing";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
+import VerdictCard from "../../../components/hr/VerdictCard";
 import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
@@ -98,7 +99,11 @@ function ScoreChip({ score, source }) {
 }
 
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
-function CandidateDetail({ candidate, onBack, onMessage, hrId, outreachTick, reduce }) {
+function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce }) {
+  // "View full fit analysis" reveals the old keyword score + chips; reset
+  // when switching candidates (this component isn't remounted per pick).
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  useEffect(() => { setShowAnalysis(false); }, [candidate?.key]);
   if (!candidate) {
     return (
       <aside className="jpp-detail jpp-detail--empty cand-detail-placeholder">
@@ -109,6 +114,8 @@ function CandidateDetail({ candidate, onBack, onMessage, hrId, outreachTick, red
   }
   const a = candidate.record;
   const cv = getCv(a);
+  const matchedKw = Array.isArray(a.match_keywords) ? a.match_keywords : [];
+  const missingKw = Array.isArray(a.missing_keywords) ? a.missing_keywords : [];
   const initials = (candidate.name || "?").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase() || "?";
   const personal = cv.personal || cv.basics || {};
   const desiredJob = cv.desired_job || cv.target_role || cv.desired_position || personal.headline || "";
@@ -128,6 +135,21 @@ function CandidateDetail({ candidate, onBack, onMessage, hrId, outreachTick, red
         <ChevLeftIc /> Back to list
       </button>
 
+      <VerdictCard
+        cacheKey={`${a.candidate_id || candidate.key}:${candidate.apps[0]?.job_id || ""}`}
+        cvSnapshot={cv}
+        jobId={candidate.apps[0]?.job_id}
+        header={{
+          name: candidate.name,
+          role: desiredJob || candidate.apps[0]?.jobTitle || "Candidate",
+          location: personal.location || "",
+          visa: candidate.visa || "",
+          availability: cv.notice_period || cv.availability || personal.notice_period || "",
+        }}
+        onReachOut={onReachOut}
+        onViewAnalysis={() => setShowAnalysis(true)}
+      />
+
       <header className="jpp-detail__head">
         <div className="jpp-detail__avatar">{initials}</div>
         <div className="jpp-detail__identity">
@@ -146,7 +168,7 @@ function CandidateDetail({ candidate, onBack, onMessage, hrId, outreachTick, red
             )}
           </div>
         </div>
-        <ScoreRing score={candidate.score || 0} source={candidate.score_source} size={84} />
+        {showAnalysis && <ScoreRing score={candidate.score || 0} source={candidate.score_source} size={84} />}
       </header>
 
       <div className="jpp-detail__actions">
@@ -162,6 +184,36 @@ function CandidateDetail({ candidate, onBack, onMessage, hrId, outreachTick, red
 
       <OutreachHistory hrId={hrId} candidateId={candidate.record?.candidate_id} refreshKey={outreachTick} />
 
+      {showAnalysis && (matchedKw.length + missingKw.length) > 0 && (
+        <section className="jpp-section">
+          <h3 className="jpp-section__title">
+            ATS Keyword Match
+            <span className="jpp-section__source">keyword overlap (stopgap)</span>
+          </h3>
+          <div className="jpp-match">
+            {matchedKw.length > 0 && (
+              <div className="jpp-match__col">
+                <span className="jpp-match__label">Matched</span>
+                <div className="jpp-match__chips">
+                  {matchedKw.slice(0, 8).map((k, i) => (
+                    <span key={`m-${i}`} className="jpp-match__chip jpp-match__chip--hit">{k}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {missingKw.length > 0 && (
+              <div className="jpp-match__col">
+                <span className="jpp-match__label">Missing</span>
+                <div className="jpp-match__chips">
+                  {missingKw.slice(0, 8).map((k, i) => (
+                    <span key={`x-${i}`} className="jpp-match__chip jpp-match__chip--miss">{k}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Applied to — the cross-job view that makes this a CRM, not a list */}
       <section className="jpp-section">
@@ -243,6 +295,7 @@ export default function CandidatesPage() {
   const [minScore, setMinScore] = useState("0");
   const [selectedKey, setSelectedKey] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composerInitialMessage, setComposerInitialMessage] = useState(null);
   const [outreachTick, setOutreachTick] = useState(0);
 
   useEffect(() => {
@@ -260,7 +313,7 @@ export default function CandidatesPage() {
         const [appsRes, jobsRes] = await Promise.all([
           supabase
             .from("applications")
-            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, score_source, status, visa_status, applied_at")
+            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, score_source, status, visa_status, match_keywords, missing_keywords, applied_at")
             .eq("hr_id", uid)
             .limit(5000),
           supabase
@@ -455,7 +508,8 @@ export default function CandidatesPage() {
               <CandidateDetail
                 candidate={selected}
                 onBack={() => setSelectedKey(null)}
-                onMessage={() => setComposerOpen(true)}
+                onMessage={() => { setComposerInitialMessage(null); setComposerOpen(true); }}
+                onReachOut={(template) => { setComposerInitialMessage(template); setComposerOpen(true); }}
                 hrId={user?.id}
                 outreachTick={outreachTick}
                 reduce={reduce}
@@ -468,6 +522,7 @@ export default function CandidatesPage() {
       <WhatsAppComposer
         open={composerOpen && !!selected}
         onClose={() => setComposerOpen(false)}
+        initialMessage={composerInitialMessage}
         candidate={selected ? {
           id: selected.record?.candidate_id,
           name: selected.name,
