@@ -217,7 +217,53 @@ export default function ScheduleInterviewModal({ open, onClose, application, job
   );
 }
 
-/* ───────── Interviews on the candidate timeline (candidate_events) ───────── */
+/* ───────── Interview status flip (shared by the timeline + dashboard) ───────── */
+const STATUS_EVENT = { completed: "interview_completed", no_show: "interview_no_show", cancelled: "interview_cancelled" };
+export const INTERVIEW_STATUS_LABEL = { scheduled: "Scheduled", completed: "Completed", no_show: "No-show", cancelled: "Cancelled" };
+
+// UPDATE the HR's own interviews row (RLS enforces hr_id = auth.uid()),
+// then log a candidate_events row so the journey + Insights reflect it.
+export async function flipInterviewStatus({ interview, hrId, newStatus }) {
+  if (!interview?.id || !STATUS_EVENT[newStatus]) return { ok: false };
+  const { error } = await supabase.from("interviews").update({ status: newStatus }).eq("id", interview.id);
+  if (error) return { ok: false, error };
+  if (interview.candidate_id && hrId) {
+    supabase.from("candidate_events").insert({
+      candidate_id: interview.candidate_id,
+      job_id: interview.job_id || null,
+      hr_id: hrId,
+      event_type: STATUS_EVENT[newStatus],
+      metadata: { scheduled_at: interview.scheduled_at, duration_min: interview.duration_min || null },
+    }).then(() => {}, () => {});
+  }
+  return { ok: true };
+}
+
+export function InterviewStatusActions({ interview, hrId, onChanged }) {
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState(interview?.status || "scheduled");
+
+  const run = async (s) => {
+    if (busy || s === status) return;
+    setBusy(true);
+    const r = await flipInterviewStatus({ interview, hrId, newStatus: s });
+    setBusy(false);
+    if (r.ok) { setStatus(s); if (onChanged) onChanged(interview.id, s); }
+  };
+
+  if (status !== "scheduled") {
+    return <span className={`si-status si-status--${status}`}>{INTERVIEW_STATUS_LABEL[status] || status}</span>;
+  }
+  return (
+    <div className="si-flips" role="group" aria-label="Interview outcome">
+      <button type="button" className="si-flip si-flip--done" disabled={busy} onClick={() => run("completed")}>Completed</button>
+      <button type="button" className="si-flip" disabled={busy} onClick={() => run("no_show")}>No-show</button>
+      <button type="button" className="si-flip" disabled={busy} onClick={() => run("cancelled")}>Cancel</button>
+    </div>
+  );
+}
+
+/* ───────── Interviews on the candidate timeline (reads interviews table) ───────── */
 function whenFromMeta(at) {
   if (!at) return "";
   const d = new Date(at);
@@ -226,46 +272,47 @@ function whenFromMeta(at) {
 }
 
 export function InterviewTimeline({ hrId, candidateId, refreshKey }) {
-  const [events, setEvents] = useState([]);
+  const [items, setItems] = useState([]);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (!hrId || !candidateId) { setEvents([]); return undefined; }
+    if (!hrId || !candidateId) { setItems([]); return undefined; }
     let live = true;
     (async () => {
       const { data } = await supabase
-        .from("candidate_events")
-        .select("id, metadata, created_at")
+        .from("interviews")
+        .select("id, job_id, candidate_id, scheduled_at, duration_min, meeting_link, status")
         .eq("hr_id", hrId)
         .eq("candidate_id", candidateId)
-        .eq("event_type", "interview_scheduled")
-        .order("created_at", { ascending: false })
+        .order("scheduled_at", { ascending: false })
         .limit(20);
-      if (live) setEvents(data || []);
+      if (live) setItems(data || []);
     })();
     return () => { live = false; };
-  }, [hrId, candidateId, refreshKey]);
+  }, [hrId, candidateId, refreshKey, tick]);
 
-  if (!events.length) return null;
+  if (!items.length) return null;
 
   return (
     <section className="jpp-section">
       <h3 className="jpp-section__title">Interviews</h3>
       <div className="jpp-timeline">
-        {events.map((e) => {
-          const when = whenFromMeta(e.metadata?.scheduled_at);
-          const dur = e.metadata?.duration_min;
-          const link = e.metadata?.meeting_link;
+        {items.map((iv) => {
+          const when = whenFromMeta(iv.scheduled_at);
           return (
-            <div key={e.id} className="jpp-timeline__row">
+            <div key={iv.id} className="jpp-timeline__row">
               <div className="jpp-timeline__icon si-timeline__icon"><CalIc size={14} /></div>
-              <div>
-                <p className="jpp-timeline__title">Interview scheduled{dur ? ` · ${dur} min` : ""}</p>
+              <div style={{ minWidth: 0, width: "100%" }}>
+                <p className="jpp-timeline__title">Interview{iv.duration_min ? ` · ${iv.duration_min} min` : ""}</p>
                 {when && <p className="jpp-timeline__sub">{when}</p>}
-                {link && (
+                {iv.meeting_link && (
                   <p className="jpp-timeline__date">
-                    <a href={link} target="_blank" rel="noreferrer noopener">{link}</a>
+                    <a href={iv.meeting_link} target="_blank" rel="noreferrer noopener">{iv.meeting_link}</a>
                   </p>
                 )}
+                <div className="si-timeline__actions">
+                  <InterviewStatusActions interview={iv} hrId={hrId} onChanged={() => setTick((t) => t + 1)} />
+                </div>
               </div>
             </div>
           );

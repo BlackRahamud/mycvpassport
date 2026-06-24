@@ -64,6 +64,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
   const [jobs, setJobs] = useState(null);   // null = loading
   const [apps, setApps] = useState(null);
   const [hiredEvents, setHiredEvents] = useState([]);
+  const [interviews, setInterviews] = useState([]);
   const [error, setError] = useState(null);
 
   const [market, setMarket] = useState("all");
@@ -79,7 +80,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
     let live = true;
     (async () => {
       try {
-        const [jobsRes, appsRes, evtRes] = await Promise.all([
+        const [jobsRes, appsRes, evtRes, ivRes] = await Promise.all([
           supabase
             .from("jobs")
             .select("id, title, market, status, posted_at, created_at")
@@ -97,12 +98,18 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
             .eq("hr_id", uid)
             .eq("event_type", "hired")
             .limit(5000),
+          supabase
+            .from("interviews")
+            .select("id, job_id, status, scheduled_at, created_at")
+            .eq("hr_id", uid)
+            .limit(5000),
         ]);
         if (!live) return;
         if (jobsRes.error) throw jobsRes.error;
         setJobs(jobsRes.data || []);
         setApps(appsRes.error ? [] : (appsRes.data || []));
         setHiredEvents(evtRes.error ? [] : (evtRes.data || []));
+        setInterviews(ivRes.error ? [] : (ivRes.data || []));
       } catch (e) {
         if (!live) return;
         setJobs([]);
@@ -213,6 +220,33 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
       hiresBasis: ttfAll.length,
     };
   }, [apps, jobs, jobMap, hiredAtMap, market, range]);
+
+  /* Interview metrics — same market + date (created_at) filters. */
+  const interviewMetrics = useMemo(() => {
+    const opt = RANGE_OPTIONS.find((r) => r.key === range);
+    const cutoff = opt && opt.days ? Date.now() - opt.days * DAY_MS : null;
+    const inMarket = (jobId) => {
+      if (market === "all") return true;
+      const j = jobMap.get(jobId);
+      return (j?.market || "gulf") === market;
+    };
+    const f = (interviews || []).filter((iv) => {
+      if (!inMarket(iv.job_id)) return false;
+      if (cutoff) {
+        const t = new Date(iv.created_at).getTime();
+        if (Number.isNaN(t) || t < cutoff) return false;
+      }
+      return true;
+    });
+    const completed = f.filter((iv) => iv.status === "completed").length;
+    const noShow = f.filter((iv) => iv.status === "no_show").length;
+    const outcomes = completed + noShow;
+    return {
+      scheduled: f.length,
+      completed,
+      noShowRate: outcomes > 0 ? Math.round((noShow / outcomes) * 100) : null,
+    };
+  }, [interviews, jobMap, market, range]);
 
   const sortedRows = useMemo(() => {
     const rows = [...model.perJobRows];
@@ -334,6 +368,20 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
         <StatCard label="Shortlisted" value={f.shortlisted} />
         <StatCard label="Interviews" value={f.interviewed} />
         <StatCard label="Hires" value={f.hired} goal />
+      </motion.div>
+
+      {/* Interview outcomes (from the interviews table) */}
+      <motion.div
+        className="hin-stats"
+        style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: EASE, delay: 0.02 }}
+        aria-label="Interview outcomes"
+      >
+        <StatCard label="Interviews scheduled" value={interviewMetrics.scheduled} />
+        <StatCard label="Completed" value={interviewMetrics.completed} />
+        <StatCard label="No-show rate" value={interviewMetrics.noShowRate} suffix={interviewMetrics.noShowRate == null ? "" : "%"} />
       </motion.div>
 
       <div className="hin-grid">

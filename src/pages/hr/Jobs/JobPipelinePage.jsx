@@ -6,6 +6,7 @@ import UserMenu from "../../../components/UserMenu/UserMenu";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
+import NotificationsBell from "../../../components/hr/NotificationsBell";
 import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
@@ -72,11 +73,6 @@ const BriefIc = ({ size = 14 }) => (
 const CapIc = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
-  </svg>
-);
-const BellIc = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
   </svg>
 );
 const CloseIc = () => (
@@ -381,7 +377,7 @@ export default function JobPipelinePage() {
           </button>
         </div>
         <div className="jpp-topbar__right">
-          <button type="button" className="jpp-icon-btn" aria-label="Notifications"><BellIc /></button>
+          <NotificationsBell userId={user?.id} buttonClassName="jpp-icon-btn" />
           <UserMenu
             email={user?.email || ""}
             name={profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
