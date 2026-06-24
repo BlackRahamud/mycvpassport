@@ -26,13 +26,18 @@
  *                         row written to anthropic_calls.
  *
  * Tailor request shape:
- *   POST { section: 'summary' | 'experience_bullet', input: {...} }
+ *   POST { section: 'summary' | 'experience_bullet' | 'description', input: {...} }
  *     summary input:           { summary, target_role?, target_market?, name? }
  *     experience_bullet input: { bullet, role?, company?, target_role? }
+ *     description input:       { text, role?, company?, target_role?, target_market? }
+ *                              (direct Improve-with-AI: rewrites the WHOLE
+ *                               description; hot temperature + per-call style
+ *                               seed; never cached, so re-clicks differ)
  *
  * Tailor response shape:
- *   200 summary:           { ok: true, result: string, credits_remaining: int }
- *   200 experience_bullet: { ok: true, alternatives: string[3], credits_remaining: int }
+ *   200 summary:               { ok: true, result: string, credits_remaining: int }
+ *   200 experience_bullet:     { ok: true, alternatives: string[3], credits_remaining: int }
+ *   200 description:           { ok: true, alternatives: string[3], credits_remaining: int }
  *   402 free-tier exhausted: { ok: false, error, credits_remaining: 0, action: 'upgrade' }
  *   502 Anthropic upstream:  { ok: false, error, credits_remaining: int }  (refund honoured for free)
  *
@@ -448,7 +453,29 @@ async function handleParseResume(req, res, body) {
 //   and spend show up automatically.
 // =====================================================================
 
-const VALID_TAILOR_SECTIONS = new Set(['summary', 'experience_bullet']);
+const VALID_TAILOR_SECTIONS = new Set(['summary', 'experience_bullet', 'description']);
+
+// Per-section sampling temperature. The 'description' direct-improve flow
+// must read as real, paid AI: re-running it should yield genuinely
+// different phrasings, so it samples hot (0.95) and the prompt injects a
+// per-call style seed. The legacy single-shot sections keep their tuned
+// 0.4 (deterministic-ish, fewer surprises).
+function temperatureForSection(section) {
+  return section === 'description' ? 0.95 : 0.4;
+}
+
+// Style angles seeded per 'description' call so the three alternatives
+// diverge in voice and re-clicks don't echo the previous run. One angle
+// is picked at random and handed to the model as the lens for option 1;
+// the model is told to make options 2 and 3 distinct from it.
+const DESCRIPTION_STYLE_ANGLES = [
+  'outcome-led — lead with the measurable result or business impact',
+  'scope-led — emphasise scale, ownership, and breadth of responsibility',
+  'skills-led — surface the concrete tools, systems, and methods used',
+  'leadership-led — foreground collaboration, mentoring, and stakeholder work',
+  'problem-solution — frame each line as a challenge resolved',
+  'concise-punch — tightest possible phrasing, every word earning its place',
+];
 
 // Maps profile state to the value space anthropic_calls.tier accepts:
 // 'anonymous' | 'free' | 'paid' | 'paid_pro'. Active Hunter / Career
@@ -587,7 +614,44 @@ Output STRICT JSON only, no markdown, no commentary:
 Exactly 3 strings. Each non-empty. Each unique.`;
 }
 
-async function callAnthropicTailor({ system, userPrompt, isJsonExpected }) {
+function buildDescriptionSystem() {
+  return `You are an expert CV editor specialising in the UAE/GCC and Indian job markets.
+You rewrite an entire experience/role description (which may contain several bullet lines) into 3 distinct, complete alternative versions. Each alternative is a full replacement for the whole description, not a single line.
+
+${TAILOR_SYSTEM_RULES}`;
+}
+
+function buildDescriptionUserPrompt({ text, role, company, target_role, target_market, seedAngle, seedNonce }) {
+  return `Rewrite this ENTIRE experience description into 3 distinct, complete alternative versions. Each alternative replaces the whole description.
+
+CURRENT DESCRIPTION:
+<<<
+${String(text || '').slice(0, 4000)}
+>>>
+
+CONTEXT:
+- Role:          ${String(role || '').trim() || '(not provided)'}
+- Company:       ${String(company || '').trim() || '(not provided)'}
+- Target role:   ${String(target_role || '').trim() || '(not provided)'}
+- Target market: ${String(target_market || '').trim() || 'UAE'}
+
+DIRECTIVES per alternative:
+- Preserve the same set of bullet lines / paragraphs as the source. If the source is bulleted, keep it bulleted (one achievement per line). If it is prose, keep it prose.
+- Start each bullet with a strong action verb. Read as Action -> Result.
+- Keep each bullet tight (aim for 25 words or fewer).
+- Preserve the candidate's actual achievements. Never invent metrics, numbers, dates, employers, or outcomes not implied by the original. If a metric exists, surface it; if not, do not fabricate one.
+- Make the three alternatives feel genuinely different in angle and word choice — do not return three near-identical versions.
+- For alternative 1, lean into this lens: ${String(seedAngle || 'outcome-led')}. Make alternatives 2 and 3 take clearly different lenses from it and from each other.
+
+Variation token (ignore in output, it only seeds fresh phrasing): ${String(seedNonce || '')}
+
+Output STRICT JSON only, no markdown, no commentary:
+{ "alternatives": ["full description v1", "full description v2", "full description v3"] }
+
+Exactly 3 strings. Each non-empty. Each meaningfully distinct. Newlines inside a string are allowed for multi-bullet descriptions.`;
+}
+
+async function callAnthropicTailor({ system, userPrompt, isJsonExpected, temperature = 0.4 }) {
   const response = await fetchWithRetry(
     'https://api.anthropic.com/v1/messages',
     {
@@ -600,7 +664,7 @@ async function callAnthropicTailor({ system, userPrompt, isJsonExpected }) {
       body: JSON.stringify({
         model: BUILDER_TAILOR_MODEL,
         max_tokens: BUILDER_TAILOR_MAX_TOKENS,
-        temperature: 0.4,
+        temperature,
         system,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -687,6 +751,9 @@ async function handleTailor(req, res, body) {
   if (section === 'experience_bullet' && !String(input.bullet || '').trim()) {
     return res.status(400).json({ ok: false, error: 'Missing input.bullet.' });
   }
+  if (section === 'description' && !String(input.text || '').trim()) {
+    return res.status(400).json({ ok: false, error: 'Missing input.text.' });
+  }
 
   // 2. Auth (Bearer JWT via anon client - mirrors parse_resume).
   const authHeader = req.headers.authorization;
@@ -755,15 +822,30 @@ async function handleTailor(req, res, body) {
   const computeRemaining = (usedNow) => Math.max(0, BUILDER_TAILOR_FREE_LIMIT - usedNow);
 
   // 6. Build prompt + call Anthropic.
-  const system = section === 'summary' ? buildSummarySystem() : buildBulletSystem();
-  const userPrompt = section === 'summary'
-    ? buildSummaryUserPrompt(input)
-    : buildBulletUserPrompt(input);
-  const isJsonExpected = section === 'experience_bullet';
+  //    'description' samples hot with a per-call style seed so the three
+  //    options diverge and re-clicks return fresh phrasings (uncached by
+  //    design — this handler never reads/writes query_cache).
+  let system;
+  let userPrompt;
+  if (section === 'summary') {
+    system = buildSummarySystem();
+    userPrompt = buildSummaryUserPrompt(input);
+  } else if (section === 'description') {
+    const seedAngle = DESCRIPTION_STYLE_ANGLES[Math.floor(Math.random() * DESCRIPTION_STYLE_ANGLES.length)];
+    const seedNonce = Math.random().toString(36).slice(2, 10);
+    system = buildDescriptionSystem();
+    userPrompt = buildDescriptionUserPrompt({ ...input, seedAngle, seedNonce });
+  } else {
+    system = buildBulletSystem();
+    userPrompt = buildBulletUserPrompt(input);
+  }
+  // summary returns plain text; bullet + description return JSON alternatives.
+  const isJsonExpected = section !== 'summary';
+  const temperature = temperatureForSection(section);
 
   let aiResult;
   try {
-    aiResult = await callAnthropicTailor({ system, userPrompt, isJsonExpected });
+    aiResult = await callAnthropicTailor({ system, userPrompt, isJsonExpected, temperature });
   } catch (e) {
     // 7a. Anthropic upstream failure. Refund the free-tier credit.
     let refundedRemaining = creditsRemainingPreDeduct;

@@ -28,13 +28,13 @@ import {
   User,
   X,
 } from "lucide-react";
-import { supabase } from "../appSupabaseClient";
-import safeFetch from "../lib/net/safeFetch";
 import JobMatch from "../JobMatch";
 import ATSChecker from "../ATSChecker";
 import CoverLetterModal from "../CoverLetterModal";
 import UpgradeModal from "../UpgradeModal";
 import AIRewriteModal from "../components/AIRewriteModal";
+import AIWorkingGlow from "../components/AIWorkingGlow";
+import useAiImprove from "../hooks/useAiImprove";
 import { hasFeatureAccess } from "../utils/paywall";
 import { deriveAiButtonLabel, isAiExhausted } from "../lib/aiButtonLabel";
 import SynthesisOverlay from "../components/SynthesisOverlay";
@@ -1001,29 +1001,6 @@ function skillsArrayForChipRender(skills) {
       : [];
 }
 
-// Client-side timeout budgets for the in-builder AI assist. Without these a
-// hung supabase.auth.getSession() (auth-lock contention / stuck refresh —
-// never throws) or a stalled serverless fetch leaves the "Write with AI"
-// button spinning forever with nothing logged. They convert a hang into a
-// visible, retryable error.
-const AI_SESSION_TIMEOUT_MS = 10000;
-const AI_FETCH_TIMEOUT_MS = 45000; // under the api/ai.js maxDuration (60s)
-
-// Races a no-abort promise (e.g. supabase.auth.getSession) against a timeout
-// so it can never block the UI indefinitely.
-function withAiTimeout(promise, ms, label) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => {
-        const e = new Error(label || "Timed out");
-        e.name = "TimeoutError";
-        reject(e);
-      }, ms)
-    ),
-  ]);
-}
-
 function ProfessionalSummaryField({
   summary,
   onChange,
@@ -1038,8 +1015,24 @@ function ProfessionalSummaryField({
 }) {
   const [clearAsk, setClearAsk] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiToast, setAiToast] = useState(null); // { kind: 'success'|'error'|'info', text }
+  // { kind: 'success'|'error'|'info', text, onUndo? }
+  const [aiToast, setAiToast] = useState(null);
+  // Snapshot of the summary at the moment Improve was clicked, so Undo can
+  // restore the EXACT original after a rewrite is applied.
+  const originalRef = useRef("");
+
+  // Direct improve flow: one click rewrites the whole summary into 3 full
+  // options (uncached, fresh each click). The AIWorkingGlow ring shows on
+  // the field while ai.isGenerating; the results modal opens when options
+  // arrive; clicking a card commits instantly.
+  const ai = useAiImprove({
+    onCreditsUpdate: (remaining) => { if (onAIRewriteSuccess) onAIRewriteSuccess(remaining); },
+    onExhausted: () => { if (onAIExhausted) onAIExhausted(); },
+  });
+  // Surface a generation error as the inline status pill.
+  useEffect(() => {
+    if (ai.error) setAiToast({ kind: "error", text: ai.error });
+  }, [ai.error]);
   // Auto-expand: textarea grows with content, no internal scroll. Reruns
   // on every `summary` change so AI rewrites + paste also resize cleanly.
   const summaryRef = useRef(null);
@@ -1068,108 +1061,48 @@ function ProfessionalSummaryField({
 
   const aiEnabled = cvContext != null;
 
-  async function runAIRewrite() {
-    if (aiLoading) return;
-    setAiLoading(true);
-    setAiToast(null);
-    // Hard ceiling on the fetch so a stalled serverless function can't spin
-    // the button forever.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), AI_FETCH_TIMEOUT_MS);
-    try {
-      console.info("[builder AI summary] runAIRewrite start");
-      const { data: { session } = {} } = await withAiTimeout(
-        supabase.auth.getSession(),
-        AI_SESSION_TIMEOUT_MS,
-        "Session lookup timed out"
-      );
-      const token = session?.access_token;
-      if (!token) {
-        setAiToast({ kind: "error", text: "Please sign in again." });
-        return;
-      }
-      console.info("[builder AI summary] session OK, firing tailor request");
-      const res = await safeFetch("/api/ai?action=tailor", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          section: "summary",
-          input: {
-            summary: String(summary || ""),
-            target_role: String(cvContext?.title || ""),
-            target_market: String(cvContext?.targetMarket || ""),
-            name: String(cvContext?.name || ""),
-          },
-        }),
-      });
-      console.info("[builder AI summary] tailor responded", res.status);
-      let data = {};
-      let rawBody = "";
-      try {
-        rawBody = await res.text();
-        data = rawBody ? JSON.parse(rawBody) : {};
-      } catch { /* non-JSON body (e.g. an HTML error page) — leave data as {} */ }
-
-      if (res.status === 402) {
-        // Free-tier exhausted. Surface the upgrade modal via the parent
-        // and reflect 0 credits locally so the button label updates
-        // before the modal opens.
-        if (onAIRewriteSuccess) onAIRewriteSuccess(0);
-        if (onAIExhausted) onAIExhausted();
-        return;
-      }
-      if (!res.ok || !data.ok) {
-        // Make the break diagnosable: log the real status + body, and
-        // show the user the status so 401/500/502 are distinguishable
-        // instead of a generic "busy".
-        console.error("[builder AI summary] tailor failed", res.status, data?.error || rawBody.slice(0, 300));
-        const text = data?.error
-          ? `${data.error} (${res.status})`
-          : `AI request failed (${res.status}). Please try again.`;
-        setAiToast({ kind: "error", text });
-        return;
-      }
-      onChange(String(data.result || ""));
-      setIsDirty(true);
-      if (onAIRewriteSuccess) onAIRewriteSuccess(data.credits_remaining);
-      setAiToast({ kind: "success", text: "Summary rewritten" });
-    } catch (e) {
-      // AbortError (our fetch timeout) or TimeoutError (getSession race) →
-      // the call never came back. Say so instead of leaving a dead button.
-      const isTimeout = e?.name === "AbortError" || e?.name === "TimeoutError";
-      console.error("[builder AI summary] tailor threw", e?.name, e?.message || e);
-      setAiToast({
-        kind: "error",
-        text: isTimeout
-          ? "Couldn't generate — the AI service didn't respond. Please try again."
-          : "Couldn't reach the AI service. Check your connection and retry.",
-      });
-    } finally {
-      clearTimeout(timeoutId);
-      setAiLoading(false);
-    }
-  }
+  // Commit a chosen rewrite: replace the whole summary, keep an Undo that
+  // restores the exact pre-rewrite text.
+  const applyOption = (newText) => {
+    const original = originalRef.current;
+    onChange(String(newText || ""));
+    setIsDirty(true);
+    ai.reset();
+    setAiToast({
+      kind: "success",
+      text: "Updated",
+      onUndo: () => {
+        onChange(original);
+        setIsDirty(true);
+        setAiToast(null);
+      },
+    });
+  };
 
   // Free-tier 0-credit state short-circuits to the upgrade modal instead
   // of POSTing to /api/ai (server would 402; this avoids the round-trip
   // and removes the spinner-then-paywall lag).
   const aiExhausted = isAiExhausted(creditsRemaining);
   const aiButtonLabel = deriveAiButtonLabel({
-    aiLoading,
+    aiLoading: ai.isGenerating,
     creditsRemaining,
-    idleLabel: "Write with AI",
-    loadingLabel: "Writing...",
+    idleLabel: "Improve with AI",
+    loadingLabel: "Improving...",
   });
   const handleAiButtonClick = () => {
     if (aiExhausted) {
       if (onAIExhausted) onAIExhausted();
       return;
     }
-    runAIRewrite();
+    setAiToast(null);
+    originalRef.current = String(summary || "");
+    ai.improve({
+      text: String(summary || ""),
+      field: "summary",
+      target_role: String(cvContext?.title || ""),
+      target_market: String(cvContext?.targetMarket || ""),
+      name: String(cvContext?.name || ""),
+    });
   };
 
   return (
@@ -1182,7 +1115,7 @@ function ProfessionalSummaryField({
           border-color: rgba(217,119,6,0.65) !important;
         }
       ` }} />
-      <div style={{ position: "relative", width: "100%" }}>
+      <AIWorkingGlow active={ai.isGenerating} radius={10}>
         <textarea
           ref={summaryRef}
           className="cvp-builder-ph cvp-textarea"
@@ -1207,7 +1140,7 @@ function ProfessionalSummaryField({
         >
           {String(summary || "").length}
         </span>
-      </div>
+      </AIWorkingGlow>
       <div
         style={{
           display: "flex",
@@ -1227,6 +1160,9 @@ function ProfessionalSummaryField({
             {aiToast && (
               <span
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
                   fontSize: 11,
                   fontWeight: 500,
                   color:
@@ -1237,15 +1173,33 @@ function ProfessionalSummaryField({
                 role="status"
                 aria-live="polite"
               >
-                {aiToast.kind === "success" ? "✓ " : ""}{aiToast.text}
+                <span>{aiToast.kind === "success" ? "✓ " : ""}{aiToast.text}</span>
+                {aiToast.onUndo && (
+                  <button
+                    type="button"
+                    onClick={aiToast.onUndo}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: "#EF9F27",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Undo
+                  </button>
+                )}
               </span>
             )}
             <button
               type="button"
               className="cvp-ai-write-btn"
               onClick={handleAiButtonClick}
-              disabled={aiLoading}
-              aria-label={aiExhausted ? "Upgrade for unlimited AI" : "Rewrite summary with AI"}
+              disabled={ai.isGenerating}
+              aria-label={aiExhausted ? "Upgrade for unlimited AI" : "Improve summary with AI"}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1257,13 +1211,13 @@ function ProfessionalSummaryField({
                 color: "#D97706",
                 fontSize: 11.5,
                 fontWeight: 600,
-                cursor: aiLoading ? "default" : "pointer",
-                opacity: aiLoading ? 0.7 : 1,
+                cursor: ai.isGenerating ? "default" : "pointer",
+                opacity: ai.isGenerating ? 0.7 : 1,
                 transition:
                   "background-color 0.16s cubic-bezier(0.4,0,0.2,1), border-color 0.16s cubic-bezier(0.4,0,0.2,1)",
               }}
             >
-              {aiLoading
+              {ai.isGenerating
                 ? <Loader2 size={12} strokeWidth={2.4} style={{ animation: "cvp-ai-spin 0.8s linear infinite" }} />
                 : <Sparkles size={12} strokeWidth={2.4} />}
               <span>{aiButtonLabel}</span>
@@ -1332,6 +1286,16 @@ function ProfessionalSummaryField({
           ×
         </button>
       )}
+
+      <AIRewriteModal
+        isOpen={!!ai.options}
+        original={originalRef.current}
+        options={ai.options || []}
+        creditsRemaining={creditsRemaining}
+        onPick={applyOption}
+        onKeepOriginal={() => ai.reset()}
+        onClose={() => ai.reset()}
+      />
     </div>
   );
 }
@@ -2841,25 +2805,23 @@ function ResumeBuilder({
     setAiCreditsRemaining(deriveAiCreditsRemaining(profile));
   }, [profile, deriveAiCreditsRemaining]);
 
-  // Session C - AI bullet rewrite modal. Open state lives here so the
-  // experience editor can keep its own modal open while the AI modal
-  // stacks on top. Auto-closes if the experience editor is dismissed.
-  const [aiRewriteOpen, setAiRewriteOpen] = useState(false);
-  // Bullets parsed from the experience editor draft. Each entry tracks
-  // its original line index so a successful rewrite can be written
-  // back to the exact line in the textarea string (preserving blank
-  // lines / line ordering / surrounding whitespace).
-  const aiRewriteBullets = useMemo(() => {
-    const text = String(experienceEditor?.draft?.points || "");
-    if (!text) return [];
-    return text
-      .split("\n")
-      .map((line, idx) => ({ idx, text: line.trim().replace(/^[-*•]\s*/, "") }))
-      .filter((b) => b.text);
-  // experienceEditor itself is the source of truth for points; depend
-  // on the draft value directly so this recomputes on every edit.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experienceEditor?.draft?.points]);
+  // Direct Improve-with-AI for the experience description. One click fires
+  // an uncached rewrite of the WHOLE points text; the AIWorkingGlow ring
+  // shows on the field while generating; the results modal opens with 3
+  // full options; clicking one replaces the entire description. The hook +
+  // modal stack on top of the experience editor's own modal.
+  const expImproveOriginalRef = useRef("");
+  const expAi = useAiImprove({
+    onCreditsUpdate: (remaining) => {
+      setAiCreditsRemaining(remaining);
+      if (refreshProfile) refreshProfile();
+    },
+    onExhausted: () => {
+      setUpgradeFeature("builder_ai");
+      setUpgradeOpen(true);
+    },
+  });
+  const experienceHasText = String(experienceEditor?.draft?.points || "").trim().length > 0;
   const [templatePickPending, setTemplatePickPending] = useState(null);
   const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
@@ -6082,7 +6044,7 @@ function ResumeBuilder({
                       );
                     })()}
                   </div>
-                  <div style={{ position: "relative", width: "100%" }}>
+                  <AIWorkingGlow active={expAi.isGenerating} radius={10}>
                     <AutoExpandTextarea
                       ref={expDescriptionRef}
                       className="cvp-builder-ph cvp-textarea"
@@ -6108,7 +6070,7 @@ function ResumeBuilder({
                     >
                       {String(experienceEditor.draft.points || "").length}
                     </span>
-                  </div>
+                  </AIWorkingGlow>
                   <div
                     style={{
                       display: "flex",
@@ -6123,18 +6085,27 @@ function ResumeBuilder({
                       <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
                       <span style={{ fontSize: 11, color: "#555" }}>Each line = one bullet on your CV</span>
                     </div>
-                    {aiRewriteBullets.length > 0 && (
+                    {experienceHasText && (
                       <button
                         type="button"
+                        disabled={expAi.isGenerating}
                         onClick={() => {
                           if (isAiExhausted(aiCreditsRemaining)) {
                             setUpgradeFeature("builder_ai");
                             setUpgradeOpen(true);
                             return;
                           }
-                          setAiRewriteOpen(true);
+                          expImproveOriginalRef.current = String(experienceEditor?.draft?.points || "");
+                          expAi.improve({
+                            text: String(experienceEditor?.draft?.points || ""),
+                            field: "experience",
+                            role: String(experienceEditor?.draft?.role || ""),
+                            company: String(experienceEditor?.draft?.company || ""),
+                            target_role: String(resume?.title || ""),
+                            target_market: String(resume?.targetMarket || ""),
+                          });
                         }}
-                        aria-label={isAiExhausted(aiCreditsRemaining) ? "Upgrade for unlimited AI" : "Improve a bullet with AI"}
+                        aria-label={isAiExhausted(aiCreditsRemaining) ? "Upgrade for unlimited AI" : "Improve this description with AI"}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
@@ -6146,12 +6117,14 @@ function ResumeBuilder({
                           color: "#D97706",
                           fontSize: 11.5,
                           fontWeight: 600,
-                          cursor: "pointer",
+                          cursor: expAi.isGenerating ? "default" : "pointer",
+                          opacity: expAi.isGenerating ? 0.7 : 1,
                           flexShrink: 0,
                           transition:
                             "background-color 0.16s cubic-bezier(0.4,0,0.2,1), border-color 0.16s cubic-bezier(0.4,0,0.2,1)",
                         }}
                         onMouseEnter={(e) => {
+                          if (expAi.isGenerating) return;
                           e.currentTarget.style.background = "rgba(217,119,6,0.22)";
                           e.currentTarget.style.borderColor = "rgba(217,119,6,0.65)";
                         }}
@@ -6160,12 +6133,15 @@ function ResumeBuilder({
                           e.currentTarget.style.borderColor = "rgba(217,119,6,0.45)";
                         }}
                       >
-                        <Sparkles size={12} strokeWidth={2.4} aria-hidden />
+                        {expAi.isGenerating
+                          ? <Loader2 size={12} strokeWidth={2.4} style={{ animation: "cvp-ai-spin 0.8s linear infinite" }} aria-hidden />
+                          : <Sparkles size={12} strokeWidth={2.4} aria-hidden />}
                         <span>
                           {deriveAiButtonLabel({
-                            aiLoading: false,
+                            aiLoading: expAi.isGenerating,
                             creditsRemaining: aiCreditsRemaining,
                             idleLabel: "Improve with AI",
+                            loadingLabel: "Improving...",
                           })}
                         </span>
                       </button>
@@ -6278,42 +6254,27 @@ function ResumeBuilder({
       )}
 
       <AIRewriteModal
-        isOpen={aiRewriteOpen && !!experienceEditor}
-        onClose={() => setAiRewriteOpen(false)}
-        bullets={aiRewriteBullets.map((b) => b.text)}
-        roleContext={{
-          role: experienceEditor?.draft?.role || "",
-          company: experienceEditor?.draft?.company || "",
-          target_role: resume?.title || "",
-        }}
+        isOpen={!!expAi.options && !!experienceEditor}
+        original={expImproveOriginalRef.current}
+        options={expAi.options || []}
         creditsRemaining={aiCreditsRemaining}
-        onAIRewriteSuccess={(remaining) => {
-          setAiCreditsRemaining(remaining);
-          if (refreshProfile) refreshProfile();
-        }}
-        onAIExhausted={() => {
-          setAiRewriteOpen(false);
-          setUpgradeFeature("builder_ai");
-          setUpgradeOpen(true);
-        }}
-        onConfirm={(bulletIdx, newText) => {
-          // bulletIdx is the index into the (filtered) aiRewriteBullets
-          // array. Map it back to the original line index in the
-          // textarea string so blank lines / ordering are preserved.
-          const target = aiRewriteBullets[bulletIdx];
-          if (!target) {
-            setAiRewriteOpen(false);
-            return;
-          }
-          setExperienceEditor((ev) => {
-            if (!ev) return null;
-            const lines = String(ev.draft.points || "").split("\n");
-            lines[target.idx] = String(newText || "").trim();
-            return { ...ev, draft: { ...ev.draft, points: lines.join("\n") } };
-          });
+        onClose={() => expAi.reset()}
+        onKeepOriginal={() => expAi.reset()}
+        onPick={(newText) => {
+          // Replace the WHOLE description. Snapshot the pre-rewrite text so
+          // the toast's Undo can restore it exactly.
+          const original = expImproveOriginalRef.current;
+          setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: String(newText || "") } } : null));
           setExpModalHighEffortDirty(true);
           setExpModalBulletWarn(false);
-          setAiRewriteOpen(false);
+          expAi.reset();
+          setAtsToast({
+            text: "Updated",
+            onUndo: () => {
+              setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, points: original } } : null));
+              setExpModalHighEffortDirty(true);
+            },
+          });
         }}
       />
 
@@ -6330,6 +6291,13 @@ function ResumeBuilder({
             onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>{educationEditor.mode === "add" ? "Add education" : "Edit education"}</h3>
+            {/* Same reusable AIWorkingGlow that wraps the Experience and
+                Summary boxes. Education has only structured fields (no
+                free-text description) today, so there is nothing to rewrite
+                and the ring stays dormant (active=false) — but the wrapper
+                is mounted identically, ready to light up the instant a
+                description field is added. */}
+            <AIWorkingGlow active={false} radius={12}>
             <div style={{ display: "grid", gap: 12 }}>
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Institution name</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Degree / qualification</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
@@ -6382,6 +6350,7 @@ function ResumeBuilder({
               </div>
               <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (optional)</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
             </div>
+            </AIWorkingGlow>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
               <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setEducationEditor(null)}>Cancel</button>
               <button

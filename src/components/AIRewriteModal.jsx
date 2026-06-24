@@ -1,55 +1,33 @@
 // =============================================================
 // src/components/AIRewriteModal.jsx
 //
-// In-builder AI bullet rewrite (Session C, Option B).
+// Slim, results-only "choose a rewrite" panel for the direct
+// Improve-with-AI flow. The over-stepped pick-a-bullet -> Continue ->
+// spinner -> choose -> confirm flow is gone: generation now happens on
+// the field itself (AIWorkingGlow ring) before this panel ever mounts,
+// and selection is COMMITTED ON CLICK — clicking a card applies that
+// rewrite to the whole description and closes the panel immediately.
 //
-// Flow:
-//   1. opened with the current bullets parsed from a role's `points`
-//   2. picker phase: user chooses which bullet to rewrite (auto-skipped
-//      when only one bullet exists)
-//   3. loading phase: POST /api/ai?action=tailor with section=experience_bullet
-//   4. alternatives phase: 3 distinct rewrites shown as radio cards
-//   5. confirm: parent gets the chosen index + new line + remaining credits
-//   6. close: nothing changes
+// This component is purely presentational. It owns no API call and no
+// loading phase (useAiImprove drives generation). It opens only once the
+// three full alternatives have returned.
 //
-// Credit gate matches Session B - free-tier 402 fires onAIExhausted();
-// Pro / Express skip the gate. AbortController is intentionally omitted
-// so the server-side audit row + refund logic remain authoritative
-// (matches Session B's pattern). A close-during-loading guard prevents
-// stale setState via cancelledRef.
+// Behaviour:
+//   - Each alternative is a click-to-commit card. One click = onPick(text).
+//     There is no hover-selection and no separate confirm button, so a
+//     choice can never be lost by moving the cursor.
+//   - "Keep original" is a secondary text link (onKeepOriginal).
+//   - Escape / overlay click closes (onClose) without changing anything.
 //
-// Visual: dark OLED palette per CLAUDE.md - #141414 surface, #2A2A2A
-// border, amber #D97706 selection accents. Centered modal on >600px,
-// bottom sheet on smaller screens. No emojis in the actual rendered
-// surface (Sparkles icon only).
+// Visual: OLED palette per CLAUDE.md — #141414 surface, #2A2A2A border —
+// with the v1.2 amber accent (#EF9F27) on the active/hover card edge.
+// Centered modal >600px, bottom sheet below.
 // =============================================================
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Sparkles, Loader2, X, AlertTriangle } from "lucide-react";
-import { supabase } from "../appSupabaseClient";
-import safeFetch from "../lib/net/safeFetch";
+import { useEffect } from "react";
+import { Sparkles, X } from "lucide-react";
 
-// Client-side timeout budgets. Without these a hung getSession() (auth-lock
-// contention / stuck token refresh — never throws) or a stalled serverless
-// fetch leaves the modal spinning on "Rewriting your bullet..." forever with
-// nothing logged. These convert a hang into a visible, retryable error.
-const SESSION_TIMEOUT_MS = 10000;
-const TAILOR_FETCH_TIMEOUT_MS = 45000; // under the api/ai.js maxDuration (60s)
-
-// Races a promise that has no native abort (e.g. supabase.auth.getSession)
-// against a timeout so it can never block the UI indefinitely.
-function withTimeout(promise, ms, label) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => {
-        const e = new Error(label || "Timed out");
-        e.name = "TimeoutError";
-        reject(e);
-      }, ms)
-    ),
-  ]);
-}
+const AMBER = "#EF9F27";
 
 const AI_REWRITE_MODAL_CSS = `
 .cvp-airw-overlay {
@@ -138,6 +116,7 @@ const AI_REWRITE_MODAL_CSS = `
   color: #C0C0C5;
   font-size: 12.5px;
   line-height: 1.5;
+  white-space: pre-wrap;
 }
 .cvp-airw-list {
   display: flex;
@@ -149,59 +128,44 @@ const AI_REWRITE_MODAL_CSS = `
   background: #1C1C1C;
   border: 1px solid #2A2A2A;
   border-radius: 12px;
-  padding: 11px 13px 11px 14px;
+  padding: 12px 14px;
   cursor: pointer;
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  display: block;
   text-align: left;
   color: #E5E5EA;
   font: inherit;
   font-size: 13px;
   line-height: 1.5;
+  white-space: pre-wrap;
   width: 100%;
   box-sizing: border-box;
   position: relative;
-  transition: border-color 0.16s cubic-bezier(0.4,0,0.2,1), background-color 0.16s cubic-bezier(0.4,0,0.2,1);
+  transition: border-color 0.16s cubic-bezier(0.4,0,0.2,1), background-color 0.16s cubic-bezier(0.4,0,0.2,1), transform 0.12s cubic-bezier(0.4,0,0.2,1);
 }
-.cvp-airw-card:hover:not(.is-selected) {
-  border-color: #3A3A3A;
-  background: #1F1F1F;
+.cvp-airw-card:hover {
+  border-color: ${AMBER};
+  background: rgba(239,159,39,0.08);
 }
-.cvp-airw-card.is-selected {
-  border-color: #D97706;
-  background: rgba(217,119,6,0.08);
+.cvp-airw-card:active { transform: scale(0.992); }
+.cvp-airw-card-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6E6E73;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
-.cvp-airw-card.is-selected::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
-  border-radius: 2px;
-  background: #D97706;
+.cvp-airw-card:hover .cvp-airw-card-num { color: ${AMBER}; }
+.cvp-airw-card-apply {
+  margin-left: auto;
+  color: ${AMBER};
+  opacity: 0;
+  transition: opacity 0.16s cubic-bezier(0.4,0,0.2,1);
 }
-.cvp-airw-radio {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1.5px solid #555;
-  flex-shrink: 0;
-  margin-top: 2.5px;
-  display: grid;
-  place-items: center;
-  transition: border-color 0.16s cubic-bezier(0.4,0,0.2,1);
-}
-.cvp-airw-card.is-selected .cvp-airw-radio {
-  border-color: #D97706;
-}
-.cvp-airw-radio-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #D97706;
-}
+.cvp-airw-card:hover .cvp-airw-card-apply { opacity: 1; }
 .cvp-airw-footer {
   padding: 12px 18px 18px;
   display: flex;
@@ -210,24 +174,6 @@ const AI_REWRITE_MODAL_CSS = `
   border-top: 1px solid #2A2A2A;
   flex-shrink: 0;
 }
-.cvp-airw-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  border: none;
-  border-radius: 10px;
-  padding: 12px 14px;
-  background: #D97706;
-  color: #0A0A0A;
-  font-size: 13.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.16s cubic-bezier(0.4,0,0.2,1), opacity 0.16s cubic-bezier(0.4,0,0.2,1);
-}
-.cvp-airw-cta:hover:not(:disabled) { background: #B86405; }
-.cvp-airw-cta:disabled { opacity: 0.4; cursor: not-allowed; }
 .cvp-airw-link {
   background: transparent;
   border: none;
@@ -239,33 +185,6 @@ const AI_REWRITE_MODAL_CSS = `
   transition: color 0.16s cubic-bezier(0.4,0,0.2,1);
 }
 .cvp-airw-link:hover { color: #FFFFFF; }
-.cvp-airw-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 32px 14px;
-  text-align: center;
-}
-.cvp-airw-spin {
-  animation: cvp-airw-spin 0.8s linear infinite;
-  color: #D97706;
-}
-@keyframes cvp-airw-spin { to { transform: rotate(360deg); } }
-.cvp-airw-status-text {
-  color: #C0C0C5;
-  font-size: 13.5px;
-  font-weight: 500;
-}
-.cvp-airw-error-icon {
-  color: #F87171;
-}
-.cvp-airw-error-text {
-  color: #C0C0C5;
-  font-size: 13px;
-  line-height: 1.45;
-  margin: 0;
-}
 
 @media (max-width: 600px) {
   .cvp-airw-overlay { padding: 0; align-items: flex-end; }
@@ -278,310 +197,28 @@ const AI_REWRITE_MODAL_CSS = `
 }
 `;
 
-function PickerPhase({ bullets, selectedIdx, onSelect, onContinue, onCancel, creditsRemaining }) {
-  return (
-    <>
-      <div className="cvp-airw-body">
-        <p className="cvp-airw-subhead">
-          Which bullet should we rewrite? You'll see 3 alternatives next.
-          {creditsRemaining !== null && creditsRemaining <= 1 && (
-            <> Uses 1 credit.</>
-          )}
-        </p>
-        <div className="cvp-airw-list">
-          {bullets.map((b, i) => {
-            const selected = selectedIdx === i;
-            return (
-              <button
-                key={i}
-                type="button"
-                className={"cvp-airw-card" + (selected ? " is-selected" : "")}
-                onClick={() => onSelect(i)}
-                aria-pressed={selected}
-              >
-                <span className="cvp-airw-radio" aria-hidden="true">
-                  {selected && <span className="cvp-airw-radio-dot" />}
-                </span>
-                <span>{b}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="cvp-airw-footer">
-        <button
-          type="button"
-          className="cvp-airw-cta"
-          disabled={selectedIdx == null}
-          onClick={onContinue}
-        >
-          Continue
-        </button>
-        <button type="button" className="cvp-airw-link" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </>
-  );
-}
-
-function LoadingPhase({ onCancel }) {
-  return (
-    <>
-      <div className="cvp-airw-body">
-        <div className="cvp-airw-status">
-          <Loader2 size={28} strokeWidth={2.2} className="cvp-airw-spin" aria-hidden="true" />
-          <div className="cvp-airw-status-text">Rewriting your bullet...</div>
-        </div>
-      </div>
-      <div className="cvp-airw-footer">
-        <button type="button" className="cvp-airw-link" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </>
-  );
-}
-
-function AlternativesPhase({
-  originalText,
-  alternatives,
-  selectedIdx,
-  onSelect,
-  onConfirm,
-  onCancel,
-}) {
-  return (
-    <>
-      <div className="cvp-airw-body">
-        <div className="cvp-airw-original">
-          <div className="cvp-airw-original-label">Your original bullet</div>
-          <div className="cvp-airw-original-text">{originalText}</div>
-        </div>
-        <p className="cvp-airw-subhead">Pick one to replace your bullet. The other two are discarded.</p>
-        <div className="cvp-airw-list">
-          {alternatives.map((alt, i) => {
-            const selected = selectedIdx === i;
-            return (
-              <button
-                key={i}
-                type="button"
-                className={"cvp-airw-card" + (selected ? " is-selected" : "")}
-                onClick={() => onSelect(i)}
-                aria-pressed={selected}
-              >
-                <span className="cvp-airw-radio" aria-hidden="true">
-                  {selected && <span className="cvp-airw-radio-dot" />}
-                </span>
-                <span>{alt}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div className="cvp-airw-footer">
-        <button
-          type="button"
-          className="cvp-airw-cta"
-          disabled={selectedIdx == null}
-          onClick={onConfirm}
-        >
-          Use this rewrite
-        </button>
-        <button type="button" className="cvp-airw-link" onClick={onCancel}>
-          Keep original
-        </button>
-      </div>
-    </>
-  );
-}
-
-function ErrorPhase({ message, onRetry, onCancel }) {
-  return (
-    <>
-      <div className="cvp-airw-body">
-        <div className="cvp-airw-status">
-          <AlertTriangle size={28} strokeWidth={2.2} className="cvp-airw-error-icon" aria-hidden="true" />
-          <p className="cvp-airw-error-text">{message || "AI is busy, please try again."}</p>
-        </div>
-      </div>
-      <div className="cvp-airw-footer">
-        <button type="button" className="cvp-airw-cta" onClick={onRetry}>
-          Try again
-        </button>
-        <button type="button" className="cvp-airw-link" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </>
-  );
-}
-
 export default function AIRewriteModal({
   isOpen,
   onClose,
-  bullets,
-  roleContext,            // { role, company, target_role }
-  creditsRemaining,       // number | null
-  onConfirm,              // (bulletIdx, newText) => void
-  onAIRewriteSuccess,     // (creditsRemaining) => void
-  onAIExhausted,          // () => void
+  original = "",
+  options = [],          // string[3] — full rewritten descriptions
+  creditsRemaining,      // number | null
+  onPick,                // (newText) => void — commit on click
+  onKeepOriginal,        // () => void — secondary text link
 }) {
-  const [phase, setPhase] = useState("picker"); // picker | loading | alternatives | error
-  const [selectedBulletIdx, setSelectedBulletIdx] = useState(null);
-  const [alternatives, setAlternatives] = useState([]);
-  const [selectedAltIdx, setSelectedAltIdx] = useState(null);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  // Guards stale setState from a fetch that resolves after the modal
-  // has been closed. Set true on close, reset on open.
-  const cancelledRef = useRef(false);
-
-  const callAPI = useCallback(async (bulletIdx) => {
-    if (bulletIdx == null || !bullets[bulletIdx]) return;
-    setPhase("loading");
-    setAlternatives([]);
-    setSelectedAltIdx(null);
-    setErrorMsg("");
-
-    // AbortController gives the fetch a hard ceiling so a stalled serverless
-    // function can't spin the modal forever.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TAILOR_FETCH_TIMEOUT_MS);
-
-    try {
-      console.info("[builder AI bullet] callAPI start", { bulletIdx });
-      const { data: { session } = {} } = await withTimeout(
-        supabase.auth.getSession(),
-        SESSION_TIMEOUT_MS,
-        "Session lookup timed out"
-      );
-      const token = session?.access_token;
-      if (!token) {
-        if (cancelledRef.current) return;
-        setErrorMsg("Please sign in again.");
-        setPhase("error");
-        return;
-      }
-      console.info("[builder AI bullet] session OK, firing tailor request");
-
-      const res = await safeFetch("/api/ai?action=tailor", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          section: "experience_bullet",
-          input: {
-            bullet: String(bullets[bulletIdx] || ""),
-            role: String(roleContext?.role || ""),
-            company: String(roleContext?.company || ""),
-            target_role: String(roleContext?.target_role || ""),
-          },
-        }),
-      });
-      console.info("[builder AI bullet] tailor responded", res.status);
-
-      let data = {};
-      let rawBody = "";
-      try {
-        rawBody = await res.text();
-        data = rawBody ? JSON.parse(rawBody) : {};
-      } catch { /* non-JSON body (e.g. an HTML error page) — leave data as {} */ }
-
-      if (cancelledRef.current) return;
-
-      if (res.status === 402) {
-        // Free tier exhausted: close this modal, hand off to upgrade.
-        if (onAIRewriteSuccess) onAIRewriteSuccess(0);
-        if (onAIExhausted) onAIExhausted();
-        onClose();
-        return;
-      }
-
-      if (!res.ok || !data.ok || !Array.isArray(data.alternatives) || data.alternatives.length < 3) {
-        // Log the real status + body so a failing call is diagnosable, and
-        // show the user the status so 401/500/502 are distinguishable.
-        console.error("[builder AI bullet] tailor failed", res.status, data?.error || rawBody.slice(0, 300));
-        setErrorMsg(
-          data?.error
-            ? `${data.error} (${res.status})`
-            : `AI request failed (${res.status}). Please try again.`
-        );
-        setPhase("error");
-        return;
-      }
-
-      setAlternatives(data.alternatives.slice(0, 3));
-      if (onAIRewriteSuccess) onAIRewriteSuccess(data.credits_remaining);
-      setPhase("alternatives");
-    } catch (e) {
-      if (cancelledRef.current) return;
-      // AbortError (our timeout) or TimeoutError (getSession race) → the call
-      // never came back. Make that explicit instead of an infinite spinner.
-      const isTimeout = e?.name === "AbortError" || e?.name === "TimeoutError";
-      console.error("[builder AI bullet] tailor threw", e?.name, e?.message || e);
-      setErrorMsg(
-        isTimeout
-          ? "Couldn't generate — the AI service didn't respond. Please try again."
-          : "Couldn't reach the AI service. Check your connection and retry."
-      );
-      setPhase("error");
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }, [bullets, roleContext, onAIRewriteSuccess, onAIExhausted, onClose]);
-
-  // Open / close lifecycle. Resets state on open. If only one bullet,
-  // auto-skip the picker.
-  //
-  // Guarded to run ONCE per open: `bullets` (a fresh array from the parent
-  // every render) and `callAPI` (recreated each render) would otherwise
-  // re-trigger this effect on every parent re-render while the modal is
-  // open — resetting the phase mid-load or re-firing callAPI in a loop,
-  // which itself reads as a stuck/looping spinner.
-  const didInitForOpenRef = useRef(false);
-  useEffect(() => {
-    if (!isOpen) {
-      cancelledRef.current = true;
-      didInitForOpenRef.current = false;
-      return;
-    }
-    if (didInitForOpenRef.current) return;
-    didInitForOpenRef.current = true;
-    cancelledRef.current = false;
-    setSelectedBulletIdx(null);
-    setAlternatives([]);
-    setSelectedAltIdx(null);
-    setErrorMsg("");
-    if (Array.isArray(bullets) && bullets.length === 1) {
-      setSelectedBulletIdx(0);
-      callAPI(0);
-    } else {
-      setPhase("picker");
-    }
-  }, [isOpen, bullets, callAPI]);
-
-  // Escape key closes when not loading.
+  // Escape closes. Listed unconditionally; the hook bails when closed.
   useEffect(() => {
     if (!isOpen) return undefined;
     const onKey = (e) => {
-      if (e.key === "Escape" && phase !== "loading") onClose();
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, phase, onClose]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const titleByPhase =
-    phase === "picker"       ? "Pick a bullet to rewrite"
-    : phase === "loading"      ? "Rewriting"
-    : phase === "alternatives" ? "Choose a rewrite"
-    : phase === "error"        ? "Couldn't rewrite"
-    : "";
+  const list = Array.isArray(options) ? options.slice(0, 3) : [];
 
   return (
     <>
@@ -590,69 +227,60 @@ export default function AIRewriteModal({
         className="cvp-airw-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label={titleByPhase}
-        onClick={() => { if (phase !== "loading") onClose(); }}
+        aria-label="Choose a rewrite"
+        onClick={onClose}
       >
         <div className="cvp-airw-shell" onClick={(e) => e.stopPropagation()}>
           <div className="cvp-airw-header">
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              <Sparkles size={15} strokeWidth={2.2} color="#D97706" aria-hidden="true" />
-              <span className="cvp-airw-title">{titleByPhase}</span>
+              <Sparkles size={15} strokeWidth={2.2} color={AMBER} aria-hidden="true" />
+              <span className="cvp-airw-title">Choose a rewrite</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {creditsRemaining !== null && (phase === "picker" || phase === "alternatives") && (
+              {creditsRemaining != null && (
                 <span className="cvp-airw-credits">{creditsRemaining} left</span>
               )}
-              <button
-                type="button"
-                className="cvp-airw-close"
-                onClick={onClose}
-                disabled={phase === "loading"}
-                aria-label="Close"
-              >
+              <button type="button" className="cvp-airw-close" onClick={onClose} aria-label="Close">
                 <X size={14} strokeWidth={2.2} />
               </button>
             </div>
           </div>
 
-          {phase === "picker" && (
-            <PickerPhase
-              bullets={bullets}
-              selectedIdx={selectedBulletIdx}
-              onSelect={setSelectedBulletIdx}
-              onContinue={() => callAPI(selectedBulletIdx)}
-              onCancel={onClose}
-              creditsRemaining={creditsRemaining}
-            />
-          )}
+          <div className="cvp-airw-body">
+            {original ? (
+              <div className="cvp-airw-original">
+                <div className="cvp-airw-original-label">Your current version</div>
+                <div className="cvp-airw-original-text">{original}</div>
+              </div>
+            ) : null}
+            <p className="cvp-airw-subhead">Tap a version to apply it. This replaces your description.</p>
+            <div className="cvp-airw-list">
+              {list.map((alt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="cvp-airw-card"
+                  onClick={() => onPick(alt)}
+                >
+                  <span className="cvp-airw-card-num">
+                    Option {i + 1}
+                    <span className="cvp-airw-card-apply">Apply →</span>
+                  </span>
+                  {alt}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {phase === "loading" && (
-            <LoadingPhase onCancel={onClose} />
-          )}
-
-          {phase === "alternatives" && (
-            <AlternativesPhase
-              originalText={bullets[selectedBulletIdx] || ""}
-              alternatives={alternatives}
-              selectedIdx={selectedAltIdx}
-              onSelect={setSelectedAltIdx}
-              onConfirm={() => {
-                if (selectedAltIdx == null) return;
-                onConfirm(selectedBulletIdx, alternatives[selectedAltIdx]);
-              }}
-              onCancel={onClose}
-            />
-          )}
-
-          {phase === "error" && (
-            <ErrorPhase
-              message={errorMsg}
-              onRetry={() => {
-                if (selectedBulletIdx != null) callAPI(selectedBulletIdx);
-              }}
-              onCancel={onClose}
-            />
-          )}
+          <div className="cvp-airw-footer">
+            <button
+              type="button"
+              className="cvp-airw-link"
+              onClick={onKeepOriginal || onClose}
+            >
+              Keep original
+            </button>
+          </div>
         </div>
       </div>
     </>
