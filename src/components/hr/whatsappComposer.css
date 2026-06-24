@@ -141,13 +141,28 @@
   border: 1px solid var(--pj-border);
   border-radius: 10px;
   background: var(--pj-input-bg);
-  color: var(--pj-text);
+  color: var(--pj-text, #1C1C1C);
+  -webkit-text-fill-color: var(--pj-text, #1C1C1C);
+  opacity: 1;
   font: inherit;
   font-family: var(--pj-font);
   font-size: 13.5px;
   line-height: 1.5;
   outline: none;
   transition: border-color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease), background 160ms var(--pj-ease);
+}
+/* The composer overlay is role="dialog", so the global dark-app rule
+   `[role="dialog"] textarea { color:#fff }` (src/index.css) lands here and
+   makes the message near-white on the light textarea. Out-specify it so
+   the prefilled/typed message is full-dark and legible (light theme). */
+.wac-overlay .wac-textarea {
+  color: var(--pj-text, #1C1C1C);
+  -webkit-text-fill-color: var(--pj-text, #1C1C1C);
+}
+.wac-textarea::placeholder {
+  color: var(--pj-muted);
+  -webkit-text-fill-color: var(--pj-muted);
+  opacity: 1;
 }
 .wac-textarea:focus {
   background: var(--pj-input-bg-focus);
