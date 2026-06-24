@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import { getGatekeeperData } from "../../../services/gatekeeper";
@@ -167,6 +168,7 @@ export default function PostJobPage() {
 
   return (
     <>
+      <Helmet><title>Post a Job · CVPassport</title></Helmet>
       <PostJobShell
         currentStep={step}
         topSlot={showBanner ? <FreeTierBanner daysRemaining={tier.daysRemaining} /> : null}

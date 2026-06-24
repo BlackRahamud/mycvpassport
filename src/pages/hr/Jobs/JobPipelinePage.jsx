@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
@@ -7,7 +8,6 @@ import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsA
 import VerdictCard from "../../../components/hr/VerdictCard";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
-import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
@@ -155,24 +155,6 @@ function visaTone(visa) {
   if (v.includes("sponsor"))   return "warn";     // Need sponsorship
   if (v.includes("freelance")) return "ok";
   return "neutral";
-}
-
-/* ───────── Card-level score chip ─────────
-   The detail panel uses the bigger ScoreRing (lifted to
-   src/components/hr/ScoreRing.jsx). On the cards we want a smaller
-   compact pill — same band logic, different surface. */
-function ScoreChip({ score, source }) {
-  const band = scoreBand(score || 0, source);
-  if (band === "none") {
-    return <span className="jpp-score-chip jpp-score-chip--none" title="Not yet scored">— </span>;
-  }
-  const tag = source === "phase_1_full" ? "AI" : "kw";
-  return (
-    <span className={`jpp-score-chip jpp-score-chip--${band}`} title={`ATS match · ${source}`}>
-      <span className="jpp-score-chip__num">{score}</span>
-      <span className="jpp-score-chip__tag">{tag}</span>
-    </span>
-  );
 }
 
 function deriveSkills(c) {
@@ -368,15 +350,15 @@ export default function JobPipelinePage() {
   /* ── Renderers ─────────────────────────────────────────────── */
   return (
     <div className="jpp-root">
+      <Helmet><title>{job?.title ? `${job.title} · CVPassport` : "Pipeline · CVPassport"}</title></Helmet>
       <header className="jpp-topbar">
         <div><a href="/" className="jpp-wordmark">CV<span>Passport</span></a></div>
-        <div className="jpp-topbar__center">
+        <div className="jpp-topbar__center" />
+        <div className="jpp-topbar__right">
           <button type="button" className="jpp-cta" onClick={() => navigate("/hr/post")}>
             <BriefIc size={14} />
             Request Talent
           </button>
-        </div>
-        <div className="jpp-topbar__right">
           <NotificationsBell userId={user?.id} buttonClassName="jpp-icon-btn" />
           <UserMenu
             email={user?.email || ""}
@@ -489,7 +471,6 @@ export default function JobPipelinePage() {
                             New Applicant
                           </span>
                           <span className="jpp-card__top-right">
-                            <ScoreChip score={c.ats_score} source={c.score_source} />
                             <input
                               type="checkbox"
                               className="jpp-card__check"

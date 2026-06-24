@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
 import { HR_SALES } from "../../../utils/paywall";
 import "../PostJob/postJob.css"; // --pj-* tokens + pj-btn / pj-wordmark
@@ -47,6 +48,7 @@ export default function HrPricing() {
 
   return (
     <div className="hrp-root">
+      <Helmet><title>Plans · CVPassport</title></Helmet>
       <main className="hrp-main">
         <motion.div
           className="hrp-card"

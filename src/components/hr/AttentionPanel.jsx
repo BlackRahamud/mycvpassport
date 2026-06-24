@@ -128,7 +128,7 @@ export default function AttentionPanel({ user }) {
 
       {data && data.upcoming.length > 0 && (
         <div className="att-upcoming">
-          <div className="att-upcoming__head"><CalIc /> Upcoming interviews</div>
+          <div className="att-upcoming__head"><CalIc /> Next up</div>
           {data.upcoming.map((iv) => (
             <div key={iv.id} className="att-iv">
               <button type="button" className="att-iv__main" onClick={() => goJob(iv.job_id)}>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
@@ -84,7 +85,7 @@ export default function JobsListPage() {
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ total: null, active: null, applicants: null, avgScore: null });
+  const [stats, setStats] = useState({ total: null, active: null, applicants: null, interviews: null });
   const [mainTab, setMainTab] = useState("jobs"); // jobs | insights
 
   useEffect(() => {
@@ -138,11 +139,11 @@ export default function JobsListPage() {
     return () => { live = false; };
   }, [view, user?.id]);
 
-  // Stats bar — four roll-ups across the HR's whole portfolio. Counts
-  // use head:true so Supabase returns the count without shipping rows.
-  // Avg score pulls only the ats_score column (small payload) and only
-  // for rows that have actually been scored, so the average isn't
-  // dragged down by un-scored rows from the legacy pre-stopgap window.
+  // Stats bar — four roll-ups across the HR's whole portfolio. All use
+  // head:true so Supabase returns the count without shipping rows. The
+  // 4th is "interviews scheduled" — a cheap, honest portfolio metric;
+  // the old "avg ATS match" is gone (the per-candidate AI Verdict is the
+  // single source of truth for score, shown only in the candidate detail).
   useEffect(() => {
     if (!user?.id) return;
     let live = true;
@@ -152,7 +153,7 @@ export default function JobsListPage() {
           { count: total },
           { count: active },
           { count: applicants },
-          { data: scoreRows },
+          { count: interviews },
         ] = await Promise.all([
           supabase.from("jobs")
             .select("id", { count: "exact", head: true })
@@ -166,26 +167,23 @@ export default function JobsListPage() {
           supabase.from("applications")
             .select("id", { count: "exact", head: true })
             .eq("hr_id", user.id),
-          supabase.from("applications")
-            .select("ats_score")
+          supabase.from("interviews")
+            .select("id", { count: "exact", head: true })
             .eq("hr_id", user.id)
-            .not("score_source", "is", null)
-            .gt("ats_score", 0),
+            .eq("status", "scheduled"),
         ]);
         if (!live) return;
-        const sum = (scoreRows || []).reduce((acc, r) => acc + (r.ats_score || 0), 0);
-        const avg = scoreRows && scoreRows.length ? Math.round(sum / scoreRows.length) : null;
         setStats({
           total:      total ?? 0,
           active:     active ?? 0,
           applicants: applicants ?? 0,
-          avgScore:   avg,
+          interviews: interviews ?? 0,
         });
       } catch (_e) {
         if (!live) return;
         // Stats are decorative — leave them as nulls so the UI shows
         // an em-dash rather than zeros that would lie about state.
-        setStats({ total: null, active: null, applicants: null, avgScore: null });
+        setStats({ total: null, active: null, applicants: null, interviews: null });
       }
     })();
     return () => { live = false; };
@@ -205,17 +203,17 @@ export default function JobsListPage() {
 
   return (
     <div className="hjl-root">
+      <Helmet><title>Jobs · CVPassport</title></Helmet>
       <header className="hjl-topbar">
         <div>
           <a href="/" className="hjl-wordmark">CV<span>Passport</span></a>
         </div>
-        <div className="hjl-center">
+        <div className="hjl-center" />
+        <div className="hjl-right">
           <button type="button" className="hjl-cta" onClick={() => navigate("/hr/post")}>
             <BriefcaseIc size={14} white />
             Request Talent
           </button>
-        </div>
-        <div className="hjl-right">
           <NotificationsBell userId={user?.id} buttonClassName="hjl-icon-btn" />
           <UserMenu
             email={user?.email || ""}
@@ -265,7 +263,7 @@ export default function JobsListPage() {
           <StatTile label="Total Jobs"       value={stats.total} />
           <StatTile label="Active Jobs"      value={stats.active} accent="ok" />
           <StatTile label="Total Applicants" value={stats.applicants} />
-          <StatTile label="Avg ATS Match"    value={stats.avgScore} suffix={stats.avgScore == null ? "" : "%"} />
+          <StatTile label="Interviews Scheduled" value={stats.interviews} />
         </motion.div>
 
         <motion.div
