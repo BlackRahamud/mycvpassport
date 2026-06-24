@@ -15,12 +15,67 @@
 // =============================================================
 
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useMotionValue, useTransform, animate } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
 import "./verdictCard.css";
 
 const EASE = [0.4, 0, 0.2, 1];
+
+/* Verdict score ring — house ScoreRing visual (track + progress arc,
+   rotate -90, round cap) but Framer-driven: the stroke fills 0 -> score
+   and the centre number counts up on mount; colour-coded by verdict band.
+   Hover = scale + a soft same-colour glow (box-shadow, via CSS). All
+   motion is gated by useReducedMotion. */
+function VerdictRing({ score, tone, reduce }) {
+  const size = 92;
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth * 2) / 2;
+  const circ = 2 * Math.PI * radius;
+  const colorVar = tone === "strong" ? "var(--vc-green)" : tone === "pass" ? "var(--vc-red)" : "var(--vc-amber)";
+
+  const progress = useMotionValue(reduce ? score : 0);
+  const dashoffset = useTransform(progress, (v) => circ - (circ * Math.max(0, Math.min(100, v))) / 100);
+  const [display, setDisplay] = useState(reduce ? score : 0);
+
+  useEffect(() => {
+    if (reduce) { progress.set(score); setDisplay(score); return undefined; }
+    const controls = animate(progress, score, {
+      duration: 0.9,
+      ease: EASE,
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return () => controls.stop();
+    // progress is a stable MotionValue; depend only on score/reduce.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score, reduce]);
+
+  return (
+    <motion.div
+      className={`vc-ring vc-ring--${tone}`}
+      whileHover={reduce ? undefined : { scale: 1.03 }}
+      transition={{ duration: 0.2, ease: EASE }}
+    >
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--pj-border)" strokeWidth={strokeWidth} />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          style={{ stroke: colorVar, strokeDashoffset: dashoffset }}
+        />
+      </svg>
+      <div className="vc-ring__center">
+        <span className="vc-ring__num" style={{ color: colorVar }}>{display}</span>
+        <span className="vc-ring__sub">/100</span>
+      </div>
+    </motion.div>
+  );
+}
 
 // Session memory: `${candidateId}:${jobId}` -> verdict. Keeps the AI call
 // from re-firing every time the HR clicks back onto a candidate.
@@ -152,10 +207,7 @@ export default function VerdictCard({ header, cacheKey, cvSnapshot, job, jobId, 
         <div className="vc-body">
           <div className="vc-verdict">
             <span className={`vc-badge vc-badge--${tone}`}>{data.verdict}</span>
-            <div className="vc-score">
-              <span className={`vc-score__num vc-score__num--${tone}`}>{data.score}</span>
-              <span className="vc-score__unit">/100</span>
-            </div>
+            <VerdictRing score={data.score} tone={tone} reduce={reduce} />
           </div>
 
           <ul className="vc-why">

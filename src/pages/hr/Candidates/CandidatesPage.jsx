@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
-import ScoreRing from "../../../components/hr/ScoreRing";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
 import { scoreBand } from "../../../lib/ats/scoreBand";
@@ -168,7 +167,6 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
             )}
           </div>
         </div>
-        {showAnalysis && <ScoreRing score={candidate.score || 0} source={candidate.score_source} size={84} />}
       </header>
 
       <div className="jpp-detail__actions">
@@ -186,10 +184,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
 
       {showAnalysis && (matchedKw.length + missingKw.length) > 0 && (
         <section className="jpp-section">
-          <h3 className="jpp-section__title">
-            ATS Keyword Match
-            <span className="jpp-section__source">keyword overlap (stopgap)</span>
-          </h3>
+          <h3 className="jpp-section__title">Keyword details</h3>
           <div className="jpp-match">
             {matchedKw.length > 0 && (
               <div className="jpp-match__col">

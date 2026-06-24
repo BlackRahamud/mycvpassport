@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
-import ScoreRing from "../../../components/hr/ScoreRing";
 import UserMenu from "../../../components/UserMenu/UserMenu";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
@@ -717,13 +716,6 @@ function CandidateDetail({
             )}
           </div>
         </div>
-        {showAnalysis && (
-          <ScoreRing
-            score={candidate.ats_score || 0}
-            source={candidate.score_source}
-            size={84}
-          />
-        )}
       </header>
 
       <div className="jpp-detail__actions">
@@ -759,12 +751,7 @@ function CandidateDetail({
 
       {showAnalysis && (matchedKw.length + missingKw.length) > 0 && (
         <section className="jpp-section">
-          <h3 className="jpp-section__title">
-            ATS Keyword Match
-            <span className="jpp-section__source">
-              {candidate.score_source === "phase_1_full" ? "Phase 1 scorer" : "Keyword overlap (stopgap)"}
-            </span>
-          </h3>
+          <h3 className="jpp-section__title">Keyword details</h3>
           <div className="jpp-match">
             {matchedKw.length > 0 && (
               <div className="jpp-match__col">

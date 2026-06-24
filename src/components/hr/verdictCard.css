@@ -14,6 +14,9 @@
   --vc-green-soft: rgba(29, 158, 117, 0.12);
   --vc-amber-soft: rgba(217, 119, 6, 0.12);
   --vc-red-soft: rgba(220, 38, 38, 0.10);
+  --vc-green-glow: rgba(29, 158, 117, 0.30);
+  --vc-amber-glow: rgba(217, 119, 6, 0.30);
+  --vc-red-glow: rgba(220, 38, 38, 0.28);
 
   background: #FFFFFF;
   border: 1px solid var(--pj-border);
@@ -65,19 +68,39 @@
 .vc-badge--maybe  { background: var(--vc-amber-soft); color: var(--vc-amber); }
 .vc-badge--pass   { background: var(--vc-red-soft);   color: var(--vc-red); }
 
-.vc-score { display: inline-flex; align-items: baseline; gap: 3px; }
-.vc-score__num {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  font-feature-settings: "tnum";
-  color: var(--pj-text);
+/* ── Score ring ── */
+.vc-ring {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+  border-radius: 50%;
 }
-.vc-score__num--strong { color: var(--vc-green); }
-.vc-score__num--maybe  { color: var(--vc-amber); }
-.vc-score__num--pass   { color: var(--vc-red); }
-.vc-score__unit { font-size: 13px; font-weight: 600; color: var(--pj-muted); }
+.vc-ring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.vc-ring__num {
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum";
+}
+.vc-ring__sub { font-size: 10px; font-weight: 600; color: var(--pj-muted); margin-top: 2px; }
+
+/* Hover: a soft same-colour glow (box-shadow, never drop-shadow). The
+   scale lives on the Framer wrapper and is gated by useReducedMotion. */
+.vc-ring--strong:hover { box-shadow: 0 0 22px 1px var(--vc-green-glow); }
+.vc-ring--maybe:hover  { box-shadow: 0 0 22px 1px var(--vc-amber-glow); }
+.vc-ring--pass:hover   { box-shadow: 0 0 22px 1px var(--vc-red-glow); }
+@media (prefers-reduced-motion: no-preference) {
+  .vc-ring { transition: box-shadow 220ms cubic-bezier(0.4, 0, 0.2, 1); }
+}
 
 /* ── Reasons ── */
 .vc-why { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
