@@ -1,0 +1,58 @@
+/* ────────────────────────────────────────────────────────────────
+   HrWelcomeRing — one-shot welcome animation. Purple (#7C3AED via
+   --pj-primary) ring sweeps around the icon, then the overlay fades.
+   Decorative: pointer-events:none. Fully skipped for reduced motion
+   (the component returns null AND this media query hides it).
+   ──────────────────────────────────────────────────────────────── */
+
+.hwr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pj-bg, #FFFFFF);
+  animation: hwr-fade 0.4s cubic-bezier(0.4, 0, 0.2, 1) 1.5s forwards;
+}
+
+.hwr-stage {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+}
+
+.hwr-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: block;
+  animation: hwr-pop 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.hwr-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.hwr-ring circle {
+  fill: none;
+  stroke: var(--pj-primary, #7C3AED);
+  stroke-width: 3;
+  stroke-linecap: round;
+  /* circumference for r=54 ≈ 339.292 */
+  stroke-dasharray: 339.292;
+  stroke-dashoffset: 339.292;
+  animation: hwr-sweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes hwr-sweep { to { stroke-dashoffset: 0; } }
+@keyframes hwr-pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes hwr-fade { to { opacity: 0; visibility: hidden; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hwr-overlay { display: none; }
+}

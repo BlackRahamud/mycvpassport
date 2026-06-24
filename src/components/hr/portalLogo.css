@@ -1,0 +1,50 @@
+/* ────────────────────────────────────────────────────────────────
+   PortalLogo lockup — icon + CVPassport wordmark + purple PORTAL pill.
+   Wordmark uses the app font + portal ink token; pill uses --pj-primary
+   (#7C3AED). Light = ink wordmark, dark = white wordmark.
+   ──────────────────────────────────────────────────────────────── */
+
+.plogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  max-width: 100%;
+}
+
+.plogo__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.plogo__word {
+  font-family: var(--pj-font, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--pj-text, #0A0A0A);
+}
+.plogo--dark .plogo__word { color: #FFFFFF; }
+
+.plogo__pill {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pj-primary, #7C3AED);
+  color: #FFFFFF;
+  font-family: var(--pj-font, 'Inter', sans-serif);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

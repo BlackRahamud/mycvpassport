@@ -3,6 +3,8 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import UserMenu from "../UserMenu/UserMenu";
+import PortalLogo from "./PortalLogo";
+import HrWelcomeRing from "./HrWelcomeRing";
 import "../../pages/hr/PostJob/postJob.css"; // :root --pj-* tokens
 import "./hrShell.css";
 
@@ -97,7 +99,7 @@ export default function HrShell() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
       >
-        <a href="/" className="hrs-brand" aria-label="CVPassport home">CV<span>Passport</span></a>
+        <a href="/" className="hrs-brand" aria-label="CVPassport Portal home"><PortalLogo /></a>
 
         <nav className="hrs-nav" aria-label="HR portal">
           {NAV.map((item) => {
@@ -134,6 +136,8 @@ export default function HrShell() {
       <div className="hrs-content">
         <Outlet />
       </div>
+
+      <HrWelcomeRing />
     </div>
   );
 }
