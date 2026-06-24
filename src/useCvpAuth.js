@@ -8,6 +8,7 @@ import { identifyClarity } from "./lib/analytics/clarity";
 import { identifyPostHog, resetPostHog } from "./lib/analytics/posthog";
 import { setCurrentAuthUserId } from "./lib/analytics/authState";
 import { hasProAccess } from "./config/access";
+import { isFounder } from "./utils/founder";
 
 const extractName = (u) => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
@@ -130,7 +131,7 @@ export function useCvpAuth() {
   useEffect(() => {
     if (!supabase) return;
     let cancelled = false;
-    const fetchProStatus = async (userId, traits = {}) => {
+    const fetchProStatus = async (userId, traits = {}, founder = false) => {
       try {
         const { data: row } = await supabase
           .from("profiles")
@@ -138,7 +139,10 @@ export function useCvpAuth() {
           .eq("id", userId)
           .single();
         if (!cancelled) {
-          const derivedIsPro = hasProAccess(row);
+          // Founder unlock (client-side convenience): treat as pro so every
+          // isPro / hasFeatureAccess gate opens. Keyed off the authenticated
+          // session email only; does not touch RLS or server checks.
+          const derivedIsPro = hasProAccess(row) || founder;
           setIsPro(derivedIsPro);
           setProfile({
             is_pro: derivedIsPro,
@@ -154,9 +158,9 @@ export function useCvpAuth() {
         }
       } catch {
         if (!cancelled) {
-          setIsPro(false);
+          setIsPro(founder);
           setProfile({
-            is_pro: false,
+            is_pro: founder,
             plan: "FREE",
             features: {},
             pro_access_expires_at: null,
@@ -189,7 +193,7 @@ export function useCvpAuth() {
           // deploy get flagged on their next page load.
           try { window.localStorage?.setItem("cvp_returning_user", "true"); } catch { /* private mode */ }
         }
-        fetchProStatus(session.user.id, { email: nextEmail });
+        fetchProStatus(session.user.id, { email: nextEmail }, isFounder(session.user));
       } else {
         setUser((prev) => (prev === null ? prev : null));
         setIsPro((prev) => (prev === false ? prev : false));
@@ -282,7 +286,7 @@ export function useCvpAuth() {
         .select("is_pro, plan, features, pro_access_expires_at, download_credits")
         .eq("id", user.id)
         .single();
-      const derivedIsPro = hasProAccess(row);
+      const derivedIsPro = hasProAccess(row) || isFounder(user);
       setIsPro(derivedIsPro);
       setProfile({
         is_pro: derivedIsPro,
@@ -294,7 +298,7 @@ export function useCvpAuth() {
     } catch {
       /* leave current values on failure */
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     console.log("[cvp-auth-trace] postAuth useEffect fired", {

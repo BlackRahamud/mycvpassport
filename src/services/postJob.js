@@ -9,6 +9,7 @@
  */
 
 import { supabase } from "../appSupabaseClient";
+import { isFounder } from "../utils/founder";
 
 export const ACTIVE_LISTING_LIMIT = 10;
 
@@ -115,13 +116,18 @@ export async function submitJob({ user, job }) {
     throw err;
   }
 
-  const count = await countActiveListings(user.id);
-  if (count >= ACTIVE_LISTING_LIMIT) {
-    const err = new Error(
-      `You're at the ${ACTIVE_LISTING_LIMIT}-listing limit on the free tier. Close an existing listing or upgrade to post more.`
-    );
-    err.code = "limit_reached";
-    throw err;
+  // Founder skips the active-listing cap (client-side convenience, keyed
+  // off the authenticated session email only). RLS still governs the
+  // INSERT itself — this only removes the pre-INSERT UX guard.
+  if (!isFounder(user)) {
+    const count = await countActiveListings(user.id);
+    if (count >= ACTIVE_LISTING_LIMIT) {
+      const err = new Error(
+        `You're at the ${ACTIVE_LISTING_LIMIT}-listing limit on the free tier. Close an existing listing or upgrade to post more.`
+      );
+      err.code = "limit_reached";
+      throw err;
+    }
   }
 
   const companyName = await resolveCompanyName(user);

@@ -5,6 +5,7 @@
  */
 
 import { supabase } from "../supabaseClient";
+import { isFounder } from "../utils/founder";
 
 const FREE_DOWNLOAD_LIMIT = 3;
 
@@ -127,6 +128,24 @@ export async function getGatekeeperData() {
         blockerReason: can ? null : "not_signed_in",
         features: {},
       };
+    }
+
+    // Founder unlock (client-side convenience). Keyed off the authenticated
+    // session email only — never a profile row. Treated as fully paid so no
+    // download limit / HR paywall / banner fires. RLS is untouched.
+    if (isFounder(user)) {
+      const result = {
+        canDownload: true,
+        downloadsUsed: 0,
+        downloadsLimit: Number.POSITIVE_INFINITY,
+        isPaidUser: true,
+        planName: "Founder",
+        isSignedIn: true,
+        blockerReason: null,
+        features: {},
+      };
+      writeCache(result);
+      return result;
     }
 
     // Query only columns that exist in the profiles table

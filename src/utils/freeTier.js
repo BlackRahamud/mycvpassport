@@ -9,6 +9,8 @@
  * `created_at` lives on Supabase auth users (`user.created_at`).
  */
 
+import { isFounder } from "./founder";
+
 export const FREE_TIER = Object.freeze({
   days: 90,
   bannerThresholdDays: 14,
@@ -18,6 +20,19 @@ export const FREE_TIER = Object.freeze({
 });
 
 export function freeTierStatus(user) {
+  // Founder: never expired, never banner (client-side convenience, keyed
+  // off the authenticated session email only).
+  if (isFounder(user)) {
+    return {
+      hasSignupDate: true,
+      daysSinceSignup: 0,
+      daysRemaining: FREE_TIER.days,
+      isExpired: false,
+      showBanner: false,
+      expiresAt: null,
+    };
+  }
+
   const createdRaw = user?.created_at || user?.createdAt;
   const createdAt = createdRaw ? new Date(createdRaw) : null;
 
