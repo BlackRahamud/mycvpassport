@@ -5,6 +5,7 @@ import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
+import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import { scoreBand } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
@@ -209,6 +210,8 @@ export default function JobPipelinePage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialMessage, setComposerInitialMessage] = useState(null);
   const [outreachTick, setOutreachTick] = useState(0);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [interviewTick, setInterviewTick] = useState(0);
 
   /* Auth */
   useEffect(() => {
@@ -545,8 +548,10 @@ export default function JobPipelinePage() {
             onStatusChange={(s) => selected && updateStatus(selected.id, s, selected.status)}
             onMessage={() => { setComposerInitialMessage(null); setComposerOpen(true); }}
             onReachOut={(template) => { setComposerInitialMessage(template); setComposerOpen(true); }}
+            onSchedule={() => setScheduleOpen(true)}
             hrId={user?.id}
             outreachTick={outreachTick}
+            interviewTick={interviewTick}
             noteDraft={noteDraft}
             onNoteDraftChange={setNoteDraft}
             onAddNote={handleAddNote}
@@ -569,6 +574,15 @@ export default function JobPipelinePage() {
         job={job ? { id: job.id, title: job.title, company: job.company } : null}
         hrId={user?.id}
         onLogged={() => setOutreachTick((t) => t + 1)}
+      />
+
+      <ScheduleInterviewModal
+        open={scheduleOpen && !!selected}
+        onClose={() => setScheduleOpen(false)}
+        application={selected}
+        job={job ? { id: job.id, title: job.title } : null}
+        hrId={user?.id}
+        onScheduled={() => setInterviewTick((t) => t + 1)}
       />
 
       <AnimatePresence>
@@ -630,7 +644,7 @@ const STATUS_OVERRIDE_OPTIONS = [
 function CandidateDetail({
   candidate, job, stageDef, jobTitle, company, screeningQuestions,
   advancing, onAdvance, onPass, onStatusChange,
-  onMessage, onReachOut, hrId, outreachTick,
+  onMessage, onReachOut, onSchedule, hrId, outreachTick, interviewTick,
   noteDraft, onNoteDraftChange, onAddNote, noteSubmitting,
   reduce,
 }) {
@@ -734,6 +748,12 @@ function CandidateDetail({
             <MailIc /> Email {firstName(candidate.candidate_name)}
           </a>
         )}
+        {["shortlist", "ready", "interviewed", "offer", "hired"].includes(stageDef?.key) && (
+          <button type="button" className="jpp-action jpp-action--ghost" onClick={onSchedule}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+            Schedule interview
+          </button>
+        )}
         <span className="jpp-action__spacer" />
         {stageDef.actionLabel ? (
           <button type="button" className="jpp-action jpp-action--primary" disabled={advancing} onClick={onAdvance}>
@@ -746,6 +766,8 @@ function CandidateDetail({
           Pass
         </button>
       </div>
+
+      <InterviewTimeline hrId={hrId} candidateId={candidate.candidate_id} refreshKey={interviewTick} />
 
       <OutreachHistory hrId={hrId} candidateId={candidate.candidate_id} refreshKey={outreachTick} />
 
