@@ -1,0 +1,161 @@
+/* ────────────────────────────────────────────────────────────────
+   HrShell — persistent HR portal navigation wrapping /hr/* routes.
+   Light theme; tokens from postJob.css :root (--pj-*). Mobile-first:
+   base = bottom tab bar, ≥720px = left vertical rail.
+
+   The rail owns the global chrome (wordmark + UserMenu), so the wrapped
+   pages' own duplicates are hidden via scoped rules at the bottom of
+   this file — no edits to the page files themselves.
+   ──────────────────────────────────────────────────────────────── */
+
+/* ── Mobile base: content full-width, rail pinned to the bottom ── */
+.hrs-content {
+  min-width: 0;
+  padding-bottom: 64px; /* clear the fixed bottom bar */
+}
+
+.hrs-rail {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: 60px;
+  padding: 0 10px;
+  background: #FFFFFF;
+  border-top: 1px solid var(--pj-border);
+}
+
+.hrs-brand {
+  display: none; /* the bottom bar has no room for the wordmark */
+}
+
+.hrs-nav {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hrs-navitem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pj-text-soft);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 160ms var(--pj-ease), background 160ms var(--pj-ease);
+}
+.hrs-navitem:hover { color: var(--pj-text); }
+.hrs-navitem--active { color: var(--pj-text); background: var(--pj-input-bg); }
+.hrs-navitem__icon { display: inline-flex; }
+
+.hrs-rail__foot { display: flex; align-items: center; flex-shrink: 0; }
+
+/* UserMenu sits at the bottom of the rail (and in the bottom bar on
+   mobile), so flip its popover to open UPWARD. Scoped to the rail so the
+   shared component is untouched everywhere else. */
+.hrs-rail .um-popover {
+  top: auto;
+  bottom: calc(100% + 10px);
+  right: 0;
+  left: auto;
+}
+/* Bottom bar has no room for the name/role — show just the avatar. */
+.hrs-rail .um-trigger { padding: 4px; gap: 0; }
+.hrs-rail .um-trigger__text { display: none; }
+
+/* ── Hide the chrome the rail now owns (no page-file edits) ──────
+   Wordmarks live in their own grid/flex cell, so hiding the link keeps
+   the page top bar's layout intact. UserMenus are removed from the page
+   top bars (the rail has the only one). */
+.hrs-content .hjl-wordmark,
+.hrs-content .jpp-wordmark,
+.hrs-content .pj-wordmark { display: none; }
+.hrs-content .hjl-topbar .um-root,
+.hrs-content .jpp-topbar__right .um-root { display: none; }
+/* PostJob top bar is flex space-between (wordmark | stepper); with the
+   wordmark hidden, centre the lone stepper instead of left-anchoring it. */
+.hrs-content .pj-topbar { justify-content: center; }
+
+/* ── Desktop ≥720px: left vertical rail ── */
+@media (min-width: 720px) {
+  .hrs-root { display: flex; min-height: 100vh; }
+
+  .hrs-content { flex: 1; padding-bottom: 0; }
+
+  .hrs-rail {
+    position: sticky;
+    top: 0;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    align-self: flex-start;
+    width: 224px;
+    height: 100vh;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 22px 14px;
+    border-top: 0;
+    border-right: 1px solid var(--pj-border);
+  }
+
+  .hrs-brand {
+    display: inline-block;
+    padding: 4px 10px 14px;
+    font-family: var(--pj-font);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    color: var(--pj-text);
+    user-select: none;
+  }
+  .hrs-brand span { color: var(--pj-text); font-weight: 600; }
+
+  .hrs-nav {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  .hrs-navitem {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 11px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: 13.5px;
+  }
+
+  .hrs-rail__foot {
+    margin-top: auto;
+    border-top: 1px solid var(--pj-border);
+    padding-top: 12px;
+  }
+  .hrs-rail .um-trigger { padding: 4px 12px 4px 4px; gap: 10px; }
+  .hrs-rail .um-trigger__text { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hrs-navitem { transition: none !important; }
+}

@@ -35,6 +35,7 @@ const ResetPassword        = lazy(() => import(/* webpackChunkName: "auth" */   
 // of the unified /hr/jobs + /hr/jobs/:id stack. The shared ScoreRing
 // and scoreBand it once owned moved to src/components/hr/ +
 // src/lib/ats/ before the deletion.
+const HrShell              = lazy(() => import(/* webpackChunkName: "hr-shell" */    "./components/hr/HrShell"));
 const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */     "./pages/hr/PostJob/PostJobPage"));
 const HRJobsListPage       = lazy(() => import(/* webpackChunkName: "hr-jobs" */     "./pages/hr/Jobs/JobsListPage"));
 const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline" */ "./pages/hr/Jobs/JobPipelinePage"));
@@ -150,10 +151,12 @@ export default function App() {
     <Routes>
       <Route path="/pricing" element={<PricingPage refreshProfile={refreshProfile} />} />
       <Route path="/payment-success" element={<PaymentSuccess refreshProfile={refreshProfile} />} />
-      <Route path="/hr" element={<Navigate to="/hr/jobs" replace />} />
-      <Route path="/hr/post" element={<PostJobPage />} />
-      <Route path="/hr/jobs" element={<HRJobsListPage />} />
-      <Route path="/hr/jobs/:id" element={<JobPipelinePage />} />
+      <Route path="/hr" element={<HrShell />}>
+        <Route index element={<Navigate to="/hr/jobs" replace />} />
+        <Route path="post" element={<PostJobPage />} />
+        <Route path="jobs" element={<HRJobsListPage />} />
+        <Route path="jobs/:id" element={<JobPipelinePage />} />
+      </Route>
       <Route path="/jobs" element={<JobBoardPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />
       <Route
