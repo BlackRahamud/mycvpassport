@@ -260,7 +260,7 @@ export default function CandidatesPage() {
         const [appsRes, jobsRes] = await Promise.all([
           supabase
             .from("applications")
-            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, score_source, status, visa_status, created_at")
+            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, score_source, status, visa_status, applied_at")
             .eq("hr_id", uid)
             .limit(5000),
           supabase
@@ -285,14 +285,14 @@ export default function CandidatesPage() {
             jobTitle: job?.title || "Untitled role",
             market: job?.market || "gulf",
             status: a.status,
-            created_at: a.created_at,
+            applied_at: a.applied_at,
           };
           let c = byKey.get(key);
           if (!c) {
-            c = { key, latest: a, latestAt: ts(a.created_at), apps: [] };
+            c = { key, latest: a, latestAt: ts(a.applied_at), apps: [] };
             byKey.set(key, c);
-          } else if (ts(a.created_at) >= c.latestAt) {
-            c.latest = a; c.latestAt = ts(a.created_at);
+          } else if (ts(a.applied_at) >= c.latestAt) {
+            c.latest = a; c.latestAt = ts(a.applied_at);
           }
           c.apps.push(appEntry);
         });
@@ -312,7 +312,7 @@ export default function CandidatesPage() {
             market: jobMap.get(a.job_id)?.market || "gulf",
             markets,
             skills: deriveSkills(a),
-            apps: c.apps.sort((x, y) => ts(y.created_at) - ts(x.created_at)),
+            apps: c.apps.sort((x, y) => ts(y.applied_at) - ts(x.applied_at)),
             statuses: new Set(c.apps.map((x) => x.status)),
             latestAt: c.latestAt,
           };

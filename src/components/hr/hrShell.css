@@ -68,14 +68,8 @@
 .hrs-rail__foot { display: flex; align-items: center; flex-shrink: 0; }
 
 /* UserMenu sits at the bottom of the rail (and in the bottom bar on
-   mobile), so flip its popover to open UPWARD. Scoped to the rail so the
-   shared component is untouched everywhere else. */
-.hrs-rail .um-popover {
-  top: auto;
-  bottom: calc(100% + 10px);
-  right: 0;
-  left: auto;
-}
+   mobile); it opens UPWARD + stays on-screen via placement="up" (see
+   userMenu.css). Nothing to override here for positioning. */
 /* Bottom bar has no room for the name/role — show just the avatar. */
 .hrs-rail .um-trigger { padding: 4px; gap: 0; }
 .hrs-rail .um-trigger__text { display: none; }

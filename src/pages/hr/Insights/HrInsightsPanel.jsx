@@ -88,7 +88,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
             .limit(500),
           supabase
             .from("applications")
-            .select("id, job_id, status, ats_score, candidate_id, created_at, updated_at")
+            .select("id, job_id, status, ats_score, candidate_id, applied_at, updated_at")
             .eq("hr_id", uid)
             .limit(5000),
           supabase
@@ -151,7 +151,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
     const fApps = all.filter((a) => {
       if (!inMarket(a.job_id)) return false;
       if (cutoff) {
-        const t = new Date(a.created_at).getTime();
+        const t = new Date(a.applied_at).getTime();
         if (Number.isNaN(t) || t < cutoff) return false;
       }
       return true;
@@ -186,7 +186,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
       row.applicants += 1;
       if (a.status === "hired") {
         row.hires += 1;
-        const appliedAt = new Date(a.created_at).getTime();
+        const appliedAt = new Date(a.applied_at).getTime();
         const hiredAt = hiredAtMap.get(`${a.candidate_id}:${a.job_id}`)
           || new Date(a.updated_at).getTime();
         if (!Number.isNaN(appliedAt) && !Number.isNaN(hiredAt) && hiredAt >= appliedAt) {

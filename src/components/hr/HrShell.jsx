@@ -126,6 +126,7 @@ export default function HrShell() {
             switchTo={{ label: "Switch to Candidate", path: "/dashboard" }}
             settingsPath="/account"
             theme="light"
+            placement="up"
           />
         </div>
       </motion.aside>

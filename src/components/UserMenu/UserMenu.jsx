@@ -54,6 +54,7 @@ export default function UserMenu({
   supportHref = "mailto:hello@mycvpassport.com",
   roleLabel,            // optional — "Admin" / "Owner" line under the name in the trigger
   theme = "light",
+  placement = "bottom-right", // "bottom-right" (default topbar) | "up" (rail: opens upward, viewport-safe)
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -99,7 +100,7 @@ export default function UserMenu({
   };
 
   return (
-    <div className={`um-root um-root--${theme}`}>
+    <div className={`um-root um-root--${theme} um-root--${placement}`}>
       <button
         ref={anchorRef}
         type="button"

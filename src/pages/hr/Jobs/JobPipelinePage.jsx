@@ -264,7 +264,7 @@ export default function JobPipelinePage() {
     (async () => {
       const { data, error } = await supabase
         .from("applications")
-        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, match_keywords, missing_keywords, score_source, status, recruiter_notes, created_at, viewed_at, updated_at, is_visible_to_hr")
+        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, match_keywords, missing_keywords, score_source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
         .eq("job_id", jobId)
         .neq("status", "rejected")
         .order("ats_score", { ascending: false });
@@ -469,7 +469,7 @@ export default function JobPipelinePage() {
                 {visibleCards.map((c, i) => {
                   const isActive = selectedAppId === c.id;
                   const isNew = NEW_STATUSES.has(c.status);
-                  const dateStamp = formatStartDate(c.updated_at || c.viewed_at || c.created_at);
+                  const dateStamp = formatStartDate(c.updated_at || c.viewed_at || c.applied_at);
                   return (
                     <motion.div
                       key={c.id}

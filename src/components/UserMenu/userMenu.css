@@ -61,6 +61,25 @@
   z-index: 50;
 }
 
+/* placement="up" — anchor lives at the BOTTOM of its container (e.g. the
+   HR shell rail), so open the popover upward and keep it on-screen. On
+   small screens the anchor sits at the right of a bottom bar (extend
+   left); on wide screens it sits at the left of a vertical rail (extend
+   right). Only the popover placement changes — the trigger is untouched,
+   so topbar usages elsewhere are unaffected. */
+.um-root--up .um-popover {
+  top: auto;
+  bottom: calc(100% + 8px);
+  right: 0;
+  left: auto;
+}
+@media (min-width: 720px) {
+  .um-root--up .um-popover {
+    left: 0;
+    right: auto;
+  }
+}
+
 .um-email {
   padding: 10px 12px 6px;
   font-size: 12px;
