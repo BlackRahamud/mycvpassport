@@ -2,25 +2,35 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { BadgeCheck, Check, ChevronDown, Upload, Zap } from "lucide-react";
 import { supabase } from "../appSupabaseClient";
-import CVPassportLogo from "../components/CVPassportLogo";
 import { saveApplyIntent, consumeApplyIntent } from "../lib/auth/applyIntent";
 import { scoreApplicationStopgap } from "../lib/ats/stopgapScorer";
 import UserMenu from "../components/UserMenu/UserMenu";
+import "./hr/PostJob/postJob.css"; // reuse the HR portal's --pj-* light tokens
 
 const RETURN_PATH_KEY = "cvp_return_path";
 
 // ─── DESIGN TOKENS (Public page) ─────────────────────────────────
+// Light theme mirroring the HR portal + the public job board, so the
+// candidate journey (board → detail → apply) reads as one product.
+// Values pull from the --pj-* tokens (postJob.css) — purple accent is
+// intentional, tying to the board's purple header.
 const T = {
-  bg: "#0A0A0A",
-  surface: "#141414",
-  elevated: "#1C1C1C",
-  border: "#2A2A2A",
-  accent: "#635bff",
-  text: "#FFFFFF",
-  muted: "#A0A0A0",
+  bg: "#FAFAFB",                     // page background (matches the job board)
+  surface: "var(--pj-surface)",      // #FFFFFF cards
+  elevated: "var(--pj-input-bg)",    // chips / subtle fills
+  inputBg: "var(--pj-input-bg)",     // form field background
+  border: "var(--pj-border)",
+  borderStrong: "var(--pj-border-strong)",
+  accent: "var(--pj-primary)",       // purple — ties to the board's purple header
+  accentHover: "var(--pj-primary-hover)",
+  accentSoft: "var(--pj-primary-soft)",
+  accentRing: "var(--pj-primary-ring)",
+  text: "var(--pj-text)",            // ink
+  textSoft: "var(--pj-text-soft)",
+  muted: "var(--pj-muted)",
   green: "#1D9E75",
   amber: "#D97706",
-  font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  font: "var(--pj-font)",
 };
 
 function getHiringStatus(postedAt, hiringStatus) {
@@ -56,7 +66,7 @@ function initialsAvatar(name, size = 40) {
         width: size,
         height: size,
         borderRadius: 10,
-        background: "linear-gradient(135deg, #635bff 0%, #7c75ff 100%)",
+        background: "linear-gradient(135deg, var(--pj-primary) 0%, var(--pj-primary-hover) 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -123,7 +133,7 @@ function VisaSelect({ value, onChange, options, placeholder = "Select…" }) {
     }
   }, [open, options, value]);
 
-  const triggerBorder = focused || open ? T.amber : T.border;
+  const triggerBorder = focused || open ? T.accent : T.border;
 
   return (
     <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
@@ -152,7 +162,7 @@ function VisaSelect({ value, onChange, options, placeholder = "Select…" }) {
           gap: 10,
           boxSizing: "border-box",
           transition: "border-color 150ms ease-in-out, box-shadow 150ms ease-in-out",
-          boxShadow: focused || open ? "0 0 0 3px rgba(217,119,6,0.18)" : "none",
+          boxShadow: focused || open ? `0 0 0 3px ${T.accentRing}` : "none",
         }}
       >
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -161,7 +171,7 @@ function VisaSelect({ value, onChange, options, placeholder = "Select…" }) {
         <ChevronDown
           size={18}
           strokeWidth={2}
-          color={T.amber}
+          color={T.accent}
           style={{
             flexShrink: 0,
             transition: "transform 150ms ease-in-out",
@@ -188,7 +198,7 @@ function VisaSelect({ value, onChange, options, placeholder = "Select…" }) {
           pointerEvents: open ? "auto" : "none",
           transition: "opacity 150ms ease-in-out, transform 150ms ease-in-out",
           boxShadow:
-            "0 24px 48px rgba(0,0,0,0.55), 0 6px 16px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02)",
+            "0 18px 40px -22px rgba(20,19,31,0.18), 0 6px 14px -8px rgba(20,19,31,0.08)",
         }}
       >
         {options.map((o, i) => {
@@ -208,8 +218,8 @@ function VisaSelect({ value, onChange, options, placeholder = "Select…" }) {
                 cursor: "pointer",
                 fontSize: 13,
                 fontFamily: T.font,
-                background: isSel ? T.amber : isActive ? T.elevated : "transparent",
-                color: isSel ? "#fff" : "rgba(255,255,255,0.92)",
+                background: isSel ? T.accent : isActive ? T.elevated : "transparent",
+                color: isSel ? "#fff" : T.text,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -311,7 +321,7 @@ function ApplyForm({ job, user, replayIntent }) {
   const fieldStyle = {
     width: "100%",
     padding: "10px 12px",
-    background: T.bg,
+    background: T.inputBg,
     border: `1px solid ${T.border}`,
     borderRadius: 8,
     color: T.text,
@@ -485,6 +495,13 @@ function ApplyForm({ job, user, replayIntent }) {
         marginTop: 20,
       }}
     >
+      <style>{`
+        .jp-input:focus {
+          border-color: var(--pj-primary) !important;
+          box-shadow: 0 0 0 3px var(--pj-primary-ring) !important;
+        }
+        .jp-input::placeholder { color: var(--pj-muted); }
+      `}</style>
       <h3 style={{ fontSize: 16, fontWeight: 600, color: T.text, margin: "0 0 16px", fontFamily: T.font }}>
         {step === 3 ? "" : "Apply for this role"}
       </h3>
@@ -495,20 +512,20 @@ function ApplyForm({ job, user, replayIntent }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>First name</label>
-              <input style={fieldStyle} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="First name" />
+              <input className="jp-input" style={fieldStyle} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="First name" />
             </div>
             <div>
               <label style={labelStyle}>Last name</label>
-              <input style={fieldStyle} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Last name" />
+              <input className="jp-input" style={fieldStyle} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Last name" />
             </div>
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Email</label>
-            <input style={fieldStyle} type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="your@email.com" />
+            <input className="jp-input" style={fieldStyle} type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="your@email.com" />
           </div>
           <div style={{ marginBottom: 20 }}>
             <label style={labelStyle}>Phone (WhatsApp)</label>
-            <input style={fieldStyle} type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+971 50 123 4567" />
+            <input className="jp-input" style={fieldStyle} type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+971 50 123 4567" />
           </div>
           <button
             type="button"
@@ -547,7 +564,7 @@ function ApplyForm({ job, user, replayIntent }) {
                   padding: "14px",
                   borderRadius: 10,
                   border: `2px solid ${T.accent}`,
-                  background: "rgba(99,91,255,0.08)",
+                  background: "var(--pj-primary-soft)",
                   color: T.accent,
                   fontSize: 14,
                   fontWeight: 600,
@@ -572,8 +589,8 @@ function ApplyForm({ job, user, replayIntent }) {
 
           <div
             style={{
-              background: "rgba(99,91,255,0.08)",
-              border: "1px solid rgba(99,91,255,0.2)",
+              background: "var(--pj-primary-soft)",
+              border: "1px solid var(--pj-primary-ring)",
               borderRadius: 10,
               padding: "12px 16px",
               marginBottom: 16,
@@ -704,8 +721,8 @@ function ApplyForm({ job, user, replayIntent }) {
           {/* Conversion card */}
           <div
             style={{
-              background: "rgba(99,91,255,0.08)",
-              border: "1px solid rgba(99,91,255,0.2)",
+              background: "var(--pj-primary-soft)",
+              border: "1px solid var(--pj-primary-ring)",
               borderRadius: 12,
               padding: "16px 20px",
               marginBottom: 16,
@@ -840,6 +857,7 @@ export default function JobPage() {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "14px 24px",
+          background: T.surface,
           borderBottom: `1px solid ${T.border}`,
         }}
       >
@@ -847,8 +865,11 @@ export default function JobPage() {
           type="button"
           onClick={() => navigate("/")}
           style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          aria-label="CVPassport home"
         >
-          <CVPassportLogo height={24} />
+          <span style={{ fontFamily: T.font, fontSize: 19, fontWeight: 700, letterSpacing: "-0.02em", color: T.accent }}>
+            CV<span style={{ color: T.text, fontWeight: 600 }}>Passport</span>
+          </span>
         </button>
         {user ? (
           <UserMenu
@@ -857,7 +878,7 @@ export default function JobPage() {
             plan={profile?.plan}
             switchTo={{ label: "Switch to HR", path: "/hr/jobs" }}
             settingsPath="/account"
-            theme="dark"
+            theme="light"
           />
         ) : (
           <button
@@ -937,7 +958,7 @@ export default function JobPage() {
             <span style={{ fontSize: 12, color: T.muted }}>{daysAgo(job.posted_at)}</span>
             {job.view_count != null && (
               <>
-                <span style={{ fontSize: 12, color: T.border }}>·</span>
+                <span style={{ fontSize: 12, color: T.muted }}>·</span>
                 <span style={{ fontSize: 12, color: T.muted }}>{job.view_count} views</span>
               </>
             )}
@@ -951,7 +972,7 @@ export default function JobPage() {
           {job.description && (
             <div style={{ marginBottom: 20 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>About the role</h3>
-              <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", fontFamily: T.font }}>
+              <p style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", fontFamily: T.font }}>
                 {job.description}
               </p>
             </div>
@@ -963,7 +984,7 @@ export default function JobPage() {
               <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>What you&apos;ll need</h3>
               <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none" }}>
                 {requirements.map((r, i) => (
-                  <li key={i} style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 13, color: T.muted, lineHeight: 1.5, fontFamily: T.font }}>
+                  <li key={i} style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 13, color: T.textSoft, lineHeight: 1.5, fontFamily: T.font }}>
                     <span style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}>•</span>
                     {r}
                   </li>
