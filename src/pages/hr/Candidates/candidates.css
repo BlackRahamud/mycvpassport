@@ -1,0 +1,196 @@
+/* ────────────────────────────────────────────────────────────────
+   HR — Candidates (cross-job CRM) at /hr/candidates. Lives inside the
+   HrShell + .jpp-root, so it inherits the ink-on-white tokens and reuses
+   the pipeline's jpp-detail / jpp-card / jpp-section classes verbatim.
+   Only cand-* layout glue + neutral pills are defined here, all from
+   --pj-* tokens (no new hex; ink accent, not wizard purple).
+   ──────────────────────────────────────────────────────────────── */
+
+.cand-page { padding-top: 26px; }
+
+.cand-head { margin-bottom: 16px; }
+.cand-head__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--hjl-ink, var(--pj-text));
+}
+.cand-head__sub { margin: 3px 0 0; font-size: 13px; color: var(--pj-muted); }
+
+/* ── Filters ── */
+.cand-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cand-search { position: relative; flex: 1 1 240px; min-width: 0; }
+.cand-search input {
+  width: 100%;
+  height: 38px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 8px;
+  padding: 0 14px 0 36px;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13px;
+  color: var(--pj-text);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 180ms var(--pj-ease), box-shadow 180ms var(--pj-ease);
+}
+.cand-search input:focus {
+  border-color: var(--hjl-ink);
+  box-shadow: 0 0 0 3px var(--hjl-ink-ring);
+}
+.cand-search__icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--pj-muted); pointer-events: none; }
+
+.cand-select {
+  height: 36px;
+  padding: 0 30px 0 12px;
+  border: 1px solid var(--pj-border);
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: var(--pj-text);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--pj-muted) 50%), linear-gradient(135deg, var(--pj-muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 15px, calc(100% - 11px) 15px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.cand-select:focus { border-color: var(--hjl-ink, var(--pj-text)); }
+
+/* ── Neutral pills (ink theme, label-differentiated; no colour hex) ── */
+.cand-market, .cand-statuschip {
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  border: 1px solid var(--pj-border);
+  white-space: nowrap;
+}
+.cand-market--india { color: var(--pj-text); }
+.cand-statuschip { background: transparent; }
+
+/* ── Layout: mobile = single column + detail overlay ── */
+.cand-layout { display: block; }
+
+.cand-list { display: flex; flex-direction: column; gap: 10px; }
+
+.cand-card { gap: 8px; }
+.cand-card__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cand-card__jobs { font-size: 11.5px; color: var(--pj-muted); font-weight: 600; }
+.cand-card__email {
+  font-size: 11.5px;
+  color: var(--pj-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Detail ── */
+.cand-detail-placeholder { display: none; } /* hidden on mobile until a pick opens the overlay */
+
+.cand-detail {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  min-height: 100vh;
+  overflow-y: auto;
+  background: var(--pj-bg);
+  padding: 20px 16px 44px; /* iOS rule: 32px horizontal too wide at 393px */
+}
+.cand-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--pj-text);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* ── Applied-to (cross-job) section ── */
+.cand-applied { display: flex; flex-direction: column; gap: 8px; }
+.cand-applied__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+}
+.cand-applied__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hjl-ink, var(--pj-text));
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cand-applied__meta { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.cand-nomatch { padding: 24px 8px; font-size: 13px; color: var(--pj-text-soft); text-align: center; }
+
+/* ── Loading ── */
+.cand-loading { display: flex; flex-direction: column; gap: 10px; }
+.cand-loading__tile { height: 74px; border-radius: 12px; border: 1px solid var(--pj-border); background: var(--pj-input-bg); }
+
+/* ── Desktop master-detail ≥960px ── */
+@media (min-width: 960px) {
+  .cand-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .cand-list { max-height: calc(100vh - 230px); overflow-y: auto; padding: 2px 4px 4px; scrollbar-gutter: stable; }
+
+  .cand-detail-placeholder { display: flex; } /* show the "pick someone" panel in the right column */
+  .cand-detail {
+    position: sticky;
+    top: 22px;
+    inset: auto;
+    z-index: auto;
+    margin: 0;
+    border: 1px solid var(--pj-border);
+    border-radius: 16px;
+    min-height: 480px;
+    max-height: calc(100vh - 130px);
+    overflow-y: auto;
+    background: #FFFFFF;
+    padding: 28px 32px;
+  }
+  .cand-detail__back { display: none; } /* list is always visible on desktop */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cand-search input, .cand-card { transition: none !important; }
+}

@@ -39,6 +39,7 @@ const HrShell              = lazy(() => import(/* webpackChunkName: "hr-shell" *
 const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */     "./pages/hr/PostJob/PostJobPage"));
 const HRJobsListPage       = lazy(() => import(/* webpackChunkName: "hr-jobs" */     "./pages/hr/Jobs/JobsListPage"));
 const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline" */ "./pages/hr/Jobs/JobPipelinePage"));
+const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidates" */ "./pages/hr/Candidates/CandidatesPage"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
 // JobsListPage (dark-theme corridor list) replaced by JobBoardPage on 2026-05-05.
 // Kept the file in-place for one-PR cleanup; remove import after follow-up sweep.
@@ -156,6 +157,7 @@ export default function App() {
         <Route path="post" element={<PostJobPage />} />
         <Route path="jobs" element={<HRJobsListPage />} />
         <Route path="jobs/:id" element={<JobPipelinePage />} />
+        <Route path="candidates" element={<CandidatesPage />} />
       </Route>
       <Route path="/jobs" element={<JobBoardPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />
