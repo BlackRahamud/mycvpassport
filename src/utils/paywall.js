@@ -1,5 +1,13 @@
 import safeFetch from '../lib/net/safeFetch';
 
+// HR portal "Enterprise" is contact-sales — NOT a Ziina/payment flow.
+// Single source of truth for the sales contact targets so the pricing
+// screen and any future CTA reference one place. Digits only for wa.me.
+export const HR_SALES = {
+  whatsapp: '971585508782',                 // +971 58 550 8782
+  email: 'partnership@mycvpassport.com',
+};
+
 export async function getPaymentLink(feature, userId, userEmail) {
   try {
     if (!userId) {
