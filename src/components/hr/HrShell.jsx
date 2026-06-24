@@ -99,7 +99,7 @@ export default function HrShell() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
       >
-        <a href="/" className="hrs-brand" aria-label="CVPassport Portal home"><PortalLogo /></a>
+        <button type="button" className="hrs-brand" aria-label="CVPassport Portal — go to dashboard" onClick={() => navigate("/hr/jobs")}><PortalLogo /></button>
 
         <nav className="hrs-nav" aria-label="HR portal">
           {NAV.map((item) => {

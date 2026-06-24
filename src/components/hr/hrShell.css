@@ -112,7 +112,8 @@
   }
 
   .hrs-brand {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 4px 10px 14px;
     font-family: var(--pj-font);
     font-size: 20px;
@@ -121,6 +122,11 @@
     text-decoration: none;
     color: var(--pj-text);
     user-select: none;
+    /* now a <button> that SPA-navigates to the dashboard */
+    background: none;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
   }
   .hrs-brand span { color: var(--pj-text); font-weight: 600; }
 

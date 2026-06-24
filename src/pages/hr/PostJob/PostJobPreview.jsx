@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import PortalLogo from "../../../components/hr/PortalLogo";
 
 const POSITION_LABEL = { remote: "Remote", hybrid: "Hybrid", onsite: "Onsite" };
 const JOB_TYPE_LABEL = { "full-time": "Fulltime", "part-time": "Part-time", contract: "Contract" };
@@ -33,8 +34,24 @@ const Chevron = () => (
   </svg>
 );
 
-function EmptyState({ title }) {
-  return <h3 className="pj-preview__title">{title}</h3>;
+function EmptyState() {
+  return (
+    <div className="pj-preview__empty">
+      <PortalLogo />
+      <h3 className="pj-preview__title">Build your talent search</h3>
+      <p className="pj-preview__subtle">Your job preview builds here as you fill in the details.</p>
+      <div className="pj-preview__ghost" aria-hidden="true">
+        <span className="pj-preview__ghost-bar pj-preview__ghost-bar--title" />
+        <div className="pj-preview__ghost-chips">
+          <span className="pj-preview__ghost-chip" />
+          <span className="pj-preview__ghost-chip" />
+          <span className="pj-preview__ghost-chip" />
+        </div>
+        <span className="pj-preview__ghost-bar" />
+        <span className="pj-preview__ghost-bar pj-preview__ghost-bar--short" />
+      </div>
+    </div>
+  );
 }
 
 function htmlToPlain(html) {
@@ -118,7 +135,9 @@ function PopulatedJobCard({ job, step }) {
 
 export default function PostJobPreview({ step = "start", job }) {
   const reduce = useReducedMotion();
-  const isPopulated = step !== "start";
+  // Past step 1 OR as soon as a job title is typed — so the preview goes
+  // live on step 1 instead of staying a static empty state.
+  const isPopulated = step !== "start" || !!(job && job.jobTitle && job.jobTitle.trim());
   return (
     <div className="pj-preview">
       <motion.div
@@ -137,7 +156,7 @@ export default function PostJobPreview({ step = "start", job }) {
         <AnimatePresence mode="wait">
           {!isPopulated && (
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -4, transition: { duration: 0.18 } }} transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}>
-              <EmptyState title="Build your talent search" />
+              <EmptyState />
             </motion.div>
           )}
           {isPopulated && (
