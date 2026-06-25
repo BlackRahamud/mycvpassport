@@ -242,6 +242,15 @@ Pricing:
 ### Walk-In Mode
 - 6-field rapid CV builder, dark navy header, 3px green accent stripe
 
+### Original Applicant CV (storage-backed, added Jun 25 2026)
+- The CV file uploaded in the apply form is now KEPT (was discarded). It lives in object storage; the DB keeps only a pointer.
+- Private Storage bucket `applicant-cvs` (public=false). Path layout: `{candidate_uid}/{job_id}-{ts}.{ext}` — first folder segment = owner uid.
+- `applications.cv_file_path text` is the pointer column (NULL for easy-apply / built-on-CVPassport candidates with no uploaded file).
+- Storage RLS (migration `021_applicant_cvs_storage.sql`): candidate r/w own folder (keyed on foldername = auth.uid()); HR reads a CV only via `EXISTS` an application of theirs pointing at it — inherits the `applications` SELECT RLS, so no cross-agency leakage.
+- Upload happens in `JobPage.jsx` `submitApplication` (best-effort; failure still records the app). Re-apply keeps the prior file unless a new one is uploaded. Logged-out apply can't carry the File through the `/auth` replay → persists for logged-in applicants only.
+- Serve: `src/components/hr/ViewOriginalCv.jsx` — shared button, `createSignedUrl(path, 300)` (5-min expiry), opens new tab, renders nothing when no path. Browser → Storage SDK direct, no new serverless function (stays under the 12-function limit).
+- Wired into BOTH HR detail panels: `CandidatesPage.jsx` (CRM) and `JobPipelinePage.jsx` (pipeline) — `cv_file_path` added to each `applications` select, button next to Message/Email.
+
 ---
 
 ## What Is Pending (build order)
