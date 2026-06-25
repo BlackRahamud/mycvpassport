@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
+import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
 import "../Jobs/jobsList.css";     // .hjl-toggle / .hjl-empty
@@ -166,6 +167,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
             <MailIc /> Email {firstName(candidate.name)}
           </a>
         )}
+        <ViewOriginalCv path={a.cv_file_path} />
       </div>
 
       <OutreachHistory hrId={hrId} candidateId={candidate.record?.candidate_id} refreshKey={outreachTick} />
@@ -296,7 +298,7 @@ export default function CandidatesPage() {
         const [appsRes, jobsRes] = await Promise.all([
           supabase
             .from("applications")
-            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, score_source, status, visa_status, match_keywords, missing_keywords, applied_at")
+            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, score_source, status, visa_status, match_keywords, missing_keywords, applied_at")
             .eq("hr_id", uid)
             .limit(5000),
           supabase

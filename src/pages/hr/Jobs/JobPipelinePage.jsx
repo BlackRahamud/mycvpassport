@@ -8,6 +8,7 @@ import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsA
 import VerdictCard from "../../../components/hr/VerdictCard";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
+import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
@@ -246,7 +247,7 @@ export default function JobPipelinePage() {
     (async () => {
       const { data, error } = await supabase
         .from("applications")
-        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, ats_score, match_keywords, missing_keywords, score_source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
+        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, match_keywords, missing_keywords, score_source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
         .eq("job_id", jobId)
         .neq("status", "rejected")
         .order("ats_score", { ascending: false });
@@ -725,6 +726,7 @@ function CandidateDetail({
             <MailIc /> Email {firstName(candidate.candidate_name)}
           </a>
         )}
+        <ViewOriginalCv path={candidate.cv_file_path} />
         {["shortlist", "ready", "interviewed", "offer", "hired"].includes(stageDef?.key) && (
           <button type="button" className="jpp-action jpp-action--ghost" onClick={onSchedule}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>

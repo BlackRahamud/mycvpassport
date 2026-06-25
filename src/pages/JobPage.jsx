@@ -401,6 +401,31 @@ function ApplyForm({ job, user, replayIntent }) {
         candidateCv: cvBlob,
       });
 
+      // Keep the original uploaded file. It goes to the private
+      // applicant-cvs bucket; the row keeps only the path. Best-effort:
+      // if the upload fails we still record the application (cv_file_path
+      // stays null and the HR just sees the parsed view). The File only
+      // exists on the logged-in submit — the logged-out → /auth → replay
+      // path can't carry a File through sessionStorage, so it uploads
+      // nothing, which is the expected limitation.
+      let cvFilePath = null;
+      if (form.cv_file) {
+        try {
+          const ext = (form.cv_filename.split(".").pop() || "pdf")
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "") || "pdf";
+          const path = `${user.id}/${job.id}-${Date.now()}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from("applicant-cvs")
+            .upload(path, form.cv_file, {
+              upsert: true,
+              contentType: form.cv_file.type || undefined,
+            });
+          if (upErr) throw upErr;
+          cvFilePath = path;
+        } catch (_e) { /* best-effort — keep the application without the file */ }
+      }
+
       const appData = {
         candidate_id: user.id,
         job_id: job.id,
@@ -419,6 +444,10 @@ function ApplyForm({ job, user, replayIntent }) {
         visa_status: form.visa_status || (isEasyApply ? "Own visa" : ""),
         applied_at: new Date().toISOString(),
       };
+
+      // Only write the pointer when we actually uploaded a file this time,
+      // so a re-apply that skips re-uploading keeps the prior file.
+      if (cvFilePath) appData.cv_file_path = cvFilePath;
 
       // Upsert handles reapply after cooldown
       if (existingApp && !cooldownDays) {
