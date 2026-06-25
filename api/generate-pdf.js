@@ -106,18 +106,35 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: "Could not verify entitlement" });
     }
     const { hasProAccess } = await loadAccess();
+    // Free tier gets ONE builder download, tracked by the client inserting a
+    // row into `downloads` after a successful render. Kept in sync with
+    // src/services/gatekeeper.js FREE_DOWNLOAD_LIMIT.
+    const FREE_BUILDER_DOWNLOADS = 1;
     if (hasProAccess(profile)) {
       // Pro / Career Pro / grandfathered: unlimited downloads, no decrement.
     } else if ((profile?.download_credits || 0) > 0) {
-      // Express Pass holder with credits remaining. Schedule a decrement
-      // that fires only after the PDF render succeeds.
+      // Single-CV Unlock holder with download credits remaining. Schedule a
+      // decrement that fires only after the PDF render succeeds.
       creditConsumer = { db, userId: user.id };
     } else {
-      return res.status(402).json({
-        error: "Download requires a paid pass or unlock",
-        code: "no_credit",
-        paywall: true,
-      });
+      // Free tier: allow the first download (no decrement — the client
+      // tracks it in `downloads` on success), then 402 once used.
+      const { count, error: cntErr } = await db
+        .from("downloads")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if (cntErr) {
+        console.error("[generate-pdf] free-download count failed", cntErr.message);
+        return res.status(500).json({ error: "Could not verify entitlement" });
+      }
+      if ((count || 0) >= FREE_BUILDER_DOWNLOADS) {
+        return res.status(402).json({
+          error: "Free download used. Unlock more downloads to continue.",
+          code: "no_credit",
+          paywall: true,
+        });
+      }
+      // else: within the free allowance — allow, no credit decrement.
     }
   }
 

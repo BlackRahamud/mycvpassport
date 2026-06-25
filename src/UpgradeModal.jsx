@@ -41,13 +41,13 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
   const heading = isAts
     ? "Your free ATS scan is used up"
     : isBuilderAi
-      ? "You've used your 2 free AI rewrites"
+      ? "You've hit your AI rewrites limit this month"
       : "You're one step away from more interviews";
 
   const subtext = isAts
     ? "Most jobs in UAE get 200+ applicants. Only ATS-optimised CVs make it to the hiring manager. Don't leave it to chance."
     : isBuilderAi
-      ? "Unlock unlimited AI rewrites with Active Hunter. Tailor every section in your CV without thinking about credits."
+      ? "Upgrade your plan for a higher monthly limit on AI rewrites — tailor every section without counting credits."
       : "Job seekers using AI-matched CVs get 3x more callbacks. Unlock Job Match and Cover Letter Generator with CVPassport Pro.";
 
   const features = isAts

@@ -225,7 +225,7 @@ export default function PricingAnchorSection() {
             See all plans →
           </button>
           <p className="cvp-pricing-anchor-foot-note">
-            Express Pass — AED 49 one-time lifetime access also available
+            Single-CV Unlock — one-time lifetime unlock also available
           </p>
         </div>
       </div>

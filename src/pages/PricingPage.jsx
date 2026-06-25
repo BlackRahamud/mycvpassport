@@ -203,10 +203,10 @@ export default function PricingPage({ refreshProfile } = {}) {
       cta: "Get Started Free",
       ctaAction: "free",
       features: [
-        { text: "3 CV templates", included: true },
+        { text: "All templates (build free)", included: true },
         { text: "ATS Checker (basic)", included: true },
-        { text: "Live CV preview", included: true },
-        { text: "Walk-In Mode", included: true },
+        { text: "1 free PDF download", included: true },
+        { text: "3 AI rewrites / month", included: true },
         { text: "Cover Letter Generator", included: false },
         { text: "Job Match Keywords", included: false },
         { text: "CV Import", included: false },
@@ -217,22 +217,24 @@ export default function PricingPage({ refreshProfile } = {}) {
     },
     {
       id: "express",
-      name: TIERS.express_pass.displayName,
+      // Consumer-facing rename — one clear one-time option. The canonical
+      // tier slug / displayName ('Express Pass') is unchanged in tierConfig
+      // so webhook routing, invoices and stored plan enums stay stable.
+      name: "Single-CV Unlock",
       badge: null,
       priceAED: TIERS.express_pass.prices.AED,
       priceINR: TIERS.express_pass.prices.INR,
-      description: "Permanent single-CV unlock",
-      cta: "Get single-CV unlock",
+      description: "One-time — 3 premium PDF downloads",
+      cta: "Unlock my CV",
       ctaAction: "express",
       features: [
-        { text: "All templates", included: true },
+        { text: "3 premium PDF downloads", included: true },
         { text: "ATS Checker (full)", included: true },
-        { text: "Unlimited CV Downloads", included: true },
-        { text: "Walk-In Mode", included: true },
+        { text: "Premium templates", included: true },
         { text: "Cover Letter Generator", included: true },
         { text: "Job Match Keywords", included: true },
         { text: "1 CV Import", included: true },
-        { text: "Premium templates", included: true },
+        { text: "30 AI rewrites / month", included: true },
         { text: "GhostChip ATS injection", included: true },
         { text: "Priority support", included: false },
       ],
@@ -247,14 +249,13 @@ export default function PricingPage({ refreshProfile } = {}) {
       cta: "Get 30-day pass",
       ctaAction: "hunter",
       features: [
-        { text: "All templates", included: true },
+        { text: "Unlimited downloads (all CVs)", included: true },
         { text: "ATS Checker Pro (AI powered)", included: true },
-        { text: "Unlimited CV Downloads", included: true },
-        { text: "Walk-In Mode", included: true },
+        { text: "60 AI rewrites / month", included: true },
+        { text: "All + premium templates", included: true },
         { text: "Cover Letter Generator", included: true },
         { text: "Job Match Keywords", included: true },
         { text: "3 CV Imports per week", included: true },
-        { text: "Premium templates", included: true },
         { text: "GhostChip ATS injection", included: true },
         { text: "Priority support", included: true },
       ],
@@ -269,14 +270,13 @@ export default function PricingPage({ refreshProfile } = {}) {
       cta: "Get 1-year pass",
       ctaAction: "pro",
       features: [
-        { text: "All templates", included: true },
+        { text: "Everything unlimited", included: true },
         { text: "ATS Checker Pro (AI powered)", included: true },
-        { text: "Unlimited CV Downloads", included: true },
-        { text: "Walk-In Mode", included: true },
+        { text: "Unlimited AI rewrites", included: true },
+        { text: "All + premium templates", included: true },
         { text: "Cover Letter Generator", included: true },
         { text: "Job Match Keywords", included: true },
         { text: "3 CV Imports per week", included: true },
-        { text: "Premium templates", included: true },
         { text: "GhostChip ATS injection", included: true },
         { text: "Priority support", included: true },
       ],
@@ -411,9 +411,10 @@ export default function PricingPage({ refreshProfile } = {}) {
 
   // ====== COMPARISON TABLE DATA ======
   const compRows = [
-    { feature: "CV Templates", vals: ["3 templates", "All", "All", "All"] },
+    { feature: "CV Templates", vals: ["All (build free)", "All", "All", "All"] },
     { feature: "ATS Checker", vals: ["Basic", "Full", "AI Powered", "AI Powered"] },
-    { feature: "PDF Downloads", vals: ["3 downloads", "Unlimited", "Unlimited", "Unlimited"] },
+    { feature: "PDF Downloads", vals: ["1 download", "3 downloads", "Unlimited", "Unlimited"] },
+    { feature: "AI rewrites", vals: ["3 / month", "30 / month", "60 / month", "Unlimited"] },
     { feature: "Cover Letter", vals: [false, true, true, true] },
     { feature: "Job Match Keywords", vals: [false, true, true, true] },
     { feature: "CV Import", vals: [false, "1 import", "3/week", "3/week"] },
@@ -576,9 +577,9 @@ export default function PricingPage({ refreshProfile } = {}) {
                 </div>
                 <div style={{ flex: 1, marginBottom: 24, display: "flex", flexDirection: "column", gap: 10 }}>
                   {[
-                    "Build 3 CVs free",
-                    "Score your CV against any job",
-                    "Pick from starter templates",
+                    "Every template — build for free",
+                    "1 free PDF download",
+                    "Basic ATS score + 3 AI rewrites / month",
                   ].map((line) => (
                     <div
                       key={line}
@@ -702,11 +703,11 @@ export default function PricingPage({ refreshProfile } = {}) {
 
                 <div style={{ flex: 1, marginBottom: 28, display: "flex", flexDirection: "column", gap: 12 }}>
                   {[
-                    "Unlimited CVs, any template",
-                    "AI rewrites your bullets to beat ATS filters",
-                    "Cover letter in 20 seconds",
-                    "Scout — search 10,000+ Gulf & India jobs",
-                    "Download-ready in minutes",
+                    "Unlimited downloads, every CV",
+                    "AI-powered ATS scoring",
+                    "60 AI rewrites a month",
+                    "3 CV imports a week",
+                    "Cover letter + Job Match, priority support",
                   ].map((line) => (
                     <div
                       key={line}
@@ -816,21 +817,22 @@ export default function PricingPage({ refreshProfile } = {}) {
               onClick={() => setAllPlansOpen((v) => !v)}
               aria-expanded={allPlansOpen}
               style={{
-                background: "none",
-                border: "none",
-                padding: "8px 12px",
-                color: "#A0A0A0",
+                background: "#141414",
+                border: "1px solid #2A2A2A",
+                borderRadius: 9999,
+                padding: "10px 18px",
+                color: "#E5E5E5",
                 fontSize: 13,
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: "pointer",
                 fontFamily: "inherit",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                transition: "color 160ms cubic-bezier(0.4,0,0.2,1)",
+                gap: 8,
+                transition: "color 160ms cubic-bezier(0.4,0,0.2,1), border-color 160ms cubic-bezier(0.4,0,0.2,1)",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "#A0A0A0"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#E5E5E5"; e.currentTarget.style.borderColor = "#2A2A2A"; }}
             >
               <span>
                 {allPlansOpen
@@ -870,7 +872,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                         // Pass duration drives the suffix — Express Pass is
                         // permanent (single-CV unlock); Career Pro is the
                         // 1-year pass.
-                        const priceSuffix = plan.id === "pro" ? "· 1-year pass" : "· single CV";
+                        const priceSuffix = plan.id === "pro" ? "· 1-year pass" : "· one-time";
                         return (
                           <div
                             key={plan.id}
@@ -1017,7 +1019,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                             >
                               Feature
                             </th>
-                            {["Explorer", "Express Pass", "Active Hunter", "Career Pro"].map((col, i) => (
+                            {["Explorer", "Single-CV Unlock", "Active Hunter", "Career Pro"].map((col, i) => (
                               <th
                                 key={col}
                                 style={{

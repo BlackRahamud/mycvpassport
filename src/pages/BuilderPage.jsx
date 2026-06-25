@@ -41,7 +41,7 @@ import SynthesisOverlay from "../components/SynthesisOverlay";
 import CompletionScreen from "../components/CompletionScreen";
 import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
-import { invalidateGatekeeperCache } from "../services/gatekeeper";
+import { invalidateGatekeeperCache, getGatekeeperData } from "../services/gatekeeper";
 import { GUIDE_STEPS } from "../components/FAB/FABGuideSteps";
 import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
@@ -2698,6 +2698,22 @@ function ResumeBuilder({
     return TEMPLATES.find((t) => t.id === initialTemplateId) || TEMPLATES[0];
   });
   const [downloadState, dispatch] = useReducer(downloadReducer, initialDownloadState);
+  // Free-tier download gate. Mirrors the server gate in api/generate-pdf.js
+  // (free = 1 download). Once used, the download CTA shows a lock and routes
+  // to /pricing instead of failing the render with a 402.
+  const [dlGate, setDlGate] = useState(null);
+  const refreshDlGate = useCallback(async () => {
+    try {
+      const g = await getGatekeeperData();
+      setDlGate(g);
+    } catch {
+      /* non-blocking — leave the gate unknown (download still attempts) */
+    }
+  }, []);
+  useEffect(() => { refreshDlGate(); }, [refreshDlGate]);
+  // Locked only when we KNOW the free allowance is spent (never block on an
+  // unknown/errored gate, and never for paid users).
+  const downloadLocked = !isPro && !!dlGate && dlGate.isPaidUser === false && dlGate.canDownload === false;
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [resumeId, setResumeId] = useState(() => {
@@ -3852,6 +3868,14 @@ function ResumeBuilder({
       is_authenticated: !!user?.id,
       is_mobile: isMobile,
     });
+    // Free download spent → route to pricing rather than start synthesis and
+    // hit a server 402. Guard fires for both the click and the post-synthesis
+    // download call. Guide mode keeps its own flow and is exempt.
+    if (downloadLocked && fabMode !== "guide") {
+      logEvent("download_paywall_hit", { surface: "builder_download" });
+      navigate("/pricing");
+      return;
+    }
     if (opts.skipSynthesis) {
       dispatch({ type: 'BEGIN_GENERATION' });
       try {
@@ -3871,10 +3895,20 @@ function ResumeBuilder({
           lastTemplateId: selectedTemplate?.id != null ? `T${selectedTemplate.id}` : null,
         });
         invalidateGatekeeperCache();
+        refreshDlGate();
         dispatch({ type: 'SET_EXITING' });
         setTimeout(() => dispatch({ type: 'FINISH_SUCCESS' }), 260);
       } catch (e) {
         console.error(e);
+        // Server paywall (free download spent / no credit) — route to pricing
+        // instead of surfacing a hard error. Covers the race where the gate
+        // hadn't loaded before the click.
+        if (/unlock|paid pass|free download used|no_credit/i.test(e?.message || "")) {
+          refreshDlGate();
+          dispatch({ type: 'RESET' });
+          navigate("/pricing");
+          return;
+        }
         dispatch({ type: 'FAIL', payload: e.message });
         setTimeout(() => dispatch({ type: 'RESET' }), 3000);
       }
@@ -5766,7 +5800,7 @@ function ResumeBuilder({
                   borderRadius: 9,
                   border: 'none',
                   background: '#141414',
-                  color: '#fff',
+                  color: (downloadLocked && fabMode !== 'guide' && downloadState.status !== 'generating') ? '#D97706' : '#fff',
                   fontSize: 12,
                   fontWeight: 500,
                   cursor: downloadState.status === 'generating' ? 'not-allowed' : 'pointer',
@@ -5775,14 +5809,21 @@ function ResumeBuilder({
                 }}
               >
                 {downloadState.status === 'generating' ? <BuilderCvPdfSpinner20 /> : null}
-                {downloadState.status === 'generating' ? null : (
+                {downloadState.status === 'generating' ? null : (downloadLocked && fabMode !== 'guide') ? (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                ) : (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                 )}
-                {downloadState.status === 'generating' ? "Generating your CV..." : "Download CV"}
+                {downloadState.status === 'generating'
+                  ? "Generating your CV..."
+                  : (downloadLocked && fabMode !== 'guide') ? "Unlock to download" : "Download CV"}
               </button>
             </div>
             <div style={{ flex: 1, minHeight: 8 }} aria-hidden />

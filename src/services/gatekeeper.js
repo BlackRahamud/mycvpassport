@@ -7,7 +7,10 @@
 import { supabase } from "../supabaseClient";
 import { isFounder } from "../utils/founder";
 
-const FREE_DOWNLOAD_LIMIT = 3;
+// Free tier = ONE PDF download. After that, the download button locks and
+// routes to upgrade (Single-CV Unlock / Active Hunter / Career Pro). Kept in
+// sync with the pricing page + the builder download-lock UI.
+const FREE_DOWNLOAD_LIMIT = 1;
 
 const ANON_DOWNLOADS_KEY = "cvp_anon_downloads";
 

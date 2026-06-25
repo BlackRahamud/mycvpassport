@@ -324,11 +324,20 @@ async function applyZiinaPaidTier(userId, tierSlug) {
   if (!tier) return new Error(`Unknown tier: ${tierSlug}`);
 
   if (tier.model === 'permanent') {
+    // Single-CV Unlock = 3 PDF downloads (consumed via consume_download_credit).
     const { error: creditsErr } = await supabase.rpc('grant_download_credits', {
       p_user_id: userId,
-      p_credits: 1,
+      p_credits: 3,
     });
     if (creditsErr) return creditsErr;
+    // Durable marker so AI metering can grant the Single-CV Unlock monthly
+    // AI cap (30/mo). Does NOT touch plan or pro_access_expires_at — the
+    // subscription + download-gate logic is unchanged.
+    const { error: flagErr } = await supabase
+      .from('profiles')
+      .update({ single_cv_unlocked: true })
+      .eq('id', userId);
+    if (flagErr) return flagErr;
     return null;
   }
 

@@ -14,7 +14,7 @@ import { getGatekeeperData, invalidateGatekeeperCache } from "../../services/gat
 export const FAB_MEMORY_KEY = "cvp_fab_memory";
 export const ANON_DOWNLOADS_KEY = "cvp_anon_downloads";
 
-const FREE_DOWNLOAD_LIMIT = 3;
+const FREE_DOWNLOAD_LIMIT = 1;
 
 /** @type {{ lastAction: string | null, lastActionAt: string | null, lastTemplateId: string | null, lastTabVisited: string | null, sessionCount: number, lastAtsScore: number | null, hasVisitedCoverLetter: boolean, pendingAtsMilestone: 70 | 90 | null, firstVisitDone: boolean }} */
 const DEFAULT_FAB_MEMORY = {
@@ -338,7 +338,7 @@ export function getProgressCoachData(cvData) {
 }
 
 /**
- * Download limits: paid → unlimited; signed-in free → Supabase `downloads` count (limit 3); anon → localStorage cvp_anon_downloads.
+ * Download limits: paid → unlimited; signed-in free → Supabase `downloads` count (limit 1); anon → localStorage cvp_anon_downloads.
  */
 export async function getDownloadGatekeeperData() {
   return getGatekeeperData();

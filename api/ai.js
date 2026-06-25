@@ -66,7 +66,25 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 // experience_bullet sections; Pro/Express bypass the gate.
 const BUILDER_TAILOR_MODEL = process.env.BUILDER_TAILOR_MODEL || 'claude-sonnet-4-6';
 const BUILDER_TAILOR_MAX_TOKENS = 1500;
-const BUILDER_TAILOR_FREE_LIMIT = 2;
+// Free tier = 3 AI rewrites PER MONTH. The monthly reset is enforced inside
+// the try_deduct_ai_credit RPC (migration 019_ai_credits_monthly_reset.sql):
+// the RPC zeroes ai_credits_used when the stored period rolls into a new
+// month before applying this cap. Until that migration is run the cap behaves
+// as a lifetime counter (still honest — never blocks before the cap).
+const BUILDER_TAILOR_FREE_LIMIT = 3;
+
+// Per-tier MONTHLY AI rewrite caps. Every tier is metered through the same
+// try_deduct_ai_credit RPC (the binary is_pro bypass is gone). Career Pro is
+// an "unlimited" soft cap — an abuse guard that is effectively never reached.
+// Migration 019 resets profiles.ai_credits_used at each month boundary so
+// these read as per-month. Subscription logic (pro_access_expires_at) is
+// untouched — these caps only govern the in-builder AI rewrite action.
+const AI_MONTHLY_CAP = {
+  free: BUILDER_TAILOR_FREE_LIMIT, // 3
+  single_cv: 30,                   // Single-CV Unlock (durable single_cv_unlocked flag)
+  active_hunter: 60,
+  career_pro: 1000,                // unlimited soft cap
+};
 
 // Anthropic Sonnet 4.6 rates per 1M tokens (USD). Re-validate quarterly
 // against supabase/functions/analyze-cv/_pricing.mjs - that file is the
@@ -439,9 +457,10 @@ async function handleParseResume(req, res, body) {
 //
 // Credit model:
 //   - Pro / Express skip the gate (unlimited).
-//   - Free tier gets BUILDER_TAILOR_FREE_LIMIT (= 2) total credits,
+//   - Free tier gets BUILDER_TAILOR_FREE_LIMIT (= 3) credits per month,
 //     tracked atomically via profiles.ai_credits_used + the
-//     try_deduct_ai_credit / refund_ai_credit Postgres RPCs.
+//     try_deduct_ai_credit / refund_ai_credit Postgres RPCs (the deduct
+//     RPC resets the counter at each month boundary — migration 019).
 //   - Pre-deduct + refund on Anthropic upstream failure: credit lost
 //     only when a successful Anthropic response was actually returned.
 //
@@ -488,6 +507,23 @@ function classifyTier(profile) {
   return 'paid_pro';
 }
 
+// Resolves the billing tier -> monthly AI rewrite cap. Subscription passes
+// (pro_access_expires_at via hasProAccess) win; then the durable Single-CV
+// Unlock flag; else free. Grandfathered/unknown-plan pro access falls through
+// to the Career Pro soft cap so we never throttle a paying subscriber.
+function aiTierAndCap(profile) {
+  if (hasProAccess(profile)) {
+    if (String(profile?.plan || '').toUpperCase() === 'ACTIVE_HUNTER') {
+      return { aiTier: 'active_hunter', cap: AI_MONTHLY_CAP.active_hunter };
+    }
+    return { aiTier: 'career_pro', cap: AI_MONTHLY_CAP.career_pro };
+  }
+  if (profile?.single_cv_unlocked === true) {
+    return { aiTier: 'single_cv', cap: AI_MONTHLY_CAP.single_cv };
+  }
+  return { aiTier: 'free', cap: AI_MONTHLY_CAP.free };
+}
+
 function estimateCostUsd(usage) {
   const inTok = Number(usage?.input_tokens) || 0;
   const outTok = Number(usage?.output_tokens) || 0;
@@ -510,17 +546,17 @@ async function logAnthropicCall(db, payload) {
   }
 }
 
-async function tryDeductCredit(db, userId) {
+async function tryDeductCredit(db, userId, limit) {
   const { data, error } = await db.rpc('try_deduct_ai_credit', {
     p_user_id: userId,
-    p_limit: BUILDER_TAILOR_FREE_LIMIT,
+    p_limit: limit,
   });
   if (error) {
     console.error('[ai/tailor] try_deduct_ai_credit failed:', error.message);
     return { ok: false, used: null, dbError: true };
   }
-  // RPC returns int (new used count) or null when at limit.
-  if (data == null) return { ok: false, used: BUILDER_TAILOR_FREE_LIMIT };
+  // RPC returns int (new used count) or null when at the monthly cap.
+  if (data == null) return { ok: false, used: limit };
   return { ok: true, used: Number(data) };
 }
 
@@ -775,7 +811,7 @@ async function handleTailor(req, res, body) {
   // 4. Profile + tier classification (re-classified live every call).
   const { data: profile, error: profileErr } = await db
     .from('profiles')
-    .select('id, is_pro, plan, ai_credits_used, pro_access_expires_at')
+    .select('id, is_pro, plan, ai_credits_used, pro_access_expires_at, single_cv_unlocked')
     .eq('id', user.id)
     .maybeSingle();
   if (profileErr) {
@@ -783,43 +819,43 @@ async function handleTailor(req, res, body) {
     return res.status(500).json({ ok: false, error: 'Could not verify your account.' });
   }
   const tier = classifyTier(profile);
-  const isPaid = tier === 'paid' || tier === 'paid_pro';
+  // Per-tier MONTHLY cap. Every tier is metered now (no is_pro bypass); the
+  // RPC resets the counter each month (migration 019). Career Pro's cap is a
+  // very high soft cap, so it is effectively unlimited.
+  const { aiTier, cap } = aiTierAndCap(profile);
 
-  // 5. Credit gate (free tier only). Atomic pre-deduct via RPC.
-  let creditsRemainingPreDeduct = null;
-  if (!isPaid) {
-    const before = Number(profile?.ai_credits_used) || 0;
-    creditsRemainingPreDeduct = Math.max(0, BUILDER_TAILOR_FREE_LIMIT - before);
+  // 5. Monthly AI credit gate. Atomic pre-deduct via RPC for every tier.
+  const before = Number(profile?.ai_credits_used) || 0;
+  const creditsRemainingPreDeduct = Math.max(0, cap - before);
 
-    const deduct = await tryDeductCredit(db, user.id);
-    if (deduct.dbError) {
-      return res.status(500).json({ ok: false, error: 'Could not deduct credit. Please try again.' });
-    }
-    if (!deduct.ok) {
-      // Free-tier exhausted. Audit the blocked attempt + return 402.
-      await logAnthropicCall(db, {
-        user_id: user.id,
-        ip_hash: null,
-        tier,
-        endpoint: 'builder_tailor',
-        model: BUILDER_TAILOR_MODEL,
-        input_tokens: null,
-        output_tokens: null,
-        estimated_cost_usd: 0,
-        status: 'spend_capped',
-        error_code: 'free_limit',
-        meta: { section, alternative_count: 0, reason: 'free_limit' },
-      });
-      return res.status(402).json({
-        ok: false,
-        error: 'Out of free AI rewrites. Upgrade for unlimited.',
-        credits_remaining: 0,
-        action: 'upgrade',
-      });
-    }
+  const deduct = await tryDeductCredit(db, user.id, cap);
+  if (deduct.dbError) {
+    return res.status(500).json({ ok: false, error: 'Could not deduct credit. Please try again.' });
+  }
+  if (!deduct.ok) {
+    // Monthly cap reached for this tier. Audit the blocked attempt + 402.
+    await logAnthropicCall(db, {
+      user_id: user.id,
+      ip_hash: null,
+      tier,
+      endpoint: 'builder_tailor',
+      model: BUILDER_TAILOR_MODEL,
+      input_tokens: null,
+      output_tokens: null,
+      estimated_cost_usd: 0,
+      status: 'spend_capped',
+      error_code: 'monthly_cap',
+      meta: { section, alternative_count: 0, reason: 'monthly_cap', ai_tier: aiTier, cap },
+    });
+    return res.status(402).json({
+      ok: false,
+      error: 'You have used your AI rewrites for this month. Upgrade for a higher monthly limit.',
+      credits_remaining: 0,
+      action: 'upgrade',
+    });
   }
 
-  const computeRemaining = (usedNow) => Math.max(0, BUILDER_TAILOR_FREE_LIMIT - usedNow);
+  const computeRemaining = (usedNow) => Math.max(0, cap - usedNow);
 
   // 6. Build prompt + call Anthropic.
   //    'description' samples hot with a per-call style seed so the three
@@ -847,13 +883,12 @@ async function handleTailor(req, res, body) {
   try {
     aiResult = await callAnthropicTailor({ system, userPrompt, isJsonExpected, temperature });
   } catch (e) {
-    // 7a. Anthropic upstream failure. Refund the free-tier credit.
+    // 7a. Anthropic upstream failure. Refund the just-deducted credit (all
+    // tiers are metered, so always refund).
     let refundedRemaining = creditsRemainingPreDeduct;
-    if (!isPaid) {
-      const refund = await refundCredit(db, user.id);
-      if (refund.ok) {
-        refundedRemaining = computeRemaining(refund.used);
-      }
+    const refund = await refundCredit(db, user.id);
+    if (refund.ok) {
+      refundedRemaining = computeRemaining(refund.used);
     }
     await logAnthropicCall(db, {
       user_id: user.id,
@@ -869,14 +904,15 @@ async function handleTailor(req, res, body) {
       meta: {
         section,
         alternative_count: 0,
-        refunded: !isPaid,
+        refunded: true,
+        ai_tier: aiTier,
       },
     });
     console.error('[ai/tailor] Anthropic call failed:', e?.code, String(e?.message || '').slice(0, 300));
     return res.status(502).json({
       ok: false,
       error: 'AI Engine is busy, please try again.',
-      credits_remaining: isPaid ? null : refundedRemaining,
+      credits_remaining: refundedRemaining,
     });
   }
 
@@ -886,7 +922,7 @@ async function handleTailor(req, res, body) {
     const result = String(aiResult.result || '').trim();
     if (!result) {
       // Treat empty as upstream failure for the user (refund + audit).
-      if (!isPaid) await refundCredit(db, user.id);
+      await refundCredit(db, user.id);
       await logAnthropicCall(db, {
         user_id: user.id,
         ip_hash: null,
@@ -898,12 +934,12 @@ async function handleTailor(req, res, body) {
         estimated_cost_usd: estimateCostUsd(aiResult.usage),
         status: 'error',
         error_code: 'empty_summary',
-        meta: { section, alternative_count: 0, refunded: !isPaid },
+        meta: { section, alternative_count: 0, refunded: true, ai_tier: aiTier },
       });
       return res.status(502).json({
         ok: false,
         error: 'AI returned an empty summary. Please retry.',
-        credits_remaining: isPaid ? null : creditsRemainingPreDeduct,
+        credits_remaining: creditsRemainingPreDeduct,
       });
     }
     payload = { result };
@@ -915,7 +951,7 @@ async function handleTailor(req, res, body) {
       : [];
     const uniqueCleaned = Array.from(new Set(cleaned));
     if (uniqueCleaned.length < 3) {
-      if (!isPaid) await refundCredit(db, user.id);
+      await refundCredit(db, user.id);
       await logAnthropicCall(db, {
         user_id: user.id,
         ip_hash: null,
@@ -927,22 +963,21 @@ async function handleTailor(req, res, body) {
         estimated_cost_usd: estimateCostUsd(aiResult.usage),
         status: 'error',
         error_code: 'bullet_alternatives_short',
-        meta: { section, alternative_count: uniqueCleaned.length, refunded: !isPaid },
+        meta: { section, alternative_count: uniqueCleaned.length, refunded: true, ai_tier: aiTier },
       });
       return res.status(502).json({
         ok: false,
         error: 'AI did not return 3 distinct alternatives. Please retry.',
-        credits_remaining: isPaid ? null : creditsRemainingPreDeduct,
+        credits_remaining: creditsRemainingPreDeduct,
       });
     }
     payload = { alternatives: uniqueCleaned.slice(0, 3) };
   }
 
-  // 8. Success: audit + return.
-  const usedNow = isPaid
-    ? Number(profile?.ai_credits_used) || 0
-    : (Number(profile?.ai_credits_used) || 0) + 1;
-  const creditsRemaining = isPaid ? null : computeRemaining(usedNow);
+  // 8. Success: audit + return. Every tier is metered, so the deducted
+  // credit stands and remaining is reported numerically.
+  const usedNow = (Number(profile?.ai_credits_used) || 0) + 1;
+  const creditsRemaining = computeRemaining(usedNow);
 
   await logAnthropicCall(db, {
     user_id: user.id,
