@@ -328,6 +328,144 @@ const rawPosts = [
     badges: [{ label: "GCC", tone: "blue" }, { label: "Career", tone: "purple" }],
     image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800",
   },
+  {
+    title: "How to Get a Job in Dubai from India (2026): Step-by-Step",
+    slug: "get-job-in-dubai-from-india-2026",
+    metaTitle: "How to Get a Job in Dubai from India (2026): Step-by-Step Guide | CVPassport",
+    metaDescription: "A practical 2026 guide to landing a job in Dubai or the Gulf from India — converting your CV to UAE format, the job boards that work, getting visa status right, and the moves that get recruiters to call back.",
+    author: "@CVPassportTeam",
+    date: "Thursday, 25 Jun 2026",
+    readTime: "9 min read",
+    category: "India to Gulf",
+    excerpt: "9 min read · Updated June 2026. The realistic, step-by-step path from an Indian job search to a Gulf offer — CV, job boards, visa status, and the moves that actually get a recruiter to call back.",
+    badges: [{ label: "India to Gulf", tone: "purple" }, { label: "Career", tone: "blue" }],
+    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800",
+    body: [
+      { type: "p", text: "Every year, lakhs of Indian professionals apply for jobs in Dubai, Abu Dhabi and across the Gulf — and most never hear back. It is rarely about qualifications. It is about a process that works very differently from an Indian job hunt: a different CV format, different job boards, and one detail Indian applicants almost always get wrong — visa status. This guide walks the realistic path from an Indian search to a Gulf offer, step by step." },
+      { type: "hr" },
+
+      { type: "h2", text: "Step 1 — Turn your Indian resume into a UAE CV" },
+      { type: "p", text: "Your Indian resume is not a Gulf CV. Sending the Indian bio-data format — father's name, marital status, photo, full address, sometimes a passport number — is the fastest way to get filtered out. UAE recruiters read for different things." },
+      { type: "ul", items: [
+        "**Cut:** father's/spouse's name, marital status, religion, full home address, passport number, and an unsolicited photo (ATS systems cannot parse images).",
+        "**Add:** nationality, visa status, current location, and a tight professional summary written in achievement language.",
+        "**Reformat:** single-column, reverse-chronological, Calibri/Arial 11pt, saved as PDF. No two-column templates, no tables, no graphics.",
+      ] },
+      { type: "p", text: "If you only fix one thing, rewrite your bullets into outcomes. \"Responsible for sales\" becomes \"Grew regional sales 32% in FY2025.\" Gulf recruiters scan for results, not duties." },
+
+      { type: "h2", text: "Step 2 — Apply where Gulf recruiters actually look" },
+      { type: "p", text: "Indian job boards alone will not reach Gulf hiring managers. Put your CV where Gulf recruiters search:" },
+      { type: "ul", items: [
+        "**Naukrigulf** — the Gulf arm of Naukri; integrates with your existing Naukri account and is the most-used board for India-to-Gulf hiring.",
+        "**Bayt** — the largest dedicated Middle East job portal; essential for UAE-based employers.",
+        "**GulfTalent** — strongest for mid-to-senior professionals relocating to the UAE.",
+        "**LinkedIn** — set your location to \"Open to Dubai, UAE\" so corporate recruiters find you in searches.",
+        "**Recruitment agencies** — many Gulf roles are filled through agencies, not direct postings; apply to the ones specialising in your sector.",
+      ] },
+
+      { type: "h2", text: "Step 3 — Get your visa status line right" },
+      { type: "p", text: "This is the single most-screened field on a UAE CV, and the one Indian applicants most often leave vague. A recruiter uses it to decide whether you need sponsorship, whether you can transfer without paperwork, and how fast you can start. \"UAE Resident\" tells them nothing. Be specific:" },
+      { type: "ul", items: [
+        "\"Visit Visa — Available Immediately\" (strong: you can interview and start with no wait)",
+        "\"Employment Visa — Transferable\" (strong: no NOC delay)",
+        "\"Based in Mumbai, India — Available to Relocate Immediately\" (clear if you are applying from India)",
+        "\"Spouse / Dependent Visa — NOC Available\"",
+      ] },
+      { type: "p", text: "Applying from India is not a disqualifier — ambiguity is. State your location and that you are ready to relocate, and you stay in contention." },
+
+      { type: "h2", text: "Step 4 — Make recruiters actually reply" },
+      { type: "p", text: "In the Gulf, WhatsApp is the recruiter's channel — response rates there are far higher than email. When a recruiter or agency shares a number, a short, polite WhatsApp follow-up referencing the exact role and your immediate availability often moves you ahead of candidates who only emailed. Keep it brief, professional, and lead with the value: your role, your experience, and that you can start quickly." },
+
+      { type: "h2", text: "Step 5 — Be ready to move fast" },
+      { type: "p", text: "Gulf hiring moves quickly, and many roles are filled through walk-in interviews or short-notice calls. Have a clean, ATS-ready PDF on your phone, a one-page version for walk-ins, and your documents (degree, experience letters) ready for attestation if asked. \"Immediate joiner\" is a genuine advantage — make sure it is visible on your CV." },
+
+      { type: "h2", text: "The mistakes that quietly cost Indians the call" },
+      { type: "ul", items: [
+        "Bio-data format (photo, marital status, passport number) instead of a Gulf CV.",
+        "Vague visa status — or omitting it entirely.",
+        "One generic CV sent to every role, instead of tailoring keywords to each job description.",
+        "A creative, two-column or Canva-style template that looks good but fails the ATS.",
+        "No follow-up after applying — silence reads as low interest in a fast market.",
+      ] },
+
+      { type: "h2", text: "Frequently asked questions" },
+      { type: "h3", text: "Can I get a Dubai job from India without being there?" },
+      { type: "p", text: "Yes — many people do. State your location clearly, mark yourself as an immediate-relocation candidate, and apply through Naukrigulf, Bayt and GulfTalent. Some employers interview remotely and sponsor the visa; others prefer candidates already on a visit visa. Both paths work if your CV is Gulf-formatted." },
+      { type: "h3", text: "Do I need to attest my degree?" },
+      { type: "p", text: "For many UAE roles, yes — degree attestation is part of the visa process once you are hired. You do not need it to apply, but getting it started early avoids delays after an offer." },
+
+      { type: "hr" },
+      { type: "p", text: "CVPassport was built for exactly this journey. It converts your Indian resume into a UAE-standard, ATS-ready CV — visa status, section order, and achievement language handled — so you can apply to Dubai, Abu Dhabi and the wider GCC with a CV recruiters can actually read. Build yours free." },
+    ],
+  },
+  {
+    title: "ATS Resume Format for Freshers in India (2026)",
+    slug: "ats-resume-format-freshers-india-2026",
+    metaTitle: "ATS Resume Format for Freshers in India (2026): Free Template + What Recruiters Want | CVPassport",
+    metaDescription: "The right ATS-friendly resume format for freshers in India in 2026 — section order with no experience, the bio-data mistakes to avoid, what to write instead, and a free ATS-ready template.",
+    author: "@CVPassportTeam",
+    date: "Thursday, 25 Jun 2026",
+    readTime: "7 min read",
+    category: "India",
+    excerpt: "7 min read · Updated June 2026. The resume format that actually passes ATS for freshers in India — what to include when you have no experience, and the mistakes that get a fresher's CV filtered before a human reads it.",
+    badges: [{ label: "India", tone: "blue" }, { label: "ATS Tips", tone: "purple" }],
+    image: "https://images.unsplash.com/photo-1586282391129-76a6df230234?w=800",
+    body: [
+      { type: "p", text: "Most fresher resumes in India are rejected before a human ever opens them. Companies — from large IT services firms to startups — run applications through an ATS (Applicant Tracking System) that scans for format and keywords first. A resume built like a college bio-data, or designed in a graphics tool, often gets parsed as gibberish and filtered out. Here is the format that actually passes, with no work experience required." },
+      { type: "hr" },
+
+      { type: "h2", text: "Why freshers get filtered before a human sees them" },
+      { type: "p", text: "An ATS reads your resume as plain text and matches it against the job description. Two things sink most freshers: a layout the parser cannot read (columns, tables, images, fancy fonts), and missing keywords from the job posting. Fix those two and you are already ahead of most applicants." },
+
+      { type: "h2", text: "The fresher resume format that passes ATS" },
+      { type: "ul", items: [
+        "**One page.** For a fresher, anything longer signals padding.",
+        "**Single column**, reverse-chronological. Never two columns, tables, or text boxes.",
+        "**Font:** Calibri or Arial, 10–12pt. No decorative fonts.",
+        "**No photo.** In India a photo is not expected for most private-sector roles, and the ATS cannot read it.",
+        "**Save as PDF** (unless the application specifically asks for Word).",
+        "**File name:** FirstName-LastName-Resume.pdf — not resume_final_v3.pdf.",
+      ] },
+
+      { type: "h2", text: "Section order for a fresher (education comes first)" },
+      { type: "p", text: "With little or no work history, lead with what you do have. The order that works:" },
+      { type: "ul", items: [
+        "**Contact** — name, phone, professional email, LinkedIn, city. Keep it in the body, not a header.",
+        "**Summary / objective** — 2–3 lines: your degree, your strongest skills, and the role you are targeting.",
+        "**Education** — degree, institution, year, and CGPA/percentage if it is strong.",
+        "**Projects & internships** — your biggest asset as a fresher; treat them like jobs.",
+        "**Skills** — technical and tools, matched to the job description.",
+        "**Certifications & achievements** — courses, hackathons, awards.",
+      ] },
+
+      { type: "h2", text: "What to write when you have no experience" },
+      { type: "p", text: "\"No experience\" is rarely true. Projects, internships, college activities and certifications all count — if you write them as outcomes, not descriptions." },
+      { type: "ul", items: [
+        "Quantify everything you can: \"Built a React app used by 200+ classmates,\" not \"made a project in React.\"",
+        "Pull keywords straight from the job description into your skills and project bullets.",
+        "Lead each bullet with an action verb and a result.",
+        "Include relevant coursework only if it maps to the role.",
+      ] },
+
+      { type: "h2", text: "Mistakes freshers make" },
+      { type: "ul", items: [
+        "Bio-data format — father's name, date of birth, marital status, photo, full address. Cut all of it.",
+        "A vague objective like \"seeking a challenging role to utilise my skills.\" Replace with a specific, keyword-rich summary.",
+        "One generic resume for every application instead of tailoring keywords per role.",
+        "A graphics-heavy template from a design tool that looks great but breaks ATS parsing.",
+        "Listing every skill ever touched — keep it focused on what the job asks for.",
+      ] },
+
+      { type: "h2", text: "Frequently asked questions" },
+      { type: "h3", text: "Should a fresher resume have a photo?" },
+      { type: "p", text: "For most private-sector and IT roles in India, no — leave it out. The ATS cannot read it, and it adds nothing a recruiter needs. Add a photo only if the application specifically asks for one." },
+      { type: "h3", text: "One page or two?" },
+      { type: "p", text: "One page. As a fresher, a single, well-structured page that passes ATS beats a padded two-pager every time." },
+
+      { type: "hr" },
+      { type: "p", text: "CVPassport builds an ATS-ready resume for freshers in minutes — the right section order, keyword matching against the job you want, and a clean one-page export. Start free, no signup required for your first CV." },
+    ],
+  },
 ];
 
 const posts = rawPosts.map((p) => ({ ...p, slug: p.slug || slugify(p.title) }));

@@ -90,6 +90,7 @@ Green: #1D9E75 (success, ATS pass states)
 Blue: #378ADD (info, ATS check states)
 
 NEVER use purple anywhere in the app.
+Exception: the /blog content surface (BlogPage, BlogPostPage, posts.js badge tones) is exempt from the no-purple rule and may use any palette.
 NEVER use transition:all — explicit properties only with cubic-bezier(0.4,0,0.2,1)
 NEVER hardcode hex colors in new code — pull from the tokens above. If a needed shade isn't listed, add it to the token block first, then use the named token.
 NEVER use drop-shadow for glow effects — use box-shadow with the accent color at low opacity, or a conic-gradient ring for OLED moments. Drop-shadow flattens to grey on dark surfaces.
