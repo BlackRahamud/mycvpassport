@@ -11,14 +11,11 @@ import { logEvent } from '../../lib/analytics/logEvent';
 
 // W18 copy rewrite v2 — Founder-locked 2026-04-22 in
 // /5-HANDOFF/[READY]_hero_headline_rewrite_W18.json. Do not paraphrase.
-const H2 = 'Same experience. Better CV.';
 const SUB =
   "Across the Gulf and India, qualified candidates are filtered out every day — not because they're underqualified, but because their CV wasn't built to pass the system that reads it first. CVPassport fixes that.";
 const PRIMARY_LABEL = 'Build my Gulf CV — free →';
 const SECONDARY_LABEL = 'Score my CV';
 const MICROCOPY = 'No signup. No card. Pay in AED only if you upgrade.';
-const TRUST_LINE_1 = 'Free to start. No signup required.';
-const TRUST_LINE_2 = 'Used across UAE, India & beyond.';
 
 const FADE_UP = {
   hidden: { opacity: 0, y: 24 },
@@ -198,12 +195,12 @@ export default function HeroSection({ user }) {
           100% { background-position: 300% center; }
         }
         .hero-headline-shimmer {
-          background: linear-gradient(90deg, #ffffff, #3B82F6, #EF4444, #FFD700, #22C55E, #A855F7, #ffffff);
-          background-size: 300% auto;
+          background: linear-gradient(90deg, #FFFFFF 0%, #D97706 100%);
+          background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
-          filter: drop-shadow(0 0 12px rgba(255,255,255,0.4)) drop-shadow(0 0 30px rgba(99,102,241,0.35)) drop-shadow(0 0 60px rgba(251,191,36,0.2));
+          filter: drop-shadow(0 0 12px rgba(255,255,255,0.4)) drop-shadow(0 0 30px rgba(217,119,6,0.35)) drop-shadow(0 0 60px rgba(217,119,6,0.2));
           animation: headlineShimmer 4s linear infinite;
         }
         .cvp-hero-uae-line {
@@ -222,7 +219,7 @@ export default function HeroSection({ user }) {
         .cvp-hero-uae-percent {
           font-weight: 800;
           font-size: 16px;
-          background: linear-gradient(90deg, #3B82F6, #EF4444, #FFD700, #22C55E, #3B82F6);
+          background: linear-gradient(90deg, #FFFFFF 0%, #D97706 100%);
           background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -399,9 +396,6 @@ export default function HeroSection({ user }) {
         <motion.h2 className="cvp-hero-seo-h2" variants={variants} custom={1}>
           Build ATS-Friendly CVs for UAE, Gulf &amp; India Jobs
         </motion.h2>
-        <motion.h2 className="cvp-hero-h2" variants={variants} custom={2}>
-          {H2}
-        </motion.h2>
         <motion.p className="cvp-hero-sub" variants={variants} custom={3}>
           {SUB}
         </motion.p>
@@ -473,10 +467,6 @@ export default function HeroSection({ user }) {
             <span className="cvp-hero-trustbar-strong">ATS-optimised</span>
             <span>&nbsp;for Gulf recruiters</span>
           </div>
-        </motion.div>
-        <motion.div className="cvp-hero-trust" variants={variants} custom={7}>
-          <p className="cvp-hero-trust-line">{TRUST_LINE_1}</p>
-          <p className="cvp-hero-trust-line">{TRUST_LINE_2}</p>
         </motion.div>
       </motion.div>
 

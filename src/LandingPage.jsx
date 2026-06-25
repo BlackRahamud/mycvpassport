@@ -17,7 +17,6 @@ import DesktopNav from './components/navigation/DesktopNav';
 // landing header.
 import HeroSection from './components/landing/HeroSection';
 import LiveAIDemo from './components/landing/LiveAIDemo';
-import UploadTransformSection from './components/landing/UploadTransformSection';
 import HowItWorksSection from './components/landing/HowItWorksSection';
 import TemplatesSection from './components/landing/TemplatesSection';
 import FloatingActionButton from './components/landing/FloatingActionButton';
@@ -841,10 +840,6 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         {/* 3 — Live AI Demo. Anchor target for the "Live demo" nav link. */}
         <span id="live-demo" aria-hidden="true" />
         <LiveAIDemo />
-
-        {/* 4 — "Have an existing CV? Fix it in 60 seconds." Upload &
-                Transform — high-funnel CTA for users with an existing CV. */}
-        <UploadTransformSection user={user} />
 
         {/* 5 — Three steps. Five minutes. Reverted to original Step 02
                 (Step02Stage). No demo embedded. */}
