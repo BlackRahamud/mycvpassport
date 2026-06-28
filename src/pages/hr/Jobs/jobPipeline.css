@@ -986,3 +986,43 @@
   .jpp-grid3 { grid-template-columns: 1fr 1fr; }
   .jpp-status-override { grid-template-columns: 1fr; }
 }
+
+/* ── Phone (≤600px / iPhone 14 = 393px): stop edge clipping ──── */
+@media (max-width: 600px) {
+  /* Topbar: the 1fr/auto/1fr grid forced the Request Talent + bell +
+     UserMenu cluster wider than the row, clipping it. Wrap instead, and
+     trim the 32px side padding that ate the narrow viewport. */
+  .jpp-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 12px 16px;
+  }
+  .jpp-topbar__center { display: none; }
+  .jpp-topbar__right { gap: 10px; }
+  .jpp-cta { padding: 0 13px; }
+
+  .jpp-page { padding: 18px 16px 48px; }
+
+  /* Stage tabs become a horizontal scroll strip so every stage stays
+     reachable rather than being clipped past the viewport edge. */
+  .jpp-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .jpp-tabs::-webkit-scrollbar { display: none; }
+  .jpp-tab { flex: 0 0 auto; }
+
+  .jpp-header__sub { margin-left: 0; }
+  .jpp-am { width: 100%; }
+
+  .jpp-detail { padding: 20px 16px; }
+
+  .jpp-modal { padding: 16px; }
+  .jpp-modal__panel { padding: 24px 20px; }
+  .jpp-modal__divider { margin: 0 -20px 20px; }
+}
