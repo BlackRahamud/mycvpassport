@@ -250,7 +250,7 @@ export default function JobPipelinePage() {
     (async () => {
       const { data, error } = await supabase
         .from("applications")
-        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, match_keywords, missing_keywords, score_source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
+        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, match_keywords, missing_keywords, score_source, source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
         .eq("job_id", jobId)
         .neq("status", "rejected")
         .order("ats_score", { ascending: false });
@@ -471,7 +471,9 @@ export default function JobPipelinePage() {
               <AnimatePresence initial={false}>
                 {visibleCards.map((c, i) => {
                   const isActive = selectedAppId === c.id;
+                  const isImported = c.source === "imported";
                   const isNew = NEW_STATUSES.has(c.status);
+                  const showBadge = isNew || isImported;
                   const dateStamp = formatStartDate(c.updated_at || c.viewed_at || c.applied_at);
                   return (
                     <motion.div
@@ -488,8 +490,12 @@ export default function JobPipelinePage() {
                         onClick={() => setSelectedAppId(c.id)}
                       >
                         <div className="jpp-card__top">
-                          <span className="jpp-card__badge" aria-hidden={!isNew} style={{ visibility: isNew ? "visible" : "hidden" }}>
-                            New Applicant
+                          <span
+                            className={`jpp-card__badge${isImported ? " jpp-card__badge--imported" : ""}`}
+                            aria-hidden={!showBadge}
+                            style={{ visibility: showBadge ? "visible" : "hidden" }}
+                          >
+                            {isImported ? "Imported" : "New Applicant"}
                           </span>
                           <span className="jpp-card__top-right">
                             <input
@@ -726,11 +732,18 @@ function CandidateDetail({
         <div className="jpp-detail__identity">
           <h2 className="jpp-detail__name">{candidate.candidate_name || "Unnamed candidate"}</h2>
           <p className="jpp-detail__role">{desiredJob || jobTitle || "Candidate"}</p>
-          {candidate.visa_status && (
-            <span className={`jpp-visa-chip jpp-visa-chip--${visaTone(candidate.visa_status)}`}>
-              {candidate.visa_status}
-            </span>
-          )}
+          <span className="jpp-detail__chips">
+            {candidate.source === "imported" && (
+              <span className="jpp-visa-chip jpp-visa-chip--neutral" title="Added via bulk CV import — no candidate account, so the journey timeline is limited.">
+                Imported CV
+              </span>
+            )}
+            {candidate.visa_status && (
+              <span className={`jpp-visa-chip jpp-visa-chip--${visaTone(candidate.visa_status)}`}>
+                {candidate.visa_status}
+              </span>
+            )}
+          </span>
           <div className="jpp-detail__contact">
             {personal.location && <span><MapPinIc /> {personal.location}</span>}
             {candidate.candidate_email && (

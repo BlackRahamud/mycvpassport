@@ -338,6 +338,14 @@
   background: var(--hjl-new);
   box-shadow: 0 0 0 4px var(--hjl-new-soft);
 }
+/* Imported (bulk CV import) — neutral ink dot instead of the green "new"
+   dot, so an HR can tell sourced candidates from organic applicants. */
+.jpp-card__badge--imported { color: var(--pj-text-soft); }
+.jpp-card__badge--imported::before {
+  background: var(--hjl-ink);
+  box-shadow: 0 0 0 4px var(--hjl-ink-soft);
+}
+.jpp-detail__chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .jpp-card__check {
   width: 18px;
   height: 18px;
