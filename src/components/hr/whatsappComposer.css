@@ -247,6 +247,19 @@
   .wac-panel { border-radius: 16px; box-shadow: 0 24px 60px -28px rgba(20, 19, 31, 0.45); }
 }
 
+/* ── Phone (≤599px): the single-row footer overflowed/clipped at 393px
+   (Mark replied + no-phone note + Cancel + Open in WhatsApp). Wrap it:
+   note on its own line, the secondary pair on a row, and the primary
+   full-width at the bottom (thumb-reachable). ── */
+@media (max-width: 599px) {
+  .wac-foot { flex-wrap: wrap; gap: 8px 10px; }
+  .wac-foot__spacer { display: none; }
+  .wac-nophone { flex-basis: 100%; order: 0; margin-right: 0; }
+  .wac-replied { order: 1; margin-right: auto; }
+  .wac-foot .pj-btn--ghost { order: 2; }
+  .wac-send { order: 3; flex: 1 1 100%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wac-close, .wac-chip, .wac-toggle__btn, .wac-textarea, .wac-ai, .wac-send, .wac-replied { transition: none !important; }
 }
