@@ -137,7 +137,7 @@ export default function BulkActions({ selected, onClear, onApplyStatus, statusBu
   return (
     <>
       {/* ── Floating action bar ── */}
-      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", justifyContent: "center", padding: "0 12px 16px", zIndex: 60, pointerEvents: "none" }}>
+      <div className="cand-bulkbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", justifyContent: "center", padding: "0 12px 16px", zIndex: 60, pointerEvents: "none" }}>
         <motion.div
           role="region"
           aria-label="Bulk actions"

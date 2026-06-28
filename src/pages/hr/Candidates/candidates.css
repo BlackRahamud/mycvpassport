@@ -191,6 +191,12 @@
   .cand-detail__back { display: none; } /* list is always visible on desktop */
 }
 
+/* ── Phone (≤719px): lift the bulk action bar above HrShell's 60px
+   fixed bottom tab bar so the two don't overlap. ── */
+@media (max-width: 719px) {
+  .cand-bulkbar { padding-bottom: 76px !important; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cand-search input, .cand-card { transition: none !important; }
 }
