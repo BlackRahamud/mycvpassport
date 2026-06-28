@@ -6,6 +6,13 @@
    ──────────────────────────────────────────────────────────────── */
 
 .bci-overlay {
+  /* Warn (amber) shades — not present in the pj or hjl token sets, so
+     declared here per the design-system rule (add a token before using a new
+     shade). Mirrors the constitution accent amber #D97706. */
+  --bci-warn: #B45309;
+  --bci-warn-strong: #D97706;
+  --bci-warn-soft: rgba(217, 119, 6, 0.10);
+
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -141,6 +148,7 @@
   background: #FFFFFF;
 }
 .bci-row--ready { border-color: rgba(5, 150, 105, 0.4); background: var(--hjl-new-soft); }
+.bci-row--warn  { border-color: rgba(217, 119, 6, 0.4); background: var(--bci-warn-soft); }
 .bci-row--error { border-color: rgba(220, 38, 38, 0.35); background: var(--hjl-pass-soft); }
 .bci-row__file {
   flex: none;
@@ -163,6 +171,23 @@
 .bci-row__meta { font-size: 11.5px; color: var(--pj-muted); }
 .bci-row__stage { color: var(--pj-text-soft); }
 .bci-row__err { color: var(--hjl-pass); }
+.bci-row__warn { color: var(--bci-warn); }
+.bci-row__ok { color: var(--hjl-new); font-weight: 600; }
+
+.bci-row__retry {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--bci-warn);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--bci-warn);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.16s var(--pj-ease);
+}
+.bci-row__retry:hover { background: var(--bci-warn-soft); }
 
 .bci-pill {
   flex: none;
@@ -179,7 +204,13 @@
 .bci-pill--idle  { background: var(--pj-input-bg); color: var(--pj-muted); }
 .bci-pill--work  { background: var(--hjl-ink-soft); color: var(--hjl-ink); }
 .bci-pill--ready { background: rgba(5, 150, 105, 0.14); color: var(--hjl-new); }
+.bci-pill--warn  { background: var(--bci-warn-soft); color: var(--bci-warn); }
 .bci-pill--error { background: rgba(220, 38, 38, 0.12); color: var(--hjl-pass); }
+/* Scored band overrides — a PASS verdict reads red, MAYBE amber, STRONG green,
+   so the chip colour matches the fit at a glance. */
+.bci-pill--band-low { background: rgba(220, 38, 38, 0.12); color: var(--hjl-pass); }
+.bci-pill--band-mid { background: var(--bci-warn-soft); color: var(--bci-warn); }
+.bci-pill--band-ok  { background: rgba(5, 150, 105, 0.14); color: var(--hjl-new); }
 .bci-pill__spin {
   width: 11px; height: 11px;
   border-radius: 50%;
