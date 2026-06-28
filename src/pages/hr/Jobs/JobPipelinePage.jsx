@@ -433,9 +433,15 @@ export default function JobPipelinePage() {
           <section aria-label={`${stageDef.label} candidates`}>
             <div className="jpp-col-head">
               <span className="jpp-col-head__title">{stageDef.label}</span>
+              {/* "Need Review" button removed pre-pitch — it was a no-op: its
+                  onClick re-selected visibleCards[0], the top card the
+                  auto-select effect already highlights on every stage change,
+                  while the label implied a triage/filter action that isn't
+                  built. Restore once a real triage filter exists.
               <button type="button" className="jpp-col-head__action" onClick={() => setSelectedAppId(visibleCards[0]?.id || null)}>
                 Need Review
               </button>
+              */}
             </div>
 
             {apps === null && <p className="jpp-empty-cards">Loading candidates…</p>}
@@ -654,6 +660,14 @@ function CandidateDetail({
   const sector     = cv.sector || cv.industry || personal.industry || "";
   const compensation = cv.compensation || cv.expected_salary || personal.expected_salary || "";
   const positionPreference = cv.position_preference || personal.work_mode || "";
+  // Guard the "Looking for Position" grid the same way Skills / Experience /
+  // Education are guarded — hide the whole block when the candidate carries no
+  // preference data (e.g. upload-only applicants with no parsed cv_snapshot)
+  // rather than rendering a wall of six "—" cells.
+  const hasLookingForData = Boolean(
+    personal.location || positionPreference || personal.job_type ||
+    cv.job_type || compensation || sector || desiredJob
+  );
   const screeningAnswers = Array.isArray(candidate.cv_snapshot?.screening_answers)
     ? candidate.cv_snapshot.screening_answers
     : (Array.isArray(candidate.screening_answers) ? candidate.screening_answers : []);
@@ -787,6 +801,7 @@ function CandidateDetail({
         </section>
       )}
 
+      {hasLookingForData && (
       <section className="jpp-section">
         <h3 className="jpp-section__title">Looking for Position</h3>
         <div className="jpp-grid3">
@@ -816,6 +831,7 @@ function CandidateDetail({
           </div>
         </div>
       </section>
+      )}
 
       {experience.length > 0 && (
         <section className="jpp-section">
