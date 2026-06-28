@@ -169,9 +169,15 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
              (market === "all" || (j.market || "gulf") === market)
     ).length;
 
+    // "Shortlisted" = explicitly shortlisted OR advanced past it. new/submitted/
+    // viewed share rank 0 with "shortlisted" (all sit in the Shortlist stage), so
+    // rank alone can't gate this — without the status check it would count every
+    // non-rejected applicant and read identical to "Applicants". Match the
+    // "shortlisted" status explicitly, then add everyone at rank >= 1
+    // (ready/interviewing/interviewed/offered/hired).
     const funnel = {
       applicants: fApps.length,
-      shortlisted: fApps.filter((a) => rankOf(a.status) >= 0).length,
+      shortlisted: fApps.filter((a) => a.status === "shortlisted" || rankOf(a.status) >= 1).length,
       interviewed: fApps.filter((a) => rankOf(a.status) >= 2).length,
       offered: fApps.filter((a) => rankOf(a.status) >= 3).length,
       hired: fApps.filter((a) => rankOf(a.status) >= 4).length,
@@ -366,7 +372,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
         <StatCard label="Active Jobs" value={model.activeJobs} />
         <StatCard label="Applicants" value={f.applicants} />
         <StatCard label="Shortlisted" value={f.shortlisted} />
-        <StatCard label="Interviews" value={f.interviewed} />
+        <StatCard label="Interviewed" value={f.interviewed} />
         <StatCard label="Hires" value={f.hired} goal />
       </motion.div>
 
