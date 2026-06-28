@@ -124,10 +124,10 @@ export const GUIDE_STEPS = [
     upsell: true,
     twoPhase: true,
     textPhase1: "Almost there. A cover letter doubles your callback rate.",
-    textPhase2: "Cover Letter: AED 10. Or unlock everything with Full Pro Pass — AED 25.",
+    textPhase2: "Cover Letter: AED 10. Or unlock everything — AED 29/mo.",
     btns: [
       { label: 'Get Cover Letter — AED 10', style: 'amber' },
-      { label: 'Full Pro Pass — AED 25', style: 'shimmer' },
+      { label: 'Unlock Everything — AED 29/mo', style: 'shimmer' },
       { label: 'Skip → Download my CV', style: 'skip' }
     ]
   },
