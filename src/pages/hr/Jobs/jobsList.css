@@ -465,6 +465,29 @@
   .hjl-empty--onboard { padding: 56px 32px; }
 }
 
+/* ── Phone (≤600px / iPhone 14 = 393px): stop edge clipping ──── */
+@media (max-width: 600px) {
+  /* Topbar: the 1fr/auto/1fr grid pushed the Request Talent + bell
+     cluster wider than the row (clipped). Wrap it, trim the 32px side
+     padding. (HrShell already hides the wordmark + UserMenu here.) */
+  .hjl-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 12px 16px;
+  }
+  .hjl-center { display: none; }
+  .hjl-right { gap: 10px; }
+  .hjl-cta { padding: 0 13px; }
+
+  /* 32px side padding was too wide at 393px — matches the iOS Safari
+     rule (the dashboard fix went 28px -> 16px). Covers both the Jobs
+     list and the Insights tab, which share this page wrapper. */
+  .hjl-page { padding: 20px 16px 48px; }
+}
+
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .hjl-cta, .hjl-icon-btn, .hjl-userpill, .hjl-toggle__btn, .hjl-table__row, .hjl-search input {
