@@ -136,6 +136,10 @@ export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, 
     company: job?.company || "",
   }), [candidate?.name, job?.title, job?.company]);
 
+  // No phone → no recipient. We never build a recipient-less wa.me link;
+  // the send button is disabled with a small note instead.
+  const hasPhone = !!digitsOf(candidate?.phone);
+
   const applyTemplate = (key, nextTone) => {
     const tpl = TEMPLATES.find((t) => t.key === key) || TEMPLATES[0];
     setMessage(substitute(tpl.body[nextTone] || tpl.body.gulf, vars));
@@ -203,6 +207,7 @@ export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, 
   }
 
   function openWhatsApp() {
+    if (!digitsOf(candidate?.phone)) return; // never open a recipient-less wa.me link
     const href = buildWaLink(candidate?.phone, message);
     if (typeof window !== "undefined") window.open(href, "_blank", "noopener,noreferrer");
     logOutreach("whatsapp_outreach");
@@ -288,8 +293,13 @@ export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, 
             <footer className="wac-foot">
               <button type="button" className="wac-replied" onClick={markReplied}>Mark replied</button>
               <span className="wac-foot__spacer" />
+              {!hasPhone && (
+                <span className="wac-nophone" role="status" style={{ fontSize: 12, color: "var(--pj-muted)", alignSelf: "center", marginRight: 2 }}>
+                  No phone number on file
+                </span>
+              )}
               <button type="button" className="pj-btn pj-btn--ghost" onClick={onClose}>Cancel</button>
-              <button type="button" className="wac-send" onClick={openWhatsApp} disabled={!message.trim()}>
+              <button type="button" className="wac-send" onClick={openWhatsApp} disabled={!message.trim() || !hasPhone}>
                 <WaIcon size={15} /> Open in WhatsApp
               </button>
             </footer>
@@ -313,10 +323,12 @@ function fmtWhen(s) {
 
 export function OutreachHistory({ hrId, candidateId, refreshKey }) {
   const [events, setEvents] = useState([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!hrId || !candidateId) { setEvents([]); return undefined; }
+    if (!hrId || !candidateId) { setEvents([]); setLoaded(true); return undefined; }
     let live = true;
+    setLoaded(false);
     (async () => {
       const { data } = await supabase
         .from("candidate_events")
@@ -326,12 +338,25 @@ export function OutreachHistory({ hrId, candidateId, refreshKey }) {
         .in("event_type", ["whatsapp_outreach", "whatsapp_replied"])
         .order("created_at", { ascending: false })
         .limit(20);
-      if (live) setEvents(data || []);
+      if (live) { setEvents(data || []); setLoaded(true); }
     })();
     return () => { live = false; };
   }, [hrId, candidateId, refreshKey]);
 
-  if (!events.length) return null;
+  // Hold render until the first fetch resolves so we don't flash the empty
+  // state for a candidate who actually has history.
+  if (!loaded) return null;
+
+  if (!events.length) {
+    return (
+      <section className="jpp-section">
+        <h3 className="jpp-section__title">Outreach</h3>
+        <p className="jpp-timeline__sub" style={{ margin: 0, color: "var(--pj-muted)" }}>
+          No messages yet — WhatsApp outreach you send to this candidate will show up here.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="jpp-section">
