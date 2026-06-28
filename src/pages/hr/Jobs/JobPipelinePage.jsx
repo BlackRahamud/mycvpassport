@@ -695,7 +695,7 @@ function CandidateDetail({
           availability: cv.notice_period || cv.availability || personal.notice_period || "",
         }}
         onReachOut={onReachOut}
-        onViewAnalysis={() => setShowAnalysis(true)}
+        onViewAnalysis={(matchedKw.length + missingKw.length) > 0 ? () => setShowAnalysis(true) : undefined}
       />
 
       <header className="jpp-detail__head">

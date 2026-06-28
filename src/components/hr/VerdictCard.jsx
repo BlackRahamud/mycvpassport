@@ -220,9 +220,14 @@ export default function VerdictCard({ header, cacheKey, cvSnapshot, job, jobId, 
           </ul>
 
           <div className="vc-actions">
-            <button type="button" className="vc-btn vc-btn--ghost" onClick={onViewAnalysis}>
-              View full fit analysis
-            </button>
+            {/* Only render when the caller supplies a handler — i.e. there is
+                keyword content to reveal. Without this the button dead-clicks
+                for candidates whose scan produced no match/missing keywords. */}
+            {onViewAnalysis && (
+              <button type="button" className="vc-btn vc-btn--ghost" onClick={onViewAnalysis}>
+                View full fit analysis
+              </button>
+            )}
             <button type="button" className="vc-btn vc-btn--solid" onClick={() => onReachOut && onReachOut(data.whatsapp_cta_template)}>
               <WaIc /> Reach out via WhatsApp
             </button>

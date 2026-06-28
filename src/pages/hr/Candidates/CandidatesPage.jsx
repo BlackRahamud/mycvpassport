@@ -69,11 +69,6 @@ const MARKET_OPTIONS = [
   { key: "gulf", label: "Gulf" },
   { key: "india", label: "India" },
 ];
-const SCORE_OPTIONS = [
-  { key: "0", label: "Any" },
-  { key: "60", label: "60+" },
-  { key: "80", label: "80+" },
-];
 const EASE = [0.4, 0, 0.2, 1];
 
 /* ───────── Inline icons (feather-style, matching the portal) ───────── */
@@ -135,7 +130,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
           availability: cv.notice_period || cv.availability || personal.notice_period || "",
         }}
         onReachOut={onReachOut}
-        onViewAnalysis={() => setShowAnalysis(true)}
+        onViewAnalysis={(matchedKw.length + missingKw.length) > 0 ? () => setShowAnalysis(true) : undefined}
       />
 
       <header className="jpp-detail__head">
@@ -277,7 +272,6 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [market, setMarket] = useState("all");
   const [status, setStatus] = useState("all");
-  const [minScore, setMinScore] = useState("0");
   const [selectedKey, setSelectedKey] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialMessage, setComposerInitialMessage] = useState(null);
@@ -370,10 +364,8 @@ export default function CandidatesPage() {
     if (!rows) return null;
     const q = search.trim().toLowerCase();
     const bucket = STATUS_BUCKETS[status];
-    const min = Number(minScore) || 0;
     return rows.filter((c) => {
       if (market !== "all" && !c.markets.has(market)) return false;
-      if (min > 0 && (c.score || 0) < min) return false;
       if (bucket) {
         let any = false;
         c.statuses.forEach((s) => { if (bucket.has(s)) any = true; });
@@ -385,7 +377,7 @@ export default function CandidatesPage() {
       }
       return true;
     });
-  }, [rows, search, market, status, minScore]);
+  }, [rows, search, market, status]);
 
   const selected = useMemo(
     () => (filtered || []).find((c) => c.key === selectedKey) || null,
@@ -427,13 +419,6 @@ export default function CandidatesPage() {
                 onClick={() => setMarket(o.key)}>{o.label}</button>
             ))}
           </div>
-          <div className="hjl-toggle" role="radiogroup" aria-label="Minimum score">
-            {SCORE_OPTIONS.map((o) => (
-              <button key={o.key} type="button" role="radio" aria-checked={minScore === o.key}
-                className={`hjl-toggle__btn${minScore === o.key ? " hjl-toggle__btn--active" : ""}`}
-                onClick={() => setMinScore(o.key)}>{o.label}</button>
-            ))}
-          </div>
           <select className="cand-select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
             {STATUS_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
           </select>
@@ -463,7 +448,7 @@ export default function CandidatesPage() {
           <div className={`cand-layout${selected ? " cand-layout--detail" : ""}`}>
             <div className="cand-list">
               {filtered.length === 0 ? (
-                <p className="cand-nomatch">No candidates match these filters. Clear the search or widen the market/score.</p>
+                <p className="cand-nomatch">No candidates match these filters. Clear the search or widen the market.</p>
               ) : (
                 filtered.map((c, i) => (
                   <motion.button
