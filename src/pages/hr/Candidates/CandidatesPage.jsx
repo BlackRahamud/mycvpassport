@@ -6,6 +6,7 @@ import { supabase } from "../../../appSupabaseClient";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
 import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
+import BulkActions from "../../../components/hr/BulkActions";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
 import "../Jobs/jobsList.css";     // .hjl-toggle / .hjl-empty
@@ -70,6 +71,7 @@ const MARKET_OPTIONS = [
   { key: "india", label: "India" },
 ];
 const EASE = [0.4, 0, 0.2, 1];
+const SELECT_CAP = 50; // hard cap on bulk selection
 
 /* ───────── Inline icons (feather-style, matching the portal) ───────── */
 const SearchIc = () => (<svg className="cand-search__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>);
@@ -277,6 +279,13 @@ export default function CandidatesPage() {
   const [composerInitialMessage, setComposerInitialMessage] = useState(null);
   const [outreachTick, setOutreachTick] = useState(0);
 
+  // Bulk selection (distinct from `selectedKey`, which is the detail-panel
+  // pick). Set of candidate keys; hard-capped at SELECT_CAP.
+  const [checkedKeys, setCheckedKeys] = useState(() => new Set());
+  const [checkNotice, setCheckNotice] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState(null);
+
   useEffect(() => {
     let live = true;
     supabase.auth.getUser().then(({ data }) => { if (live) setUser(data?.user || null); });
@@ -384,6 +393,80 @@ export default function CandidatesPage() {
     [filtered, selectedKey]
   );
 
+  /* ── Bulk selection ────────────────────────────────────────── */
+  const pageKeys = useMemo(() => (filtered || []).map((c) => c.key), [filtered]);
+  const allPageChecked = pageKeys.length > 0 && pageKeys.every((k) => checkedKeys.has(k));
+  const someChecked = checkedKeys.size > 0;
+
+  const toggleCheck = (key) => {
+    setCheckedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) { next.delete(key); setCheckNotice(false); return next; }
+      if (next.size >= SELECT_CAP) { setCheckNotice(true); return prev; }
+      next.add(key);
+      return next;
+    });
+  };
+
+  const toggleSelectAllPage = () => {
+    setCheckedKeys((prev) => {
+      const next = new Set(prev);
+      if (allPageChecked) { pageKeys.forEach((k) => next.delete(k)); setCheckNotice(false); return next; }
+      let capped = false;
+      for (const k of pageKeys) {
+        if (next.has(k)) continue;
+        if (next.size >= SELECT_CAP) { capped = true; break; }
+        next.add(k);
+      }
+      setCheckNotice(capped);
+      return next;
+    });
+  };
+
+  const clearSelection = () => { setCheckedKeys(new Set()); setCheckNotice(false); setBulkError(null); };
+
+  // Resolve checked keys to candidate objects, ordered by list position so the
+  // WhatsApp queue's "first 10" is the first 10 the recruiter sees.
+  const selectedArr = useMemo(() => {
+    if (!rows || checkedKeys.size === 0) return [];
+    const order = new Map((filtered || rows).map((c, i) => [c.key, i]));
+    return rows
+      .filter((c) => checkedKeys.has(c.key))
+      .sort((a, b) => (order.has(a.key) ? order.get(a.key) : 1e9) - (order.has(b.key) ? order.get(b.key) : 1e9));
+  }, [rows, filtered, checkedKeys]);
+
+  // Bulk status: ONE .in('id', recordIds) update over each selected row's
+  // latest/displayed application only — never fans out to a person's other
+  // applications (status is job-specific). Optimistic with rollback on error.
+  const applyBulkStatus = async (statusValue) => {
+    if (!statusValue || bulkBusy || selectedArr.length === 0) return;
+    const recordIds = selectedArr.map((c) => c.record?.id).filter(Boolean);
+    if (!recordIds.length) return;
+    const affected = new Set(selectedArr.map((c) => c.key));
+    const prevRows = rows;
+    setBulkBusy(true);
+    setBulkError(null);
+    setRows((prev) => (prev || []).map((c) => {
+      if (!affected.has(c.key)) return c;
+      const apps = c.apps.slice();
+      if (apps[0]) apps[0] = { ...apps[0], status: statusValue };
+      return { ...c, record: { ...c.record, status: statusValue }, apps, statuses: new Set(apps.map((x) => x.status)) };
+    }));
+    try {
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: statusValue, updated_at: new Date().toISOString() })
+        .in("id", recordIds);
+      if (error) throw error;
+      clearSelection();
+    } catch (e) {
+      setRows(prevRows); // rollback
+      setBulkError("Couldn't update — please try again.");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const loading = rows === null;
   const totalCandidates = rows ? rows.length : 0;
 
@@ -446,31 +529,73 @@ export default function CandidatesPage() {
         {/* Data */}
         {!loading && totalCandidates > 0 && (
           <div className={`cand-layout${selected ? " cand-layout--detail" : ""}`}>
-            <div className="cand-list">
+            <div className="cand-list" style={{ paddingBottom: someChecked ? 96 : undefined }}>
               {filtered.length === 0 ? (
                 <p className="cand-nomatch">No candidates match these filters. Clear the search or widen the market.</p>
               ) : (
-                filtered.map((c, i) => (
-                  <motion.button
-                    type="button"
-                    key={c.key}
-                    className={`jpp-card cand-card${selectedKey === c.key ? " jpp-card--active" : ""}`}
-                    onClick={() => setSelectedKey(c.key)}
-                    initial={reduce ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.26, ease: EASE, delay: Math.min(i * 0.02, 0.16) }}
-                  >
-                    <div className="jpp-card__top">
-                      <span className="jpp-card__name">{c.name}</span>
-                    </div>
-                    <div className="cand-card__meta">
-                      <span className={`cand-market cand-market--${c.market === "india" ? "india" : "gulf"}`}>{c.market === "india" ? "India" : "Gulf"}</span>
-                      <span className="cand-card__jobs">{c.apps.length} {c.apps.length === 1 ? "job" : "jobs"}</span>
-                      <span className="cand-statuschip">{statusLabel(c.apps[0]?.status)}</span>
-                    </div>
-                    {c.email && <span className="cand-card__email">{c.email}</span>}
-                  </motion.button>
-                ))
+                <>
+                  {/* Select-all + live count + cap notice */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "2px 2px 8px" }}>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--pj-text-soft)" }}>
+                      <input
+                        type="checkbox"
+                        checked={allPageChecked}
+                        ref={(el) => { if (el) el.indeterminate = !allPageChecked && pageKeys.some((k) => checkedKeys.has(k)); }}
+                        onChange={toggleSelectAllPage}
+                        aria-label="Select all candidates on this page"
+                        style={{ width: 17, height: 17, accentColor: "var(--hjl-ink)", cursor: "pointer" }}
+                      />
+                      Select all ({filtered.length})
+                    </label>
+                    {someChecked && (
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--pj-text)" }}>{checkedKeys.size} selected</span>
+                    )}
+                    {checkNotice && (
+                      <span role="status" style={{ fontSize: 12, fontWeight: 600, color: "var(--hjl-pass)" }}>
+                        You can act on up to {SELECT_CAP} candidates at once
+                      </span>
+                    )}
+                  </div>
+
+                  {filtered.map((c, i) => {
+                    const checked = checkedKeys.has(c.key);
+                    return (
+                      <div key={c.key} style={{ display: "flex", alignItems: "stretch", gap: 10 }}>
+                        <label
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ display: "flex", alignItems: "center", paddingLeft: 2, cursor: "pointer" }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCheck(c.key)}
+                            aria-label={`Select ${c.name}`}
+                            style={{ width: 18, height: 18, accentColor: "var(--hjl-ink)", cursor: "pointer" }}
+                          />
+                        </label>
+                        <motion.button
+                          type="button"
+                          className={`jpp-card cand-card${selectedKey === c.key ? " jpp-card--active" : ""}`}
+                          onClick={() => setSelectedKey(c.key)}
+                          initial={reduce ? false : { opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.26, ease: EASE, delay: Math.min(i * 0.02, 0.16) }}
+                          style={{ flex: 1, boxShadow: checked ? "inset 0 0 0 1.5px var(--hjl-ink)" : undefined }}
+                        >
+                          <div className="jpp-card__top">
+                            <span className="jpp-card__name">{c.name}</span>
+                          </div>
+                          <div className="cand-card__meta">
+                            <span className={`cand-market cand-market--${c.market === "india" ? "india" : "gulf"}`}>{c.market === "india" ? "India" : "Gulf"}</span>
+                            <span className="cand-card__jobs">{c.apps.length} {c.apps.length === 1 ? "job" : "jobs"}</span>
+                            <span className="cand-statuschip">{statusLabel(c.apps[0]?.status)}</span>
+                          </div>
+                          {c.email && <span className="cand-card__email">{c.email}</span>}
+                        </motion.button>
+                      </div>
+                    );
+                  })}
+                </>
               )}
             </div>
 
@@ -503,6 +628,18 @@ export default function CandidatesPage() {
         hrId={user?.id}
         onLogged={() => setOutreachTick((t) => t + 1)}
       />
+
+      {someChecked && (
+        <BulkActions
+          selected={selectedArr}
+          onClear={clearSelection}
+          onApplyStatus={applyBulkStatus}
+          statusBusy={bulkBusy}
+          statusError={bulkError}
+          hrId={user?.id}
+          onLogged={() => setOutreachTick((t) => t + 1)}
+        />
+      )}
     </div>
   );
 }

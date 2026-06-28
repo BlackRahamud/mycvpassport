@@ -29,13 +29,39 @@ const EASE = [0.4, 0, 0.2, 1];
 function firstNameOf(full) {
   return String(full || "").trim().split(/\s+/)[0] || "there";
 }
-function digitsOf(phone) {
+export function digitsOf(phone) {
   return String(phone || "").replace(/\D/g, "");
+}
+
+/* Single source of truth for the wa.me deep link. Assisted send: opens
+   WhatsApp with the message prefilled — the recruiter taps send. Exported so
+   the bulk WhatsApp queue reuses the exact same link shape (no duplication). */
+export function buildWaLink(phone, message) {
+  return `https://wa.me/${digitsOf(phone)}?text=${encodeURIComponent(message || "")}`;
+}
+
+/* Single source of truth for writing a whatsapp_outreach / whatsapp_replied
+   row to candidate_events. Best-effort — logging never blocks the user.
+   Exported so the bulk queue logs identically to the single composer. */
+export async function logWhatsappEvent({ candidateId, jobId, hrId, eventType, metadata }) {
+  if (!candidateId || !hrId) return false; // guests without an auth id can't be logged
+  try {
+    await supabase.from("candidate_events").insert({
+      candidate_id: candidateId,
+      job_id: jobId || null,
+      hr_id: hrId,
+      event_type: eventType,
+      metadata: metadata || {},
+    });
+    return true;
+  } catch (_e) {
+    return false;
+  }
 }
 
 /* Built-in templates — no DB table. Token substitution on send. Copy is
    professional per the marketing rules (no superlatives / claims). */
-const TEMPLATES = [
+export const TEMPLATES = [
   {
     key: "intro", label: "Intro",
     body: {
@@ -73,7 +99,7 @@ const TEMPLATES = [
   },
 ];
 
-function substitute(text, vars) {
+export function substitute(text, vars) {
   return String(text || "")
     .replace(/\{first_name\}/g, vars.first_name || "there")
     .replace(/\{job_title\}/g, vars.job_title || "the role")
@@ -140,17 +166,14 @@ export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, 
   const onPickTone = (t) => { setTone(t); applyTemplate(templateKey, t); };
 
   async function logOutreach(eventType, extraMeta) {
-    if (!candidate?.id || !hrId) return; // guests without an auth id can't be logged
-    try {
-      await supabase.from("candidate_events").insert({
-        candidate_id: candidate.id,
-        job_id: job?.id || null,
-        hr_id: hrId,
-        event_type: eventType,
-        metadata: { template: templateKey, tone, preview: String(message).slice(0, 200), ...(extraMeta || {}) },
-      });
-      if (onLogged) onLogged();
-    } catch (_e) { /* logging is best-effort */ }
+    const ok = await logWhatsappEvent({
+      candidateId: candidate?.id,
+      jobId: job?.id,
+      hrId,
+      eventType,
+      metadata: { template: templateKey, tone, preview: String(message).slice(0, 200), ...(extraMeta || {}) },
+    });
+    if (ok && onLogged) onLogged();
   }
 
   async function runAiDraft() {
@@ -180,8 +203,7 @@ export default function WhatsAppComposer({ open, onClose, candidate, job, hrId, 
   }
 
   function openWhatsApp() {
-    const digits = digitsOf(candidate?.phone);
-    const href = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+    const href = buildWaLink(candidate?.phone, message);
     if (typeof window !== "undefined") window.open(href, "_blank", "noopener,noreferrer");
     logOutreach("whatsapp_outreach");
     if (onClose) onClose();
