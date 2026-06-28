@@ -425,6 +425,46 @@
 
 .hjl-empty__body { font-size: 13px; margin: 0; max-width: 380px; line-height: 1.55; }
 
+/* ── Fresh-agency onboarding empty state ────────────────────── */
+.hjl-empty--onboard { padding: 44px 24px; gap: 8px; }
+
+.hjl-onboard-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+  margin: 18px 0 22px;
+  text-align: left;
+}
+.hjl-onboard-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.hjl-onboard-step__num {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--hjl-ink);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+.hjl-onboard-step__text { display: flex; flex-direction: column; gap: 2px; }
+.hjl-onboard-step__title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--pj-text); }
+.hjl-onboard-step__body { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--pj-text-soft); }
+.hjl-onboard__cta { height: 40px; }
+
+@media (min-width: 560px) {
+  .hjl-empty--onboard { padding: 56px 32px; }
+}
+
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .hjl-cta, .hjl-icon-btn, .hjl-userpill, .hjl-toggle__btn, .hjl-table__row, .hjl-search input {

@@ -22,11 +22,11 @@ const SearchIc = () => (
   </svg>
 );
 /* ───────── Helpers ───────── */
-function formatStartDate(s) {
+function formatPostedDate(s) {
   if (!s) return "—";
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return "—";
-  // m/d/yyyy to match the mock format (8/17/2022)
+  // m/d/yyyy
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
@@ -68,11 +68,50 @@ function relativeFromNow(s) {
   return `${months} months ago`;
 }
 
-function shortJobRef(id) {
-  // Keep the visual rhythm of the mock's "# 31000-0012403742" subtitle.
-  const s = String(id || "").replace(/-/g, "");
-  if (!s) return "";
-  return `# ${s.slice(0, 5)}-${s.slice(5, 17).padEnd(12, "0")}`.toUpperCase();
+/* Fresh-agency onboarding empty state — the first thing a brand-new, empty
+   account sees on the open Jobs view. Designed (not a skeleton): headline,
+   3-step hint, single primary CTA into the post-job flow. */
+const ONBOARD_STEPS = [
+  { n: 1, title: "Post a job", body: "Tell us the role — our team helps you get it live in minutes." },
+  { n: 2, title: "Candidates land in your pipeline", body: "Applicants flow straight into your shortlist, ready to review." },
+  { n: 3, title: "Message them on WhatsApp", body: "Reach out in a tap — assisted, personalised per candidate." },
+];
+
+function EmptyOnboarding({ reduce, onPost }) {
+  return (
+    <motion.div
+      className="hjl-empty hjl-empty--onboard"
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.36, ease: [0.4, 0, 0.2, 1] }}
+    >
+      <p className="hjl-empty__title">Your hiring pipeline starts here</p>
+      <p className="hjl-empty__body">Post your first role and watch candidates flow in. Here's how it works:</p>
+
+      <div className="hjl-onboard-steps">
+        {ONBOARD_STEPS.map((s, i) => (
+          <motion.div
+            key={s.n}
+            className="hjl-onboard-step"
+            initial={reduce ? false : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1], delay: 0.08 + i * 0.07 }}
+          >
+            <span className="hjl-onboard-step__num" aria-hidden>{s.n}</span>
+            <div className="hjl-onboard-step__text">
+              <p className="hjl-onboard-step__title">{s.title}</p>
+              <p className="hjl-onboard-step__body">{s.body}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <button type="button" className="hjl-cta hjl-onboard__cta" onClick={onPost}>
+        <BriefcaseIc size={14} white />
+        Post your first job
+      </button>
+    </motion.div>
+  );
 }
 
 export default function JobsListPage() {
@@ -311,15 +350,27 @@ export default function JobsListPage() {
         )}
 
         {filtered && filtered.length === 0 && (
-          <div className="hjl-empty">
-            <p className="hjl-empty__title">{view === "open" ? "No open jobs" : "No past jobs"}</p>
-            <p className="hjl-empty__body">
-              {view === "open"
-                ? "Click Request Talent to post your first role — it'll show up here within seconds."
-                : "Closed roles you've previously posted will appear here."}
-              {error && <span style={{ display: "block", marginTop: 8, fontSize: 12, color: "var(--pj-muted)" }}>({error})</span>}
-            </p>
-          </div>
+          error ? (
+            <div className="hjl-empty">
+              <p className="hjl-empty__title">Couldn't load jobs</p>
+              <p className="hjl-empty__body">{error}</p>
+            </div>
+          ) : search.trim() ? (
+            <div className="hjl-empty">
+              <p className="hjl-empty__title">No matching jobs</p>
+              <p className="hjl-empty__body">Nothing matches “{search.trim()}”. Clear the search to see all your {view === "open" ? "open" : "past"} roles.</p>
+            </div>
+          ) : view === "past" ? (
+            <div className="hjl-empty">
+              <p className="hjl-empty__title">No past jobs</p>
+              <p className="hjl-empty__body">
+                Closed roles you've previously posted will appear here.
+                {error && <span style={{ display: "block", marginTop: 8, fontSize: 12, color: "var(--pj-muted)" }}>({error})</span>}
+              </p>
+            </div>
+          ) : (
+            <EmptyOnboarding reduce={reduce} onPost={() => navigate("/hr/post")} />
+          )
         )}
 
         {filtered && filtered.length > 0 && (
@@ -332,7 +383,7 @@ export default function JobsListPage() {
             <div className="hjl-table__head">
               <span>Job Title</span>
               <span>Salary</span>
-              <span>Start Date</span>
+              <span>Posted</span>
               <span>Last Activity</span>
               <span className="hjl-table__head--action">Action</span>
             </div>
@@ -354,10 +405,9 @@ export default function JobsListPage() {
                         {live ? "Active" : "Inactive"}
                       </span>
                     </div>
-                    <p className="hjl-table__id">{shortJobRef(j.id)}</p>
                   </div>
                   <span className="hjl-table__cell hjl-table__cell--salary">{formatSalary(j)}</span>
-                  <span className="hjl-table__cell">{formatStartDate(j.posted_at || j.created_at)}</span>
+                  <span className="hjl-table__cell">{formatPostedDate(j.posted_at || j.created_at)}</span>
                   <span className="hjl-table__cell hjl-table__cell--muted">{relativeFromNow(j.posted_at || j.created_at)}</span>
                   <button
                     type="button"
