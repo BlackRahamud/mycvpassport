@@ -1,5 +1,5 @@
 /**
- * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor
+ * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure
  *
  * Single Anthropic-helper router. Was three separate functions
  * (api/cover-letter.js, api/parse-resume.js, api/generate-linkedin-headline.js)
@@ -1307,6 +1307,189 @@ async function handleCandidateVerdict(req, res, body) {
 }
 
 // =====================================================================
+// Branch 7 — import_structure (HR bulk CV import parser)
+//
+// Structures browser-extracted CV plain text into a candidate snapshot for
+// the HR bulk-import flow. Real text in, structured JSON out — this is the
+// Phase-1-aligned parser CONTRACT, NOT the deprecated hardcoded scan. When
+// the canonical Phase-1 parser module lands it should back this action; until
+// then, import scoring quality is bounded by this prompt's parse fidelity.
+//
+// Folded in here (no new function) because the project is at the Vercel Hobby
+// 12-function ceiling — same reason verdict / whatsapp_draft live here.
+//
+// Auth: light — any signed-in user (mirrors candidate_verdict / whatsapp_draft;
+// the HR's job ownership is enforced at INSERT time by RLS, not here). Cheap
+// model (Haiku) because a batch is up to 20 calls.
+//
+// Request:  { text }                       (plain text from services/cvExtraction)
+// Response: { ok: true, snapshot: {...} }   (cv_snapshot shape the pipeline +
+//                                            candidate_verdict already read)
+// =====================================================================
+
+const IMPORT_STRUCTURE_MODEL = process.env.IMPORT_STRUCTURE_MODEL || 'claude-haiku-4-5-20251001';
+
+function buildImportStructureSystem() {
+  return `You are an institutional-grade CV parsing engine for the India -> Gulf (UAE/GCC) recruitment corridor. You convert raw CV text into a single strict JSON candidate snapshot. You never invent data: if a field is not present in the text, omit it or use null. ASCII punctuation only. No commentary, no markdown, JSON only.`;
+}
+
+function buildImportStructurePrompt(text) {
+  return `Parse the following CV text into ONE strict JSON object with EXACTLY these keys:
+
+{
+  "name": string | null,
+  "email": string | null,
+  "phone": string | null,
+  "location": string | null,
+  "desired_job": string | null,
+  "summary": string | null,
+  "visa_status": string | null,
+  "notice_period": string | null,
+  "skills": string[],
+  "experience": [
+    { "title": string | null, "company": string | null, "location": string | null, "start_date": string | null, "end_date": string | null, "bullets": string[] }
+  ],
+  "education": [
+    { "degree": string | null, "field": string | null, "school": string | null, "location": string | null, "start_date": string | null, "end_date": string | null }
+  ]
+}
+
+RULES:
+- Dates are human-readable strings (e.g. "Jan 2022", "Present"), never timestamps.
+- "name" is the candidate's full name from the header. "email" / "phone" are the candidate's own contact details if present.
+- "desired_job" is the current or target role/headline.
+- "visa_status" / "notice_period" only if the CV states them (common in Gulf CVs); else null.
+- "skills" is a flat array of distinct skill / tool strings (max 25). Empty array if none.
+- Preserve the candidate's real achievements in "bullets". Never fabricate metrics, employers, dates, or qualifications.
+- If the text is too garbled to parse, return the object with name null and empty arrays.
+
+CV TEXT:
+<<<
+${String(text || '').slice(0, 14000)}
+>>>
+
+Return the JSON object only.`;
+}
+
+// Coerce the model output into the exact snapshot shape, dropping anything
+// malformed so the client + DB never see surprises. Mirrors the field names
+// the pipeline (getCv/deriveSkills) and candidate_verdict already read, and
+// also nests personal.location so the "Looking for Position" grid populates.
+function normaliseImportSnapshot(p) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
+  const str = (v) => {
+    const s = v == null ? '' : String(v).trim();
+    return s ? s.slice(0, 400) : null;
+  };
+  const arrStr = (a, max) => (Array.isArray(a)
+    ? a.map((x) => String(x == null ? '' : (typeof x === 'string' ? x : (x.name || x.label || ''))).trim()).filter(Boolean).slice(0, max)
+    : []);
+  const experience = Array.isArray(p.experience) ? p.experience.slice(0, 12).map((e) => ({
+    title: str(e?.title || e?.role),
+    company: str(e?.company || e?.employer),
+    location: str(e?.location),
+    start_date: str(e?.start_date),
+    end_date: str(e?.end_date),
+    bullets: Array.isArray(e?.bullets)
+      ? e.bullets.map((b) => String(b || '').trim()).filter(Boolean).slice(0, 12)
+      : (str(e?.description) ? [str(e.description)] : []),
+  })) : [];
+  const education = Array.isArray(p.education) ? p.education.slice(0, 8).map((e) => ({
+    degree: str(e?.degree),
+    field: str(e?.field),
+    school: str(e?.school || e?.institution),
+    location: str(e?.location),
+    start_date: str(e?.start_date),
+    end_date: str(e?.end_date),
+  })) : [];
+  const location = str(p.location);
+  const desired_job = str(p.desired_job || p.target_role);
+  return {
+    name: str(p.name),
+    email: str(p.email),
+    phone: str(p.phone),
+    location,
+    desired_job,
+    summary: str(p.summary),
+    visa_status: str(p.visa_status),
+    notice_period: str(p.notice_period),
+    skills: arrStr(p.skills, 25),
+    experience,
+    education,
+    // Nested mirror so the pipeline detail grid (cv.personal.*) populates
+    // without the client having to reshape.
+    personal: { location, headline: desired_job, job_type: str(p.job_type) },
+  };
+}
+
+async function handleImportStructure(req, res, body) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ ok: false, error: 'AI Engine is not configured.' });
+  }
+  // Light auth — any signed-in user (mirrors candidate_verdict).
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized. Please sign in.' });
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { user } = {}, error } = await authClient.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired session.' });
+    } catch {
+      return res.status(401).json({ ok: false, error: 'Could not verify session.' });
+    }
+  }
+
+  const text = String(body.text || '').trim();
+  if (text.length < 30) {
+    return res.status(400).json({ ok: false, error: 'CV text is missing or too short to parse.' });
+  }
+
+  try {
+    const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: IMPORT_STRUCTURE_MODEL,
+        max_tokens: 2000,
+        temperature: 0.2,
+        system: buildImportStructureSystem(),
+        messages: [{ role: 'user', content: buildImportStructurePrompt(text) }],
+      }),
+    }, 3, 8000);
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+    }
+    let data;
+    try { data = JSON.parse(responseText); } catch { return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' }); }
+    const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
+    const cleaned = String(raw).replace(/```json|```/g, '').trim();
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    let parsed;
+    try {
+      parsed = JSON.parse(firstBrace > -1 && lastBrace > -1 ? cleaned.slice(firstBrace, lastBrace + 1) : cleaned);
+    } catch {
+      return res.status(502).json({ ok: false, error: 'AI returned an unparseable CV. Please retry.' });
+    }
+    const snapshot = normaliseImportSnapshot(parsed);
+    if (!snapshot) return res.status(502).json({ ok: false, error: 'AI returned an incomplete CV. Please retry.' });
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).json({ ok: true, snapshot });
+  } catch (err) {
+    console.error('[ai/import_structure]', String(err?.message || err).slice(0, 200));
+    return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+  }
+}
+
+// =====================================================================
 // Router
 // =====================================================================
 
@@ -1342,9 +1525,10 @@ export default async function handler(req, res) {
     case 'tailor':             return handleTailor(req, res, body);
     case 'whatsapp_draft':     return handleWhatsappDraft(req, res, body);
     case 'candidate_verdict':  return handleCandidateVerdict(req, res, body);
+    case 'import_structure':   return handleImportStructure(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure.',
       });
   }
 }

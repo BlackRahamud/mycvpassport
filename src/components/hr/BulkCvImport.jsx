@@ -24,6 +24,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
+import safeFetch from "../../lib/net/safeFetch";
 import { extractCvText, CvExtractionError } from "../../services/cvExtraction";
 import "./bulkCvImport.css";
 
@@ -70,6 +71,13 @@ function sizeLabel(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function nameFromFile(file) {
+  const base = String(file?.name || "").replace(/\.[^.]+$/, "").trim();
+  // Strip common separators so "john_doe-cv" reads as "john doe cv" → titlecase
+  const cleaned = base.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return cleaned || "Imported candidate";
+}
+
 function fileExt(file) {
   const name = String(file?.name || "").toLowerCase();
   const ext = (name.split(".").pop() || "").replace(/[^a-z0-9]/g, "");
@@ -95,10 +103,10 @@ function errorHint(err) {
 }
 
 const STATUS_META = {
-  queued:       { label: "Queued",          tone: "idle" },
-  working:      { label: "Working",         tone: "work" },
-  ready:        { label: "Read",            tone: "ready" },
-  error:        { label: "Failed",          tone: "error" },
+  queued:       { label: "Queued",  tone: "idle" },
+  working:      { label: "Working", tone: "work" },
+  done:         { label: "Added",   tone: "ready" },
+  error:        { label: "Failed",  tone: "error" },
 };
 
 export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImported }) {
@@ -195,7 +203,65 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
       return;
     }
 
-    update(item.id, { status: "ready", stage: null, text: extracted.text, path, ocr: extracted.ocr });
+    // 3. Structure the extracted text into a candidate snapshot via the
+    //    Phase-1-aligned parser contract (/api/ai?action=import_structure).
+    update(item.id, { stage: "Structuring…", text: extracted.text, path, ocr: extracted.ocr });
+    let snapshot = null;
+    try {
+      const { data: { session } = {} } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("auth");
+      const res = await safeFetch("/api/ai?action=import_structure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: extracted.text }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok || !out.snapshot) throw new Error(out.error || "structure failed");
+      snapshot = out.snapshot;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[bulk-import] structure failed:", err?.message || err);
+      update(item.id, { status: "error", stage: null, error: "Couldn't read this CV — retry." });
+      return;
+    }
+
+    // 4. Create the application row (candidate_id NULL, source='imported').
+    //    Scored in chunk E — ats_score 0 / score_source 'import_pending' here.
+    update(item.id, { stage: "Adding to pipeline…", snapshot });
+    const candidateName = snapshot.name || nameFromFile(item.file);
+    try {
+      const { data, error } = await supabase
+        .from("applications")
+        .insert({
+          job_id: jobId,
+          hr_id: hrId,
+          candidate_id: null,
+          source: "imported",
+          status: "new",
+          is_visible_to_hr: true,
+          cv_snapshot: snapshot,
+          cv_file_path: path,
+          candidate_name: candidateName,
+          candidate_email: snapshot.email || null,
+          candidate_phone: snapshot.phone || null,
+          visa_status: snapshot.visa_status || null,
+          ats_score: 0,
+          score_source: "import_pending",
+          applied_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      update(item.id, { status: "done", stage: null, applicationId: data?.id || null, candidateName });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[bulk-import] insert failed:", err?.message || err);
+      const msg = /row-level security|policy/i.test(String(err?.message || ""))
+        ? "Insert blocked — run migration 023."
+        : "Couldn't add to pipeline — retry.";
+      update(item.id, { status: "error", stage: null, error: msg });
+    }
   }, [hrId, jobId, update]);
 
   const pendingItems = useMemo(
@@ -218,17 +284,17 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
     setRunning(false);
   }, [items, running, processOne]);
 
-  const readyCount = items.filter((it) => it.status === "ready").length;
+  const doneCount = items.filter((it) => it.status === "done").length;
   const errorCount = items.filter((it) => it.status === "error").length;
   const doneAll = items.length > 0 && pendingItems.length === 0 && !running;
 
   const handleClose = useCallback(() => {
     if (running) return; // don't tear down mid-batch
-    if (readyCount > 0 && onImported) onImported();
+    if (doneCount > 0 && onImported) onImported();
     setItems([]);
     setNotice(null);
     onClose && onClose();
-  }, [running, readyCount, onImported, onClose]);
+  }, [running, doneCount, onImported, onClose]);
 
   return (
     <AnimatePresence>
@@ -335,9 +401,9 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
                         </span>
                         <span className={`bci-pill bci-pill--${meta.tone}`}>
                           {it.status === "working" && <span className="bci-pill__spin" aria-hidden="true" />}
-                          {it.status === "ready" && <CheckIc />}
+                          {it.status === "done" && <CheckIc />}
                           {it.status === "error" && <AlertIc />}
-                          {it.status === "ready" ? meta.label : it.status === "working" ? "Reading" : meta.label}
+                          {it.status === "working" ? "Working" : meta.label}
                         </span>
                         {!running && it.status !== "working" && (
                           <button
@@ -360,7 +426,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
             <div className="bci-foot">
               <span className="bci-foot__count">
                 {items.length > 0
-                  ? `${items.length} file${items.length === 1 ? "" : "s"}${readyCount ? ` · ${readyCount} read` : ""}${errorCount ? ` · ${errorCount} failed` : ""}`
+                  ? `${items.length} file${items.length === 1 ? "" : "s"}${doneCount ? ` · ${doneCount} added` : ""}${errorCount ? ` · ${errorCount} failed` : ""}`
                   : "No files yet"}
               </span>
               <div className="bci-foot__actions">
@@ -376,8 +442,8 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
                     disabled={running || pendingItems.length === 0}
                   >
                     {running
-                      ? "Reading…"
-                      : `Read ${pendingItems.length || ""} CV${pendingItems.length === 1 ? "" : "s"}`.replace("  ", " ")}
+                      ? "Importing…"
+                      : `Import ${pendingItems.length || ""} CV${pendingItems.length === 1 ? "" : "s"}`.replace("  ", " ")}
                   </button>
                 )}
               </div>
