@@ -9,6 +9,7 @@ import VerdictCard from "../../../components/hr/VerdictCard";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
 import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
+import BulkCvImport from "../../../components/hr/BulkCvImport";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
@@ -180,6 +181,8 @@ export default function JobPipelinePage() {
   const [job, setJob] = useState(null);
   const [jobError, setJobError] = useState(null);
   const [apps, setApps] = useState(null); // null = loading
+  const [appsTick, setAppsTick] = useState(0); // bump to refetch (e.g. after bulk import)
+  const [importOpen, setImportOpen] = useState(false);
   const [activeStage, setActiveStage] = useState("shortlist");
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [noteDraft, setNoteDraft] = useState("");
@@ -256,7 +259,7 @@ export default function JobPipelinePage() {
       setApps(data || []);
     })();
     return () => { live = false; };
-  }, [jobId]);
+  }, [jobId, appsTick]);
 
   /* Stage counts + active filter */
   const stageBuckets = useMemo(() => {
@@ -433,6 +436,17 @@ export default function JobPipelinePage() {
           <section aria-label={`${stageDef.label} candidates`}>
             <div className="jpp-col-head">
               <span className="jpp-col-head__title">{stageDef.label}</span>
+              {activeStage === "shortlist" && (
+                <button
+                  type="button"
+                  className="jpp-col-head__import"
+                  onClick={() => setImportOpen(true)}
+                  title="Bulk-upload existing CVs into this pipeline"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                  Import CVs
+                </button>
+              )}
               {/* "Need Review" button removed pre-pitch — it was a no-op: its
                   onClick re-selected visibleCards[0], the top card the
                   auto-select effect already highlights on every stage change,
@@ -567,6 +581,15 @@ export default function JobPipelinePage() {
         job={job ? { id: job.id, title: job.title } : null}
         hrId={user?.id}
         onScheduled={() => setInterviewTick((t) => t + 1)}
+      />
+
+      <BulkCvImport
+        open={importOpen && !!job && !!user?.id}
+        jobId={jobId}
+        job={job}
+        hrId={user?.id}
+        onClose={() => setImportOpen(false)}
+        onImported={() => setAppsTick((t) => t + 1)}
       />
 
       <AnimatePresence>
