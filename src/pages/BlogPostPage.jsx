@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import POSTS from "../data/posts";
+import { BlogNav, CtaBand, BlogFooter, Reveal } from "./BlogChrome";
 import "./BlogPage.css";
 import "./BlogPostPage.css";
 
@@ -36,82 +36,72 @@ function renderInline(text) {
   return out;
 }
 
-function Badges({ items }) {
-  return (
-    <div className="blog-card__badges">
-      {items.map((b) => (
-        <span key={b.label} className={`blog-badge blog-badge--${b.tone}`}>{b.label}</span>
-      ))}
-    </div>
-  );
-}
-
-function RelatedCard({ post }) {
-  return (
-    <Link to={`/blog/${post.slug}`} className="blog-card-link">
-      <article className="blog-card">
-        <img src={post.image} alt="" className="blog-card__image" />
-        <p className="blog-card__meta">{post.author}&nbsp;&middot; {post.date}</p>
-        <h3 className="blog-card__title">
-          <span>{post.title}</span>
-          <span className="blog-card__arrow" aria-hidden>↗</span>
-        </h3>
-        <p className="blog-card__excerpt">{post.excerpt}</p>
-        <Badges items={post.badges} />
-      </article>
-    </Link>
-  );
-}
-
-function BlogNav({ onHamburger }) {
-  return (
-    <nav className="blog-nav">
-      <Link className="blog-nav__logo" to="/">CVPassport</Link>
-      <div className="blog-nav__right">
-        <div className="blog-nav__links">
-          <Link className="blog-nav__link is-active" to="/blog">Blog</Link>
-          <Link className="blog-nav__link" to="/tools">Tools</Link>
-          <Link className="blog-nav__link" to="/pricing">Pricing</Link>
-          <Link className="blog-nav__link" to="/#newsletter">Newsletter</Link>
+function renderBlock(block, i) {
+  switch (block.type) {
+    case "h2":
+      return <h2 key={i} className="blog-post__h2">{block.text}</h2>;
+    case "h3":
+      return <h3 key={i} className="blog-post__h3">{block.text}</h3>;
+    case "quote":
+      return <blockquote key={i} className="blog-post__quote">{renderInline(block.text)}</blockquote>;
+    case "ul":
+      return (
+        <ul key={i} className="blog-post__ul">
+          {block.items.map((it, j) => <li key={j}>{renderInline(it)}</li>)}
+        </ul>
+      );
+    case "table":
+      return (
+        <div key={i} className="blog-post__table-wrap">
+          <table className="blog-post__table">
+            <thead>
+              <tr>{block.headers.map((h, j) => <th key={j}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, j) => (
+                <tr key={j}>{row.map((cell, k) => <td key={k}>{cell}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
-      <button
-        className="blog-nav__hamburger"
-        type="button"
-        aria-label="Open menu"
-        onClick={onHamburger}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <line x1="3" y1="7" x2="21" y2="7" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="17" x2="21" y2="17" />
-        </svg>
-      </button>
-    </nav>
-  );
+      );
+    case "cta":
+      return (
+        <p key={i} className="blog-post__cta-row">
+          <Link to={block.href} className="blog-post__cta-inline">{block.label}</Link>
+        </p>
+      );
+    case "hr":
+      return <hr key={i} className="blog-post__hr" />;
+    default:
+      return <p key={i}>{renderInline(block.text)}</p>;
+  }
 }
 
 function NotFound() {
   return (
     <div className="blog-page blog-post-page">
-      <BlogNav onHamburger={() => {}} />
+      <BlogNav active="/blog" />
       <div className="blog-post__notfound">
         <h1>Post not found</h1>
         <p>This article doesn&rsquo;t exist, or the link is mistyped.</p>
         <Link to="/blog" className="blog-post__back">← Back to Blog</Link>
       </div>
+      <BlogFooter />
     </div>
   );
 }
 
 export default function BlogPostPage() {
   const { slug } = useParams();
-  const [menuOpen, setMenuOpen] = useState(false);
 
-  const post = POSTS.find((p) => p.slug === slug);
-  if (!post) return <NotFound />;
+  const idx = POSTS.findIndex((p) => p.slug === slug);
+  if (idx === -1) return <NotFound />;
 
-  const related = POSTS.filter((p) => p.slug !== slug).slice(0, 2);
+  const post = POSTS[idx];
+  const prev = idx > 0 ? POSTS[idx - 1] : null;
+  const next = idx < POSTS.length - 1 ? POSTS[idx + 1] : null;
+
   const canonical = `https://www.mycvpassport.com/blog/${post.slug}`;
   const metaTitle = post.metaTitle || `${post.title} | CVPassport`;
   const metaDesc = post.metaDescription || post.excerpt;
@@ -132,118 +122,68 @@ export default function BlogPostPage() {
         <meta name="twitter:description" content={metaDesc} />
         {post.image && <meta name="twitter:image" content={post.image} />}
       </Helmet>
-      <BlogNav onHamburger={() => setMenuOpen(true)} />
 
-      <div className="blog-post__layout">
-        <article className="blog-post__article">
+      <BlogNav active="/blog" />
+
+      <article className="blog-post">
+        <Reveal className="blog-post__header" as="header">
+          <span className="blog-post__eyebrow">{post.category}</span>
           <h1 className="blog-post__title">{post.title}</h1>
+          <p className="blog-post__meta-row">
+            <span>{post.date}</span>
+            <span className="blog-post__meta-sep" aria-hidden>·</span>
+            <span>{post.author}</span>
+            {post.readTime && (
+              <>
+                <span className="blog-post__meta-sep" aria-hidden>·</span>
+                <span>{post.readTime}</span>
+              </>
+            )}
+          </p>
+        </Reveal>
 
-          <div className="blog-post__meta-row">
-            <span className={`blog-badge blog-badge--${post.badges[0]?.tone || "purple"}`}>{post.category}</span>
-            <span className="blog-post__meta-sep">·</span>
-            <span className="blog-post__meta-text">{post.readTime}</span>
-            <span className="blog-post__meta-sep">·</span>
-            <span className="blog-post__meta-text">By {post.author} · Dubai, UAE</span>
-          </div>
+        {post.image && (
+          <img src={post.image} alt={post.title} className="blog-post__hero" />
+        )}
 
-          <img src={post.image} alt="" className="blog-post__hero" />
-
-          <div className="blog-post__body">
-            <p className="blog-post__lead">{post.excerpt}</p>
-
-            {post.body
-              ? post.body.map((block, i) => {
-                  if (block.type === "h2") {
-                    return <h2 key={i} className="blog-post__h2">{block.text}</h2>;
-                  }
-                  if (block.type === "h3") {
-                    return <h3 key={i} className="blog-post__h3">{block.text}</h3>;
-                  }
-                  if (block.type === "quote") {
-                    return <blockquote key={i} className="blog-post__quote">{renderInline(block.text)}</blockquote>;
-                  }
-                  if (block.type === "ul") {
-                    return (
-                      <ul key={i} className="blog-post__ul">
-                        {block.items.map((it, j) => <li key={j}>{renderInline(it)}</li>)}
-                      </ul>
-                    );
-                  }
-                  if (block.type === "table") {
-                    return (
-                      <div key={i} className="blog-post__table-wrap">
-                        <table className="blog-post__table">
-                          <thead>
-                            <tr>{block.headers.map((h, j) => <th key={j}>{h}</th>)}</tr>
-                          </thead>
-                          <tbody>
-                            {block.rows.map((row, j) => (
-                              <tr key={j}>{row.map((cell, k) => <td key={k}>{cell}</td>)}</tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  }
-                  if (block.type === "cta") {
-                    return (
-                      <p key={i} className="blog-post__cta-row">
-                        <Link to={block.href} className="blog-post__cta-inline">{block.label}</Link>
-                      </p>
-                    );
-                  }
-                  if (block.type === "hr") {
-                    return <hr key={i} className="blog-post__hr" />;
-                  }
-                  return <p key={i}>{renderInline(block.text)}</p>;
-                })
-              : (
-                <p>Full article coming soon. In the meantime, the summary above captures the key takeaway.</p>
-              )}
-          </div>
-
-          <Link to="/blog" className="blog-post__back">← Back to Blog</Link>
-        </article>
-
-        <aside className="blog-post__sidebar">
-          <div className="blog-post__cta-card">
-            <h3 className="blog-post__cta-title">Ready to build your UAE CV?</h3>
-            <p className="blog-post__cta-sub">Get your ATS score in 60 seconds.</p>
-            <Link to="/builder" className="blog-post__cta-btn">
-              Get Started Free →
-            </Link>
-          </div>
-        </aside>
-      </div>
-
-      {related.length > 0 && (
-        <section className="blog-section blog-post__related">
-          <h2 className="blog-section__heading">Related posts</h2>
-          <div className="blog-post__related-grid">
-            {related.map((p) => (
-              <RelatedCard key={p.slug} post={p} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {menuOpen && (
-        <div className="blog-mobile-menu" role="dialog" aria-modal="true">
-          <div className="blog-mobile-menu__logo">CVPassport</div>
-          <Link className="blog-mobile-menu__link" to="/blog" onClick={() => setMenuOpen(false)}>Blog</Link>
-          <Link className="blog-mobile-menu__link" to="/tools" onClick={() => setMenuOpen(false)}>Tools</Link>
-          <Link className="blog-mobile-menu__link" to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => setMenuOpen(false)}>Newsletter</button>
-          <button
-            className="blog-mobile-menu__close"
-            type="button"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
-          >
-            ✕
-          </button>
+        <div className="blog-post__body">
+          <p className="blog-post__lead">{post.excerpt}</p>
+          {post.body
+            ? post.body.map((block, i) => renderBlock(block, i))
+            : (
+              <p>
+                Full article coming soon. In the meantime, the summary above
+                captures the key takeaway.
+              </p>
+            )}
         </div>
-      )}
+
+        <Link to="/blog" className="blog-post__back">← Back to Blog</Link>
+
+        {(prev || next) && (
+          <nav className="blog-post__pn" aria-label="More posts">
+            {prev ? (
+              <Link to={`/blog/${prev.slug}`} className="blog-post__pn-link blog-post__pn-link--prev">
+                <span className="blog-post__pn-dir">← Previous</span>
+                <span className="blog-post__pn-title">{prev.title}</span>
+              </Link>
+            ) : <span />}
+            {next ? (
+              <Link to={`/blog/${next.slug}`} className="blog-post__pn-link blog-post__pn-link--next">
+                <span className="blog-post__pn-dir">Next →</span>
+                <span className="blog-post__pn-title">{next.title}</span>
+              </Link>
+            ) : <span />}
+          </nav>
+        )}
+      </article>
+
+      <CtaBand
+        title="Ready to build your Gulf-ready CV?"
+        primaryLabel="Build my CV free"
+        secondaryLabel="Check my ATS score"
+      />
+      <BlogFooter />
     </div>
   );
 }

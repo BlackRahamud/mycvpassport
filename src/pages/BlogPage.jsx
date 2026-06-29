@@ -1,9 +1,13 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import POSTS from "../data/posts";
+import { BlogNav, CtaBand, BlogFooter, Reveal, EASE_RISE } from "./BlogChrome";
+import { motion, useReducedMotion } from "framer-motion";
 import "./BlogPage.css";
 
+const PAGE_SIZE = 9;
+
 function Badges({ items }) {
+  if (!items?.length) return null;
   return (
     <div className="blog-card__badges">
       {items.map((b) => (
@@ -13,217 +17,133 @@ function Badges({ items }) {
   );
 }
 
-function Card({ post, variant = "default" }) {
-  if (variant === "horizontal") {
-    return (
-      <Link to={`/blog/${post.slug}`} className="blog-card-link">
-        <article className="blog-card blog-card--horizontal">
-          <img src={post.image} alt="" className="blog-card__image" />
-          <div className="blog-card__body">
-            <p className="blog-card__meta">{post.author}&nbsp;&middot; {post.date}</p>
-            <h3 className="blog-card__title">
-              <span>{post.title}</span>
-              <span className="blog-card__arrow" aria-hidden>↗</span>
-            </h3>
-            <p className="blog-card__excerpt">{post.excerpt}</p>
-            <Badges items={post.badges} />
-          </div>
-        </article>
-      </Link>
-    );
-  }
-  return (
-    <Link to={`/blog/${post.slug}`} className="blog-card-link">
-      <article className="blog-card">
-        <img src={post.image} alt="" className="blog-card__image" />
-        <p className="blog-card__meta">{post.author}&nbsp;&middot; {post.date}</p>
-        <h3 className="blog-card__title">
-          <span>{post.title}</span>
-          <span className="blog-card__arrow" aria-hidden>↗</span>
-        </h3>
-        <p className="blog-card__excerpt">{post.excerpt}</p>
-        <Badges items={post.badges} />
-      </article>
-    </Link>
+function Card({ post, index }) {
+  const reduce = useReducedMotion();
+  const inner = (
+    <article className="blog-card">
+      <img src={post.image} alt={post.title} className="blog-card__image" loading="lazy" />
+      <p className="blog-card__meta">{post.date}&nbsp;&middot; {post.author}</p>
+      <h2 className="blog-card__title">
+        <span>{post.title}</span>
+        <span className="blog-card__arrow" aria-hidden>↗</span>
+      </h2>
+      <p className="blog-card__excerpt">{post.excerpt}</p>
+      <Badges items={post.badges} />
+    </article>
   );
-}
 
-function TogglePill({ className = "blog-nav__toggle" }) {
+  if (reduce) {
+    return <Link to={`/blog/${post.slug}`} className="blog-card-link">{inner}</Link>;
+  }
+
+  // Stagger the cards in with the rise-and-fade, capped so later rows don't lag.
   return (
-    <span className={className} aria-hidden>
-      <span>☀︎</span>
-      <span>☾</span>
-    </span>
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.85, ease: EASE_RISE, delay: Math.min(index, 5) * 0.06 }}
+    >
+      <Link to={`/blog/${post.slug}`} className="blog-card-link">{inner}</Link>
+    </motion.div>
   );
 }
 
 export default function BlogPage() {
-  const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [params, setParams] = useSearchParams();
 
-  const featured = POSTS[0];
-  const stacked = [POSTS[1], POSTS[2]];
-  const wide = POSTS[3];
-  const rest = POSTS.slice(4);
+  const totalPages = Math.max(1, Math.ceil(POSTS.length / PAGE_SIZE));
+  const rawPage = parseInt(params.get("page") || "1", 10);
+  const page = Number.isNaN(rawPage) ? 1 : Math.min(Math.max(rawPage, 1), totalPages);
+
+  const start = (page - 1) * PAGE_SIZE;
+  const visible = POSTS.slice(start, start + PAGE_SIZE);
+
+  const goTo = (p) => {
+    setParams(p === 1 ? {} : { page: String(p) });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="blog-page">
-      {/* Navbar */}
-      <nav className="blog-nav">
-        <button className="blog-nav__logo" onClick={() => navigate("/")}>CVPassport</button>
-        <div className="blog-nav__right">
-          <div className="blog-nav__links">
-            <button className="blog-nav__link is-active" type="button">Blog</button>
-            <button className="blog-nav__link" type="button" onClick={() => navigate("/tools")}>Tools</button>
-            <button className="blog-nav__link" type="button" onClick={() => navigate("/pricing")}>Pricing</button>
-            <button className="blog-nav__link" type="button" onClick={() => navigate("/#newsletter")}>Newsletter</button>
-          </div>
-          <TogglePill />
-        </div>
-        <button
-          className="blog-nav__hamburger"
-          type="button"
-          aria-label="Open menu"
-          onClick={() => setMenuOpen(true)}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="3" y1="7" x2="21" y2="7" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="17" x2="21" y2="17" />
-          </svg>
-        </button>
-      </nav>
+      <BlogNav active="/blog" />
 
-      {/* Hero */}
-      <section className="blog-hero">
+      {/* Hero — espresso band */}
+      <header className="blog-hero">
         <div className="blog-hero__inner">
-          <h1 className="blog-hero__title">THE BLOG</h1>
-          <div className="blog-hero__art">
-            <img
-              src="/images/blog/passport-mockup.png"
-              alt="CVPassport passport mockup"
-              className="blog-hero__passport"
-            />
-          </div>
+          <Reveal>
+            <span className="blog-hero__eyebrow blog-hero__eyebrow--pulse">Blog</span>
+            <h1 className="blog-hero__title">
+              CV strategy for the India–Gulf corridor.
+            </h1>
+            <p className="blog-hero__lead">
+              Practical guides on UAE CV format, ATS scoring, visa-status lines, and
+              the moves that get Gulf recruiters to call back — written for South
+              Asian professionals navigating the Gulf job market.
+            </p>
+            <p className="blog-hero__lead">
+              Every post is grounded in how Gulf ATS systems actually read your CV,
+              and what to change before you hit submit.
+            </p>
+          </Reveal>
         </div>
-      </section>
+      </header>
 
-      {/* Recent blog posts */}
-      <section className="blog-section">
-        <h2 className="blog-section__heading">Recent blog posts</h2>
-        <div className="blog-recent-grid">
-          <Card post={featured} />
-          <div className="blog-recent-right">
-            {stacked.map((p) => (
-              <Card key={p.title} post={p} variant="horizontal" />
-            ))}
-          </div>
-        </div>
+      {/* Post-count bar */}
+      <div className="blog-countbar">
+        {POSTS.length} posts
+        <span className="blog-countbar__sep" aria-hidden>·</span>
+        Page {page} / {totalPages}
+      </div>
 
-        {/* Wide card */}
-        <Link to={`/blog/${wide.slug}`} className="blog-card-link">
-          <div className="blog-wide">
-            <img src={wide.image} alt="" className="blog-wide__image" />
-            <div className="blog-wide__body">
-              <p className="blog-card__meta">{wide.author}&nbsp;&middot; {wide.date}</p>
-              <h3 className="blog-card__title">
-                <span>{wide.title}</span>
-                <span className="blog-card__arrow" aria-hidden>↗</span>
-              </h3>
-              <p className="blog-card__excerpt">{wide.excerpt}</p>
-              <Badges items={wide.badges} />
-            </div>
-          </div>
-        </Link>
-      </section>
-
-      {/* All blog posts */}
-      <section className="blog-section">
-        <h2 className="blog-section__heading">All blog posts</h2>
-        <div className="blog-all-grid">
-          {rest.map((p) => (
-            <Card key={p.title} post={p} />
+      {/* Post grid */}
+      <section className="blog-grid-section" aria-label="Blog posts">
+        <div className="blog-grid">
+          {visible.map((post, i) => (
+            <Card key={post.slug} post={post} index={i} />
           ))}
         </div>
       </section>
 
       {/* Pagination */}
-      <div className="blog-pagination">
-        <button className="blog-pagination__btn blog-pagination__btn--prev" type="button">
-          <span aria-hidden>←</span> Previous
-        </button>
-        <div className="blog-pagination__pages">
-          <button className="blog-pagination__page is-active" type="button">1</button>
-          <button className="blog-pagination__page" type="button">2</button>
-          <button className="blog-pagination__page" type="button">3</button>
-          <span className="blog-pagination__dots">…</span>
-          <button className="blog-pagination__page" type="button">8</button>
-          <button className="blog-pagination__page" type="button">9</button>
-          <button className="blog-pagination__page" type="button">10</button>
-        </div>
-        <button className="blog-pagination__btn blog-pagination__btn--next" type="button">
-          Next <span aria-hidden>→</span>
-        </button>
-      </div>
-
-      {/* Newsletter */}
-      <section className="blog-newsletter" id="newsletter">
-        <p className="blog-newsletter__label">Newsletter</p>
-        <h2 className="blog-newsletter__title">Stories and interviews</h2>
-        <p className="blog-newsletter__subtitle">
-          Subscribe to learn about CV hacks, ATS insights, and Gulf-market
-          hiring signals from CVPassport.
-        </p>
-        <form
-          className="blog-newsletter__form"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
-          <input
-            className="blog-newsletter__input"
-            type="email"
-            placeholder="Enter your email"
-            required
-          />
-          <button className="blog-newsletter__submit" type="submit">Subscribe</button>
-        </form>
-        <p className="blog-newsletter__privacy">
-          We care about your data in our <a href="/privacy">privacy&nbsp;policy</a>.
-        </p>
-      </section>
-
-      {/* Footer */}
-      <footer className="blog-footer">
-        <span>© 2026 CVPassport</span>
-        <div className="blog-footer__links">
-          <a className="blog-footer__link" href="https://twitter.com" target="_blank" rel="noreferrer">Twitter</a>
-          <a className="blog-footer__link" href="https://linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a>
-          <a className="blog-footer__link" href="mailto:noreply@mycvpassport.com">Email</a>
-          <a className="blog-footer__link" href="/rss.xml">RSS feed</a>
-          <a className="blog-footer__link" href="https://feedly.com">Add to Feedly</a>
-        </div>
-      </footer>
-
-      {/* Mobile menu overlay */}
-      {menuOpen && (
-        <div className="blog-mobile-menu" role="dialog" aria-modal="true">
-          <div className="blog-mobile-menu__logo">CVPassport</div>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => setMenuOpen(false)}>Blog</button>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => { setMenuOpen(false); navigate("/tools"); }}>Tools</button>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => { setMenuOpen(false); navigate("/pricing"); }}>Pricing</button>
-          <button className="blog-mobile-menu__link" type="button" onClick={() => setMenuOpen(false)}>Newsletter</button>
-          <TogglePill className="blog-mobile-menu__toggle" />
+      {totalPages > 1 && (
+        <nav className="blog-pagination" aria-label="Pagination">
           <button
-            className="blog-mobile-menu__close"
             type="button"
-            aria-label="Close menu"
-            onClick={() => setMenuOpen(false)}
+            className="blog-pagination__nav"
+            aria-disabled={page === 1}
+            aria-label="Previous page"
+            onClick={() => page > 1 && goTo(page - 1)}
           >
-            ✕
+            ←
           </button>
-        </div>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`blog-pagination__page${p === page ? " is-active" : ""}`}
+              aria-current={p === page ? "page" : undefined}
+              onClick={() => goTo(p)}
+            >
+              {p}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            className="blog-pagination__nav"
+            aria-disabled={page === totalPages}
+            aria-label="Next page"
+            onClick={() => page < totalPages && goTo(page + 1)}
+          >
+            Next →
+          </button>
+        </nav>
       )}
+
+      <CtaBand />
+      <BlogFooter />
     </div>
   );
 }
