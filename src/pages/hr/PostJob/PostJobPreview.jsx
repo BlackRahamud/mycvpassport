@@ -29,15 +29,6 @@ function formatSalary(job) {
   return "—";
 }
 
-const PLACEHOLDER_SUMMARY =
-  "Erat facilisis mi nulla accumsan erat sit. Ac imperdiet felis, libero massa dolor. Nibh sed nec, non neque, platea eu mauris rat facilisis. Erat facilisis mi nulla accumsan erat sit. Ac imperdiet felis, libero massa dolor. Nibh sed nec, non neque, platea eu mauris rat facilisis.";
-
-const PLACEHOLDER_REQUIREMENTS = [
-  "Erat facilisis mi nulla accumsan erat sit. Ac imperdiet felis, libero massa dolor.",
-  "Nibh sed nec, non neque, platea eu mauris rat facilisis.",
-  "Erat facilisis mi nulla accumsan erat sit. Ac imperdiet felis, libero massa dolor.",
-];
-
 const ChartIcon = () => (
   <svg className="pj-stat__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
@@ -94,10 +85,9 @@ function PopulatedJobCard({ job, step }) {
   const salaryDisplay = formatSalary(job);
   const locationText = (job.location || "").trim();
   const showSummary = step === "job-description" || step === "hire";
-  const showRequirements = step === "hire";
 
   const userDescPlain = htmlToPlain(job.jobDescription || "").trim();
-  const summaryText = userDescPlain || PLACEHOLDER_SUMMARY;
+  const hasDescription = userDescPlain.length > 0;
 
   const list = { initial: {}, animate: { transition: { staggerChildren: 0.06, delayChildren: 0.18 } } };
   const item = {
@@ -133,26 +123,19 @@ function PopulatedJobCard({ job, step }) {
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.34, ease: [0.4, 0, 0.2, 1] }}
           >
-            <h4 className="pj-pcard__section-title">Job Summary:</h4>
-            <p className="pj-pcard__body">{summaryText}</p>
-          </motion.div>
-        )}
-        {showRequirements && (
-          <motion.div
-            key="reqs"
-            className="pj-pcard__section"
-            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.34, ease: [0.4, 0, 0.2, 1], delay: 0.06 }}
-          >
-            <h4 className="pj-pcard__section-title">Requirements:</h4>
-            <ul className="pj-pcard__list">
-              {PLACEHOLDER_REQUIREMENTS.map((r, i) => <li key={i}>{r}</li>)}
-            </ul>
+            <h4 className="pj-pcard__section-title">Job Summary</h4>
+            {hasDescription ? (
+              // First-party HTML authored in our Tiptap editor (schema-constrained
+              // to safe nodes/marks) — render it so formatting + images preview.
+              <div className="pj-pcard__rich" dangerouslySetInnerHTML={{ __html: job.jobDescription }} />
+            ) : (
+              <p className="pj-pcard__empty">No description added yet.</p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {(showSummary && !showRequirements) && (
+      {showSummary && hasDescription && (
         <button type="button" className="pj-pcard__see-more">See more <Chevron /></button>
       )}
     </motion.div>

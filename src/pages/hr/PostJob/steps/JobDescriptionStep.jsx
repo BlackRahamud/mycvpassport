@@ -1,7 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
+import TextAlign from "@tiptap/extension-text-align";
+import Placeholder from "@tiptap/extension-placeholder";
+import { uploadJobImage } from "../../../../services/uploadJobImage";
 
-/* Inline-icon glyphs — small, monoline, fall back to text when unrelated. */
+/* Inline-icon glyphs — small, monoline. */
 const Glyph = {
   B: () => <span style={{ fontWeight: 700 }}>B</span>,
   U: () => <span style={{ textDecoration: "underline" }}>U</span>,
@@ -9,6 +15,16 @@ const Glyph = {
   AlignLeft: () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/>
+    </svg>
+  ),
+  AlignCenter: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+    </svg>
+  ),
+  AlignRight: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/>
     </svg>
   ),
   Bullet: () => (
@@ -35,59 +51,111 @@ const Glyph = {
   Image: () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><polyline points="21 15 16 10 5 21"/>
-      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  ),
+  Spinner: () => (
+    <svg className="pj-tool-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <path d="M21 12a9 9 0 1 1-6.22-8.56" />
     </svg>
   ),
 };
 
-const TOOL_ROW_1 = [
-  { kind: "exec",   id: "bold",          label: "Bold",       cmd: "bold",          glyph: <Glyph.B /> },
-  { kind: "exec",   id: "underline",     label: "Underline",  cmd: "underline",     glyph: <Glyph.U /> },
-  { kind: "exec",   id: "italic",        label: "Italic",     cmd: "italic",        glyph: <Glyph.I /> },
-  { kind: "sep" },
-  { kind: "decor",  id: "align",         label: "Align",      glyph: <Glyph.AlignLeft /> },
-  { kind: "exec",   id: "bullet",        label: "Bullet list",cmd: "insertUnorderedList", glyph: <Glyph.Bullet /> },
-  { kind: "exec",   id: "numbered",      label: "Numbered",   cmd: "insertOrderedList",   glyph: <Glyph.Numbered /> },
-  { kind: "sep" },
-  { kind: "h1",     id: "h1",            label: "Heading",    glyph: <Glyph.H1 /> },
-  { kind: "link",   id: "link",          label: "Link",       glyph: <Glyph.Link /> },
-  { kind: "decor",  id: "image",         label: "Image",      glyph: <Glyph.Image /> },
-];
-
 export default function JobDescriptionStep({ value, onChange, onContinue, onBack }) {
   const reduce = useReducedMotion();
-  const editorRef = useRef(null);
+  const fileRef = useRef(null);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const [uploading, setUploading] = useState(false);
+  const [imgError, setImgError] = useState(null);
 
-  useEffect(() => {
-    if (editorRef.current && (value.jobDescription || "") !== editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = value.jobDescription || "";
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2] },
+        // Configure the bundled Link (no separate package needed in v3).
+        link: {
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: { rel: "noopener noreferrer nofollow", target: "_blank" },
+        },
+      }),
+      Image.configure({ inline: false, HTMLAttributes: { class: "pj-editor__img" } }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Placeholder.configure({
+        placeholder: "Describe the role, what success looks like, and what you're looking for in a candidate…",
+      }),
+    ],
+    content: value.jobDescription || "",
+    onUpdate: ({ editor: ed }) => {
+      const html = ed.isEmpty ? "" : ed.getHTML();
+      onChange({ ...valueRef.current, jobDescription: html });
+    },
+  });
 
-  const set = (patch) => onChange({ ...value, ...patch });
+  if (!editor) return null;
 
-  const exec = (cmd) => {
-    editorRef.current?.focus();
-    document.execCommand(cmd, false, null);
-    set({ jobDescription: editorRef.current?.innerHTML || "" });
+  // Toolbar buttons keep the editor selection: preventDefault on mousedown so
+  // the click never blurs the editor (the root cause the old execCommand bar
+  // tripped on).
+  const guard = (fn) => (e) => { e.preventDefault(); fn(); };
+
+  const cycleAlign = () => {
+    const next = editor.isActive({ textAlign: "center" })
+      ? "right"
+      : editor.isActive({ textAlign: "right" })
+        ? "left"
+        : "center";
+    editor.chain().focus().setTextAlign(next).run();
   };
-
-  const formatH1 = () => {
-    editorRef.current?.focus();
-    document.execCommand("formatBlock", false, "H1");
-    set({ jobDescription: editorRef.current?.innerHTML || "" });
-  };
+  const alignGlyph = editor.isActive({ textAlign: "center" })
+    ? <Glyph.AlignCenter />
+    : editor.isActive({ textAlign: "right" })
+      ? <Glyph.AlignRight />
+      : <Glyph.AlignLeft />;
 
   const insertLink = () => {
-    editorRef.current?.focus();
-    const url = window.prompt("Enter URL:");
-    if (!url) return;
-    document.execCommand("createLink", false, url);
-    set({ jobDescription: editorRef.current?.innerHTML || "" });
+    const prev = editor.getAttributes("link").href || "";
+    const url = window.prompt("Enter URL:", prev);
+    if (url === null) return;
+    if (url === "") { editor.chain().focus().extendMarkRange("link").unsetLink().run(); return; }
+    if (editor.state.selection.empty) {
+      editor.chain().focus().insertContent(`<a href="${url}">${url}</a>`).run();
+    } else {
+      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    }
   };
 
-  const onInput = () => set({ jobDescription: editorRef.current?.innerHTML || "" });
+  const pickImage = () => { setImgError(null); fileRef.current?.click(); };
+  const onFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file) return;
+    setImgError(null);
+    setUploading(true);
+    try {
+      const url = await uploadJobImage(file);
+      editor.chain().focus().setImage({ src: url, alt: "Job image" }).run();
+    } catch (err) {
+      setImgError(err?.message || "Couldn't upload the image. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const Btn = ({ onClick, label, active, disabled, children }) => (
+    <motion.button
+      type="button"
+      className={`pj-tool-btn${active ? " pj-tool-btn--active" : ""}`}
+      onMouseDown={guard(onClick)}
+      disabled={disabled}
+      aria-label={label}
+      aria-pressed={active || undefined}
+      whileTap={reduce || disabled ? undefined : { scale: 0.92 }}
+      transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
+    >
+      {children}
+    </motion.button>
+  );
 
   const containerVariants = { initial: {}, animate: { transition: { staggerChildren: 0.06, delayChildren: 0.06 } } };
   const item = reduce
@@ -102,39 +170,24 @@ export default function JobDescriptionStep({ value, onChange, onContinue, onBack
         <span className="pj-label">Job Description <span className="pj-label-hint">(Optional)</span></span>
         <div className="pj-editor">
           <div className="pj-editor__toolbar" role="toolbar" aria-label="Formatting">
-            {TOOL_ROW_1.map((t, i) => {
-              if (t.kind === "sep") return <span key={`sep-${i}`} className="pj-tool-sep" />;
-              const click = () => {
-                if (t.kind === "exec")  return exec(t.cmd);
-                if (t.kind === "h1")    return formatH1();
-                if (t.kind === "link")  return insertLink();
-                /* decor: keep visual feedback only */
-                editorRef.current?.focus();
-              };
-              return (
-                <motion.button
-                  key={t.id}
-                  type="button"
-                  className="pj-tool-btn"
-                  onClick={click}
-                  aria-label={t.label}
-                  whileTap={reduce ? undefined : { scale: 0.92 }}
-                  transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
-                >
-                  {t.glyph}
-                </motion.button>
-              );
-            })}
+            <Btn onClick={() => editor.chain().focus().toggleBold().run()} label="Bold" active={editor.isActive("bold")}><Glyph.B /></Btn>
+            <Btn onClick={() => editor.chain().focus().toggleUnderline().run()} label="Underline" active={editor.isActive("underline")}><Glyph.U /></Btn>
+            <Btn onClick={() => editor.chain().focus().toggleItalic().run()} label="Italic" active={editor.isActive("italic")}><Glyph.I /></Btn>
+            <span className="pj-tool-sep" />
+            <Btn onClick={cycleAlign} label="Align" active={editor.isActive({ textAlign: "center" }) || editor.isActive({ textAlign: "right" })}>{alignGlyph}</Btn>
+            <Btn onClick={() => editor.chain().focus().toggleBulletList().run()} label="Bullet list" active={editor.isActive("bulletList")}><Glyph.Bullet /></Btn>
+            <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} label="Numbered list" active={editor.isActive("orderedList")}><Glyph.Numbered /></Btn>
+            <span className="pj-tool-sep" />
+            <Btn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} label="Heading" active={editor.isActive("heading", { level: 1 })}><Glyph.H1 /></Btn>
+            <Btn onClick={insertLink} label="Link" active={editor.isActive("link")}><Glyph.Link /></Btn>
+            <Btn onClick={pickImage} label="Insert image" disabled={uploading}>{uploading ? <Glyph.Spinner /> : <Glyph.Image />}</Btn>
           </div>
-          <div
-            ref={editorRef}
-            className="pj-editor__surface"
-            contentEditable
-            suppressContentEditableWarning
-            onInput={onInput}
-            data-placeholder="Describe the role, what success looks like, and what you're looking for in a candidate…"
-          />
+
+          <EditorContent editor={editor} className="pj-editor__surface" />
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onFile} style={{ display: "none" }} />
         </div>
+        {uploading && <span className="pj-editor__status" role="status">Uploading image…</span>}
+        {imgError && <span className="pj-field-error" role="alert">{imgError}</span>}
       </motion.div>
 
       <motion.div className="pj-actions" variants={item}>

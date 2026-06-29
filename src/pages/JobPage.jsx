@@ -997,13 +997,19 @@ export default function JobPage() {
             </div>
           </div>
 
-          {/* Body — About the role */}
+          {/* Body — About the role. New listings store rich HTML from the
+              Tiptap editor (schema-constrained safe tags); legacy listings are
+              plain text — render each appropriately. */}
           {job.description && (
             <div style={{ marginBottom: 20 }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>About the role</h3>
-              <p style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", fontFamily: T.font }}>
-                {job.description}
-              </p>
+              {/<[a-z][\s\S]*>/i.test(job.description) ? (
+                <div className="jobpage-rich" dangerouslySetInnerHTML={{ __html: job.description }} />
+              ) : (
+                <p style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", fontFamily: T.font }}>
+                  {job.description}
+                </p>
+              )}
             </div>
           )}
 

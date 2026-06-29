@@ -1379,9 +1379,16 @@ input[type="checkbox"]:checked + .pj-checkbox__box::after {
   cursor: text;
 }
 
-.pj-editor__surface:empty::before {
+/* Tiptap renders a .ProseMirror node inside the surface. */
+.pj-editor__surface .ProseMirror { outline: none; min-height: 150px; }
+.pj-editor__surface .ProseMirror:focus { outline: none; }
+
+/* Placeholder (Tiptap Placeholder extension) shown only when empty. */
+.pj-editor__surface .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: var(--pj-muted);
+  float: left;
+  height: 0;
   pointer-events: none;
 }
 
@@ -1391,6 +1398,25 @@ input[type="checkbox"]:checked + .pj-checkbox__box::after {
 .pj-editor__surface h1                            { font-size: 22px; font-weight: 700; margin: 8px 0; letter-spacing: -0.015em; }
 .pj-editor__surface ul, .pj-editor__surface ol    { padding-left: 22px; margin: 6px 0; }
 .pj-editor__surface a                             { color: var(--pj-primary); text-decoration: underline; }
+.pj-editor__surface img, .pj-editor__img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 8px 0;
+  display: block;
+}
+.pj-editor__surface img.ProseMirror-selectednode { outline: 2px solid var(--pj-primary); outline-offset: 1px; }
+
+/* Image-upload feedback. */
+.pj-editor__status {
+  display: inline-block;
+  margin: 8px 2px 0;
+  font-size: 12.5px;
+  color: var(--pj-text-soft);
+}
+.pj-tool-spin { animation: pj-tool-spin 0.7s linear infinite; }
+@keyframes pj-tool-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pj-tool-spin { animation-duration: 1.4s; } }
 
 /* ── Optional / inline label hint ──────────────────────────── */
 .pj-label-hint {
@@ -1420,6 +1446,44 @@ input[type="checkbox"]:checked + .pj-checkbox__box::after {
   font-size: 11.5px;
   line-height: 1.55;
   color: var(--pj-text-soft);
+  margin: 0;
+}
+
+/* Rendered job-description HTML (from the Tiptap editor) inside the preview. */
+.pj-pcard__rich {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--pj-text-soft);
+}
+.pj-pcard__rich p { margin: 0 0 6px; }
+.pj-pcard__rich p:last-child { margin-bottom: 0; }
+.pj-pcard__rich h1 { font-size: 14px; font-weight: 700; color: var(--pj-text); margin: 4px 0 6px; }
+.pj-pcard__rich ul, .pj-pcard__rich ol { margin: 4px 0; padding-left: 16px; }
+.pj-pcard__rich li { margin-bottom: 3px; }
+.pj-pcard__rich a { color: var(--pj-primary); text-decoration: underline; }
+.pj-pcard__rich img { max-width: 100%; height: auto; border-radius: 6px; margin: 6px 0; display: block; }
+
+/* Public job page — rendered description HTML (Tiptap output). */
+.jobpage-rich {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--pj-text-soft);
+  font-family: var(--pj-font);
+}
+.jobpage-rich p { margin: 0 0 10px; }
+.jobpage-rich p:last-child { margin-bottom: 0; }
+.jobpage-rich h1 { font-size: 18px; font-weight: 700; color: var(--pj-text); margin: 10px 0; letter-spacing: -0.015em; }
+.jobpage-rich ul, .jobpage-rich ol { margin: 8px 0; padding-left: 22px; }
+.jobpage-rich li { margin-bottom: 5px; }
+.jobpage-rich a { color: var(--pj-primary); text-decoration: underline; }
+.jobpage-rich img { max-width: 100%; height: auto; border-radius: 10px; margin: 10px 0; display: block; }
+
+/* Clean empty state — never lorem ipsum. */
+.pj-pcard__empty {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--pj-muted);
+  font-style: italic;
   margin: 0;
 }
 
