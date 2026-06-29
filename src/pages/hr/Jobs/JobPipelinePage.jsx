@@ -9,6 +9,7 @@ import VerdictCard from "../../../components/hr/VerdictCard";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
 import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
+import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
@@ -665,6 +666,7 @@ function CandidateDetail({
   // "View full fit analysis" reveals the old keyword score + chips; the
   // Verdict card is the headline by default.
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   if (!candidate) {
     return (
       <motion.aside
@@ -778,6 +780,10 @@ function CandidateDetail({
           </a>
         )}
         <ViewOriginalCv path={candidate.cv_file_path} />
+        <button type="button" className="jpp-action jpp-action--ghost" onClick={() => setShareOpen(true)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+          Share for review
+        </button>
         {["shortlist", "ready", "interviewed", "offer", "hired"].includes(stageDef?.key) && (
           <button type="button" className="jpp-action jpp-action--ghost" onClick={onSchedule}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
@@ -796,6 +802,14 @@ function CandidateDetail({
           Pass
         </button>
       </div>
+
+      <ShareForReviewModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        applicationId={candidate.id}
+        candidateName={candidate.candidate_name}
+        hrId={hrId}
+      />
 
       <InterviewTimeline hrId={hrId} candidateId={candidate.candidate_id} refreshKey={interviewTick} />
 
