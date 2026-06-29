@@ -15,8 +15,22 @@ const EDUCATION_LEVELS = [
   { value: "doctorate",   label: "Doctorate" },
 ];
 
-const SALARY_RANGE = { min: 0, max: 5000 };
+// Salary period options depend on Job Type. "per month" is the global default
+// and is valid for every type (white-collar UAE/India hiring is monthly).
+export const PERIODS_BY_TYPE = {
+  "full-time": ["per month", "per year"],
+  "part-time": ["per hour", "per day", "per month"],
+  "contract":  ["per hour", "per day", "per month"],
+};
+export const DEFAULT_SALARY_PERIOD = "per month";
+export const periodsFor = (jobType) => PERIODS_BY_TYPE[jobType] || PERIODS_BY_TYPE["full-time"];
+
+// Soft visual range for the slider. Typed values above this rescale the
+// slider — there is no hard cap on the actual min/max (see NumberStepper).
+const SOFT_SLIDER_MAX = 5000;
 const SKILLS_DEBOUNCE_MS = 400;
+
+const nonNeg = (v) => (v === "" ? "" : Math.max(0, Number(v)));
 
 const Caret = () => (
   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -54,13 +68,18 @@ function DualRange({ min, max, valueMin, valueMax, onChange }) {
   );
 }
 
-function NumberStepper({ value, onChange, min = 0, max = 999999, step = 1, prefix = "$" }) {
-  const inc = () => onChange(Math.min(max, Number(value) + step));
-  const dec = () => onChange(Math.max(min, Number(value) - step));
+function NumberStepper({ value, onChange, min = 0, max = Infinity, step = 1, prefix = "$" }) {
+  const inc = () => onChange(Math.min(max, (Number(value) || 0) + step));
+  const dec = () => onChange(Math.max(min, (Number(value) || 0) - step));
   return (
     <div className="pj-num">
       <span className="pj-num__prefix">{prefix}</span>
-      <input type="number" value={value} onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))} min={min} max={max} />
+      <input
+        type="number" inputMode="numeric" value={value}
+        onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
+        min={min}
+        {...(Number.isFinite(max) ? { max } : {})}
+      />
       <div className="pj-num__steppers">
         <button type="button" className="pj-num__step" onClick={inc} aria-label="Increase"><Caret /></button>
         <button type="button" className="pj-num__step" onClick={dec} aria-label="Decrease"><CaretDown /></button>
@@ -133,6 +152,19 @@ export default function NewJobStep({ value, onChange, onContinue, onBack }) {
   const baseChips = suggested.length ? suggested : GENERIC_SKILLS;
   const chipLabels = [...new Set([...baseChips, ...value.relevantSkills])];
 
+  // Salary: no hard ceiling. The slider keeps a soft range but rescales to fit
+  // any typed value so a high number never snaps back. Only validation is
+  // max >= min and non-negative.
+  const sMin = Number(value.salaryMin) || 0;
+  const sMax = Number(value.salaryMax) || 0;
+  const sliderMax = Math.max(SOFT_SLIDER_MAX, sMin, sMax);
+  const periodOptions = periodsFor(value.jobType);
+  const currencyPrefix = CURRENCY_PREFIX[value.currency || "AED"];
+  const salaryError =
+    value.salaryMin !== "" && value.salaryMax !== "" && Number(value.salaryMax) < Number(value.salaryMin)
+      ? "Maximum salary must be greater than or equal to the minimum."
+      : null;
+
   const containerVariants = { initial: {}, animate: { transition: { staggerChildren: 0.055, delayChildren: 0.06 } } };
   const item = reduce
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -159,7 +191,18 @@ export default function NewJobStep({ value, onChange, onContinue, onBack }) {
           <div className="pj-row-with-toggle">
             <div className="pj-salary-head" style={{ marginBottom: 0 }}>
               <span className="pj-label">Salary</span>
-              <button type="button" className="pj-unit-pill">{value.salaryUnit}</button>
+              <div className="pj-unit-select-wrap">
+                <select
+                  className="pj-unit-select"
+                  value={value.salaryUnit}
+                  onChange={(e) => set({ salaryUnit: e.target.value })}
+                  aria-label="Salary period"
+                >
+                  {periodOptions.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <SegmentedToggle
               options={CURRENCY_OPTIONS}
@@ -169,11 +212,12 @@ export default function NewJobStep({ value, onChange, onContinue, onBack }) {
               size="sm"
             />
           </div>
-          <DualRange min={SALARY_RANGE.min} max={SALARY_RANGE.max} valueMin={Number(value.salaryMin) || 0} valueMax={Number(value.salaryMax) || 0} onChange={({ min, max }) => set({ salaryMin: min, salaryMax: max })} />
+          <DualRange min={0} max={sliderMax} valueMin={sMin} valueMax={sMax} onChange={({ min, max }) => set({ salaryMin: min, salaryMax: max })} />
           <div className="pj-num-row">
-            <NumberStepper value={value.salaryMin} onChange={(v) => set({ salaryMin: v })} min={0} max={value.salaryMax - 1} prefix={CURRENCY_PREFIX[value.currency || "AED"]} />
-            <NumberStepper value={value.salaryMax} onChange={(v) => set({ salaryMax: v })} min={value.salaryMin + 1} max={SALARY_RANGE.max} prefix={CURRENCY_PREFIX[value.currency || "AED"]} />
+            <NumberStepper value={value.salaryMin} onChange={(v) => set({ salaryMin: nonNeg(v) })} min={0} prefix={currencyPrefix} />
+            <NumberStepper value={value.salaryMax} onChange={(v) => set({ salaryMax: nonNeg(v) })} min={0} prefix={currencyPrefix} />
           </div>
+          {salaryError && <p className="pj-field-error" role="alert">{salaryError}</p>}
         </div>
       </motion.div>
 
@@ -218,8 +262,8 @@ export default function NewJobStep({ value, onChange, onContinue, onBack }) {
         <motion.button type="button" className="pj-btn pj-btn--ghost" onClick={onBack}
           whileHover={reduce ? undefined : { y: -1 }} whileTap={reduce ? undefined : { scale: 0.985 }}
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}>Previous</motion.button>
-        <motion.button type="button" className="pj-btn pj-btn--primary" onClick={onContinue}
-          whileHover={reduce ? undefined : { y: -1 }} whileTap={reduce ? undefined : { scale: 0.985 }}
+        <motion.button type="button" className="pj-btn pj-btn--primary" onClick={onContinue} disabled={!!salaryError}
+          whileHover={reduce || salaryError ? undefined : { y: -1 }} whileTap={reduce || salaryError ? undefined : { scale: 0.985 }}
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}>Continue</motion.button>
       </motion.div>
     </motion.div>

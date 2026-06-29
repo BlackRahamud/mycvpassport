@@ -12,7 +12,7 @@ import PostJobShell from "./PostJobShell";
 import PostJobPreview from "./PostJobPreview";
 import PostJobExpiredPaywall from "./PostJobExpiredPaywall";
 import StartStep from "./steps/StartStep";
-import NewJobStep from "./steps/NewJobStep";
+import NewJobStep, { DEFAULT_SALARY_PERIOD } from "./steps/NewJobStep";
 import QualificationsStep from "./steps/QualificationsStep";
 import JobDescriptionStep from "./steps/JobDescriptionStep";
 import HireStep from "./steps/HireStep";
@@ -29,7 +29,7 @@ const INITIAL_JOB = {
   // Step 2 — Skills & Salary
   educationLevel: "",
   currency: "AED",
-  salaryUnit: "per Hour",
+  salaryUnit: "per month",
   salaryMin: 50,
   salaryMax: 1000,
   relevantSkills: [],
@@ -79,6 +79,14 @@ export default function PostJobPage() {
       .catch(() => { if (!live) return; setGate({ isPaidUser: false }); });
     return () => { live = false; };
   }, []);
+
+  // Salary period follows Job Type. When the type changes, snap the period
+  // back to that type's default ("per month" for every type) so a Full-time
+  // role can never carry a stale "per hour". Lives here so it survives step
+  // navigation — the page never unmounts.
+  useEffect(() => {
+    setJob((j) => (j.salaryUnit === DEFAULT_SALARY_PERIOD ? j : { ...j, salaryUnit: DEFAULT_SALARY_PERIOD }));
+  }, [job.jobType]);
 
   const tier = user ? freeTierStatus(user) : null;
   const isFreeTier = gate ? !gate.isPaidUser : false;

@@ -80,7 +80,7 @@ function buildPayload(job, { hrId, companyName }) {
     currency: job.currency || "AED",
     salary_min: Number(job.salaryMin) || null,
     salary_max: Number(job.salaryMax) || null,
-    salary_unit: job.salaryUnit || "per Hour",
+    salary_unit: job.salaryUnit || "per month",
     min_education: job.educationLevel || null,
     skills: Array.isArray(job.relevantSkills) ? job.relevantSkills : [],
     tools:  Array.isArray(job.tools) ? job.tools : [],
