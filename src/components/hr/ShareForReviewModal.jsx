@@ -125,7 +125,9 @@ export default function ShareForReviewModal({ open, onClose, applicationId, cand
         exit={{ opacity: 0 }}
         transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
         style={{
-          position: "fixed", inset: 0, zIndex: 5000,
+          // Below the 4000 portal-dropdown layer so the expiry Select options
+          // (anchored + portaled to body) sit above this modal card.
+          position: "fixed", inset: 0, zIndex: 1200,
           background: "rgba(20, 19, 31, 0.45)",
           display: "flex", alignItems: "center", justifyContent: "center",
           padding: 16,
