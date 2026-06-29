@@ -917,65 +917,201 @@
 }
 .jpp-modal__actions { display: flex; justify-content: flex-end; gap: 10px; }
 
-/* ── Status override (bottom of detail panel) ─────────────────
-   An admin escape hatch — the tab CTAs are the happy path; this
-   drops a candidate straight into any stage. Kept visually quieter
-   than the action buttons so it doesn't compete for attention. */
-.jpp-section--status { gap: 10px; }
-.jpp-status-override {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+/* ── Dealbreaker badge row (under the name + title) ───────────
+   Location, notice, visa, and match as quiet monotone pills. The
+   match pill is the one colour accent — driven inline by scoreBand. */
+.jpp-deal {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+.jpp-deal__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  background: var(--pj-input-bg);
+  border: 1px solid var(--pj-border);
+  border-radius: 999px;
+  font-family: var(--pj-font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pj-text-soft);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jpp-deal__badge svg { flex-shrink: 0; opacity: 0.8; }
+.jpp-deal__badge--meta { background: transparent; color: var(--pj-muted); }
+.jpp-deal__badge--match { font-weight: 700; }
+
+/* ── Stage management cluster (header, top-right) ─────────────
+   Split "advance" button (next-step + chevron-to-jump) with Pass
+   set apart to its right as a quiet ghost text button. */
+.jpp-detail__stage {
+  display: inline-flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid var(--pj-border);
-  border-radius: 10px;
-  background: var(--pj-input-bg);
+  justify-self: end;
 }
-.jpp-status-override__label {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
+.jpp-split { display: inline-flex; align-items: stretch; }
+.jpp-split__main {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px;
+  background: var(--hjl-ink);
+  color: #FFFFFF;
+  border: 0;
+  border-radius: 8px 0 0 8px;
+  font-family: var(--pj-font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms var(--pj-ease), transform 120ms var(--pj-ease);
+}
+.jpp-split__main:hover { background: var(--hjl-ink-hover); }
+.jpp-split__main:active { transform: scale(0.97); }
+.jpp-split__main[disabled] { opacity: 0.55; cursor: not-allowed; }
+.jpp-split__chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 38px;
+  background: var(--hjl-ink);
+  color: #FFFFFF;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  transition: background-color 140ms var(--pj-ease), transform 120ms var(--pj-ease);
+}
+.jpp-split__chev:hover { background: var(--hjl-ink-hover); }
+.jpp-split__chev:active { transform: scale(0.97); }
+.jpp-split__chev[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+.jpp-passlink {
+  background: none;
+  border: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-family: var(--pj-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pj-muted);
+  cursor: pointer;
+  transition: color 120ms var(--pj-ease), background-color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
+}
+.jpp-passlink:hover { color: var(--hjl-pass); background: var(--hjl-pass-soft); }
+.jpp-passlink:active { transform: scale(0.97); }
+.jpp-passlink[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* Jump-to-stage menu — portaled to body, anchored via useAnchoredPosition
+   (so it never clips against the detail panel). Sits above the modal layer. */
+.jpp-stage-menu {
+  z-index: 4000;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  min-width: 208px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  box-shadow: var(--pj-shadow-card);
+  font-family: var(--pj-font);
+  transform-origin: top right;
+}
+.jpp-stage-menu__head {
+  padding: 6px 10px 5px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--pj-muted);
 }
-.jpp-status-override__hint {
-  font-size: 11.5px;
-  font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--pj-text-soft);
-}
-.jpp-status-override__select {
-  height: 36px;
-  padding: 0 36px 0 14px;
-  background: #FFFFFF;
-  border: 1px solid var(--pj-border);
+.jpp-stage-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  background: none;
+  border: 0;
   border-radius: 8px;
-  font: inherit;
   font-family: var(--pj-font);
   font-size: 13px;
+  font-weight: 500;
+  color: var(--pj-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms var(--pj-ease);
+}
+.jpp-stage-menu__item:hover { background: var(--pj-input-bg); }
+.jpp-stage-menu__item svg { flex-shrink: 0; color: var(--hjl-ink); }
+
+/* ── Compact CV preview card (the content hero) ──────────────── */
+.jpp-cvcard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--pj-surface);
+  border: 1px solid var(--pj-border);
+  border-radius: var(--pj-radius-md);
+  text-align: left;
+  font-family: var(--pj-font);
+  cursor: pointer;
+  transition: border-color 140ms var(--pj-ease), background-color 140ms var(--pj-ease);
+}
+.jpp-cvcard:hover { border-color: var(--pj-border-strong); background: #FFFFFF; }
+.jpp-cvcard__thumb {
+  flex-shrink: 0;
+  width: 46px;
+  height: 58px;
+  border-radius: 6px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hjl-ink);
+  box-shadow: 0 1px 2px rgba(20, 19, 31, 0.05);
+}
+.jpp-cvcard__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.jpp-cvcard__title {
+  font-size: 14px;
   font-weight: 600;
   color: var(--pj-text);
-  cursor: pointer;
-  outline: none;
-  transition: border-color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease);
-  /* Native chevron — keep platform feel rather than rolling a
-     headless select for an admin-rare control. */
-  appearance: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.jpp-status-override__select:focus {
-  border-color: var(--hjl-ink);
-  box-shadow: 0 0 0 3px var(--hjl-ink-ring);
+.jpp-cvcard__meta { font-size: 12px; color: var(--pj-muted); }
+.jpp-cvcard__cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--hjl-ink);
+  color: #FFFFFF;
+  font-size: 12.5px;
+  font-weight: 600;
 }
-.jpp-status-override__select[disabled] { opacity: 0.55; cursor: not-allowed; }
 
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .jpp-cta, .jpp-icon-btn, .jpp-tab, .jpp-card, .jpp-action, .jpp-card__wa, .jpp-note__input, .jpp-note__add { transition: none !important; }
+  .jpp-cta, .jpp-icon-btn, .jpp-tab, .jpp-card, .jpp-action, .jpp-card__wa, .jpp-note__input, .jpp-note__add,
+  .jpp-split__main, .jpp-split__chev, .jpp-passlink, .jpp-stage-menu__item, .jpp-cvcard { transition: none !important; }
+  .jpp-split__main:active, .jpp-split__chev:active, .jpp-passlink:active { transform: none; }
 }
 
 /* ── Mobile: collapse to single column with detail below ────── */
@@ -992,7 +1128,10 @@
   .jpp-detail__avatar { width: 64px; height: 64px; font-size: 22px; }
   .jpp-action__spacer { display: none; }
   .jpp-grid3 { grid-template-columns: 1fr 1fr; }
-  .jpp-status-override { grid-template-columns: 1fr; }
+  /* Stage cluster drops under the identity and left-aligns; the split
+     button + Pass stay on one row and wrap only if truly cramped. */
+  .jpp-detail__stage { flex-wrap: wrap; gap: 10px 12px; }
+  .jpp-split { flex: 0 0 auto; }
 }
 
 /* ── Phone (≤600px / iPhone 14 = 393px): stop edge clipping ──── */
@@ -1033,4 +1172,10 @@
   .jpp-modal { padding: 16px; }
   .jpp-modal__panel { padding: 24px 20px; }
   .jpp-modal__divider { margin: 0 -20px 20px; }
+
+  /* CV card: let the View CV control drop below the title on the
+     narrowest phones rather than squeezing the filename. */
+  .jpp-cvcard { flex-wrap: wrap; }
+  .jpp-cvcard__body { flex: 1 1 140px; }
+  .jpp-cvcard__cta { margin-left: 58px; }
 }

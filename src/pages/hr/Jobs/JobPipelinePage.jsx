@@ -8,11 +8,12 @@ import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsA
 import VerdictCard from "../../../components/hr/VerdictCard";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
-import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
+import StageAdvanceMenu from "../../../components/hr/StageAdvanceMenu";
+import CvPreviewCard from "../../../components/hr/CvPreviewCard";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
-import Select from "../../../components/ui/Select";
+import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
@@ -91,6 +92,49 @@ const WhatsAppIc = () => (
   </svg>
 );
 
+const ClockIc = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>
+  </svg>
+);
+const ShieldIc = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+  </svg>
+);
+const TargetIc = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+  </svg>
+);
+const FileIc = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+  </svg>
+);
+const ShareIc = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+  </svg>
+);
+
+/* Match badge — color-coded by the internal ATS score via the shared
+   scoreBand thresholds (>=80 green, 50-79 amber, <50 red, no source grey).
+   Internal only: this score is never sent to the public share page. */
+function MatchBadge({ score, source }) {
+  const band = scoreBand(score, source);
+  if (band === "none") {
+    return <span className="jpp-deal__badge jpp-deal__badge--meta"><TargetIc /> Not scored</span>;
+  }
+  const color = BAND_COLORS[band];
+  const pct = Math.round(Number(score) || 0);
+  return (
+    <span className="jpp-deal__badge jpp-deal__badge--match" style={{ color, borderColor: `${color}55`, background: `${color}14` }}>
+      <TargetIc /> {pct}% match
+    </span>
+  );
+}
+
 /* ───────── Helpers ───────── */
 function formatStartDate(s) {
   if (!s) return "";
@@ -147,19 +191,6 @@ function getCv(c) { return c?.cv_snapshot || c?.cv_data || {}; }
 
 function firstName(full) {
   return String(full || "").trim().split(/\s+/)[0] || "candidate";
-}
-
-/* Visa-status colour split — mirrors the legacy /hr portal so HRs see
-   the same flag they're used to. 'Sponsored' is amber (HR has work to
-   do), 'Own visa' is green (candidate is plug-and-play), other values
-   read as neutral. Anything not in this list falls through to neutral
-   so a free-text visa status still renders. */
-function visaTone(visa) {
-  const v = String(visa || "").toLowerCase();
-  if (v.includes("own"))       return "ok";       // Own visa, Own residency, etc.
-  if (v.includes("sponsor"))   return "warn";     // Need sponsorship
-  if (v.includes("freelance")) return "ok";
-  return "neutral";
 }
 
 function deriveSkills(c) {
@@ -668,6 +699,7 @@ function CandidateDetail({
   // Verdict card is the headline by default.
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [cvBusy, setCvBusy] = useState(false);
   if (!candidate) {
     return (
       <motion.aside
@@ -707,6 +739,28 @@ function CandidateDetail({
   const recruiterNotes = Array.isArray(candidate.recruiter_notes) ? candidate.recruiter_notes : [];
   const matchedKw = Array.isArray(candidate.match_keywords)   ? candidate.match_keywords   : [];
   const missingKw = Array.isArray(candidate.missing_keywords) ? candidate.missing_keywords : [];
+  const noticePeriod = cv.notice_period || cv.availability || personal.notice_period || "";
+
+  // Open the uploaded CV. Stage one: signed URL in a new tab (preserves the
+  // existing View CV behaviour). Stage two swaps this for the slide-over
+  // drawer. The file lives in the private applicant-cvs bucket; RLS confirms
+  // this recruiter owns the application pointing at it.
+  const handleViewCv = async () => {
+    const path = candidate.cv_file_path;
+    if (!path || cvBusy) return;
+    setCvBusy(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from("applicant-cvs")
+        .createSignedUrl(path, 300);
+      if (error || !data?.signedUrl) throw error || new Error("No signed URL");
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      console.error("View CV failed:", e);
+    } finally {
+      setCvBusy(false);
+    }
+  };
 
   return (
     <motion.aside
@@ -716,6 +770,80 @@ function CandidateDetail({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
     >
+      <header className="jpp-detail__head">
+        <div className="jpp-detail__avatar">{initials}</div>
+        <div className="jpp-detail__identity">
+          <h2 className="jpp-detail__name">{candidate.candidate_name || "Unnamed candidate"}</h2>
+          <p className="jpp-detail__role">{desiredJob || jobTitle || "Candidate"}</p>
+          <div className="jpp-deal">
+            {personal.location && <span className="jpp-deal__badge"><MapPinIc /> {personal.location}</span>}
+            {noticePeriod && <span className="jpp-deal__badge"><ClockIc /> {noticePeriod}</span>}
+            {candidate.visa_status && <span className="jpp-deal__badge"><ShieldIc /> {candidate.visa_status}</span>}
+            <MatchBadge score={candidate.ats_score} source={candidate.score_source} />
+            {candidate.source === "imported" && (
+              <span className="jpp-deal__badge jpp-deal__badge--meta" title="Added via bulk CV import — no candidate account, so the journey timeline is limited.">Imported CV</span>
+            )}
+          </div>
+          <div className="jpp-detail__contact">
+            {candidate.candidate_email && (
+              <a href={`mailto:${candidate.candidate_email}?subject=${encodeURIComponent(`Re: ${jobTitle || "your application"}`)}`}>
+                <MailIc /> {candidate.candidate_email}
+              </a>
+            )}
+            {candidate.candidate_phone && (
+              <a href={whatsappHref(candidate.candidate_phone, candidate.candidate_name, jobTitle, company)} target="_blank" rel="noreferrer noopener">
+                <PhoneIc /> {candidate.candidate_phone}
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="jpp-detail__stage">
+          <StageAdvanceMenu
+            stageDef={stageDef}
+            currentStatus={candidate.status}
+            options={STATUS_OVERRIDE_OPTIONS}
+            advancing={advancing}
+            onAdvance={onAdvance}
+            onJump={onStatusChange}
+          />
+          <button type="button" className="jpp-passlink" disabled={advancing} onClick={onPass}>Pass</button>
+        </div>
+      </header>
+
+      <div className="jpp-detail__actions">
+        <button
+          type="button"
+          className="jpp-action jpp-action--message"
+          onClick={onMessage}
+        >
+          <WhatsAppIc /> Reach out via WhatsApp
+        </button>
+        {candidate.candidate_email && (
+          <a
+            className="jpp-action jpp-action--ghost"
+            href={`mailto:${candidate.candidate_email}?subject=${encodeURIComponent(`Re: ${jobTitle || "your application"}`)}`}
+          >
+            <MailIc /> Email
+          </a>
+        )}
+        {candidate.cv_file_path && (
+          <button type="button" className="jpp-action jpp-action--ghost" disabled={cvBusy} onClick={handleViewCv}>
+            <FileIc /> {cvBusy ? "Opening…" : "View CV"}
+          </button>
+        )}
+        <button type="button" className="jpp-action jpp-action--ghost" onClick={() => setShareOpen(true)}>
+          <ShareIc /> Share link
+        </button>
+        {["shortlist", "ready", "interviewed", "offer", "hired"].includes(stageDef?.key) && (
+          <button type="button" className="jpp-action jpp-action--ghost" onClick={onSchedule}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+            Schedule interview
+          </button>
+        )}
+      </div>
+
+      <CvPreviewCard path={candidate.cv_file_path} name={firstName(candidate.candidate_name)} onView={handleViewCv} />
+
       <VerdictCard
         cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
         cvSnapshot={cv}
@@ -730,79 +858,6 @@ function CandidateDetail({
         onReachOut={onReachOut}
         onViewAnalysis={(matchedKw.length + missingKw.length) > 0 ? () => setShowAnalysis(true) : undefined}
       />
-
-      <header className="jpp-detail__head">
-        <div className="jpp-detail__avatar">{initials}</div>
-        <div className="jpp-detail__identity">
-          <h2 className="jpp-detail__name">{candidate.candidate_name || "Unnamed candidate"}</h2>
-          <p className="jpp-detail__role">{desiredJob || jobTitle || "Candidate"}</p>
-          <span className="jpp-detail__chips">
-            {candidate.source === "imported" && (
-              <span className="jpp-visa-chip jpp-visa-chip--neutral" title="Added via bulk CV import — no candidate account, so the journey timeline is limited.">
-                Imported CV
-              </span>
-            )}
-            {candidate.visa_status && (
-              <span className={`jpp-visa-chip jpp-visa-chip--${visaTone(candidate.visa_status)}`}>
-                {candidate.visa_status}
-              </span>
-            )}
-          </span>
-          <div className="jpp-detail__contact">
-            {personal.location && <span><MapPinIc /> {personal.location}</span>}
-            {candidate.candidate_email && (
-              <a href={`mailto:${candidate.candidate_email}?subject=${encodeURIComponent(`Re: ${jobTitle || "your application"}`)}`}>
-                <MailIc /> {candidate.candidate_email}
-              </a>
-            )}
-            {candidate.candidate_phone && (
-              <a href={whatsappHref(candidate.candidate_phone, candidate.candidate_name, jobTitle, company)} target="_blank" rel="noreferrer noopener">
-                <PhoneIc /> {candidate.candidate_phone}
-              </a>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <div className="jpp-detail__actions">
-        <button
-          type="button"
-          className="jpp-action jpp-action--message"
-          onClick={onMessage}
-        >
-          <WhatsAppIc /> Message {firstName(candidate.candidate_name)}
-        </button>
-        {candidate.candidate_email && (
-          <a
-            className="jpp-action jpp-action--ghost"
-            href={`mailto:${candidate.candidate_email}?subject=${encodeURIComponent(`Re: ${jobTitle || "your application"}`)}`}
-          >
-            <MailIc /> Email {firstName(candidate.candidate_name)}
-          </a>
-        )}
-        <ViewOriginalCv path={candidate.cv_file_path} />
-        <button type="button" className="jpp-action jpp-action--ghost" onClick={() => setShareOpen(true)}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
-          Share for review
-        </button>
-        {["shortlist", "ready", "interviewed", "offer", "hired"].includes(stageDef?.key) && (
-          <button type="button" className="jpp-action jpp-action--ghost" onClick={onSchedule}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-            Schedule interview
-          </button>
-        )}
-        <span className="jpp-action__spacer" />
-        {stageDef.actionLabel ? (
-          <button type="button" className="jpp-action jpp-action--primary" disabled={advancing} onClick={onAdvance}>
-            {stageDef.actionLabel}
-          </button>
-        ) : (
-          <button type="button" className="jpp-action jpp-action--primary" disabled aria-disabled="true">Hired</button>
-        )}
-        <button type="button" className="jpp-action jpp-action--pass" disabled={advancing} onClick={onPass}>
-          Pass
-        </button>
-      </div>
 
       <ShareForReviewModal
         open={shareOpen}
@@ -985,32 +1040,6 @@ function CandidateDetail({
         </div>
       </section>
 
-      <section className="jpp-section jpp-section--status">
-        <div className="jpp-status-override">
-          <label className="jpp-status-override__label" htmlFor={`jpp-status-${candidate.id}`}>
-            Status override
-            <span className="jpp-status-override__hint">
-              Use the tab CTAs for normal flow — this drops the candidate straight into any stage.
-            </span>
-          </label>
-          {/* Surface the current status even if it's outside the override set
-              (e.g. legacy 'submitted' / 'viewed' / 'interviewing' rows from
-              before migration 013) so the select shows truth. */}
-          <Select
-            id={`jpp-status-${candidate.id}`}
-            value={candidate.status || "new"}
-            disabled={advancing || !onStatusChange}
-            onChange={(v) => onStatusChange && onStatusChange(v)}
-            ariaLabel="Status override"
-            options={[
-              ...(!STATUS_OVERRIDE_OPTIONS.some((o) => o.value === (candidate.status || "new"))
-                ? [{ value: candidate.status, label: candidate.status, disabled: true }]
-                : []),
-              ...STATUS_OVERRIDE_OPTIONS,
-            ]}
-          />
-        </div>
-      </section>
     </motion.aside>
   );
 }
