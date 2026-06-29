@@ -24,25 +24,29 @@ html {
   --radius-lg: 16px;
   --radius-md: 12px;
 
-  /* Navigation-scoped tokens — additive, prefixed --nav- to avoid collision. */
-  --nav-accent: #D97706;
-  --nav-accent-hover: #B25E03;
-  --nav-accent-subtle: rgba(217, 119, 6, 0.12);
-  --nav-surface: #0A0A0A;
-  --nav-surface-elevated: #141414;
-  --nav-surface-glass: rgba(10, 10, 10, 0.72);
-  --nav-border-hairline: #2A2A2A;
-  --nav-border-focus: rgba(217, 119, 6, 0.6);
-  --nav-text: #F5F5F7;
-  --nav-text-muted: #A0A0A0;
-  --nav-text-disabled: #48484A;
-  --nav-scrim: rgba(0, 0, 0, 0.48);
-  --nav-dur-quick: 160ms;
-  --nav-dur-standard: 200ms;
-  --nav-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Navigation-scoped tokens — additive, prefixed --nav- to avoid collision.
+     Warm CVPassport palette. Default (:root) is the DARK theme; the html.light
+     block below overrides for light mode so the nav tracks the global toggle
+     (document.documentElement.className = 'light' | 'dark'). */
+  --nav-accent: #E8923D;
+  --nav-accent-hover: #D77E2A;
+  --nav-accent-subtle: rgba(232, 146, 61, 0.14);
+  --nav-surface: #1C1714;            /* espresso */
+  --nav-surface-elevated: #2A221E;  /* deep */
+  --nav-surface-glass: rgba(28, 23, 20, 0.78);
+  --nav-border-hairline: rgba(251, 246, 239, 0.14);
+  --nav-border-focus: rgba(47, 143, 131, 0.7); /* teal focus ring */
+  --nav-text: #FBF6EF;              /* cream */
+  --nav-text-muted: rgba(251, 246, 239, 0.6);
+  --nav-text-disabled: rgba(251, 246, 239, 0.32);
+  --nav-scrim: rgba(28, 23, 20, 0.5); /* warm-dark scrim */
+  --nav-dur-quick: 140ms;   /* hover / chevron / popIn */
+  --nav-dur-pop: 160ms;     /* dropdown popIn */
+  --nav-dur-standard: 220ms;/* drawer slide-in (webclaw sideDrawerIn) */
+  --nav-ease: cubic-bezier(0.2, 0.9, 0.3, 1); /* webclaw snap */
   --nav-radius-pill: 9999px;
-  --nav-radius-md: 8px;
-  --nav-radius-sm: 4px;
+  --nav-radius-md: 12px;
+  --nav-radius-sm: 8px;
   --nav-z-header: 100;
   --nav-z-drawer: 80;
   --nav-z-scrim: 70;
@@ -124,6 +128,23 @@ body {
 html.light body {
   background: #F5F5F0;
   color: #111111;
+}
+
+/* Warm nav tokens — light mode. Overrides the dark defaults in :root so the
+   primary nav (DesktopNav / MobileNav) flips with the global theme toggle. */
+html.light {
+  --nav-accent: #E8923D;
+  --nav-accent-hover: #D77E2A;
+  --nav-accent-subtle: rgba(232, 146, 61, 0.12);
+  --nav-surface: #FBF6EF;            /* cream */
+  --nav-surface-elevated: #F3EADB;  /* sand */
+  --nav-surface-glass: rgba(251, 246, 239, 0.82);
+  --nav-border-hairline: rgba(45, 40, 35, 0.12);
+  --nav-border-focus: rgba(47, 143, 131, 0.7);
+  --nav-text: #2D2823;              /* ink */
+  --nav-text-muted: #8A7C6D;        /* taupe */
+  --nav-text-disabled: rgba(45, 40, 35, 0.35);
+  --nav-scrim: rgba(28, 23, 20, 0.5);
 }
 
 @media (max-width: 768px) {

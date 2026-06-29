@@ -1,7 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NAV_SECTIONS, FREEBIE_BANNER_COPY } from '../../config/navItems';
 import NavBadge from './NavBadge';
+
+// webclaw cdPopIn — translateY(8px) scale(.98) → 0/1, snap easing, close reverses.
+const SNAP = [0.2, 0.9, 0.3, 1];
+const PANEL_VARIANTS = {
+  hidden: { opacity: 0, y: 8, scale: 0.98 },
+  shown: { opacity: 1, y: 0, scale: 1 },
+};
 
 function ChevronDownIcon({ open }) {
   return (
@@ -23,6 +31,7 @@ function ChevronDownIcon({ open }) {
 export default function DesktopNav({ user, isPro }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const reduceMotion = useReducedMotion();
   const [openPanelId, setOpenPanelId] = useState(null);
   const rootRef = useRef(null);
 
@@ -128,15 +137,8 @@ export default function DesktopNav({ user, isPro }) {
           border-radius: var(--nav-radius-md);
           padding: 8px;
           z-index: var(--nav-z-header);
-          opacity: 0;
-          transform: translateY(-4px) translateZ(0);
-          animation: cvp-desktop-nav-panel-in var(--nav-dur-quick) var(--nav-ease) forwards;
-        }
-        @keyframes cvp-desktop-nav-panel-in {
-          to { opacity: 1; transform: translateY(0) translateZ(0); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .cvp-desktop-nav-panel { animation-duration: 10ms !important; }
+          transform-origin: top center;
+          box-shadow: 0 16px 40px rgba(28, 23, 20, 0.22);
         }
         .cvp-desktop-nav-banner {
           font-size: 12px;
@@ -218,12 +220,18 @@ export default function DesktopNav({ user, isPro }) {
               {emphasis && <span className="cvp-desktop-nav-trigger-emphasis" aria-hidden="true" />}
             </button>
 
-            {isOpen && (
-              <div
+            <AnimatePresence>
+              {isOpen && (
+              <motion.div
                 id={`cvp-desktop-nav-panel-${section.id}`}
                 role="region"
                 aria-label={section.label}
                 className="cvp-desktop-nav-panel"
+                variants={PANEL_VARIANTS}
+                initial="hidden"
+                animate="shown"
+                exit="hidden"
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.16, ease: SNAP }}
               >
                 {section.id === 'free-tools' && (
                   <p className="cvp-desktop-nav-banner">{FREEBIE_BANNER_COPY}</p>
@@ -253,8 +261,9 @@ export default function DesktopNav({ user, isPro }) {
                     </button>
                   );
                 })}
-              </div>
-            )}
+              </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       })}

@@ -1,4 +1,7 @@
-export default function CVPassportLogo({ height = 40 }) {
+// color defaults to #FFFFFF to preserve every existing (dark-surface) usage.
+// Pass color="currentColor" to make the mark inherit the surrounding text
+// colour — used by the theme-aware nav so it stays legible in light mode.
+export default function CVPassportLogo({ height = 40, color = "#FFFFFF" }) {
   return (
     <svg
       height={height}
@@ -8,14 +11,14 @@ export default function CVPassportLogo({ height = 40 }) {
     >
       <path
         d="M 8 28 L 16 20 L 8 12"
-        stroke="#FFFFFF"
+        stroke={color}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M 16 28 L 24 20 L 16 12"
-        stroke="#FFFFFF"
+        stroke={color}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -23,7 +26,7 @@ export default function CVPassportLogo({ height = 40 }) {
       />
       <path
         d="M 24 28 L 32 20 L 24 12"
-        stroke="#FFFFFF"
+        stroke={color}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -32,7 +35,7 @@ export default function CVPassportLogo({ height = 40 }) {
       <text
         x="44"
         y="25"
-        fill="#FFFFFF"
+        fill={color}
         fontSize="18"
         fontWeight="600"
         fontFamily="system-ui, -apple-system, sans-serif"

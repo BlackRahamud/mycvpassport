@@ -353,7 +353,24 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         .lp-ghost-btn { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
         .lp-nav-link  { transition: background 0.2s ease, color 0.2s ease; }
         .lp-card      { transition: border-color 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1); }
-        .lp-theme-btn { transition: opacity 0.2s cubic-bezier(0.4,0,0.2,1); }
+
+        /* Right-cluster nav buttons — webclaw snap easing + visible focus rings. */
+        .lp-theme-btn { transition: background-color 0.12s cubic-bezier(0.2,0.9,0.3,1), color 0.12s cubic-bezier(0.2,0.9,0.3,1); }
+        .lp-theme-btn:hover { background: var(--nav-surface-elevated) !important; }
+        .lp-btn { transition: background-color 0.12s cubic-bezier(0.2,0.9,0.3,1), transform 0.12s cubic-bezier(0.2,0.9,0.3,1); }
+        .lp-btn:hover { background: var(--nav-accent-hover) !important; transform: translateY(-1px); }
+        .lp-btn:active { transform: translateY(0); }
+        .lp-ghost-btn { transition: background-color 0.12s cubic-bezier(0.2,0.9,0.3,1), border-color 0.12s cubic-bezier(0.2,0.9,0.3,1); }
+        .lp-ghost-btn:hover { background: var(--nav-surface-elevated) !important; }
+        .lp-theme-btn:focus-visible,
+        .lp-btn:focus-visible,
+        .lp-ghost-btn:focus-visible {
+          outline: 2px solid var(--nav-border-focus);
+          outline-offset: 2px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lp-theme-btn, .lp-btn, .lp-ghost-btn { transition-duration: 0.01ms !important; }
+        }
 
         /* Mobile — 390px first */
         @media (max-width: 768px) {
@@ -382,7 +399,6 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         }
         @media (min-width: 769px) {
           .lp-hamburger    { display: none !important; }
-          .lp-mobile-menu  { display: none !important; }
         }
 
         /* Desktop hero overrides */
@@ -563,16 +579,6 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         .lp-problem-card-title { font-weight: 600; font-size: 14px; margin: 0; color: var(--text-primary); font-family: inherit; }
         .lp-problem-card-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0; line-height: 1.65; }
 
-        /* Hamburger panel links */
-        .lp-hamburger-link {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 16px 0; border-bottom: 1px solid var(--border-default);
-          background: none; border-left: none; border-right: none; border-top: none;
-          color: var(--text-primary); font-size: 18px; font-weight: 500;
-          cursor: pointer; font-family: inherit; text-align: left; width: 100%;
-        }
-        .lp-hamburger-link:last-of-type { border-bottom: none; }
-
         .lp-feature-cta { transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .lp-feature-cta:hover { opacity: 0.85; }
 
@@ -617,10 +623,10 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             alignItems:     'center',
             justifyContent: 'space-between',
             height:         '64px',
-            background:     T.navBg,
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderBottom:   `1px solid ${T.navBorder}`,
+            background:     'var(--nav-surface-glass)',
+            backdropFilter: 'saturate(180%) blur(16px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(16px)',
+            borderBottom:   '0.5px solid var(--nav-border-hairline)',
           }}
         >
           <Link
@@ -628,7 +634,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}
             aria-label="CVPassport home"
           >
-            <CVPassportLogo height={40} />
+            <CVPassportLogo height={40} color="currentColor" />
           </Link>
 
           {/* Desktop nav — section-grouped dropdowns (freebie-first).
@@ -767,13 +773,13 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                   className="lp-btn"
                   onClick={() => navigate('/builder')}
                   style={{
-                    background:   '#D4860A',
+                    background:   'var(--nav-accent)',
                     border:       'none',
-                    color:        '#000000',
-                    borderRadius: '20px',
+                    color:        '#1C1714',
+                    borderRadius: '9999px',
                     padding:      '8px 18px',
                     fontSize:     '13px',
-                    fontWeight:   '600',
+                    fontWeight:   '700',
                     cursor:       'pointer',
                     fontFamily:   'inherit',
                   }}
@@ -796,7 +802,9 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             </button>
             <button
               onClick={() => setMobileMenuOpen(o => !o)}
-              aria-label="Open menu"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="cvp-mobile-drawer"
               style={{ background: 'none', border: 'none', color: T.textPrimary, cursor: 'pointer', padding: '4px', display: 'flex' }}
             >
               {mobileMenuOpen ? <XCloseIcon /> : <HamburgerIcon />}
@@ -816,6 +824,9 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
           onLogin={onLogin}
           onSignup={onSignup}
           onSignOut={onSignOut}
+          logo={<CVPassportLogo height={28} color="currentColor" />}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
         />
 
         {/* ──────────────────────────────────────────────────────────────

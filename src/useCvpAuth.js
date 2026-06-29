@@ -10,6 +10,19 @@ import { setCurrentAuthUserId } from "./lib/analytics/authState";
 import { hasProAccess } from "./config/access";
 import { isFounder } from "./utils/founder";
 
+// ── Auth trace logging ──────────────────────────────────────────────────────
+// The postAuth redirect logic is noisy by design while debugging. These traces
+// must never reach a production console: they're gated behind a debug flag that
+// is off unless explicitly enabled in dev via
+//   localStorage.setItem('cvp-auth-trace', '1')
+// Production builds short-circuit to a no-op (process.env.NODE_ENV === 'production').
+const AUTH_TRACE = (() => {
+  if (process.env.NODE_ENV === "production") return false;
+  try { return typeof window !== "undefined" && window.localStorage?.getItem("cvp-auth-trace") === "1"; }
+  catch { return false; }
+})();
+const trace = (...args) => { if (AUTH_TRACE) console.log(...args); };
+
 const extractName = (u) => u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0];
 
 // ── Post-auth redirect pickup ───────────────────────────────────────────────
@@ -258,7 +271,7 @@ export function useCvpAuth() {
         && prevId === null
         && !!nextId
         && hasOAuthMarker;
-      console.log("[cvp-auth-trace] onAuthStateChange", {
+      trace("[cvp-auth-trace] onAuthStateChange", {
         event,
         prevId,
         nextId,
@@ -301,7 +314,7 @@ export function useCvpAuth() {
   }, [user]);
 
   useEffect(() => {
-    console.log("[cvp-auth-trace] postAuth useEffect fired", {
+    trace("[cvp-auth-trace] postAuth useEffect fired", {
       authReady,
       userId: user?.id || null,
       pathname: location.pathname,
@@ -309,12 +322,12 @@ export function useCvpAuth() {
       hold: authLoginSuccessHoldRef.current,
     });
     if (!authReady || !user) {
-      console.log("[cvp-auth-trace] postAuth bail — not ready or no user");
+      trace("[cvp-auth-trace] postAuth bail — not ready or no user");
       return;
     }
     const clean = location.pathname.replace(/\/$/, "") || "/";
     if ((clean === "/auth" || clean === "/register") && authLoginSuccessHoldRef.current) {
-      console.log("[cvp-auth-trace] postAuth bail — login hold active on", clean);
+      trace("[cvp-auth-trace] postAuth bail — login hold active on", clean);
       return;
     }
     // "Auth return" means the user was actively bounced through one of
@@ -334,7 +347,7 @@ export function useCvpAuth() {
     // requested redirectTo — if we just observed a fresh SIGNED_IN event,
     // treat that as an auth return from wherever we are.
     const isFreshOAuthSignIn = justSignedInRef.current && !authLoginSuccessHoldRef.current;
-    console.log("[cvp-auth-trace] postAuth decision inputs", {
+    trace("[cvp-auth-trace] postAuth decision inputs", {
       clean,
       onAuthPagePath,
       sessionReturnPeek,
@@ -346,7 +359,7 @@ export function useCvpAuth() {
     // sign-in state and bail. Defensive guard against tab-focus
     // SIGNED_IN events bouncing users off the page they were on.
     if (!isAuthReturnPath && clean !== "/") {
-      console.log("[cvp-auth-trace] postAuth early-return (on content route)", { clean });
+      trace("[cvp-auth-trace] postAuth early-return (on content route)", { clean });
       if (isFreshOAuthSignIn) {
         justSignedInRef.current = false;
         consumePostAuthRedirect();
@@ -354,7 +367,7 @@ export function useCvpAuth() {
       return;
     }
     if (isAuthReturnPath || isFreshOAuthSignIn) {
-      console.log("[cvp-auth-trace] postAuth REDIRECT branch entered", {
+      trace("[cvp-auth-trace] postAuth REDIRECT branch entered", {
         isAuthReturnPath,
         isFreshOAuthSignIn,
         queryUserId: user.id,
@@ -370,7 +383,7 @@ export function useCvpAuth() {
       // profile read succeeding.
       if (stored || sessionReturn) {
         const target = stored || sessionReturn;
-        console.log("[cvp-auth-trace] postAuth navigating (stored intent)", { target });
+        trace("[cvp-auth-trace] postAuth navigating (stored intent)", { target });
         runPostAuthNavigate(target, { replace: true });
         return;
       }
@@ -385,23 +398,23 @@ export function useCvpAuth() {
             .select("user_type")
             .eq("id", user.id)
             .maybeSingle();
-          console.log("[cvp-auth-trace] postAuth profile query result", {
+          trace("[cvp-auth-trace] postAuth profile query result", {
             userId: user.id,
             prof,
             profErr,
           });
           if (prof?.user_type === "recruiter") dest = "/hr";
         } catch (e) {
-          console.log("[cvp-auth-trace] postAuth profile query threw", e);
+          trace("[cvp-auth-trace] postAuth profile query threw", e);
           /* default to /dashboard */
         }
-        console.log("[cvp-auth-trace] postAuth navigating (default routing)", { dest });
+        trace("[cvp-auth-trace] postAuth navigating (default routing)", { dest });
         runPostAuthNavigate(dest, { replace: true });
       })();
       return;
     }
     if (!["/", "/pricing", "/walk-in", "/builder", "/ats", "/cover-letter", "/dashboard", "/admin", "/account", "/templates", "/tools", "/hr", "/dashboard/applications", "/linkedin-optimizer", "/terms", "/privacy", "/refund"].includes(clean) && !clean.startsWith("/jobs/")) {
-      console.log("[cvp-auth-trace] postAuth allow-list fallback → /dashboard", { clean });
+      trace("[cvp-auth-trace] postAuth allow-list fallback → /dashboard", { clean });
       navigate("/dashboard", { replace: true });
     }
   }, [authReady, user, location.pathname, navigate, runPostAuthNavigate]);
