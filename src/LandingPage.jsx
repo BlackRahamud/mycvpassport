@@ -623,10 +623,10 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             alignItems:     'center',
             justifyContent: 'space-between',
             height:         '64px',
-            background:     'var(--nav-surface-glass)',
-            backdropFilter: 'saturate(180%) blur(16px)',
-            WebkitBackdropFilter: 'saturate(180%) blur(16px)',
-            borderBottom:   '0.5px solid var(--nav-border-hairline)',
+            background:     T.navBg,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderBottom:   `1px solid ${T.navBorder}`,
           }}
         >
           <Link
@@ -773,13 +773,13 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                   className="lp-btn"
                   onClick={() => navigate('/builder')}
                   style={{
-                    background:   'var(--nav-accent)',
+                    background:   '#D4860A',
                     border:       'none',
-                    color:        '#1C1714',
-                    borderRadius: '9999px',
+                    color:        '#000000',
+                    borderRadius: '20px',
                     padding:      '8px 18px',
                     fontSize:     '13px',
-                    fontWeight:   '700',
+                    fontWeight:   '600',
                     cursor:       'pointer',
                     fontFamily:   'inherit',
                   }}

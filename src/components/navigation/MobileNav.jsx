@@ -1,10 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NAV_SECTIONS, FREEBIE_BANNER_COPY } from '../../config/navItems';
 import NavBadge from './NavBadge';
+import NavIcon from './NavIcon';
 
 // webclaw sideDrawerIn — translateX(100%) → 0 over .22s, snap easing; close reverses.
+// Accordion bodies expand with a matching height + fade on the same curve.
 const SNAP = [0.2, 0.9, 0.3, 1];
 
 function CloseIcon() {
@@ -16,10 +18,14 @@ function CloseIcon() {
   );
 }
 
-function ChevronRightIcon() {
+function ChevronDownIcon({ open }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="9 18 15 12 9 6" />
+    <svg
+      width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+      className="cvp-nav-acc-chev" data-open={open ? 'true' : undefined}
+    >
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }
@@ -59,6 +65,8 @@ export default function MobileNav({
   const location = useLocation();
   const reduceMotion = useReducedMotion();
   const drawerRef = useRef(null);
+  // Single-open accordion — first section (Free Tools) open by default.
+  const [openSectionId, setOpenSectionId] = useState(NAV_SECTIONS[0]?.id || null);
 
   // Esc closes.
   useEffect(() => {
@@ -123,6 +131,8 @@ export default function MobileNav({
     onClose();
   };
 
+  const goSeeAll = (href) => { navigate(href); onClose(); };
+
   const isActiveRoute = (href) => {
     if (href === location.pathname) return true;
     if (href !== '/' && location.pathname.startsWith(href + '/')) return true;
@@ -131,6 +141,7 @@ export default function MobileNav({
 
   const scrimT = reduceMotion ? { duration: 0 } : { duration: 0.18, ease: SNAP };
   const drawerT = reduceMotion ? { duration: 0 } : { duration: 0.22, ease: SNAP };
+  const accT = reduceMotion ? { duration: 0 } : { duration: 0.22, ease: SNAP };
 
   return (
     <AnimatePresence>
@@ -153,10 +164,9 @@ export default function MobileNav({
               color: var(--nav-text);
               box-sizing: border-box;
               font-family: inherit;
-              box-shadow: -24px 0 60px rgba(28, 23, 20, 0.32);
+              box-shadow: -24px 0 60px rgba(0, 0, 0, 0.5);
               will-change: transform;
             }
-            /* Sticky drawer header — logo left, theme toggle + close right. */
             .cvp-nav-drawer-header {
               flex: 0 0 auto;
               display: flex; align-items: center; justify-content: space-between;
@@ -181,67 +191,83 @@ export default function MobileNav({
             }
             .cvp-nav-iconbtn:hover { background: var(--nav-surface-elevated); }
             .cvp-nav-iconbtn:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: 2px; }
-            /* Scrollable middle — sections scroll, header + footer stay pinned. */
             .cvp-nav-drawer-scroll {
               flex: 1 1 auto;
               overflow-y: auto;
               overscroll-behavior: contain;
               -webkit-overflow-scrolling: touch;
-              padding: 4px 16px 16px;
+              padding: 4px 12px 16px;
             }
             .cvp-nav-banner {
-              font-family: ui-monospace, 'Geist Mono', SFMono-Regular, Menlo, monospace;
-              font-size: 11px; letter-spacing: 0.04em;
+              font-size: 12px; letter-spacing: 0.01em;
               color: var(--nav-text-muted);
-              padding: 14px 4px 6px; margin: 0;
+              padding: 12px 8px 4px; margin: 0;
             }
-            .cvp-nav-section { margin-top: 14px; }
-            .cvp-nav-section + .cvp-nav-section { margin-top: 8px; }
-            .cvp-nav-section-header {
-              font-family: ui-monospace, 'Geist Mono', SFMono-Regular, Menlo, monospace;
-              font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
-              text-transform: uppercase;
-              color: var(--nav-text-muted);
-              padding: 8px 4px;
-              margin: 0 0 2px;
-              border-bottom: 1px solid var(--nav-border-hairline);
-            }
-            .cvp-nav-item {
-              width: 100%;
-              min-height: 48px;
+            /* Accordion */
+            .cvp-nav-acc { border-bottom: 1px solid var(--nav-border-hairline); }
+            .cvp-nav-acc-header {
+              width: 100%; min-height: 48px;
               display: flex; align-items: center; justify-content: space-between;
-              gap: 12px;
-              padding: 12px;
+              gap: 12px; padding: 12px 8px;
               background: transparent; border: none;
               color: var(--nav-text);
-              font-family: inherit;
-              font-size: 16px; font-weight: 500;
-              text-align: left;
-              cursor: pointer;
+              font-family: inherit; font-size: 15px; font-weight: 600;
+              text-align: left; cursor: pointer;
+              transition: color var(--nav-dur-quick) var(--nav-ease);
+            }
+            .cvp-nav-acc-header:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: -2px; }
+            .cvp-nav-acc-chev {
+              flex: 0 0 auto; color: var(--nav-text-muted);
+              transition: transform var(--nav-dur-quick) var(--nav-ease);
+            }
+            .cvp-nav-acc-chev[data-open="true"] { transform: rotate(180deg); }
+            .cvp-nav-acc-body { overflow: hidden; }
+            .cvp-nav-acc-inner { padding: 2px 0 10px; }
+            /* Rich item row */
+            .cvp-nav-item {
+              width: 100%; min-height: 48px;
+              display: flex; align-items: center; gap: 12px;
+              padding: 10px 8px;
+              background: transparent; border: none;
+              color: var(--nav-text);
+              font-family: inherit; text-align: left; cursor: pointer;
               border-radius: var(--nav-radius-sm);
-              transition: background-color var(--nav-dur-quick) var(--nav-ease),
-                          color var(--nav-dur-quick) var(--nav-ease);
+              transition: background-color var(--nav-dur-quick) var(--nav-ease);
             }
             .cvp-nav-item:hover { background: var(--nav-surface-elevated); }
             .cvp-nav-item:active { background: var(--nav-accent-subtle); }
             .cvp-nav-item:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: -2px; }
-            .cvp-nav-item[data-active="true"] {
-              color: var(--nav-accent); background: var(--nav-accent-subtle);
-            }
-            .cvp-nav-item[data-disabled="true"] {
-              color: var(--nav-text-disabled); cursor: default; opacity: 1;
-            }
+            .cvp-nav-item[data-active="true"] { background: var(--nav-accent-subtle); }
+            .cvp-nav-item[data-disabled="true"] { cursor: default; }
             .cvp-nav-item[data-disabled="true"]:hover { background: transparent; }
-            .cvp-nav-item-left {
-              display: inline-flex; align-items: center; gap: 10px; min-width: 0; flex: 1;
+            .cvp-nav-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+            .cvp-nav-item-title {
+              display: inline-flex; align-items: center; gap: 8px;
+              font-size: 15px; font-weight: 500; color: var(--nav-text);
+              overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
             }
-            .cvp-nav-item-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .cvp-nav-item-chevron { color: var(--nav-text-muted); flex: 0 0 auto; display: inline-flex; }
+            .cvp-nav-item[data-active="true"] .cvp-nav-item-title { color: var(--nav-accent); }
+            .cvp-nav-item[data-disabled="true"] .cvp-nav-item-title { color: var(--nav-text-disabled); }
+            .cvp-nav-item-desc {
+              font-size: 12px; line-height: 1.4; color: var(--nav-text-muted);
+              overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            }
             .cvp-nav-item-hint {
               font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
               color: var(--nav-text-muted); font-weight: 500; flex: 0 0 auto;
             }
-            /* Pinned bottom CTA — always visible, never scrolls. */
+            .cvp-nav-seeall {
+              display: inline-flex; align-items: center; gap: 6px;
+              margin: 2px 0 4px; padding: 10px 8px;
+              background: transparent; border: none;
+              color: var(--nav-accent);
+              font-family: inherit; font-size: 14px; font-weight: 600;
+              cursor: pointer; border-radius: var(--nav-radius-sm); min-height: 48px;
+              transition: background-color var(--nav-dur-quick) var(--nav-ease);
+            }
+            .cvp-nav-seeall:hover { background: var(--nav-accent-subtle); }
+            .cvp-nav-seeall:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: -2px; }
+            /* Pinned bottom CTA */
             .cvp-nav-footer {
               flex: 0 0 auto;
               padding: 14px 16px max(16px, env(safe-area-inset-bottom));
@@ -251,7 +277,7 @@ export default function MobileNav({
             }
             .cvp-nav-cta-primary {
               width: 100%; min-height: 48px;
-              background: var(--nav-accent); color: #1C1714;
+              background: var(--nav-accent); color: var(--nav-surface);
               border: none; border-radius: var(--nav-radius-pill);
               font-family: inherit; font-size: 15px; font-weight: 700;
               cursor: pointer; padding: 14px 20px;
@@ -273,7 +299,8 @@ export default function MobileNav({
             .cvp-nav-cta-secondary:hover { background: var(--nav-surface-elevated); }
             .cvp-nav-cta-secondary:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: 2px; }
             @media (prefers-reduced-motion: reduce) {
-              .cvp-nav-iconbtn, .cvp-nav-item, .cvp-nav-cta-primary, .cvp-nav-cta-secondary {
+              .cvp-nav-iconbtn, .cvp-nav-item, .cvp-nav-acc-header, .cvp-nav-acc-chev,
+              .cvp-nav-seeall, .cvp-nav-cta-primary, .cvp-nav-cta-secondary {
                 transition-duration: 0.01ms !important;
               }
             }
@@ -337,37 +364,78 @@ export default function MobileNav({
             <div className="cvp-nav-drawer-scroll">
               <p className="cvp-nav-banner">{FREEBIE_BANNER_COPY}</p>
 
-              {NAV_SECTIONS.map((section) => (
-                <section key={section.id} className="cvp-nav-section" aria-label={section.label}>
-                  <h3 className="cvp-nav-section-header">{section.label}</h3>
-                  {section.items.map((item) => {
-                    const authGated = item.requiresAuth && !user;
-                    const active = !authGated && isActiveRoute(item.href);
-                    return (
-                      <button
-                        key={item.href}
-                        type="button"
-                        className="cvp-nav-item"
-                        data-active={active ? 'true' : undefined}
-                        data-disabled={authGated ? 'true' : undefined}
-                        disabled={authGated}
-                        aria-label={authGated ? `${item.label}, sign in required to access` : undefined}
-                        onClick={authGated ? undefined : () => handleItemClick(item)}
-                      >
-                        <span className="cvp-nav-item-left">
-                          <span className="cvp-nav-item-label">{item.label}</span>
-                          {item.badge && <NavBadge label={item.badge} />}
-                        </span>
-                        {authGated ? (
-                          <span className="cvp-nav-item-hint">Sign in</span>
-                        ) : (
-                          <span className="cvp-nav-item-chevron"><ChevronRightIcon /></span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </section>
-              ))}
+              {NAV_SECTIONS.map((section) => {
+                const sectionOpen = openSectionId === section.id;
+                const panelId = `cvp-nav-acc-${section.id}`;
+                return (
+                  <div className="cvp-nav-acc" key={section.id}>
+                    <button
+                      type="button"
+                      className="cvp-nav-acc-header"
+                      aria-expanded={sectionOpen}
+                      aria-controls={panelId}
+                      onClick={() => setOpenSectionId((cur) => (cur === section.id ? null : section.id))}
+                    >
+                      <span>{section.label}</span>
+                      <ChevronDownIcon open={sectionOpen} />
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {sectionOpen && (
+                        <motion.div
+                          id={panelId}
+                          role="region"
+                          aria-label={section.label}
+                          className="cvp-nav-acc-body"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={accT}
+                        >
+                          <div className="cvp-nav-acc-inner">
+                            {section.items.map((item) => {
+                              const authGated = item.requiresAuth && !user;
+                              const active = !authGated && isActiveRoute(item.href);
+                              return (
+                                <button
+                                  key={item.href}
+                                  type="button"
+                                  className="cvp-nav-item"
+                                  data-active={active ? 'true' : undefined}
+                                  data-disabled={authGated ? 'true' : undefined}
+                                  disabled={authGated}
+                                  aria-label={authGated ? `${item.label}, sign in required to access` : undefined}
+                                  onClick={authGated ? undefined : () => handleItemClick(item)}
+                                >
+                                  <NavIcon name={item.icon} muted={authGated} />
+                                  <span className="cvp-nav-item-text">
+                                    <span className="cvp-nav-item-title">
+                                      {item.label}
+                                      {item.badge && <NavBadge label={item.badge} />}
+                                    </span>
+                                    <span className="cvp-nav-item-desc">{item.desc}</span>
+                                  </span>
+                                  {authGated && <span className="cvp-nav-item-hint">Sign in</span>}
+                                </button>
+                              );
+                            })}
+
+                            {section.seeAll && (
+                              <button
+                                type="button"
+                                className="cvp-nav-seeall"
+                                onClick={() => goSeeAll(section.seeAll.href)}
+                              >
+                                {section.seeAll.label} <span aria-hidden="true">→</span>
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="cvp-nav-footer">
