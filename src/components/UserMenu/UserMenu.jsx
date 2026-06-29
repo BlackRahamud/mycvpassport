@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
+import { useAnchoredPosition } from "../ui/useAnchoredPosition";
 import "./userMenu.css";
 
 /**
@@ -58,20 +60,23 @@ export default function UserMenu({
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const anchorRef = useRef(null);
-  const popoverRef = useRef(null);
   const planInfo = planFromString(plan);
   const initials = initialsFrom(name, email);
   const display = name || (email ? email.split("@")[0] : "Sign in");
 
-  // Close on outside click + Escape. Anchor lives outside the popover,
-  // so we ignore clicks inside the anchor (its own onClick is the
-  // toggle).
+  // Portal + Floating UI so the popover can't be clipped by the rail/topbar
+  // overflow. "up" opens above the trigger; otherwise below, right-aligned.
+  // flip/shift keep it on-screen near any edge.
+  const { referenceRef, floatingRef, floatingStyle } = useAnchoredPosition({
+    open, placement: placement === "up" ? "top-start" : "bottom-end", gap: 8, padding: 8,
+  });
+
+  // Close on outside click + Escape (the popover is portaled — check both refs).
   useEffect(() => {
     if (!open) return undefined;
     const onDown = (e) => {
-      if (popoverRef.current && popoverRef.current.contains(e.target)) return;
-      if (anchorRef.current && anchorRef.current.contains(e.target)) return;
+      if (floatingRef.current && floatingRef.current.contains(e.target)) return;
+      if (referenceRef.current && referenceRef.current.contains(e.target)) return;
       setOpen(false);
     };
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
@@ -81,7 +86,7 @@ export default function UserMenu({
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, referenceRef, floatingRef]);
 
   const go = (path) => () => {
     setOpen(false);
@@ -102,7 +107,7 @@ export default function UserMenu({
   return (
     <div className={`um-root um-root--${theme} um-root--${placement}`}>
       <button
-        ref={anchorRef}
+        ref={referenceRef}
         type="button"
         className="um-trigger"
         aria-haspopup="menu"
@@ -117,12 +122,15 @@ export default function UserMenu({
         <ChevronIcon open={open} />
       </button>
 
-      <AnimatePresence>
+      {createPortal(
+        <div className={`um-root um-root--${theme} um-root--${placement}`} style={{ display: "contents" }}>
+        <AnimatePresence>
         {open && (
           <motion.div
-            ref={popoverRef}
+            ref={floatingRef}
             className="um-popover"
             role="menu"
+            style={floatingStyle}
             initial={{ opacity: 0, scale: 0.96, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -4 }}
@@ -174,7 +182,10 @@ export default function UserMenu({
             </button>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

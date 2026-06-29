@@ -12,9 +12,11 @@
 // =============================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
+import { useAnchoredPosition } from "../ui/useAnchoredPosition";
 import "./notificationsBell.css";
 
 const EASE = [0.4, 0, 0.2, 1];
@@ -45,6 +47,11 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
   const [items, setItems] = useState(null); // null = loading
   const rootRef = useRef(null);
 
+  // Portal + Floating UI so the popover can't be clipped by a topbar/card.
+  const { referenceRef, floatingRef, floatingStyle } = useAnchoredPosition({
+    open, placement: "bottom-end", gap: 8, padding: 8,
+  });
+
   const load = useCallback(async () => {
     if (!userId) return;
     const { data } = await supabase
@@ -60,12 +67,16 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
 
   useEffect(() => {
     if (!open) return undefined;
-    const onDown = (e) => { if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false); };
+    const onDown = (e) => {
+      if (rootRef.current?.contains(e.target)) return;
+      if (floatingRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
-  }, [open]);
+  }, [open, floatingRef]);
 
   const unread = (items || []).filter((n) => !n.read).length;
 
@@ -87,6 +98,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
   return (
     <div className="nb-root" ref={rootRef}>
       <button
+        ref={referenceRef}
         type="button"
         className={buttonClassName}
         aria-label={unread > 0 ? `Notifications (${unread} unread)` : "Notifications"}
@@ -97,11 +109,14 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
         {unread > 0 && <span className="nb-badge">{unread > 9 ? "9+" : unread}</span>}
       </button>
 
-      <AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
         {open && (
           <motion.div
+            ref={floatingRef}
             className="nb-pop"
             role="menu"
+            style={floatingStyle}
             initial={reduce ? false : { opacity: 0, scale: 0.97, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: -4 }}
@@ -141,7 +156,9 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }

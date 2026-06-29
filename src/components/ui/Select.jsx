@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useAnchoredPosition } from "./useAnchoredPosition";
 import "./select.css";
 
 /**
@@ -64,21 +66,36 @@ export default function Select({
 }) {
   const reduce = useReducedMotion();
   const rootRef = useRef(null);
-  const listRef = useRef(null);
   const baseId = useId();
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
 
+  // Position the menu via Floating UI in a portal to <body> (flip/shift/size)
+  // so no ancestor overflow or card boundary can clip it.
+  const { referenceRef, floatingRef, floatingStyle } = useAnchoredPosition({
+    open,
+    placement: menuAlign === "right" ? "bottom-end" : "bottom-start",
+    gap: 6,
+    padding: 8,
+    matchWidth: variant === "field",
+    maxHeight: 280,
+  });
+
   const selectedIdx = options.findIndex((o) => String(o.value) === String(value));
   const selected = selectedIdx >= 0 ? options[selectedIdx] : null;
 
-  // Close on outside click.
+  // Close on outside click — the menu lives in a portal, so check BOTH the
+  // trigger and the floating menu before treating a click as "outside".
   useEffect(() => {
     if (!open) return undefined;
-    const onDoc = (e) => { if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => {
+      if (rootRef.current?.contains(e.target)) return;
+      if (floatingRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
+  }, [open, floatingRef]);
 
   // On open, point the active option at the current selection.
   useEffect(() => {
@@ -89,8 +106,8 @@ export default function Select({
   // Keep the active option in view.
   useEffect(() => {
     if (!open || activeIdx < 0) return;
-    listRef.current?.querySelector(`[data-idx="${activeIdx}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [open, activeIdx]);
+    floatingRef.current?.querySelector(`[data-idx="${activeIdx}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [open, activeIdx, floatingRef]);
 
   const commit = (idx) => {
     const opt = options[idx];
@@ -127,6 +144,7 @@ export default function Select({
       className={`ui-select ui-select--${variant} ui-select--${size} ui-select--${theme}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}
     >
       <button
+        ref={referenceRef}
         type="button"
         id={id}
         className={`ui-select__trigger${open ? " is-open" : ""}${selected ? "" : " is-placeholder"}`}
@@ -143,38 +161,47 @@ export default function Select({
         <CaretIcon />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.ul
-            ref={listRef}
-            id={`${baseId}-list`}
-            role="listbox"
-            tabIndex={-1}
-            className={`ui-select__menu ui-select__menu--${menuAlign}`}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.985 }}
-            transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
-          >
-            {options.map((o, idx) => (
-              <li
-                key={String(o.value)}
-                id={`${baseId}-opt-${idx}`}
-                data-idx={idx}
-                role="option"
-                aria-selected={String(o.value) === String(value)}
-                aria-disabled={o.disabled || undefined}
-                className={`ui-select__option${idx === activeIdx ? " is-active" : ""}${String(o.value) === String(value) ? " is-selected" : ""}${o.disabled ? " is-disabled" : ""}`}
-                onMouseEnter={() => !o.disabled && setActiveIdx(idx)}
-                onClick={() => commit(idx)}
+      {/* Portaled to <body> so no ancestor overflow/card bound can clip it.
+          The carrier div re-scopes the --uis-* design tokens (display:contents
+          → no layout box) so the menu keeps its exact colors. */}
+      {createPortal(
+        <div className={`ui-select ui-select--${variant} ui-select--${size} ui-select--${theme}`} style={{ display: "contents" }}>
+          <AnimatePresence>
+            {open && (
+              <motion.ul
+                ref={floatingRef}
+                id={`${baseId}-list`}
+                role="listbox"
+                tabIndex={-1}
+                style={floatingStyle}
+                className="ui-select__menu"
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.985 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.985 }}
+                transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
               >
-                <span className="ui-select__option-label">{o.label}</span>
-                {String(o.value) === String(value) && <CheckIcon />}
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
+                {options.map((o, idx) => (
+                  <li
+                    key={String(o.value)}
+                    id={`${baseId}-opt-${idx}`}
+                    data-idx={idx}
+                    role="option"
+                    aria-selected={String(o.value) === String(value)}
+                    aria-disabled={o.disabled || undefined}
+                    className={`ui-select__option${idx === activeIdx ? " is-active" : ""}${String(o.value) === String(value) ? " is-selected" : ""}${o.disabled ? " is-disabled" : ""}`}
+                    onMouseEnter={() => !o.disabled && setActiveIdx(idx)}
+                    onClick={() => commit(idx)}
+                  >
+                    <span className="ui-select__option-label">{o.label}</span>
+                    {String(o.value) === String(value) && <CheckIcon />}
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
