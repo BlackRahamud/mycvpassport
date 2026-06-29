@@ -22,6 +22,7 @@
   --pj-primary-ring: rgba(124, 58, 237, 0.18);
   --pj-success: #059669;
   --pj-success-ring: #10B981;
+  --pj-danger: #DC2626;
   --pj-shadow-card: 0 18px 40px -22px rgba(20, 19, 31, 0.18), 0 6px 14px -8px rgba(20, 19, 31, 0.08);
   --pj-shadow-button: 0 6px 14px -6px rgba(124, 58, 237, 0.45);
   --pj-radius-sm: 6px;
@@ -346,6 +347,13 @@
   box-shadow: 0 8px 18px -6px rgba(109, 40, 217, 0.55);
 }
 
+.pj-btn--primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.pj-btn--primary:disabled:hover { background: var(--pj-primary); }
+
 .pj-btn--ghost {
   background: var(--pj-bg);
   color: var(--pj-text);
@@ -527,6 +535,48 @@
 }
 
 .pj-unit-pill:hover { background: var(--pj-input-bg); border-color: var(--pj-border); }
+
+/* Period selector (replaces the static pill) — options adapt to Job Type.
+   Styled to read like the old pill; native <select> for free keyboard a11y.
+   Focus ring comes from the portal-wide rule in hrShell.css. */
+.pj-unit-select-wrap { position: relative; display: inline-flex; align-items: center; }
+.pj-unit-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 26px;
+  padding: 0 24px 0 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pj-text-soft);
+  cursor: pointer;
+  font-family: var(--pj-font);
+  transition: background 180ms var(--pj-ease), border-color 180ms var(--pj-ease);
+}
+.pj-unit-select:hover { background: var(--pj-input-bg); border-color: var(--pj-border); }
+.pj-unit-select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 1.4px solid var(--pj-text-soft);
+  border-bottom: 1.4px solid var(--pj-text-soft);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+/* Inline field validation (e.g. salary max < min). */
+.pj-field-error {
+  margin: 10px 2px 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pj-danger);
+}
 
 /* ── Salary row (label + per-unit) ──────────────────────────── */
 .pj-salary-head {

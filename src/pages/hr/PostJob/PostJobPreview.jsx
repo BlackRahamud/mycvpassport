@@ -5,19 +5,27 @@ const POSITION_LABEL = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" }
 const JOB_TYPE_LABEL = { "full-time": "Fulltime", "part-time": "Part-time", contract: "Contract" };
 const CURRENCY_PREFIX = { AED: "AED", INR: "₹", USD: "$" };
 
-// "AED 50 – AED 1000" / "₹50 – ₹1000" / "$50 – $1000" — alpha codes get a
-// trailing space, symbols don't. Falls back to a single value or em-dash.
+// "₹50,000 – ₹90,000 / month" / "AED 8,000 / month" / "$50 – $1000".
+// Alpha codes get a trailing space, symbols don't; values are thousands-
+// grouped and the period (from salaryUnit) is appended. Single value or
+// em-dash fallback.
+function periodLabel(unit) {
+  return unit ? String(unit).replace(/^per\s+/i, "").trim() : ""; // "per month" -> "month"
+}
 function formatSalary(job) {
   const code = CURRENCY_PREFIX[job.currency] ? job.currency : "AED";
   const prefix = CURRENCY_PREFIX[code];
   const sep = prefix.length > 1 ? `${prefix} ` : prefix; // "AED " vs "$"
+  const fmt = (n) => Number(n).toLocaleString("en-US");
   const min = job.salaryMin;
   const max = job.salaryMax;
   const hasMin = min != null && min !== "";
   const hasMax = max != null && max !== "";
-  if (hasMin && hasMax) return `${sep}${min} – ${sep}${max}`;
-  if (hasMin) return `${sep}${min}`;
-  if (hasMax) return `${sep}${max}`;
+  const period = periodLabel(job.salaryUnit);
+  const suffix = period ? ` / ${period}` : "";
+  if (hasMin && hasMax) return `${sep}${fmt(min)} – ${sep}${fmt(max)}${suffix}`;
+  if (hasMin) return `${sep}${fmt(min)}${suffix}`;
+  if (hasMax) return `${sep}${fmt(max)}${suffix}`;
   return "—";
 }
 

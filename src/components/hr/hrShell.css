@@ -159,3 +159,37 @@
 @media (prefers-reduced-motion: reduce) {
   .hrs-navitem { transition: none !important; }
 }
+
+/* ───────── Global focus state — Issue 3 ─────────
+   One shared, intentional purple focus ring for every editable control in the
+   HR portal, replacing the app-wide amber focus ring (index.css sets an
+   amber `!important` ring that reads as cheap yellow inside the purple
+   portal). Scoped to .hrs-root so the dark candidate-facing app keeps its
+   amber. !important + specificity (0,2,1) beats the global rule's (0,1,1);
+   applied on :focus so mouse AND keyboard always show a clear state. */
+.hrs-root input:focus,
+.hrs-root textarea:focus,
+.hrs-root select:focus,
+.hrs-root [contenteditable]:focus {
+  outline: none !important;
+  border-color: var(--pj-primary) !important;
+  box-shadow: 0 0 0 4px var(--pj-primary-ring) !important;
+}
+
+/* Native toggles get a clean purple outline, not the 4px text-field ring. */
+.hrs-root input[type="radio"]:focus,
+.hrs-root input[type="checkbox"]:focus {
+  outline: 2px solid var(--pj-primary) !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+  border-color: var(--pj-primary) !important;
+}
+
+/* Wrapper-managed fields ring their container (:focus-within) — keep the inner
+   control flat so there's no double ring. */
+.hrs-root .pj-num input:focus,
+.hrs-root .pj-tag-input input:focus,
+.hrs-root .pj-phone input:focus {
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
