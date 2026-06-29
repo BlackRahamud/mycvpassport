@@ -167,13 +167,23 @@
    portal). Scoped to .hrs-root so the dark candidate-facing app keeps its
    amber. !important + specificity (0,2,1) beats the global rule's (0,1,1);
    applied on :focus so mouse AND keyboard always show a clear state. */
-.hrs-root input:focus,
+.hrs-root input:not([type="range"]):focus,
 .hrs-root textarea:focus,
 .hrs-root select:focus,
 .hrs-root [contenteditable]:focus {
   outline: none !important;
   border-color: var(--pj-primary) !important;
   box-shadow: 0 0 0 4px var(--pj-primary-ring) !important;
+}
+
+/* Range/slider: NO container box (the boxed ring drew an ugly rectangle
+   around the whole track). Focus shows on the thumb only — see the
+   :focus-visible thumb glow in postJob.css. */
+.hrs-root input[type="range"]:focus,
+.hrs-root input[type="range"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
 }
 
 /* Native toggles get a clean purple outline, not the 4px text-field ring. */

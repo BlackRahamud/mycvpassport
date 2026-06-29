@@ -7,6 +7,7 @@ import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsA
 import VerdictCard from "../../../components/hr/VerdictCard";
 import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
 import BulkActions from "../../../components/hr/BulkActions";
+import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
 import "../Jobs/jobsList.css";     // .hjl-toggle / .hjl-empty
@@ -502,9 +503,16 @@ export default function CandidatesPage() {
                 onClick={() => setMarket(o.key)}>{o.label}</button>
             ))}
           </div>
-          <select className="cand-select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
-            {STATUS_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-          </select>
+          <div style={{ width: 200 }}>
+            <Select
+              size="sm"
+              menuAlign="right"
+              value={status}
+              onChange={(v) => setStatus(v)}
+              options={STATUS_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
+              ariaLabel="Status"
+            />
+          </div>
         </div>
 
         {/* Loading */}

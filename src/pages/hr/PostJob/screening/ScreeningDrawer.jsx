@@ -1,33 +1,24 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
-
-const CATEGORY_LABEL = {
-  "background-check":  "Background Check",
-  "certifications":    "Certifications",
-  "drivers-license":   "Driver's License",
-  "gpa":               "GPA",
-  "work-authorization":"Work Authorization",
-  "drug-test":         "Drug Test",
-  "education":         "Education",
-  "expertise-tools":   "Expertise with Tools",
-  "hybrid-work":       "Hybrid Work",
-  "industry-experience":"Industry Experience",
-  "language":          "Language",
-  "location":          "Location",
-  "onsite-work":       "Onsite Work",
-  "remote-work":       "Remote Work",
-  "urgent-hiring":     "Urgent Hiring Needed",
-  "visa-status":       "Visa Status",
-  "work-experience":   "Work Experience",
-  "custom":            "Custom",
-};
+import Select from "../../../../components/ui/Select";
+import { CATEGORY_LABEL, categoriesForMarket } from "../market";
 
 const PRESET_QUESTIONS = {
   "background-check": [
-    { text: "Can you work in person in Menlo Park, CA?", responseType: "yes-no", idealAnswer: "yes", mustHave: false },
-    { text: "How many years of experience do you have as a engineer?", responseType: "yes-no", idealAnswer: "yes", mustHave: false },
+    { text: "Can you reliably commute to the job location?", responseType: "yes-no", idealAnswer: "yes", mustHave: false },
+    { text: "How many years of relevant experience do you have?", responseType: "number", idealAnswer: "yes", mustHave: false },
   ],
 };
+
+const RESPONSE_TYPE_OPTIONS = [
+  { value: "yes-no", label: "Yes/No" },
+  { value: "number", label: "Number" },
+  { value: "text",   label: "Text" },
+];
+const IDEAL_ANSWER_OPTIONS = [
+  { value: "yes", label: "Yes" },
+  { value: "no",  label: "No" },
+];
 
 const DEFAULT_QUESTION = () => ({
   text: "",
@@ -54,10 +45,14 @@ const XSmall = () => (
   </svg>
 );
 
-export default function ScreeningDrawer({ open, categoryKey, onClose, onSave }) {
+export default function ScreeningDrawer({ open, categoryKey, onClose, onSave, market = "gulf" }) {
   const reduce = useReducedMotion();
   const [questions, setQuestions] = useState([]);
   const [activeCategory, setActiveCategory] = useState(categoryKey || "background-check");
+  const categoryOptions = categoriesForMarket(market).map((c) => ({
+    value: c.key,
+    label: `${CATEGORY_LABEL[c.key]} (${questions.length} questions)`,
+  }));
 
   useEffect(() => {
     if (!open) return;
@@ -109,17 +104,12 @@ export default function ScreeningDrawer({ open, categoryKey, onClose, onSave }) 
         <div className="pj-drawer__body">
           <div className="pj-field" style={{ marginBottom: 18 }}>
             <span className="pj-label">Screening Questions Category</span>
-            <div className="pj-select-wrap">
-              <select
-                className="pj-select"
-                value={activeCategory}
-                onChange={(e) => setActiveCategory(e.target.value)}
-              >
-                {Object.entries(CATEGORY_LABEL).map(([k, label]) => (
-                  <option key={k} value={k}>{label} ({questions.length} questions)</option>
-                ))}
-              </select>
-            </div>
+            <Select
+              value={activeCategory}
+              onChange={(v) => setActiveCategory(v)}
+              options={categoryOptions}
+              ariaLabel="Screening questions category"
+            />
             <span style={{ display: "none" }}>{headerLabel}</span>
           </div>
 
@@ -146,32 +136,23 @@ export default function ScreeningDrawer({ open, categoryKey, onClose, onSave }) 
               <div className="pj-qcard__row">
                 <div className="pj-qcard__field">
                   <span className="pj-label">Response type:</span>
-                  <div className="pj-select-wrap">
-                    <select
-                      className="pj-select"
-                      style={{ height: 36 }}
-                      value={q.responseType}
-                      onChange={(e) => updateQ(idx, { responseType: e.target.value })}
-                    >
-                      <option value="yes-no">Yes/No</option>
-                      <option value="number">Number</option>
-                      <option value="text">Text</option>
-                    </select>
-                  </div>
+                  <Select
+                    size="sm"
+                    value={q.responseType}
+                    onChange={(v) => updateQ(idx, { responseType: v })}
+                    options={RESPONSE_TYPE_OPTIONS}
+                    ariaLabel="Response type"
+                  />
                 </div>
                 <div className="pj-qcard__field">
                   <span className="pj-label">Ideal answer</span>
-                  <div className="pj-select-wrap">
-                    <select
-                      className="pj-select"
-                      style={{ height: 36 }}
-                      value={q.idealAnswer}
-                      onChange={(e) => updateQ(idx, { idealAnswer: e.target.value })}
-                    >
-                      <option value="yes">Yes</option>
-                      <option value="no">No</option>
-                    </select>
-                  </div>
+                  <Select
+                    size="sm"
+                    value={q.idealAnswer}
+                    onChange={(v) => updateQ(idx, { idealAnswer: v })}
+                    options={IDEAL_ANSWER_OPTIONS}
+                    ariaLabel="Ideal answer"
+                  />
                 </div>
                 <label className="pj-checkbox">
                   <input

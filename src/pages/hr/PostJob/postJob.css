@@ -657,6 +657,15 @@
 
 .pj-range input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.08); }
 
+/* Keyboard focus shows on the thumb only — a subtle purple glow ring, no
+   rectangle around the track (Issue 1). */
+.pj-range input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.35), 0 0 0 6px var(--pj-primary-ring);
+}
+.pj-range input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.35), 0 0 0 6px var(--pj-primary-ring);
+}
+
 .pj-range input[type="range"]::-webkit-slider-runnable-track,
 .pj-range input[type="range"]::-moz-range-track {
   background: transparent;

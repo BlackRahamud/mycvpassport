@@ -1,25 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
-
-const CATEGORIES = [
-  { key: "background-check",  label: "Background Check" },
-  { key: "certifications",    label: "Certifications" },
-  { key: "drivers-license",   label: "Driver's License" },
-  { key: "gpa",               label: "GPA" },
-  { key: "work-authorization",label: "Work Authorization" },
-  { key: "drug-test",         label: "Drug Test" },
-  { key: "education",         label: "Education" },
-  { key: "expertise-tools",   label: "Expertise with Tools" },
-  { key: "hybrid-work",       label: "Hybrid Work" },
-  { key: "industry-experience",label: "Industry Experience" },
-  { key: "language",          label: "Language" },
-  { key: "location",          label: "Location" },
-  { key: "onsite-work",       label: "Onsite Work" },
-  { key: "remote-work",       label: "Remote Work" },
-  { key: "urgent-hiring",     label: "Urgent Hiring Needed" },
-  { key: "visa-status",       label: "Visa Status" },
-  { key: "work-experience",   label: "Work Experience" },
-  { key: "custom",            label: "Custom question", badge: "New" },
-];
+import { categoriesForMarket } from "../market";
 
 const PlusGlyph = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -33,9 +13,10 @@ const CloseGlyph = () => (
   </svg>
 );
 
-export default function ScreeningCategoryModal({ open, onClose, onPickCategory }) {
+export default function ScreeningCategoryModal({ open, onClose, onPickCategory, market = "gulf" }) {
   const reduce = useReducedMotion();
   if (!open) return null;
+  const categories = categoriesForMarket(market);
   return (
     <>
       <motion.div
@@ -68,7 +49,7 @@ export default function ScreeningCategoryModal({ open, onClose, onPickCategory }
               animate="animate"
               variants={{ initial: {}, animate: { transition: { staggerChildren: 0.025, delayChildren: 0.05 } } }}
             >
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <motion.button
                   key={c.key}
                   type="button"

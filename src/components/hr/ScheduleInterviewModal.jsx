@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
+import Select from "../ui/Select";
 import "./scheduleInterview.css";
 
 const EASE = [0.4, 0, 0.2, 1];
@@ -183,9 +184,13 @@ export default function ScheduleInterviewModal({ open, onClose, application, job
 
                   <div className="si-row">
                     <label className="si-label" htmlFor="si-dur">Duration</label>
-                    <select id="si-dur" className="jpp-status-override__select si-select" value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
-                      {DURATIONS.map((d) => <option key={d} value={d}>{d} minutes</option>)}
-                    </select>
+                    <Select
+                      id="si-dur"
+                      value={duration}
+                      onChange={(v) => setDuration(Number(v))}
+                      options={DURATIONS.map((d) => ({ value: d, label: `${d} minutes` }))}
+                      ariaLabel="Interview duration"
+                    />
                   </div>
 
                   <div className="si-row">
