@@ -27,6 +27,13 @@
   --info-fg: #1D4ED8;
   --info-bg: #EFF6FF;
   --hover: #F3F4F6;
+  /* Restrained red for the Pass decision (soft, tasteful) */
+  --danger: #DC2626;
+  --danger-fg: #B91C1C;
+  --danger-bg: #FEF2F2;
+  /* HR portal purple accent, scoped here so the public page is self-contained */
+  --accent-purple: #7C3AED;
+  --accent-purple-ring: rgba(124, 58, 237, 0.18);
   --radius: 8px;
 
   /* House motion curves */
@@ -66,10 +73,14 @@
 .shared-cand .snap:active { transform: scale(.98); }
 
 .shared-cand .field { transition: border-color .15s var(--snap), box-shadow .15s var(--snap); }
-.shared-cand .field:focus {
-  border-color: var(--text);
-  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
-  outline: none;
+/* The app ships a global input/textarea:focus amber ring with !important
+   (index.css). Override it to the portal purple here; higher specificity plus
+   !important wins cleanly without touching the global rule. */
+.shared-cand .field:focus,
+.shared-cand .field:focus-visible {
+  border-color: var(--accent-purple) !important;
+  box-shadow: 0 0 0 3px var(--accent-purple-ring) !important;
+  outline: none !important;
 }
 
 /* Reduced motion */

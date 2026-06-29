@@ -14,12 +14,15 @@
 //   - look up the share by public_token. None -> 404.
 //   - revoked, or past expires_at -> 410 { status: "expired" }.
 //   - else return name, role, stage, location, notice period, visa status,
-//     and the sharing company. These regional fit fields are always sent.
+//     and the SHARING RECRUITER's brand (hr_profiles.company_name, keyed to
+//     share.created_by; NOT jobs.company). Regional fit fields are always
+//     sent.
 //   - if hide_contact_info is true, email / phone / photo are omitted from
 //     the payload entirely (not just hidden in the UI).
-//   - mint a 20 minute signed URL for the resume from the private
-//     applicant-cvs bucket. Never a public URL.
-//   - increment view_count and set last_viewed_at.
+//   - mint two 20 minute signed URLs for the resume from the private
+//     applicant-cvs bucket: one inline (for the in-page embed) and one with
+//     a download disposition. Never a public URL.
+//   - increment view_count and set last_viewed_at (fire and forget).
 //   - respond with Cache-Control: no-store.
 // =============================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -55,6 +58,32 @@ function stageLabel(status: string): string {
   if (STAGE_LABELS[key]) return STAGE_LABELS[key];
   // Fallback: capitalise the raw status rather than invent one.
   return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+// Build a clean, header-safe download filename from the candidate name.
+// Allowlist letters (any script), numbers, spaces and a few safe punctuation
+// marks; everything else (slashes, quotes, control and reserved characters)
+// becomes a space. So a name like O'Brien/test cannot break the
+// Content-Disposition header.
+function safeFileName(name: string, ext: string): string {
+  const cleanedBase = String(name || "")
+    .replace(/[^\p{L}\p{N}\s._()&-]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const base = cleanedBase ? `${cleanedBase} resume` : "candidate resume";
+  const safeExt = /^[a-z0-9]{1,5}$/i.test(ext) ? ext.toLowerCase() : "pdf";
+  return `${base}.${safeExt}`;
+}
+
+// Resolve the sharing recruiter's brand from their own account, keyed to the
+// share creator. hr_profiles.company_name is the canonical source, with
+// profiles.company_name as a fallback. Never jobs.company (the employer).
+async function resolveBrand(admin: ReturnType<typeof createClient>, createdBy: string): Promise<string> {
+  const [hr, prof] = await Promise.all([
+    admin.from("hr_profiles").select("company_name").eq("user_id", createdBy).maybeSingle(),
+    admin.from("profiles").select("company_name").eq("id", createdBy).maybeSingle(),
+  ]);
+  return String(hr.data?.company_name || prof.data?.company_name || "").trim();
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -97,10 +126,13 @@ Deno.serve(async (req: Request) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  // 1. Look up the share by public_token.
+  // 1. One embedded query: share + its application + the job title.
   const { data: share, error: shareErr } = await admin
     .from("candidate_shares")
-    .select("id, application_id, expires_at, is_revoked, hide_contact_info, view_count")
+    .select(
+      "id, created_by, expires_at, is_revoked, hide_contact_info, view_count, " +
+      "applications(id, candidate_name, candidate_email, candidate_phone, visa_status, cv_file_path, cv_snapshot, status, jobs(title))",
+    )
     .eq("public_token", token)
     .maybeSingle();
 
@@ -114,28 +146,12 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ status: "expired" }, 410);
   }
 
-  // 3. Fetch the application (the shared candidate) + its job for the company.
-  const { data: app, error: appErr } = await admin
-    .from("applications")
-    .select("id, job_id, candidate_name, candidate_email, candidate_phone, visa_status, cv_file_path, cv_snapshot, status")
-    .eq("id", share.application_id)
-    .maybeSingle();
-
-  if (appErr || !app) {
+  const app = Array.isArray(share.applications) ? share.applications[0] : share.applications;
+  if (!app) {
     return jsonResponse({ status: "not_found" }, 404);
   }
-
-  let company = "";
-  if (app.job_id) {
-    const { data: job } = await admin
-      .from("jobs")
-      .select("company, title")
-      .eq("id", app.job_id)
-      .maybeSingle();
-    company = job?.company || "";
-    // Role falls back to the job title when the CV carries no target role.
-    app.__jobTitle = job?.title || "";
-  }
+  const job = Array.isArray(app.jobs) ? app.jobs[0] : app.jobs;
+  const jobTitle = job?.title || "";
 
   // Derived regional fields live inside the cv_snapshot JSON blob.
   const cv = (app.cv_snapshot && typeof app.cv_snapshot === "object") ? app.cv_snapshot : {};
@@ -143,57 +159,74 @@ Deno.serve(async (req: Request) => {
     ? cv.personal
     : (cv.basics && typeof cv.basics === "object" ? cv.basics : {});
   const role = cv.desired_job || cv.target_role || cv.desired_position
-    || personal.headline || app.__jobTitle || "Candidate";
+    || personal.headline || jobTitle || "Candidate";
   const location = personal.location || cv.location || "";
   const noticePeriod = cv.notice_period || cv.availability || personal.notice_period || "";
+
+  // Clean, header-safe download filename (never the raw storage key).
+  const ext = (String(app.cv_file_path || "").split(".").pop() || "pdf");
+  const cleanFileName = safeFileName(app.candidate_name, ext);
+
+  // 3. Resolve brand + mint both signed URLs in parallel.
+  const inlinePromise = app.cv_file_path
+    ? admin.storage.from(RESUME_BUCKET).createSignedUrl(app.cv_file_path, SIGNED_URL_TTL_SECONDS)
+    : Promise.resolve(null);
+  const downloadPromise = app.cv_file_path
+    ? admin.storage.from(RESUME_BUCKET).createSignedUrl(app.cv_file_path, SIGNED_URL_TTL_SECONDS, { download: cleanFileName })
+    : Promise.resolve(null);
+  const [brand, inlineSigned, downloadSigned] = await Promise.all([
+    resolveBrand(admin, share.created_by),
+    inlinePromise,
+    downloadPromise,
+  ]);
 
   // 4. Strict whitelist. Regional fit fields are always included.
   const msLeft = new Date(share.expires_at).getTime() - Date.now();
   const expiresInDays = Math.max(1, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
-  const payload: Record<string, unknown> = {
-    status: "ok",
-    expiresInDays,
-    candidate: {
-      name: app.candidate_name || "Candidate",
-      role,
-      stage: stageLabel(app.status),
-      location,
-      noticePeriod,
-      visaStatus: app.visa_status || "",
-      company,
-      contactHidden: !!share.hide_contact_info,
-    },
+  const candidate: Record<string, unknown> = {
+    name: app.candidate_name || "Candidate",
+    role,
+    stage: stageLabel(app.status),
+    location,
+    noticePeriod,
+    visaStatus: app.visa_status || "",
+    company: brand,
+    contactHidden: !!share.hide_contact_info,
   };
 
   // Contact info only when the recruiter chose to share it.
   if (!share.hide_contact_info) {
-    const contactCandidate = payload.candidate as Record<string, unknown>;
-    contactCandidate.email = app.candidate_email || "";
-    contactCandidate.phone = app.candidate_phone || "";
-    if (personal.photo || cv.photo) contactCandidate.photo = personal.photo || cv.photo;
+    candidate.email = app.candidate_email || "";
+    candidate.phone = app.candidate_phone || "";
+    if (personal.photo || cv.photo) candidate.photo = personal.photo || cv.photo;
   }
 
-  // 5. Short-lived signed URL for the resume. Never a public URL.
-  if (app.cv_file_path) {
-    const { data: signed } = await admin.storage
-      .from(RESUME_BUCKET)
-      .createSignedUrl(app.cv_file_path, SIGNED_URL_TTL_SECONDS);
-    if (signed?.signedUrl) {
-      (payload.candidate as Record<string, unknown>).resumeUrl = signed.signedUrl;
-      const parts = app.cv_file_path.split("/");
-      (payload.candidate as Record<string, unknown>).resumeFileName = parts[parts.length - 1] || "resume.pdf";
-    }
+  // Inline + download signed URLs (never public). Inline feeds the in-page
+  // embed; download carries a Content-Disposition so the button downloads.
+  if (inlineSigned?.data?.signedUrl) {
+    candidate.resumeUrl = inlineSigned.data.signedUrl;
+    candidate.resumeFileName = cleanFileName;
+  }
+  if (downloadSigned?.data?.signedUrl) {
+    candidate.resumeDownloadUrl = downloadSigned.data.signedUrl;
   }
 
-  // 6. Best-effort view tracking. Never block or fail the response on this.
+  // 5. Fire-and-forget view tracking. Never blocks the response.
+  const bump = admin
+    .from("candidate_shares")
+    .update({ view_count: (share.view_count || 0) + 1, last_viewed_at: new Date().toISOString() })
+    .eq("id", share.id);
   try {
-    await admin
-      .from("candidate_shares")
-      .update({ view_count: (share.view_count || 0) + 1, last_viewed_at: new Date().toISOString() })
-      .eq("id", share.id);
+    // @ts-ignore EdgeRuntime is a Supabase edge global
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(Promise.resolve(bump).then(() => {}, () => {}));
+    } else {
+      Promise.resolve(bump).then(() => {}, () => {});
+    }
   } catch {
     // ignore
   }
 
-  return jsonResponse(payload, 200);
+  return jsonResponse({ status: "ok", expiresInDays, candidate }, 200);
 });

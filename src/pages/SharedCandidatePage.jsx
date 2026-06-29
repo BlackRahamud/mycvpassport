@@ -25,8 +25,13 @@ const Icon = {
   Check: (p) => <svg {...p} width={p.size || 14} height={p.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>,
   EyeOff: (p) => <svg {...p} width={p.size || 13} height={p.size || 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 10 8 10 8a18 18 0 0 1-2.16 3.19M6.6 6.6A18 18 0 0 0 2 12s3 8 10 8a9 9 0 0 0 5.4-1.6" /><line x1="2" y1="2" x2="22" y2="22" /></svg>,
   Pass: (p) => <svg {...p} width={p.size || 16} height={p.size || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>,
-  Logo: (p) => <svg {...p} width="26" height="26" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="7" fill="#111827" /><path d="M9 10h14v3H9zM9 15h10v3H9zM9 20h14v3H9z" fill="#fff" /><circle cx="23.5" cy="9" r="2.5" fill="#10B981" stroke="#fff" strokeWidth="1.5" /></svg>,
+  Doc: (p) => <svg {...p} width={p.size || 15} height={p.size || 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></svg>,
 };
+
+// Real CVPassport brand mark (high-quality asset), used in the footers.
+const BrandMark = ({ size = 22 }) => (
+  <img src="/assets/brand/logo512.png" alt="CVPassport" width={size} height={size} style={{ borderRadius: 5, display: "block" }} />
+);
 
 /* ── Reused portal primitives ───────────────────────────── */
 const initials = (name) => (name || "?").split(" ").filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
@@ -83,7 +88,13 @@ function SecureHeader({ company, expiryDays, step }) {
           display: "flex", alignItems: "center", justifyContent: "center",
         }}><Icon.Lock size={14} /></span>
         <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.4 }}>
-          <strong style={{ color: "var(--text)", fontWeight: 600 }}>{company}</strong> shared this candidate with you for review
+          {company ? (
+            <>
+              <strong style={{ color: "var(--text)", fontWeight: 600 }}>{company}</strong>
+              <span style={{ color: "var(--muted-2)", margin: "0 6px" }}>·</span>
+              Candidate review portal
+            </>
+          ) : "Candidate review portal"}
         </span>
       </div>
       <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>
@@ -151,21 +162,29 @@ function RegionalTiles({ location, noticePeriod, visaStatus, step }) {
   );
 }
 
-function ResumeCard({ name, resumeUrl, resumeFileName, step }) {
-  const file = resumeFileName || (name.replace(/\s+/g, "_") + "_CV.pdf");
+// Mobile browsers (Safari + Chrome on phones) frequently refuse to render a
+// PDF inside an iframe and show a blank box. Most reviewers open the link from
+// WhatsApp on a phone, so on mobile we skip the embed and show a clear "open
+// CV" button instead. Desktop embeds inline, with an open-in-new-tab fallback.
+const IS_MOBILE = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+
+function ResumeCard({ name, resumeUrl, resumeDownloadUrl, resumeFileName, step }) {
+  const file = resumeFileName || (name ? `${name} resume.pdf` : "candidate resume.pdf");
   return (
     <div className="reveal" style={{ "--d": `${step * 0.09}s`,
       background: "var(--card)", border: "1px solid var(--border)",
       borderRadius: "var(--radius)", padding: 20,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: "0 0 2px" }}>Resume</h2>
-          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{resumeUrl ? file : "Not attached to this candidate"}</div>
+          <div style={{ fontSize: 12.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resumeUrl ? file : "Not attached to this candidate"}</div>
         </div>
-        {resumeUrl && (
-          <a className="snap" href={resumeUrl} target="_blank" rel="noreferrer noopener" style={{
-            display: "inline-flex", alignItems: "center", gap: 7,
+        {resumeDownloadUrl && (
+          // Download disposition comes from the signed URL, so this downloads
+          // (no new tab). The inline embed below is the primary read path.
+          <a className="snap" href={resumeDownloadUrl} style={{
+            display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
             background: "#fff", color: "var(--text)", textDecoration: "none",
             border: "1px solid var(--border)", borderRadius: "var(--radius)",
             padding: "8px 14px", fontSize: 13, fontWeight: 500, cursor: "pointer",
@@ -176,26 +195,33 @@ function ResumeCard({ name, resumeUrl, resumeFileName, step }) {
           </a>
         )}
       </div>
-      {/* Quiet document preview - opens the secure file when present */}
-      {resumeUrl ? (
-        <a href={resumeUrl} target="_blank" rel="noreferrer noopener" aria-label="Open resume" style={{ display: "block", textDecoration: "none" }}>
-          <div style={{
-            background: "var(--wash)", border: "1px solid var(--border)",
-            borderRadius: 6, padding: "22px 24px", overflow: "hidden", maxHeight: 220, position: "relative", cursor: "pointer",
-          }}>
-            <div style={{ width: "46%", height: 13, borderRadius: 3, background: "#E2E5EA", marginBottom: 14 }} />
-            <div style={{ width: "30%", height: 8, borderRadius: 3, background: "#EBEEF2", marginBottom: 22 }} />
-            {[92, 86, 95, 70].map((w, i) => <div key={i} style={{ width: w + "%", height: 7, borderRadius: 3, background: "#EBEEF2", marginBottom: 11 }} />)}
-            <div style={{ width: "24%", height: 8, borderRadius: 3, background: "#E2E5EA", margin: "20px 0 12px" }} />
-            {[88, 94, 64].map((w, i) => <div key={i} style={{ width: w + "%", height: 7, borderRadius: 3, background: "#EBEEF2", marginBottom: 11 }} />)}
-            <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 64, background: "linear-gradient(180deg, rgba(250,251,252,0), var(--wash))" }} />
-          </div>
-        </a>
-      ) : (
+
+      {!resumeUrl ? (
         <div style={{
           background: "var(--wash)", border: "1px solid var(--border)",
           borderRadius: 6, padding: "22px 24px", fontSize: 13, color: "var(--muted)",
         }}>This candidate has no resume file attached.</div>
+      ) : IS_MOBILE ? (
+        // Mobile read path: open the CV in the phone's native viewer.
+        <a className="snap" href={resumeUrl} target="_blank" rel="noreferrer noopener" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
+          background: "var(--accent)", color: "#fff", textDecoration: "none",
+          borderRadius: "var(--radius)", padding: "14px 18px", fontSize: 14, fontWeight: 600,
+        }}>
+          <Icon.Doc size={16} /> Open CV
+        </a>
+      ) : (
+        <>
+          <iframe
+            title="Resume preview"
+            src={resumeUrl}
+            style={{ width: "100%", height: "min(70vh, 640px)", border: "1px solid var(--border)", borderRadius: 6, background: "var(--wash)", display: "block" }}
+          />
+          <div style={{ marginTop: 10, fontSize: 12.5, color: "var(--muted)" }}>
+            Cannot see the CV here?{" "}
+            <a href={resumeUrl} target="_blank" rel="noreferrer noopener" style={{ color: "var(--text)", textDecoration: "none", borderBottom: "1px solid var(--border)" }}>Open it in a new tab</a>.
+          </div>
+        </>
       )}
     </div>
   );
@@ -206,7 +232,7 @@ function ReviewPanel({ company, step }) {
   const [feedback, setFeedback] = useState("");
   const [showPhaseNote, setShowPhaseNote] = useState(false);
 
-  const Choice = ({ id, icon: IC, title, desc, tint }) => {
+  const Choice = ({ id, icon: IC, title, desc, selBg, selBorder, selIcon, selText }) => {
     const sel = decision === id;
     return (
       <button
@@ -216,8 +242,8 @@ function ReviewPanel({ company, step }) {
           flex: 1, textAlign: "left", cursor: "pointer",
           display: "flex", alignItems: "flex-start", gap: 11,
           padding: "14px 15px", borderRadius: "var(--radius)",
-          border: `1px solid ${sel ? "var(--text)" : "var(--border)"}`,
-          background: sel ? tint : "#fff",
+          border: `1px solid ${sel ? selBorder : "var(--border)"}`,
+          background: sel ? selBg : "#fff",
           boxShadow: sel ? "0 1px 2px rgba(0,0,0,0.04)" : "none",
         }}
         onMouseEnter={(e) => { if (!sel) e.currentTarget.style.borderColor = "var(--border-strong)"; }}
@@ -225,11 +251,11 @@ function ReviewPanel({ company, step }) {
         <span style={{
           width: 26, height: 26, borderRadius: "50%", flexShrink: 0, marginTop: 1,
           display: "flex", alignItems: "center", justifyContent: "center",
-          background: sel ? "var(--text)" : "var(--hover)",
+          background: sel ? selIcon : "var(--hover)",
           color: sel ? "#fff" : "var(--muted)",
         }}><IC size={15} /></span>
         <span style={{ minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: "var(--text)" }}>{title}</span>
+          <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: sel ? selText : "var(--text)" }}>{title}</span>
           <span style={{ display: "block", fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{desc}</span>
         </span>
       </button>
@@ -245,8 +271,10 @@ function ReviewPanel({ company, step }) {
       <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 16px" }}>Share your recommendation. Only {company} will see it.</p>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <Choice id="approve" icon={Icon.Check} title="Approve for interview" desc="Move this candidate forward" tint="var(--success-bg)" />
-        <Choice id="pass" icon={Icon.Pass} title="Pass" desc="Not the right fit for now" tint="var(--wash)" />
+        <Choice id="approve" icon={Icon.Check} title="Approve for interview" desc="Move this candidate forward"
+          selBg="var(--success-bg)" selBorder="var(--success)" selIcon="var(--success)" selText="var(--success-fg)" />
+        <Choice id="pass" icon={Icon.Pass} title="Pass" desc="Not the right fit for now"
+          selBg="var(--danger-bg)" selBorder="var(--danger)" selIcon="var(--danger)" selText="var(--danger-fg)" />
       </div>
 
       <label style={{ display: "block", fontSize: 12.5, fontWeight: 500, color: "var(--text)", marginBottom: 7 }}>
@@ -292,7 +320,7 @@ function Footer({ step }) {
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
       paddingTop: 6, fontSize: 12.5, color: "var(--muted-2)",
     }}>
-      <Icon.Logo />
+      <BrandMark />
       <span>Shared securely via CVPassport</span>
       <span style={{ color: "var(--border-strong)" }}>·</span>
       <a href="/" style={{ color: "var(--muted)", textDecoration: "none", borderBottom: "1px solid var(--border)" }}
@@ -323,7 +351,7 @@ function StackedLayout({ data }) {
         <SecureHeader company={c.company || "A recruiter"} expiryDays={data.expiresInDays || 7} step={0} />
         <Identity name={c.name} role={c.role} stage={c.stage} contactHidden={c.contactHidden} step={1} />
         <RegionalTiles location={c.location} noticePeriod={c.noticePeriod} visaStatus={c.visaStatus} step={2} />
-        <ResumeCard name={c.name} resumeUrl={c.resumeUrl} resumeFileName={c.resumeFileName} step={3} />
+        <ResumeCard name={c.name} resumeUrl={c.resumeUrl} resumeDownloadUrl={c.resumeDownloadUrl} resumeFileName={c.resumeFileName} step={3} />
         <ReviewPanel company={c.company || "the hiring team"} step={4} />
         <Footer step={5} />
       </div>
@@ -382,7 +410,7 @@ export default function SharedCandidatePage() {
             Secure review links are time limited. Ask the recruiter who sent it to share a fresh link.
           </p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 12.5, color: "var(--muted-2)" }}>
-            <Icon.Logo /> <span>Shared securely via CVPassport</span>
+            <BrandMark /> <span>Shared securely via CVPassport</span>
           </div>
         </CenteredCard>
       )}
@@ -397,7 +425,7 @@ export default function SharedCandidatePage() {
             The link may be incomplete or it may have been revoked. Ask the recruiter to send a new one.
           </p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 12.5, color: "var(--muted-2)" }}>
-            <Icon.Logo /> <span>Shared securely via CVPassport</span>
+            <BrandMark /> <span>Shared securely via CVPassport</span>
           </div>
         </CenteredCard>
       )}
