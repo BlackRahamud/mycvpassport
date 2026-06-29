@@ -1,5 +1,5 @@
 /**
- * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure
+ * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills
  *
  * Single Anthropic-helper router. Was three separate functions
  * (api/cover-letter.js, api/parse-resume.js, api/generate-linkedin-headline.js)
@@ -1123,6 +1123,138 @@ async function handleWhatsappDraft(req, res, body) {
 }
 
 // =====================================================================
+// Branch — suggest_skills (role-aware quick-pick chips for the Post-a-Job
+// wizard). Replaces the hardcoded dev-stack chip list with 8 chips derived
+// from the job title. Cached in query_cache (same table/pattern Scout uses)
+// keyed by "skills::<normalized lowercased title>" with a 30-day TTL, so
+// repeat titles never re-hit the model. Folded in here (no new serverless
+// function) — the project is at the Vercel Hobby 12-function ceiling.
+//
+// Request:  { jobTitle }            Bearer-auth'd (any signed-in user)
+// Response: { skills: string[8] }   (no prose, no markdown)
+// =====================================================================
+
+const SUGGEST_SKILLS_MODEL = process.env.SUGGEST_SKILLS_MODEL || 'claude-haiku-4-5';
+const SUGGEST_SKILLS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+// Pull a clean string[] out of the model output. Tolerates a stray code
+// fence or surrounding prose by extracting the first JSON array.
+function parseSkillsArray(raw) {
+  if (!raw) return [];
+  let text = String(raw).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  let arr = null;
+  try { arr = JSON.parse(text); } catch {
+    const m = text.match(/\[[\s\S]*\]/);
+    if (m) { try { arr = JSON.parse(m[0]); } catch { /* give up */ } }
+  }
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const s of arr) {
+    const v = String(s == null ? '' : s).trim();
+    if (!v || v.length > 40) continue;
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(v);
+    if (out.length === 8) break;
+  }
+  return out;
+}
+
+async function handleSuggestSkills(req, res, body) {
+  if (!ANTHROPIC_API_KEY) return res.status(500).json({ error: 'AI Engine is not configured.' });
+
+  // Light auth — any signed-in user (mirrors whatsapp_draft).
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Unauthorized. Please sign in.' });
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { user } = {}, error } = await authClient.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ error: 'Invalid or expired session.' });
+    } catch {
+      return res.status(401).json({ error: 'Could not verify session.' });
+    }
+  }
+
+  const jobTitle = (typeof body.jobTitle === 'string' ? body.jobTitle : '').trim();
+  if (!jobTitle) return res.status(400).json({ error: 'jobTitle is required.' });
+
+  const cacheKey = `skills::${jobTitle.toLowerCase().replace(/\s+/g, ' ').trim()}`;
+  const db = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+    : null;
+
+  // 1) Cache lookup — best-effort; a missing table never blocks a fresh call.
+  if (db) {
+    try {
+      const { data: cached } = await db
+        .from('query_cache')
+        .select('enriched_payload, created_at')
+        .eq('normalized_title', cacheKey)
+        .maybeSingle();
+      const cachedSkills = cached?.enriched_payload?.skills;
+      if (Array.isArray(cachedSkills) && cachedSkills.length && cached.created_at) {
+        const age = Date.now() - new Date(cached.created_at).getTime();
+        if (age < SUGGEST_SKILLS_TTL_MS) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          return res.status(200).json({ skills: cachedSkills.slice(0, 8), cached: true });
+        }
+      }
+    } catch (e) {
+      console.warn('[ai/suggest_skills] cache lookup failed:', e?.message || e);
+    }
+  }
+
+  // 2) Fresh model call.
+  try {
+    const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: SUGGEST_SKILLS_MODEL,
+        max_tokens: 220,
+        temperature: 0.3,
+        system: 'You suggest concise, role-appropriate hiring skill tags for a job posting. Output ONLY a JSON array of exactly 8 short skill strings (1-3 words each), most important first. No prose, no explanation, no markdown, no code fences.',
+        messages: [{ role: 'user', content: `Job title: "${jobTitle}". Return the 8 most relevant skills, tools, or competencies a recruiter would shortlist for this exact role, as a JSON array of strings.` }],
+      }),
+    }, 3, 8000);
+
+    const responseText = await response.text();
+    if (!response.ok) return res.status(502).json({ error: 'AI Engine is busy, please try again.' });
+    let data;
+    try { data = JSON.parse(responseText); } catch { return res.status(502).json({ error: 'AI Engine is busy, please try again.' }); }
+    const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
+    const skills = parseSkillsArray(raw);
+    if (!skills.length) return res.status(502).json({ error: 'AI returned no skills. Please retry.' });
+
+    // 3) Cache upsert — best-effort; created_at refreshed so the TTL is honoured.
+    if (db) {
+      try {
+        await db.from('query_cache').upsert(
+          { normalized_title: cacheKey, enriched_payload: { skills }, created_at: new Date().toISOString() },
+          { onConflict: 'normalized_title' },
+        );
+      } catch (e) {
+        console.warn('[ai/suggest_skills] cache upsert failed:', e?.message || e);
+      }
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).json({ skills });
+  } catch (err) {
+    console.error('[ai/suggest_skills]', String(err?.message || err).slice(0, 200));
+    return res.status(502).json({ error: 'AI Engine is busy, please try again.' });
+  }
+}
+
+// =====================================================================
 // Branch 6 — candidate_verdict (corridor-aware match verdict)
 //
 // Upgraded, semantic match score for the HR candidate detail. Replaces
@@ -1526,9 +1658,10 @@ export default async function handler(req, res) {
     case 'whatsapp_draft':     return handleWhatsappDraft(req, res, body);
     case 'candidate_verdict':  return handleCandidateVerdict(req, res, body);
     case 'import_structure':   return handleImportStructure(req, res, body);
+    case 'suggest_skills':     return handleSuggestSkills(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills.',
       });
   }
 }

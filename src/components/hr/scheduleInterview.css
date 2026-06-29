@@ -33,6 +33,25 @@
   resize: vertical;
 }
 
+/* Typed text was invisible: this modal renders where the --pj-* tokens are
+   out of scope, so `color: var(--pj-text)` on .jpp-note__input fell back to
+   the inherited dark-theme white on the white panel. Pin an explicit ink
+   colour + caret on every control in the panel (date / time / link /
+   textarea / duration select). */
+.si-panel .jpp-note__input,
+.si-panel .si-textarea,
+.si-panel .si-select,
+.si-panel .jpp-status-override__select {
+  color: #14131F;
+  caret-color: #14131F;
+  -webkit-text-fill-color: #14131F;
+}
+.si-panel .jpp-note__input::placeholder,
+.si-panel .si-textarea::placeholder {
+  color: #9A98A8;
+  -webkit-text-fill-color: #9A98A8;
+}
+
 .si-error { margin: 0; font-size: 12.5px; color: var(--hjl-pass); }
 
 .si-timeline__icon { background: var(--pj-input-bg) !important; color: var(--hjl-ink) !important; }

@@ -61,21 +61,21 @@ export async function countActiveListings(userId) {
  * Mirrors the wizard field → DB column mapping documented in
  * supabase/migrations/011_post_job_wizard_fields.sql.
  *
- * Note: `location` is NOT NULL on the existing schema and the wizard
- * doesn't yet collect a city — we set it to the position label so the
- * row is valid. When location collection is added to the wizard,
- * replace this fallback.
+ * `location` is NOT NULL on the schema. The wizard now collects a city in
+ * the Start step; if the HR leaves it blank we fall back to the workplace
+ * label so the row stays valid (never a US placeholder).
  */
 function buildPayload(job, { hrId, companyName }) {
-  const positionLabel = ({ remote: "Remote", hybrid: "Hybrid", onsite: "Onsite" })[job.position] || "Remote";
+  const positionLabel = ({ remote: "Remote", hybrid: "Hybrid", onsite: "On-site" })[job.position] || "On-site";
+  const location = (job.location || "").trim() || positionLabel;
   const phone = (job.hrPhone || "").trim();
   const fullPhone = phone ? `${job.hrPhoneCountryCode || "+971"} ${phone}` : null;
   return {
     hr_id: hrId,
     title: (job.jobTitle || "").trim(),
     company: companyName,
-    location: positionLabel,
-    position: job.position || "remote",
+    location,
+    position: job.position || "onsite",
     job_type: job.jobType || "full-time",
     currency: job.currency || "AED",
     salary_min: Number(job.salaryMin) || null,

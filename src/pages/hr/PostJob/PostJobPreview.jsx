@@ -1,8 +1,25 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import PortalLogo from "../../../components/hr/PortalLogo";
 
-const POSITION_LABEL = { remote: "Remote", hybrid: "Hybrid", onsite: "Onsite" };
+const POSITION_LABEL = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };
 const JOB_TYPE_LABEL = { "full-time": "Fulltime", "part-time": "Part-time", contract: "Contract" };
+const CURRENCY_PREFIX = { AED: "AED", INR: "₹", USD: "$" };
+
+// "AED 50 – AED 1000" / "₹50 – ₹1000" / "$50 – $1000" — alpha codes get a
+// trailing space, symbols don't. Falls back to a single value or em-dash.
+function formatSalary(job) {
+  const code = CURRENCY_PREFIX[job.currency] ? job.currency : "AED";
+  const prefix = CURRENCY_PREFIX[code];
+  const sep = prefix.length > 1 ? `${prefix} ` : prefix; // "AED " vs "$"
+  const min = job.salaryMin;
+  const max = job.salaryMax;
+  const hasMin = min != null && min !== "";
+  const hasMax = max != null && max !== "";
+  if (hasMin && hasMax) return `${sep}${min} – ${sep}${max}`;
+  if (hasMin) return `${sep}${min}`;
+  if (hasMax) return `${sep}${max}`;
+  return "—";
+}
 
 const PLACEHOLDER_SUMMARY =
   "Erat facilisis mi nulla accumsan erat sit. Ac imperdiet felis, libero massa dolor. Nibh sed nec, non neque, platea eu mauris rat facilisis. Erat facilisis mi nulla accumsan erat sit. Ac imperdiet felis, libero massa dolor. Nibh sed nec, non neque, platea eu mauris rat facilisis.";
@@ -64,9 +81,10 @@ function htmlToPlain(html) {
 
 function PopulatedJobCard({ job, step }) {
   const title = job.jobTitle?.trim() || "Senior Software Engineer";
-  const positionLabel = POSITION_LABEL[job.position] || "Onsite";
+  const positionLabel = POSITION_LABEL[job.position] || "On-site";
   const typeLabel = JOB_TYPE_LABEL[job.jobType] || "Fulltime";
-  const salaryDisplay = job.salaryMin != null ? `$${job.salaryMin}` : "—";
+  const salaryDisplay = formatSalary(job);
+  const locationText = (job.location || "").trim();
   const showSummary = step === "job-description" || step === "hire";
   const showRequirements = step === "hire";
 
@@ -82,12 +100,12 @@ function PopulatedJobCard({ job, step }) {
     <motion.div variants={list} initial="initial" animate="animate">
       <motion.h3 className="pj-pcard__title" variants={item}>{title}</motion.h3>
       <motion.p  className="pj-pcard__sub"   variants={item}>
-        Menlo Park, CA &nbsp;·&nbsp; <b>{positionLabel}</b>
+        {locationText && <>{locationText} &nbsp;·&nbsp; </>}<b>{positionLabel}</b>
       </motion.p>
       <motion.div className="pj-pcard__stats" variants={item}>
         <div className="pj-stat">
           <span className="pj-stat__label">Experience</span>
-          <span className="pj-stat__value-row"><ChartIcon /><span className="pj-stat__value">Less than 1 Years</span></span>
+          <span className="pj-stat__value-row"><ChartIcon /><span className="pj-stat__value">Less than 1 Year</span></span>
         </div>
         <div className="pj-stat">
           <span className="pj-stat__label">Type</span>

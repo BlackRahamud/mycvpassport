@@ -702,6 +702,28 @@
   gap: 8px;
 }
 
+/* Role-aware skills resolving — subtle shimmer (NOT the conic ring, which is
+   reserved for conversion moments). Plain loading state. */
+.pj-chip-skeleton {
+  height: 32px;
+  border-radius: 999px;
+  background: linear-gradient(
+    100deg,
+    var(--pj-input-bg) 30%,
+    rgba(124, 58, 237, 0.06) 50%,
+    var(--pj-input-bg) 70%
+  );
+  background-size: 200% 100%;
+  animation: pj-chip-shimmer 1.3s var(--pj-ease) infinite;
+}
+@keyframes pj-chip-shimmer {
+  0% { background-position: 180% 0; }
+  100% { background-position: -80% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pj-chip-skeleton { animation: none; background: var(--pj-input-bg); }
+}
+
 .pj-chip {
   display: inline-flex;
   align-items: center;
