@@ -199,7 +199,8 @@
    control flat so there's no double ring. */
 .hrs-root .pj-num input:focus,
 .hrs-root .pj-tag-input input:focus,
-.hrs-root .pj-phone input:focus {
+.hrs-root .pj-phone input:focus,
+.hrs-root .pj-editor [contenteditable]:focus {
   box-shadow: none !important;
   border-color: transparent !important;
 }
