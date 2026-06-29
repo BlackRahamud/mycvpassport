@@ -23,7 +23,8 @@ import ScreeningDrawer from "./screening/ScreeningDrawer";
 const INITIAL_JOB = {
   // Step 1 — Start
   jobTitle: "",
-  position: "remote",
+  location: "",
+  position: "onsite",
   jobType: "full-time",
   // Step 2 — Skills & Salary
   educationLevel: "",
@@ -31,8 +32,8 @@ const INITIAL_JOB = {
   salaryUnit: "per Hour",
   salaryMin: 50,
   salaryMax: 1000,
-  relevantSkills: ["react-native"],
-  tools: ["Java"],
+  relevantSkills: [],
+  tools: [],
   // Step 3 — Qualifications
   yearsExperience: { min: 18, max: 25 },
   yearsExperiencePolicy: "required",

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import SegmentedToggle from "../components/SegmentedToggle";
+import { suggestSkills, GENERIC_SKILLS } from "../../../../services/suggestSkills";
 
 const CURRENCY_PREFIX = { AED: "AED", INR: "₹", USD: "$" };
 const CURRENCY_OPTIONS = ["AED", "INR", "USD"];
@@ -14,20 +15,8 @@ const EDUCATION_LEVELS = [
   { value: "doctorate",   label: "Doctorate" },
 ];
 
-const RELEVANT_SKILLS = [
-  { value: "react-native",      label: "React Native" },
-  { value: "react-backend",     label: "React + Backend" },
-  { value: "python",            label: "Python" },
-  { value: "react-node",        label: "React + Node" },
-  { value: "react-frontend",    label: "React (Frontend only)" },
-  { value: "react-backend-only",label: "React (Backend only)" },
-  { value: "python-django",     label: "Python (Django)" },
-  { value: "javascript",        label: "JavaScript" },
-  { value: "ruby-on-rails",     label: "Ruby on Rails" },
-  { value: "python-flask",      label: "Python (Flask/Vue/Angular)" },
-];
-
 const SALARY_RANGE = { min: 0, max: 5000 };
+const SKILLS_DEBOUNCE_MS = 400;
 
 const Caret = () => (
   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -110,10 +99,39 @@ function TagInput({ tags, onChange, placeholder = "" }) {
 export default function NewJobStep({ value, onChange, onContinue, onBack }) {
   const reduce = useReducedMotion();
   const set = (patch) => onChange({ ...value, ...patch });
-  const toggleSkill = (k) => {
-    const has = value.relevantSkills.includes(k);
-    set({ relevantSkills: has ? value.relevantSkills.filter((x) => x !== k) : [...value.relevantSkills, k] });
+  const toggleSkill = (label) => {
+    const has = value.relevantSkills.includes(label);
+    set({ relevantSkills: has ? value.relevantSkills.filter((x) => x !== label) : [...value.relevantSkills, label] });
   };
+
+  // Role-aware quick-picks — resolved from the job title (debounced, cached
+  // server-side in query_cache). Subtle shimmer while resolving; generic
+  // fallback on failure so a non-dev role never sees React/Ruby.
+  const [suggested, setSuggested] = useState([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const lastTitleRef = useRef(null);
+
+  useEffect(() => {
+    const title = (value.jobTitle || "").trim();
+    const norm = title.toLowerCase();
+    if (norm === lastTitleRef.current) return undefined; // already resolved for this title
+    const controller = new AbortController();
+    setSkillsLoading(true);
+    const t = setTimeout(async () => {
+      const { skills } = await suggestSkills(title, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      lastTitleRef.current = norm;
+      setSuggested(skills);
+      setSkillsLoading(false);
+    }, SKILLS_DEBOUNCE_MS);
+    return () => { clearTimeout(t); controller.abort(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.jobTitle]);
+
+  // Show suggestions plus any already-picked skills not in the list, so a
+  // selected chip never vanishes when suggestions refresh.
+  const baseChips = suggested.length ? suggested : GENERIC_SKILLS;
+  const chipLabels = [...new Set([...baseChips, ...value.relevantSkills])];
 
   const containerVariants = { initial: {}, animate: { transition: { staggerChildren: 0.055, delayChildren: 0.06 } } };
   const item = reduce
@@ -164,23 +182,31 @@ export default function NewJobStep({ value, onChange, onContinue, onBack }) {
         <hr className="pj-divider" />
         <div className="pj-field">
           <span className="pj-label">Relevant Skills</span>
-          <div className="pj-chip-grid" role="group" aria-label="Relevant skills">
-            {RELEVANT_SKILLS.map((s) => {
-              const active = value.relevantSkills.includes(s.value);
-              return (
-                <motion.button
-                  key={s.value} type="button"
-                  className={`pj-chip${active ? " pj-chip--active" : ""}`}
-                  onClick={() => toggleSkill(s.value)}
-                  whileTap={reduce ? undefined : { scale: 0.96 }}
-                  transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
-                  aria-pressed={active}
-                >
-                  {s.label}
-                </motion.button>
-              );
-            })}
-          </div>
+          {skillsLoading ? (
+            <div className="pj-chip-grid pj-chip-grid--loading" role="status" aria-label="Suggesting skills for this role" aria-live="polite">
+              {[84, 110, 72, 96, 120, 80, 104, 90].map((w, i) => (
+                <span key={i} className="pj-chip-skeleton" style={{ width: w }} aria-hidden="true" />
+              ))}
+            </div>
+          ) : (
+            <div className="pj-chip-grid" role="group" aria-label="Relevant skills">
+              {chipLabels.map((label) => {
+                const active = value.relevantSkills.includes(label);
+                return (
+                  <motion.button
+                    key={label} type="button"
+                    className={`pj-chip${active ? " pj-chip--active" : ""}`}
+                    onClick={() => toggleSkill(label)}
+                    whileTap={reduce ? undefined : { scale: 0.96 }}
+                    transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
+                    aria-pressed={active}
+                  >
+                    {label}
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="pj-field">
           <span className="pj-label">Skills, Tools, and Technology</span>

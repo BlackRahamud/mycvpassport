@@ -1,8 +1,10 @@
 import { motion, useReducedMotion } from "framer-motion";
 
-const POSITION_OPTIONS = [
-  { value: "remote", label: "Remote" },
+// On-site first AND default — most UAE/GCC + India roles are on-site.
+const WORKPLACE_OPTIONS = [
+  { value: "onsite", label: "On-site" },
   { value: "hybrid", label: "Hybrid" },
+  { value: "remote", label: "Remote" },
 ];
 
 const JOB_TYPE_OPTIONS = [
@@ -50,13 +52,26 @@ export default function StartStep({ value, onChange, onContinue }) {
       </motion.div>
 
       <motion.div className="pj-field" variants={itemVariants}>
-        <span className="pj-label">Position</span>
-        <div className="pj-radio-row" role="radiogroup" aria-label="Position">
-          {POSITION_OPTIONS.map((opt) => (
+        <label className="pj-label" htmlFor="pj-location">Location</label>
+        <input
+          id="pj-location"
+          className="pj-input"
+          type="text"
+          placeholder="e.g. Dubai, UAE"
+          value={value.location || ""}
+          onChange={setField("location")}
+          autoComplete="off"
+        />
+      </motion.div>
+
+      <motion.div className="pj-field" variants={itemVariants}>
+        <span className="pj-label">Workplace</span>
+        <div className="pj-radio-row" role="radiogroup" aria-label="Workplace">
+          {WORKPLACE_OPTIONS.map((opt) => (
             <label key={opt.value} className="pj-radio">
               <input
                 type="radio"
-                name="pj-position"
+                name="pj-workplace"
                 value={opt.value}
                 checked={value.position === opt.value}
                 onChange={setField("position")}
