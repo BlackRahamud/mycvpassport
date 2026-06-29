@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 import SegmentedToggle from "../components/SegmentedToggle";
+import { marketFromCurrency, CATEGORY_LABEL } from "../market";
 
 const VISA_STATUSES = [
   { value: "freelance",  label: "Freelance Visa" },
@@ -13,27 +14,6 @@ const YES_NO = [
   { value: true,  label: "Yes" },
   { value: false, label: "No" },
 ];
-
-const SCREENING_CATEGORY_LABELS = {
-  "background-check":  "Background Check",
-  "certifications":    "Certifications",
-  "drivers-license":   "Driver's License",
-  "gpa":               "GPA",
-  "work-authorization":"Work Authorization",
-  "drug-test":         "Drug Test",
-  "education":         "Education",
-  "expertise-tools":   "Expertise with Tools",
-  "hybrid-work":       "Hybrid Work",
-  "industry-experience":"Industry Experience",
-  "language":          "Language",
-  "location":          "Location",
-  "onsite-work":       "Onsite Work",
-  "remote-work":       "Remote Work",
-  "urgent-hiring":     "Urgent Hiring Needed",
-  "visa-status":       "Visa Status",
-  "work-experience":   "Work Experience",
-  "custom":            "Custom",
-};
 
 const TrashIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -115,6 +95,12 @@ export default function QualificationsStep({ value, onChange, onContinue, onBack
   const reduce = useReducedMotion();
   const set = (patch) => onChange({ ...value, ...patch });
 
+  // Market drives the field set. India (INR) = domestic hiring: no UAE visa
+  // types, no UAE driving license, no US work-authorization. Gulf (AED/USD)
+  // keeps them. Derived live from the selected currency.
+  const market = marketFromCurrency(value.currency);
+  const isGulf = market === "gulf";
+
   const containerVariants = { initial: {}, animate: { transition: { staggerChildren: 0.055, delayChildren: 0.06 } } };
   const item = reduce
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -140,65 +126,68 @@ export default function QualificationsStep({ value, onChange, onContinue, onBack
         <PolicyRow policy={value.yearsExperiencePolicy} onPolicy={(p) => set({ yearsExperiencePolicy: p })} onRemove={() => set({ yearsExperienceEnabled: false })} />
       </motion.div>
 
-      <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
-        <span className="pj-label">Legally authorized to work in the United States</span>
-        <PolicyRow policy={value.workAuthPolicy} onPolicy={(p) => set({ workAuthPolicy: p })} onRemove={() => set({ workAuthEnabled: false })} />
-      </motion.div>
+      {/* Visa status + driving license are Gulf-only. India (domestic) hiring
+          doesn't use UAE visa types or UAE driving framing, and the US
+          "authorized to work" block is dropped entirely — visa status already
+          covers work authorization in the Gulf. */}
+      {isGulf && (
+        <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
+          <span className="pj-label">Visa Status (accepted)</span>
+          <div className="pj-chip-grid" role="group" aria-label="Visa status">
+            {VISA_STATUSES.map((v) => {
+              const active = (value.visaStatus || []).includes(v.value);
+              return (
+                <motion.button
+                  key={v.value}
+                  type="button"
+                  className={`pj-chip${active ? " pj-chip--active" : ""}`}
+                  onClick={() => {
+                    const cur = value.visaStatus || [];
+                    const next = active ? cur.filter((x) => x !== v.value) : [...cur, v.value];
+                    set({ visaStatus: next });
+                  }}
+                  whileTap={reduce ? undefined : { scale: 0.96 }}
+                  transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
+                  aria-pressed={active}
+                >
+                  {v.label}
+                </motion.button>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
 
-      <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
-        <span className="pj-label">Visa Status (accepted)</span>
-        <div className="pj-chip-grid" role="group" aria-label="Visa status">
-          {VISA_STATUSES.map((v) => {
-            const active = (value.visaStatus || []).includes(v.value);
-            return (
-              <motion.button
-                key={v.value}
-                type="button"
-                className={`pj-chip${active ? " pj-chip--active" : ""}`}
-                onClick={() => {
-                  const cur = value.visaStatus || [];
-                  const next = active ? cur.filter((x) => x !== v.value) : [...cur, v.value];
-                  set({ visaStatus: next });
-                }}
-                whileTap={reduce ? undefined : { scale: 0.96 }}
-                transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
-                aria-pressed={active}
-              >
-                {v.label}
-              </motion.button>
-            );
-          })}
-        </div>
-      </motion.div>
-
-      <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
-          <span className="pj-label" style={{ marginBottom: 0 }}>UAE Driving License</span>
-          <SegmentedToggle
-            options={YES_NO}
-            value={!!value.uaeDrivingLicense}
-            onChange={(v) => set({ uaeDrivingLicense: v })}
-            ariaLabel="UAE driving license required"
-            size="sm"
-          />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <span className="pj-label" style={{ marginBottom: 0 }}>Origin Country License</span>
-          <SegmentedToggle
-            options={YES_NO}
-            value={!!value.originDrivingLicense}
-            onChange={(v) => set({ originDrivingLicense: v })}
-            ariaLabel="Origin country driving license required"
-            size="sm"
-          />
-        </div>
-      </motion.div>
+      {isGulf && (
+        <motion.div className="pj-qual-block" variants={item} style={{ marginTop: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+            <span className="pj-label" style={{ marginBottom: 0 }}>UAE Driving License</span>
+            <SegmentedToggle
+              options={YES_NO}
+              value={!!value.uaeDrivingLicense}
+              onChange={(v) => set({ uaeDrivingLicense: v })}
+              ariaLabel="UAE driving license required"
+              size="sm"
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <span className="pj-label" style={{ marginBottom: 0 }}>Origin Country License</span>
+            <SegmentedToggle
+              options={YES_NO}
+              value={!!value.originDrivingLicense}
+              onChange={(v) => set({ originDrivingLicense: v })}
+              ariaLabel="Origin country driving license required"
+              size="sm"
+            />
+          </div>
+        </motion.div>
+      )}
 
       {groups.length > 0 && (
         <motion.div variants={item} style={{ marginTop: 18 }}>
           {groups.map((g) => (
             <div key={g.categoryKey} className="pj-saved-q">
-              <span className="pj-saved-q__label">{g.questions.length} questions in {SCREENING_CATEGORY_LABELS[g.categoryKey] || g.categoryKey}</span>
+              <span className="pj-saved-q__label">{g.questions.length} questions in {CATEGORY_LABEL[g.categoryKey] || g.categoryKey}</span>
               <span className="pj-saved-q__actions">
                 <button type="button" className="pj-icon-btn pj-icon-btn--neutral" onClick={() => onViewQuestionGroup?.(g.categoryKey)} aria-label="View questions"><EyeIcon /></button>
                 <button type="button" className="pj-icon-btn pj-icon-btn--neutral" onClick={() => onAddScreeningQuestion?.(g.categoryKey)} aria-label="Add more"><PlusIcon /></button>

@@ -10,6 +10,7 @@ import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/h
 import NotificationsBell from "../../../components/hr/NotificationsBell";
 import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
+import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
@@ -975,23 +976,22 @@ function CandidateDetail({
               Use the tab CTAs for normal flow — this drops the candidate straight into any stage.
             </span>
           </label>
-          <select
+          {/* Surface the current status even if it's outside the override set
+              (e.g. legacy 'submitted' / 'viewed' / 'interviewing' rows from
+              before migration 013) so the select shows truth. */}
+          <Select
             id={`jpp-status-${candidate.id}`}
-            className="jpp-status-override__select"
             value={candidate.status || "new"}
             disabled={advancing || !onStatusChange}
-            onChange={(e) => onStatusChange && onStatusChange(e.target.value)}
-          >
-            {/* Surface the current status even if it's outside the override
-                set (e.g. legacy 'submitted' / 'viewed' / 'interviewing' rows
-                from before migration 013) so the select shows truth. */}
-            {!STATUS_OVERRIDE_OPTIONS.some((o) => o.value === (candidate.status || "new")) && (
-              <option value={candidate.status} disabled>{candidate.status}</option>
-            )}
-            {STATUS_OVERRIDE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+            onChange={(v) => onStatusChange && onStatusChange(v)}
+            ariaLabel="Status override"
+            options={[
+              ...(!STATUS_OVERRIDE_OPTIONS.some((o) => o.value === (candidate.status || "new"))
+                ? [{ value: candidate.status, label: candidate.status, disabled: true }]
+                : []),
+              ...STATUS_OVERRIDE_OPTIONS,
+            ]}
+          />
         </div>
       </section>
     </motion.aside>

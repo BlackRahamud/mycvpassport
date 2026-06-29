@@ -13,6 +13,7 @@ import PostJobPreview from "./PostJobPreview";
 import PostJobExpiredPaywall from "./PostJobExpiredPaywall";
 import StartStep from "./steps/StartStep";
 import NewJobStep, { DEFAULT_SALARY_PERIOD } from "./steps/NewJobStep";
+import { marketFromCurrency } from "./market";
 import QualificationsStep from "./steps/QualificationsStep";
 import JobDescriptionStep from "./steps/JobDescriptionStep";
 import HireStep from "./steps/HireStep";
@@ -186,12 +187,12 @@ export default function PostJobPage() {
       />
       <AnimatePresence>
         {screeningView === "categories" && (
-          <ScreeningCategoryModal key="cat-modal" open onClose={closeScreening} onPickCategory={pickCategory} />
+          <ScreeningCategoryModal key="cat-modal" open onClose={closeScreening} onPickCategory={pickCategory} market={marketFromCurrency(job.currency)} />
         )}
       </AnimatePresence>
       <AnimatePresence>
         {screeningView === "drawer" && (
-          <ScreeningDrawer key="screen-drawer" open categoryKey={drawerCategory} onClose={closeScreening} onSave={saveScreeningGroup} />
+          <ScreeningDrawer key="screen-drawer" open categoryKey={drawerCategory} onClose={closeScreening} onSave={saveScreeningGroup} market={marketFromCurrency(job.currency)} />
         )}
       </AnimatePresence>
     </>

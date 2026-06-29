@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import SegmentedToggle from "../components/SegmentedToggle";
+import Select from "../../../../components/ui/Select";
 import { suggestSkills, GENERIC_SKILLS } from "../../../../services/suggestSkills";
 
 const CURRENCY_PREFIX = { AED: "AED", INR: "₹", USD: "$" };
@@ -25,9 +26,10 @@ export const PERIODS_BY_TYPE = {
 export const DEFAULT_SALARY_PERIOD = "per month";
 export const periodsFor = (jobType) => PERIODS_BY_TYPE[jobType] || PERIODS_BY_TYPE["full-time"];
 
-// Soft visual range for the slider. Typed values above this rescale the
-// slider — there is no hard cap on the actual min/max (see NumberStepper).
-const SOFT_SLIDER_MAX = 5000;
+// Soft visual range for the slider — the cursor can travel to 100k. Typed
+// values above this rescale the slider; there is no hard cap on the actual
+// min/max (see NumberStepper).
+const SOFT_SLIDER_MAX = 100000;
 const SKILLS_DEBOUNCE_MS = 400;
 
 const nonNeg = (v) => (v === "" ? "" : Math.max(0, Number(v)));
@@ -179,30 +181,26 @@ export default function NewJobStep({ value, onChange, onContinue, onBack }) {
         <hr className="pj-divider" />
         <div className="pj-field">
           <label className="pj-label" htmlFor="pj-edu">Minimum Education Level</label>
-          <div className="pj-select-wrap">
-            <select id="pj-edu" className={`pj-select${value.educationLevel ? "" : " pj-select--placeholder"}`} value={value.educationLevel} onChange={(e) => set({ educationLevel: e.target.value })}>
-              {EDUCATION_LEVELS.map((opt) => (
-                <option key={opt.value} value={opt.value} disabled={opt.value === ""}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="pj-edu"
+            value={value.educationLevel}
+            onChange={(v) => set({ educationLevel: v })}
+            options={EDUCATION_LEVELS.filter((o) => o.value !== "").map((o) => ({ value: o.value, label: o.label }))}
+            placeholder="Enter minimum education level"
+            ariaLabel="Minimum education level"
+          />
         </div>
         <div className="pj-field">
           <div className="pj-row-with-toggle">
             <div className="pj-salary-head" style={{ marginBottom: 0 }}>
               <span className="pj-label">Salary</span>
-              <div className="pj-unit-select-wrap">
-                <select
-                  className="pj-unit-select"
-                  value={value.salaryUnit}
-                  onChange={(e) => set({ salaryUnit: e.target.value })}
-                  aria-label="Salary period"
-                >
-                  {periodOptions.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                variant="pill"
+                value={value.salaryUnit}
+                onChange={(v) => set({ salaryUnit: v })}
+                options={periodOptions.map((p) => ({ value: p, label: p }))}
+                ariaLabel="Salary period"
+              />
             </div>
             <SegmentedToggle
               options={CURRENCY_OPTIONS}

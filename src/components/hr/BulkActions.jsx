@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
+import Select from "../ui/Select";
 import {
   TEMPLATES as WA_TEMPLATES,
   substitute,
@@ -122,12 +123,6 @@ const pill = (kind) => ({
   color: (kind === "ink" || kind === "wa" || kind === "danger") ? "#FFFFFF" : "var(--pj-text)",
   borderColor: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : kind === "danger" ? "var(--hjl-pass)" : "var(--pj-border)",
 });
-const selectStyle = {
-  padding: "9px 10px", borderRadius: 10, border: "1px solid var(--pj-border)",
-  background: "var(--pj-input-bg)", color: "var(--pj-text)", font: "inherit",
-  fontSize: 13, fontWeight: 600, cursor: "pointer",
-};
-
 export default function BulkActions({ selected, onClear, onApplyStatus, statusBusy, statusError, hrId, onLogged }) {
   const reduce = useReducedMotion();
   const [queueOpen, setQueueOpen] = useState(false);
@@ -158,17 +153,18 @@ export default function BulkActions({ selected, onClear, onApplyStatus, statusBu
 
           <span style={{ flex: 1, minWidth: 8 }} />
 
-          <select
-            aria-label="Move latest application to status"
-            value=""
-            disabled={statusBusy || count === 0}
-            onChange={(e) => { const v = e.target.value; if (v) { onApplyStatus(v); e.target.value = ""; } }}
-            style={{ ...selectStyle, opacity: statusBusy ? 0.6 : 1 }}
-            title="Updates each selected candidate's latest (displayed) application only"
-          >
-            <option value="">{statusBusy ? "Updating…" : "Move latest to…"}</option>
-            {BULK_STATUS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div style={{ width: 190 }} title="Updates each selected candidate's latest (displayed) application only">
+            <Select
+              size="sm"
+              menuAlign="right"
+              value=""
+              placeholder={statusBusy ? "Updating…" : "Move latest to…"}
+              disabled={statusBusy || count === 0}
+              onChange={(v) => { if (v) onApplyStatus(v); }}
+              options={BULK_STATUS}
+              ariaLabel="Move latest application to status"
+            />
+          </div>
 
           <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={pill("plain")} onClick={() => exportCsv(selected)}>
             <DownloadIcon /> Export CSV
