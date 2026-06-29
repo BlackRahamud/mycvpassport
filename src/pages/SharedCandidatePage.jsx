@@ -12,7 +12,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { getSharedCandidate } from "../services/getSharedCandidate";
+import { getSharedCandidate, submitShareFeedback } from "../services/getSharedCandidate";
 import "./sharedCandidate.css";
 
 /* ── Icons (line, matched to portal weight) ─────────────── */
@@ -227,10 +227,53 @@ function ResumeCard({ name, resumeUrl, resumeDownloadUrl, resumeFileName, step }
   );
 }
 
-function ReviewPanel({ company, step }) {
+const SUBMIT_ERRORS = {
+  410: "This link has expired. Ask the recruiter to send a new one.",
+  409: "A review was already submitted for this candidate from here.",
+  429: "This link has reached its review limit.",
+  404: "This link is not valid.",
+};
+
+function ReviewPanel({ company, token, step }) {
   const [decision, setDecision] = useState(null);
   const [feedback, setFeedback] = useState("");
-  const [showPhaseNote, setShowPhaseNote] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+
+  const canSubmit = !!decision && feedback.trim().length > 0 && !submitting;
+
+  const submit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const { status } = await submitShareFeedback(token, decision, feedback.trim());
+      if (status === 200) setSubmitted(true);
+      else setError(SUBMIT_ERRORS[status] || "Could not send your review. Please try again.");
+    } catch {
+      setError("Could not send your review. Please check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="reveal" style={{ "--d": `${step * 0.09}s`,
+        background: "var(--card)", border: "1px solid var(--border)",
+        borderRadius: "var(--radius)", padding: 28, textAlign: "center",
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: "50%", margin: "0 auto 14px",
+          background: "var(--success-bg)", color: "var(--success-fg)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}><Icon.Check size={20} /></div>
+        <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: "0 0 6px" }}>Review sent to {company}</h2>
+        <p style={{ fontSize: 13.5, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}>Thanks for your feedback.</p>
+      </div>
+    );
+  }
 
   const Choice = ({ id, icon: IC, title, desc, selBg, selBorder, selIcon, selText }) => {
     const sel = decision === id;
@@ -293,21 +336,23 @@ function ReviewPanel({ company, step }) {
 
       <button
         className="snap"
-        onClick={() => setShowPhaseNote(true)}
+        onClick={submit}
+        disabled={!canSubmit}
         style={{
-          width: "100%", marginTop: 14, cursor: "pointer",
+          width: "100%", marginTop: 14, cursor: canSubmit ? "pointer" : "not-allowed",
           background: "var(--accent)", color: "#fff", border: "none",
           borderRadius: "var(--radius)", padding: "12px 18px",
-          fontSize: 14, fontWeight: 500,
+          fontSize: 14, fontWeight: 500, opacity: canSubmit ? 1 : 0.45,
+          transition: "background-color .15s var(--snap), opacity .15s var(--snap)",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-hover)")}
+        onMouseEnter={(e) => { if (canSubmit) e.currentTarget.style.background = "var(--accent-hover)"; }}
         onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
-        Submit review
+        {submitting ? "Sending…" : "Submit review"}
       </button>
 
-      {showPhaseNote && (
-        <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 10, textAlign: "center" }}>
-          Submitting a review is not active yet. We will turn this on shortly.
+      {error && (
+        <div style={{ fontSize: 12.5, color: "var(--danger-fg)", marginTop: 10, textAlign: "center", lineHeight: 1.5 }}>
+          {error}
         </div>
       )}
     </div>
@@ -343,7 +388,7 @@ function CenteredCard({ children }) {
   );
 }
 
-function StackedLayout({ data }) {
+function StackedLayout({ data, token }) {
   const c = data.candidate;
   return (
     <div style={{ minHeight: "100vh", padding: "40px 24px 56px" }}>
@@ -352,7 +397,7 @@ function StackedLayout({ data }) {
         <Identity name={c.name} role={c.role} stage={c.stage} contactHidden={c.contactHidden} step={1} />
         <RegionalTiles location={c.location} noticePeriod={c.noticePeriod} visaStatus={c.visaStatus} step={2} />
         <ResumeCard name={c.name} resumeUrl={c.resumeUrl} resumeDownloadUrl={c.resumeDownloadUrl} resumeFileName={c.resumeFileName} step={3} />
-        <ReviewPanel company={c.company || "the hiring team"} step={4} />
+        <ReviewPanel company={c.company || "the hiring team"} token={token} step={4} />
         <Footer step={5} />
       </div>
     </div>
@@ -397,7 +442,7 @@ export default function SharedCandidatePage() {
       )}
 
       {state.phase === "ok" && (
-        <div key="ok"><StackedLayout data={state.data} /></div>
+        <div key="ok"><StackedLayout data={state.data} token={token} /></div>
       )}
 
       {state.phase === "expired" && (
