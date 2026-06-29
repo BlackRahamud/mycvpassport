@@ -169,7 +169,7 @@ export default function ShareForReviewModal({ open, onClose, applicationId, cand
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={label}>Hide contact details</div>
-                  <div style={{ ...sub, marginTop: 2 }}>Email, phone, and photo stay private. Reviewers see the profile and resume only.</div>
+                  <div style={{ ...sub, marginTop: 2 }}>Hides contact fields on this page. The CV document is shown as provided.</div>
                 </div>
                 <button
                   type="button"

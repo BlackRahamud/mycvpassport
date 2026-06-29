@@ -31,3 +31,34 @@ export async function getSharedCandidate(token) {
   }
   return { status: res.status, body };
 }
+
+/**
+ * Submit an external review (vote + note) for a shared candidate. Goes only
+ * to the submit-share-feedback Edge Function, which writes to share_feedback.
+ * Returns { status, body } where status is the HTTP code:
+ *   200 -> ok
+ *   400 -> invalid input
+ *   404 -> not found / invalid link
+ *   409 -> a review was already submitted from here within the window
+ *   410 -> expired or revoked
+ *   429 -> this share has reached its review limit
+ */
+export async function submitShareFeedback(token, vote, feedbackText) {
+  const url = `${SUPABASE_URL}/functions/v1/submit-share-feedback`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ public_token: token, vote, feedback_text: feedbackText }),
+  });
+  let body = null;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+  return { status: res.status, body };
+}

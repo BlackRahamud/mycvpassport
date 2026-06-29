@@ -10,6 +10,7 @@ import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/h
 import NotificationsBell from "../../../components/hr/NotificationsBell";
 import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
+import ShareReviews from "../../../components/hr/ShareReviews";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
@@ -810,6 +811,8 @@ function CandidateDetail({
         candidateName={candidate.candidate_name}
         hrId={hrId}
       />
+
+      <ShareReviews applicationId={candidate.id} />
 
       <InterviewTimeline hrId={hrId} candidateId={candidate.candidate_id} refreshKey={interviewTick} />
 
