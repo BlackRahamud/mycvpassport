@@ -1675,10 +1675,8 @@ input[type="checkbox"]:checked + .pj-checkbox__box::after {
 .pj-phone__number::placeholder { color: var(--pj-muted); }
 
 .pj-phone__menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 50;
+  /* Positioned by Floating UI in a portal to <body> (inline position:fixed). */
+  z-index: 4000;
   margin: 0;
   padding: 4px;
   background: #FFFFFF;

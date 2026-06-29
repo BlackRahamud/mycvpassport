@@ -47,37 +47,19 @@
 .um-trigger__name { font-size: 13px; font-weight: 600; }
 .um-trigger__role { font-size: 11px; opacity: 0.7; }
 
-/* ── Popover ─────────────────────────────────────────────────── */
+/* ── Popover ──
+   Positioned by Floating UI in a portal to <body> (inline position:fixed).
+   placement="up" opens above the trigger; otherwise below + right-aligned.
+   flip/shift keep it on-screen near any edge, so the old absolute top/right
+   and the responsive --up overrides are no longer needed. */
 .um-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
   min-width: 260px;
   padding: 6px;
   border-radius: 14px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  z-index: 50;
-}
-
-/* placement="up" — anchor lives at the BOTTOM of its container (e.g. the
-   HR shell rail), so open the popover upward and keep it on-screen. On
-   small screens the anchor sits at the right of a bottom bar (extend
-   left); on wide screens it sits at the left of a vertical rail (extend
-   right). Only the popover placement changes — the trigger is untouched,
-   so topbar usages elsewhere are unaffected. */
-.um-root--up .um-popover {
-  top: auto;
-  bottom: calc(100% + 8px);
-  right: 0;
-  left: auto;
-}
-@media (min-width: 720px) {
-  .um-root--up .um-popover {
-    left: 0;
-    right: auto;
-  }
+  z-index: 4000;
 }
 
 .um-email {
