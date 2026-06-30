@@ -135,14 +135,36 @@ const UsersIc = () => (<svg width="34" height="34" viewBox="0 0 24 24" fill="non
 const PlusIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
 
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
-function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce }) {
+function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce, activeJobs = [], onMoved }) {
   const navigate = useNavigate();
   // "View full fit analysis" reveals the old keyword score + chips; reset
   // when switching candidates (this component isn't remounted per pick).
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [moveForId, setMoveForId] = useState(null); // app id whose move picker is open
+  const [moveBusy, setMoveBusy] = useState(false);
+  const [moveErr, setMoveErr] = useState(null);     // { appId, msg }
   const [cvOpen, setCvOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  useEffect(() => { setShowAnalysis(false); setCvOpen(false); setShareOpen(false); }, [candidate?.key]);
+  useEffect(() => { setShowAnalysis(false); setCvOpen(false); setShareOpen(false); setMoveForId(null); setMoveErr(null); }, [candidate?.key]);
+
+  // Move a pooled application to an active job via the RPC (validates ownership,
+  // active target, and no duplicate). On success the parent refetches and the
+  // person re-aggregates into one profile under the new job.
+  const doMove = async (appId, jobId) => {
+    if (!jobId || moveBusy) return;
+    setMoveBusy(true); setMoveErr(null);
+    try {
+      const { error } = await supabase.rpc("move_application_to_job", { p_app_id: appId, p_job_id: jobId });
+      if (error) throw error;
+      setMoveForId(null);
+      onMoved?.();
+    } catch (e) {
+      setMoveErr({ appId, msg: e.message || "Couldn't move, try again." });
+    } finally {
+      setMoveBusy(false);
+    }
+  };
+
   if (!candidate) {
     return (
       <aside className="jpp-detail jpp-detail--empty cand-detail-placeholder">
@@ -265,22 +287,55 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
       <section className="jpp-section">
         <h3 className="jpp-section__title">Applied to <span className="jpp-section__source">{candidate.apps.length} {candidate.apps.length === 1 ? "job" : "jobs"}</span></h3>
         <div className="cand-applied">
-          {candidate.apps.map((ap, i) => (
-            <button
-              type="button"
-              className="cand-applied__row"
-              key={`${ap.job_id}-${i}`}
-              onClick={() => navigate(`/hr/jobs/${ap.job_id}?app=${ap.app_id}`)}
-            >
-              <span className="cand-applied__title">{ap.jobTitle}</span>
-              <span className="cand-applied__meta">
-                <MatchPill score={ap.ats_score} source={ap.score_source} />
-                <span className={`cand-market cand-market--${ap.market === "india" ? "india" : "gulf"}`}>{ap.market === "india" ? "India" : "Gulf"}</span>
-                <span className="cand-statuschip">{statusLabel(ap.status)}</span>
-                <span className="cand-applied__chev" aria-hidden><ChevRightIc /></span>
-              </span>
-            </button>
-          ))}
+          {candidate.apps.map((ap, i) => {
+            const isPool = ap.kind === "pool";
+            return (
+              <div className="cand-applied__group" key={`${ap.job_id}-${i}`}>
+                <button
+                  type="button"
+                  className="cand-applied__row"
+                  onClick={() => navigate(`/hr/jobs/${ap.job_id}?app=${ap.app_id}`)}
+                >
+                  <span className="cand-applied__title">{ap.jobTitle}</span>
+                  <span className="cand-applied__meta">
+                    <MatchPill score={ap.ats_score} source={ap.score_source} />
+                    {isPool
+                      ? <span className="cand-pooltag">Pool</span>
+                      : <span className={`cand-market cand-market--${ap.market === "india" ? "india" : "gulf"}`}>{ap.market === "india" ? "India" : "Gulf"}</span>}
+                    <span className="cand-statuschip">{statusLabel(ap.status)}</span>
+                    <span className="cand-applied__chev" aria-hidden><ChevRightIc /></span>
+                  </span>
+                </button>
+                {isPool && (
+                  <div className="cand-applied__move">
+                    {moveForId === ap.app_id ? (
+                      activeJobs.length > 0 ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <div style={{ minWidth: 200, flex: 1 }}>
+                            <Select
+                              size="sm" menuAlign="left" value="" disabled={moveBusy}
+                              placeholder={moveBusy ? "Moving…" : "Choose an active job…"}
+                              options={activeJobs.map((j) => ({ value: j.id, label: j.title || "Untitled role" }))}
+                              onChange={(v) => { if (v) doMove(ap.app_id, v); }}
+                              ariaLabel="Move to active job"
+                            />
+                          </div>
+                          <button type="button" className="cand-move__cancel" onClick={() => { setMoveForId(null); setMoveErr(null); }}>Cancel</button>
+                        </div>
+                      ) : (
+                        <span className="cand-move__hint">Post an active job first to move this candidate into it.</span>
+                      )
+                    ) : (
+                      <button type="button" className="cand-move__btn" onClick={() => { setMoveForId(ap.app_id); setMoveErr(null); }}>Move to job</button>
+                    )}
+                    {moveErr && moveErr.appId === ap.app_id && (
+                      <span role="status" className="cand-move__err">{moveErr.msg}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -495,6 +550,7 @@ export default function CandidatesPage() {
             app_id: a.id,
             jobTitle: job?.title || "Untitled role",
             market: job?.market || "gulf",
+            kind: job?.kind || "active",
             status: a.status,
             applied_at: a.applied_at,
             ats_score: a.ats_score || 0,
@@ -815,6 +871,8 @@ export default function CandidatesPage() {
                 hrId={user?.id}
                 outreachTick={outreachTick}
                 reduce={reduce}
+                activeJobs={jobsList.filter((j) => j.kind !== "pool" && (j.status === "active" || j.status === "published"))}
+                onMoved={() => setReloadTick((t) => t + 1)}
               />
             </AnimatePresence>
           </div>
