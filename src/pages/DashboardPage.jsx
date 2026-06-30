@@ -235,7 +235,7 @@ function AtsRing({ score, color, trackColor = "#1a1a1a", subColor = "#3a3a3a" })
         <circle cx={size / 2} cy={size / 2} r={r} stroke={trackColor} strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
-          strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round"
+          strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="butt"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
           style={{ transition: `stroke-dashoffset 900ms ${EASE}` }}
         />
