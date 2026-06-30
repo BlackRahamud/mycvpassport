@@ -156,17 +156,19 @@ export default function JobsListPage() {
     let live = true;
     (async () => {
       try {
-        const statusFilter = view === "open"
-          ? ["active", "published"]
-          : ["closed"];
-        const { data, error: e } = await supabase
+        let q = supabase
           .from("jobs")
-          .select("id, title, status, posted_at, created_at, hr_id, salary_min, salary_max, currency")
+          .select("id, title, status, kind, posted_at, created_at, hr_id, salary_min, salary_max, currency")
           .eq("source", "hr_portal")
           .eq("hr_id", user.id)
-          .in("status", statusFilter)
           .order("posted_at", { ascending: false })
           .limit(200);
+        // Pools live in their own view; the open/past triage shows only active
+        // mandates, so a pool never reads as an active job in the table.
+        q = view === "pools"
+          ? q.eq("kind", "pool")
+          : q.eq("kind", "active").in("status", view === "open" ? ["active", "published"] : ["closed"]);
+        const { data, error: e } = await q;
         if (!live) return;
         if (e) throw e;
         setJobs(data || []);
@@ -330,6 +332,13 @@ export default function JobsListPage() {
               className={`hjl-toggle__btn${view === "past" ? " hjl-toggle__btn--active" : ""}`}
               onClick={() => setView("past")}
             >Past</button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={view === "pools"}
+              className={`hjl-toggle__btn${view === "pools" ? " hjl-toggle__btn--active" : ""}`}
+              onClick={() => setView("pools")}
+            >Pools</button>
           </div>
         </motion.div>
 

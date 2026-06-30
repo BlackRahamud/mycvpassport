@@ -99,6 +99,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
             .select("id, title, market, status, posted_at, created_at")
             .eq("hr_id", uid)
             .eq("source", "hr_portal")
+            .eq("kind", "active") // pools never count as active mandates in any metric
             .limit(500),
           supabase
             .from("applications")
@@ -169,6 +170,9 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
     };
 
     const fApps = all.filter((a) => {
+      // jobMap holds only active jobs (the fetch excludes kind='pool'), so this
+      // drops pool applications from the funnel and the job-effectiveness table.
+      if (!jobMap.has(a.job_id)) return false;
       if (!inMarket(a.job_id)) return false;
       if (cutoff) {
         const t = new Date(a.applied_at).getTime();
