@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
 import HrInsightsPanel from "../Insights/HrInsightsPanel";
@@ -281,6 +281,14 @@ export default function JobsListPage() {
           </div>
         </div>
 
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={mainTab}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+        >
         {mainTab === "insights" ? (
           <HrInsightsPanel user={user} onGoToJobs={() => setMainTab("jobs")} />
         ) : (
@@ -416,6 +424,8 @@ export default function JobsListPage() {
         )}
         </>
         )}
+        </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

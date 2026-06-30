@@ -178,6 +178,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
     const funnel = {
       applicants: fApps.length,
       shortlisted: fApps.filter((a) => a.status === "shortlisted" || rankOf(a.status) >= 1).length,
+      ready: fApps.filter((a) => rankOf(a.status) >= 1).length,
       interviewed: fApps.filter((a) => rankOf(a.status) >= 2).length,
       offered: fApps.filter((a) => rankOf(a.status) >= 3).length,
       hired: fApps.filter((a) => rankOf(a.status) >= 4).length,
@@ -317,12 +318,15 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
   }
 
   const f = model.funnel;
+  // Stage set + tints match the 21st funnel; values are real and monotonic
+  // (reached stage X or beyond), so bars decrease down the list.
   const funnelRows = [
-    { key: "applicants", label: "Applicants", value: f.applicants, variant: "top" },
-    { key: "shortlisted", label: "Shortlisted", value: f.shortlisted },
-    { key: "interviewed", label: "Interviewed", value: f.interviewed },
-    { key: "offered", label: "Offered", value: f.offered },
-    { key: "hired", label: "Hired", value: f.hired, variant: "goal" },
+    { key: "new", label: "New", value: f.applicants, color: "blue" },
+    { key: "shortlisted", label: "Shortlisted", value: f.shortlisted, color: "indigo" },
+    { key: "ready", label: "Ready to interview", value: f.ready, color: "purple" },
+    { key: "interviewed", label: "Interviewed", value: f.interviewed, color: "emerald" },
+    { key: "offered", label: "Offer", value: f.offered, color: "teal" },
+    { key: "hired", label: "Hired", value: f.hired, color: "green" },
   ];
   const funnelBase = Math.max(f.applicants, 1);
 
@@ -408,24 +412,20 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
           </div>
           <div className="hin-funnel">
             {funnelRows.map((r) => {
-              const pct = funnelBase ? Math.round((r.value / funnelBase) * 100) : 0;
-              const width = funnelBase ? Math.max((r.value / funnelBase) * 100, r.value > 0 ? 4 : 0) : 0;
+              const width = funnelBase ? Math.max((r.value / funnelBase) * 100, r.value > 0 ? 3 : 0) : 0;
               return (
                 <div className="hin-funnel__row" key={r.key}>
                   <span className="hin-funnel__label">{r.label}</span>
                   <div className="hin-funnel__track">
                     <motion.div
-                      className={`hin-funnel__bar${r.variant === "top" ? " hin-funnel__bar--top" : ""}${r.variant === "goal" ? " hin-funnel__bar--goal" : ""}`}
+                      className={`hin-funnel__bar hin-funnel__bar--${r.color}`}
                       initial={reduce ? false : { scaleX: 0 }}
                       animate={{ scaleX: 1 }}
                       transition={{ duration: 0.5, ease: EASE }}
                       style={{ width: `${width}%` }}
                     />
-                    <span className="hin-funnel__meta">
-                      {r.value.toLocaleString()}
-                      {r.key !== "applicants" && <span className="hin-funnel__pct">{pct}%</span>}
-                    </span>
                   </div>
+                  <span className="hin-funnel__count">{r.value.toLocaleString()}</span>
                 </div>
               );
             })}
