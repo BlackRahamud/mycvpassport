@@ -87,12 +87,42 @@
 .cand-market--india { color: var(--pj-text); }
 .cand-statuschip { background: transparent; }
 
+/* Match pill (scoreBand-coloured) + availability chip */
+.cand-match {
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  font-feature-settings: "tnum";
+  flex-shrink: 0;
+}
+.cand-match--none { background: var(--pj-input-bg); color: var(--pj-muted); border-color: var(--pj-border); }
+.cand-avail {
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: var(--hjl-ink-soft, rgba(20, 19, 31, 0.06));
+  color: var(--pj-text-soft);
+  white-space: nowrap;
+}
+
 /* ── Layout: mobile = single column + detail overlay ── */
 .cand-layout { display: block; }
 
 .cand-list { display: flex; flex-direction: column; gap: 10px; }
 
 .cand-card { gap: 8px; }
+.cand-card__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .cand-card__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cand-card__jobs { font-size: 11.5px; color: var(--pj-muted); font-weight: 600; }
 .cand-card__email {
@@ -141,11 +171,24 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
   padding: 10px 12px;
   background: #FFFFFF;
   border: 1px solid var(--pj-border);
   border-radius: 10px;
+  font: inherit;
+  font-family: var(--pj-font);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms var(--pj-ease), box-shadow 140ms var(--pj-ease);
 }
+.cand-applied__row:hover { border-color: var(--hjl-ink); box-shadow: 0 6px 18px -12px rgba(20, 19, 31, 0.25); }
+.cand-applied__chev {
+  display: inline-flex;
+  color: var(--pj-muted);
+  transition: color 140ms var(--pj-ease), transform 140ms var(--pj-ease);
+}
+.cand-applied__row:hover .cand-applied__chev { color: var(--hjl-ink); transform: translateX(2px); }
 .cand-applied__title {
   font-size: 13px;
   font-weight: 600;
@@ -198,5 +241,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cand-search input, .cand-card { transition: none !important; }
+  .cand-search input, .cand-card, .cand-applied__row, .cand-applied__chev { transition: none !important; }
 }

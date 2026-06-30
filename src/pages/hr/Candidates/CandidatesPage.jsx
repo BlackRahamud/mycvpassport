@@ -5,8 +5,11 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
-import ViewOriginalCv from "../../../components/hr/ViewOriginalCv";
 import BulkActions from "../../../components/hr/BulkActions";
+import CvDrawer from "../../../components/hr/CvDrawer";
+import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
+import ShareReviews from "../../../components/hr/ShareReviews";
+import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
 import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
@@ -71,8 +74,44 @@ const MARKET_OPTIONS = [
   { key: "gulf", label: "Gulf" },
   { key: "india", label: "India" },
 ];
+
+/* Availability is derived from the candidate's stated notice period (free
+   text on the CV). We only assert a bucket when the text is unambiguous, so
+   filtering to "Immediate" shows the people we can actually confirm are
+   immediate — never a guess dressed up as data. */
+function availabilityBucket(cv) {
+  const personal = cv.personal || cv.basics || {};
+  const raw = String(cv.notice_period || cv.availability || personal.notice_period || personal.availability || "").toLowerCase();
+  if (!raw) return "unknown";
+  if (/(immediate|available now|ready to join|right away|no notice|0\s*day|join now)/.test(raw)) return "immediate";
+  if (/(2\s*month|3\s*month|two month|three month|60\s*day|90\s*day|6\s*month)/.test(raw)) return "notice";
+  if (/(1\s*week|2\s*week|one week|two week|fortnight|10\s*day|15\s*day|1\s*month|one month|30\s*day|4\s*week)/.test(raw)) return "soon";
+  return "unknown";
+}
+const AVAIL_LABEL = { immediate: "Immediate", soon: "Within 1 month", notice: "Longer notice", unknown: "" };
+const AVAIL_OPTIONS = [
+  { key: "all", label: "Any availability" },
+  { key: "immediate", label: "Immediate" },
+  { key: "soon", label: "Within 1 month" },
+  { key: "notice", label: "Longer notice" },
+];
+
 const EASE = [0.4, 0, 0.2, 1];
 const SELECT_CAP = 50; // hard cap on bulk selection
+
+/* Match pill — reuses scoreBand so a 78 reads the same band/colour as it
+   does in the pipeline ring. 'none' (never scored) renders an honest grey
+   chip rather than a silent gap. */
+function MatchPill({ score, source }) {
+  const band = scoreBand(score, source);
+  if (band === "none") return <span className="cand-match cand-match--none">Not scored</span>;
+  const color = BAND_COLORS[band];
+  return (
+    <span className="cand-match" style={{ color, borderColor: `${color}59`, background: `${color}16` }}>
+      {Math.round(Number(score) || 0)}% match
+    </span>
+  );
+}
 
 /* ───────── Inline icons (feather-style, matching the portal) ───────── */
 const SearchIc = () => (<svg className="cand-search__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>);
@@ -83,13 +122,19 @@ const WhatsAppIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="
 const BriefIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>);
 const CapIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5z" /><path d="M6 12v5c0 1 2 3 6 3s6-2 6-3v-5" /></svg>);
 const ChevLeftIc = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>);
+const ChevRightIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>);
+const FileIc = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>);
+const ShareIc = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>);
 
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
 function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce }) {
+  const navigate = useNavigate();
   // "View full fit analysis" reveals the old keyword score + chips; reset
   // when switching candidates (this component isn't remounted per pick).
   const [showAnalysis, setShowAnalysis] = useState(false);
-  useEffect(() => { setShowAnalysis(false); }, [candidate?.key]);
+  const [cvOpen, setCvOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  useEffect(() => { setShowAnalysis(false); setCvOpen(false); setShareOpen(false); }, [candidate?.key]);
   if (!candidate) {
     return (
       <aside className="jpp-detail jpp-detail--empty cand-detail-placeholder">
@@ -165,10 +210,19 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
             <MailIc /> Email {firstName(candidate.name)}
           </a>
         )}
-        <ViewOriginalCv path={a.cv_file_path} />
+        {a.cv_file_path && (
+          <button type="button" className="jpp-action jpp-action--ghost" onClick={() => setCvOpen(true)}>
+            <FileIc /> View CV
+          </button>
+        )}
+        <button type="button" className="jpp-action jpp-action--ghost" onClick={() => setShareOpen(true)}>
+          <ShareIc /> Share for review
+        </button>
       </div>
 
       <OutreachHistory hrId={hrId} candidateId={candidate.record?.candidate_id} refreshKey={outreachTick} />
+
+      <ShareReviews applicationId={a.id} />
 
       {showAnalysis && (matchedKw.length + missingKw.length) > 0 && (
         <section className="jpp-section">
@@ -203,13 +257,20 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
         <h3 className="jpp-section__title">Applied to <span className="jpp-section__source">{candidate.apps.length} {candidate.apps.length === 1 ? "job" : "jobs"}</span></h3>
         <div className="cand-applied">
           {candidate.apps.map((ap, i) => (
-            <div className="cand-applied__row" key={`${ap.job_id}-${i}`}>
+            <button
+              type="button"
+              className="cand-applied__row"
+              key={`${ap.job_id}-${i}`}
+              onClick={() => navigate(`/hr/jobs/${ap.job_id}?app=${ap.app_id}`)}
+            >
               <span className="cand-applied__title">{ap.jobTitle}</span>
               <span className="cand-applied__meta">
+                <MatchPill score={ap.ats_score} source={ap.score_source} />
                 <span className={`cand-market cand-market--${ap.market === "india" ? "india" : "gulf"}`}>{ap.market === "india" ? "India" : "Gulf"}</span>
                 <span className="cand-statuschip">{statusLabel(ap.status)}</span>
+                <span className="cand-applied__chev" aria-hidden><ChevRightIc /></span>
               </span>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -260,6 +321,9 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
           </div>
         </section>
       )}
+
+      <CvDrawer open={cvOpen} path={a.cv_file_path} fileName={`${candidate.name} CV`} onClose={() => setCvOpen(false)} />
+      <ShareForReviewModal open={shareOpen} onClose={() => setShareOpen(false)} applicationId={a.id} candidateName={candidate.name} hrId={hrId} />
     </motion.aside>
   );
 }
@@ -275,6 +339,7 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [market, setMarket] = useState("all");
   const [status, setStatus] = useState("all");
+  const [availability, setAvailability] = useState("all");
   const [selectedKey, setSelectedKey] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialMessage, setComposerInitialMessage] = useState(null);
@@ -324,10 +389,13 @@ export default function CandidatesPage() {
           const job = jobMap.get(a.job_id);
           const appEntry = {
             job_id: a.job_id,
+            app_id: a.id,
             jobTitle: job?.title || "Untitled role",
             market: job?.market || "gulf",
             status: a.status,
             applied_at: a.applied_at,
+            ats_score: a.ats_score || 0,
+            score_source: a.score_source,
           };
           let c = byKey.get(key);
           if (!c) {
@@ -342,6 +410,8 @@ export default function CandidatesPage() {
         const candidates = [...byKey.values()].map((c) => {
           const a = c.latest;
           const markets = new Set(c.apps.map((x) => x.market));
+          const cvA = getCv(a);
+          const avail = availabilityBucket(cvA);
           return {
             key: c.key,
             record: a,
@@ -351,6 +421,8 @@ export default function CandidatesPage() {
             visa: a.visa_status || "",
             score: a.ats_score || 0,
             score_source: a.score_source,
+            availability: avail,
+            availabilityLabel: AVAIL_LABEL[avail] || "",
             market: jobMap.get(a.job_id)?.market || "gulf",
             markets,
             skills: deriveSkills(a),
@@ -376,6 +448,7 @@ export default function CandidatesPage() {
     const bucket = STATUS_BUCKETS[status];
     return rows.filter((c) => {
       if (market !== "all" && !c.markets.has(market)) return false;
+      if (availability !== "all" && c.availability !== availability) return false;
       if (bucket) {
         let any = false;
         c.statuses.forEach((s) => { if (bucket.has(s)) any = true; });
@@ -387,7 +460,7 @@ export default function CandidatesPage() {
       }
       return true;
     });
-  }, [rows, search, market, status]);
+  }, [rows, search, market, status, availability]);
 
   const selected = useMemo(
     () => (filtered || []).find((c) => c.key === selectedKey) || null,
@@ -503,7 +576,7 @@ export default function CandidatesPage() {
                 onClick={() => setMarket(o.key)}>{o.label}</button>
             ))}
           </div>
-          <div style={{ width: 200 }}>
+          <div style={{ width: 180 }}>
             <Select
               size="sm"
               menuAlign="right"
@@ -511,6 +584,16 @@ export default function CandidatesPage() {
               onChange={(v) => setStatus(v)}
               options={STATUS_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
               ariaLabel="Status"
+            />
+          </div>
+          <div style={{ width: 190 }}>
+            <Select
+              size="sm"
+              menuAlign="right"
+              value={availability}
+              onChange={(v) => setAvailability(v)}
+              options={AVAIL_OPTIONS.map((o) => ({ value: o.key, label: o.label }))}
+              ariaLabel="Availability"
             />
           </div>
         </div>
@@ -590,13 +673,15 @@ export default function CandidatesPage() {
                           transition={{ duration: 0.26, ease: EASE, delay: Math.min(i * 0.02, 0.16) }}
                           style={{ flex: 1, boxShadow: checked ? "inset 0 0 0 1.5px var(--hjl-ink)" : undefined }}
                         >
-                          <div className="jpp-card__top">
+                          <div className="jpp-card__top cand-card__top">
                             <span className="jpp-card__name">{c.name}</span>
+                            <MatchPill score={c.score} source={c.score_source} />
                           </div>
                           <div className="cand-card__meta">
                             <span className={`cand-market cand-market--${c.market === "india" ? "india" : "gulf"}`}>{c.market === "india" ? "India" : "Gulf"}</span>
                             <span className="cand-card__jobs">{c.apps.length} {c.apps.length === 1 ? "job" : "jobs"}</span>
                             <span className="cand-statuschip">{statusLabel(c.apps[0]?.status)}</span>
+                            {c.availabilityLabel && <span className="cand-avail">{c.availabilityLabel}</span>}
                           </div>
                           {c.email && <span className="cand-card__email">{c.email}</span>}
                         </motion.button>
