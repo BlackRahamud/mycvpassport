@@ -124,6 +124,59 @@ function IconSignOut({ size = 14 }) {
     </svg>
   );
 }
+function IconChat({ size = 13 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+function IconSmile({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
+    </svg>
+  );
+}
+function IconMeh({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><line x1="8" y1="15" x2="16" y2="15" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
+    </svg>
+  );
+}
+function IconFrown({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" /><path d="M16 16s-1.5-2-4-2-4 2-4 2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
+    </svg>
+  );
+}
+
+/* ATS score ring gauge — the hero metric. Colour comes from the existing
+   scoreColor logic (green >= 80, amber >= 60, red below), passed in. */
+function AtsRing({ score, color }) {
+  const size = 132, stroke = 11, r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, Number(score) || 0));
+  const off = circ - (pct / 100) * circ;
+  return (
+    <div style={{ position: "relative", width: size, height: size, margin: "4px auto 0" }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#1a1a1a" strokeWidth={stroke} fill="none" />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
+          strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round"
+          style={{ transition: `stroke-dashoffset 900ms ${EASE}` }}
+        />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: 34, fontWeight: 700, color, letterSpacing: "-1px", lineHeight: 1 }}>{score > 0 ? score : "—"}</div>
+        <div style={{ fontSize: 10, color: "#3a3a3a", marginTop: 4 }}>out of 100</div>
+      </div>
+    </div>
+  );
+}
 
 /* ─── Helpers ─── */
 function timeAgo(iso) {
@@ -241,6 +294,10 @@ export default function DashboardPage({
   const [cancelStep, setCancelStep] = useState(0);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSentiment, setFeedbackSentiment] = useState(null); // 'positive' | 'neutral' | 'negative'
+  const [feedbackContext, setFeedbackContext] = useState("");
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(null);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState("mycvs");
@@ -314,14 +371,42 @@ export default function DashboardPage({
     else if (action === "coverletter") navigate("/cover-letter");
   };
 
-  const handleFeedbackSend = () => {
-    if (!feedbackText.trim()) return;
+  const resetFeedback = () => {
     setFeedbackText("");
-    setFeedbackSent(true);
-    setTimeout(() => {
-      setFeedbackSent(false);
-      setFeedbackOpen(false);
-    }, 1200);
+    setFeedbackContext("");
+    setFeedbackSentiment(null);
+    setFeedbackError(null);
+  };
+
+  // Persists to the `candidate_feedback` table (pending sign-off — see PR note).
+  // Insert-own only under RLS; user_id defaults to auth.uid() server-side.
+  // Validates length client-side; the panel stays open with an honest error
+  // if the insert fails so nothing is silently lost.
+  const handleFeedbackSend = async () => {
+    const message = feedbackText.trim();
+    if (!message || feedbackSending) return;
+    setFeedbackSending(true);
+    setFeedbackError(null);
+    try {
+      if (!supabase) throw new Error("offline");
+      const { error } = await supabase.from("candidate_feedback").insert({
+        message: message.slice(0, 4000),
+        sentiment: feedbackSentiment,
+        context: feedbackContext.trim().slice(0, 500) || null,
+        page: "/dashboard",
+      });
+      if (error) throw error;
+      setFeedbackSent(true);
+      setTimeout(() => {
+        setFeedbackSent(false);
+        setFeedbackOpen(false);
+        resetFeedback();
+      }, 1600);
+    } catch (e) {
+      setFeedbackError("Could not send just yet. Please try again in a moment.");
+    } finally {
+      setFeedbackSending(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -473,6 +558,26 @@ export default function DashboardPage({
               })}
             </div>
           </nav>
+
+          {/* Feedback — opens the sentiment panel */}
+          <div style={{ flexShrink: 0, padding: "0 8px 4px" }}>
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen(true)}
+              style={{
+                width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 10,
+                fontSize: 13, fontWeight: 500, border: "none", background: "transparent",
+                color: "#3a3a3a", display: "flex", alignItems: "center", gap: 10,
+                cursor: "pointer", textAlign: "left", fontFamily: "inherit", boxSizing: "border-box",
+                transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#0a0a0a"; e.currentTarget.style.color = "#888"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#3a3a3a"; }}
+            >
+              <span style={{ display: "flex", color: "#D97706", opacity: 0.5 }}><IconChat size={13} /></span>
+              <span>Feedback</span>
+            </button>
+          </div>
 
           {/* Section 3 — Bottom (user card + popover) */}
           <div style={{ flexShrink: 0, padding: 12, position: "relative" }}>
@@ -712,58 +817,64 @@ export default function DashboardPage({
           </div>
 
           {/* ═══ STATS STRIP ═══ */}
-          <div className="cvp-stats-strip" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8, marginBottom: 16, marginTop: 16 }}>
-            {/* Card 1 — ATS Score */}
+          <div className="cvp-stats-strip" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12, marginBottom: 18, marginTop: 16 }}>
+            {/* Card 1 — ATS Score (ring gauge, real active-CV strength) */}
             <div className="cvp2-stats-card" style={{
-              background: "#111", border: "0.5px solid #1a1a1a",
-              borderRadius: "2px 2px 10px 10px", borderTop: "1.5px solid #FFB300",
-              padding: 16, minHeight: 90, overflow: "visible",
+              background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 14,
+              padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
               WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
-              <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>ATS SCORE</div>
-              <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#FFB300", letterSpacing: "-0.5px" }}>
-                {resumeList.length > 0 ? firstStrength : "—"}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontSize: 10.5, color: "#666", letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>ATS score</div>
+                  <div style={{ fontSize: 11, color: "#333", marginTop: 3 }}>{firstStrength > 0 ? "Target 85+" : "Build a CV first"}</div>
+                </div>
+                <span style={{ color: "#FFB300", opacity: 0.85, display: "flex" }}><IconTarget size={16} /></span>
               </div>
-              <div style={{ fontSize: 11, color: "#252525", marginTop: 4 }}>
-                {firstStrength > 0 ? "Target: 85+" : "Build a CV first"}
+              <AtsRing score={resumeList.length > 0 ? firstStrength : 0} color={scoreColor(firstStrength)} />
+            </div>
+            {/* Card 2 — CVs Built (real count) */}
+            <div className="cvp2-stats-card" style={{
+              background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 14,
+              padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
+              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
+            }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 10.5, color: "#666", letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>CVs built</div>
+                <span style={{ color: "#444", display: "flex" }}><IconGrid size={16} /></span>
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div style={{ fontSize: 46, fontWeight: 700, color: "#eee", letterSpacing: "-1.5px", lineHeight: 1 }}>{resumeList.length}</div>
+                <div style={{ fontSize: 12, color: "#444", marginTop: 8 }}>{resumeList.length > 0 ? `Last edited ${timeAgo(lastResume?.updated_at).replace("edited ", "")}` : "Start below"}</div>
               </div>
             </div>
-            {/* Card 2 — CVs Built */}
+            {/* Card 3 — Plan (real plan + active status) */}
             <div className="cvp2-stats-card" style={{
-              background: "#111", border: "0.5px solid #1a1a1a",
-              borderRadius: "2px 2px 10px 10px",
-              padding: 16, minHeight: 90, overflow: "visible",
+              background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 14,
+              padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
               WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
-              <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>CVS BUILT</div>
-              <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#ddd", letterSpacing: "-0.5px" }}>{resumeList.length}</div>
-              <div style={{ fontSize: 11, color: "#252525", marginTop: 4 }}>
-                {resumeList.length > 0 ? "Last edited today" : "Start below"}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                <div style={{ fontSize: 10.5, color: "#666", letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>Plan</div>
+                <span style={{ color: "#444", display: "flex" }}><IconSpark size={16} /></span>
               </div>
-            </div>
-            {/* Card 3 — Plan */}
-            <div className="cvp2-stats-card" style={{
-              background: "#111", border: "0.5px solid #1a1a1a",
-              borderRadius: "2px 2px 10px 10px",
-              padding: 16, minHeight: 90, overflow: "visible",
-              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
-            }}>
-              <div style={{ fontSize: 10, color: "#2e2e2e", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>PLAN</div>
-              <div className="cvp2-stats-val" style={{ fontSize: 22, fontWeight: 500, color: "#FFB300", letterSpacing: "-0.5px" }}>{planLabel}</div>
-              <div style={{ fontSize: 11, marginTop: 4 }}>
-                {isPaid ? (
-                  <span style={{ color: "#1D9E75" }}>Active</span>
-                ) : (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    style={{ color: "#FFB300", opacity: 0.5, cursor: "pointer" }}
-                    onClick={() => navigate("/pricing")}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/pricing"); }}
-                  >
-                    Upgrade →
-                  </span>
-                )}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div style={{ fontSize: 40, fontWeight: 700, color: "#FFB300", letterSpacing: "-1px", lineHeight: 1 }}>{planLabel}</div>
+                <div style={{ marginTop: 12 }}>
+                  {isPaid ? (
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", background: "rgba(29,158,117,0.12)", padding: "3px 10px", borderRadius: 999 }}>Active</span>
+                  ) : (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      style={{ fontSize: 12.5, color: "#FFB300", cursor: "pointer", fontWeight: 600 }}
+                      onClick={() => navigate("/pricing")}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/pricing"); }}
+                    >
+                      Upgrade →
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1344,7 +1455,8 @@ export default function DashboardPage({
             aria-label="Send feedback"
             style={{
               position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
-              zIndex: 501, width: "calc(100% - 32px)", maxWidth: 420,
+              zIndex: 501, width: "calc(100% - 32px)", maxWidth: 440,
+              maxHeight: "calc(100vh - 40px)", overflowY: "auto",
               background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 20,
               boxSizing: "border-box",
             }}
@@ -1365,60 +1477,117 @@ export default function DashboardPage({
               <IconX />
             </button>
 
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>How can we improve?</div>
-            <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 6, lineHeight: 1.5 }}>
-              Tell us what&apos;s working, what isn&apos;t, or what you&apos;d love to see next.
-            </div>
+            {!feedbackSent ? (
+              <>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>Your feedback shapes CVPassport</div>
+                <div style={{ fontSize: 12.5, color: "#A0A0A0", marginTop: 6, lineHeight: 1.5 }}>
+                  Every bit helps us improve this for you. Tell us what is working and what is not.
+                </div>
 
-            <textarea
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Your feedback…"
-              style={{
-                width: "100%", marginTop: 14,
-                minHeight: 110, resize: "vertical",
-                background: "#0A0A0A", border: "1px solid #2A2A2A",
-                borderRadius: 8, padding: "10px 12px",
-                color: "#fff", fontSize: 13, fontFamily: "inherit",
-                lineHeight: 1.5, outline: "none", boxSizing: "border-box",
-              }}
-            />
+                {/* Sentiment */}
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#ccc", marginBottom: 8 }}>How do you feel about CVPassport?</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[
+                      { key: "positive", label: "Good", Icon: IconSmile, color: "#1D9E75" },
+                      { key: "neutral", label: "Okay", Icon: IconMeh, color: "#FFB300" },
+                      { key: "negative", label: "Not great", Icon: IconFrown, color: "#D85A30" },
+                    ].map(({ key, label, Icon, color }) => {
+                      const on = feedbackSentiment === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setFeedbackSentiment(on ? null : key)}
+                          style={{
+                            flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                            padding: "12px 6px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                            background: on ? `${color}1a` : "transparent",
+                            border: `1.5px solid ${on ? color : "#2A2A2A"}`,
+                            color: on ? color : "#777",
+                            transition: `border-color 150ms ${EASE}, color 150ms ${EASE}, background 150ms ${EASE}`,
+                          }}
+                        >
+                          <Icon size={20} />
+                          <span style={{ fontSize: 12, fontWeight: 600 }}>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, gap: 8 }}>
-              <a
-                href="mailto:support@mycvpassport.com"
-                style={{ fontSize: 11, color: "#666", textDecoration: "none" }}
-              >
-                support@mycvpassport.com
-              </a>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setFeedbackOpen(false)}
-                  style={{
-                    padding: "8px 14px", borderRadius: 8,
-                    background: "transparent", border: "1px solid #2A2A2A",
-                    color: "#A0A0A0", fontSize: 12, fontWeight: 500,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFeedbackSend}
-                  disabled={!feedbackText.trim() && !feedbackSent}
-                  style={{
-                    padding: "8px 16px", borderRadius: 8,
-                    background: "#fff", border: "none", color: "#000",
-                    fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                    opacity: feedbackText.trim() || feedbackSent ? 1 : 0.5,
-                  }}
-                >
-                  {feedbackSent ? "Sent ✓" : "Send feedback"}
-                </button>
+                {/* Message */}
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#ccc", marginBottom: 6 }}>What would make this better for you?</div>
+                  <textarea
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    maxLength={4000}
+                    placeholder="Share your thoughts, ideas, or issues..."
+                    style={{
+                      width: "100%", minHeight: 100, resize: "vertical",
+                      background: "#0A0A0A", border: "1px solid #2A2A2A", borderRadius: 8,
+                      padding: "10px 12px", color: "#fff", fontSize: 13, fontFamily: "inherit",
+                      lineHeight: 1.5, outline: "none", boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {/* Context */}
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#ccc", marginBottom: 6 }}>What were you trying to do? (optional)</div>
+                  <input
+                    value={feedbackContext}
+                    onChange={(e) => setFeedbackContext(e.target.value)}
+                    maxLength={500}
+                    placeholder="E.g. create a new CV, check ATS score..."
+                    style={{
+                      width: "100%", height: 40, background: "#0A0A0A", border: "1px solid #2A2A2A",
+                      borderRadius: 8, padding: "0 12px", color: "#fff", fontSize: 13,
+                      fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {feedbackError && (
+                  <div role="status" style={{ fontSize: 12, color: "#D85A30", marginTop: 10 }}>{feedbackError}</div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: 18, gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackOpen(false)}
+                    style={{
+                      padding: "9px 16px", borderRadius: 8, background: "transparent",
+                      border: "1px solid #2A2A2A", color: "#A0A0A0", fontSize: 12.5, fontWeight: 500,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFeedbackSend}
+                    disabled={!feedbackText.trim() || feedbackSending}
+                    style={{
+                      padding: "9px 18px", borderRadius: 8, background: "#FFB300", border: "none",
+                      color: "#0A0A0A", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                      opacity: feedbackText.trim() && !feedbackSending ? 1 : 0.5,
+                    }}
+                  >
+                    {feedbackSending ? "Sending…" : "Send feedback"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 8px" }}>
+                <div style={{ width: 56, height: 56, borderRadius: 999, background: "rgba(29,158,117,0.14)", display: "grid", placeItems: "center", marginBottom: 14, color: "#1D9E75" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 6 }}>Thank you</div>
+                <div style={{ fontSize: 13, color: "#A0A0A0", lineHeight: 1.5, maxWidth: 280 }}>We read every message and use your feedback to make CVPassport better.</div>
               </div>
-            </div>
+            )}
           </div>
         </>
       )}
