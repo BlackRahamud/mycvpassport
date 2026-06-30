@@ -220,30 +220,49 @@ function ThemeToggle({ theme, setTheme, t }) {
 
 /* ATS score ring gauge — the hero metric. Colour comes from the existing
    scoreColor logic (green >= 80, amber >= 60, red below), passed in. */
-function AtsRing({ score, color, trackColor = "#1a1a1a", subColor = "#3a3a3a" }) {
-  const size = 132, stroke = 11, r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, Number(score) || 0));
-  const off = circ - (pct / 100) * circ;
+/* ATS score ring — self-contained, theme-aware, resolution-independent.
+   Rotation uses the native SVG transform attribute rotate(-90 cx cy) inside a
+   fixed viewBox, so it happens in the drawing's own coordinate space and can
+   never separate from the track the way a CSS transform on the <svg> did at
+   mobile widths. Track and subtext adapt to the theme (light track in day,
+   dark in night); the number and arc use the score band, green >= 80, amber
+   50 to 79, red below 50, grey if not scored. The arc fills from 0 to the
+   score on mount unless reduced motion is on. */
+function ringBand(v, notScored, subColor) {
+  if (notScored) return subColor;
+  if (v >= 80) return "#1D9E75";
+  if (v >= 50) return "#FFB300";
+  return "#D85A30";
+}
+function AtsRing({ score = 0, scored = true, trackColor, subColor }) {
+  const [anim, setAnim] = useState({ on: false, reduce: false });
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq.matches) { setAnim({ on: true, reduce: true }); return undefined; }
+    const id = setTimeout(() => setAnim({ on: true, reduce: false }), 50);
+    return () => clearTimeout(id);
+  }, []);
+
+  const size = 200, center = size / 2, strokeWidth = 14, radius = center - strokeWidth;
+  const circ = 2 * Math.PI * radius;
+  const v = Math.max(0, Math.min(100, Number(score) || 0));
+  const off = circ - (v / 100) * circ;
+  const notScored = !scored || v <= 0;
+  const band = ringBand(v, notScored, subColor);
+
   return (
-    <div style={{ position: "relative", width: size, height: size, margin: "4px auto 0" }}>
-      {/* viewBox + SVG-space rotation (not a CSS transform on the <svg>):
-         a CSS-transformed SVG inside the GPU-composited .dashboard-root
-         (translateZ(0)) gets rasterised and clipped on iOS Safari, which is
-         what broke the ring at mobile widths. Desktop output is unchanged. */}
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: "visible" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} stroke={trackColor} strokeWidth={stroke} fill="none" />
+    <div style={{ width: "100%", maxWidth: 150, margin: "8px auto 0" }}>
+      <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`ATS score ${notScored ? "not yet scored" : v} out of 100`} style={{ width: "100%", height: "auto", display: "block" }}>
+        <circle cx={center} cy={center} r={radius} fill="transparent" stroke={trackColor} strokeWidth={strokeWidth} />
         <circle
-          cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
-          strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="butt"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: `stroke-dashoffset 900ms ${EASE}` }}
+          cx={center} cy={center} r={radius} fill="transparent" stroke={band} strokeWidth={strokeWidth}
+          strokeDasharray={circ} strokeDashoffset={anim.on ? off : circ} strokeLinecap="butt"
+          transform={`rotate(-90 ${center} ${center})`}
+          style={{ transition: anim.on && !anim.reduce ? "stroke-dashoffset 800ms cubic-bezier(0.4,0,0.2,1)" : "none" }}
         />
+        <text x={center} y={center - 6} textAnchor="middle" dominantBaseline="central" style={{ fill: band, fontWeight: 800, fontSize: 50, letterSpacing: "-1px" }}>{notScored ? "—" : v}</text>
+        <text x={center} y={center + 30} textAnchor="middle" dominantBaseline="central" style={{ fill: subColor, fontSize: 14, letterSpacing: "0.08em" }}>out of 100</text>
       </svg>
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontSize: 34, fontWeight: 700, color, letterSpacing: "-1px", lineHeight: 1 }}>{score > 0 ? score : "—"}</div>
-        <div style={{ fontSize: 10, color: subColor, marginTop: 4 }}>out of 100</div>
-      </div>
     </div>
   );
 }
@@ -893,7 +912,7 @@ export default function DashboardPage({
                 </div>
                 <span style={{ color: t.amber, opacity: 0.85, display: "flex" }}><IconTarget size={16} /></span>
               </div>
-              <AtsRing score={resumeList.length > 0 ? firstStrength : 0} color={scoreColor(firstStrength)} trackColor={t.ringTrack} subColor={t.textFaint} />
+              <AtsRing score={firstStrength} scored={resumeList.length > 0} trackColor={t.ringTrack} subColor={t.textMuted} />
             </div>
             {/* Card 2 — CVs Built (real count) */}
             <div className="cvp2-stats-card" style={{
