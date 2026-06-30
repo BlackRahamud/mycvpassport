@@ -12,6 +12,28 @@ import "./DashboardPage.css";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
+/* ─── Theme palette ─── */
+const PALETTE = {
+  light: {
+    bg: "#F5F6F8", surface: "#FFFFFF", surfaceSoft: "#F6F7F9", sidebarBg: "#FFFFFF",
+    border: "#E6E8EC", borderStrong: "#D6D9DF",
+    textPrimary: "#0F1115", textSecondary: "#5B616E", textMuted: "#8A909C", textFaint: "#AEB4BE",
+    amber: "#D97706", amberSoft: "rgba(217,119,6,0.10)", amberTile: "rgba(217,119,6,0.14)", amberRing: "rgba(217,119,6,0.28)",
+    green: "#1D9E75", greenSoft: "rgba(29,158,117,0.12)", red: "#D85A30", blue: "#378ADD",
+    onAmber: "#FFFFFF", hover: "#EFF1F4", newCvBg: "#0F1115", newCvText: "#FFFFFF",
+    overlay: "rgba(15,17,21,0.45)", ringTrack: "#E6E8EC",
+  },
+  dark: {
+    bg: "#0A0A0A", surface: "#111111", surfaceSoft: "#141414", sidebarBg: "#060606",
+    border: "#1a1a1a", borderStrong: "#2a2a2a",
+    textPrimary: "#FFFFFF", textSecondary: "#A0A0A0", textMuted: "#666666", textFaint: "#3a3a3a",
+    amber: "#FFB300", amberSoft: "rgba(255,179,0,0.10)", amberTile: "rgba(255,179,0,0.16)", amberRing: "rgba(255,179,0,0.25)",
+    green: "#1D9E75", greenSoft: "rgba(29,158,117,0.12)", red: "#D85A30", blue: "#378ADD",
+    onAmber: "#0A0A0A", hover: "#0e0e0e", newCvBg: "#0A0A0A", newCvText: "#FFFFFF",
+    overlay: "rgba(0,0,0,0.7)", ringTrack: "#1a1a1a",
+  },
+};
+
 /* ─── Icons ─── */
 function IconArrowRight({ size = 14 }) {
   return (
@@ -152,10 +174,53 @@ function IconFrown({ size = 20 }) {
     </svg>
   );
 }
+function IconSun({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <line x1="12" y1="2" x2="12" y2="4" />
+      <line x1="12" y1="20" x2="12" y2="22" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="2" y1="12" x2="4" y2="12" />
+      <line x1="20" y1="12" x2="22" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+function IconMoon({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+/* Theme toggle button — sun in light (click to dark), moon in dark (click to light) */
+function ThemeToggle({ theme, setTheme, t }) {
+  return (
+    <button
+      type="button"
+      aria-label="Switch theme"
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        background: t.surface, border: `1px solid ${t.border}`,
+        color: t.textSecondary, display: "grid", placeItems: "center", cursor: "pointer",
+        transition: `background 150ms ${EASE}, color 150ms ${EASE}, border-color 150ms ${EASE}`,
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = t.textPrimary; e.currentTarget.style.borderColor = t.borderStrong; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.borderColor = t.border; }}
+    >
+      {theme === "light" ? <IconSun size={17} /> : <IconMoon size={17} />}
+    </button>
+  );
+}
 
 /* ATS score ring gauge — the hero metric. Colour comes from the existing
    scoreColor logic (green >= 80, amber >= 60, red below), passed in. */
-function AtsRing({ score, color }) {
+function AtsRing({ score, color, trackColor = "#1a1a1a", subColor = "#3a3a3a" }) {
   const size = 132, stroke = 11, r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, Number(score) || 0));
@@ -163,7 +228,7 @@ function AtsRing({ score, color }) {
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "4px auto 0" }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="#1a1a1a" strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={trackColor} strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
           strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round"
@@ -172,7 +237,7 @@ function AtsRing({ score, color }) {
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <div style={{ fontSize: 34, fontWeight: 700, color, letterSpacing: "-1px", lineHeight: 1 }}>{score > 0 ? score : "—"}</div>
-        <div style={{ fontSize: 10, color: "#3a3a3a", marginTop: 4 }}>out of 100</div>
+        <div style={{ fontSize: 10, color: subColor, marginTop: 4 }}>out of 100</div>
       </div>
     </div>
   );
@@ -212,21 +277,6 @@ function scoreColor(s) {
   return "#D85A30";
 }
 
-/* Smart Nudge */
-function getNudge(resumeList) {
-  if (!resumeList || resumeList.length === 0) return null;
-  const first = resumeList[0];
-  const title = first?.title || first?.cv_data?.name || first?.name || "My CV";
-  const strength = getStrength(first?.cv_data || first);
-  if (strength === 0 || strength === undefined)
-    return { text: `Run ATS on "${title}"`, actionLabel: "Run ATS →", action: "ats" };
-  if (!first?.job_match_score)
-    return { text: `Run Job Match on "${title}"`, actionLabel: "Job Match →", action: "jobmatch" };
-  if (!first?.has_cover_letter)
-    return { text: `Write a cover letter for "${title}"`, actionLabel: "Cover Letter →", action: "coverletter" };
-  return null;
-}
-
 /* ═══════════════════════════════════════════════════════════════════
    DASHBOARD PAGE — redesigned
    ═══════════════════════════════════════════════════════════════════ */
@@ -243,6 +293,15 @@ export default function DashboardPage({
   onTemplates = () => {},
 }) {
   const [resumeList, setResumeList] = useState(resumeListProp);
+
+  /* ─── Theme (defaults to light, persisted) ─── */
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("cvp-dash-theme") || "light"; } catch { return "light"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("cvp-dash-theme", theme); } catch { /* storage unavailable */ }
+  }, [theme]);
+  const t = PALETTE[theme] || PALETTE.light;
 
   useEffect(() => { setResumeList(resumeListProp); }, [resumeListProp]);
 
@@ -363,14 +422,6 @@ export default function DashboardPage({
     return (a + b).toUpperCase();
   }, [user?.name]);
 
-  const nudge = useMemo(() => getNudge(resumeList), [resumeList]);
-
-  const handleNudgeAction = (action) => {
-    if (action === "ats") onRunATS();
-    else if (action === "jobmatch") navigate("/builder?tab=jobmatch");
-    else if (action === "coverletter") navigate("/cover-letter");
-  };
-
   const resetFeedback = () => {
     setFeedbackText("");
     setFeedbackContext("");
@@ -416,13 +467,13 @@ export default function DashboardPage({
 
   /* ─── Nav items ─── */
   const navItems = [
-    { id: "mycvs", label: "My CVs", icon: IconGrid, iconColor: "#ffffff", action: () => setActive("mycvs") },
-    { id: "ats", label: "ATS Check", icon: IconTarget, iconColor: "#1D9E75", action: () => { setActive("ats"); onRunATS(); } },
+    { id: "mycvs", label: "My CVs", icon: IconGrid, iconColor: t.textPrimary, action: () => setActive("mycvs") },
+    { id: "ats", label: "ATS Check", icon: IconTarget, iconColor: t.green, action: () => { setActive("ats"); onRunATS(); } },
     { id: "scout", label: "Scout", icon: IconCompass, iconColor: "#0A66C2", action: () => { setActive("scout"); navigate("/scout"); } },
-    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, iconColor: "#ffffff", action: () => { setActive("linkedin"); navigate("/linkedin-optimizer"); } },
-    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: "#D97706", action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
-    { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: "#D85A30", action: () => { setActive("walkin"); onWalkIn(); } },
-    { id: "templates", label: "Templates", icon: IconTable, iconColor: "#378ADD", action: () => { setActive("templates"); onTemplates(); } },
+    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, iconColor: t.textPrimary, action: () => { setActive("linkedin"); navigate("/linkedin-optimizer"); } },
+    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: t.amber, action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
+    { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: t.red, action: () => { setActive("walkin"); onWalkIn(); } },
+    { id: "templates", label: "Templates", icon: IconTable, iconColor: t.blue, action: () => { setActive("templates"); onTemplates(); } },
   ];
 
   /* ─── Mobile tabs ─── */
@@ -431,7 +482,7 @@ export default function DashboardPage({
   const mobileTabs = [
     { id: "mycvs", label: "My CVs", icon: IconGrid, action: () => setMobileTab("mycvs") },
     { id: "ats", label: "ATS Check", icon: IconTarget, action: () => { setMobileTab("ats"); onRunATS(); } },
-    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, activeColor: "#ffffff", action: () => { setMobileTab("linkedin"); navigate("/linkedin-optimizer"); } },
+    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, activeColor: t.textPrimary, action: () => { setMobileTab("linkedin"); navigate("/linkedin-optimizer"); } },
     { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, action: () => { setMobileTab("coverletter"); navigate("/cover-letter"); } },
     { id: "walkin", label: "Walk-In", icon: IconBolt, action: () => { setMobileTab("walkin"); onWalkIn(); } },
     { id: "more", label: "More", icon: IconMore, isMore: true, action: () => setMoreOpen((v) => !v) },
@@ -470,7 +521,7 @@ export default function DashboardPage({
   }, [firstCv]);
 
   return (
-    <div className="dashboard-root" style={{ "--sb-width": "196px", background: "#0A0A0A", color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh", overflowX: "hidden" }}>
+    <div className="dashboard-root" data-theme={theme} style={{ "--sb-width": "196px", background: t.bg, color: t.textPrimary, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh", overflowX: "hidden", transition: `background 200ms ${EASE}, color 200ms ${EASE}` }}>
         {/* ═══ SIDEBAR ═══ */}
         <aside
           className="cvp2-sidebar cvp-sidebar"
@@ -480,8 +531,8 @@ export default function DashboardPage({
             left: 0,
             width: "var(--sb-width)",
             height: "100vh",
-            background: "#060606",
-            borderRight: "1px solid #0e0e0e",
+            background: t.sidebarBg,
+            borderRight: `1px solid ${t.border}`,
             flexDirection: "column",
             boxSizing: "border-box",
             overflow: "hidden",
@@ -492,7 +543,7 @@ export default function DashboardPage({
           <div style={{ flexShrink: 0, padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <Link
               to="/"
-              style={{ display: "flex", alignItems: "center", padding: "4px 0 0", color: "#fff", textDecoration: "none" }}
+              style={{ display: "flex", alignItems: "center", padding: "4px 0 0", color: t.textPrimary, textDecoration: "none" }}
             >
               <CVPassportLogo height={20} />
             </Link>
@@ -503,19 +554,19 @@ export default function DashboardPage({
               style={{
                 width: 24, height: 24, borderRadius: 6,
                 background: "transparent", border: "1px solid transparent",
-                color: "#3a3a3a", cursor: "pointer",
+                color: t.textFaint, cursor: "pointer",
                 display: "grid", placeItems: "center",
                 transition: `background 150ms ${EASE}, color 150ms ${EASE}, border-color 150ms ${EASE}`,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#0e0e0e";
-                e.currentTarget.style.borderColor = "#1a1a1a";
-                e.currentTarget.style.color = "#bbb";
+                e.currentTarget.style.background = t.hover;
+                e.currentTarget.style.borderColor = t.border;
+                e.currentTarget.style.color = t.textPrimary;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
                 e.currentTarget.style.borderColor = "transparent";
-                e.currentTarget.style.color = "#3a3a3a";
+                e.currentTarget.style.color = t.textFaint;
               }}
             >
               <IconHelp size={13} />
@@ -525,7 +576,7 @@ export default function DashboardPage({
           {/* Section 2 — Nav container */}
           <nav style={{ flex: 1, overflowY: "auto", padding: 8 }}>
             {/* Section label */}
-            <div style={{ fontSize: 9, color: "#2a2a2a", letterSpacing: "0.1em", textTransform: "uppercase", padding: "0 12px", marginBottom: 6 }}>MENU</div>
+            <div style={{ fontSize: 9, color: t.textFaint, letterSpacing: "0.1em", textTransform: "uppercase", padding: "0 12px", marginBottom: 6 }}>MENU</div>
 
             <div style={{ display: "grid", gap: 2 }}>
               {navItems.map((it) => {
@@ -539,15 +590,15 @@ export default function DashboardPage({
                     style={{
                       minHeight: 44, padding: "0 12px", borderRadius: 10,
                       fontSize: 13, fontWeight: 500, border: "none",
-                      background: isActive ? "#111" : "transparent",
-                      color: isActive ? "#fff" : "#3a3a3a",
+                      background: isActive ? t.surface : "transparent",
+                      color: isActive ? t.textPrimary : t.textFaint,
                       display: "flex", alignItems: "center", gap: 10,
                       cursor: "pointer", textAlign: "left", fontFamily: "inherit",
                       boxSizing: "border-box",
                       transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
                     }}
-                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "#0a0a0a"; e.currentTarget.style.color = "#888"; } }}
-                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#3a3a3a"; } }}
+                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = t.hover; e.currentTarget.style.color = t.textSecondary; } }}
+                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = t.textFaint; } }}
                   >
                     <span style={{ display: "flex", color: it.iconColor, opacity: isActive ? 1 : 0.4, transition: `opacity 150ms ${EASE}` }}>
                       <Icon size={13} />
@@ -567,14 +618,14 @@ export default function DashboardPage({
               style={{
                 width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 10,
                 fontSize: 13, fontWeight: 500, border: "none", background: "transparent",
-                color: "#3a3a3a", display: "flex", alignItems: "center", gap: 10,
+                color: t.textFaint, display: "flex", alignItems: "center", gap: 10,
                 cursor: "pointer", textAlign: "left", fontFamily: "inherit", boxSizing: "border-box",
                 transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#0a0a0a"; e.currentTarget.style.color = "#888"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#3a3a3a"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; e.currentTarget.style.color = t.textSecondary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = t.textFaint; }}
             >
-              <span style={{ display: "flex", color: "#D97706", opacity: 0.5 }}><IconChat size={13} /></span>
+              <span style={{ display: "flex", color: t.amber, opacity: 0.5 }}><IconChat size={13} /></span>
               <span>Feedback</span>
             </button>
           </div>
@@ -590,35 +641,35 @@ export default function DashboardPage({
                   position: "absolute",
                   left: 12, right: 12,
                   bottom: "calc(100% - 4px)",
-                  background: "#141414",
-                  border: "1px solid #2A2A2A",
+                  background: t.surfaceSoft,
+                  border: `1px solid ${t.borderStrong}`,
                   borderRadius: 10,
                   padding: 6,
-                  boxShadow: "0 16px 40px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4)",
+                  boxShadow: "0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.12)",
                   zIndex: 50,
                 }}
               >
                 {/* Identity header */}
                 <div style={{
                   padding: "10px 10px 12px",
-                  borderBottom: "1px solid #1a1a1a",
+                  borderBottom: `1px solid ${t.border}`,
                   marginBottom: 4,
                   display: "flex", alignItems: "center", gap: 10,
                 }}>
                   <div style={{
                     width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-                    background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
+                    background: t.surfaceSoft, border: `1px solid ${t.amberRing}`,
                     display: "grid", placeItems: "center",
-                    fontSize: 10, fontWeight: 700, color: "#FFB300",
+                    fontSize: 10, fontWeight: 700, color: t.amber,
                   }}>
                     {initials}
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {getDisplayName(user)}
                     </div>
                     {user?.email && (
-                      <div style={{ fontSize: 10, color: "#666", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 10, color: t.textMuted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {user.email}
                       </div>
                     )}
@@ -633,14 +684,14 @@ export default function DashboardPage({
                     width: "100%", display: "flex", alignItems: "center", gap: 10,
                     padding: "8px 10px", background: "transparent",
                     border: "none", borderRadius: 6,
-                    color: "#fff", fontSize: 12, fontWeight: 500,
+                    color: t.textPrimary, fontSize: 12, fontWeight: 500,
                     cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                     transition: `background 120ms ${EASE}`,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "#1C1C1C"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span style={{ width: 18, display: "grid", placeItems: "center", color: "#FFB300" }}>
+                  <span style={{ width: 18, display: "grid", placeItems: "center", color: t.amber }}>
                     <IconSpark size={13} />
                   </span>
                   <span>Upgrade Plan</span>
@@ -654,20 +705,20 @@ export default function DashboardPage({
                     width: "100%", display: "flex", alignItems: "center", gap: 10,
                     padding: "8px 10px", background: "transparent",
                     border: "none", borderRadius: 6,
-                    color: "#fff", fontSize: 12, fontWeight: 500,
+                    color: t.textPrimary, fontSize: 12, fontWeight: 500,
                     cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                     transition: `background 120ms ${EASE}`,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "#1C1C1C"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span style={{ width: 18, display: "grid", placeItems: "center", color: "#888" }}>
+                  <span style={{ width: 18, display: "grid", placeItems: "center", color: t.textSecondary }}>
                     <IconGear size={13} />
                   </span>
                   <span>Account Settings</span>
                 </button>
 
-                <div style={{ height: 1, background: "#1a1a1a", margin: "4px 6px" }} />
+                <div style={{ height: 1, background: t.border, margin: "4px 6px" }} />
 
                 <button
                   type="button"
@@ -677,14 +728,14 @@ export default function DashboardPage({
                     width: "100%", display: "flex", alignItems: "center", gap: 10,
                     padding: "8px 10px", background: "transparent",
                     border: "none", borderRadius: 6,
-                    color: "#D85A30", fontSize: 12, fontWeight: 500,
+                    color: t.red, fontSize: 12, fontWeight: 500,
                     cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                     transition: `background 120ms ${EASE}`,
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(216,90,48,0.08)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span style={{ width: 18, display: "grid", placeItems: "center", color: "#D85A30" }}>
+                  <span style={{ width: 18, display: "grid", placeItems: "center", color: t.red }}>
                     <IconSignOut size={13} />
                   </span>
                   <span>Sign Out</span>
@@ -702,23 +753,23 @@ export default function DashboardPage({
               style={{
                 width: "100%",
                 display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
-                background: "#111", borderRadius: 8,
-                border: "0.5px solid " + (userPopoverOpen ? "#2A2A2A" : "#1a1a1a"),
+                background: t.surface, borderRadius: 8,
+                border: "0.5px solid " + (userPopoverOpen ? t.borderStrong : t.border),
                 cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                color: "#fff",
+                color: t.textPrimary,
                 transition: `border-color 150ms ${EASE}`,
               }}
             >
               <div style={{
                 width: 28, height: 28, borderRadius: 999, flexShrink: 0,
-                background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
+                background: t.surfaceSoft, border: `1px solid ${t.amberRing}`,
                 display: "grid", placeItems: "center",
-                fontSize: 10, fontWeight: 700, color: "#FFB300",
+                fontSize: 10, fontWeight: 700, color: t.amber,
               }}>
                 {initials}
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: t.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {getDisplayName(user)}
                 </div>
                 <span
@@ -734,8 +785,8 @@ export default function DashboardPage({
                     }
                   }}
                   style={{
-                    display: "inline-block", fontSize: 9, color: "#FFB300",
-                    background: "rgba(255,179,0,0.08)", border: "0.5px solid rgba(255,179,0,0.2)",
+                    display: "inline-block", fontSize: 9, color: t.amber,
+                    background: t.amberSoft, border: `0.5px solid ${t.amberRing}`,
                     borderRadius: 4, padding: "1px 5px", marginTop: 2, cursor: "pointer",
                   }}
                 >
@@ -747,7 +798,7 @@ export default function DashboardPage({
         </aside>
 
         {/* ═══ MAIN CONTENT ═══ */}
-        <main className="cvp2-main cvp-main" style={{ marginLeft: "var(--sb-width)", minHeight: "100vh", boxSizing: "border-box", padding: "24px 28px", background: "#0A0A0A", display: "flex", flexDirection: "column" }}>
+        <main className="cvp2-main cvp-main" style={{ marginLeft: "var(--sb-width)", minHeight: "100vh", boxSizing: "border-box", padding: "24px 28px", background: t.bg, display: "flex", flexDirection: "column", transition: `background 200ms ${EASE}` }}>
 
           {/* Mobile top bar */}
           <div
@@ -755,24 +806,27 @@ export default function DashboardPage({
             style={{
               justifyContent: "space-between", alignItems: "center",
               height: 52, padding: "0 16px",
-              borderBottom: "1px solid #0e0e0e", margin: "0 0 16px",
+              borderBottom: `1px solid ${t.border}`, margin: "0 0 16px",
             }}
           >
-            <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", color: "#fff" }}>
+            <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", color: t.textPrimary }}>
               <CVPassportLogo height={20} />
             </Link>
-            <button
-              type="button"
-              onClick={() => setPlanModalOpen(true)}
-              style={{
-                width: 28, height: 28, borderRadius: 999,
-                background: "#1e1e1e", border: "1px solid rgba(255,179,0,0.25)",
-                color: "#FFB300", display: "grid", placeItems: "center",
-                fontSize: 10, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              {initials}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
+              <button
+                type="button"
+                onClick={() => setPlanModalOpen(true)}
+                style={{
+                  width: 28, height: 28, borderRadius: 999,
+                  background: t.surfaceSoft, border: `1px solid ${t.amberRing}`,
+                  color: t.amber, display: "grid", placeItems: "center",
+                  fontSize: 10, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                {initials}
+              </button>
+            </div>
           </div>
 
           {/* Header */}
@@ -781,38 +835,41 @@ export default function DashboardPage({
               <div className="cvp2-greeting" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px" }}>
                 {getGreeting()}, {getFirstName(user?.name)}.
               </div>
-              <div style={{ fontSize: 12, color: "#2a2a2a", marginTop: 4 }}>{subLine}</div>
+              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{subLine}</div>
             </div>
-            <div
-              style={{
-                display: "inline-block",
-                padding: "1.5px",
-                borderRadius: 12,
-                background: "conic-gradient(from var(--ats-angle, 0deg), transparent 70%, rgba(255,255,255,0.22) 85%, transparent 100%)",
-                animation: "ats-spin-border 4s linear infinite",
-                flexShrink: 0,
-              }}
-            >
-              <button
-                type="button"
-                onClick={handleStartNewCv}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
+              <div
                 style={{
-                  background: "#0A0A0A", color: "#fff", border: "none", borderRadius: 11,
-                  padding: "0 20px", height: 44, fontSize: 14, fontWeight: 600,
-                  display: "flex", alignItems: "center", gap: 8,
-                  cursor: "pointer", fontFamily: "inherit",
-                  transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                  display: "inline-block",
+                  padding: "1.5px",
+                  borderRadius: 12,
+                  background: "conic-gradient(from var(--ats-angle, 0deg), transparent 70%, rgba(255,255,255,0.22) 85%, transparent 100%)",
+                  animation: "ats-spin-border 4s linear infinite",
+                  flexShrink: 0,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 5v14" /><path d="M5 12h14" />
-                </svg>
-                New CV
-              </button>
+                <button
+                  type="button"
+                  onClick={handleStartNewCv}
+                  style={{
+                    background: t.newCvBg, color: t.newCvText, border: "none", borderRadius: 11,
+                    padding: "0 20px", height: 44, fontSize: 14, fontWeight: 600,
+                    display: "flex", alignItems: "center", gap: 8,
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                  onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+                  onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.newCvText} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 5v14" /><path d="M5 12h14" />
+                  </svg>
+                  New CV
+                </button>
+              </div>
             </div>
           </div>
 
@@ -820,54 +877,54 @@ export default function DashboardPage({
           <div className="cvp-stats-strip" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12, marginBottom: 18, marginTop: 16 }}>
             {/* Card 1 — ATS Score (ring gauge, real active-CV strength) */}
             <div className="cvp2-stats-card" style={{
-              background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 14,
+              background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 14,
               padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
               WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <div>
-                  <div style={{ fontSize: 10.5, color: "#666", letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>ATS score</div>
-                  <div style={{ fontSize: 11, color: "#333", marginTop: 3 }}>{firstStrength > 0 ? "Target 85+" : "Build a CV first"}</div>
+                  <div style={{ fontSize: 10.5, color: t.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>ATS score</div>
+                  <div style={{ fontSize: 11, color: t.textFaint, marginTop: 3 }}>{firstStrength > 0 ? "Target 85+" : "Build a CV first"}</div>
                 </div>
-                <span style={{ color: "#FFB300", opacity: 0.85, display: "flex" }}><IconTarget size={16} /></span>
+                <span style={{ color: t.amber, opacity: 0.85, display: "flex" }}><IconTarget size={16} /></span>
               </div>
-              <AtsRing score={resumeList.length > 0 ? firstStrength : 0} color={scoreColor(firstStrength)} />
+              <AtsRing score={resumeList.length > 0 ? firstStrength : 0} color={scoreColor(firstStrength)} trackColor={t.ringTrack} subColor={t.textFaint} />
             </div>
             {/* Card 2 — CVs Built (real count) */}
             <div className="cvp2-stats-card" style={{
-              background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 14,
+              background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 14,
               padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
               WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 10.5, color: "#666", letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>CVs built</div>
-                <span style={{ color: "#444", display: "flex" }}><IconGrid size={16} /></span>
+                <div style={{ fontSize: 10.5, color: t.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>CVs built</div>
+                <span style={{ color: t.textMuted, display: "flex" }}><IconGrid size={16} /></span>
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ fontSize: 46, fontWeight: 700, color: "#eee", letterSpacing: "-1.5px", lineHeight: 1 }}>{resumeList.length}</div>
-                <div style={{ fontSize: 12, color: "#444", marginTop: 8 }}>{resumeList.length > 0 ? `Last edited ${timeAgo(lastResume?.updated_at).replace("edited ", "")}` : "Start below"}</div>
+                <div style={{ fontSize: 46, fontWeight: 700, color: t.textPrimary, letterSpacing: "-1.5px", lineHeight: 1 }}>{resumeList.length}</div>
+                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8 }}>{resumeList.length > 0 ? `Last edited ${timeAgo(lastResume?.updated_at).replace("edited ", "")}` : "Start below"}</div>
               </div>
             </div>
             {/* Card 3 — Plan (real plan + active status) */}
             <div className="cvp2-stats-card" style={{
-              background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 14,
+              background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 14,
               padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
               WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
             }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 10.5, color: "#666", letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>Plan</div>
-                <span style={{ color: "#444", display: "flex" }}><IconSpark size={16} /></span>
+                <div style={{ fontSize: 10.5, color: t.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>Plan</div>
+                <span style={{ color: t.textMuted, display: "flex" }}><IconSpark size={16} /></span>
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ fontSize: 40, fontWeight: 700, color: "#FFB300", letterSpacing: "-1px", lineHeight: 1 }}>{planLabel}</div>
+                <div style={{ fontSize: 40, fontWeight: 700, color: t.amber, letterSpacing: "-1px", lineHeight: 1 }}>{planLabel}</div>
                 <div style={{ marginTop: 12 }}>
                   {isPaid ? (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", background: "rgba(29,158,117,0.12)", padding: "3px 10px", borderRadius: 999 }}>Active</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: t.green, background: t.greenSoft, padding: "3px 10px", borderRadius: 999 }}>Active</span>
                   ) : (
                     <span
                       role="button"
                       tabIndex={0}
-                      style={{ fontSize: 12.5, color: "#FFB300", cursor: "pointer", fontWeight: 600 }}
+                      style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
                       onClick={() => navigate("/pricing")}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/pricing"); }}
                     >
@@ -879,28 +936,47 @@ export default function DashboardPage({
             </div>
           </div>
 
-          {/* ═══ NUDGE BAR ═══ */}
-          {nudge && (
-            <div style={{
-              background: "#111", borderLeft: "2px solid #FFB300",
-              borderRadius: "0 8px 8px 0", padding: "14px 18px",
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 18,
-            }}>
-              <div style={{ width: 5, height: 5, borderRadius: 999, background: "#FFB300", flexShrink: 0 }} />
-              <div style={{ fontSize: 13, color: "#555", lineHeight: 1.5, flex: 1 }}>{nudge.text}</div>
+          {/* ═══ JOB MATCH BANNER — returning users ═══ */}
+          {resumeList.length > 0 && (
+            <div
+              className="cvp-jobmatch-banner"
+              style={{
+                background: t.amberSoft, border: `1px solid ${t.amberRing}`,
+                borderRadius: 14, padding: 18,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 14, marginBottom: 18,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                  background: t.amberTile, display: "grid", placeItems: "center", color: t.amber,
+                }}>
+                  <IconBolt size={20} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: t.textPrimary, lineHeight: 1.3 }}>Run job match on my resume</div>
+                  <div style={{ fontSize: 13, color: t.textSecondary, marginTop: 2 }}>see how your CV matches specific job descriptions</div>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => handleNudgeAction(nudge.action)}
+                onClick={() => navigate("/builder?tab=jobmatch")}
                 style={{
-                  fontSize: 13, color: "#FFB300", fontWeight: 600,
-                  background: "none", border: "none", cursor: "pointer",
-                  fontFamily: "inherit", whiteSpace: "nowrap", padding: 0,
-                  transition: `opacity 150ms ${EASE}`,
+                  flexShrink: 0,
+                  background: t.amber, color: t.onAmber, border: "none", borderRadius: 10,
+                  padding: "0 16px", height: 40, fontSize: 13.5, fontWeight: 600,
+                  display: "flex", alignItems: "center", gap: 6,
+                  cursor: "pointer", fontFamily: "inherit",
+                  transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.7"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+                onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
               >
-                {nudge.actionLabel}
+                Job Match
+                <IconArrowRight size={14} />
               </button>
             </div>
           )}
@@ -911,24 +987,23 @@ export default function DashboardPage({
               <div className="cvp2-two-col cvp-two-col" style={{ display: "grid", gap: 10, marginBottom: 18 }}>
 
                 {/* LEFT — MY CVS */}
-                <div className="cvp2-card" style={{ background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10, padding: 20 }}>
+                <div className="cvp2-card" style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, color: "#333", textTransform: "uppercase", letterSpacing: "0.07em" }}>MY CVS</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>My CVs</div>
                     <span
                       role="button"
                       tabIndex={0}
-                      style={{ fontSize: 10, color: "#FFB300", cursor: "pointer", fontWeight: 500 }}
+                      style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
                       onClick={handleStartNewCv}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleStartNewCv(); }}
                     >
-                      + New
+                      New
                     </span>
                   </div>
                   {resumeList.slice(0, 3).map((r, idx) => {
                     const rawTitle = r?.title || r?.cv_data?.personalInfo?.fullName || r?.cv_data?.name || r?.name || "My CV";
                     const title = rawTitle.length > 20 ? `${rawTitle.slice(0, 20)}…` : rawTitle;
                     const strength = getStrength(r?.cv_data || r);
-                    const isLast = idx === Math.min(2, resumeList.length - 1);
                     return (
                       <div
                         key={r?.id ?? idx}
@@ -939,27 +1014,30 @@ export default function DashboardPage({
                         className="cvp2-cv-item"
                         style={{
                           display: "flex", alignItems: "center", gap: 12,
-                          padding: "12px 0",
-                          borderBottom: isLast ? "none" : "0.5px solid #141414",
+                          background: t.surfaceSoft, border: `1px solid ${t.border}`,
+                          borderRadius: 10, padding: 12, marginBottom: 8,
                           cursor: "pointer",
+                          transition: `border-color 150ms ${EASE}`,
                         }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.borderStrong; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; }}
                       >
                         {/* Thumbnail */}
                         <div style={{
-                          width: 38, height: 48, background: "#141414",
-                          border: "0.5px solid #1e1e1e", borderRadius: 4,
-                          padding: "6px 5px", boxSizing: "border-box", flexShrink: 0,
+                          width: 40, height: 52, background: t.surface,
+                          border: `1px solid ${t.border}`, borderRadius: 6,
+                          padding: "7px 6px", boxSizing: "border-box", flexShrink: 0,
                         }}>
-                          <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, marginBottom: 4, width: "80%" }} />
-                          <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, marginBottom: 4, width: "60%" }} />
-                          <div style={{ height: 2, background: "#FFB300", borderRadius: 1, marginBottom: 4, width: "55%" }} />
-                          <div style={{ height: 2, background: "#2a2a2a", borderRadius: 1, width: "70%" }} />
+                          <div style={{ height: 2, background: t.border, borderRadius: 1, marginBottom: 5, width: "80%" }} />
+                          <div style={{ height: 2, background: t.border, borderRadius: 1, marginBottom: 5, width: "60%" }} />
+                          <div style={{ height: 2, background: t.amber, borderRadius: 1, marginBottom: 5, width: "55%" }} />
+                          <div style={{ height: 2, background: t.border, borderRadius: 1, width: "70%" }} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: "#bbb", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{title}</div>
-                          <div style={{ fontSize: 11, color: "#2a2a2a", marginTop: 2 }}>{timeAgo(r?.updated_at)}</div>
+                          <div style={{ fontSize: 13.5, fontWeight: 600, color: t.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{title}</div>
+                          <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{timeAgo(r?.updated_at)}</div>
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: scoreColor(strength), flexShrink: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: scoreColor(strength), flexShrink: 0 }}>
                           {strength > 0 ? strength : "—"}
                         </div>
                       </div>
@@ -968,13 +1046,13 @@ export default function DashboardPage({
                 </div>
 
                 {/* RIGHT — CV HEALTH */}
-                <div className="cvp2-card" style={{ background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10, padding: 20 }}>
+                <div className="cvp2-card" style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, color: "#333", textTransform: "uppercase", letterSpacing: "0.07em" }}>CV HEALTH</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>CV Health</div>
                     <span
                       role="button"
                       tabIndex={0}
-                      style={{ fontSize: 10, color: "#FFB300", cursor: "pointer", fontWeight: 500 }}
+                      style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
                       onClick={() => onRunATS()}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onRunATS(); }}
                     >
@@ -982,37 +1060,28 @@ export default function DashboardPage({
                     </span>
                   </div>
                   {healthBars ? (
-                    <div style={{ display: "grid", gap: 14 }}>
+                    <div>
                       {[
-                        { label: "Keywords", value: healthBars.keywords, color: scoreColor(healthBars.keywords) },
-                        { label: "Format", value: healthBars.format, color: scoreColor(healthBars.format) },
-                        { label: "Achievements", value: healthBars.achievements, color: scoreColor(healthBars.achievements) },
-                        { label: "Job Match", value: lastResume?.job_match_score ?? null, color: "#378ADD" },
-                      ].map((bar) => (
-                        <div key={bar.label} style={{ minHeight: "auto", overflow: "visible" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, overflow: "visible" }}>
-                            <span style={{ fontSize: 12, color: "#444", lineHeight: 1.5 }}>{bar.label}</span>
-                            <span style={{ fontSize: 12, color: "#555", lineHeight: 1.5 }}>{bar.value != null ? bar.value : "—"}</span>
-                          </div>
-                          <div style={{ height: 5, background: "#141414", borderRadius: 3, overflow: "hidden" }}>
-                            {bar.value != null && (
-                              <div style={{
-                                height: "100%", borderRadius: 2,
-                                width: `${Math.min(100, bar.value)}%`,
-                                background: bar.color,
-                                transition: `width 300ms ${EASE}`,
-                                transform: "translate3d(0,0,0)",
-                                WebkitBackfaceVisibility: "hidden",
-                                backfaceVisibility: "hidden",
-                                willChange: "width",
-                              }} />
-                            )}
-                          </div>
+                        { label: "Keywords", value: healthBars.keywords },
+                        { label: "Format", value: healthBars.format },
+                        { label: "Achievements", value: healthBars.achievements },
+                        { label: "Job Match", value: lastResume?.job_match_score ?? null },
+                      ].map((row, i, arr) => (
+                        <div
+                          key={row.label}
+                          style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            padding: "13px 0",
+                            borderBottom: i === arr.length - 1 ? "none" : `1px solid ${t.border}`,
+                          }}
+                        >
+                          <span style={{ fontSize: 13, color: t.textSecondary }}>{row.label}</span>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>{row.value != null ? row.value : "—"}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: 11, color: "#252525", textAlign: "center", padding: "20px 0" }}>
+                    <div style={{ fontSize: 12, color: t.textMuted, textAlign: "center", padding: "20px 0" }}>
                       Build a CV to see health data
                     </div>
                   )}
@@ -1021,41 +1090,42 @@ export default function DashboardPage({
 
               {/* ─── Templates strip ─── */}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, color: "#2a2a2a", textTransform: "uppercase", letterSpacing: "0.07em" }}>TEMPLATES</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>Templates</div>
                   <span
                     role="button"
                     tabIndex={0}
-                    style={{ fontSize: 10, color: "#FFB300", cursor: "pointer", fontWeight: 500 }}
+                    style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
                     onClick={() => navigate("/templates")}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/templates"); }}
                   >
                     View all →
                   </span>
                 </div>
-                <div className="cvp2-tpl-row" style={{ display: "grid", gap: 8 }}>
+                <div className="cvp2-tpl-row" style={{ display: "grid", gap: 10 }}>
                   {TEMPLATES.slice(0, 3).map((tpl) => (
                     <button
                       key={tpl.id}
                       type="button"
                       onClick={() => navigate("/builder", { state: { cvpInitialTemplateId: tpl.id } })}
                       style={{
-                        background: "#111", border: "0.5px solid #1a1a1a", borderRadius: 10,
+                        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12,
                         padding: 0, cursor: "pointer", overflow: "hidden",
                         transition: `border-color 150ms ${EASE}, transform 150ms ${EASE}`,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#1a1a1a"; e.currentTarget.style.transform = "translateY(0)"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.borderStrong; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "translateY(0)"; }}
                     >
-                      <div style={{ height: 72, background: "#0e0e0e", position: "relative", padding: "14px 16px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
-                        <div style={{ height: 2, background: "#FFB300", borderRadius: 1, width: "40%" }} />
-                        <div style={{ height: 2, background: "#1e1e1e", borderRadius: 1, width: "80%" }} />
-                        <div style={{ height: 2, background: "#1e1e1e", borderRadius: 1, width: "65%" }} />
-                        <div style={{ height: 2, background: "#1e1e1e", borderRadius: 1, width: "75%" }} />
+                      <div style={{ height: 110, background: t.surfaceSoft, position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 7, justifyContent: "center" }}>
+                        <div style={{ height: 3, background: t.amber, borderRadius: 1, width: "40%" }} />
+                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "85%" }} />
+                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "65%" }} />
+                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "78%" }} />
+                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "55%" }} />
                       </div>
-                      <div style={{ padding: "10px 16px" }}>
-                        <div style={{ fontSize: 12, color: "#888", fontWeight: 500 }}>{tpl.name}</div>
-                        <div style={{ fontSize: 10, color: "#333", marginTop: 2 }}>ATS-ready</div>
+                      <div style={{ padding: "13px 14px", textAlign: "left" }}>
+                        <div style={{ fontSize: 13, color: t.textPrimary, fontWeight: 600 }}>{tpl.name}</div>
+                        <div style={{ display: "inline-block", marginTop: 8, fontSize: 10.5, fontWeight: 600, color: t.green, background: t.greenSoft, borderRadius: 999, padding: "3px 8px" }}>ATS-ready</div>
                       </div>
                     </button>
                   ))}
@@ -1066,11 +1136,11 @@ export default function DashboardPage({
             /* ═══ NEW USER STATE ═══ */
             <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 60, textAlign: "center" }}>
               <div style={{ maxWidth: 480, width: "100%" }}>
-                <div style={{ fontSize: 11, color: "#333", marginBottom: 8 }}>Welcome to CVPassport</div>
+                <div style={{ fontSize: 11, color: t.textFaint, marginBottom: 8 }}>Welcome to CVPassport</div>
                 <div className="cvp2-hero-heading cvp-welcome-heading" style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 12 }}>
                   Your Gulf CV starts here.
                 </div>
-                <div className="cvp2-hero-sub" style={{ fontSize: 15, color: "#444", lineHeight: 1.7, marginBottom: 32, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
+                <div className="cvp2-hero-sub" style={{ fontSize: 15, color: t.textMuted, lineHeight: 1.7, marginBottom: 32, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
                   The guide walks you through everything — no blank page, no confusion.
                 </div>
                 <button
@@ -1078,7 +1148,7 @@ export default function DashboardPage({
                   className="cvp2-start-btn cvp-start-btn"
                   onClick={handleStartNewCv}
                   style={{
-                    maxWidth: 480, width: "100%", background: "#fff", color: "#000", border: "none",
+                    maxWidth: 480, width: "100%", background: t.newCvBg, color: t.newCvText, border: "none",
                     borderRadius: 14, padding: "18px 24px",
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                     cursor: "pointer", fontFamily: "inherit",
@@ -1091,11 +1161,11 @@ export default function DashboardPage({
                 >
                   <div style={{ textAlign: "left" }}>
                     <div className="cvp2-start-btn-label" style={{ fontSize: 14, fontWeight: 700 }}>Start guided experience</div>
-                    <div style={{ fontSize: 11, color: "#666", marginTop: 3 }}>Recommended · 5 minutes</div>
+                    <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>Recommended · 5 minutes</div>
                   </div>
                   <div style={{
                     width: 32, height: 32, borderRadius: 999,
-                    background: "#000", color: "#fff",
+                    background: t.newCvText, color: t.newCvBg,
                     display: "grid", placeItems: "center",
                   }}>
                     <IconArrowRight size={14} />
@@ -1105,13 +1175,13 @@ export default function DashboardPage({
                   type="button"
                   onClick={() => navigate("/builder?tab=templates")}
                   style={{
-                    maxWidth: 480, width: "100%", background: "transparent", color: "#fff",
-                    border: "1px solid #1a1a1a", borderRadius: 14, padding: "14px 24px",
+                    maxWidth: 480, width: "100%", background: "transparent", color: t.textPrimary,
+                    border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 24px",
                     fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                     marginTop: 10,
                     transition: `background 150ms ${EASE}, transform 150ms ${EASE}`,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "#0e0e0e"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
                   onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -1126,13 +1196,13 @@ export default function DashboardPage({
                   ].map((text, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div style={{
-                        width: 22, height: 22, borderRadius: 999, background: "#0e0e0e",
+                        width: 22, height: 22, borderRadius: 999, background: t.surfaceSoft,
                         display: "grid", placeItems: "center",
-                        fontSize: 10, fontWeight: 700, color: "#555", flexShrink: 0,
+                        fontSize: 10, fontWeight: 700, color: t.textMuted, flexShrink: 0,
                       }}>
                         {i + 1}
                       </div>
-                      <span style={{ fontSize: 13, color: "#333" }}>{text}</span>
+                      <span style={{ fontSize: 13, color: t.textMuted }}>{text}</span>
                     </div>
                   ))}
                 </div>
@@ -1141,11 +1211,11 @@ export default function DashboardPage({
           )}
 
           {/* Mobile feedback */}
-          <div className="cvp2-mobile-topbar" style={{ display: "none", justifyContent: "center", fontSize: 11, color: "#555555", padding: 12, marginTop: 24 }}>
+          <div className="cvp2-mobile-topbar" style={{ display: "none", justifyContent: "center", fontSize: 11, color: t.textMuted, padding: 12, marginTop: 24 }}>
             feedback ·{" "}
             <a
               href="mailto:support@mycvpassport.com"
-              style={{ color: "#555555", textDecoration: "underline", marginLeft: 4, padding: "4px 0" }}
+              style={{ color: t.textMuted, textDecoration: "underline", marginLeft: 4, padding: "4px 0" }}
             >
               support@mycvpassport.com
             </a>
@@ -1159,23 +1229,23 @@ export default function DashboardPage({
         className="cvp-tab-bar"
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0,
-          height: 58, background: "#0e0e0e",
-          borderTop: "0.5px solid #1a1a1a",
+          height: 58, background: t.surface,
+          borderTop: `0.5px solid ${t.border}`,
           alignItems: "center", justifyContent: "space-around",
           zIndex: 200, boxSizing: "border-box",
         }}
       >
-        {mobileTabs.map((t) => {
-          const isAct = t.isMore ? moreOpen : mobileTab === t.id;
-          const Icon = t.icon;
-          const activeColor = t.activeColor || "#FFB300";
+        {mobileTabs.map((tab) => {
+          const isAct = tab.isMore ? moreOpen : mobileTab === tab.id;
+          const Icon = tab.icon;
+          const activeColor = tab.activeColor || t.amber;
           return (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
-              onClick={t.action}
-              aria-expanded={t.isMore ? moreOpen : undefined}
-              aria-haspopup={t.isMore ? "menu" : undefined}
+              onClick={tab.action}
+              aria-expanded={tab.isMore ? moreOpen : undefined}
+              aria-haspopup={tab.isMore ? "menu" : undefined}
               style={{
                 background: "transparent", border: "none",
                 minHeight: 48, minWidth: 48,
@@ -1183,10 +1253,10 @@ export default function DashboardPage({
                 gap: 3, cursor: "pointer", fontFamily: "inherit",
               }}
             >
-              <span style={{ display: "flex", color: isAct ? activeColor : "#333", width: 20, height: 20 }}>
+              <span style={{ display: "flex", color: isAct ? activeColor : t.textMuted, width: 20, height: 20 }}>
                 <Icon size={20} />
               </span>
-              <span style={{ fontSize: 10, color: isAct ? activeColor : "#333", fontWeight: 600, lineHeight: 1 }}>{t.label}</span>
+              <span style={{ fontSize: 10, color: isAct ? activeColor : t.textMuted, fontWeight: 600, lineHeight: 1 }}>{tab.label}</span>
             </button>
           );
         })}
@@ -1206,9 +1276,9 @@ export default function DashboardPage({
             style={{
               position: "fixed", right: 8, bottom: 66,
               zIndex: 201, minWidth: 176,
-              background: "#1C1C1C", border: "1px solid #2A2A2A",
+              background: t.surfaceSoft, border: `1px solid ${t.borderStrong}`,
               borderRadius: 14, padding: 6,
-              boxShadow: "0 12px 32px rgba(0,0,0,0.55)",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.2)",
               display: "flex", flexDirection: "column", gap: 2,
             }}
           >
@@ -1223,17 +1293,17 @@ export default function DashboardPage({
                   style={{
                     display: "flex", alignItems: "center", gap: 12,
                     background: "transparent", border: "none",
-                    color: "#FFFFFF", fontFamily: "inherit",
+                    color: t.textPrimary, fontFamily: "inherit",
                     fontSize: 13, fontWeight: 600,
                     padding: "12px 14px", minHeight: 48,
                     borderRadius: 10, cursor: "pointer",
                     transition: `background-color 150ms ${EASE}`,
                     textAlign: "left",
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.06)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = t.hover; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
                 >
-                  <span style={{ display: "flex", width: 18, height: 18, color: "#A0A0A0" }}>
+                  <span style={{ display: "flex", width: 18, height: 18, color: t.textSecondary }}>
                     <Icon size={18} />
                   </span>
                   <span>{m.label}</span>
@@ -1258,7 +1328,7 @@ export default function DashboardPage({
         <>
           <div
             role="presentation"
-            style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+            style={{ position: "fixed", inset: 0, zIndex: 400, background: t.overlay, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
             onClick={() => setPlanModalOpen(false)}
           />
           <div
@@ -1267,7 +1337,7 @@ export default function DashboardPage({
             style={{
               position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
               zIndex: 401, width: "calc(100% - 32px)", maxWidth: 360,
-              background: "#0e0e0e", border: "1px solid #1a1a1a", borderRadius: 20, padding: 24,
+              background: t.surface, border: `1px solid ${t.border}`, borderRadius: 20, padding: 24,
               boxSizing: "border-box",
             }}
           >
@@ -1276,28 +1346,28 @@ export default function DashboardPage({
               onClick={() => setPlanModalOpen(false)}
               style={{
                 position: "absolute", top: 14, right: 14,
-                background: "none", border: "none", color: "#444",
+                background: "none", border: "none", color: t.textMuted,
                 cursor: "pointer", padding: 4,
                 transition: `color 150ms ${EASE}`,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = t.textPrimary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
               aria-label="Close"
             >
               <IconX />
             </button>
 
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>Your Plan</div>
-            <div style={{ fontSize: 12, color: "#444", marginBottom: 16 }}>Manage your CVPassport subscription.</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>Your Plan</div>
+            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 16 }}>Manage your CVPassport subscription.</div>
 
             <div style={{
-              background: "#141414",
-              border: `1px solid ${isPaid ? "#1D9E75" : "rgba(217,119,6,0.4)"}`,
+              background: t.surfaceSoft,
+              border: `1px solid ${isPaid ? t.green : t.amberRing}`,
               borderRadius: 10, padding: "12px 14px", marginBottom: 12,
               ...(!isPaid ? { boxShadow: "0 0 12px rgba(217,119,6,0.08)" } : {}),
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: isPaid ? "#fff" : "#D97706" }}>{profile?.plan || "Explorer"}</div>
-              <div style={{ fontSize: 11, color: isPaid ? "#1D9E75" : "#555", marginTop: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: isPaid ? t.textPrimary : t.amber }}>{profile?.plan || "Explorer"}</div>
+              <div style={{ fontSize: 11, color: isPaid ? t.green : t.textMuted, marginTop: 4 }}>
                 {isPaid
                   ? "Unlimited everything"
                   : "Limited features · Upgrade to unlock all"
@@ -1316,7 +1386,7 @@ export default function DashboardPage({
                         if (url) window.location.href = url;
                       }}
                       style={{
-                        display: "block", width: "100%", background: "#fff", color: "#000",
+                        display: "block", width: "100%", background: t.newCvBg, color: t.newCvText,
                         borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
                         textAlign: "center", textDecoration: "none", marginBottom: 8,
                         boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -1331,12 +1401,12 @@ export default function DashboardPage({
                       type="button"
                       onClick={() => { setPlanModalOpen(false); navigate("/pricing"); }}
                       style={{
-                        width: "100%", background: "transparent", color: "#fff",
-                        border: "1px solid #1a1a1a", borderRadius: 10, padding: "10px 14px",
+                        width: "100%", background: "transparent", color: t.textPrimary,
+                        border: `1px solid ${t.border}`, borderRadius: 10, padding: "10px 14px",
                         fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                         transition: `background 150ms ${EASE}, transform 150ms ${EASE}`,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "#141414"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                       onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
                       onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
@@ -1353,7 +1423,7 @@ export default function DashboardPage({
                         if (url) window.location.href = url;
                       }}
                       style={{
-                        display: "block", width: "100%", background: "#fff", color: "#000",
+                        display: "block", width: "100%", background: t.newCvBg, color: t.newCvText,
                         borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
                         textAlign: "center", textDecoration: "none", marginBottom: 12,
                         boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -1364,17 +1434,17 @@ export default function DashboardPage({
                     >
                       Upgrade to Career Pro — AED 199/yr →
                     </button>
-                    <div style={{ height: 1, background: "#1a1a1a", margin: "4px 0 8px" }} />
+                    <div style={{ height: 1, background: t.border, margin: "4px 0 8px" }} />
                     <button
                       type="button"
                       onClick={() => setCancelStep(1)}
                       style={{
-                        background: "none", border: "none", color: "#2a2a2a",
+                        background: "none", border: "none", color: t.textFaint,
                         fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: 0,
                         transition: `color 150ms ${EASE}`,
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = "#666"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "#2a2a2a"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = t.textSecondary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = t.textFaint; }}
                     >
                       Cancel subscription
                     </button>
@@ -1383,14 +1453,14 @@ export default function DashboardPage({
               </>
             ) : (
               <div>
-                <div style={{ fontSize: 13, color: "#888", lineHeight: 1.5, marginBottom: 14 }}>
+                <div style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5, marginBottom: 14 }}>
                   Are you sure? Your plan continues until end of billing period. After that your account reverts to Free.
                 </div>
                 <button
                   type="button"
                   onClick={() => setCancelStep(0)}
                   style={{
-                    width: "100%", background: "#fff", color: "#000", border: "none",
+                    width: "100%", background: t.newCvBg, color: t.newCvText, border: "none",
                     borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
                     cursor: "pointer", fontFamily: "inherit", marginBottom: 8,
                     transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
@@ -1406,34 +1476,34 @@ export default function DashboardPage({
                   href="mailto:support@mycvpassport.com?subject=Cancel Subscription"
                   style={{
                     display: "block", textAlign: "center",
-                    fontSize: 12, color: "#444", textDecoration: "none", padding: "8px 0",
+                    fontSize: 12, color: t.textMuted, textDecoration: "none", padding: "8px 0",
                     transition: `color 150ms ${EASE}`,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#888"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "#444"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = t.textSecondary; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
                 >
                   Yes, cancel
                 </a>
-                <div style={{ fontSize: 10, color: "#1a1a1a", marginTop: 8, lineHeight: 1.4 }}>
+                <div style={{ fontSize: 10, color: t.textFaint, marginTop: 8, lineHeight: 1.4 }}>
                   Cancellation takes effect at end of billing period. Your CVs are kept for 30 days.
                 </div>
               </div>
             )}
 
             {/* Sign out — bottom of modal */}
-            <div style={{ height: 1, background: "#1a1a1a", margin: "16px 0 4px" }} />
+            <div style={{ height: 1, background: t.border, margin: "16px 0 4px" }} />
             <button
               type="button"
               onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
               style={{
                 width: "100%", background: "none", border: "none",
-                color: "#555", fontSize: 13,
+                color: t.textMuted, fontSize: 13,
                 cursor: "pointer", fontFamily: "inherit",
                 padding: "8px 0", textAlign: "center",
                 transition: `color 150ms ${EASE}`,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#555"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = t.textSecondary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
             >
               Sign out
             </button>
@@ -1446,7 +1516,7 @@ export default function DashboardPage({
         <>
           <div
             role="presentation"
-            style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+            style={{ position: "fixed", inset: 0, zIndex: 500, background: t.overlay, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
             onClick={() => setFeedbackOpen(false)}
           />
           <div
@@ -1457,7 +1527,7 @@ export default function DashboardPage({
               position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
               zIndex: 501, width: "calc(100% - 32px)", maxWidth: 440,
               maxHeight: "calc(100vh - 40px)", overflowY: "auto",
-              background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 20,
+              background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: 16, padding: 20,
               boxSizing: "border-box",
             }}
           >
@@ -1467,31 +1537,31 @@ export default function DashboardPage({
               aria-label="Close"
               style={{
                 position: "absolute", top: 12, right: 12,
-                background: "none", border: "none", color: "#666",
+                background: "none", border: "none", color: t.textMuted,
                 cursor: "pointer", padding: 4,
                 transition: `color 150ms ${EASE}`,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#666"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = t.textPrimary; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
             >
               <IconX />
             </button>
 
             {!feedbackSent ? (
               <>
-                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff" }}>Your feedback shapes CVPassport</div>
-                <div style={{ fontSize: 12.5, color: "#A0A0A0", marginTop: 6, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: t.textPrimary }}>Your feedback shapes CVPassport</div>
+                <div style={{ fontSize: 12.5, color: t.textSecondary, marginTop: 6, lineHeight: 1.5 }}>
                   Every bit helps us improve this for you. Tell us what is working and what is not.
                 </div>
 
                 {/* Sentiment */}
                 <div style={{ marginTop: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#ccc", marginBottom: 8 }}>How do you feel about CVPassport?</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, marginBottom: 8 }}>How do you feel about CVPassport?</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     {[
-                      { key: "positive", label: "Good", Icon: IconSmile, color: "#1D9E75" },
-                      { key: "neutral", label: "Okay", Icon: IconMeh, color: "#FFB300" },
-                      { key: "negative", label: "Not great", Icon: IconFrown, color: "#D85A30" },
+                      { key: "positive", label: "Good", Icon: IconSmile, color: t.green },
+                      { key: "neutral", label: "Okay", Icon: IconMeh, color: t.amber },
+                      { key: "negative", label: "Not great", Icon: IconFrown, color: t.red },
                     ].map(({ key, label, Icon, color }) => {
                       const on = feedbackSentiment === key;
                       return (
@@ -1503,8 +1573,8 @@ export default function DashboardPage({
                             flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                             padding: "12px 6px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
                             background: on ? `${color}1a` : "transparent",
-                            border: `1.5px solid ${on ? color : "#2A2A2A"}`,
-                            color: on ? color : "#777",
+                            border: `1.5px solid ${on ? color : t.borderStrong}`,
+                            color: on ? color : t.textSecondary,
                             transition: `border-color 150ms ${EASE}, color 150ms ${EASE}, background 150ms ${EASE}`,
                           }}
                         >
@@ -1518,7 +1588,7 @@ export default function DashboardPage({
 
                 {/* Message */}
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#ccc", marginBottom: 6 }}>What would make this better for you?</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, marginBottom: 6 }}>What would make this better for you?</div>
                   <textarea
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
@@ -1526,8 +1596,8 @@ export default function DashboardPage({
                     placeholder="Share your thoughts, ideas, or issues..."
                     style={{
                       width: "100%", minHeight: 100, resize: "vertical",
-                      background: "#0A0A0A", border: "1px solid #2A2A2A", borderRadius: 8,
-                      padding: "10px 12px", color: "#fff", fontSize: 13, fontFamily: "inherit",
+                      background: t.bg, border: `1px solid ${t.borderStrong}`, borderRadius: 8,
+                      padding: "10px 12px", color: t.textPrimary, fontSize: 13, fontFamily: "inherit",
                       lineHeight: 1.5, outline: "none", boxSizing: "border-box",
                     }}
                   />
@@ -1535,22 +1605,22 @@ export default function DashboardPage({
 
                 {/* Context */}
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#ccc", marginBottom: 6 }}>What were you trying to do? (optional)</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, marginBottom: 6 }}>What were you trying to do? (optional)</div>
                   <input
                     value={feedbackContext}
                     onChange={(e) => setFeedbackContext(e.target.value)}
                     maxLength={500}
                     placeholder="E.g. create a new CV, check ATS score..."
                     style={{
-                      width: "100%", height: 40, background: "#0A0A0A", border: "1px solid #2A2A2A",
-                      borderRadius: 8, padding: "0 12px", color: "#fff", fontSize: 13,
+                      width: "100%", height: 40, background: t.bg, border: `1px solid ${t.borderStrong}`,
+                      borderRadius: 8, padding: "0 12px", color: t.textPrimary, fontSize: 13,
                       fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                     }}
                   />
                 </div>
 
                 {feedbackError && (
-                  <div role="status" style={{ fontSize: 12, color: "#D85A30", marginTop: 10 }}>{feedbackError}</div>
+                  <div role="status" style={{ fontSize: 12, color: t.red, marginTop: 10 }}>{feedbackError}</div>
                 )}
 
                 <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: 18, gap: 8 }}>
@@ -1559,7 +1629,7 @@ export default function DashboardPage({
                     onClick={() => setFeedbackOpen(false)}
                     style={{
                       padding: "9px 16px", borderRadius: 8, background: "transparent",
-                      border: "1px solid #2A2A2A", color: "#A0A0A0", fontSize: 12.5, fontWeight: 500,
+                      border: `1px solid ${t.borderStrong}`, color: t.textSecondary, fontSize: 12.5, fontWeight: 500,
                       cursor: "pointer", fontFamily: "inherit",
                     }}
                   >
@@ -1570,8 +1640,8 @@ export default function DashboardPage({
                     onClick={handleFeedbackSend}
                     disabled={!feedbackText.trim() || feedbackSending}
                     style={{
-                      padding: "9px 18px", borderRadius: 8, background: "#FFB300", border: "none",
-                      color: "#0A0A0A", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                      padding: "9px 18px", borderRadius: 8, background: t.amber, border: "none",
+                      color: t.onAmber, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
                       opacity: feedbackText.trim() && !feedbackSending ? 1 : 0.5,
                     }}
                   >
@@ -1581,11 +1651,11 @@ export default function DashboardPage({
               </>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 8px" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 999, background: "rgba(29,158,117,0.14)", display: "grid", placeItems: "center", marginBottom: 14, color: "#1D9E75" }}>
+                <div style={{ width: 56, height: 56, borderRadius: 999, background: t.greenSoft, display: "grid", placeItems: "center", marginBottom: 14, color: t.green }}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
                 </div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: "#fff", marginBottom: 6 }}>Thank you</div>
-                <div style={{ fontSize: 13, color: "#A0A0A0", lineHeight: 1.5, maxWidth: 280 }}>We read every message and use your feedback to make CVPassport better.</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: t.textPrimary, marginBottom: 6 }}>Thank you</div>
+                <div style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5, maxWidth: 280 }}>We read every message and use your feedback to make CVPassport better.</div>
               </div>
             )}
           </div>
