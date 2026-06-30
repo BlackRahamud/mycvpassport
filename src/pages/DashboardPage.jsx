@@ -227,11 +227,16 @@ function AtsRing({ score, color, trackColor = "#1a1a1a", subColor = "#3a3a3a" })
   const off = circ - (pct / 100) * circ;
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "4px auto 0" }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      {/* viewBox + SVG-space rotation (not a CSS transform on the <svg>):
+         a CSS-transformed SVG inside the GPU-composited .dashboard-root
+         (translateZ(0)) gets rasterised and clipped on iOS Safari, which is
+         what broke the ring at mobile widths. Desktop output is unchanged. */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: "visible" }}>
         <circle cx={size / 2} cy={size / 2} r={r} stroke={trackColor} strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
           strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
           style={{ transition: `stroke-dashoffset 900ms ${EASE}` }}
         />
       </svg>
@@ -545,7 +550,7 @@ export default function DashboardPage({
               to="/"
               style={{ display: "flex", alignItems: "center", padding: "4px 0 0", color: t.textPrimary, textDecoration: "none" }}
             >
-              <CVPassportLogo height={20} />
+              <CVPassportLogo height={20} color="currentColor" />
             </Link>
             <button
               type="button"
@@ -810,7 +815,7 @@ export default function DashboardPage({
             }}
           >
             <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", color: t.textPrimary }}>
-              <CVPassportLogo height={20} />
+              <CVPassportLogo height={20} color="currentColor" />
             </Link>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
