@@ -75,23 +75,28 @@
 .hrs-rail .um-trigger__text { display: none; }
 
 /* ── Hide the chrome the rail now owns (no page-file edits) ──────
-   Wordmarks live in their own grid/flex cell, so hiding the link keeps
-   the page top bar's layout intact. UserMenus are removed from the page
-   top bars (the rail has the only one). */
-.hrs-content .hjl-wordmark,
-.hrs-content .jpp-wordmark,
-.hrs-content .pj-wordmark { display: none; }
+   The UserMenu has a single home (the rail / bottom bar), so the page top
+   bars' duplicate is hidden at every width. The wordmark is hidden ONLY on
+   desktop (in the media query below), where the rail shows it; on mobile the
+   rail is a bottom bar with no wordmark, so the page top bar keeps its own,
+   which is the only logo on small screens. */
 .hrs-content .hjl-topbar .um-root,
 .hrs-content .jpp-topbar__right .um-root { display: none; }
-/* PostJob top bar is flex space-between (wordmark | stepper); with the
-   wordmark hidden, centre the lone stepper instead of left-anchoring it. */
-.hrs-content .pj-topbar { justify-content: center; }
 
 /* ── Desktop ≥720px: left vertical rail ── */
 @media (min-width: 720px) {
   .hrs-root { display: flex; min-height: 100vh; }
 
   .hrs-content { flex: 1; padding-bottom: 0; }
+
+  /* The rail owns the wordmark on desktop, so hide each page top bar's own
+     copy. (On mobile they stay visible — see the note above.) */
+  .hrs-content .hjl-wordmark,
+  .hrs-content .jpp-wordmark,
+  .hrs-content .pj-wordmark { display: none; }
+  /* PostJob top bar is flex space-between (wordmark | stepper); with the
+     wordmark hidden here, centre the lone stepper instead of left-anchoring. */
+  .hrs-content .pj-topbar { justify-content: center; }
 
   .hrs-rail {
     position: sticky;
