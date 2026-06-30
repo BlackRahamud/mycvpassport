@@ -43,18 +43,6 @@ function isActiveStatus(s) {
   return s === "active" || s === "published";
 }
 
-/* Stats roll-up tile. value === null prints an em-dash (truthful when
-   the stats query failed) — value === 0 prints "0" (a real fact). */
-function StatTile({ label, value, suffix = "", accent }) {
-  const display = value == null ? "—" : `${value.toLocaleString()}${suffix}`;
-  return (
-    <div className={`hjl-stat${accent ? ` hjl-stat--${accent}` : ""}`}>
-      <div className="hjl-stat__label">{label}</div>
-      <div className="hjl-stat__value">{display}</div>
-    </div>
-  );
-}
-
 function relativeFromNow(s) {
   if (!s) return "—";
   const t = new Date(s).getTime();
@@ -124,7 +112,6 @@ export default function JobsListPage() {
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ total: null, active: null, applicants: null, interviews: null });
   const [mainTab, setMainTab] = useState("jobs"); // jobs | insights
 
   useEffect(() => {
@@ -177,56 +164,6 @@ export default function JobsListPage() {
     })();
     return () => { live = false; };
   }, [view, user?.id]);
-
-  // Stats bar — four roll-ups across the HR's whole portfolio. All use
-  // head:true so Supabase returns the count without shipping rows. The
-  // 4th is "interviews scheduled" — a cheap, honest portfolio metric;
-  // the old "avg ATS match" is gone (the per-candidate AI Verdict is the
-  // single source of truth for score, shown only in the candidate detail).
-  useEffect(() => {
-    if (!user?.id) return;
-    let live = true;
-    (async () => {
-      try {
-        const [
-          { count: total },
-          { count: active },
-          { count: applicants },
-          { count: interviews },
-        ] = await Promise.all([
-          supabase.from("jobs")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id)
-            .eq("source", "hr_portal"),
-          supabase.from("jobs")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id)
-            .eq("source", "hr_portal")
-            .in("status", ["active", "published"]),
-          supabase.from("applications")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id),
-          supabase.from("interviews")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id)
-            .eq("status", "scheduled"),
-        ]);
-        if (!live) return;
-        setStats({
-          total:      total ?? 0,
-          active:     active ?? 0,
-          applicants: applicants ?? 0,
-          interviews: interviews ?? 0,
-        });
-      } catch (_e) {
-        if (!live) return;
-        // Stats are decorative — leave them as nulls so the UI shows
-        // an em-dash rather than zeros that would lie about state.
-        setStats({ total: null, active: null, applicants: null, interviews: null });
-      }
-    })();
-    return () => { live = false; };
-  }, [user?.id]);
 
   const filtered = useMemo(() => {
     if (!jobs) return null;
@@ -291,19 +228,6 @@ export default function JobsListPage() {
         ) : (
         <>
         <AttentionPanel user={user} />
-
-        <motion.div
-          className="hjl-stats"
-          initial={reduce ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-          aria-label="Portfolio summary"
-        >
-          <StatTile label="Total Jobs"       value={stats.total} />
-          <StatTile label="Active Jobs"      value={stats.active} accent="ok" />
-          <StatTile label="Total Applicants" value={stats.applicants} />
-          <StatTile label="Interviews Scheduled" value={stats.interviews} />
-        </motion.div>
 
         <motion.div
           className="hjl-header"

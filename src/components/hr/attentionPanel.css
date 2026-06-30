@@ -1,10 +1,11 @@
 /* ────────────────────────────────────────────────────────────────
    AttentionPanel — "Needs your attention" on the HR Jobs landing.
-   Light theme, ink accent (no purple), --pj-* / --hjl-* tokens. Lives
-   inside .hjl-root so --hjl-ink resolves. No new hardcoded hex.
+   Four wired triage cards. Light theme, ink accent. Purple is reserved
+   for the single anchor card (client verdicts). Lives inside .hjl-root
+   so --hjl-ink resolves; --pj-* resolve at :root.
    ──────────────────────────────────────────────────────────────── */
 
-.att-root { margin-bottom: 22px; }
+.att-root { margin-bottom: 24px; }
 
 .att-title {
   margin: 0 0 12px;
@@ -14,118 +15,102 @@
   color: var(--hjl-ink, var(--pj-text));
 }
 
-/* ── Count cards ── */
 .att-cards {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-  margin-bottom: 14px;
 }
 
 .att-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
   text-align: left;
   background: #FFFFFF;
   border: 1px solid var(--pj-border);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 14px;
+  padding: 16px;
   cursor: pointer;
   font: inherit;
   font-family: var(--pj-font);
-  transition: border-color 140ms var(--pj-ease), box-shadow 140ms var(--pj-ease), transform 140ms var(--pj-ease);
+  transition: border-color 140ms var(--pj-ease), box-shadow 140ms var(--pj-ease);
 }
 .att-card:hover:not(:disabled) {
   border-color: var(--hjl-ink);
-  box-shadow: 0 6px 16px -10px rgba(20, 19, 31, 0.20);
-  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -12px rgba(20, 19, 31, 0.22);
 }
 .att-card:disabled { cursor: default; }
 
-.att-card__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.att-card__label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pj-muted);
+/* Anchor card (client verdicts) — the one purple accent. */
+.att-card--anchor {
+  border-color: var(--pj-primary-ring);
+  box-shadow: inset 0 0 0 1px var(--pj-primary-ring);
 }
-.att-card__arrow { color: var(--pj-muted-2); display: inline-flex; transition: color 140ms var(--pj-ease); }
-.att-card:hover:not(:disabled) .att-card__arrow { color: var(--hjl-ink); }
-.att-card__value {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--hjl-ink, var(--pj-text));
-  font-feature-settings: "tnum";
-  line-height: 1.1;
-}
-.att-card__sub { font-size: 11.5px; color: var(--pj-text-soft); }
-
-/* ── Upcoming interviews list ── */
-.att-upcoming {
-  background: #FFFFFF;
-  border: 1px solid var(--pj-border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.att-upcoming__head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--pj-border);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--pj-muted);
+.att-card--anchor:hover:not(:disabled) {
+  border-color: var(--pj-primary);
+  box-shadow: 0 8px 20px -12px rgba(124, 58, 237, 0.28);
 }
 
-.att-iv {
+.att-card__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--pj-border);
-  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 14px;
 }
-.att-iv:last-child { border-bottom: 0; }
+.att-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--hjl-ink-soft, rgba(20, 19, 31, 0.06));
+  color: var(--hjl-ink, var(--pj-text));
+}
+.att-card--anchor .att-card__icon {
+  background: var(--pj-primary-soft);
+  color: var(--pj-primary);
+}
+.att-card__arrow {
+  color: var(--pj-muted-2, var(--pj-muted));
+  display: inline-flex;
+  transition: color 140ms var(--pj-ease), transform 140ms var(--pj-ease);
+}
+.att-card:hover:not(:disabled) .att-card__arrow {
+  color: var(--hjl-ink);
+  transform: translateX(2px);
+}
+.att-card--anchor:hover:not(:disabled) .att-card__arrow { color: var(--pj-primary); }
 
-.att-iv__main {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 220px;
-  text-align: left;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-  font-family: var(--pj-font);
+.att-card__value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  color: var(--hjl-ink, var(--pj-text));
+  font-feature-settings: "tnum";
 }
-.att-iv__name { font-size: 13.5px; font-weight: 600; color: var(--hjl-ink, var(--pj-text)); }
-.att-iv__main:hover .att-iv__name { text-decoration: underline; }
-.att-iv__meta { font-size: 12px; color: var(--pj-text-soft); }
-.att-iv__link {
-  font-size: 11.5px;
-  color: var(--pj-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+.att-card__label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pj-text);
 }
-.att-iv__actions { flex-shrink: 0; }
+.att-card__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--pj-text-soft);
+}
 
-/* ── Desktop: 3-up cards ── */
-@media (min-width: 720px) {
-  .att-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Two-up on small tablets, four-up on desktop. */
+@media (min-width: 540px) {
+  .att-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 980px) {
+  .att-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .att-card { transition: none !important; }
+  .att-card, .att-card__arrow { transition: none !important; }
 }
