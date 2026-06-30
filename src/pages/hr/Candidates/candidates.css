@@ -8,7 +8,13 @@
 
 .cand-page { padding-top: 26px; }
 
-.cand-head { margin-bottom: 16px; }
+.cand-head {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
 .cand-head__title {
   margin: 0;
   font-size: 22px;
@@ -17,6 +23,58 @@
   color: var(--hjl-ink, var(--pj-text));
 }
 .cand-head__sub { margin: 3px 0 0; font-size: 13px; color: var(--pj-muted); }
+
+/* Add candidate (opens the CV importer; ink primary to match the portal) */
+.cand-add {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--hjl-ink);
+  color: #FFFFFF;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 140ms var(--pj-ease), transform 140ms var(--pj-ease);
+}
+.cand-add:hover { background: var(--hjl-ink-hover); }
+.cand-add:active { transform: scale(0.98); }
+
+/* Job picker rows inside the add-candidate modal */
+.cand-pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  font: inherit;
+  font-family: var(--pj-font);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms var(--pj-ease), box-shadow 140ms var(--pj-ease);
+}
+.cand-pick:hover { border-color: var(--hjl-ink); box-shadow: 0 6px 18px -12px rgba(20, 19, 31, 0.25); }
+.cand-pick__title { font-size: 13.5px; font-weight: 600; color: var(--hjl-ink, var(--pj-text)); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 520px) {
+  .cand-head { flex-direction: column; }
+  .cand-add { align-self: stretch; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cand-add, .cand-pick { transition: none !important; }
+}
 
 /* ── Filters ── */
 .cand-filters {

@@ -6,6 +6,7 @@ import { supabase } from "../../../appSupabaseClient";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
 import BulkActions from "../../../components/hr/BulkActions";
+import BulkCvImport from "../../../components/hr/BulkCvImport";
 import CvDrawer from "../../../components/hr/CvDrawer";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
@@ -131,6 +132,7 @@ const FileIc = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none
 const ShareIc = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>);
 const ClockIc = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>);
 const UsersIc = () => (<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
+const PlusIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
 
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
 function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce }) {
@@ -335,6 +337,46 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
   );
 }
 
+/* Lightweight job picker shown before the importer when the recruiter has
+   more than one job (CV imports attach to a specific job's pipeline). */
+function JobPickerModal({ open, jobs, onPick, onClose, reduce }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="dialog" aria-modal="true" aria-label="Choose a job"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: EASE }}
+          onClick={onClose}
+          style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(20,19,31,0.42)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <motion.div
+            onClick={(e) => e.stopPropagation()}
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
+            transition={{ duration: 0.22, ease: EASE }}
+            style={{ width: "min(440px, 100%)", maxHeight: "80vh", overflowY: "auto", background: "var(--pj-surface)", border: "1px solid var(--pj-border)", borderRadius: 16, boxShadow: "var(--pj-shadow-card)", padding: 18 }}
+          >
+            <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "var(--pj-text)" }}>Add candidate to a job</h3>
+            <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "var(--pj-muted)", lineHeight: 1.45 }}>
+              Imported CVs join that job's pipeline. Choose where these candidates belong.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {jobs.map((j) => (
+                <button key={j.id} type="button" className="cand-pick" onClick={() => onPick(j)}>
+                  <span className="cand-pick__title">{j.title || "Untitled role"}</span>
+                  <span className={`cand-market cand-market--${j.market === "india" ? "india" : "gulf"}`}>{j.market === "india" ? "India" : "Gulf"}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function CandidatesPage() {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
@@ -342,6 +384,13 @@ export default function CandidatesPage() {
   const [user, setUser] = useState(null);
   const [rows, setRows] = useState(null); // null = loading
   const [error, setError] = useState(null);
+  const [reloadTick, setReloadTick] = useState(0); // bump to refetch after an import
+
+  // Add candidate: the recruiter's jobs (import is per job), the job picker,
+  // and the job currently chosen for the import modal.
+  const [jobsList, setJobsList] = useState([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [importJob, setImportJob] = useState(null);
 
   const [search, setSearch] = useState("");
   const [market, setMarket] = useState("all");
@@ -379,7 +428,7 @@ export default function CandidatesPage() {
             .limit(5000),
           supabase
             .from("jobs")
-            .select("id, title, market")
+            .select("id, title, market, status, description, skills, requirements")
             .eq("hr_id", uid)
             .eq("source", "hr_portal")
             .limit(500),
@@ -387,6 +436,7 @@ export default function CandidatesPage() {
         if (!live) return;
         if (appsRes.error) throw appsRes.error;
         const jobMap = new Map((jobsRes.data || []).map((j) => [j.id, j]));
+        setJobsList(jobsRes.data || []);
 
         // Dedupe to unique people by candidate_id, falling back to email.
         const byKey = new Map();
@@ -447,7 +497,17 @@ export default function CandidatesPage() {
       }
     })();
     return () => { live = false; };
-  }, [user?.id]);
+  }, [user?.id, reloadTick]);
+
+  // Open the importer: jump straight in when there is a single job, otherwise
+  // let the recruiter pick which job the candidates belong to.
+  const openAddCandidate = () => {
+    const open = jobsList.filter((j) => j.status === "active" || j.status === "published");
+    const pool = open.length ? open : jobsList;
+    if (pool.length === 0) { navigate("/hr/post"); return; }
+    if (pool.length === 1) { setImportJob(pool[0]); return; }
+    setPickerOpen(true);
+  };
 
   const filtered = useMemo(() => {
     if (!rows) return null;
@@ -562,6 +622,9 @@ export default function CandidatesPage() {
               {loading ? "Loading…" : `${totalCandidates} ${totalCandidates === 1 ? "person" : "people"} across all your jobs`}
             </p>
           </div>
+          <button type="button" className="cand-add" onClick={openAddCandidate}>
+            <PlusIc /> Add candidate
+          </button>
         </header>
 
         {/* Filters */}
@@ -742,6 +805,23 @@ export default function CandidatesPage() {
           onLogged={() => setOutreachTick((t) => t + 1)}
         />
       )}
+
+      <JobPickerModal
+        open={pickerOpen}
+        jobs={jobsList}
+        onPick={(j) => { setPickerOpen(false); setImportJob(j); }}
+        onClose={() => setPickerOpen(false)}
+        reduce={reduce}
+      />
+
+      <BulkCvImport
+        open={!!importJob && !!user?.id}
+        jobId={importJob?.id}
+        job={importJob}
+        hrId={user?.id}
+        onClose={() => setImportJob(null)}
+        onImported={() => setReloadTick((t) => t + 1)}
+      />
     </div>
   );
 }
