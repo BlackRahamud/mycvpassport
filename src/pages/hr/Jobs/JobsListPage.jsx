@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -14,6 +14,11 @@ import "./jobsList.css";
 const BriefcaseIc = ({ size = 14, white = false }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={white ? "#FFFFFF" : "currentColor"} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </svg>
+);
+const TrashIc = ({ size = 15 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
   </svg>
 );
 const SearchIc = () => (
@@ -121,10 +126,15 @@ export default function JobsListPage() {
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [view, setView] = useState("open"); // open | past
+  const [view, setView] = useState("open"); // open | past | pools
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
+  const [jobsTick, setJobsTick] = useState(0); // bump to refetch jobs (after a pool delete)
+  const [deletePool, setDeletePool] = useState(null); // { id, title } pending delete
+  const [deleteCount, setDeleteCount] = useState(null); // candidates in the pool (null = counting)
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState(null);
   const [agg, setAgg] = useState(null); // Map<jobId, { stages, lastTs, verdictAppIds, verdictAppId }>
   const [mainTab, setMainTab] = useState("jobs"); // jobs | insights
 
@@ -179,7 +189,37 @@ export default function JobsListPage() {
       }
     })();
     return () => { live = false; };
-  }, [view, user?.id]);
+  }, [view, user?.id, jobsTick]);
+
+  // Count candidates in a pool, then open the delete confirm. Never a silent
+  // cascade: deleting a job ON DELETE CASCADEs its applications.
+  const openDeletePool = useCallback(async (job) => {
+    setDeletePool(job); setDeleteCount(null); setDeleteErr(null);
+    try {
+      const { count } = await supabase
+        .from("applications").select("id", { count: "exact", head: true })
+        .eq("job_id", job.id);
+      setDeleteCount(count || 0);
+    } catch { setDeleteCount(0); }
+  }, []);
+
+  const confirmDeletePool = useCallback(async () => {
+    if (!deletePool || deleteBusy || !user?.id) return;
+    setDeleteBusy(true); setDeleteErr(null);
+    try {
+      // kind = 'pool' guard means this action can never delete an active mandate.
+      const { error: e } = await supabase
+        .from("jobs").delete()
+        .eq("id", deletePool.id).eq("hr_id", user.id).eq("kind", "pool");
+      if (e) throw e;
+      setDeletePool(null);
+      setJobsTick((t) => t + 1);
+    } catch (e) {
+      setDeleteErr(e.message || "Couldn't delete, try again.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }, [deletePool, deleteBusy, user?.id]);
 
   // Per-job aggregates for the triage rows: pipeline stage counts, last
   // activity, and waiting client verdicts. One applications read + one
@@ -418,6 +458,17 @@ export default function JobsListPage() {
                         ))}
                   </div>
                   <div className="hjl-trow__action">
+                    {view === "pools" && (
+                      <button
+                        type="button"
+                        className="hjl-act-del"
+                        title="Delete pool"
+                        aria-label={`Delete ${j.title} pool`}
+                        onClick={(e) => { e.stopPropagation(); openDeletePool(j); }}
+                      >
+                        <TrashIc />
+                      </button>
+                    )}
                     <button
                       type="button"
                       className={`hjl-act hjl-act--${sig.action.variant}`}
@@ -436,6 +487,50 @@ export default function JobsListPage() {
         </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Delete-pool confirm — never a silent cascade */}
+      <AnimatePresence>
+        {deletePool && (
+          <motion.div
+            role="dialog" aria-modal="true" aria-label="Delete pool"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            onClick={() => { if (!deleteBusy) setDeletePool(null); }}
+            style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(20,19,31,0.42)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={reduce ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              style={{ width: "min(420px, 100%)", background: "var(--pj-surface)", border: "1px solid var(--pj-border)", borderRadius: 16, boxShadow: "var(--pj-shadow-card)", padding: 20 }}
+            >
+              <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700, color: "var(--pj-text)" }}>
+                Delete the &quot;{deletePool.title || "Untitled"}&quot; pool?
+              </h3>
+              <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--pj-text-soft)", lineHeight: 1.5 }}>
+                {deleteCount === null
+                  ? "Checking how many candidates are in this pool…"
+                  : deleteCount > 0
+                    ? `This will remove ${deleteCount} candidate${deleteCount === 1 ? "" : "s"} in this pool. Move them to a job first if you want to keep them.`
+                    : "This pool has no candidates. Deleting it cannot be undone."}
+              </p>
+              {deleteErr && <p role="status" style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--hjl-pass, #D85A30)", fontWeight: 600 }}>{deleteErr}</p>}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button type="button" onClick={() => setDeletePool(null)} disabled={deleteBusy}
+                  style={{ height: 38, padding: "0 16px", borderRadius: 9, border: "1px solid var(--pj-border)", background: "#FFFFFF", color: "var(--pj-text)", font: "inherit", fontFamily: "var(--pj-font)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  Cancel
+                </button>
+                <button type="button" onClick={confirmDeletePool} disabled={deleteBusy || deleteCount === null}
+                  style={{ height: 38, padding: "0 16px", borderRadius: 9, border: 0, background: "var(--hjl-pass, #D85A30)", color: "#FFFFFF", font: "inherit", fontFamily: "var(--pj-font)", fontSize: 13, fontWeight: 700, cursor: (deleteBusy || deleteCount === null) ? "not-allowed" : "pointer", opacity: (deleteBusy || deleteCount === null) ? 0.6 : 1 }}>
+                  {deleteBusy ? "Deleting…" : "Delete pool"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
