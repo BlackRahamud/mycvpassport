@@ -95,7 +95,13 @@ export default function StageAdvanceMenu({ stageDef, currentStatus, options, adv
                 const current = (currentStatus || "new") === o.value;
                 return (
                   <li key={o.value} role="none">
-                    <button type="button" role="menuitem" className="jpp-stage-menu__item" onClick={() => choose(o.value)}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      aria-current={current ? "true" : undefined}
+                      className={`jpp-stage-menu__item${current ? " jpp-stage-menu__item--current" : ""}`}
+                      onClick={() => choose(o.value)}
+                    >
                       <span>{o.label}</span>
                       {current && <CheckIc />}
                     </button>

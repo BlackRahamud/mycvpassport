@@ -75,7 +75,6 @@ export default function CvPreviewCard({ path, name, onView }) {
 
   return (
     <section className="jpp-section">
-      <h3 className="jpp-section__title">CV</h3>
       <motion.button
         type="button"
         className="jpp-cvcard"

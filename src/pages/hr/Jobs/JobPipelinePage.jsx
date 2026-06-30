@@ -12,6 +12,7 @@ import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
 import StageAdvanceMenu from "../../../components/hr/StageAdvanceMenu";
 import CvPreviewCard from "../../../components/hr/CvPreviewCard";
+import CvDrawer from "../../../components/hr/CvDrawer";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
@@ -105,11 +106,6 @@ const ShieldIc = () => (
 const TargetIc = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>
-  </svg>
-);
-const FileIc = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
   </svg>
 );
 const ShareIc = () => (
@@ -699,7 +695,7 @@ function CandidateDetail({
   // Verdict card is the headline by default.
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [cvBusy, setCvBusy] = useState(false);
+  const [cvOpen, setCvOpen] = useState(false);
   if (!candidate) {
     return (
       <motion.aside
@@ -741,26 +737,14 @@ function CandidateDetail({
   const missingKw = Array.isArray(candidate.missing_keywords) ? candidate.missing_keywords : [];
   const noticePeriod = cv.notice_period || cv.availability || personal.notice_period || "";
 
-  // Open the uploaded CV. Stage one: signed URL in a new tab (preserves the
-  // existing View CV behaviour). Stage two swaps this for the slide-over
-  // drawer. The file lives in the private applicant-cvs bucket; RLS confirms
-  // this recruiter owns the application pointing at it.
-  const handleViewCv = async () => {
-    const path = candidate.cv_file_path;
-    if (!path || cvBusy) return;
-    setCvBusy(true);
-    try {
-      const { data, error } = await supabase.storage
-        .from("applicant-cvs")
-        .createSignedUrl(path, 300);
-      if (error || !data?.signedUrl) throw error || new Error("No signed URL");
-      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      console.error("View CV failed:", e);
-    } finally {
-      setCvBusy(false);
-    }
+  // Open the uploaded CV in the slide-over drawer (no new tab). The drawer
+  // mints its own short-lived signed URL; RLS confirms this recruiter owns the
+  // application pointing at the file in the private applicant-cvs bucket.
+  const handleViewCv = () => {
+    if (candidate.cv_file_path) setCvOpen(true);
   };
+  const cvExt = (candidate.cv_file_path || "").split(".").pop() || "pdf";
+  const cvFileName = `${candidate.candidate_name || "candidate"} CV.${cvExt}`;
 
   return (
     <motion.aside
@@ -826,11 +810,6 @@ function CandidateDetail({
             <MailIc /> Email
           </a>
         )}
-        {candidate.cv_file_path && (
-          <button type="button" className="jpp-action jpp-action--ghost" disabled={cvBusy} onClick={handleViewCv}>
-            <FileIc /> {cvBusy ? "Opening…" : "View CV"}
-          </button>
-        )}
         <button type="button" className="jpp-action jpp-action--ghost" onClick={() => setShareOpen(true)}>
           <ShareIc /> Share link
         </button>
@@ -845,6 +824,7 @@ function CandidateDetail({
       <CvPreviewCard path={candidate.cv_file_path} name={firstName(candidate.candidate_name)} onView={handleViewCv} />
 
       <VerdictCard
+        hideHeader
         cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
         cvSnapshot={cv}
         job={job}
@@ -865,6 +845,13 @@ function CandidateDetail({
         applicationId={candidate.id}
         candidateName={candidate.candidate_name}
         hrId={hrId}
+      />
+
+      <CvDrawer
+        open={cvOpen}
+        path={candidate.cv_file_path}
+        fileName={cvFileName}
+        onClose={() => setCvOpen(false)}
       />
 
       <ShareReviews applicationId={candidate.id} />

@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { getSharedCandidate, submitShareFeedback } from "../services/getSharedCandidate";
+import ResumePdfViewer from "../components/ResumePdfViewer";
 import "./sharedCandidate.css";
 
 /* ── Icons (line, matched to portal weight) ─────────────── */
@@ -162,12 +163,6 @@ function RegionalTiles({ location, noticePeriod, visaStatus, step }) {
   );
 }
 
-// Mobile browsers (Safari + Chrome on phones) frequently refuse to render a
-// PDF inside an iframe and show a blank box. Most reviewers open the link from
-// WhatsApp on a phone, so on mobile we skip the embed and show a clear "open
-// CV" button instead. Desktop embeds inline, with an open-in-new-tab fallback.
-const IS_MOBILE = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
-
 function ResumeCard({ name, resumeUrl, resumeDownloadUrl, resumeFileName, step }) {
   const file = resumeFileName || (name ? `${name} resume.pdf` : "candidate resume.pdf");
   return (
@@ -196,33 +191,7 @@ function ResumeCard({ name, resumeUrl, resumeDownloadUrl, resumeFileName, step }
         )}
       </div>
 
-      {!resumeUrl ? (
-        <div style={{
-          background: "var(--wash)", border: "1px solid var(--border)",
-          borderRadius: 6, padding: "22px 24px", fontSize: 13, color: "var(--muted)",
-        }}>This candidate has no resume file attached.</div>
-      ) : IS_MOBILE ? (
-        // Mobile read path: open the CV in the phone's native viewer.
-        <a className="snap" href={resumeUrl} target="_blank" rel="noreferrer noopener" style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-          background: "var(--accent)", color: "#fff", textDecoration: "none",
-          borderRadius: "var(--radius)", padding: "14px 18px", fontSize: 14, fontWeight: 600,
-        }}>
-          <Icon.Doc size={16} /> Open CV
-        </a>
-      ) : (
-        <>
-          <iframe
-            title="Resume preview"
-            src={resumeUrl}
-            style={{ width: "100%", height: "min(70vh, 640px)", border: "1px solid var(--border)", borderRadius: 6, background: "var(--wash)", display: "block" }}
-          />
-          <div style={{ marginTop: 10, fontSize: 12.5, color: "var(--muted)" }}>
-            Cannot see the CV here?{" "}
-            <a href={resumeUrl} target="_blank" rel="noreferrer noopener" style={{ color: "var(--text)", textDecoration: "none", borderBottom: "1px solid var(--border)" }}>Open it in a new tab</a>.
-          </div>
-        </>
-      )}
+      <ResumePdfViewer src={resumeUrl} accent="var(--accent)" />
     </div>
   );
 }
