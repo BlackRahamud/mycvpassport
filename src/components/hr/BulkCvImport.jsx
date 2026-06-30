@@ -23,7 +23,7 @@
 // cascade. No portal.
 // =============================================================
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
@@ -105,11 +105,13 @@ function errorHint(err) {
 }
 
 const STATUS_META = {
-  queued:       { label: "Queued",   tone: "idle" },
-  working:      { label: "Working",  tone: "work" },
-  scored:       { label: "Scored",   tone: "ready" },
-  unscored:     { label: "Unscored", tone: "warn" },
-  error:        { label: "Failed",   tone: "error" },
+  queued:       { label: "Queued",    tone: "idle" },
+  working:      { label: "Working",   tone: "work" },
+  scored:       { label: "Ready",     tone: "ready" },  // parsed + scored, not yet committed
+  unscored:     { label: "Ready",     tone: "warn" },   // parsed, scoring failed, still importable
+  imported:     { label: "Imported",  tone: "ready" },  // committed by the batch RPC
+  duplicate:    { label: "Duplicate", tone: "warn" },   // skipped, already in this job
+  error:        { label: "Failed",    tone: "error" },
 };
 
 // Verdict band → readable colour word for the per-row score chip.
@@ -119,13 +121,18 @@ function bandTone(score) {
   return "low";
 }
 
-export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImported }) {
+export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, market = null, onClose, onImported }) {
   const reduce = useReducedMotion();
   const inputRef = useRef(null);
-  const [items, setItems] = useState([]); // { id, file, name, size, status, stage, error, text, path, ocr }
+  const [items, setItems] = useState([]); // { id, file, name, size, status, stage, error, text, path, ocr, snapshot, candidateName, score, verdict }
   const [dragging, setDragging] = useState(false);
   const [running, setRunning] = useState(false);
   const [notice, setNotice] = useState(null);
+
+  // Latest items, readable synchronously after the async parse loop so the
+  // batch step sees every parsed record.
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; }, [items]);
 
   const update = useCallback((id, patch) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -184,7 +191,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
   /* ── score an already-inserted imported candidate against the job and
         persist the score so the pipeline ranks it. Reused by the per-file
         pipeline AND the per-row "Retry scoring" action. ── */
-  const scoreOne = useCallback(async (itemId, applicationId, snapshot, candidateName) => {
+  const scoreOne = useCallback(async (itemId, snapshot, candidateName) => {
     update(itemId, { status: "working", stage: "Scoring fit…", error: null });
     try {
       const { data: { session } = {} } = await supabase.auth.getSession();
@@ -205,23 +212,16 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
       });
       const out = await res.json().catch(() => ({}));
       if (!res.ok || typeof out.score !== "number") throw new Error(out.error || "verdict failed");
-
-      // Persist the real score so the pipeline (ORDER BY ats_score DESC) ranks
-      // this imported candidate. score_source distinguishes it from the
-      // Phase-1 stopgap retro-rescan pool so it is never clobbered.
-      if (applicationId) {
-        const { error } = await supabase
-          .from("applications")
-          .update({ ats_score: out.score, score_source: "import_verdict", updated_at: new Date().toISOString() })
-          .eq("id", applicationId);
-        if (error) throw error;
-      }
-      update(itemId, { status: "scored", stage: null, score: out.score, verdict: out.verdict, candidateName });
+      // The score travels with the record into the batch insert (no row exists
+      // yet). score_source 'import_verdict' so it is never clobbered by the
+      // Phase-1 retro-rescan.
+      update(itemId, { status: "scored", stage: null, score: out.score, verdict: out.verdict, candidateName, snapshot });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("[bulk-import] scoring failed:", err?.message || err);
-      // Keep the candidate (row stays, score_source still 'import_pending').
-      update(itemId, { status: "unscored", stage: null, error: "Scoring failed", applicationId, snapshot, candidateName });
+      // Scoring is best effort. The candidate still imports with score 0 and
+      // score_source 'import_pending' for the retro-rescan to pick up later.
+      update(itemId, { status: "unscored", stage: null, error: null, snapshot, candidateName });
     }
   }, [job, update]);
 
@@ -245,7 +245,9 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
     try {
       const ext = fileExt(item.file);
       const rand = Math.random().toString(36).slice(2, 8);
-      path = `${hrId}/${jobId}-${Date.now()}-${rand}.${ext}`;
+      // Path is keyed on hrId only (the storage RLS folder), not jobId, so it
+      // works before a brand new pool's job id exists.
+      path = `${hrId}/${Date.now()}-${rand}.${ext}`;
       const { error } = await supabase.storage
         .from("applicant-cvs")
         .upload(path, item.file, { upsert: true, contentType: item.file.type || undefined });
@@ -280,84 +282,88 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
       return;
     }
 
-    // 4. Create the application row (candidate_id NULL, source='imported').
-    //    ats_score 0 / score_source 'import_pending' until step 5 scores it.
-    update(item.id, { stage: "Adding to pipeline…", snapshot });
+    // 4. Score the candidate against the job. The score travels with the
+    //    record into the single transactional batch insert (runImport) — no
+    //    rows are written per file, so a later failure can roll the whole
+    //    batch back with zero orphans.
     const candidateName = snapshot.name || nameFromFile(item.file);
-    let applicationId = null;
-    try {
-      const { data, error } = await supabase
-        .from("applications")
-        .insert({
-          job_id: jobId,
-          hr_id: hrId,
-          candidate_id: null,
-          source: "imported",
-          status: "new",
-          is_visible_to_hr: true,
-          cv_snapshot: snapshot,
-          cv_file_path: path,
-          candidate_name: candidateName,
-          candidate_email: snapshot.email || null,
-          candidate_phone: snapshot.phone || null,
-          visa_status: snapshot.visa_status || null,
-          ats_score: 0,
-          score_source: "import_pending",
-          applied_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      applicationId = data?.id || null;
-      update(item.id, { applicationId, candidateName });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn("[bulk-import] insert failed:", err?.message || err);
-      const msg = /row-level security|policy/i.test(String(err?.message || ""))
-        ? "Insert blocked — run migration 023."
-        : "Couldn't add to pipeline — retry.";
-      update(item.id, { status: "error", stage: null, error: msg });
-      return;
-    }
+    update(item.id, { snapshot, candidateName });
+    await scoreOne(item.id, snapshot, candidateName);
+  }, [hrId, update, scoreOne]);
 
-    // 5. Score the candidate against the job (corridor-aware verdict) and
-    //    persist the score so the pipeline ranks it. On failure we KEEP the
-    //    row (never lose a parsed candidate) and flag it 'unscored' with a
-    //    retry — a transient API blip must not read as a 0-fit mystery.
-    await scoreOne(item.id, applicationId, snapshot, candidateName);
-  }, [hrId, jobId, update, scoreOne]);
-
+  // Anything not yet committed: queued/error (needs parsing) or scored/unscored
+  // (parsed, awaiting the batch commit). The Import button stays active while
+  // any of these remain.
   const pendingItems = useMemo(
-    () => items.filter((it) => it.status === "queued" || it.status === "error"),
+    () => items.filter((it) => ["queued", "error", "scored", "unscored"].includes(it.status)),
     [items]
   );
 
+  const buildRecord = useCallback((it) => ({
+    candidate_name: it.candidateName || it.snapshot?.name || nameFromFile(it.file),
+    candidate_email: it.snapshot?.email || null,
+    candidate_phone: it.snapshot?.phone || null,
+    visa_status: it.snapshot?.visa_status || null,
+    cv_snapshot: it.snapshot || {},
+    cv_file_path: it.path || null,
+    ats_score: typeof it.score === "number" ? it.score : 0,
+    score_source: typeof it.score === "number" ? "import_verdict" : "import_pending",
+  }), []);
+
   const runImport = useCallback(async () => {
     if (running) return;
-    const queue = items.filter((it) => it.status === "queued" || it.status === "error");
-    if (!queue.length) return;
     setRunning(true);
     setNotice(null);
+
+    // Phase 1 — parse, upload, structure, score every pending file. No DB writes.
+    const queue = itemsRef.current.filter((it) => it.status === "queued" || it.status === "error");
     for (const item of queue) {
-      // re-read latest file ref by id (status may have changed); the File
-      // object itself is stable on the item.
       // eslint-disable-next-line no-await-in-loop
       await processOne(item);
     }
-    setRunning(false);
-  }, [items, running, processOne]);
 
-  const retryScore = useCallback(async (item) => {
-    if (running || !item?.applicationId) return;
-    setRunning(true);
-    await scoreOne(item.id, item.applicationId, item.snapshot, item.candidateName);
-    setRunning(false);
-  }, [running, scoreOne]);
+    // Phase 2 — strict all-or-nothing. If any file failed to read, commit
+    // nothing (no orphan pool, no half import); the recruiter removes the bad
+    // files and imports again. Otherwise commit the whole batch in one RPC.
+    const latest = itemsRef.current;
+    const failed = latest.filter((it) => it.status === "error");
+    const ready = latest.filter((it) => (it.status === "scored" || it.status === "unscored") && it.snapshot);
 
-  // 'scored' + 'unscored' rows are both in the pipeline now (only scoring
-  // differs), so both count as "added" for the refetch + footer.
-  const addedCount = items.filter((it) => it.status === "scored" || it.status === "unscored").length;
-  const unscoredCount = items.filter((it) => it.status === "unscored").length;
+    if (failed.length > 0) {
+      setNotice(`${failed.length} file${failed.length === 1 ? "" : "s"} couldn't be read. Remove ${failed.length === 1 ? "it" : "them"} and import again. Nothing was added yet.`);
+      setRunning(false);
+      return;
+    }
+    if (ready.length === 0) { setRunning(false); return; }
+
+    try {
+      const { data, error } = await supabase.rpc("import_candidates_batch", {
+        p_job_id: poolName ? null : jobId,
+        p_pool_name: poolName ? poolName.trim() : null,
+        p_market: market || null,
+        p_records: ready.map(buildRecord),
+      });
+      if (error) throw error;
+      const skipped = new Set(Array.isArray(data?.skipped_indices) ? data.skipped_indices : []);
+      ready.forEach((it, i) => update(it.id, { status: skipped.has(i) ? "duplicate" : "imported", stage: null }));
+      const inserted = data?.inserted || 0;
+      const dupes = data?.skipped || 0;
+      const target = poolName ? `the "${poolName.trim()}" pool` : "this job";
+      setNotice(`${inserted} candidate${inserted === 1 ? "" : "s"} added to ${target}${dupes > 0 ? ` · ${dupes} skipped as duplicate${dupes === 1 ? "" : "s"}` : ""}.`);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[bulk-import] batch failed:", e?.message || e);
+      const msg = /row-level security|policy|function .* does not exist/i.test(String(e?.message || ""))
+        ? "permissions or migrations missing, run 027 and 028"
+        : (e?.message || "please try again");
+      setNotice(`Nothing was added, the whole batch rolled back (${msg}).`);
+      // Items stay scored/unscored, so a re-click retries only the commit.
+    }
+    setRunning(false);
+  }, [running, processOne, poolName, jobId, market, buildRecord, update]);
+
+  const addedCount = items.filter((it) => it.status === "imported").length;
+  const dupeCount = items.filter((it) => it.status === "duplicate").length;
   const errorCount = items.filter((it) => it.status === "error").length;
   const doneAll = items.length > 0 && pendingItems.length === 0 && !running;
 
@@ -398,8 +404,8 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
             <header className="bci-head">
               <h3 id="bci-title" className="bci-title">Import existing CVs</h3>
               <p className="bci-sub">
-                Drop up to {MAX_BATCH} PDF or DOCX files{job?.title ? <> for <strong>{job.title}</strong></> : null}.
-                We read each one, then add it to this pipeline.
+                Drop up to {MAX_BATCH} PDF or DOCX files{(poolName || job?.title) ? <> for <strong>{poolName ? poolName.trim() : job.title}</strong></> : null}.
+                We read each one, then import the whole batch at once.
               </p>
             </header>
 
@@ -467,19 +473,23 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
                           <span className="bci-row__meta">
                             {it.status === "error"
                               ? <span className="bci-row__err">{it.error}</span>
-                              : it.status === "unscored"
-                                ? <span className="bci-row__warn">In pipeline · scoring failed</span>
-                                : it.status === "scored"
-                                  ? <span className="bci-row__ok">{it.verdict ? `${it.verdict} · ` : ""}{it.score}/100 fit</span>
-                                  : it.stage
-                                    ? <span className="bci-row__stage">{it.stage}</span>
-                                    : `${sizeLabel(it.size)}${it.ocr ? " · OCR" : ""}`}
+                              : it.status === "duplicate"
+                                ? <span className="bci-row__warn">Already in this job · skipped</span>
+                                : it.status === "imported"
+                                  ? <span className="bci-row__ok">Added{typeof it.score === "number" ? ` · ${it.score}/100 fit` : ""}</span>
+                                  : it.status === "unscored"
+                                    ? <span className="bci-row__warn">Ready · scoring will retry later</span>
+                                    : it.status === "scored"
+                                      ? <span className="bci-row__ok">{it.verdict ? `${it.verdict} · ` : ""}{it.score}/100 fit</span>
+                                      : it.stage
+                                        ? <span className="bci-row__stage">{it.stage}</span>
+                                        : `${sizeLabel(it.size)}${it.ocr ? " · OCR" : ""}`}
                           </span>
                         </span>
-                        <span className={`bci-pill bci-pill--${meta.tone}${it.status === "scored" ? ` bci-pill--band-${bandTone(it.score)}` : ""}`}>
+                        <span className={`bci-pill bci-pill--${meta.tone}${(it.status === "scored" || it.status === "imported") && typeof it.score === "number" ? ` bci-pill--band-${bandTone(it.score)}` : ""}`}>
                           {it.status === "working" && <span className="bci-pill__spin" aria-hidden="true" />}
-                          {it.status === "scored" && <CheckIc />}
-                          {(it.status === "unscored" || it.status === "error") && <AlertIc />}
+                          {(it.status === "scored" || it.status === "imported") && <CheckIc />}
+                          {(it.status === "unscored" || it.status === "duplicate" || it.status === "error") && <AlertIc />}
                           {it.status === "working" ? "Working" : meta.label}
                         </span>
                         {!running && (it.status === "queued" || it.status === "error") && (
@@ -490,16 +500,6 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
                             aria-label={`Remove ${it.name}`}
                           >
                             <CloseIc />
-                          </button>
-                        )}
-                        {!running && it.status === "unscored" && (
-                          <button
-                            type="button"
-                            className="bci-row__retry"
-                            onClick={() => retryScore(it)}
-                            aria-label={`Retry scoring ${it.candidateName || it.name}`}
-                          >
-                            Retry
                           </button>
                         )}
                       </motion.div>
@@ -513,7 +513,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, onClose, onImport
             <div className="bci-foot">
               <span className="bci-foot__count">
                 {items.length > 0
-                  ? `${items.length} file${items.length === 1 ? "" : "s"}${addedCount ? ` · ${addedCount} added` : ""}${unscoredCount ? ` · ${unscoredCount} unscored` : ""}${errorCount ? ` · ${errorCount} failed` : ""}`
+                  ? `${items.length} file${items.length === 1 ? "" : "s"}${addedCount ? ` · ${addedCount} added` : ""}${dupeCount ? ` · ${dupeCount} duplicate` : ""}${errorCount ? ` · ${errorCount} failed` : ""}`
                   : "No files yet"}
               </span>
               <div className="bci-foot__actions">
