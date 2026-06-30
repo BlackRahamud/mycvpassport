@@ -37,14 +37,61 @@
 }
 .hin-filters__spacer { flex: 1; }
 
-/* ── Stat cards (5-up, reuse hjl-stat card body) ────────────── */
-.hin-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
+/* ── Overview (uniform 4-up grid of stat cards) ─────────────── */
+.hin-overview { margin-bottom: 20px; }
+.hin-overview__title {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pj-text);
 }
-.hin-stat--goal .hjl-stat__value { color: var(--hin-amber); }
+.hin-ov-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.hin-ov-card {
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+.hin-ov-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.hin-ov-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+  margin-bottom: 4px;
+}
+.hin-ov-card__value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--pj-text);
+  font-feature-settings: "tnum";
+}
+/* Soft tinted icon squares (Tailwind 100 bg / 600 fg, per the 21st card) */
+.hin-ov-card__icon--blue    { background: #DBEAFE; color: #2563EB; }
+.hin-ov-card__icon--purple  { background: #F3E8FF; color: #9333EA; }
+.hin-ov-card__icon--indigo  { background: #E0E7FF; color: #4F46E5; }
+.hin-ov-card__icon--emerald { background: #D1FAE5; color: #059669; }
+.hin-ov-card__icon--green   { background: #DCFCE7; color: #16A34A; }
+.hin-ov-card__icon--amber   { background: #FEF3C7; color: #D97706; }
+.hin-ov-card__icon--teal    { background: #CCFBF1; color: #0D9488; }
+.hin-ov-card__icon--red     { background: #FEE2E2; color: #DC2626; }
 
 /* ── Generic chart card ─────────────────────────────────────── */
 .hin-card {
@@ -81,45 +128,44 @@
   margin-bottom: 14px;
 }
 
-/* ── Funnel (CSS horizontal bars) ───────────────────────────── */
-.hin-funnel { display: flex; flex-direction: column; gap: 12px; }
-.hin-funnel__row { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; }
+/* ── Funnel (thin multi-tint bars) ──────────────────────────── */
+.hin-funnel { display: flex; flex-direction: column; }
+.hin-funnel__row {
+  display: grid;
+  grid-template-columns: 160px 1fr 44px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+}
 .hin-funnel__label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--pj-text-soft);
-  text-align: right;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pj-text);
 }
 .hin-funnel__track {
-  position: relative;
-  height: 30px;
-  background: var(--hin-track);
-  border-radius: 7px;
+  height: 10px;
+  background: var(--pj-input-bg, #F1F1F4);
+  border-radius: 999px;
   overflow: hidden;
 }
 .hin-funnel__bar {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 7px;
-  background: var(--hin-green);
+  height: 100%;
+  border-radius: 999px;
   transform-origin: left center;
 }
-.hin-funnel__bar--top { background: var(--hin-blue); }
-.hin-funnel__bar--goal { background: var(--hin-amber); }
-.hin-funnel__meta {
-  position: absolute;
-  top: 0;
-  right: 10px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
+.hin-funnel__bar--blue    { background: rgba(59, 130, 246, 0.70); }
+.hin-funnel__bar--indigo  { background: rgba(99, 102, 241, 0.70); }
+.hin-funnel__bar--purple  { background: rgba(168, 85, 247, 0.70); }
+.hin-funnel__bar--emerald { background: rgba(16, 185, 129, 0.70); }
+.hin-funnel__bar--teal    { background: rgba(20, 184, 166, 0.70); }
+.hin-funnel__bar--green   { background: rgba(34, 197, 94, 0.70); }
+.hin-funnel__count {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--pj-text);
   font-feature-settings: "tnum";
 }
-.hin-funnel__pct { font-weight: 600; color: var(--pj-muted); }
 
 /* ── Per-job effectiveness table ────────────────────────────── */
 .hin-table { width: 100%; }
@@ -223,8 +269,12 @@
 
 /* ── Desktop layout ─────────────────────────────────────────── */
 @media (min-width: 760px) {
-  .hin-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .hin-grid { grid-template-columns: 1fr; }
+}
+
+/* Overview grid: 4-up on desktop, 2-up below 900px. */
+@media (max-width: 900px) {
+  .hin-ov-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Mobile: tables scroll horizontally rather than crush. */

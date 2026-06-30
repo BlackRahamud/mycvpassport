@@ -243,19 +243,17 @@
   overflow: hidden;
 }
 
-.hjl-table__head, .hjl-table__row {
-  /* Title (with status badge + ref) | Salary | Start Date |
-     Last Activity | View Applicants button. The action column has
-     no fixed min so the button right-aligns naturally. */
+/* Triage rows: Role (title + salary + status signal) | Pipeline pills | Action */
+.hjl-thead, .hjl-trow {
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) 170px 130px 140px auto;
+  grid-template-columns: minmax(0, 2.3fr) minmax(0, 1.7fr) auto;
   gap: 18px;
   align-items: center;
   padding: 14px 22px;
 }
 .hjl-table__head--action { text-align: right; }
 
-.hjl-table__head {
+.hjl-thead {
   background: #FAFAFB;
   border-bottom: 1px solid var(--pj-border);
   font-size: 10.5px;
@@ -265,88 +263,74 @@
   color: var(--pj-muted);
 }
 
-.hjl-table__row {
+.hjl-trow {
   border-bottom: 1px solid var(--pj-border);
+  cursor: pointer;
   transition: background 140ms var(--pj-ease);
 }
-.hjl-table__row:last-child { border-bottom: 0; }
-.hjl-table__row:hover { background: #FAFAFB; }
+.hjl-trow:last-child { border-bottom: 0; }
+.hjl-trow:hover { background: #FAFAFB; }
+.hjl-trow:focus-visible { outline: 2px solid var(--hjl-ink); outline-offset: -2px; }
 
-.hjl-table__title-cell { min-width: 0; }
-.hjl-table__title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.hjl-table__title {
+.hjl-trow__role { min-width: 0; }
+.hjl-trow__title {
+  margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--hjl-ink);
   letter-spacing: -0.005em;
-  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.hjl-trow__salary { margin: 2px 0 0; font-size: 12px; color: var(--pj-text-soft); font-feature-settings: "tnum"; }
 
-.hjl-table__id {
-  font-size: 11px;
-  color: var(--pj-muted);
-  font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
-  margin-top: 2px;
-}
-
-.hjl-table__cell {
-  font-size: 13px;
-  color: var(--pj-text);
-  font-feature-settings: "tnum";
-}
-.hjl-table__cell--salary { font-weight: 600; color: var(--hjl-ink); }
-.hjl-table__cell--muted { color: var(--pj-text-soft); }
-
-/* ── Status badge ───────────────────────────────────────────── */
-.hjl-status-badge {
+/* ── Status signal ──────────────────────────────────────────── */
+.hjl-signal {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.hjl-signal__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.hjl-signal--hot { color: #047857; }
+.hjl-signal--hot .hjl-signal__dot { background: #10B981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16); }
+.hjl-signal--verdict { color: var(--pj-primary); }
+.hjl-signal--verdict .hjl-signal__dot { background: var(--pj-primary); box-shadow: 0 0 0 3px var(--pj-primary-soft); }
+.hjl-signal--stalled { color: #B45309; }
+.hjl-signal--stalled .hjl-signal__dot { background: #F59E0B; }
+.hjl-signal--active { color: #1D4ED8; }
+.hjl-signal--active .hjl-signal__dot { background: #3B82F6; }
+
+/* ── Pipeline pills ─────────────────────────────────────────── */
+.hjl-trow__pipeline { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.hjl-trow__empty { font-size: 12px; color: var(--pj-muted); }
+.hjl-pill {
+  display: inline-flex;
+  align-items: center;
   height: 22px;
-  padding: 0 10px;
+  padding: 0 9px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  white-space: nowrap;
   border: 1px solid transparent;
-  flex-shrink: 0;
+  font-feature-settings: "tnum";
 }
-.hjl-status-badge__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-.hjl-status-badge--active {
-  background: rgba(5, 150, 105, 0.10);
-  color: #047857;
-  border-color: rgba(5, 150, 105, 0.20);
-}
-.hjl-status-badge--active .hjl-status-badge__dot {
-  background: #10B981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
-}
-.hjl-status-badge--inactive {
-  background: var(--pj-input-bg);
-  color: var(--pj-text-soft);
-  border-color: var(--pj-border);
-}
-.hjl-status-badge--inactive .hjl-status-badge__dot { background: var(--pj-muted-2); }
+.hjl-pill--new { background: rgba(59, 130, 246, 0.10); color: #1D4ED8; border-color: rgba(59, 130, 246, 0.20); }
+.hjl-pill--review { background: var(--pj-primary-soft); color: var(--pj-primary); border-color: var(--pj-primary-ring); }
+.hjl-pill--interviewed { background: rgba(5, 150, 105, 0.10); color: #047857; border-color: rgba(5, 150, 105, 0.20); }
+.hjl-pill--offer { background: rgba(13, 148, 136, 0.10); color: #0F766E; border-color: rgba(13, 148, 136, 0.22); }
+.hjl-pill--hired { background: rgba(5, 150, 105, 0.16); color: #065F46; border-color: rgba(5, 150, 105, 0.26); }
 
 /* ── Row action button ──────────────────────────────────────── */
-.hjl-row-action {
+.hjl-trow__action { justify-self: end; }
+.hjl-act {
   height: 32px;
   padding: 0 14px;
-  background: var(--hjl-ink);
-  color: #FFFFFF;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 8px;
   font: inherit;
   font-family: var(--pj-font);
@@ -354,10 +338,15 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  justify-self: end;
-  transition: background 140ms var(--pj-ease), transform 140ms var(--pj-ease);
+  transition: background 140ms var(--pj-ease), border-color 140ms var(--pj-ease), color 140ms var(--pj-ease), transform 120ms var(--pj-ease);
 }
-.hjl-row-action:hover { background: var(--hjl-ink-hover); transform: translateY(-1px); }
+.hjl-act:active { transform: scale(0.97); }
+.hjl-act--primary { background: var(--hjl-ink); color: #FFFFFF; }
+.hjl-act--primary:hover { background: var(--hjl-ink-hover); }
+.hjl-act--verdict { background: var(--pj-primary); color: #FFFFFF; }
+.hjl-act--verdict:hover { background: var(--pj-primary-hover); }
+.hjl-act--ghost, .hjl-act--quiet { background: #FFFFFF; color: var(--pj-text); border-color: var(--pj-border); }
+.hjl-act--ghost:hover, .hjl-act--quiet:hover { background: var(--pj-input-bg); border-color: var(--pj-border-strong); }
 
 /* ── Stats bar ──────────────────────────────────────────────── */
 .hjl-stats {
@@ -398,8 +387,12 @@
 
 @media (max-width: 720px) {
   .hjl-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hjl-table__head, .hjl-table__row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
-  .hjl-table__head > :nth-child(n+2), .hjl-table__row > :nth-child(n+2):not(.hjl-row-action) { display: none; }
+  /* Triage row: role + action on the top line, pipeline pills wrap underneath. */
+  .hjl-thead { display: none; }
+  .hjl-trow { grid-template-columns: minmax(0, 1fr) auto; row-gap: 10px; column-gap: 12px; align-items: start; }
+  .hjl-trow__role { grid-column: 1; grid-row: 1; }
+  .hjl-trow__action { grid-column: 2; grid-row: 1; justify-self: end; }
+  .hjl-trow__pipeline { grid-column: 1 / -1; grid-row: 2; }
 }
 
 /* ── Empty / loading ────────────────────────────────────────── */
@@ -490,7 +483,7 @@
 
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .hjl-cta, .hjl-icon-btn, .hjl-userpill, .hjl-toggle__btn, .hjl-table__row, .hjl-search input {
+  .hjl-cta, .hjl-icon-btn, .hjl-userpill, .hjl-toggle__btn, .hjl-trow, .hjl-act, .hjl-search input {
     transition: none !important;
   }
 }

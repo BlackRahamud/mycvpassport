@@ -4,6 +4,17 @@ import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import "./hrInsights.css";
 
+/* ───────── Stat-card icons (feather-style, monotone — matches the portal) ───────── */
+const S = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
+const IcBriefcase = () => (<svg {...S}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>);
+const IcUsers = () => (<svg {...S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
+const IcUserCheck = () => (<svg {...S}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><polyline points="16 11 18 13 22 9" /></svg>);
+const IcChat = () => (<svg {...S}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>);
+const IcAward = () => (<svg {...S}><circle cx="12" cy="8" r="6" /><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12" /></svg>);
+const IcCalendar = () => (<svg {...S}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>);
+const IcCheckCircle = () => (<svg {...S}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>);
+const IcUserX = () => (<svg {...S}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="17" y1="8" x2="22" y2="13" /><line x1="22" y1="8" x2="17" y2="13" /></svg>);
+
 /* ───────── Stage model ─────────
    Mirrors STAGES / STAGE_BY_DB in JobPipelinePage.jsx. Rank lets us
    build a monotonic funnel from each application's CURRENT status:
@@ -46,13 +57,15 @@ function median(nums) {
 
 const EASE = [0.4, 0, 0.2, 1];
 
-/* Reuse the hjl-stat card body so the cards read as the same product. */
-function StatCard({ label, value, suffix = "", goal = false }) {
+/* Uniform overview card: tinted icon square, uppercase muted label, big
+   bold number. Every card is the same width and height in the grid. */
+function StatCard({ label, value, suffix = "", icon = null, tint = "blue" }) {
   const display = value == null ? "—" : `${value.toLocaleString()}${suffix}`;
   return (
-    <div className={`hjl-stat${goal ? " hin-stat--goal" : ""}`}>
-      <div className="hjl-stat__label">{label}</div>
-      <div className="hjl-stat__value">{display}</div>
+    <div className="hin-ov-card">
+      <span className={`hin-ov-card__icon hin-ov-card__icon--${tint}`} aria-hidden>{icon}</span>
+      <div className="hin-ov-card__label">{label}</div>
+      <div className="hin-ov-card__value">{display}</div>
     </div>
   );
 }
@@ -178,6 +191,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
     const funnel = {
       applicants: fApps.length,
       shortlisted: fApps.filter((a) => a.status === "shortlisted" || rankOf(a.status) >= 1).length,
+      ready: fApps.filter((a) => rankOf(a.status) >= 1).length,
       interviewed: fApps.filter((a) => rankOf(a.status) >= 2).length,
       offered: fApps.filter((a) => rankOf(a.status) >= 3).length,
       hired: fApps.filter((a) => rankOf(a.status) >= 4).length,
@@ -317,12 +331,15 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
   }
 
   const f = model.funnel;
+  // Stage set + tints match the 21st funnel; values are real and monotonic
+  // (reached stage X or beyond), so bars decrease down the list.
   const funnelRows = [
-    { key: "applicants", label: "Applicants", value: f.applicants, variant: "top" },
-    { key: "shortlisted", label: "Shortlisted", value: f.shortlisted },
-    { key: "interviewed", label: "Interviewed", value: f.interviewed },
-    { key: "offered", label: "Offered", value: f.offered },
-    { key: "hired", label: "Hired", value: f.hired, variant: "goal" },
+    { key: "new", label: "New", value: f.applicants, color: "blue" },
+    { key: "shortlisted", label: "Shortlisted", value: f.shortlisted, color: "indigo" },
+    { key: "ready", label: "Ready to interview", value: f.ready, color: "purple" },
+    { key: "interviewed", label: "Interviewed", value: f.interviewed, color: "emerald" },
+    { key: "offered", label: "Offer", value: f.offered, color: "teal" },
+    { key: "hired", label: "Hired", value: f.hired, color: "green" },
   ];
   const funnelBase = Math.max(f.applicants, 1);
 
@@ -362,33 +379,25 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
         </div>
       </div>
 
-      {/* Stat cards */}
-      <motion.div
-        className="hin-stats"
-        initial={reduce ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: EASE }}
-      >
-        <StatCard label="Active Jobs" value={model.activeJobs} />
-        <StatCard label="Applicants" value={f.applicants} />
-        <StatCard label="Shortlisted" value={f.shortlisted} />
-        <StatCard label="Interviewed" value={f.interviewed} />
-        <StatCard label="Hires" value={f.hired} goal />
-      </motion.div>
-
-      {/* Interview outcomes (from the interviews table) */}
-      <motion.div
-        className="hin-stats"
-        style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
-        initial={reduce ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: EASE, delay: 0.02 }}
-        aria-label="Interview outcomes"
-      >
-        <StatCard label="Interviews scheduled" value={interviewMetrics.scheduled} />
-        <StatCard label="Completed" value={interviewMetrics.completed} />
-        <StatCard label="No-show rate" value={interviewMetrics.noShowRate} suffix={interviewMetrics.noShowRate == null ? "" : "%"} />
-      </motion.div>
+      {/* Overview — eight live metrics in one uniform grid */}
+      <section className="hin-overview">
+        <h2 className="hin-overview__title">Overview</h2>
+        <motion.div
+          className="hin-ov-grid"
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, ease: EASE }}
+        >
+          <StatCard label="Active jobs" value={model.activeJobs} icon={<IcBriefcase />} tint="blue" />
+          <StatCard label="Applicants" value={f.applicants} icon={<IcUsers />} tint="purple" />
+          <StatCard label="Shortlisted" value={f.shortlisted} icon={<IcUserCheck />} tint="indigo" />
+          <StatCard label="Interviewed" value={f.interviewed} icon={<IcChat />} tint="emerald" />
+          <StatCard label="Hires" value={f.hired} icon={<IcAward />} tint="green" />
+          <StatCard label="Interviews scheduled" value={interviewMetrics.scheduled} icon={<IcCalendar />} tint="amber" />
+          <StatCard label="Completed" value={interviewMetrics.completed} icon={<IcCheckCircle />} tint="teal" />
+          <StatCard label="No-show rate" value={interviewMetrics.noShowRate} suffix={interviewMetrics.noShowRate == null ? "" : "%"} icon={<IcUserX />} tint="red" />
+        </motion.div>
+      </section>
 
       <div className="hin-grid">
         {/* Funnel */}
@@ -408,24 +417,20 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
           </div>
           <div className="hin-funnel">
             {funnelRows.map((r) => {
-              const pct = funnelBase ? Math.round((r.value / funnelBase) * 100) : 0;
-              const width = funnelBase ? Math.max((r.value / funnelBase) * 100, r.value > 0 ? 4 : 0) : 0;
+              const width = funnelBase ? Math.max((r.value / funnelBase) * 100, r.value > 0 ? 3 : 0) : 0;
               return (
                 <div className="hin-funnel__row" key={r.key}>
                   <span className="hin-funnel__label">{r.label}</span>
                   <div className="hin-funnel__track">
                     <motion.div
-                      className={`hin-funnel__bar${r.variant === "top" ? " hin-funnel__bar--top" : ""}${r.variant === "goal" ? " hin-funnel__bar--goal" : ""}`}
+                      className={`hin-funnel__bar hin-funnel__bar--${r.color}`}
                       initial={reduce ? false : { scaleX: 0 }}
                       animate={{ scaleX: 1 }}
                       transition={{ duration: 0.5, ease: EASE }}
                       style={{ width: `${width}%` }}
                     />
-                    <span className="hin-funnel__meta">
-                      {r.value.toLocaleString()}
-                      {r.key !== "applicants" && <span className="hin-funnel__pct">{pct}%</span>}
-                    </span>
                   </div>
+                  <span className="hin-funnel__count">{r.value.toLocaleString()}</span>
                 </div>
               );
             })}

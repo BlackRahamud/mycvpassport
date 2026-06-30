@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
 import HrInsightsPanel from "../Insights/HrInsightsPanel";
@@ -22,50 +22,51 @@ const SearchIc = () => (
   </svg>
 );
 /* ───────── Helpers ───────── */
-function formatPostedDate(s) {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return "—";
-  // m/d/yyyy
-  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+function ts(s) {
+  const t = new Date(s).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 function formatSalary(j) {
   const lo = j?.salary_min, hi = j?.salary_max;
-  if (!lo && !hi) return "—";
+  if (!lo && !hi) return "";
   const cur = j.currency || "AED";
   const fmt = (n) => Number(n).toLocaleString();
   if (lo && hi && lo !== hi) return `${cur} ${fmt(lo)}–${fmt(hi)}`;
   return `${cur} ${fmt(lo || hi)}`;
 }
 
-function isActiveStatus(s) {
-  return s === "active" || s === "published";
+/* Map a raw application status onto a display pipeline stage (rejected and
+   unknown statuses fall through to null and don't show as a pill). */
+function pillStage(status) {
+  if (["new", "submitted", "viewed"].includes(status)) return "new";
+  if (["shortlisted", "ready"].includes(status)) return "review";
+  if (["interviewing", "interviewed"].includes(status)) return "interviewed";
+  if (status === "offered") return "offer";
+  if (status === "hired") return "hired";
+  return null;
 }
+const PILL_ORDER = ["new", "review", "interviewed", "offer", "hired"];
+const STALLED_DAYS = 14;
 
-/* Stats roll-up tile. value === null prints an em-dash (truthful when
-   the stats query failed) — value === 0 prints "0" (a real fact). */
-function StatTile({ label, value, suffix = "", accent }) {
-  const display = value == null ? "—" : `${value.toLocaleString()}${suffix}`;
-  return (
-    <div className={`hjl-stat${accent ? ` hjl-stat--${accent}` : ""}`}>
-      <div className="hjl-stat__label">{label}</div>
-      <div className="hjl-stat__value">{display}</div>
-    </div>
-  );
-}
-
-function relativeFromNow(s) {
-  if (!s) return "—";
-  const t = new Date(s).getTime();
-  if (!t) return "—";
-  const days = Math.floor((Date.now() - t) / 86400000);
-  if (days <= 0) return "today";
-  if (days === 1) return "1 day ago";
-  if (days < 30) return `${days} days ago`;
-  const months = Math.floor(days / 30);
-  if (months === 1) return "1 month ago";
-  return `${months} months ago`;
+/* Most urgent need for a job → its status signal + the one action button.
+   Priority: a waiting client verdict (purple) > hot new applicants (green) >
+   stalled with no recent activity (amber) > active (blue). */
+function jobSignal(agg, job) {
+  const newCount = agg.stages.new || 0;
+  const verdicts = agg.verdictAppIds.size;
+  const lastTs = agg.lastTs || ts(job.posted_at || job.created_at);
+  const daysSince = lastTs ? Math.floor((Date.now() - lastTs) / 86400000) : null;
+  if (verdicts > 0) {
+    return { kind: "verdict", label: `${verdicts} client verdict${verdicts > 1 ? "s" : ""}`, action: { label: "See verdict", variant: "verdict", to: `/hr/jobs/${job.id}?app=${agg.verdictAppId}` } };
+  }
+  if (newCount > 0) {
+    return { kind: "hot", label: `hot, ${newCount} new`, action: { label: `Review ${newCount} new`, variant: "primary", to: `/hr/jobs/${job.id}?stage=shortlist` } };
+  }
+  if (daysSince != null && daysSince >= STALLED_DAYS) {
+    return { kind: "stalled", label: `stalled ${daysSince}d`, action: { label: "Source talent", variant: "ghost", to: "/hr/post" } };
+  }
+  return { kind: "active", label: "active", action: { label: "View applicants", variant: "quiet", to: `/hr/jobs/${job.id}` } };
 }
 
 /* Fresh-agency onboarding empty state — the first thing a brand-new, empty
@@ -124,7 +125,7 @@ export default function JobsListPage() {
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ total: null, active: null, applicants: null, interviews: null });
+  const [agg, setAgg] = useState(null); // Map<jobId, { stages, lastTs, verdictAppIds, verdictAppId }>
   const [mainTab, setMainTab] = useState("jobs"); // jobs | insights
 
   useEffect(() => {
@@ -178,52 +179,44 @@ export default function JobsListPage() {
     return () => { live = false; };
   }, [view, user?.id]);
 
-  // Stats bar — four roll-ups across the HR's whole portfolio. All use
-  // head:true so Supabase returns the count without shipping rows. The
-  // 4th is "interviews scheduled" — a cheap, honest portfolio metric;
-  // the old "avg ATS match" is gone (the per-candidate AI Verdict is the
-  // single source of truth for score, shown only in the candidate detail).
+  // Per-job aggregates for the triage rows: pipeline stage counts, last
+  // activity, and waiting client verdicts. One applications read + one
+  // share_feedback read (RLS-scoped), aggregated client-side.
   useEffect(() => {
     if (!user?.id) return;
     let live = true;
     (async () => {
-      try {
-        const [
-          { count: total },
-          { count: active },
-          { count: applicants },
-          { count: interviews },
-        ] = await Promise.all([
-          supabase.from("jobs")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id)
-            .eq("source", "hr_portal"),
-          supabase.from("jobs")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id)
-            .eq("source", "hr_portal")
-            .in("status", ["active", "published"]),
-          supabase.from("applications")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id),
-          supabase.from("interviews")
-            .select("id", { count: "exact", head: true })
-            .eq("hr_id", user.id)
-            .eq("status", "scheduled"),
-        ]);
-        if (!live) return;
-        setStats({
-          total:      total ?? 0,
-          active:     active ?? 0,
-          applicants: applicants ?? 0,
-          interviews: interviews ?? 0,
-        });
-      } catch (_e) {
-        if (!live) return;
-        // Stats are decorative — leave them as nulls so the UI shows
-        // an em-dash rather than zeros that would lie about state.
-        setStats({ total: null, active: null, applicants: null, interviews: null });
-      }
+      const [appsRes, fbRes] = await Promise.all([
+        supabase.from("applications").select("id, job_id, status, applied_at").eq("hr_id", user.id).limit(5000),
+        supabase.from("share_feedback").select("created_at, candidate_shares!inner(application_id)").order("created_at", { ascending: false }).limit(500),
+      ]);
+      if (!live) return;
+      const apps = appsRes.data || [];
+      const appJob = new Map(apps.map((a) => [a.id, a.job_id]));
+      const m = new Map();
+      const ensure = (jid) => {
+        let x = m.get(jid);
+        if (!x) { x = { stages: { new: 0, review: 0, interviewed: 0, offer: 0, hired: 0 }, lastTs: 0, verdictAppIds: new Set(), verdictAppId: null }; m.set(jid, x); }
+        return x;
+      };
+      apps.forEach((a) => {
+        const x = ensure(a.job_id);
+        const st = pillStage(a.status);
+        if (st) x.stages[st] += 1;
+        const t = ts(a.applied_at);
+        if (t > x.lastTs) x.lastTs = t;
+      });
+      // fbRes is newest-first, so the first verdict seen per job is the most recent.
+      (fbRes.data || []).forEach((r) => {
+        const appId = r.candidate_shares?.application_id;
+        const jid = appId ? appJob.get(appId) : null;
+        if (jid && !ensure(jid).verdictAppIds.has(appId)) {
+          const x = ensure(jid);
+          if (!x.verdictAppId) x.verdictAppId = appId;
+          x.verdictAppIds.add(appId);
+        }
+      });
+      setAgg(m);
     })();
     return () => { live = false; };
   }, [user?.id]);
@@ -234,6 +227,8 @@ export default function JobsListPage() {
     if (!q) return jobs;
     return jobs.filter((j) => (j.title || "").toLowerCase().includes(q));
   }, [jobs, search]);
+
+  const EMPTY_AGG = { stages: {}, lastTs: 0, verdictAppIds: new Set(), verdictAppId: null };
 
   const greetingName = useMemo(() => {
     const meta = user?.user_metadata || {};
@@ -286,24 +281,19 @@ export default function JobsListPage() {
           </div>
         </div>
 
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={mainTab}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+        >
         {mainTab === "insights" ? (
           <HrInsightsPanel user={user} onGoToJobs={() => setMainTab("jobs")} />
         ) : (
         <>
         <AttentionPanel user={user} />
-
-        <motion.div
-          className="hjl-stats"
-          initial={reduce ? false : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-          aria-label="Portfolio summary"
-        >
-          <StatTile label="Total Jobs"       value={stats.total} />
-          <StatTile label="Active Jobs"      value={stats.active} accent="ok" />
-          <StatTile label="Total Applicants" value={stats.applicants} />
-          <StatTile label="Interviews Scheduled" value={stats.interviews} />
-        </motion.div>
 
         <motion.div
           className="hjl-header"
@@ -380,42 +370,53 @@ export default function JobsListPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.36, ease: [0.4, 0, 0.2, 1], delay: 0.05 }}
           >
-            <div className="hjl-table__head">
-              <span>Job Title</span>
-              <span>Salary</span>
-              <span>Posted</span>
-              <span>Last Activity</span>
+            <div className="hjl-thead">
+              <span>Role</span>
+              <span>Pipeline</span>
               <span className="hjl-table__head--action">Action</span>
             </div>
             {filtered.map((j, i) => {
-              const live = isActiveStatus(j.status);
+              const a = (agg && agg.get(j.id)) || EMPTY_AGG;
+              const aggSafe = { stages: a.stages || {}, lastTs: a.lastTs || 0, verdictAppIds: a.verdictAppIds || new Set(), verdictAppId: a.verdictAppId };
+              const sig = jobSignal(aggSafe, j);
+              const pills = PILL_ORDER.filter((s) => (aggSafe.stages[s] || 0) > 0).map((s) => ({ stage: s, count: aggSafe.stages[s] }));
+              const salary = formatSalary(j);
               return (
                 <motion.div
                   key={j.id}
-                  className="hjl-table__row"
+                  className="hjl-trow"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/hr/jobs/${j.id}`)}
+                  onKeyDown={(e) => { if (e.key === "Enter") navigate(`/hr/jobs/${j.id}`); }}
                   initial={reduce ? false : { opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1], delay: Math.min(i * 0.025, 0.18) }}
                 >
-                  <div className="hjl-table__title-cell">
-                    <div className="hjl-table__title-row">
-                      <p className="hjl-table__title">{j.title}</p>
-                      <span className={`hjl-status-badge hjl-status-badge--${live ? "active" : "inactive"}`}>
-                        <span className="hjl-status-badge__dot" aria-hidden />
-                        {live ? "Active" : "Inactive"}
-                      </span>
-                    </div>
+                  <div className="hjl-trow__role">
+                    <p className="hjl-trow__title">{j.title}</p>
+                    {salary && <p className="hjl-trow__salary">{salary}</p>}
+                    <span className={`hjl-signal hjl-signal--${sig.kind}`}>
+                      <span className="hjl-signal__dot" aria-hidden />
+                      {sig.label}
+                    </span>
                   </div>
-                  <span className="hjl-table__cell hjl-table__cell--salary">{formatSalary(j)}</span>
-                  <span className="hjl-table__cell">{formatPostedDate(j.posted_at || j.created_at)}</span>
-                  <span className="hjl-table__cell hjl-table__cell--muted">{relativeFromNow(j.posted_at || j.created_at)}</span>
-                  <button
-                    type="button"
-                    className="hjl-row-action"
-                    onClick={() => navigate(`/hr/jobs/${j.id}`)}
-                  >
-                    View Applicants
-                  </button>
+                  <div className="hjl-trow__pipeline">
+                    {pills.length === 0
+                      ? <span className="hjl-trow__empty">No applicants yet</span>
+                      : pills.map((p) => (
+                          <span key={p.stage} className={`hjl-pill hjl-pill--${p.stage}`}>{p.count} {p.stage}</span>
+                        ))}
+                  </div>
+                  <div className="hjl-trow__action">
+                    <button
+                      type="button"
+                      className={`hjl-act hjl-act--${sig.action.variant}`}
+                      onClick={(e) => { e.stopPropagation(); navigate(sig.action.to); }}
+                    >
+                      {sig.action.label}
+                    </button>
+                  </div>
                 </motion.div>
               );
             })}
@@ -423,6 +424,8 @@ export default function JobsListPage() {
         )}
         </>
         )}
+        </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

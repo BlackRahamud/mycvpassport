@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
@@ -205,6 +205,8 @@ export default function JobPipelinePage() {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
   const { id: jobId } = useParams();
+  const [searchParams] = useSearchParams();
+  const deepLinkApplied = useRef(false);
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -302,6 +304,28 @@ export default function JobPipelinePage() {
       return acc;
     }, { ...empty });
   }, [apps]);
+
+  /* Deep link from the jobs triage table: ?app=<id> opens that candidate
+     (and its stage), ?stage=<key> opens that stage. Applied once, after the
+     apps load, then normal navigation takes over. */
+  useEffect(() => {
+    if (deepLinkApplied.current || !apps) return;
+    const wantApp = searchParams.get("app");
+    const wantStage = searchParams.get("stage");
+    if (wantApp) {
+      const a = apps.find((x) => x.id === wantApp);
+      if (a) {
+        setActiveStage(STAGE_BY_DB[a.status] || "shortlist");
+        setSelectedAppId(wantApp);
+        deepLinkApplied.current = true;
+        return;
+      }
+    }
+    if (wantStage && STAGES.some((s) => s.key === wantStage)) {
+      setActiveStage(wantStage);
+      deepLinkApplied.current = true;
+    }
+  }, [apps, searchParams]);
 
   /* Auto-select the first card in the active stage when stage changes */
   const visibleCards = useMemo(() => stageBuckets[activeStage] || [], [stageBuckets, activeStage]);

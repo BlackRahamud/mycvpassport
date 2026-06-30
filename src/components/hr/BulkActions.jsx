@@ -142,9 +142,15 @@ export default function BulkActions({ selected, onClear, onApplyStatus, statusBu
           style={{
             pointerEvents: "auto", width: "min(760px, 100%)",
             display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-            padding: "10px 12px", background: "var(--pj-surface)",
-            border: "1px solid var(--pj-border)", borderRadius: 14,
-            boxShadow: "var(--pj-shadow-card)",
+            padding: "10px 12px",
+            // Floating surface → glass: translucent white + blur so the list
+            // shows through. Allowed here precisely because it floats.
+            background: "rgba(255, 255, 255, 0.74)",
+            backdropFilter: "blur(18px) saturate(1.7)",
+            WebkitBackdropFilter: "blur(18px) saturate(1.7)",
+            border: "1px solid rgba(255, 255, 255, 0.6)",
+            borderRadius: 16,
+            boxShadow: "0 16px 44px -16px rgba(20, 19, 31, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
           }}
         >
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pj-text)" }}>
