@@ -37,17 +37,61 @@
 }
 .hin-filters__spacer { flex: 1; }
 
-/* ── Stat cards (5-up, reuse hjl-stat card body) ────────────── */
-.hin-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
+/* ── Overview (uniform 4-up grid of stat cards) ─────────────── */
+.hin-overview { margin-bottom: 20px; }
+.hin-overview__title {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pj-text);
 }
-.hin-stat--goal .hjl-stat__value { color: var(--hin-amber); }
-.hin-stats .hjl-stat__label { display: inline-flex; align-items: center; gap: 6px; }
-.hin-stat__icon { display: inline-flex; color: var(--pj-muted); flex-shrink: 0; }
-.hin-stat--goal .hin-stat__icon { color: var(--hin-amber); }
+.hin-ov-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.hin-ov-card {
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+.hin-ov-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.hin-ov-card__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+  margin-bottom: 4px;
+}
+.hin-ov-card__value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--pj-text);
+  font-feature-settings: "tnum";
+}
+/* Soft tinted icon squares (Tailwind 100 bg / 600 fg, per the 21st card) */
+.hin-ov-card__icon--blue    { background: #DBEAFE; color: #2563EB; }
+.hin-ov-card__icon--purple  { background: #F3E8FF; color: #9333EA; }
+.hin-ov-card__icon--indigo  { background: #E0E7FF; color: #4F46E5; }
+.hin-ov-card__icon--emerald { background: #D1FAE5; color: #059669; }
+.hin-ov-card__icon--green   { background: #DCFCE7; color: #16A34A; }
+.hin-ov-card__icon--amber   { background: #FEF3C7; color: #D97706; }
+.hin-ov-card__icon--teal    { background: #CCFBF1; color: #0D9488; }
+.hin-ov-card__icon--red     { background: #FEE2E2; color: #DC2626; }
 
 /* ── Generic chart card ─────────────────────────────────────── */
 .hin-card {
@@ -225,8 +269,12 @@
 
 /* ── Desktop layout ─────────────────────────────────────────── */
 @media (min-width: 760px) {
-  .hin-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .hin-grid { grid-template-columns: 1fr; }
+}
+
+/* Overview grid: 4-up on desktop, 2-up below 900px. */
+@media (max-width: 900px) {
+  .hin-ov-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Mobile: tables scroll horizontally rather than crush. */

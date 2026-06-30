@@ -5,7 +5,7 @@ import { supabase } from "../../../appSupabaseClient";
 import "./hrInsights.css";
 
 /* ───────── Stat-card icons (feather-style, monotone — matches the portal) ───────── */
-const S = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
+const S = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true };
 const IcBriefcase = () => (<svg {...S}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>);
 const IcUsers = () => (<svg {...S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
 const IcUserCheck = () => (<svg {...S}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><polyline points="16 11 18 13 22 9" /></svg>);
@@ -57,16 +57,15 @@ function median(nums) {
 
 const EASE = [0.4, 0, 0.2, 1];
 
-/* Reuse the hjl-stat card body so the cards read as the same product. */
-function StatCard({ label, value, suffix = "", goal = false, icon = null }) {
+/* Uniform overview card: tinted icon square, uppercase muted label, big
+   bold number. Every card is the same width and height in the grid. */
+function StatCard({ label, value, suffix = "", icon = null, tint = "blue" }) {
   const display = value == null ? "—" : `${value.toLocaleString()}${suffix}`;
   return (
-    <div className={`hjl-stat${goal ? " hin-stat--goal" : ""}`}>
-      <div className="hjl-stat__label">
-        {icon && <span className="hin-stat__icon">{icon}</span>}
-        {label}
-      </div>
-      <div className="hjl-stat__value">{display}</div>
+    <div className="hin-ov-card">
+      <span className={`hin-ov-card__icon hin-ov-card__icon--${tint}`} aria-hidden>{icon}</span>
+      <div className="hin-ov-card__label">{label}</div>
+      <div className="hin-ov-card__value">{display}</div>
     </div>
   );
 }
@@ -380,33 +379,25 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
         </div>
       </div>
 
-      {/* Stat cards */}
-      <motion.div
-        className="hin-stats"
-        initial={reduce ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: EASE }}
-      >
-        <StatCard label="Active Jobs" value={model.activeJobs} icon={<IcBriefcase />} />
-        <StatCard label="Applicants" value={f.applicants} icon={<IcUsers />} />
-        <StatCard label="Shortlisted" value={f.shortlisted} icon={<IcUserCheck />} />
-        <StatCard label="Interviewed" value={f.interviewed} icon={<IcChat />} />
-        <StatCard label="Hires" value={f.hired} goal icon={<IcAward />} />
-      </motion.div>
-
-      {/* Interview outcomes (from the interviews table) */}
-      <motion.div
-        className="hin-stats"
-        style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}
-        initial={reduce ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: EASE, delay: 0.02 }}
-        aria-label="Interview outcomes"
-      >
-        <StatCard label="Interviews scheduled" value={interviewMetrics.scheduled} icon={<IcCalendar />} />
-        <StatCard label="Completed" value={interviewMetrics.completed} icon={<IcCheckCircle />} />
-        <StatCard label="No-show rate" value={interviewMetrics.noShowRate} suffix={interviewMetrics.noShowRate == null ? "" : "%"} icon={<IcUserX />} />
-      </motion.div>
+      {/* Overview — eight live metrics in one uniform grid */}
+      <section className="hin-overview">
+        <h2 className="hin-overview__title">Overview</h2>
+        <motion.div
+          className="hin-ov-grid"
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.32, ease: EASE }}
+        >
+          <StatCard label="Active jobs" value={model.activeJobs} icon={<IcBriefcase />} tint="blue" />
+          <StatCard label="Applicants" value={f.applicants} icon={<IcUsers />} tint="purple" />
+          <StatCard label="Shortlisted" value={f.shortlisted} icon={<IcUserCheck />} tint="indigo" />
+          <StatCard label="Interviewed" value={f.interviewed} icon={<IcChat />} tint="emerald" />
+          <StatCard label="Hires" value={f.hired} icon={<IcAward />} tint="green" />
+          <StatCard label="Interviews scheduled" value={interviewMetrics.scheduled} icon={<IcCalendar />} tint="amber" />
+          <StatCard label="Completed" value={interviewMetrics.completed} icon={<IcCheckCircle />} tint="teal" />
+          <StatCard label="No-show rate" value={interviewMetrics.noShowRate} suffix={interviewMetrics.noShowRate == null ? "" : "%"} icon={<IcUserX />} tint="red" />
+        </motion.div>
+      </section>
 
       <div className="hin-grid">
         {/* Funnel */}
