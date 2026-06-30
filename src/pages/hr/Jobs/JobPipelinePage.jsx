@@ -6,6 +6,7 @@ import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
+import PaneEmpty from "../../../components/hr/PaneEmpty";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
@@ -722,15 +723,10 @@ function CandidateDetail({
   const [cvOpen, setCvOpen] = useState(false);
   if (!candidate) {
     return (
-      <motion.aside
-        className="jpp-detail jpp-detail--empty"
-        initial={reduce ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1], delay: 0.05 }}
-      >
-        <h3>No candidate selected</h3>
-        <p>Pick a candidate from the list to review their CV, screening answers, and recruiter notes.</p>
-      </motion.aside>
+      <PaneEmpty
+        title="No candidate selected"
+        body="Pick a candidate from the list to review their CV, screening answers, and recruiter notes."
+      />
     );
   }
 

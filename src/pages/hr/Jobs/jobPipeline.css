@@ -848,6 +848,7 @@
 }
 .jpp-detail--empty h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--pj-text); }
 .jpp-detail--empty p  { margin: 0; font-size: 13px; max-width: 360px; line-height: 1.5; }
+.jpp-empty-icon { display: inline-flex; color: var(--pj-muted-2, var(--pj-muted)); opacity: 0.75; margin-bottom: 14px; }
 
 .jpp-empty-cards {
   background: #FFFFFF;
