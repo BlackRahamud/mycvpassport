@@ -637,11 +637,11 @@ export default function CandidatesPage() {
                     <label style={{ display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--pj-text-soft)" }}>
                       <input
                         type="checkbox"
+                        className="cand-check"
                         checked={allPageChecked}
                         ref={(el) => { if (el) el.indeterminate = !allPageChecked && pageKeys.some((k) => checkedKeys.has(k)); }}
                         onChange={toggleSelectAllPage}
                         aria-label="Select all candidates on this page"
-                        style={{ width: 17, height: 17, accentColor: "var(--hjl-ink)", cursor: "pointer" }}
                       />
                       Select all ({filtered.length})
                     </label>
@@ -665,10 +665,10 @@ export default function CandidatesPage() {
                         >
                           <input
                             type="checkbox"
+                            className="cand-check"
                             checked={checked}
                             onChange={() => toggleCheck(c.key)}
                             aria-label={`Select ${c.name}`}
-                            style={{ width: 18, height: 18, accentColor: "var(--hjl-ink)", cursor: "pointer" }}
                           />
                         </label>
                         <motion.button

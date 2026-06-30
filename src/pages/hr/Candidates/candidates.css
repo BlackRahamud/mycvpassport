@@ -114,6 +114,66 @@
 }
 .cand-avail-line svg { color: var(--pj-muted); flex-shrink: 0; }
 
+/* ── Selection checkbox (fully custom; overrides the global input:focus
+   ring in index.css so there is no framing box around the tick) ── */
+.cand-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+  border: 1.5px solid var(--pj-border-strong, #C9C9D2);
+  border-radius: 5px;
+  background: #FFFFFF;
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  box-shadow: none !important;
+  transition: background 120ms var(--pj-ease), border-color 120ms var(--pj-ease);
+}
+.cand-check::before {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-bottom: 2px;
+  border: solid #FFFFFF;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 120ms var(--pj-ease);
+}
+.cand-check:checked,
+.cand-check:checked:focus {
+  background: var(--hjl-ink) !important;
+  border-color: var(--hjl-ink) !important;
+}
+.cand-check:checked::before { transform: rotate(45deg) scale(1); }
+.cand-check:indeterminate {
+  background: var(--hjl-ink) !important;
+  border-color: var(--hjl-ink) !important;
+}
+.cand-check:indeterminate::before {
+  width: 9px;
+  height: 2px;
+  margin: 0;
+  border: 0;
+  border-radius: 1px;
+  background: #FFFFFF;
+  transform: none;
+}
+/* Kill the global amber focus box; restore a subtle ink ring for keyboard
+   users only (focus-visible), never the purple/native square. */
+.cand-check:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.cand-check:not(:checked):not(:indeterminate):focus { border-color: var(--pj-border-strong, #C9C9D2) !important; }
+.cand-check:focus-visible { box-shadow: 0 0 0 3px var(--hjl-ink-ring) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cand-check, .cand-check::before { transition: none !important; }
+}
+
 /* ── Layout: mobile = single column + detail overlay ── */
 .cand-layout { display: block; }
 
