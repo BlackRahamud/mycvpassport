@@ -78,17 +78,21 @@ const MARKET_OPTIONS = [
 /* Availability is derived from the candidate's stated notice period (free
    text on the CV). We only assert a bucket when the text is unambiguous, so
    filtering to "Immediate" shows the people we can actually confirm are
-   immediate — never a guess dressed up as data. */
-function availabilityBucket(cv) {
+   immediate — never a guess dressed up as data. The bucket drives the filter;
+   `line` is the natural phrase shown on the card. */
+function deriveAvailability(cv) {
   const personal = cv.personal || cv.basics || {};
   const raw = String(cv.notice_period || cv.availability || personal.notice_period || personal.availability || "").toLowerCase();
-  if (!raw) return "unknown";
-  if (/(immediate|available now|ready to join|right away|no notice|0\s*day|join now)/.test(raw)) return "immediate";
-  if (/(2\s*month|3\s*month|two month|three month|60\s*day|90\s*day|6\s*month)/.test(raw)) return "notice";
-  if (/(1\s*week|2\s*week|one week|two week|fortnight|10\s*day|15\s*day|1\s*month|one month|30\s*day|4\s*week)/.test(raw)) return "soon";
-  return "unknown";
+  if (!raw) return { bucket: "unknown", line: "" };
+  if (/(immediate|available now|ready to join|right away|no notice|0\s*day|join now)/.test(raw)) return { bucket: "immediate", line: "immediately available" };
+  if (/(1\s*week|one week|7\s*day)/.test(raw)) return { bucket: "soon", line: "1 week notice" };
+  if (/(2\s*week|two week|fortnight|10\s*day|15\s*day)/.test(raw)) return { bucket: "soon", line: "2 weeks notice" };
+  if (/(1\s*month|one month|30\s*day|4\s*week)/.test(raw)) return { bucket: "soon", line: "1 month notice" };
+  if (/(2\s*month|two month|60\s*day)/.test(raw)) return { bucket: "notice", line: "2 months notice" };
+  if (/(3\s*month|three month|90\s*day)/.test(raw)) return { bucket: "notice", line: "3 months notice" };
+  if (/(6\s*month|six month)/.test(raw)) return { bucket: "notice", line: "6 months notice" };
+  return { bucket: "unknown", line: "" };
 }
-const AVAIL_LABEL = { immediate: "Immediate", soon: "Within 1 month", notice: "Longer notice", unknown: "" };
 const AVAIL_OPTIONS = [
   { key: "all", label: "Any availability" },
   { key: "immediate", label: "Immediate" },
@@ -108,7 +112,7 @@ function MatchPill({ score, source }) {
   const color = BAND_COLORS[band];
   return (
     <span className="cand-match" style={{ color, borderColor: `${color}59`, background: `${color}16` }}>
-      {Math.round(Number(score) || 0)}% match
+      {Math.round(Number(score) || 0)}/100
     </span>
   );
 }
@@ -125,6 +129,8 @@ const ChevLeftIc = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="
 const ChevRightIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>);
 const FileIc = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>);
 const ShareIc = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>);
+const ClockIc = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>);
+const UsersIc = () => (<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
 
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
 function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce }) {
@@ -138,6 +144,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
   if (!candidate) {
     return (
       <aside className="jpp-detail jpp-detail--empty cand-detail-placeholder">
+        <span className="cand-empty__icon" aria-hidden><UsersIc /></span>
         <h3>No candidate selected</h3>
         <p>Pick someone from the list to see their profile and every job they've applied to.</p>
       </aside>
@@ -411,7 +418,7 @@ export default function CandidatesPage() {
           const a = c.latest;
           const markets = new Set(c.apps.map((x) => x.market));
           const cvA = getCv(a);
-          const avail = availabilityBucket(cvA);
+          const avail = deriveAvailability(cvA);
           return {
             key: c.key,
             record: a,
@@ -421,8 +428,8 @@ export default function CandidatesPage() {
             visa: a.visa_status || "",
             score: a.ats_score || 0,
             score_source: a.score_source,
-            availability: avail,
-            availabilityLabel: AVAIL_LABEL[avail] || "",
+            availability: avail.bucket,
+            availabilityLine: avail.line,
             market: jobMap.get(a.job_id)?.market || "gulf",
             markets,
             skills: deriveSkills(a),
@@ -681,9 +688,11 @@ export default function CandidatesPage() {
                             <span className={`cand-market cand-market--${c.market === "india" ? "india" : "gulf"}`}>{c.market === "india" ? "India" : "Gulf"}</span>
                             <span className="cand-card__jobs">{c.apps.length} {c.apps.length === 1 ? "job" : "jobs"}</span>
                             <span className="cand-statuschip">{statusLabel(c.apps[0]?.status)}</span>
-                            {c.availabilityLabel && <span className="cand-avail">{c.availabilityLabel}</span>}
                           </div>
                           {c.email && <span className="cand-card__email">{c.email}</span>}
+                          {c.availabilityLine && (
+                            <span className="cand-avail-line"><ClockIc /> {c.availabilityLine}</span>
+                          )}
                         </motion.button>
                       </div>
                     );

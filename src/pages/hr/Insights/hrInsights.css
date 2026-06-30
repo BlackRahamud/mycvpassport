@@ -45,6 +45,9 @@
   margin-bottom: 18px;
 }
 .hin-stat--goal .hjl-stat__value { color: var(--hin-amber); }
+.hin-stats .hjl-stat__label { display: inline-flex; align-items: center; gap: 6px; }
+.hin-stat__icon { display: inline-flex; color: var(--pj-muted); flex-shrink: 0; }
+.hin-stat--goal .hin-stat__icon { color: var(--hin-amber); }
 
 /* ── Generic chart card ─────────────────────────────────────── */
 .hin-card {
