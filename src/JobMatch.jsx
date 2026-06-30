@@ -1,10 +1,11 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { hasFeatureAccess, getPaymentLink } from "./utils/paywall";
 import { useGeoContent } from "./hooks/useGeoContent";
 import { supabase } from "./appSupabaseClient";
 import safeFetch from "./lib/net/safeFetch";
 
-const EASE = "cubic-bezier(0.4,0,0.2,1)";
+const EASE = [0.4, 0, 0.2, 1];
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -94,163 +95,160 @@ function countKeywords(text) {
   return new Set(words).size;
 }
 
-/* ─── Sub-components ─── */
+/* ─── Theme palette (day default, both fully styled) ─── */
+const PALETTE = {
+  light: {
+    bg: "#F4F6F9", panel: "rgba(255,255,255,0.78)", panelSolid: "#FFFFFF", inset: "#F6F7F9",
+    border: "rgba(15,17,21,0.08)", borderStrong: "rgba(15,17,21,0.14)",
+    textPrimary: "#0F1115", textSecondary: "#5B616E", textMuted: "#8A909C",
+    amber: "#D97706", amberSoft: "rgba(217,119,6,0.10)", amberBorder: "rgba(217,119,6,0.30)", onAmber: "#FFFFFF",
+    green: "#059669", greenSoft: "rgba(5,150,105,0.10)", greenBorder: "rgba(5,150,105,0.28)",
+    red: "#DC2626", redSoft: "rgba(220,38,38,0.07)", redBorder: "rgba(220,38,38,0.22)",
+    ringTrack: "#E7EAEF", zone: "rgba(5,150,105,0.18)",
+    aurora1: "rgba(217,119,6,0.10)", aurora2: "rgba(5,150,105,0.09)",
+    glassBg: "rgba(255,255,255,0.66)", glassBorder: "rgba(255,255,255,0.7)", overlay: "rgba(244,246,249,0.55)",
+    shadow: "0 18px 50px -28px rgba(15,17,21,0.35)",
+  },
+  dark: {
+    bg: "#0A0A0A", panel: "rgba(20,20,20,0.72)", panelSolid: "#121212", inset: "#161616",
+    border: "rgba(255,255,255,0.08)", borderStrong: "rgba(255,255,255,0.16)",
+    textPrimary: "#FFFFFF", textSecondary: "#A0A0A0", textMuted: "#6B6B6B",
+    amber: "#F59E0B", amberSoft: "rgba(245,158,11,0.12)", amberBorder: "rgba(245,158,11,0.32)", onAmber: "#0A0A0A",
+    green: "#10B981", greenSoft: "rgba(16,185,129,0.12)", greenBorder: "rgba(16,185,129,0.30)",
+    red: "#EF4444", redSoft: "rgba(239,68,68,0.10)", redBorder: "rgba(239,68,68,0.26)",
+    ringTrack: "#242424", zone: "rgba(16,185,129,0.22)",
+    aurora1: "rgba(245,158,11,0.14)", aurora2: "rgba(16,185,129,0.10)",
+    glassBg: "rgba(18,18,18,0.6)", glassBorder: "rgba(255,255,255,0.08)", overlay: "rgba(10,10,10,0.5)",
+    shadow: "0 18px 50px -28px rgba(0,0,0,0.7)",
+  },
+};
 
-function CircularScore({ score }) {
-  const safe = Math.max(0, Math.min(100, Number(score) || 0));
-  const radius = 56;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (safe / 100) * circumference;
+function scoreColor(t, s) {
+  if (s >= 80) return t.green;
+  if (s >= 60) return t.amber;
+  return t.red;
+}
+function verdict(s) {
+  if (s >= 80) return "Strong match";
+  if (s >= 60) return "Good, close the gap";
+  return "Needs work";
+}
 
+/* ─── Icons (inline, monotone) ─── */
+const Ic = (p) => ({ width: p.size || 18, height: p.size || 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: p.sw || 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true });
+const IconSun = (p) => (<svg {...Ic({ size: p.size, sw: 2 })}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>);
+const IconMoon = (p) => (<svg {...Ic({ size: p.size, sw: 2 })}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>);
+const IconRadar = (p) => (<svg {...Ic({ size: p.size })}><circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" /></svg>);
+const IconBulb = (p) => (<svg {...Ic({ size: p.size })}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" /></svg>);
+const IconCheck = (p) => (<svg {...Ic({ size: p.size, sw: 2.4 })}><path d="M20 6 9 17l-5-5" /></svg>);
+const IconPlus = (p) => (<svg {...Ic({ size: p.size, sw: 2.4 })}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
+const IconDownload = (p) => (<svg {...Ic({ size: p.size, sw: 2 })}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>);
+const IconLock = (p) => (<svg {...Ic({ size: p.size })}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>);
+const IconSpark = (p) => (<svg {...Ic({ size: p.size })}><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.4L12 15l-1.9-4.6L5.5 9l4.6-1.4L12 3z" /></svg>);
+const IconArrow = (p) => (<svg {...Ic({ size: p.size, sw: 2.2 })}><path d="M5 12h13M13 6l6 6-6 6" /></svg>);
+
+/* ─── Cinematic score gauge with shortlist zone ─── */
+function Gauge({ score, color, t, reduce }) {
+  const size = 196, stroke = 14, r = (size - stroke) / 2 - 6;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score));
+  const progressOffset = c - (pct / 100) * c;
+  // shortlist zone arc from 80 to 100 (last 20% of the circle)
+  const zoneLen = 0.2 * c;
+  const tickAngle = -90 + (80 / 100) * 360; // 80% position
+  const tickRad = (tickAngle * Math.PI) / 180;
+  const cx = size / 2, cy = size / 2;
+  const t1 = { x: cx + (r - stroke / 2 - 3) * Math.cos(tickRad), y: cy + (r - stroke / 2 - 3) * Math.sin(tickRad) };
+  const t2 = { x: cx + (r + stroke / 2 + 3) * Math.cos(tickRad), y: cy + (r + stroke / 2 + 3) * Math.sin(tickRad) };
   return (
-    <div style={{ position: "relative", width: 150, height: 150 }}>
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle cx="75" cy="75" r={radius} fill="transparent" stroke="#2A2A2A" strokeWidth="12" />
-        <circle
-          cx="75"
-          cy="75"
-          r={radius}
-          fill="transparent"
-          stroke="#22C55E"
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform="rotate(-90 75 75)"
-          style={{ transition: `stroke-dashoffset 300ms ${EASE}` }}
-        />
+    <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
+      {/* glow blob (box-shadow style, no drop-shadow) */}
+      <div aria-hidden style={{ position: "absolute", inset: 18, borderRadius: "50%", background: `radial-gradient(circle, ${color}22 0%, transparent 68%)`, filter: "blur(2px)" }} />
+      <svg width={size} height={size} style={{ position: "relative" }}>
+        <defs>
+          <linearGradient id="jm-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={t.amber} />
+            <stop offset="100%" stopColor={t.green} />
+          </linearGradient>
+        </defs>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={t.ringTrack} strokeWidth={stroke} />
+        {/* shortlist zone */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={t.zone} strokeWidth={stroke}
+          strokeDasharray={`${zoneLen} ${c - zoneLen}`} strokeDashoffset={-(0.8 * c)} transform={`rotate(-90 ${cx} ${cy})`} strokeLinecap="butt" />
+        {/* 80 tick */}
+        <line x1={t1.x} y1={t1.y} x2={t2.x} y2={t2.y} stroke={t.green} strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+        {/* progress */}
+        <motion.circle cx={cx} cy={cy} r={r} fill="none" stroke="url(#jm-grad)" strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={c} transform={`rotate(-90 ${cx} ${cy})`}
+          initial={reduce ? false : { strokeDashoffset: c }}
+          animate={{ strokeDashoffset: progressOffset }}
+          transition={{ duration: reduce ? 0 : 0.9, ease: EASE }} />
       </svg>
-      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ color: "#FFFFFF", fontWeight: 800, fontSize: 38, lineHeight: 1 }}>{safe}</div>
-          <div style={{ color: "#A0A0A0", fontSize: 12, marginTop: 4 }}>% Match</div>
-        </div>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: 52, fontWeight: 800, letterSpacing: "-2px", lineHeight: 1, color }}>{Math.round(score)}</div>
+        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4, fontWeight: 500 }}>out of 100</div>
       </div>
     </div>
   );
 }
 
-function BlurredScore() {
-  const radius = 56;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - 0.62 * circumference;
-
-  return (
-    <div style={{ position: "relative", width: 150, height: 150, filter: "blur(8px)" }}>
-      <svg width="150" height="150" viewBox="0 0 150 150">
-        <circle cx="75" cy="75" r={radius} fill="transparent" stroke="#2A2A2A" strokeWidth="12" />
-        <circle cx="75" cy="75" r={radius} fill="transparent" stroke="#D97706" strokeWidth="12" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} transform="rotate(-90 75 75)" />
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-        <div style={{ color: "#FFFFFF", fontWeight: 800, fontSize: 38, lineHeight: 1 }}>??</div>
-      </div>
-    </div>
-  );
+/* count-up hook honouring reduced motion */
+function useCountUp(target, reduce) {
+  const [val, setVal] = useState(target);
+  const ref = useRef(target);
+  useEffect(() => {
+    if (reduce) { ref.current = target; setVal(target); return undefined; }
+    const from = ref.current; const dur = 700; const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const p = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const v = Math.round(from + (target - from) * eased);
+      ref.current = v; setVal(v);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, reduce]);
+  return val;
 }
 
-function Chip({ text, good }) {
+/* ─── Keyword chip ─── */
+function KwChip({ k, kind, t, reduce, onClick }) {
+  const matched = kind === "matched";
+  const tappable = Boolean(onClick);
   return (
-    <span
+    <motion.button
+      type="button"
+      layout={!reduce}
+      layoutId={tappable || kind === "added" ? `kw-${k}` : undefined}
+      onClick={onClick || undefined}
+      initial={reduce ? false : { opacity: 0, scale: 0.86 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.86 }}
+      whileTap={reduce || !tappable ? undefined : { scale: 0.94 }}
+      transition={{ duration: reduce ? 0 : 0.26, ease: EASE }}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "8px 12px",
-        borderRadius: 999,
-        border: `1px solid ${good ? "#22C55E" : "#EF4444"}`,
-        background: good ? "rgba(34, 197, 94, 0.14)" : "rgba(239, 68, 68, 0.14)",
-        color: good ? "#22C55E" : "#EF4444",
-        fontSize: 12,
-        fontWeight: 600,
+        display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999,
+        border: `1px solid ${matched ? t.greenBorder : t.redBorder}`,
+        background: matched ? t.greenSoft : t.redSoft,
+        color: matched ? t.green : t.red,
+        fontSize: 12.5, fontWeight: 600, cursor: tappable ? "pointer" : "default",
+        font: "inherit", fontFamily: "inherit", lineHeight: 1,
       }}
+      title={tappable ? (matched ? "remove from preview" : "add to preview") : undefined}
     >
-      {good ? "\u2713" : "\u2717"} {text}
-    </span>
+      <span style={{ display: "inline-flex" }}>{matched ? <IconCheck size={13} /> : <IconPlus size={13} />}</span>
+      {k}
+    </motion.button>
   );
 }
 
-function BlurredChip({ color }) {
-  const w = 60 + Math.random() * 50;
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        width: w,
-        height: 32,
-        borderRadius: 999,
-        background: color === "amber" ? "rgba(217, 119, 6, 0.18)" : "rgba(255,255,255,0.08)",
-        border: `1px solid ${color === "amber" ? "rgba(217,119,6,0.3)" : "rgba(255,255,255,0.12)"}`,
-        filter: "blur(6px)",
-      }}
-    />
-  );
-}
-
-function SkeletonBlock({ height, width = "100%", radius = 10 }) {
-  return (
-    <div
-      style={{
-        height,
-        width,
-        borderRadius: radius,
-        background: "linear-gradient(90deg, #1C1C1C 25%, #232323 37%, #1C1C1C 63%)",
-        backgroundSize: "400% 100%",
-        animation: "jobmatch-skeleton 1.4s ease infinite",
-      }}
-    />
-  );
-}
-
-/* ─── Geo copy maps ─── */
-
-function getGeoSubheading(isIndia) {
-  if (isIndia) return "10,000 applicants. One shortlist. Be on it.";
-  return "UAE recruiters scan CVs in 6 seconds. See exactly which keywords you\u2019re missing.";
-}
-
-function getGeoSubheadingGlobal() {
-  return "Global companies use ATS to filter hundreds of CVs in seconds. Make yours match.";
-}
-
-function getGeoPaywallHeadline(isIndia) {
-  if (isIndia) return "Stop guessing. See the exact keywords that get you shortlisted.";
-  return "See exactly which keywords Dubai recruiters are scanning for";
-}
-
-function getGeoPaywallHeadlineGlobal() {
-  return "Global companies use ATS to filter CVs in seconds. See exactly where you stand.";
-}
-
-function getGeoCta(isIndia) {
-  if (isIndia) return "Unlock Job Match \u2014 \u20B9199/month";
-  return "Unlock Job Match \u2014 AED 29/month";
-}
-
-/* ─── Lock icon SVG ─── */
-function LockIcon({ size = 32 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-/* ─── Crosshair icon SVG ─── */
-function CrosshairIcon() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
-      <circle cx="12" cy="12" r="10" />
-      <line x1="22" y1="12" x2="18" y2="12" />
-      <line x1="6" y1="12" x2="2" y2="12" />
-      <line x1="12" y1="6" x2="12" y2="2" />
-      <line x1="12" y1="22" x2="12" y2="18" />
-    </svg>
-  );
+function Skeleton({ h, w = "100%", r = 12, t }) {
+  return <div style={{ height: h, width: w, borderRadius: r, background: t.inset, position: "relative", overflow: "hidden" }} className="jm-shimmer" />;
 }
 
 /* ─── Main component ─── */
-
 export default function JobMatch({
   resume,
   selectedTemplate,
@@ -261,14 +259,24 @@ export default function JobMatch({
   downloadState = { status: "idle" },
   onNavigateToContent = null,
 }) {
+  const reduce = useReducedMotion();
   const hasCv = Boolean(resume?.name && String(resume.name).trim());
   const dlBusy = downloadState?.status === "generating";
+
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("cvp-dash-theme") || "light"; } catch { return "light"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("cvp-dash-theme", theme); } catch { /* storage unavailable */ }
+  }, [theme]);
+  const t = PALETTE[theme] || PALETTE.light;
+
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [added, setAdded] = useState(() => new Set()); // tapped missing keywords (preview only)
   const [showPaywall, setShowPaywall] = useState(false);
-  const [paywallDismissed, setPaywallDismissed] = useState(false);
   const templateKey = useMemo(() => detectTemplateKey(selectedTemplate), [selectedTemplate]);
   const geo = useGeoContent();
   const isIndia = geo?.isIndia ?? false;
@@ -280,13 +288,6 @@ export default function JobMatch({
     [isPro, features]
   );
 
-  // Determine subheading based on geo
-  const subheading = useMemo(() => {
-    if (isIndia) return getGeoSubheading(true);
-    if (geo?.currency === "AED") return getGeoSubheading(false);
-    return getGeoSubheadingGlobal();
-  }, [isIndia, geo?.currency]);
-
   const inFlightRef = useRef(false);
 
   useEffect(() => {
@@ -297,7 +298,6 @@ export default function JobMatch({
     if (inFlightRef.current) return;
     if (!hasAccess) {
       setShowPaywall(true);
-      setPaywallDismissed(false);
       return;
     }
     const jd = normalizeText(jobDescription);
@@ -310,6 +310,7 @@ export default function JobMatch({
     setLoading(true);
     setError("");
     setResult(null);
+    setAdded(new Set());
     setShowPaywall(false);
 
     try {
@@ -359,7 +360,7 @@ export default function JobMatch({
           }
           // Non-OK responses are absorbed — never retry, never throw.
         } catch {
-          /* AI suggestion is enrichment, not required — silently fall back. */
+          /* AI suggestion is enrichment, not required, silently fall back. */
         }
       }
 
@@ -372,7 +373,10 @@ export default function JobMatch({
         score: finalScore,
         matched: matched.slice(0, 40),
         missing: uniqueMissing.slice(0, 40),
-        suggestion: suggestion || "Add 2\u20133 high-priority missing terms naturally in your summary and latest role bullets.",
+        suggestion: suggestion || "Add 2 to 3 high-priority missing terms naturally in your summary and latest role bullets.",
+        // exposed for the honest live projection (already-computed values, not new logic):
+        poolSize: pool.length,
+        missingTotal: uniqueMissing.length,
       });
     } catch (e) {
       setError(e.message || "Analysis failed.");
@@ -387,353 +391,278 @@ export default function JobMatch({
     if (url) window.location.href = url;
   }, []);
 
-  /* ── Render ── */
+  /* ── Projection (preview only, honest formula) ── */
+  const projected = useMemo(() => {
+    if (!result) return 0;
+    const poolSize = result.poolSize || 0;
+    if (!poolSize) return result.score;
+    const total = result.missingTotal ?? result.missing.length;
+    const projMissing = Math.max(0, total - added.size);
+    return Math.max(0, Math.min(100, Math.round(((poolSize - projMissing) / poolSize) * 100)));
+  }, [result, added]);
 
-  const showEmptyState = !loading && !result && !showPaywall;
+  const display = useCountUp(result ? projected : 0, reduce);
+  const dispColor = scoreColor(t, display);
+  const inZone = projected >= 80;
+  const gap = Math.max(0, 80 - projected);
+
+  const toggleAdd = (k) => setAdded((prev) => {
+    const n = new Set(prev);
+    if (n.has(k)) n.delete(k); else n.add(k);
+    return n;
+  });
+
+  const matchedNow = result ? [...result.matched, ...result.missing.filter((k) => added.has(k))] : [];
+  const missingNow = result ? result.missing.filter((k) => !added.has(k)) : [];
+
+  const ctaPrice = isIndia ? "₹199 per month" : "AED 29 per month";
+
+  /* ── Subcomponents for the right pane ── */
+  const panelStyle = {
+    background: t.panel, backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)",
+    border: `1px solid ${t.border}`, borderRadius: 20, boxShadow: t.shadow,
+  };
+
+  const ResultBody = result ? (
+    <motion.div
+      data-jobmatch-result="true" data-jobmatch-score={result.score}
+      initial={reduce ? false : "hidden"} animate="show"
+      variants={{ show: { transition: { staggerChildren: reduce ? 0 : 0.06, delayChildren: reduce ? 0 : 0.15 } } }}
+      style={{ display: "grid", gap: 22 }}
+    >
+      {/* gauge + verdict + shortlist gap */}
+      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: EASE }} style={{ display: "grid", gap: 12, justifyItems: "center" }}>
+        <Gauge score={display} color={dispColor} t={t} reduce={reduce} />
+        <div style={{ fontSize: 17, fontWeight: 700, color: dispColor }}>{verdict(projected)}</div>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 999,
+          background: inZone ? t.greenSoft : t.amberSoft, border: `1px solid ${inZone ? t.greenBorder : t.amberBorder}`,
+          color: inZone ? t.green : t.amber, fontSize: 12.5, fontWeight: 600,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: inZone ? t.green : t.amber }} />
+          {inZone ? "you are in the shortlist zone" : `you are ${gap} ${gap === 1 ? "point" : "points"} from the shortlist zone`}
+        </div>
+        <div style={{ fontSize: 11.5, color: t.textMuted }}>recruiters usually shortlist 80 and above</div>
+      </motion.div>
+
+      {/* match / gap counts */}
+      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: EASE }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 26 }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: t.green }}>{matchedNow.length}</div>
+          <div style={{ fontSize: 12, color: t.textSecondary, marginTop: 2 }}>matched</div>
+        </div>
+        <div style={{ width: 1, height: 34, background: t.border }} />
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: missingNow.length ? t.red : t.green }}>{missingNow.length}</div>
+          <div style={{ fontSize: 12, color: t.textSecondary, marginTop: 2 }}>missing</div>
+        </div>
+      </motion.div>
+
+      {/* matched column */}
+      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: EASE }} style={{ display: "grid", gap: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: t.textPrimary }}>Matched keywords</div>
+        <motion.div layout={!reduce} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <AnimatePresence mode="popLayout" initial={false}>
+            {matchedNow.length ? matchedNow.map((k) => (
+              <KwChip key={`m-${k}`} k={k} t={t} reduce={reduce}
+                kind={added.has(k) ? "added" : "matched"}
+                onClick={added.has(k) ? () => toggleAdd(k) : undefined} />
+            )) : <span style={{ color: t.textMuted, fontSize: 13 }}>No matches yet.</span>}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+
+      {/* missing column (interactive) */}
+      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: EASE }} style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: t.textPrimary }}>Missing keywords</div>
+          {added.size > 0 ? (
+            <button type="button" onClick={() => setAdded(new Set())} style={{ border: "none", background: "transparent", color: t.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>reset preview</button>
+          ) : null}
+        </div>
+        <div style={{ fontSize: 12, color: t.textSecondary, marginBottom: 2 }}>tap a keyword to preview your score climbing. fix my cv adds them for real.</div>
+        <motion.div layout={!reduce} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <AnimatePresence mode="popLayout" initial={false}>
+            {missingNow.length ? missingNow.map((k) => (
+              <KwChip key={`x-${k}`} k={k} t={t} reduce={reduce} kind="missing" onClick={() => toggleAdd(k)} />
+            )) : <span style={{ color: t.green, fontSize: 13, fontWeight: 600 }}>nothing missing, you are fully covered.</span>}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+
+      {/* coach suggestion */}
+      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: EASE }}
+        style={{ display: "flex", gap: 12, padding: 16, borderRadius: 16, background: t.amberSoft, border: `1px solid ${t.amberBorder}` }}>
+        <span style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, display: "grid", placeItems: "center", background: t.amberSoft, color: t.amber }}><IconBulb size={18} /></span>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: t.textPrimary, marginBottom: 3 }}>Improvement tip</div>
+          <div style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.55 }}>{result.suggestion}</div>
+        </div>
+      </motion.div>
+
+      {/* CTAs */}
+      <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: EASE }}
+        style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => onNavigateToContent?.()}
+          style={{ flex: "1 1 150px", height: 48, borderRadius: 12, border: "none", background: t.amber, color: t.onAmber, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          Fix my CV <IconArrow size={16} />
+        </button>
+        <button type="button"
+          onClick={() => { if (hasCv && handleDownload) handleDownload(); else if (onNavigateToContent) onNavigateToContent(); }}
+          disabled={hasCv && dlBusy}
+          style={{ flex: "1 1 150px", height: 48, borderRadius: 12, border: `1px solid ${t.borderStrong}`, background: "transparent", color: t.textPrimary, fontWeight: 600, fontSize: 14, cursor: (hasCv && dlBusy) ? "not-allowed" : "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <IconDownload size={16} /> {hasCv ? (dlBusy ? "Generating..." : "Download CV") : "Start building"}
+        </button>
+      </motion.div>
+    </motion.div>
+  ) : null;
 
   return (
-    <div className="cvp-jobmatch-root" style={{ display: "grid", gap: 16, padding: 12 }}>
+    <div className="cvp-jobmatch-root" data-theme={theme} style={{ position: "relative", background: t.bg, color: t.textPrimary, borderRadius: 20, padding: 16, overflow: "hidden", transition: `background 200ms cubic-bezier(0.4,0,0.2,1), color 200ms cubic-bezier(0.4,0,0.2,1)` }}>
+      {/* aurora background */}
+      <div aria-hidden style={{ position: "absolute", top: -120, right: -80, width: 320, height: 320, borderRadius: "50%", background: `radial-gradient(circle, ${t.aurora1} 0%, transparent 70%)`, pointerEvents: "none" }} />
+      <div aria-hidden style={{ position: "absolute", bottom: -140, left: -100, width: 360, height: 360, borderRadius: "50%", background: `radial-gradient(circle, ${t.aurora2} 0%, transparent 70%)`, pointerEvents: "none" }} />
 
-      {/* ── Hero section ── */}
-      <div style={{ padding: "8px 0 0" }}>
-        <h2 style={{ color: "#FFFFFF", fontWeight: 800, fontSize: "clamp(22px, 5vw, 28px)", lineHeight: 1.2, margin: 0 }}>
-          Job Match
-        </h2>
-        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "clamp(13px, 3.5vw, 15px)", lineHeight: 1.5, margin: "8px 0 0" }}>
-          {subheading}
-        </p>
-        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, lineHeight: 1.5, margin: "6px 0 0" }}>
-          Engineered for ATS systems used by global recruiters across the Gulf, Europe and South America.
-        </p>
-      </div>
-
-      {/* ── Textarea + counter + button ── */}
-      <div style={{ display: "grid", gap: 0 }}>
-        <textarea
-          data-jobmatch-textarea="true"
-          autoComplete="off"
-          value={jobDescription}
-          onChange={(e) => setJobDescription(e.target.value)}
-          placeholder="Paste the job description here..."
-          rows={7}
-          style={{
-            width: "100%",
-            minHeight: 160,
-            background: "#141414",
-            color: "#FFFFFF",
-            border: jobDescription.trim() ? "1px solid rgba(217,119,6,0.5)" : "1px solid #2A2A2A",
-            borderRadius: 16,
-            padding: 16,
-            fontSize: 15,
-            resize: "vertical",
-            fontFamily: "Georgia, serif",
-            fontStyle: "italic",
-            boxSizing: "border-box",
-            outline: "none",
-            transition: `border-color 200ms ${EASE}, box-shadow 200ms ${EASE}`,
-            boxShadow: jobDescription.trim() ? "0 0 0 3px rgba(217,119,6,0.12), 0 0 16px rgba(217,119,6,0.2)" : "none",
-          }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(217,119,6,0.5)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(217,119,6,0.12), 0 0 16px rgba(217,119,6,0.2)"; }}
-          onBlur={(e) => {
-            if (!jobDescription.trim()) {
-              e.currentTarget.style.borderColor = "#2A2A2A";
-              e.currentTarget.style.boxShadow = "none";
-            }
-          }}
-        />
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, padding: "8px 4px 0", minHeight: 20 }}>
-          {keywordCount > 0
-            ? `${keywordCount} keywords detected`
-            : "Paste a job description to begin"}
-        </div>
-        <button
-          type="button"
-          onClick={handleAnalyse}
-          disabled={loading || !jobDescription.trim()}
-          style={{
-            marginTop: 12,
-            border: "none",
-            borderRadius: 12,
-            padding: "0 16px",
-            height: 54,
-            background: "#D97706",
-            color: "#000000",
-            fontWeight: 700,
-            fontSize: 15,
-            cursor: (loading || !jobDescription.trim()) ? "not-allowed" : "pointer",
-            width: "100%",
-            opacity: (!jobDescription.trim() && !loading) ? 0.4 : loading ? 0.7 : 1,
-            pointerEvents: (!jobDescription.trim() && !loading) ? "none" : "auto",
-            transition: `opacity 200ms ${EASE}, box-shadow 200ms ${EASE}`,
-            boxShadow: jobDescription.trim() && !loading ? "0 0 0 3px rgba(217,119,6,0.25), 0 4px 20px rgba(217,119,6,0.4)" : "none",
-          }}
-        >
-          {loading ? "Analysing..." : "Analyse Match"}
+      {/* theme toggle */}
+      <div style={{ position: "relative", display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <button type="button" onClick={() => setTheme(theme === "light" ? "dark" : "light")} aria-label="Switch theme"
+          style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid ${t.border}`, background: t.panelSolid, color: t.textSecondary, cursor: "pointer", display: "grid", placeItems: "center" }}>
+          {theme === "light" ? <IconSun size={17} /> : <IconMoon size={17} />}
         </button>
-        {error ? <div style={{ marginTop: 10, color: "#EF4444", fontSize: 13 }}>{error}</div> : null}
       </div>
 
-      {/* ── Empty state ── */}
-      {showEmptyState && !paywallDismissed ? (
-        <div style={{
-          background: "#141414",
-          border: "1px solid #2A2A2A",
-          borderRadius: 16,
-          padding: "40px 24px",
-          textAlign: "center",
-          display: "grid",
-          gap: 16,
-          placeItems: "center",
-        }}>
-          <CrosshairIcon />
-          <p style={{
-            color: "rgba(255,255,255,0.4)",
-            fontSize: 14,
-            lineHeight: 1.7,
-            margin: 0,
-            maxWidth: 320,
-          }}>
-            When HSBC, Deloitte or any global firm posts in Dubai &mdash;{" "}
-            hundreds apply within hours.<br />
-            Paste their job description above.<br />
-            See exactly where your CV stands.
-          </p>
-        </div>
-      ) : null}
-
-      {/* ── Blurred preview paywall ── */}
-      {showPaywall && !hasAccess ? (
-        <div data-jobmatch-result="true" style={{ display: "grid", gap: 16 }}>
-          {/* Blurred fake results */}
-          <div style={{
-            background: "#141414",
-            border: "1px solid #2A2A2A",
-            borderRadius: 16,
-            padding: 24,
-            position: "relative",
-            overflow: "hidden",
-          }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center" }}>
-              <BlurredScore />
-              <div style={{ flex: "1 1 180px", display: "grid", gap: 8, filter: "blur(6px)" }}>
-                <div style={{ height: 14, width: "50%", background: "rgba(255,255,255,0.1)", borderRadius: 6 }} />
-                <div style={{ height: 10, width: "100%", background: "rgba(255,255,255,0.06)", borderRadius: 6 }} />
-                <div style={{ height: 10, width: "80%", background: "rgba(255,255,255,0.06)", borderRadius: 6 }} />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
-              <BlurredChip color="amber" />
-              <BlurredChip color="amber" />
-              <BlurredChip color="amber" />
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              <BlurredChip color="grey" />
-              <BlurredChip color="grey" />
-              <BlurredChip color="grey" />
-            </div>
-            {/* Lock overlay */}
-            <div style={{
-              position: "absolute",
-              inset: 0,
-              display: "grid",
-              placeItems: "center",
-              background: "rgba(10,10,10,0.45)",
-              borderRadius: 16,
-            }}>
-              <LockIcon size={40} />
-            </div>
-          </div>
-
-          {/* Upgrade CTA card */}
-          <div style={{
-            background: "#141414",
-            border: "1px solid #2A2A2A",
-            borderRadius: 16,
-            padding: 24,
-            display: "grid",
-            gap: 16,
-          }}>
-            <h3 style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 17, margin: 0, lineHeight: 1.3 }}>
-              {isIndia
-                ? getGeoPaywallHeadline(true)
-                : geo?.currency === "AED"
-                  ? getGeoPaywallHeadline(false)
-                  : getGeoPaywallHeadlineGlobal()}
-            </h3>
-            <ul style={{ margin: 0, padding: "0 0 0 20px", display: "grid", gap: 8 }}>
-              <li style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, lineHeight: 1.5 }}>
-                See your exact match score against any job description
-              </li>
-              <li style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, lineHeight: 1.5 }}>
-                Identify missing keywords before you apply
-              </li>
-              <li style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, lineHeight: 1.5 }}>
-                One improvement tip written by AI &mdash; specific to your CV
-              </li>
-            </ul>
-            <button
-              type="button"
-              onClick={handleUpgradeClick}
-              style={{
-                border: "none",
-                borderRadius: 12,
-                padding: "0 16px",
-                height: 54,
-                background: "#D97706",
-                color: "#000000",
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: "pointer",
-                width: "100%",
-              }}
-            >
-              {getGeoCta(isIndia)}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowPaywall(false); setPaywallDismissed(true); }}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "rgba(255,255,255,0.35)",
-                fontSize: 13,
-                cursor: "pointer",
-                padding: "4px 0",
-                justifySelf: "center",
-              }}
-            >
-              Maybe Later
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* ── Loading skeleton ── */}
-      {loading ? (
+      <div className="jm-grid" style={{ position: "relative", display: "grid", gap: 18, gridTemplateColumns: "1fr", alignItems: "start" }}>
+        {/* ── Left: input ── */}
         <div style={{ display: "grid", gap: 16 }}>
-          <div style={{
-            background: "#141414",
-            border: "1px solid #2A2A2A",
-            borderRadius: 16,
-            padding: 16,
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 20,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}>
-            <SkeletonBlock height={150} width={150} radius={999} />
-            <div style={{ flex: "1 1 220px", minWidth: 220, display: "grid", gap: 10 }}>
-              <SkeletonBlock height={16} width="45%" radius={6} />
-              <SkeletonBlock height={12} width="100%" radius={6} />
-              <SkeletonBlock height={12} width="85%" radius={6} />
-            </div>
+          <div>
+            <h2 style={{ margin: 0, color: t.textPrimary, fontWeight: 800, fontSize: "clamp(24px, 5vw, 32px)", lineHeight: 1.12, letterSpacing: "-0.6px" }}>
+              10,000 applicants. one shortlist. be on it.
+            </h2>
+            <p style={{ margin: "10px 0 0", color: t.textSecondary, fontSize: 13.5, lineHeight: 1.55 }}>
+              engineered for the ATS systems global recruiters use across the Gulf, Europe and India.
+            </p>
           </div>
-          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
-            <SkeletonBlock height={16} width="38%" radius={6} />
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <SkeletonBlock height={32} width={110} radius={999} />
-              <SkeletonBlock height={32} width={95} radius={999} />
-              <SkeletonBlock height={32} width={120} radius={999} />
-              <SkeletonBlock height={32} width={80} radius={999} />
-            </div>
-          </div>
-          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
-            <SkeletonBlock height={16} width="38%" radius={6} />
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <SkeletonBlock height={32} width={130} radius={999} />
-              <SkeletonBlock height={32} width={100} radius={999} />
-              <SkeletonBlock height={32} width={90} radius={999} />
-            </div>
-          </div>
-        </div>
-      ) : null}
 
-      {/* ── Results ── */}
-      {result ? (
-        <div data-jobmatch-result="true" data-jobmatch-score={result.score} style={{ display: "grid", gap: 16 }}>
-          <div style={{
-            background: "#141414",
-            border: "1px solid #2A2A2A",
-            borderRadius: 16,
-            padding: 16,
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 20,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}>
-            <CircularScore score={result.score} />
-            <div style={{ flex: "1 1 220px", minWidth: 220 }}>
-              <div style={{ color: "#FFFFFF", fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Improvement Suggestion</div>
-              <div style={{ color: "#A0A0A0", fontSize: 13, lineHeight: 1.5 }}>{result.suggestion}</div>
+          <div style={{ ...panelStyle, padding: 16 }}>
+            <textarea
+              data-jobmatch-textarea="true"
+              autoComplete="off"
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste the job description here"
+              rows={10}
+              style={{
+                width: "100%", minHeight: 220, background: t.inset, color: t.textPrimary,
+                border: `1px solid ${jobDescription.trim() ? t.amberBorder : t.border}`, borderRadius: 14,
+                padding: 14, fontSize: 14, lineHeight: 1.55, resize: "vertical", fontFamily: "inherit",
+                boxSizing: "border-box", outline: "none", transition: `border-color 180ms cubic-bezier(0.4,0,0.2,1)`,
+              }}
+            />
+            <div style={{ color: t.textMuted, fontSize: 12, paddingTop: 10 }}>
+              {keywordCount > 0 ? `${keywordCount} keywords detected` : "paste a job description to begin"}
             </div>
           </div>
 
-          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16 }}>
-            <div style={{ color: "#FFFFFF", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
-              Matched Keywords ({result.matched.length})
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {result.matched.length ? result.matched.map((k) => <Chip key={`m-${k}`} text={k} good />) : <span style={{ color: "#A0A0A0", fontSize: 13 }}>No matched keywords yet.</span>}
-            </div>
-          </div>
-
-          <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 16, padding: 16 }}>
-            <div style={{ color: "#FFFFFF", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
-              Missing Keywords ({result.missing.length})
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {result.missing.length ? result.missing.map((k) => <Chip key={`x-${k}`} text={k} good={false} />) : <span style={{ color: "#A0A0A0", fontSize: 13 }}>No missing keywords detected.</span>}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* ── Download CV (white shimmer, same pattern as BuilderPage mobile sticky bar) ── */}
-      <div style={{ marginTop: 8 }}>
-        <div style={{
-          borderRadius: 14, padding: "1.5px",
-          background: "linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 80%, #1C1C1C 100%)",
-          backgroundSize: "300% 100%",
-          animation: dlBusy ? "none" : "cvp-dl-shimmer 2.5s linear infinite",
-        }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (hasCv && handleDownload) handleDownload();
-              else if (onNavigateToContent) onNavigateToContent();
-            }}
-            disabled={hasCv && dlBusy}
+          <motion.button
+            type="button" onClick={handleAnalyse} disabled={loading || !jobDescription.trim()}
+            whileTap={reduce || loading || !jobDescription.trim() ? undefined : { scale: 0.985 }}
             style={{
-              width: "100%", height: 54, borderRadius: 12,
-              border: "none", background: "#141414", color: "#fff",
-              fontSize: 15, fontWeight: 600,
-              cursor: (hasCv && dlBusy) ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              fontFamily: "inherit",
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            <span>{hasCv ? (dlBusy ? "Generating your CV..." : "Download CV") : "Start Building"}</span>
-          </button>
+              border: "none", borderRadius: 14, height: 54, background: t.amber, color: t.onAmber,
+              fontWeight: 700, fontSize: 15, fontFamily: "inherit",
+              cursor: (loading || !jobDescription.trim()) ? "not-allowed" : "pointer", width: "100%",
+              opacity: (!jobDescription.trim() && !loading) ? 0.45 : 1,
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              transition: `opacity 200ms cubic-bezier(0.4,0,0.2,1)`,
+            }}>
+            {loading ? <>analysing<motion.span animate={reduce ? undefined : { opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}>...</motion.span></> : "Analyse match"}
+          </motion.button>
+          {error ? <div role="status" style={{ color: t.red, fontSize: 13 }}>{error}</div> : null}
+        </div>
+
+        {/* ── Right: living result ── */}
+        <div style={{ ...panelStyle, padding: "clamp(18px, 4vw, 26px)", minHeight: 420, position: "relative", overflow: "hidden" }}>
+          <AnimatePresence mode="wait" initial={false}>
+            {/* paywall */}
+            {showPaywall && !hasAccess ? (
+              <motion.div key="paywall" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ position: "relative" }}>
+                {/* blurred living result behind */}
+                <div aria-hidden style={{ filter: "blur(7px)", opacity: 0.55, pointerEvents: "none", display: "grid", gap: 20, justifyItems: "center" }}>
+                  <Gauge score={72} color={t.amber} t={t} reduce />
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                    {[80, 64, 96, 72].map((w, i) => <span key={i} style={{ width: w, height: 30, borderRadius: 999, background: t.greenSoft, border: `1px solid ${t.greenBorder}` }} />)}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                    {[90, 70, 84].map((w, i) => <span key={i} style={{ width: w, height: 30, borderRadius: 999, background: t.redSoft, border: `1px solid ${t.redBorder}` }} />)}
+                  </div>
+                </div>
+                {/* glass lock card */}
+                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", padding: 8, background: t.overlay, borderRadius: 18 }}>
+                  <div style={{ width: "100%", maxWidth: 320, textAlign: "center", padding: 24, borderRadius: 18, background: t.glassBg, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: `1px solid ${t.glassBorder}`, boxShadow: t.shadow }}>
+                    <span style={{ width: 56, height: 56, margin: "0 auto 14px", borderRadius: "50%", display: "grid", placeItems: "center", background: t.amberSoft, color: t.amber }}><IconLock size={28} /></span>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: t.textPrimary, marginBottom: 6, letterSpacing: "-0.3px" }}>see your real match score</div>
+                    <div style={{ fontSize: 13, color: t.textSecondary, marginBottom: 16, lineHeight: 1.5 }}>get instant feedback on every job description you apply to.</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: t.amber, marginBottom: 14 }}>unlock job match, {ctaPrice}</div>
+                    <button type="button" onClick={handleUpgradeClick} style={{ width: "100%", height: 50, borderRadius: 12, border: "none", background: t.amber, color: t.onAmber, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><IconSpark size={16} /> Upgrade to Pro</button>
+                    <button type="button" onClick={() => setShowPaywall(false)} style={{ width: "100%", height: 38, borderRadius: 10, border: "none", background: "transparent", color: t.textMuted, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>maybe later</button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : loading ? (
+              /* loading shimmer, no spinner */
+              <motion.div key="loading" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ display: "grid", gap: 22, justifyItems: "center" }}>
+                <Skeleton h={196} w={196} r={999} t={t} />
+                <Skeleton h={20} w={150} r={8} t={t} />
+                <div style={{ display: "flex", gap: 26 }}>
+                  <Skeleton h={52} w={70} r={12} t={t} />
+                  <Skeleton h={52} w={70} r={12} t={t} />
+                </div>
+                <div style={{ width: "100%", display: "grid", gap: 10 }}>
+                  <Skeleton h={14} w="40%" r={6} t={t} />
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[110, 90, 130, 80].map((w, i) => <Skeleton key={i} h={32} w={w} r={999} t={t} />)}
+                  </div>
+                </div>
+                <div style={{ width: "100%", display: "grid", gap: 10 }}>
+                  <Skeleton h={14} w="40%" r={6} t={t} />
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[120, 84, 100].map((w, i) => <Skeleton key={i} h={32} w={w} r={999} t={t} />)}
+                  </div>
+                </div>
+              </motion.div>
+            ) : result ? (
+              <motion.div key="result" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                {ResultBody}
+              </motion.div>
+            ) : (
+              /* empty selling state */
+              <motion.div key="empty" initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease: EASE }}
+                style={{ minHeight: 380, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 16, padding: "20px 8px" }}>
+                <motion.span
+                  animate={reduce ? undefined : { scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] }}
+                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ width: 84, height: 84, borderRadius: "50%", display: "grid", placeItems: "center", background: t.amberSoft, color: t.amber, border: `1px solid ${t.amberBorder}` }}>
+                  <IconRadar size={38} />
+                </motion.span>
+                <div style={{ fontSize: 19, fontWeight: 800, color: t.textPrimary, maxWidth: 340, lineHeight: 1.3, letterSpacing: "-0.3px" }}>
+                  when a global firm posts in Dubai, hundreds apply within hours
+                </div>
+                <div style={{ fontSize: 13.5, color: t.textSecondary, maxWidth: 320, lineHeight: 1.55 }}>
+                  paste their job description and see exactly where your CV stands.
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
       <style>{`
-        @keyframes jobmatch-skeleton {
-          0% { background-position: 100% 50%; }
-          100% { background-position: 0 50%; }
-        }
-        .cvp-jobmatch-root textarea::placeholder {
-          color: rgba(255,255,255,0.28) !important;
-          font-style: italic;
-          font-family: Georgia, serif;
-        }
+        @keyframes jm-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+        .jm-shimmer::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+          background: linear-gradient(90deg, transparent, ${t.borderStrong}, transparent); animation: jm-shimmer 1.4s ease infinite; }
+        .cvp-jobmatch-root textarea::placeholder { color: ${t.textMuted}; }
+        @media (min-width: 880px) { .cvp-jobmatch-root .jm-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr); gap: 22px; } }
+        @media (prefers-reduced-motion: reduce) { .jm-shimmer::after { animation: none; } }
       `}</style>
     </div>
   );
