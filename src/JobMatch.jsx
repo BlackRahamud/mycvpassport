@@ -138,7 +138,6 @@ function verdict(s) {
 const Ic = (p) => ({ width: p.size || 18, height: p.size || 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: p.sw || 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true });
 const IconSun = (p) => (<svg {...Ic({ size: p.size, sw: 2 })}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>);
 const IconMoon = (p) => (<svg {...Ic({ size: p.size, sw: 2 })}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>);
-const IconRadar = (p) => (<svg {...Ic({ size: p.size })}><circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" /></svg>);
 const IconBulb = (p) => (<svg {...Ic({ size: p.size })}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z" /></svg>);
 const IconCheck = (p) => (<svg {...Ic({ size: p.size, sw: 2.4 })}><path d="M20 6 9 17l-5-5" /></svg>);
 const IconPlus = (p) => (<svg {...Ic({ size: p.size, sw: 2.4 })}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
@@ -248,6 +247,66 @@ function Skeleton({ h, w = "100%", r = 12, t }) {
   return <div style={{ height: h, width: w, borderRadius: r, background: t.inset, position: "relative", overflow: "hidden" }} className="jm-shimmer" />;
 }
 
+/* ─── Empty-state radar illustration (original inline SVG, no image) ─────────
+   A calm sonar motif: faint grid rings, slow amber sweep, pulse pings, a
+   scatter of slate applicant dots, and one amber dot near the centre that
+   glows (the user standing out). Transform and opacity only; when reduced
+   motion is on it renders the static composition with the sweep at rest. */
+const APPLICANT_DOTS = [
+  { x: 54, y: 66 }, { x: 150, y: 58 }, { x: 168, y: 120 }, { x: 60, y: 142 },
+  { x: 132, y: 156 }, { x: 38, y: 104 }, { x: 120, y: 40 }, { x: 86, y: 168 },
+];
+const USER_DOT = { x: 122, y: 86 };
+function RadarIllustration({ t, reduce }) {
+  const sweep = (
+    <>
+      <rect x="0" y="0" width="200" height="200" fill="none" />
+      <path d="M100 100 L100 14 A86 86 0 0 1 165 49 Z" fill="url(#jm-sweep)" />
+      <line x1="100" y1="100" x2="100" y2="14" stroke={t.amber} strokeWidth="1.6" strokeLinecap="round" opacity="0.75" />
+    </>
+  );
+  return (
+    <svg width="168" height="168" viewBox="0 0 200 200" role="img" aria-label="radar scanning illustration">
+      <defs>
+        <linearGradient id="jm-sweep" x1="100" y1="100" x2="100" y2="14" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor={t.amber} stopOpacity="0" />
+          <stop offset="100%" stopColor={t.amber} stopOpacity="0.22" />
+        </linearGradient>
+      </defs>
+      {/* grid rings + crosshair */}
+      {[86, 58, 30].map((r) => <circle key={r} cx="100" cy="100" r={r} fill="none" stroke={t.border} strokeWidth="1.4" />)}
+      <line x1="14" y1="100" x2="186" y2="100" stroke={t.border} strokeWidth="1" opacity="0.6" />
+      <line x1="100" y1="14" x2="100" y2="186" stroke={t.border} strokeWidth="1" opacity="0.6" />
+      {/* pulse pings */}
+      {(reduce ? [] : [0, 1, 2]).map((i) => (
+        <motion.circle key={i} cx="100" cy="100" r="20" fill="none" stroke={t.amber} strokeWidth="1.4"
+          initial={{ scale: 0.3, opacity: 0.5 }}
+          animate={{ scale: [0.3, 1.95], opacity: [0.5, 0] }}
+          transition={{ duration: 3.4, repeat: Infinity, ease: "easeOut", delay: i * 1.13 }}
+          style={{ transformOrigin: "100px 100px" }} />
+      ))}
+      {/* sweep */}
+      {reduce ? (
+        <g transform="rotate(40 100 100)">{sweep}</g>
+      ) : (
+        <motion.g animate={{ rotate: 360 }} transition={{ duration: 7, repeat: Infinity, ease: "linear" }} style={{ transformOrigin: "100px 100px" }}>
+          {sweep}
+        </motion.g>
+      )}
+      {/* applicant dots (slate) */}
+      {APPLICANT_DOTS.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r="2.4" fill={t.textMuted} opacity="0.5" />)}
+      {/* user dot (amber, glowing) */}
+      <circle cx={USER_DOT.x} cy={USER_DOT.y} r="7" fill={t.amberSoft} />
+      <motion.circle cx={USER_DOT.x} cy={USER_DOT.y} r="3.6" fill={t.amber}
+        animate={reduce ? undefined : { opacity: [0.7, 1, 0.7], scale: [1, 1.15, 1] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: `${USER_DOT.x}px ${USER_DOT.y}px` }} />
+      {/* centre core */}
+      <circle cx="100" cy="100" r="3" fill={t.amber} />
+    </svg>
+  );
+}
+
 /* ─── Main component ─── */
 export default function JobMatch({
   resume,
@@ -277,6 +336,7 @@ export default function JobMatch({
   const [result, setResult] = useState(null);
   const [added, setAdded] = useState(() => new Set()); // tapped missing keywords (preview only)
   const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallDismissed, setPaywallDismissed] = useState(false);
   const templateKey = useMemo(() => detectTemplateKey(selectedTemplate), [selectedTemplate]);
   const geo = useGeoContent();
   const isIndia = geo?.isIndia ?? false;
@@ -298,6 +358,7 @@ export default function JobMatch({
     if (inFlightRef.current) return;
     if (!hasAccess) {
       setShowPaywall(true);
+      setPaywallDismissed(false); // re-arm the paywall each time a free user tries
       return;
     }
     const jd = normalizeText(jobDescription);
@@ -389,6 +450,7 @@ export default function JobMatch({
   const handleUpgradeClick = useCallback(async () => {
     const url = await getPaymentLink("jobMatch");
     if (url) window.location.href = url;
+    else alert("Payment could not start. Please try again in a moment.");
   }, []);
 
   /* ── Projection (preview only, honest formula) ── */
@@ -584,7 +646,7 @@ export default function JobMatch({
         <div style={{ ...panelStyle, padding: "clamp(18px, 4vw, 26px)", minHeight: 420, position: "relative", overflow: "hidden" }}>
           <AnimatePresence mode="wait" initial={false}>
             {/* paywall */}
-            {showPaywall && !hasAccess ? (
+            {showPaywall && !hasAccess && !paywallDismissed ? (
               <motion.div key="paywall" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }} style={{ position: "relative" }}>
                 {/* blurred living result behind */}
                 <div aria-hidden style={{ filter: "blur(7px)", opacity: 0.55, pointerEvents: "none", display: "grid", gap: 20, justifyItems: "center" }}>
@@ -604,7 +666,7 @@ export default function JobMatch({
                     <div style={{ fontSize: 13, color: t.textSecondary, marginBottom: 16, lineHeight: 1.5 }}>get instant feedback on every job description you apply to.</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: t.amber, marginBottom: 14 }}>unlock job match, {ctaPrice}</div>
                     <button type="button" onClick={handleUpgradeClick} style={{ width: "100%", height: 50, borderRadius: 12, border: "none", background: t.amber, color: t.onAmber, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit", marginBottom: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><IconSpark size={16} /> Upgrade to Pro</button>
-                    <button type="button" onClick={() => setShowPaywall(false)} style={{ width: "100%", height: 38, borderRadius: 10, border: "none", background: "transparent", color: t.textMuted, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>maybe later</button>
+                    <button type="button" onClick={() => { setShowPaywall(false); setPaywallDismissed(true); }} style={{ width: "100%", height: 38, borderRadius: 10, border: "none", background: "transparent", color: t.textMuted, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>maybe later</button>
                   </div>
                 </div>
               </motion.div>
@@ -638,12 +700,7 @@ export default function JobMatch({
               /* empty selling state */
               <motion.div key="empty" initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, ease: EASE }}
                 style={{ minHeight: 380, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 16, padding: "20px 8px" }}>
-                <motion.span
-                  animate={reduce ? undefined : { scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] }}
-                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-                  style={{ width: 84, height: 84, borderRadius: "50%", display: "grid", placeItems: "center", background: t.amberSoft, color: t.amber, border: `1px solid ${t.amberBorder}` }}>
-                  <IconRadar size={38} />
-                </motion.span>
+                <RadarIllustration t={t} reduce={reduce} />
                 <div style={{ fontSize: 19, fontWeight: 800, color: t.textPrimary, maxWidth: 340, lineHeight: 1.3, letterSpacing: "-0.3px" }}>
                   when a global firm posts in Dubai, hundreds apply within hours
                 </div>
