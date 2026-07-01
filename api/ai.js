@@ -1622,6 +1622,163 @@ async function handleImportStructure(req, res, body) {
 }
 
 // =====================================================================
+// Branch 9 — linkedin_parse (LinkedIn Optimizer, Step 2 intake)
+//
+// Turns a LinkedIn profile supplied as extracted PDF text OR a
+// screenshot image into the raw_profile shape the optimizer scores.
+// This is the CHEAP extraction step — it does NOT rewrite or score.
+// The expensive scan runs later (supabase/functions/linkedin-optimize)
+// only after the user confirms the parsed fields.
+//
+// PRIVACY: a screenshot is read once here and never stored. It lives in
+// the request body, is passed straight to the vision model, and is
+// dropped when this function returns — nothing is written to disk or a
+// bucket. That is the whole implementation of "your screenshot is
+// deleted after we read it".
+//
+// Auth: light — any signed-in user (Step 2 is behind the account gate).
+// Model: Haiku (cheap; vision-capable).
+//
+// Request:  { text?: string, imageBase64?: string, imageMediaType?: string }
+// Response: { ok: true, raw_profile: { headline, about, experience_blocks[] } }
+// =====================================================================
+
+const LINKEDIN_PARSE_MODEL = process.env.LINKEDIN_PARSE_MODEL || 'claude-haiku-4-5-20251001';
+const LI_HEADLINE_MAX = 220;
+const LI_ABOUT_MAX = 2600;
+const LI_DESC_MAX = 2000;
+const LI_BLOCKS_MAX = 15;
+const LI_ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+
+function buildLinkedInParseSystem() {
+  return `You are a parsing engine for LinkedIn profiles in the India -> Gulf (UAE/GCC) job market. You extract what is present in the source into one strict JSON object. You NEVER invent data: if a field is absent, use an empty string or empty array. ASCII punctuation only. No commentary, no markdown, JSON only.`;
+}
+
+function buildLinkedInParsePrompt(hasImage) {
+  return `Read the ${hasImage ? 'LinkedIn profile screenshot' : 'LinkedIn profile export text below'} and return ONE strict JSON object with EXACTLY these keys:
+
+{
+  "headline": string,
+  "about": string,
+  "experience_blocks": [
+    { "role": string, "company": string, "duration": string, "description": string }
+  ]
+}
+
+RULES:
+- "headline" is the short line under the name (max 220 characters).
+- "about" is the full About / summary section verbatim as written.
+- Each experience entry becomes one block: "role" (title), "company", "duration" (e.g. "2021 - present"), and "description" (the bullets or paragraph for that role, joined with newlines).
+- Copy the person's real words. Never fabricate roles, employers, dates, metrics, or achievements.
+- If a section is missing, use "" for strings and [] for experience_blocks. Do not guess.
+- Return the JSON object only.`;
+}
+
+// Coerce model output into the raw_profile contract, capping lengths and
+// assigning stable block ids the optimizer + wizard key off.
+function normaliseLinkedInProfile(p) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
+  const str = (v, max) => {
+    const s = v == null ? '' : String(v).trim();
+    return max ? s.slice(0, max) : s;
+  };
+  const blocks = Array.isArray(p.experience_blocks) ? p.experience_blocks : [];
+  const experience_blocks = blocks.slice(0, LI_BLOCKS_MAX).map((e, i) => ({
+    id: `exp-${i}`,
+    role: str(e?.role || e?.title, 200),
+    company: str(e?.company || e?.employer, 200),
+    duration: str(e?.duration || e?.period, 120),
+    description: str(
+      e?.description || (Array.isArray(e?.bullets) ? e.bullets.join('\n') : ''),
+      LI_DESC_MAX,
+    ),
+  })).filter((b) => b.role || b.company || b.description);
+  return {
+    headline: str(p.headline, LI_HEADLINE_MAX),
+    about: str(p.about, LI_ABOUT_MAX),
+    experience_blocks,
+  };
+}
+
+async function handleLinkedInParse(req, res, body) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ ok: false, error: 'AI Engine is not configured.' });
+  }
+  // Light auth — Step 2 sits behind the account gate.
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized. Please sign in.' });
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { user } = {}, error } = await authClient.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired session.' });
+    } catch {
+      return res.status(401).json({ ok: false, error: 'Could not verify session.' });
+    }
+  }
+
+  const text = String(body.text || '').trim();
+  const rawImage = String(body.imageBase64 || '');
+  // Accept either a bare base64 string or a data: URL; keep only the payload.
+  const imageData = rawImage.includes('base64,') ? rawImage.split('base64,')[1] : rawImage;
+  const imageMediaType = LI_ALLOWED_IMAGE_TYPES.has(body.imageMediaType) ? body.imageMediaType : 'image/png';
+  const hasImage = imageData.length > 0;
+
+  if (!hasImage && text.length < 30) {
+    // Nothing usable — the client falls back to the manual paste path.
+    return res.status(400).json({ ok: false, error: 'no_usable_input', message: 'We could not read a profile from that. Type it in instead.' });
+  }
+
+  // Build the user message: an image block for screenshots, else the text.
+  const userContent = hasImage
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageData } },
+        { type: 'text', text: buildLinkedInParsePrompt(true) },
+      ]
+    : [
+        { type: 'text', text: `${buildLinkedInParsePrompt(false)}\n\nPROFILE TEXT:\n<<<\n${text.slice(0, 14000)}\n>>>` },
+      ];
+
+  try {
+    const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: LINKEDIN_PARSE_MODEL,
+        max_tokens: 2000,
+        temperature: 0.2,
+        system: buildLinkedInParseSystem(),
+        messages: [{ role: 'user', content: userContent }],
+      }),
+    }, 3, 8000);
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+    }
+    let data;
+    try { data = JSON.parse(responseText); } catch { return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' }); }
+    const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
+    const parsed = extractLooseJson(raw);
+    const profile = normaliseLinkedInProfile(parsed);
+    if (!profile || (!profile.headline && !profile.about && profile.experience_blocks.length === 0)) {
+      return res.status(422).json({ ok: false, error: 'unreadable', message: 'We could not read a profile from that. Type it in instead.' });
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).json({ ok: true, raw_profile: profile });
+  } catch (err) {
+    console.error('[ai/linkedin_parse]', String(err?.message || err).slice(0, 200));
+    return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+  }
+}
+
+// =====================================================================
 // Router
 // =====================================================================
 
@@ -1659,9 +1816,10 @@ export default async function handler(req, res) {
     case 'candidate_verdict':  return handleCandidateVerdict(req, res, body);
     case 'import_structure':   return handleImportStructure(req, res, body);
     case 'suggest_skills':     return handleSuggestSkills(req, res, body);
+    case 'linkedin_parse':     return handleLinkedInParse(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse.',
       });
   }
 }

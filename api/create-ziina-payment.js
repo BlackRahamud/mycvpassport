@@ -8,7 +8,7 @@ const A_LA_CARTE_FILS = {
   ats:               2900,
   jobMatch:          2900,
   templates:         2900,
-  linkedinOptimizer: 4900,
+  linkedinOptimizer: 2900,
 };
 
 const DEFAULT_FILS = 2900;

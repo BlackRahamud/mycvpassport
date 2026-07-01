@@ -29,7 +29,11 @@ function loadRazorpayScript() {
   });
 }
 
-export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure, onModalOpen }) {
+// Charges either a subscription `plan` (tier slug) OR a one-time
+// a-la-carte `service` (feature key, e.g. "linkedinOptimizer"). Exactly
+// one should be passed. The server derives amount + currency; the client
+// only identifies which product.
+export default function RazorpayPayment({ plan, service, amountINR, onSuccess, onFailure, onModalOpen }) {
   const startedRef = useRef(false);
   const [busy, setBusy] = useState(true);
 
@@ -59,10 +63,10 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure,
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          // Server derives amount + currency from tierConfig — client
-          // only needs to identify the plan. amountINR is still received
-          // as a prop for display/analytics but never transmitted.
-          body: JSON.stringify({ plan }),
+          // Server derives amount + currency — client only identifies the
+          // product (plan or a-la-carte service). amountINR is still
+          // received as a prop for display/analytics but never transmitted.
+          body: JSON.stringify(service ? { service } : { plan }),
         });
 
         const orderData = await orderRes.json().catch(() => ({}));
@@ -83,7 +87,9 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure,
           amount: orderData.amount,
           currency: orderData.currency,
           name: "CVPassport",
-          description: `CVPassport — ${plan.replace(/_/g, " ")}`,
+          description: service
+            ? "CVPassport — LinkedIn Optimizer"
+            : `CVPassport — ${plan.replace(/_/g, " ")}`,
           order_id: orderData.orderId,
           prefill: {
             email: user.email || "",
@@ -98,13 +104,23 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure,
                   "Content-Type": "application/json",
                   Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  userId: user.id,
-                  plan,
-                }),
+                body: JSON.stringify(
+                  service
+                    ? {
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature,
+                        userId: user.id,
+                        service,
+                      }
+                    : {
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature,
+                        userId: user.id,
+                        plan,
+                      }
+                ),
               });
               const verifyData = await verifyRes.json().catch(() => ({}));
               if (!verifyRes.ok || !verifyData.success) {
@@ -143,7 +159,7 @@ export default function RazorpayPayment({ plan, amountINR, onSuccess, onFailure,
     return () => {
       cancelled = true;
     };
-  }, [plan, amountINR, onSuccess, onFailure, onModalOpen]);
+  }, [plan, service, amountINR, onSuccess, onFailure, onModalOpen]);
 
   if (!busy) return null;
 

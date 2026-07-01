@@ -31,6 +31,17 @@ const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 const VALID_PLANS = new Set(PAID_TIER_SLUGS);
 
+// A-la-carte one-time unlocks on the India/Razorpay side. These route
+// through the `permissions` table (service='linkedin_optimizer', etc.)
+// exactly like the Ziina a-la-carte path — they do NOT touch
+// profiles.plan. Client passes the camelCase feature key; the server
+// resolves it to the permission-service string and the INR amount.
+// Amounts are in paise (14900 = INR 149) and are NEVER read from the
+// client. Keep in sync with api/create-ziina-payment.js A_LA_CARTE_FILS.
+const A_LA_CARTE_TO_SERVICE = { linkedinOptimizer: 'linkedin_optimizer' };
+const A_LA_CARTE_INR_PAISE = { linkedinOptimizer: 14900 };
+const VALID_ALACARTE_SERVICES = new Set(Object.values(A_LA_CARTE_TO_SERVICE));
+
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -132,19 +143,35 @@ async function handleOrder(req, res, body) {
   const user = await requireAuth(req, res);
   if (!user) return;
 
-  const { plan } = body || {};
+  const { plan, service } = body || {};
   // Razorpay path is INR-only by design — the gateway is only configured
   // for the India market. Currency and amount are NEVER read from the
-  // client; both are derived from tierConfig server-side.
+  // client; both are derived server-side (tierConfig for plans, the
+  // a-la-carte map for one-time unlocks).
   const currency = 'INR';
 
-  if (!plan || !VALID_PLANS.has(plan)) {
-    return res.status(400).json({ error: 'Invalid plan' });
-  }
-
-  const expectedAmount = getServerAmount(plan, currency);
-  if (!expectedAmount) {
-    return res.status(400).json({ error: 'Invalid plan' });
+  // Two shapes: a subscription/tier `plan`, or a one-time a-la-carte
+  // `service` (e.g. linkedinOptimizer). Exactly one is expected.
+  let expectedAmount;
+  let orderNotes;
+  if (service) {
+    const permissionService = A_LA_CARTE_TO_SERVICE[service];
+    expectedAmount = A_LA_CARTE_INR_PAISE[service];
+    if (!permissionService || !expectedAmount) {
+      return res.status(400).json({ error: 'Invalid service' });
+    }
+    // Store the resolved permission-service string; the webhook keys the
+    // permissions upsert off this.
+    orderNotes = { userId: user.id, service: permissionService };
+  } else {
+    if (!plan || !VALID_PLANS.has(plan)) {
+      return res.status(400).json({ error: 'Invalid plan' });
+    }
+    expectedAmount = getServerAmount(plan, currency);
+    if (!expectedAmount) {
+      return res.status(400).json({ error: 'Invalid plan' });
+    }
+    orderNotes = { userId: user.id, plan };
   }
 
   try {
@@ -157,10 +184,7 @@ async function handleOrder(req, res, body) {
       amount: expectedAmount,
       currency,
       receipt: `cvp_${user.id.slice(0, 8)}_${Date.now()}`,
-      notes: {
-        userId: user.id,
-        plan,
-      },
+      notes: orderNotes,
     });
 
     return res.status(200).json({
@@ -188,6 +212,7 @@ async function handleVerify(req, res, body) {
     razorpay_signature,
     userId,
     plan,
+    service,
   } = body || {};
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -198,7 +223,12 @@ async function handleVerify(req, res, body) {
     return res.status(403).json({ error: 'User mismatch' });
   }
 
-  if (!plan || !VALID_PLANS.has(plan)) {
+  // Accept either a tier `plan` or a one-time a-la-carte `service`.
+  if (service) {
+    if (!A_LA_CARTE_TO_SERVICE[service]) {
+      return res.status(400).json({ error: 'Invalid service' });
+    }
+  } else if (!plan || !VALID_PLANS.has(plan)) {
     return res.status(400).json({ error: 'Invalid plan' });
   }
 
@@ -254,8 +284,9 @@ async function handleWebhook(req, res, rawBody) {
 
   let userId = payment.notes?.userId;
   let plan = payment.notes?.plan;
+  let service = payment.notes?.service;
 
-  if ((!userId || !plan) && payment.order_id && RAZORPAY_KEY_ID && RAZORPAY_SECRET) {
+  if ((!userId || (!plan && !service)) && payment.order_id && RAZORPAY_KEY_ID && RAZORPAY_SECRET) {
     try {
       const razorpay = new Razorpay({
         key_id: RAZORPAY_KEY_ID,
@@ -264,9 +295,59 @@ async function handleWebhook(req, res, rawBody) {
       const order = await razorpay.orders.fetch(payment.order_id);
       userId = userId || order.notes?.userId;
       plan = plan || order.notes?.plan;
+      service = service || order.notes?.service;
     } catch (fetchErr) {
       console.error('[razorpay] webhook order fetch failed', { error: fetchErr?.message });
     }
+  }
+
+  // ── A-la-carte one-time unlocks (e.g. linkedin_optimizer). Mirrors the
+  // Ziina webhook's permissions branch: upsert `permissions` instead of
+  // flipping profiles.plan. No invoice/receipt document is issued for
+  // a-la-carte items (matches the Ziina path). Tier purchases fall
+  // through to the plan branch below untouched.
+  if (service && VALID_ALACARTE_SERVICES.has(service)) {
+    if (!userId) {
+      console.warn('[razorpay] a-la-carte webhook missing userId', { payment_id: payment.id });
+      return res.status(200).json({ received: true, ignored: true });
+    }
+
+    // Idempotency — Razorpay retries deliveries. If we already audited this
+    // payment, the permission is already granted; ack without re-upserting.
+    const { data: existingAlc } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('payment_intent_id', payment.id)
+      .maybeSingle();
+    if (existingAlc) {
+      return res.status(200).json({ received: true, idempotent: true });
+    }
+
+    const { error: permErr } = await supabase
+      .from('permissions')
+      .upsert(
+        { user_id: userId, service, status: 'unlocked', unlocked_at: new Date().toISOString() },
+        { onConflict: 'user_id,service' }
+      );
+    if (permErr) {
+      console.error('[razorpay] permissions upsert failed', {
+        error: permErr.message,
+        userId,
+        service,
+      });
+      return res.status(500).json({ error: permErr.message });
+    }
+
+    await recordPayment(supabase, {
+      user_id: userId,
+      service,
+      amount: payment.amount,
+      external_ref: payment.order_id,
+      payment_intent_id: payment.id,
+    });
+
+    console.log('[razorpay] a-la-carte service unlocked', { userId, service, payment_id: payment.id });
+    return res.status(200).json({ success: true });
   }
 
   if (!userId || !plan || !VALID_PLANS.has(plan)) {
