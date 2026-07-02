@@ -1166,10 +1166,10 @@ export default function GulfCareerPage() {
         <meta name="description" content="Free 30-second tool. Benchmark your CV against UAE market data — peer salary bands, recruiter friction, employer tier match and a paste-ready negotiation script." />
         <meta name="keywords" content="UAE salary calculator, Dubai CV worth, Gulf job market, expat salary, ATS UAE, Gulf hiring intelligence" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href={`https://mycvpassport.com${urlReportId ? `/gulf/${urlReportId}` : "/gulf-career"}`} />
+        <link rel="canonical" href={`https://www.mycvpassport.com${urlReportId ? `/gulf/${urlReportId}` : "/gulf-career"}`} />
         <meta property="og:title" content="Gulf Career Intelligence | CVPassport" />
         <meta property="og:description" content="Benchmark your CV against UAE market data in 30 seconds — free." />
-        <meta property="og:url" content="https://mycvpassport.com/gulf-career" />
+        <meta property="og:url" content="https://www.mycvpassport.com/gulf-career" />
         <meta property="og:type" content="website" />
       </Helmet>
 

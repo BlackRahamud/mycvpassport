@@ -436,10 +436,10 @@ export default function PricingPage({ refreshProfile } = {}) {
         <meta name="description" content="Plans from AED 19 or ₹149. ATS CV builder for UAE, GCC & India job seekers. Free to start — no credit card required." />
         <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://mycvpassport.com/pricing" />
+        <link rel="canonical" href="https://www.mycvpassport.com/pricing" />
         <meta property="og:title" content="CVPassport Pricing — CV Builder Plans for UAE, GCC &amp; India" />
         <meta property="og:description" content="Plans from AED 19 or ₹149. ATS CV builder for UAE, GCC & India job seekers. Free to start — no credit card required." />
-        <meta property="og:url" content="https://mycvpassport.com/pricing" />
+        <meta property="og:url" content="https://www.mycvpassport.com/pricing" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
       </Helmet>

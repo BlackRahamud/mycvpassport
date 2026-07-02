@@ -987,10 +987,10 @@ export default function LinkedInOptimizer() {
       <Helmet>
         <title>LinkedIn Profile Optimizer for UAE, GCC and India Job Seekers - CVPassport</title>
         <meta name="description" content="Score and rewrite your LinkedIn headline, About, and experience for Gulf and India recruiters. Free headline check, no sign-up." />
-        <link rel="canonical" href="https://mycvpassport.com/linkedin-optimizer" />
+        <link rel="canonical" href="https://www.mycvpassport.com/linkedin-optimizer" />
         <meta property="og:title" content="LinkedIn Profile Optimizer - CVPassport" />
         <meta property="og:description" content="Score and rewrite your LinkedIn profile for Gulf and India recruiters. Free to start." />
-        <meta property="og:url" content="https://mycvpassport.com/linkedin-optimizer" />
+        <meta property="og:url" content="https://www.mycvpassport.com/linkedin-optimizer" />
         <meta property="og:type" content="website" />
       </Helmet>
 

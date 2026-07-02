@@ -371,10 +371,10 @@ export default function SalarySwitcher() {
         <meta name="description" content="Free tool: compare your Indian salary vs tax-free Dubai pay for your role. See the real multiplier in seconds — and share a brag card." />
         <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://mycvpassport.com/salary-switcher" />
+        <link rel="canonical" href="https://www.mycvpassport.com/salary-switcher" />
         <meta property="og:title" content="Salary Switcher — See Your Worth in Dubai &amp; the Gulf | CVPassport" />
         <meta property="og:description" content="Free tool: compare your Indian salary vs tax-free Dubai pay for your role. See the real multiplier in seconds — and share a brag card." />
-        <meta property="og:url" content="https://mycvpassport.com/salary-switcher" />
+        <meta property="og:url" content="https://www.mycvpassport.com/salary-switcher" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
       </Helmet>

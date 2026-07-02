@@ -873,10 +873,10 @@ export default function TemplatesPage(props) {
         <meta name="description" content="18 ATS-optimised CV templates built for Dubai, UAE & GCC jobs. Free to start. Download your Gulf-ready CV instantly." />
         <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://mycvpassport.com/templates" />
+        <link rel="canonical" href="https://www.mycvpassport.com/templates" />
         <meta property="og:title" content="Free ATS CV Templates for UAE &amp; GCC Jobs — CVPassport" />
         <meta property="og:description" content="18 ATS-optimised CV templates built for Dubai, UAE & GCC jobs. Free to start. Download your Gulf-ready CV instantly." />
-        <meta property="og:url" content="https://mycvpassport.com/templates" />
+        <meta property="og:url" content="https://www.mycvpassport.com/templates" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
       </Helmet>

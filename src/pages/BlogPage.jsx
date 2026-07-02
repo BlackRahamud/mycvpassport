@@ -1,4 +1,5 @@
 import { useSearchParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import POSTS from "../data/posts";
 import { BlogNav, CtaBand, BlogFooter, Reveal, EASE_RISE } from "./BlogChrome";
 import { motion, useReducedMotion } from "framer-motion";
@@ -66,6 +67,22 @@ export default function BlogPage() {
 
   return (
     <div className="blog-page">
+      <Helmet>
+        <title>Gulf Career Blog: UAE CV Format, ATS &amp; Job Tips | CVPassport</title>
+        <meta
+          name="description"
+          content="Practical guides for UAE and GCC job seekers: CV format rules, ATS scoring, walk-in interviews, salaries and visa specifics. Written for the India-to-Gulf corridor."
+        />
+        <link rel="canonical" href="https://www.mycvpassport.com/blog" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Gulf Career Blog: UAE CV Format, ATS &amp; Job Tips | CVPassport" />
+        <meta
+          property="og:description"
+          content="Practical guides for UAE and GCC job seekers: CV format rules, ATS scoring, walk-in interviews, salaries and visa specifics."
+        />
+        <meta property="og:url" content="https://www.mycvpassport.com/blog" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Helmet>
       <BlogNav active="/blog" />
 
       {/* Hero — espresso band */}

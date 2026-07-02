@@ -458,10 +458,10 @@ export default function ToolsPage() {
         <meta name="description" content="Free tools built for Indian expats and Gulf job seekers. Compare Dubai vs India salaries, check your ATS score, optimize your LinkedIn — all free to start." />
         <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://mycvpassport.com/tools" />
+        <link rel="canonical" href="https://www.mycvpassport.com/tools" />
         <meta property="og:title" content="Free Career Tools for UAE &amp; GCC Job Seekers | CVPassport" />
         <meta property="og:description" content="Free tools built for Indian expats and Gulf job seekers. Compare Dubai vs India salaries, check your ATS score, optimize your LinkedIn — all free to start." />
-        <meta property="og:url" content="https://mycvpassport.com/tools" />
+        <meta property="og:url" content="https://www.mycvpassport.com/tools" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
       </Helmet>

@@ -33,19 +33,14 @@
     <link rel="preconnect" href="https://www.google-analytics.com" />
     <link rel="dns-prefetch" href="https://eu.i.posthog.com" />
 
-    <!-- SEO -->
+    <!-- SEO — title/description are neutral DEFAULTS only. Page-specific
+         tags (canonical, og:*) live in each route's <Helmet>: react-helmet-
+         async ADDS tags but never removes static ones, so a static canonical
+         here would ship on every route and tell Google the whole site is a
+         duplicate of the homepage (the bug that deindexed the blog). Do not
+         re-add canonical or og:url to this file. -->
     <title>CVPassport — Build ATS-Friendly Resumes for UAE & Gulf Jobs</title>
     <meta name="description" content="Build ATS-optimised resumes for UAE, Saudi Arabia and GCC job markets. Free templates, ATS score checker, and Walk-In CV builder for Gulf job seekers." />
-    <meta name="keywords" content="CV builder UAE, resume builder Dubai, Gulf job CV, ATS resume GCC, free CV builder" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://www.mycvpassport.com/" />
-
-    <!-- WhatsApp & LinkedIn Preview -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.mycvpassport.com/" />
-    <meta property="og:title" content="CVPassport – CV Builder for UAE & Gulf Jobs" />
-    <meta property="og:description" content="ATS-friendly CV templates for Dubai and GCC job seekers. Free to start." />
-    <meta property="og:image" content="https://www.mycvpassport.com/og-image.png" />
 
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />

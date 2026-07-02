@@ -35,10 +35,10 @@ export default function ATSPage() {
         <meta name="description" content="Check if your CV beats the bots used by top Dubai & GCC employers. Free ATS scanner — no signup required." />
         <meta name="keywords" content="CV builder UAE, ATS CV Dubai, resume builder GCC, CV maker India, ATS optimised CV, job seeker Dubai, expat CV builder, CV templates UAE" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://mycvpassport.com/ats" />
+        <link rel="canonical" href="https://www.mycvpassport.com/ats" />
         <meta property="og:title" content="Free ATS CV Checker for UAE &amp; GCC Jobs — CVPassport" />
         <meta property="og:description" content="Check if your CV beats the bots used by top Dubai & GCC employers. Free ATS scanner — no signup required." />
-        <meta property="og:url" content="https://mycvpassport.com/ats" />
+        <meta property="og:url" content="https://www.mycvpassport.com/ats" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
       </Helmet>
