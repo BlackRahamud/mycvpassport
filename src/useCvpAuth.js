@@ -97,6 +97,9 @@ export function useCvpAuth() {
   // Last user id we've called identifyClarity / identifyPostHog for.
   // Guards against re-identifying on every tab-focus SIGNED_IN.
   const lastIdentifiedIdRef = useRef(null);
+  // Last user id we've synced a metadata-recruiter's hr_profiles row for.
+  // Keeps ensureProfileRow from re-upserting on every tab-focus SIGNED_IN.
+  const recruiterSyncedIdRef = useRef(null);
   const [postAuthIntermission, setPostAuthIntermission] = useState(false);
   const [editingResume, setEditingResume] = useState(null);
   const [resumeList, setResumeList] = useState([]);
@@ -119,6 +122,12 @@ export function useCvpAuth() {
 
   const ensureProfileRow = async (authUser) => {
     if (!supabase || !authUser?.id) return;
+    // Employer signups stash recruiter intent in signUp metadata so it
+    // survives the email-verification detour: with confirmation required
+    // there is no session at signup time, so handleAuth's explicit profile
+    // update never runs. First real session lands here instead.
+    const meta = authUser.user_metadata || {};
+    const isMetaRecruiter = meta.user_type === "recruiter";
     // Insert only if new user; never overwrite existing row.
     // Email sync (Step 2) removed — the .or() chaining after .eq() on .update()
     // triggers 403 on Supabase JS v2 RLS policies.
@@ -129,9 +138,30 @@ export function useCvpAuth() {
         plan: "FREE",
         flagged: false,
         features: {},
+        ...(isMetaRecruiter
+          ? {
+              user_type: "recruiter",
+              company_name: meta.company_name || null,
+              work_email: meta.work_email || null,
+            }
+          : {}),
       },
       { onConflict: "id", ignoreDuplicates: true },
     );
+    // hr_profiles row for metadata recruiters (company_name is NOT NULL, so
+    // only when one was captured). Once per user per page load — applySession
+    // re-invokes this on every tab-focus SIGNED_IN.
+    if (isMetaRecruiter && meta.company_name && recruiterSyncedIdRef.current !== authUser.id) {
+      recruiterSyncedIdRef.current = authUser.id;
+      await supabase.from("hr_profiles").upsert(
+        {
+          user_id: authUser.id,
+          company_name: meta.company_name,
+          work_email: meta.work_email || "",
+        },
+        { onConflict: "user_id", ignoreDuplicates: true },
+      );
+    }
   };
 
   useEffect(() => {
@@ -448,7 +478,20 @@ export function useCvpAuth() {
           password: trimmed.password,
           options: {
             emailRedirectTo,
-            data: { name: trimmed.name || trimmed.email.split("@")[0] },
+            data: {
+              name: trimmed.name || trimmed.email.split("@")[0],
+              // Recruiter intent rides in auth metadata so ensureProfileRow
+              // can apply it on the first session even when email
+              // verification interrupts the signup (no session here → the
+              // explicit profile update below never runs in that flow).
+              ...(trimmed.userType === "recruiter"
+                ? {
+                    user_type: "recruiter",
+                    company_name: trimmed.companyName || "",
+                    work_email: trimmed.workEmail || "",
+                  }
+                : {}),
+            },
           },
         });
         if (error) {

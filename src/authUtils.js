@@ -65,10 +65,17 @@ export function classifySignInError(error) {
   return "generic";
 }
 
-export function trimAuthFields({ name, email, password }) {
+export function trimAuthFields({ name, email, password, userType, workEmail, companyName }) {
   return {
     name: (name || "").trim(),
     email: (email || "").trim().toLowerCase(),
     password: (password || "").trim(),
+    // Employer-signup fields. These MUST survive trimming — handleAuth keys
+    // the recruiter branch (user_type, hr_profiles row) off trimmed.userType,
+    // and dropping them here silently turned every employer signup into a
+    // plain candidate account.
+    userType: (userType || "").trim() || undefined,
+    workEmail: (workEmail || "").trim().toLowerCase() || undefined,
+    companyName: (companyName || "").trim() || undefined,
   };
 }
