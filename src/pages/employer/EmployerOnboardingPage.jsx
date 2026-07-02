@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
+import NoIndex from "../../components/seo/NoIndex";
 import { fetchRecruiterStatus, completeEmployerOnboarding } from "../../lib/employer/recruiterStatus";
 import "../hr/PostJob/postJob.css"; // --pj-* tokens
 import "./employerLanding.css";
@@ -80,6 +81,7 @@ export default function EmployerOnboardingPage() {
 
   return (
     <div className="emp-root">
+      <NoIndex />
       <header className="emp-topbar">
         <Link to="/employer" className="emp-wordmark">
           CVPassport <small>for Employers</small>

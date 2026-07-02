@@ -8,6 +8,7 @@ import NewCvLobby from "../components/NewCvLobby";
 import { TEMPLATES, getStrength } from "../cvShared";
 import { supabase } from "../appSupabaseClient";
 import { loadUserResumes } from "../resumeDb";
+import NoIndex from "../components/seo/NoIndex";
 import "./DashboardPage.css";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
@@ -565,6 +566,7 @@ export default function DashboardPage({
 
   return (
     <div className="dashboard-root" data-theme={theme} style={{ "--sb-width": "196px", background: t.bg, color: t.textPrimary, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh", overflowX: "hidden", transition: `background 200ms ${EASE}, color 200ms ${EASE}` }}>
+      <NoIndex />
         {/* ═══ SIDEBAR ═══ */}
         <aside
           className="cvp2-sidebar cvp-sidebar"

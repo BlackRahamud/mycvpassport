@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../appSupabaseClient";
 import { getTheme } from "../lib/theme";
+import NoIndex from "../components/seo/NoIndex";
 
 const AUTH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
@@ -114,6 +115,7 @@ export default function ResetPassword() {
   if (linkValid === false) {
     return (
       <div className="cvp-auth-page" data-theme={getTheme()} style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+        <NoIndex />
         <div style={authCardStyle}>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
             Invalid or expired reset link.
@@ -126,6 +128,7 @@ export default function ResetPassword() {
   if (linkValid === null) {
     return (
       <div className="cvp-auth-page" data-theme={getTheme()} style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+        <NoIndex />
         <div style={authCardStyle}>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
             Loading…
@@ -138,6 +141,7 @@ export default function ResetPassword() {
   if (success) {
     return (
       <div className="cvp-auth-page" data-theme={getTheme()} style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+        <NoIndex />
         <div style={authCardStyle}>
           <p style={{ color: "var(--success-text)", fontSize: "15px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
             Password updated! Redirecting...

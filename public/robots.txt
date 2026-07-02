@@ -1,3 +1,14 @@
 User-agent: *
 Allow: /
+# App-only surfaces without their own meta-noindex. Pages that DO carry
+# meta robots noindex (/builder, /dashboard, employer portal, auth) are
+# intentionally NOT disallowed here - the crawler must fetch them to see it.
+Disallow: /account
+Disallow: /scout
+Disallow: /cover-letter
+Disallow: /transform
+Disallow: /admin
+Disallow: /payment-success
+Disallow: /shared/
+
 Sitemap: https://www.mycvpassport.com/sitemap.xml

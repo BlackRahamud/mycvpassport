@@ -5,10 +5,12 @@
 // render a quiet placeholder while that happens — no logic lives here.
 
 import { getTheme } from "../lib/theme";
+import NoIndex from "../components/seo/NoIndex";
 
 export default function AuthCallback() {
   return (
     <>
+      <NoIndex />
       <style>{`
         @property --cvp-cb-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
         @keyframes cvp-cb-spin { to { --cvp-cb-angle: 360deg; } }

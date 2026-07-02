@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import CVPassportLogo from "../components/CVPassportLogo";
+import NoIndex from "../components/seo/NoIndex";
 import { logEvent } from "../lib/analytics/logEvent";
 import { getTheme } from "../lib/theme";
 
@@ -313,6 +314,7 @@ function AuthPage({
     };
     return (
       <div className="cvp-auth-page" data-theme={getTheme()} style={pageWrapStyle}>
+        <NoIndex />
         <AuthLogoBlock />
         <AuthCardShell>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px", color: "var(--text-primary)" }} aria-hidden>
@@ -400,6 +402,7 @@ function AuthPage({
 
   return (
     <div className="cvp-auth-page" data-theme={getTheme()} style={pageWrapStyle}>
+      <NoIndex />
       <AuthLogoBlock />
       <AuthCardShell>
         {showForgot ? (

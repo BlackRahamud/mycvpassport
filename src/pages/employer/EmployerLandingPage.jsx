@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import "../hr/PostJob/postJob.css"; // --pj-* tokens live on :root there
@@ -61,6 +62,22 @@ export default function EmployerLandingPage() {
 
   return (
     <div className="emp-root">
+      <Helmet>
+        <title>Hire Gulf-Ready Candidates: Post Jobs Free | CVPassport</title>
+        <meta
+          name="description"
+          content="Post jobs and reach candidates building ATS-ready CVs for UAE and GCC roles. Applications arrive scored, with a built-in hiring pipeline. Free to start, no card required."
+        />
+        <link rel="canonical" href="https://www.mycvpassport.com/employer" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Hire Gulf-Ready Candidates: Post Jobs Free | CVPassport" />
+        <meta
+          property="og:description"
+          content="Post jobs and reach candidates building ATS-ready CVs for UAE and GCC roles. Applications arrive scored, with a built-in hiring pipeline."
+        />
+        <meta property="og:url" content="https://www.mycvpassport.com/employer" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Helmet>
       <header className="emp-topbar">
         <Link to="/" className="emp-wordmark">
           CVPassport <small>for Employers</small>

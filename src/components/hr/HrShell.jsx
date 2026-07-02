@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
+import NoIndex from "../seo/NoIndex";
 import { supabase } from "../../appSupabaseClient";
 import UserMenu from "../UserMenu/UserMenu";
 import PortalLogo from "./PortalLogo";
@@ -93,6 +94,7 @@ export default function HrShell() {
 
   return (
     <div className="hrs-root">
+      <NoIndex />
       <motion.aside
         className="hrs-rail"
         initial={reduce ? false : { opacity: 0, x: -8 }}
