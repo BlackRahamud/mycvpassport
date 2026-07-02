@@ -956,11 +956,11 @@ function CandidateDetail({
   const noticePeriod = cv.notice_period || cv.availability || personal.notice_period || "";
 
   // Open the uploaded CV in the slide-over drawer (no new tab). The drawer
-  // mints its own short-lived signed URL; RLS confirms this recruiter owns the
-  // application pointing at the file in the private applicant-cvs bucket.
-  const handleViewCv = () => {
-    if (candidate.cv_file_path) setCvOpen(true);
-  };
+  // fetches the file through the authenticated Storage API; RLS confirms this
+  // recruiter owns the application pointing at the file. Always open — if the
+  // path is somehow missing the drawer shows an honest empty state instead of
+  // this click silently doing nothing.
+  const handleViewCv = () => setCvOpen(true);
   const cvExt = (candidate.cv_file_path || "").split(".").pop() || "pdf";
   const cvFileName = `${candidate.candidate_name || "candidate"} CV.${cvExt}`;
 
