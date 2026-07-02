@@ -70,14 +70,6 @@
     { "source": "/indian-cv-uae", "destination": "/india-to-uae", "permanent": true }
   ],
   "rewrites": [
-    {
-      "source": "/((?!api/).*)",
-      "missing": [
-        { "type": "header", "key": "x-prerender-bypass" },
-        { "type": "query",  "key": "__cvp_spa" }
-      ],
-      "destination": "/api/prerender"
-    },
     { "source": "/((?!api/).*)", "destination": "/spa.html" }
   ]
 }
