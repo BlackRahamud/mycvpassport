@@ -190,6 +190,31 @@
   justify-content: center;
 }
 
+/* Honest stage-move failure toast — appears above the tabs when a
+   status write is rejected and the card has been reverted. */
+.jpp-moveerr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.06);
+  color: var(--pj-danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.jpp-moveerr button {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
 /* ── Tabs ───────────────────────────────────────────────────── */
 .jpp-tabs {
   display: flex;

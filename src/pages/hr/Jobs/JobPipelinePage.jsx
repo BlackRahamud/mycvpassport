@@ -16,41 +16,13 @@ import CvPreviewCard from "../../../components/hr/CvPreviewCard";
 import CvDrawer from "../../../components/hr/CvDrawer";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
+import { STAGES, STAGE_BY_DB, NEW_STATUSES } from "../../../lib/hr/stages";
+import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
-/* ───────── Stage config ─────────
-   Pipeline stages B-F. Order matters: it determines tab order, the
-   "next stage" advance target, and how DB statuses map onto a tab. */
-const STAGES = [
-  { key: "shortlist",   label: "Shortlist",   dbValues: ["new", "submitted", "viewed", "shortlisted"],
-    actionLabel: "Interviewed", advanceTo: "interviewed",
-    statusLine: (date) => `Shortlisted   ${date}`,
-    nextLine: "Click Interviewed to request a screening call, or Pass to remove from Shortlist." },
-  { key: "ready",       label: "Ready",       dbValues: ["ready"],
-    actionLabel: "Interviewed", advanceTo: "interviewed",
-    statusLine: (date) => `Ready to interview   ${date}`,
-    nextLine: "Schedule the interview and confirm when it has been completed." },
-  { key: "interviewed", label: "Interviewed", dbValues: ["interviewed", "interviewing"],
-    actionLabel: "Give offer",  advanceTo: "offered",
-    statusLine: (date) => `Interviewed   ${date}`,
-    nextLine: "If you want to hire, extend an offer via email soon and cc your Account Manager so you don't lose the candidate." },
-  { key: "offer",       label: "Offer",       dbValues: ["offered"],
-    actionLabel: "Hired",       advanceTo: "hired",
-    statusLine: (date) => `Offer extended   ${date}`,
-    nextLine: "Let us know if the candidate accepted your offer, so we can congratulate you." },
-  { key: "hired",       label: "Hired",       dbValues: ["hired"],
-    actionLabel: null,           advanceTo: null,
-    statusLine: (date) => `Hired   ${date}`,
-    nextLine: "Onboarding tracker is in your Account Manager's hands — you'll get a follow-up note shortly." },
-];
-
-const STAGE_BY_DB = STAGES.reduce((m, s) => {
-  s.dbValues.forEach((v) => { m[v] = s.key; });
-  return m;
-}, {});
-
-const NEW_STATUSES = new Set(["new", "submitted", "viewed"]);
+/* Stage config now lives in src/lib/hr/stages.js — shared with the kanban
+   view, the analytics strip and their tests so views can never drift. */
 
 /* ───────── Inline icons ───────── */
 const ChevLeft = () => (
@@ -221,6 +193,7 @@ export default function JobPipelinePage() {
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const [moveError, setMoveError] = useState(null);
   const [showHiredModal, setShowHiredModal] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialMessage, setComposerInitialMessage] = useState(null);
@@ -347,28 +320,38 @@ export default function JobPipelinePage() {
   const jobTitle = job?.title || "";
 
   /* ── Mutations ─────────────────────────────────────────────── */
-  const updateStatus = useCallback(async (appId, newStatus, fromStatus) => {
+  /* Optimistic move with an HONEST failure path: if the status write is
+     rejected, the card reverts to its origin and the recruiter sees an
+     error — never a silently-out-of-sync board (both views share this).
+     Returns true on persisted success so callers (kanban) can animate. */
+  const updateStatus = useCallback(async (appId, newStatus) => {
+    const prevApp = (apps || []).find((a) => a.id === appId);
+    if (!prevApp || prevApp.status === newStatus) return false;
     setAdvancing(true);
-    setApps((prev) => (prev || []).map((a) => (a.id === appId ? { ...a, status: newStatus, updated_at: new Date().toISOString() } : a)));
+    setMoveError(null);
+    const writes = buildStageMoveWrites({ app: prevApp, newStatus, hrId: user?.id });
+    setApps((prev) => (prev || []).map((a) => (a.id === appId ? { ...a, status: newStatus, updated_at: writes.statusUpdate.updated_at } : a)));
     try {
-      await supabase
+      const { error } = await supabase
         .from("applications")
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update(writes.statusUpdate)
         .eq("id", appId);
-      const app = (apps || []).find((a) => a.id === appId);
-      if (user?.id && app?.candidate_id) {
-        await supabase.from("candidate_events").insert({
-          candidate_id: app.candidate_id,
-          job_id: app.job_id,
-          hr_id: user.id,
-          event_type: newStatus,
-          metadata: { previous_status: fromStatus, source: "hr_pipeline" },
-        });
+      if (error) throw error;
+      if (writes.event) {
+        // History trail is best-effort; the status write above is the
+        // source of truth and has already succeeded.
+        supabase.from("candidate_events").insert(writes.event).then(
+          () => {},
+          (e) => console.warn("[pipeline] event insert failed:", e?.message || e), // eslint-disable-line no-console
+        );
       }
+      return true;
     } catch (e) {
-      // best-effort — leave optimistic UI in place; server will catch up
       // eslint-disable-next-line no-console
       console.warn("[pipeline] status update failed:", e?.message || e);
+      setApps((prev) => (prev || []).map((a) => (a.id === appId ? { ...a, status: prevApp.status, updated_at: prevApp.updated_at } : a)));
+      setMoveError(`Couldn't move ${prevApp.candidate_name || "this candidate"} — the change was not saved. Check your connection and try again.`);
+      return false;
     } finally {
       setAdvancing(false);
     }
@@ -376,15 +359,21 @@ export default function JobPipelinePage() {
 
   const handleAdvance = useCallback(() => {
     if (!selected || !stageDef.advanceTo) return;
-    const fromStatus = selected.status;
-    updateStatus(selected.id, stageDef.advanceTo, fromStatus);
+    updateStatus(selected.id, stageDef.advanceTo);
     if (stageDef.advanceTo === "hired") setShowHiredModal(true);
   }, [selected, stageDef, updateStatus]);
 
   const handlePass = useCallback(() => {
     if (!selected) return;
-    updateStatus(selected.id, "rejected", selected.status);
+    updateStatus(selected.id, "rejected");
   }, [selected, updateStatus]);
+
+  /* Move-failure toast auto-dismisses; manual dismiss stays available. */
+  useEffect(() => {
+    if (!moveError) return undefined;
+    const t = setTimeout(() => setMoveError(null), 6000);
+    return () => clearTimeout(t);
+  }, [moveError]);
 
   const handleAddNote = useCallback(async () => {
     const trimmed = noteDraft.trim();
@@ -465,6 +454,22 @@ export default function JobPipelinePage() {
             </div>
           </div>
         </motion.div>
+
+        <AnimatePresence>
+          {moveError && (
+            <motion.div
+              className="jpp-moveerr"
+              role="alert"
+              initial={reduce ? false : { opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <span>{moveError}</span>
+              <button type="button" aria-label="Dismiss" onClick={() => setMoveError(null)}><CloseIc /></button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <nav className="jpp-tabs" role="tablist" aria-label="Pipeline stages">
           {STAGES.map((s) => {
