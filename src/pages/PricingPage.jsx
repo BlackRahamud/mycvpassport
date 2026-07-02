@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
 import safeFetch from "../lib/net/safeFetch";
+import { getTheme } from "../lib/theme";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
 import RazorpayPayment from "../components/RazorpayPayment";
@@ -67,7 +68,7 @@ function ArrowRightIcon({ size = 14, color = "currentColor" }) {
   );
 }
 
-function CheckIcon({ size = 12, color = "#4ADE80" }) {
+function CheckIcon({ size = 12, color = "var(--success)" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="20 6 9 17 4 12" />
@@ -423,9 +424,9 @@ export default function PricingPage({ refreshProfile } = {}) {
   ];
 
   const renderCell = (val) => {
-    if (val === true) return <span style={{ color: "#16A34A", fontSize: "16px" }}>✓</span>;
-    if (val === false) return <span style={{ color: "#4A4A4A", fontSize: "16px" }}>×</span>;
-    return <span style={{ color: "#A0A0A0", fontSize: "13px" }}>{val}</span>;
+    if (val === true) return <span style={{ color: "var(--success-text)", fontSize: "16px" }}>✓</span>;
+    if (val === false) return <span style={{ color: "var(--text-muted)", fontSize: "16px" }}>×</span>;
+    return <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{val}</span>;
   };
 
   return (
@@ -442,17 +443,17 @@ export default function PricingPage({ refreshProfile } = {}) {
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
       </Helmet>
-    <div style={{
-      minHeight: "100vh", backgroundColor: "#0A0A0A",
+    <div data-theme={getTheme()} style={{
+      minHeight: "100vh", backgroundColor: "var(--bg)",
       fontFamily: "Inter, -apple-system, system-ui, sans-serif",
-      color: "#FFFFFF",
+      color: "var(--text-primary)",
     }}>
 
       {/* PAGE HEADER */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: isMobile ? "16px" : "20px 48px",
-        borderBottom: "1px solid #2A2A2A",
+        borderBottom: "1px solid var(--border)",
       }}>
         <div
           style={{ fontSize: "18px", fontWeight: "700", cursor: "pointer" }}
@@ -461,7 +462,7 @@ export default function PricingPage({ refreshProfile } = {}) {
           CVPassport
         </div>
         <div
-          style={{ fontSize: "13px", color: "#A0A0A0", cursor: "pointer" }}
+          style={{ fontSize: "13px", color: "var(--text-secondary)", cursor: "pointer" }}
           onClick={() => navigate("/dashboard")}
         >
           ← Back to Dashboard
@@ -474,11 +475,11 @@ export default function PricingPage({ refreshProfile } = {}) {
         <div style={{ textAlign: "center", marginBottom: isMobile ? "28px" : "40px" }}>
           <h1 style={{
             fontSize: isMobile ? "24px" : "32px", fontWeight: "700",
-            color: "#FFFFFF", margin: "0 0 10px",
+            color: "var(--text-primary)", margin: "0 0 10px",
           }}>
             Simple, Transparent Pricing
           </h1>
-          <p style={{ fontSize: isMobile ? "14px" : "16px", color: "#A0A0A0", margin: 0 }}>
+          <p style={{ fontSize: isMobile ? "14px" : "16px", color: "var(--text-secondary)", margin: 0 }}>
             Built for UAE and India job seekers. No surprises.
           </p>
         </div>
@@ -495,7 +496,7 @@ export default function PricingPage({ refreshProfile } = {}) {
               borderRadius: 12,
               padding: "12px 16px",
               fontSize: 13,
-              color: "#FCA5A5",
+              color: "var(--danger)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -511,7 +512,7 @@ export default function PricingPage({ refreshProfile } = {}) {
               style={{
                 background: "none",
                 border: "none",
-                color: "#FCA5A5",
+                color: "var(--danger)",
                 fontSize: 16,
                 lineHeight: 1,
                 cursor: "pointer",
@@ -547,8 +548,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                   show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE } },
                 }}
                 style={{
-                  backgroundColor: "#141414",
-                  border: "1px solid #2A2A2A",
+                  backgroundColor: "var(--bg-surface)",
+                  border: "1px solid var(--border)",
                   borderRadius: 16,
                   padding: isMobile ? "24px 20px" : "28px 24px",
                   display: "flex",
@@ -559,7 +560,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: "#A0A0A0",
+                    color: "var(--text-secondary)",
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
                     marginBottom: 14,
@@ -568,11 +569,11 @@ export default function PricingPage({ refreshProfile } = {}) {
                   Start free
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
-                  <span style={{ fontSize: 36, fontWeight: 700, color: "#FFFFFF", lineHeight: 1, letterSpacing: "-0.02em" }}>
+                  <span style={{ fontSize: 36, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.02em" }}>
                     {currency === "AED" ? "AED 0" : "₹0"}
                   </span>
                 </div>
-                <div style={{ fontSize: 13, color: "#A0A0A0", marginBottom: 24 }}>
+                <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 24 }}>
                   No card. No catch.
                 </div>
                 <div style={{ flex: 1, marginBottom: 24, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -583,10 +584,10 @@ export default function PricingPage({ refreshProfile } = {}) {
                   ].map((line) => (
                     <div
                       key={line}
-                      style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#E5E5E5" }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)" }}
                     >
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, flexShrink: 0 }}>
-                        <CheckIcon size={12} color="#4ADE80" />
+                        <CheckIcon size={12} color="var(--success)" />
                       </span>
                       {line}
                     </div>
@@ -597,8 +598,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                     disabled
                     style={{
                       width: "100%", height: 44, borderRadius: 12,
-                      backgroundColor: "transparent", color: "#A0A0A0",
-                      border: "1px solid #2A2A2A", fontSize: 14,
+                      backgroundColor: "transparent", color: "var(--text-secondary)",
+                      border: "1px solid var(--border)", fontSize: 14,
                       fontWeight: 600, cursor: "not-allowed",
                       fontFamily: "inherit",
                     }}
@@ -612,24 +613,24 @@ export default function PricingPage({ refreshProfile } = {}) {
                     onClick={() => explorerPlan && handleCTA(explorerPlan)}
                     style={{
                       width: "100%", height: 44, borderRadius: 12,
-                      backgroundColor: "transparent", color: "#FFFFFF",
-                      border: "1px solid rgba(255,255,255,0.5)",
+                      backgroundColor: "transparent", color: "var(--text-primary)",
+                      border: "1px solid var(--border-strong)",
                       fontSize: 14, fontWeight: 600, cursor: "pointer",
                       fontFamily: "inherit",
                       display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
                       transition: "border-color 160ms cubic-bezier(0.4,0,0.2,1), background-color 160ms cubic-bezier(0.4,0,0.2,1)",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#FFFFFF";
-                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)";
+                      e.currentTarget.style.borderColor = "var(--text-primary)";
+                      e.currentTarget.style.backgroundColor = "var(--hover-wash)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)";
+                      e.currentTarget.style.borderColor = "var(--border-strong)";
                       e.currentTarget.style.backgroundColor = "transparent";
                     }}
                   >
                     <span>Build your first CV</span>
-                    <ArrowRightIcon size={14} color="#FFFFFF" />
+                    <ArrowRightIcon size={14} color="var(--text-primary)" />
                   </button>
                 )}
               </motion.div>
@@ -649,19 +650,18 @@ export default function PricingPage({ refreshProfile } = {}) {
                 }}
                 style={{
                   position: "relative",
-                  background: "linear-gradient(180deg, #181818 0%, #121212 100%)",
+                  background: "var(--bg-elevated)",
                   border: "1px solid rgba(217,119,6,0.32)",
                   borderRadius: 18,
                   padding: isMobile ? "26px 20px 24px" : "32px 28px 28px",
                   display: "flex",
                   flexDirection: "column",
-                  // Faint amber glow edge + top-edge highlight + grounded drop
-                  // + wide outward amber spill — same depth language as the
-                  // AtsGapsActionCard so the two surfaces feel related.
+                  // Faint amber glow edge + grounded drop + wide outward amber
+                  // spill — same depth language as the AtsGapsActionCard so the
+                  // two surfaces feel related. Amber alphas read on both themes.
                   boxShadow: [
                     "0 0 0 1px rgba(217,119,6,0.08)",
-                    "inset 0 1px 0 rgba(255,255,255,0.05)",
-                    "0 24px 56px -14px rgba(0,0,0,0.6)",
+                    "0 24px 56px -14px rgba(20,19,16,0.28)",
                     "0 0 80px -28px rgba(217,119,6,0.30)",
                   ].join(", "),
                 }}
@@ -674,7 +674,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                       gap: 6,
                       fontSize: 10,
                       fontWeight: 700,
-                      color: "#D97706",
+                      color: "var(--accent-text)",
                       padding: "4px 10px",
                       borderRadius: 9999,
                       border: "1px solid rgba(217,119,6,0.32)",
@@ -688,16 +688,16 @@ export default function PricingPage({ refreshProfile } = {}) {
                 </div>
 
                 <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.005em" }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.005em" }}>
                     {currency === "AED" ? "AED " : "₹"}
                   </span>
-                  <span style={{ fontSize: 44, fontWeight: 700, color: "#FFFFFF", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ fontSize: 44, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
                     {hunterPrice}
                   </span>
-                  <span style={{ fontSize: 14, color: "#A0A0A0", marginLeft: 6 }}>· 30-day pass</span>
+                  <span style={{ fontSize: 14, color: "var(--text-secondary)", marginLeft: 6 }}>· 30-day pass</span>
                 </div>
 
-                <div style={{ fontSize: 13, color: "#D97706", marginBottom: 24, fontWeight: 500 }}>
+                <div style={{ fontSize: 13, color: "var(--accent-text)", marginBottom: 24, fontWeight: 500 }}>
                   Less than a coffee. More than a recruiter.
                 </div>
 
@@ -716,12 +716,12 @@ export default function PricingPage({ refreshProfile } = {}) {
                         alignItems: "flex-start",
                         gap: 10,
                         fontSize: 14,
-                        color: "#FFFFFF",
+                        color: "var(--text-primary)",
                         lineHeight: 1.45,
                       }}
                     >
                       <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 20, flexShrink: 0 }}>
-                        <CheckIcon size={13} color="#4ADE80" />
+                        <CheckIcon size={13} color="var(--success)" />
                       </span>
                       <span>{line}</span>
                     </div>
@@ -733,8 +733,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                     disabled
                     style={{
                       width: "100%", height: 48, borderRadius: 9999,
-                      backgroundColor: "transparent", color: "#A0A0A0",
-                      border: "1px solid #2A2A2A", fontSize: 14,
+                      backgroundColor: "transparent", color: "var(--text-secondary)",
+                      border: "1px solid var(--border)", fontSize: 14,
                       fontWeight: 600, cursor: "not-allowed",
                       fontFamily: "inherit",
                     }}
@@ -758,6 +758,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                     style={{
                       width: "100%", height: 48, borderRadius: 9999,
                       background: "linear-gradient(180deg, #E08810 0%, #B25E03 100%)",
+                      /* Fixed white on the amber gradient — label sits on the
+                         fill, not the page, so it must NOT flip with theme. */
                       color: "#FFFFFF", border: "none",
                       fontSize: 15, fontWeight: 700, cursor: "pointer",
                       fontFamily: "inherit",
@@ -775,7 +777,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                   </motion.button>
                 )}
 
-                <div style={{ fontSize: 12, color: "#A0A0A0", textAlign: "center", marginTop: 12 }}>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center", marginTop: 12 }}>
                   One-time payment · access for 30 days
                 </div>
               </motion.div>
@@ -791,7 +793,7 @@ export default function PricingPage({ refreshProfile } = {}) {
               alignItems: "center",
               gap: 10,
               fontSize: 13,
-              color: "#A0A0A0",
+              color: "var(--text-secondary)",
               marginBottom: 8,
               flexWrap: "wrap",
               justifyContent: "center",
@@ -817,11 +819,11 @@ export default function PricingPage({ refreshProfile } = {}) {
               onClick={() => setAllPlansOpen((v) => !v)}
               aria-expanded={allPlansOpen}
               style={{
-                background: "#141414",
-                border: "1px solid #2A2A2A",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
                 borderRadius: 9999,
                 padding: "10px 18px",
-                color: "#E5E5E5",
+                color: "var(--text-primary)",
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -831,8 +833,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                 gap: 8,
                 transition: "color 160ms cubic-bezier(0.4,0,0.2,1), border-color 160ms cubic-bezier(0.4,0,0.2,1)",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "#A0A0A0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#E5E5E5"; e.currentTarget.style.borderColor = "#2A2A2A"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.borderColor = "var(--text-secondary)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.borderColor = "var(--border)"; }}
             >
               <span>
                 {allPlansOpen
@@ -877,8 +879,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                           <div
                             key={plan.id}
                             style={{
-                              backgroundColor: "#141414",
-                              border: "1px solid #2A2A2A",
+                              backgroundColor: "var(--bg-surface)",
+                              border: "1px solid var(--border)",
                               borderRadius: 16,
                               padding: cardPad,
                               display: "flex",
@@ -890,8 +892,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                               <div style={{ marginBottom: 12 }}>
                                 <span
                                   style={{
-                                    border: "1px solid #FFFFFF",
-                                    color: "#FFFFFF",
+                                    border: "1px solid var(--text-primary)",
+                                    color: "var(--text-primary)",
                                     fontSize: 10,
                                     fontWeight: 700,
                                     padding: "3px 10px",
@@ -906,19 +908,19 @@ export default function PricingPage({ refreshProfile } = {}) {
                             ) : (
                               <div style={{ height: 26 }} />
                             )}
-                            <div style={{ fontSize: 16, fontWeight: 700, color: "#FFFFFF", marginBottom: 16 }}>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>
                               {plan.name}
                             </div>
                             <div style={{ marginBottom: 6, display: "flex", alignItems: "baseline", gap: 2 }}>
-                              <span style={{ fontSize: 20, fontWeight: 700, color: "#FFFFFF" }}>
+                              <span style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
                                 {currency === "AED" ? "AED " : "₹"}
                               </span>
-                              <span style={{ fontSize: 40, fontWeight: 700, color: "#FFFFFF", lineHeight: 1 }}>
+                              <span style={{ fontSize: 40, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
                                 {priceLarge}
                               </span>
-                              <span style={{ fontSize: 13, color: "#A0A0A0", marginLeft: 6 }}>{priceSuffix}</span>
+                              <span style={{ fontSize: 13, color: "var(--text-secondary)", marginLeft: 6 }}>{priceSuffix}</span>
                             </div>
-                            <div style={{ fontSize: 13, color: "#A0A0A0", marginBottom: 24 }}>
+                            <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 24 }}>
                               {plan.description}
                             </div>
                             <div style={{ flex: 1, marginBottom: 28 }}>
@@ -931,12 +933,12 @@ export default function PricingPage({ refreshProfile } = {}) {
                                     gap: 10,
                                     marginBottom: 10,
                                     fontSize: 13,
-                                    color: f.included ? "#FFFFFF" : "#4A4A4A",
+                                    color: f.included ? "var(--text-primary)" : "var(--text-muted)",
                                   }}
                                 >
                                   <span
                                     style={{
-                                      color: f.included ? "#16A34A" : "#4A4A4A",
+                                      color: f.included ? "var(--success-text)" : "var(--text-muted)",
                                       fontWeight: 700,
                                       fontSize: 14,
                                       flexShrink: 0,
@@ -956,8 +958,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                                   height: 44,
                                   borderRadius: 12,
                                   backgroundColor: "transparent",
-                                  color: "#A0A0A0",
-                                  border: "1px solid #2A2A2A",
+                                  color: "var(--text-secondary)",
+                                  border: "1px solid var(--border)",
                                   fontSize: 14,
                                   fontWeight: 600,
                                   cursor: "not-allowed",
@@ -975,8 +977,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                                   width: "100%",
                                   height: 44,
                                   borderRadius: 12,
-                                  backgroundColor: "#FFFFFF",
-                                  color: "#000000",
+                                  backgroundColor: "var(--text-primary)",
+                                  color: "var(--bg)",
                                   border: "none",
                                   fontSize: 14,
                                   fontWeight: 600,
@@ -999,8 +1001,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                         style={{
                           width: "100%",
                           borderCollapse: "collapse",
-                          backgroundColor: "#141414",
-                          border: "1px solid #2A2A2A",
+                          backgroundColor: "var(--bg-surface)",
+                          border: "1px solid var(--border)",
                           borderRadius: 12,
                           overflow: "hidden",
                         }}
@@ -1013,8 +1015,8 @@ export default function PricingPage({ refreshProfile } = {}) {
                                 padding: "16px 20px",
                                 fontSize: 13,
                                 fontWeight: 600,
-                                color: "#A0A0A0",
-                                borderBottom: "1px solid #2A2A2A",
+                                color: "var(--text-secondary)",
+                                borderBottom: "1px solid var(--border)",
                               }}
                             >
                               Feature
@@ -1026,9 +1028,9 @@ export default function PricingPage({ refreshProfile } = {}) {
                                   padding: "16px 20px",
                                   fontSize: 13,
                                   fontWeight: 600,
-                                  color: i === 2 ? "#D97706" : "#FFFFFF",
+                                  color: i === 2 ? "#D97706" : "var(--text-primary)",
                                   backgroundColor: i === 2 ? "rgba(217,119,6,0.1)" : "transparent",
-                                  borderBottom: "1px solid #2A2A2A",
+                                  borderBottom: "1px solid var(--border)",
                                   textAlign: "center",
                                 }}
                               >
@@ -1039,13 +1041,13 @@ export default function PricingPage({ refreshProfile } = {}) {
                         </thead>
                         <tbody>
                           {compRows.map((row, ri) => (
-                            <tr key={row.feature} style={{ backgroundColor: ri % 2 === 0 ? "#141414" : "#1C1C1C" }}>
+                            <tr key={row.feature} style={{ backgroundColor: ri % 2 === 0 ? "var(--bg-surface)" : "var(--bg-elevated)" }}>
                               <td
                                 style={{
                                   padding: "14px 20px",
                                   fontSize: 13,
-                                  color: "#FFFFFF",
-                                  borderBottom: "1px solid #2A2A2A",
+                                  color: "var(--text-primary)",
+                                  borderBottom: "1px solid var(--border)",
                                 }}
                               >
                                 {row.feature}
@@ -1056,7 +1058,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                                   style={{
                                     padding: "14px 20px",
                                     textAlign: "center",
-                                    borderBottom: "1px solid #2A2A2A",
+                                    borderBottom: "1px solid var(--border)",
                                     backgroundColor: vi === 2 ? "rgba(217,119,6,0.05)" : "transparent",
                                   }}
                                 >
@@ -1077,8 +1079,8 @@ export default function PricingPage({ refreshProfile } = {}) {
 
         {/* TRUST SIGNALS */}
         <div style={{
-          borderTop: "1px solid #2A2A2A",
-          borderBottom: "1px solid #2A2A2A",
+          borderTop: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
           padding: isMobile ? "24px 0" : "32px 0",
           marginBottom: "40px",
         }}>
@@ -1090,13 +1092,13 @@ export default function PricingPage({ refreshProfile } = {}) {
             gap: isMobile ? "16px" : "48px",
             marginBottom: "20px",
           }}>
-            <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 6 }}>
               Secured by {currency === "INR" ? "Razorpay" : "Ziina"} <LockIcon />
             </span>
-            <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
+            <span style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center" }}>
               One-time payment ✓
             </span>
-            <span style={{ fontSize: "13px", color: "#A0A0A0", textAlign: "center" }}>
+            <span style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center" }}>
               No Hidden Fees ✓
             </span>
           </div>
@@ -1176,11 +1178,11 @@ function LaunchingOverlay({ message }) {
           }} />
           <div style={{
             position: "absolute", inset: 2, borderRadius: "50%",
-            background: "#0A0A0A",
+            background: "var(--bg)",
           }} />
         </div>
         <div style={{
-          fontSize: 15, color: "#FFFFFF", fontWeight: 500, textAlign: "center",
+          fontSize: 15, color: "var(--text-primary)", fontWeight: 500, textAlign: "center",
           maxWidth: 320, padding: "0 24px", letterSpacing: "-0.005em",
           lineHeight: 1.5,
         }}>{message}</div>

@@ -401,9 +401,10 @@ export default function App() {
 }
 
 /**
- * Suspense fallback for route-level code splitting. Matches the dark
- * background so chunk loads don't flash white. Intentionally minimal —
- * most chunks are <100KB gzipped and load in well under 200ms on 4G.
+ * Suspense fallback for route-level code splitting. Follows the active
+ * theme (var(--bg) resolves from <html data-theme>) so chunk loads don't
+ * flash the wrong background. Intentionally minimal — most chunks are
+ * <100KB gzipped and load in well under 200ms on 4G.
  */
 function RouteFallback() {
   return (
@@ -412,7 +413,7 @@ function RouteFallback() {
       style={{
         minHeight: "100vh",
         width: "100%",
-        background: C.bg,
+        background: "var(--bg)",
       }}
     />
   );
