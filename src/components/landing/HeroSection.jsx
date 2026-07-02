@@ -195,17 +195,25 @@ export default function HeroSection({ user }) {
           100% { background-position: 300% center; }
         }
         .hero-headline-shimmer {
-          background: linear-gradient(90deg, #FFFFFF 0%, #D97706 100%);
+          /* Token-driven gradient: near-black→amber on light, white→amber
+             on dark — legible on both. The white glow is dark-only (it
+             flattens to grey haze on a light background). */
+          background: linear-gradient(90deg, var(--color-text-primary) 0%, var(--color-accent) 100%);
           background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
-          filter: drop-shadow(0 0 12px rgba(255,255,255,0.4)) drop-shadow(0 0 30px rgba(217,119,6,0.35)) drop-shadow(0 0 60px rgba(217,119,6,0.2));
           animation: headlineShimmer 4s linear infinite;
+        }
+        /* Scoped to the landing wrapper's OWN theme attribute — a bare
+           [data-theme="dark"] descendant selector would also match through
+           the dark-pinned app shell that wraps the whole route tree. */
+        .lp-wrapper[data-theme="dark"] .hero-headline-shimmer {
+          filter: drop-shadow(0 0 12px rgba(255,255,255,0.4)) drop-shadow(0 0 30px rgba(217,119,6,0.35)) drop-shadow(0 0 60px rgba(217,119,6,0.2));
         }
         .cvp-hero-uae-line {
           font-size: 13px;
-          color: rgba(255,255,255,0.5);
+          color: var(--color-text-secondary);
           text-align: center;
           margin: 12px 0 20px;
           line-height: 1.4;
@@ -219,7 +227,7 @@ export default function HeroSection({ user }) {
         .cvp-hero-uae-percent {
           font-weight: 800;
           font-size: 16px;
-          background: linear-gradient(90deg, #FFFFFF 0%, #D97706 100%);
+          background: linear-gradient(90deg, var(--color-text-primary) 0%, var(--color-accent) 100%);
           background-size: 200% auto;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -231,8 +239,8 @@ export default function HeroSection({ user }) {
           .cvp-hero-uae-percent { animation: none; }
           .hero-headline-shimmer {
             animation: none;
-            background: #ffffff;
-            -webkit-text-fill-color: #ffffff;
+            background: var(--color-text-primary);
+            -webkit-text-fill-color: var(--color-text-primary);
             filter: none;
           }
         }
@@ -244,9 +252,9 @@ export default function HeroSection({ user }) {
           flex-wrap: wrap;
           gap: 20px;
           padding: 14px 20px;
-          background: rgba(255,255,255,0.02);
-          border-top: 1px solid rgba(255,255,255,0.05);
-          border-bottom: 1px solid rgba(255,255,255,0.05);
+          background: var(--color-surface-01);
+          border-top: 1px solid var(--color-border);
+          border-bottom: 1px solid var(--color-border);
           margin-top: 20px;
         }
         .cvp-hero-trustbar-item {
@@ -254,7 +262,7 @@ export default function HeroSection({ user }) {
           align-items: center;
           gap: 6px;
           font-size: 11px;
-          color: rgba(255,255,255,0.4);
+          color: var(--color-text-secondary);
           line-height: 1.2;
           font-family: inherit;
         }
@@ -262,11 +270,11 @@ export default function HeroSection({ user }) {
           width: 3px;
           height: 3px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.15);
+          background: var(--color-border-strong);
           flex-shrink: 0;
         }
         .cvp-hero-trustbar-strong {
-          color: rgba(255,255,255,0.8);
+          color: var(--color-text-primary);
           font-weight: 600;
         }
         .cvp-hero-trust {
@@ -289,7 +297,7 @@ export default function HeroSection({ user }) {
         }
         .cvp-hero-cta-primary {
           background: var(--color-accent);
-          color: var(--color-surface-00);
+          color: var(--accent-contrast);
           border: none;
           padding: 14px 28px;
           border-radius: var(--radius-pill);
@@ -460,8 +468,8 @@ export default function HeroSection({ user }) {
                 </filter>
               </defs>
               <g filter="url(#shglow)">
-                <path d="M7 1L1.5 3.5V8c0 3 2.5 5.5 5.5 6.5C9 13.5 12.5 11 12.5 8V3.5L7 1z" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" fill="none" />
-                <path d="M4.5 8l2 2 3-3" stroke="rgba(255,255,255,0.8)" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+                <path d="M7 1L1.5 3.5V8c0 3 2.5 5.5 5.5 6.5C9 13.5 12.5 11 12.5 8V3.5L7 1z" stroke="currentColor" strokeWidth="1.2" fill="none" />
+                <path d="M4.5 8l2 2 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" />
               </g>
             </svg>
             <span className="cvp-hero-trustbar-strong">ATS-optimised</span>
@@ -472,6 +480,10 @@ export default function HeroSection({ user }) {
 
       <motion.div
         className="cvp-hero-visual"
+        /* The phone + tablet are dark hardware mockups by design — pin the
+           token cascade dark so their internal token-driven text (inbox
+           subjects, the 94 score) stays light-on-dark on the light page. */
+        data-theme="dark"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={reduce

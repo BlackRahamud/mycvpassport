@@ -4,19 +4,15 @@ const CONSENT_KEY = 'cvp_cookie_consent';
 
 const styleBlock = `
   .cvp-cookie-banner {
-    --bg-surface: #141414;
-    --text-primary: #FFF;
-    --text-secondary: #A0A0A0;
-    --border-default: #2A2A2A;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 999;
-    background: rgba(20, 20, 20, 0.85);
+    background: var(--glass);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--border);
     padding: 16px 24px;
     box-sizing: border-box;
     transform: translateY(100%);
@@ -44,11 +40,11 @@ const styleBlock = `
     margin: 0;
   }
   .cvp-cookie-banner__link {
-    color: #FFF;
+    color: var(--text-primary);
     text-decoration: underline;
   }
   .cvp-cookie-banner__link:visited {
-    color: #FFF;
+    color: var(--text-primary);
   }
   .cvp-cookie-banner__actions {
     display: flex;
@@ -58,18 +54,18 @@ const styleBlock = `
     align-items: center;
   }
   .cvp-cookie-banner__btn-primary {
-    background: #FFF;
-    color: #000;
+    background: var(--text-primary);
+    color: var(--bg);
     font-size: 13px;
     padding: 8px 16px;
     border-radius: 6px;
     border: none;
     cursor: pointer;
     font-family: inherit;
-    transition: background-color 150ms ease;
+    transition: opacity 150ms ease;
   }
   .cvp-cookie-banner__btn-primary:hover {
-    background: #E0E0E0;
+    opacity: 0.85;
   }
   .cvp-cookie-banner__btn-secondary {
     background: transparent;
@@ -83,8 +79,8 @@ const styleBlock = `
     transition: color 150ms ease, border-color 150ms ease;
   }
   .cvp-cookie-banner__btn-secondary:hover {
-    color: #FFF;
-    border-color: #FFF;
+    color: var(--text-primary);
+    border-color: var(--text-primary);
   }
   @media (max-width: 768px) {
     .cvp-cookie-banner__inner {

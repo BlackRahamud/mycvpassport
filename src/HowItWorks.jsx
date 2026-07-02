@@ -1082,7 +1082,7 @@ export default function HowItWorks() {
     <section
       ref={sectionRef}
       style={{
-        background: "#0A0A0A",
+        background: "var(--bg)",
         padding: "80px 20px 100px",
         position: "relative",
         overflow: "hidden",
@@ -1136,14 +1136,14 @@ export default function HowItWorks() {
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: #111;
-            border: 1.5px solid #2A2A2A;
+            background: var(--bg-elevated);
+            border: 1.5px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 16px;
             font-weight: 800;
-            color: #A0A0A0;
+            color: var(--text-secondary);
             font-family: system-ui, monospace;
             position: relative;
             z-index: 2;
@@ -1172,8 +1172,8 @@ export default function HowItWorks() {
             display: "inline-flex",
             alignItems: "center",
             gap: 8,
-            background: "#141414",
-            border: "1px solid #222",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
             borderRadius: 99,
             padding: "5px 14px",
             marginBottom: 18,
@@ -1191,7 +1191,7 @@ export default function HowItWorks() {
           <span
             style={{
               fontSize: 11,
-              color: "#555",
+              color: "var(--text-secondary)",
               letterSpacing: 1.2,
               textTransform: "uppercase",
             }}
@@ -1205,7 +1205,7 @@ export default function HowItWorks() {
             margin: "0 0 14px",
             fontSize: "clamp(28px, 6vw, 42px)",
             fontWeight: 700,
-            color: "#FFFFFF",
+            color: "var(--text-primary)",
             letterSpacing: -1,
             lineHeight: 1.1,
             fontFamily: "system-ui, -apple-system, sans-serif",
@@ -1219,7 +1219,7 @@ export default function HowItWorks() {
           style={{
             margin: 0,
             fontSize: 15,
-            color: "#444",
+            color: "var(--text-secondary)",
             maxWidth: 400,
             lineHeight: 1.7,
             marginInline: "auto",
@@ -1263,7 +1263,7 @@ export default function HowItWorks() {
                   style={{
                     margin: 0,
                     fontSize: 15,
-                    color: "#555",
+                    color: "var(--text-secondary)",
                     lineHeight: 1.65,
                     fontFamily: "system-ui, -apple-system, sans-serif",
                   }}
@@ -1309,14 +1309,14 @@ export default function HowItWorks() {
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  background: "#1C1C1C",
-                  border: "1px solid #2A2A2A",
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 9,
                   fontWeight: 800,
-                  color: "#A0A0A0",
+                  color: "var(--text-secondary)",
                   fontFamily: "system-ui, monospace",
                   letterSpacing: -0.5,
                 }}
@@ -1330,7 +1330,7 @@ export default function HowItWorks() {
                   margin: "0 0 8px",
                   fontSize: 17,
                   fontWeight: 700,
-                  color: "#f0f0f0",
+                  color: "var(--text-primary)",
                   letterSpacing: -0.4,
                   lineHeight: 1.25,
                   fontFamily: "'Georgia', 'Times New Roman', serif",
@@ -1342,7 +1342,7 @@ export default function HowItWorks() {
                 style={{
                   margin: 0,
                   fontSize: 13,
-                  color: "#555",
+                  color: "var(--text-secondary)",
                   lineHeight: 1.65,
                   fontFamily: "system-ui, -apple-system, sans-serif",
                 }}
@@ -1388,7 +1388,7 @@ export default function HowItWorks() {
         >
           Build My Gulf CV &mdash; It&rsquo;s Free &rarr;
         </button>
-        <div style={{ marginTop: 12, fontSize: 12, color: "#3a3a3a" }}>
+        <div style={{ marginTop: 12, fontSize: 12, color: "var(--text-muted)" }}>
           No credit card &middot; Takes 5 minutes &middot; Download instantly
         </div>
       </div>

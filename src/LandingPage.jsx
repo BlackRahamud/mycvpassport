@@ -338,7 +338,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         .lp-btn:hover      { opacity: 0.85; transform: translateY(-1px); }
         .lp-ghost-btn:hover{ opacity: 0.75; }
         .lp-nav-link:hover,
-        .lp-nav-link.is-active { background: rgba(255,255,255,0.1) !important; color: #FFFFFF !important; }
+        .lp-nav-link.is-active { background: var(--hover-wash) !important; color: var(--text-primary) !important; }
         .lp-card:hover     { border-color: ${isDark ? 'rgba(255,255,255,0.14)' : '#BBBBBB'} !important; transform: translateY(-2px); }
         .lp-theme-btn:hover{ opacity: 0.8; }
 
@@ -521,12 +521,11 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         .lp-faq-a { font-size: 14px; color: var(--text-secondary); line-height: 1.6; padding-bottom: 20px; margin: 0; }
 
         .lp-site-footer {
-          background: #0A0A0A; border-top: 1px solid #2A2A2A; padding: 48px 24px 32px;
-          --text-secondary: #A0A0A0; --border-default: #2A2A2A;
+          background: var(--bg); border-top: 1px solid var(--border); padding: 48px 24px 32px;
         }
         .lp-site-footer-inner { max-width: 1100px; margin: 0 auto; }
         .lp-site-footer-row1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; flex-wrap: wrap; }
-        .lp-site-footer-brand-title { font-size: 16px; font-weight: 600; color: #FFF; margin: 0; }
+        .lp-site-footer-brand-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0; }
         .lp-site-footer-brand-tag { font-size: 13px; color: var(--text-secondary); margin: 8px 0 0; }
         .lp-site-footer-cols { display: flex; flex-direction: row; gap: 40px; flex-wrap: wrap; }
         .lp-site-footer-col-h {
@@ -537,9 +536,9 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
           font-size: 13px; color: var(--text-secondary); text-decoration: none; display: block;
           line-height: 2; transition: color 150ms ease;
         }
-        .lp-site-footer-link:hover { color: #FFF; }
+        .lp-site-footer-link:hover { color: var(--text-primary); }
         .lp-site-footer-row2 {
-          margin-top: 40px; padding-top: 24px; border-top: 1px solid #2A2A2A;
+          margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border);
           display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
         }
         .lp-site-footer-row2 p { font-size: 12px; color: var(--text-secondary); margin: 0; }
@@ -550,7 +549,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         }
         .lp-footer-trust {
           display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-          font-size: 12px; font-weight: 500; color: #FFFFFF; opacity: 1; margin-top: 16px;
+          font-size: 12px; font-weight: 500; color: var(--text-primary); opacity: 1; margin-top: 16px;
         }
 
         .lp-footer-disclaimer { text-align: center; padding: 24px; border-top: 1px solid var(--border-default); }
@@ -685,7 +684,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                     width: 36,
                     height: 36,
                     borderRadius: '50%',
-                    background: '#1a1a1a',
+                    background: T.bgElevated,
                     border: '1px solid rgba(255,179,0,0.3)',
                     color: '#FFB300',
                     fontSize: 13,
@@ -706,12 +705,12 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                       position: 'absolute',
                       top: 44,
                       right: 0,
-                      background: '#161616',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: T.bgElevated,
+                      border: `1px solid ${T.border}`,
                       borderRadius: 12,
                       padding: 8,
                       minWidth: 160,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                      boxShadow: 'var(--shadow-card)',
                       zIndex: 999,
                     }}
                   >
@@ -725,7 +724,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                         padding: '10px 14px',
                         borderRadius: 8,
                         fontSize: 13,
-                        color: 'rgba(200,198,192,0.8)',
+                        color: T.textSecondary,
                         cursor: 'pointer',
                         background: 'none',
                         border: 'none',
@@ -747,7 +746,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                           padding: '10px 14px',
                           borderRadius: 8,
                           fontSize: 13,
-                          color: 'rgba(200,198,192,0.8)',
+                          color: T.textSecondary,
                           cursor: 'pointer',
                           background: 'none',
                           border: 'none',
@@ -758,7 +757,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                         Switch to Employer
                       </button>
                     )}
-                    <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
+                    <div style={{ height: 1, background: T.border, margin: '4px 0' }} />
                     <button
                       type="button"
                       className="lp-avatar-dropdown-item"
@@ -773,7 +772,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                         padding: '10px 14px',
                         borderRadius: 8,
                         fontSize: 13,
-                        color: 'rgba(200,198,192,0.8)',
+                        color: T.textSecondary,
                         cursor: 'pointer',
                         background: 'none',
                         border: 'none',
@@ -1055,14 +1054,14 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
               bottom: 32,
               left: '50%',
               transform: 'translateX(-50%)',
-              background: '#161616',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: T.bgElevated,
+              border: `1px solid ${T.border}`,
               borderLeft: '3px solid #FFB300',
               borderRadius: 12,
               padding: '14px 20px',
-              color: '#e0e0e0',
+              color: T.textPrimary,
               fontSize: 13,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+              boxShadow: 'var(--shadow-card)',
               zIndex: 9999,
               opacity: toastFading ? 0 : 1,
               transition: 'opacity 300ms cubic-bezier(0.4,0,0.2,1)',

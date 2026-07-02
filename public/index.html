@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
     <link rel="alternate icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="theme-color" content="#F5F5F0" />
 
     <!-- Theme before first paint — reads the user's explicit choice from
          localStorage (cvp_theme) and stamps <html data-theme="..."> so the
@@ -17,7 +17,7 @@
       (function () {
         var t = null;
         try { t = localStorage.getItem('cvp_theme'); } catch (e) {}
-        if (t !== 'dark' && t !== 'light') t = 'dark';
+        if (t !== 'dark' && t !== 'light') t = 'light';
         document.documentElement.setAttribute('data-theme', t);
       })();
     </script>

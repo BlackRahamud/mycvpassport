@@ -17,7 +17,9 @@
 const KEY = "cvp_theme";
 
 // NOTE: keep in sync with the inline pre-paint script in public/index.html.
-export const DEFAULT_THEME = "dark"; // flips to "light" with the homepage light pass
+// Light is the product default — this is a careers product and light mode is
+// what most users and employers see first. Dark is the opt-in toggle.
+export const DEFAULT_THEME = "light";
 
 export function getStoredTheme() {
   try {

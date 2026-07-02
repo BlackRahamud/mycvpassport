@@ -111,7 +111,7 @@ const ATS_LIFT_BANNER_STYLES = `
   position: relative;
   height: 6px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.06);
+  background: var(--hover-wash);
   margin-top: 14px;
   overflow: visible;
 }

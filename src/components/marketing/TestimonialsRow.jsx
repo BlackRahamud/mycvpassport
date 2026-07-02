@@ -157,8 +157,8 @@ export default function TestimonialsRow() {
           position: relative;
           isolation: isolate;
           overflow: hidden;
-          background: #141414;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--bg-surface);
+          border: 1px solid var(--border);
           border-radius: 16px;
           padding: 24px;
           display: flex;
@@ -265,13 +265,13 @@ export default function TestimonialsRow() {
           font-size: 16px;
           line-height: 1.75;
           letter-spacing: 0;
-          color: #FFFFFF;
+          color: var(--text-primary);
         }
         .cvp-testimonials-card.is-rtl .cvp-testimonials-quote-en {
           direction: ltr;
           font-style: italic;
           font-size: 14px;
-          color: #A0A0A0;
+          color: var(--text-secondary);
           margin-top: 10px;
         }
         .cvp-testimonials-card.is-rtl .cvp-testimonials-attribution {
@@ -297,7 +297,7 @@ export default function TestimonialsRow() {
           font-style: italic;
           font-size: 15px;
           line-height: 1.6;
-          color: #A0A0A0;
+          color: var(--text-secondary);
           margin: 0;
           font-family: inherit;
         }
@@ -308,25 +308,25 @@ export default function TestimonialsRow() {
           flex-direction: column;
           gap: 2px;
           padding-top: 8px;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          border-top: 1px solid var(--border);
         }
         .cvp-testimonials-name {
           font-size: 14px;
           font-weight: 700;
-          color: #FFFFFF;
+          color: var(--text-primary);
           margin: 0;
           letter-spacing: -0.01em;
           font-family: inherit;
         }
         .cvp-testimonials-role {
           font-size: 12px;
-          color: #555555;
+          color: var(--text-muted);
           margin: 0;
           font-family: inherit;
         }
         .cvp-testimonials-location {
           font-size: 12px;
-          color: #555555;
+          color: var(--text-muted);
           margin: 0;
           font-family: inherit;
         }
