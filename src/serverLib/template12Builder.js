@@ -2,6 +2,8 @@
  * Generates the HTML string for Template 12 — Flat Split
  * Designed for Puppeteer on Vercel with strict flat aesthetics.
  */
+const { buildPersonalDetailsEntries } = require("./pdfCommon");
+
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
@@ -122,8 +124,18 @@ function buildTemplate12Html(cv) {
         <div style="margin-top: 15px; font-size: 10pt; display: flex; gap: 20px;">
           ${safeCv.email ? `<span>${safeCv.email}</span>` : ""}
           ${safeCv.phone ? `<span>${safeCv.phone}</span>` : ""}
+          ${safeCv.linkedin ? `<span>${safeCv.linkedin}</span>` : ""}
           ${safeCv.location ? `<span>${safeCv.location}</span>` : ""}
         </div>
+        ${
+          (() => {
+            const personal = buildPersonalDetailsEntries(safeCv);
+            if (!personal.length) return "";
+            return `<div style="margin-top: 8px; font-size: 10pt; display: flex; gap: 20px; flex-wrap: wrap;">
+          ${personal.map((e) => `<span>${e.label}: ${e.value}</span>`).join("\n          ")}
+        </div>`;
+          })()
+        }
       </div>
 
       <div class="body-split">

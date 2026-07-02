@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -22,6 +23,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const personalDetails = buildPersonalDetailsEntries(cv);
   const skillsCells = (cv.skills || "")
     .split(",")
     .map((s) => s.trim())
@@ -128,6 +130,26 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
             </>
           )}
         </div>
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              marginTop: "8px",
+              fontSize: pt(9.5),
+              display: "flex",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: "8px 20px",
+              color: TEXT_PRIMARY,
+              fontWeight: "500",
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       <div style={{ padding: "0 15mm" }}>

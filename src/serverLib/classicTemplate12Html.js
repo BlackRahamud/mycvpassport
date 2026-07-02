@@ -33,7 +33,9 @@ function buildClassicTemplate12Html(rawCv) {
   const row2 = [];
   if (cv.visaStatus) row2.push(escapeHtml(stripEmojiPictographs(cv.visaStatus)));
   if (cv.dob) row2.push(`DOB: ${escapeHtml(stripEmojiPictographs(cv.dob))}`);
+  if (cv.maritalStatus) row2.push(`Marital Status: ${escapeHtml(stripEmojiPictographs(cv.maritalStatus))}`);
   if (cv.drivingLicense) row2.push(`Driving License: ${escapeHtml(stripEmojiPictographs(cv.drivingLicense))}`);
+  if (cv.gender) row2.push(`Gender: ${escapeHtml(stripEmojiPictographs(cv.gender))}`);
 
   let inner = `<div class="t12-root">
     <div class="t12-header">

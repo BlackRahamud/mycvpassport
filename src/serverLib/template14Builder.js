@@ -1,3 +1,5 @@
+const { buildPersonalDetailsEntries } = require("./pdfCommon");
+
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
@@ -106,8 +108,17 @@ function buildTemplate14Html(cv) {
         <h1 style="font-size: 32pt; color: ${ACCENT_BLUE}; text-transform: uppercase;">${safeCv.name || ""}</h1>
         <div style="font-size: 14pt; font-weight: bold; margin-top: 5px;">${safeCv.title || ""}</div>
         <div style="font-size: 10pt; color: #6B7280; margin-top: 10px;">
-          ${safeCv.phone || ""} | ${safeCv.email || ""} | ${safeCv.location || ""}
+          ${safeCv.phone || ""} | ${safeCv.email || ""}${safeCv.linkedin ? ` | ${safeCv.linkedin}` : ""} | ${safeCv.location || ""}
         </div>
+        ${
+          (() => {
+            const personal = buildPersonalDetailsEntries(safeCv);
+            if (!personal.length) return "";
+            return `<div style="font-size: 10pt; color: #6B7280; margin-top: 6px;">
+          ${personal.map((e) => `${e.label}: ${e.value}`).join(" | ")}
+        </div>`;
+          })()
+        }
       </header>
       <div style="padding: 40px 50px;">
         <div class="section-label" data-block="section">Summary</div>

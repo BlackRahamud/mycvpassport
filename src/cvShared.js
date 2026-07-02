@@ -57,12 +57,17 @@ export const EMPTY_CERT = {
   year: "",
 };
 
+/* A truly empty starting CV. The old prefills (Dubai UAE, English/Hindi,
+   Immediately Available, relocate Yes) made a stranger's first builder
+   visit open on someone else's assumptions — fields show placeholders
+   instead; the user types their own facts. Never put personal-looking
+   data here: an anonymous /builder session must contain no real values. */
 export const EMPTY_RESUME = {
   name: "",
   email: "",
   phone: "",
   linkedin: "",
-  location: "Dubai, UAE",
+  location: "",
   title: "",
   summary: "",
   nationality: "",
@@ -73,7 +78,7 @@ export const EMPTY_RESUME = {
   experience: [],
   education: [],
   skills: "",
-  languages: "English, Hindi",
+  languages: "",
   certifications: [],
   technicalSkills: "",
   projects: "",
@@ -81,9 +86,9 @@ export const EMPTY_RESUME = {
   publications: "",
   builderExtraSectionIds: [],
   customFields: [],
-  availability: "Immediately Available",
+  availability: "",
   drivingLicense: "",
-  willingToRelocate: "Yes",
+  willingToRelocate: "",
   references: "References available upon request",
 };
 
@@ -222,6 +227,30 @@ export function isGulfLocation(location) {
   if (!location || typeof location !== "string") return false;
   const lower = location.toLowerCase();
   return GULF_LOCATION_SIGNALS.some((signal) => lower.includes(signal));
+}
+
+// Ordered personal-details entries for template headers (Gulf convention:
+// nationality + visa status lead). Returns [{ label, value }] for ONLY the
+// filled fields — empty/whitespace values are skipped, never "N/A".
+// Twin: buildPersonalDetailsEntries in src/serverLib/pdfCommon.js (CommonJS)
+// — keep the field order and trimming identical when changing either.
+export function buildPersonalDetailsEntries(resume) {
+  if (!resume || typeof resume !== "object") return [];
+  const defs = [
+    ["Nationality", "nationality"],
+    ["Visa Status", "visaStatus"],
+    ["Date of Birth", "dob"],
+    ["Marital Status", "maritalStatus"],
+    ["Driving License", "drivingLicense"],
+    ["Gender", "gender"],
+  ];
+  const entries = [];
+  for (const [label, key] of defs) {
+    const raw = resume[key];
+    const value = raw == null ? "" : String(raw).trim();
+    if (value) entries.push({ label, value });
+  }
+  return entries;
 }
 
 // True iff at least one of the eight Personal Details fields is populated.

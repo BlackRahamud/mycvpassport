@@ -1,4 +1,4 @@
-const { cvWithTemplateCertifications } = require("./pdfCommon");
+const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 function pdfMinimalistPurple(cv) {
   const DEEP_PURPLE = "#3730A3";
@@ -18,6 +18,13 @@ function pdfMinimalistPurple(cv) {
   const languages = cv.languages ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean) : [];
 
   const contactParts = [cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean);
+
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div class="contact" style="margin-top: 4px;">${personalDetails
+        .map((d) => `${d.label}: ${d.value}`)
+        .join(" • ")}</div>`
+    : "";
 
   return `
     <html>
@@ -85,6 +92,7 @@ function pdfMinimalistPurple(cv) {
             <span class="title">${cv.title || "Professional Title"}</span>
           </div>
           <div class="contact">${contactParts.join(" • ")}</div>
+          ${personalDetailsHtml}
         </header>
 
         ${

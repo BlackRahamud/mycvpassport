@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -26,6 +27,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
   const subTextColor = isPlaceholder ? "#D1D5DB" : GREY;
   const accentColor = isPlaceholder ? "#D1D5DB" : ACCENT;
 
+  const personalDetails = buildPersonalDetailsEntries(cv);
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
@@ -88,6 +90,25 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
           {(cv.linkedin || cv.linkedIn) && <span>• LinkedIn</span>}
           {isPlaceholder && <span style={{ color: "#D1D5DB" }}>email@address.com • +00 000 000 • Location</span>}
         </div>
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              fontSize: pt(9),
+              color: subTextColor,
+              marginTop: "2mm",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px",
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {i > 0 && "• "}
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Summary */}

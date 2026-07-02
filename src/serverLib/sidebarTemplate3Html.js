@@ -1,10 +1,16 @@
-const { cvWithTemplateCertifications } = require("./pdfCommon");
+const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 function pdfExecutiveModern(cv) {
   const isEmpty = !cv.name || cv.name.trim() === "";
   const PRIMARY = "#1F2937";
   const ACCENT = "#475569";
   const BORDER = "#E5E7EB";
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div class="contact" style="margin-top: 4px;">${personalDetails
+        .map((d) => `${d.label}: ${d.value}`)
+        .join(" &nbsp; • &nbsp; ")}</div>`
+    : "";
 
   return `
     <html>
@@ -57,6 +63,7 @@ function pdfExecutiveModern(cv) {
                 : [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).join(" &nbsp; • &nbsp; ")
             }
           </div>
+          ${personalDetailsHtml}
         </header>
 
         <div class="section-head">Professional Profile</div>

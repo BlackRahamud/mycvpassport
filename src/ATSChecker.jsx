@@ -917,14 +917,14 @@ export default function ATSChecker({
         atsWelcome: "pending",
         templateId: null,
         resumeId: null,
-      });
+      }, user?.id || null);
       logEvent("ats_pro_tailor_clicked", { source: "cv_only_result", parsed: true, gapsCount: typedGaps.length });
       navigate(`/builder${search}`);
     } catch (e) {
       setTailorError("Something went wrong preparing your CV. Please try again.");
       setTailorPreparing(false);
     }
-  }, [uploadedFile, tailorPreparing, navigate, results]);
+  }, [uploadedFile, tailorPreparing, navigate, results, user?.id]);
 
   // ── Shared nav ────────────────────────────────────────────────────────────
   const Nav = ({ back }) => (

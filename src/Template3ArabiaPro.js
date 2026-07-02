@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -23,6 +24,7 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const personalDetails = buildPersonalDetailsEntries(cv);
   const skillsCells = (cv.skills || "")
     .split(",")
     .map((s) => s.trim())
@@ -120,6 +122,25 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
             </>
           )}
         </div>
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              fontSize: pt(9.5),
+              color: TEXT_BODY,
+              marginTop: "8px",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px 15px",
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {i > 0 && "• "}
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Profile */}

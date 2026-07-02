@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -24,6 +25,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
   const pt = (n) => `${n * s}pt`;
 
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const personalDetails = buildPersonalDetailsEntries(cv);
 
   const SectionTitle = ({ children, first }) => (
     <div
@@ -117,6 +119,25 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
             </>
           )}
         </div>
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              fontSize: pt(9),
+              color: TEXT_BODY,
+              marginTop: "6px",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px",
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {i > 0 && "• "}
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Summary */}

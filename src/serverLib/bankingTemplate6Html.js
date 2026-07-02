@@ -1,4 +1,4 @@
-const { cvWithTemplateCertifications } = require("./pdfCommon");
+const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 function pdfBankingFinance(cv) {
   const ACCENT = "#0369A1"; // Rich Teal-Blue
@@ -26,6 +26,13 @@ function pdfBankingFinance(cv) {
   if (cv.phone) contactParts.push(cv.phone);
   if (cv.location) contactParts.push(cv.location);
   if (cv.linkedin || cv.linkedIn) contactParts.push("LinkedIn");
+
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div class="contact" style="margin-top: 1.5mm;">${personalDetails
+        .map((d) => `${d.label}: ${d.value}`)
+        .join("  •  ")}</div>`
+    : "";
 
   return `
     <html>
@@ -104,6 +111,7 @@ function pdfBankingFinance(cv) {
           <div class="contact">
             ${isPlaceholder ? "email@address.com  •  +00 000 000  •  Location" : contactParts.join("  •  ")}
           </div>
+          ${personalDetailsHtml}
         </div>
 
         ${

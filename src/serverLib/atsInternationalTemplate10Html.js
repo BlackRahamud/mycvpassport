@@ -80,13 +80,21 @@ function buildContactPipes(cv) {
 }
 
 function buildStatusItems(cv) {
+  const nationality = readCustomField(cv, ["nationality"], "nationality");
   const visa = readCustomField(cv, ["visa_status"], "visaStatus");
   const notice = readCustomField(cv, ["notice_period"], null);
+  const dob = readCustomField(cv, ["date_of_birth", "dob"], "dob");
+  const marital = readCustomField(cv, ["marital_status"], "maritalStatus");
   const license = readCustomField(cv, ["driving_license"], "drivingLicense");
+  const gender = readCustomField(cv, ["gender"], "gender");
   const items = [];
+  if (nationality) items.push({ label: "Nationality", value: nationality });
   if (visa) items.push({ label: "Visa", value: visa });
   if (notice) items.push({ label: "Notice", value: notice });
+  if (dob) items.push({ label: "DOB", value: dob });
+  if (marital) items.push({ label: "Marital Status", value: marital });
   if (license) items.push({ label: "License", value: license });
+  if (gender) items.push({ label: "Gender", value: gender });
   return items;
 }
 

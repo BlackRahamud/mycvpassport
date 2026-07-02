@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import GhostChip from "./components/GhostChip";
+import { buildPersonalDetailsEntries } from "./cvShared";
 import { renderPdfExperiencePoints } from "./experiencePointsPdf";
 import { parseExperiencePoints } from "./experiencePointsPreview";
 import {
@@ -115,6 +116,8 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
   if (cv.location) contactBits.push(cv.location);
   if (linkedIn) contactBits.push(linkedIn);
 
+  const personalDetails = buildPersonalDetailsEntries(cv);
+
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
 
@@ -204,6 +207,20 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
             }}
           >
             {contactBits.join("  ·  ")}
+          </div>
+        )}
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              fontSize: pt(9),
+              color: "#9CA3AF",
+              lineHeight: 1.5,
+              fontFamily: SANS,
+              paddingLeft: "12px",
+              marginTop: "4px",
+            }}
+          >
+            {personalDetails.map((d) => `${d.label}: ${d.value}`).join("  ·  ")}
           </div>
         )}
       </header>
@@ -514,6 +531,23 @@ export function pdfCrimsonEdge(doc, cv, W, M) {
     doc.setFontSize(7);
     doc.setTextColor(156, 163, 175);
     doc.text(contactParts.join("  ·  "), M + 4, y);
+  }
+
+  // Personal details — Gulf position, directly under contact
+  const personalEntries = buildPersonalDetailsEntries(cv);
+  if (personalEntries.length > 0) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(156, 163, 175);
+    const detailLines = doc.splitTextToSize(
+      personalEntries.map((d) => `${d.label}: ${d.value}`).join("  ·  "),
+      W - M - M - 4
+    );
+    let dy = contactParts.length > 0 ? y + 3.5 : y;
+    detailLines.forEach((line) => {
+      doc.text(line, M + 4, dy);
+      dy += 3.5;
+    });
   }
 
   y = 50;

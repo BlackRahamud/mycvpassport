@@ -1,8 +1,14 @@
-const { cvWithTemplateCertifications } = require("./pdfCommon");
+const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 function pdfSandstoneExecutive(cv) {
   const isEmpty = !cv.name || cv.name.trim() === "";
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div class="contact" style="margin-top: 4px;">${personalDetails
+        .map((d) => `${d.label}: ${d.value}`)
+        .join(" &nbsp; • &nbsp; ")}</div>`
+    : "";
 
   return `
     <html>
@@ -59,8 +65,9 @@ function pdfSandstoneExecutive(cv) {
           <div class="name">${cv.name || "JORDAN A. BLAKE"}</div>
           <div class="title">${cv.title || "SENIOR PROJECT MANAGER"}</div>
           <div class="contact">
-            ${isEmpty ? 'jordan.b@email.com • +01 123 456 789 • Los Angeles' : [cv.email, cv.phone, cv.location].filter(Boolean).join(" &nbsp; • &nbsp; ")}
+            ${isEmpty ? 'jordan.b@email.com • +01 123 456 789 • Los Angeles' : [cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean).join(" &nbsp; • &nbsp; ")}
           </div>
+          ${personalDetailsHtml}
         </header>
 
         <div class="section-title-row">

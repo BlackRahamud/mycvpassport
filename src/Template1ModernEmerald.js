@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -23,6 +24,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
   const pt = (n) => `${n * s}pt`;
 
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const personalDetails = buildPersonalDetailsEntries(cv);
 
   const summaryDisplay =
     cv.summary ||
@@ -99,6 +101,24 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
           {cv.location && <span>{cv.location}</span>}
           {isEmpty && <span style={{ color: SKELETON }}>email@address.com • Phone Number • Location</span>}
         </div>
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px 16px",
+              fontSize: pt(10),
+              color: TEXT_MUTED,
+              marginTop: "6px",
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Summary */}

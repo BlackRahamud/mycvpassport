@@ -182,6 +182,14 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
     contactBits.push({ label: "LinkedIn", href: url });
   }
 
+  // Mirrors the serverLib twin (techITProTemplate11Html.js "Personal Info"):
+  // values only, no labels, one per line with an accent chevron, in the same
+  // field order. drivingLicense intentionally excluded — the twin keeps it in
+  // its "Additional" section, not here.
+  const personalInfo = [cv.nationality, cv.visaStatus, cv.dob, cv.gender, cv.maritalStatus]
+    .map((v) => (v == null ? "" : String(v).trim()))
+    .filter(Boolean);
+
   const hasAnySkillsBlock = skillCore.length > 0 || technicalSkillsGroups.length > 0;
   const projectsText = (cv.projects && String(cv.projects).trim()) || "";
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
@@ -273,6 +281,21 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
                   <span style={{ color: BODY }}>{c.label}</span>
                 )}
               </span>
+            ))}
+          </div>
+        )}
+        {personalInfo.length > 0 && (
+          <div style={{ marginTop: "6px", fontSize: pt(10), lineHeight: 1.5 }}>
+            {personalInfo.map((v, i) => (
+              <div
+                key={i}
+                style={{ display: "flex", alignItems: "baseline", gap: "6px" }}
+              >
+                <span style={{ color: ACCENT }} aria-hidden>
+                  ›
+                </span>
+                <span style={{ color: BODY }}>{v}</span>
+              </div>
             ))}
           </div>
         )}

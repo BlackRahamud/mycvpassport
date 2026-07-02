@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -38,6 +39,7 @@ export function Template12Split({ cv, mobileMode = false }) {
   const languageItems = cv.languages
     ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean)
     : [];
+  const personalDetails = buildPersonalDetailsEntries(cv);
 
   // KEEP position:relative on containerStyle — outermost template root, conservative bias against future absolute descendants re-anchoring (Phase 3 audit)
   const containerStyle = {
@@ -108,6 +110,24 @@ export function Template12Split({ cv, mobileMode = false }) {
           {cv.linkedin && <span>{cv.linkedin}</span>}
           {cv.location && <span>{cv.location}</span>}
         </div>
+
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              marginTop: "10px",
+              fontSize: "10pt",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px 20px",
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* TWO COLUMN BODY */}

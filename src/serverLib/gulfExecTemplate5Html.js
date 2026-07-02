@@ -1,4 +1,4 @@
-const { cvWithTemplateCertifications } = require("./pdfCommon");
+const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 function pdfEditorialDark(cv) {
   const NAVY_DARK = "#0F172A";
@@ -6,6 +6,12 @@ function pdfEditorialDark(cv) {
   const TEXT_SECONDARY = "#4B5563";
   const ACCENT = "#334155";
   const BORDER = "#D1D5DB";
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div class="contact-row" style="margin-top: 6px;">${personalDetails
+        .map((d) => `<span>${d.label}: ${d.value}</span>`)
+        .join("")}</div>`
+    : "";
 
   return `
     <html>
@@ -67,6 +73,7 @@ function pdfEditorialDark(cv) {
             ${cv.linkedin ? `<span>${cv.linkedin}</span>` : ""}
             ${cv.location ? `<span>${cv.location}</span>` : ""}
           </div>
+          ${personalDetailsHtml}
         </header>
 
         <div class="content-pad">

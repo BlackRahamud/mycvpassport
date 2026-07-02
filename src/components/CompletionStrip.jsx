@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { animate, motion, useReducedMotion } from "framer-motion";
 import { SECTIONS as CV_PROGRESS_SECTIONS } from "../hooks/useCvProgress";
 import { splitCommaItems } from "../cvShared";
 
@@ -34,6 +34,38 @@ function pickTopMissing(resume) {
 }
 
 const EASE = [0.4, 0, 0.2, 1];
+
+/* Percentage that counts up/down to its new value instead of snapping.
+   Reduced motion sets the number directly. */
+function CountUpPercent({ value, reduce, color }) {
+  const [display, setDisplay] = useState(Math.round(value));
+  const prevRef = useRef(value);
+  useEffect(() => {
+    if (reduce) { setDisplay(Math.round(value)); prevRef.current = value; return undefined; }
+    const controls = animate(prevRef.current, value, {
+      duration: 0.35,
+      ease: EASE,
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    prevRef.current = value;
+    return () => controls.stop();
+  }, [value, reduce]);
+  return (
+    <span
+      style={{
+        fontSize: 21,
+        fontWeight: 700,
+        lineHeight: 1,
+        color,
+        letterSpacing: "-0.5px",
+        fontFamily: "inherit",
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      {display}%
+    </span>
+  );
+}
 
 export default function CompletionStrip({ progress, resume, onDownload, onOpenSection, stickyTop = 0 }) {
   const reduce = useReducedMotion();
@@ -94,15 +126,22 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
         position: "sticky",
         top: stickyTop,
         zIndex: 50,
-        background: "#0F0F0F",
-        border: "1px solid #1A1A1A",
-        borderRadius: 12,
-        padding: "12px 14px",
+        background: "rgba(16,16,16,0.94)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 14,
+        padding: "10px 14px",
         marginBottom: 14,
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 13,
         flexWrap: "wrap",
+        // Fixed row height while docked — content changes (label text, CTA
+        // swap) must not make the card jump under the cursor mid-scroll.
+        minHeight: 58,
+        boxSizing: "border-box",
+        boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px -18px rgba(0,0,0,0.8)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
       }}
     >
       {/* Section-flip pulse — re-mounted on each pulseKey bump */}
@@ -123,42 +162,31 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
         />
       )}
 
-      {/* Percent + label */}
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 110, flexShrink: 0 }}>
+      {/* Percent (counts up/down) + label */}
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 104, flexShrink: 0 }}>
+        <CountUpPercent value={percent} reduce={reduce} color={isComplete ? "#4ADE80" : "#FFFFFF"} />
         <span
           style={{
-            fontSize: 22,
-            fontWeight: 700,
-            lineHeight: 1,
-            color: isComplete ? "#4ADE80" : "#FFFFFF",
-            letterSpacing: "-0.5px",
-            fontFamily: "inherit",
-          }}
-        >
-          {Math.round(percent)}%
-        </span>
-        <span
-          style={{
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: 500,
             color: "#A0A0A0",
-            marginTop: 4,
+            marginTop: 3,
             letterSpacing: "0.02em",
             fontFamily: "inherit",
+            whiteSpace: "nowrap",
           }}
         >
           {label}
         </span>
       </div>
 
-      {/* Fill bar — reuses the ATSChecker gradient so the visual language
-          stays consistent across product (red → amber → green). */}
+      {/* Fill bar — brand amber gradient, flipping to green at 100%. */}
       <div style={{ flex: 1, minWidth: 80 }}>
         <div
           style={{
-            height: 6,
+            height: 5,
             borderRadius: 999,
-            background: "#1A1A1A",
+            background: "rgba(255,255,255,0.07)",
             overflow: "hidden",
             position: "relative",
           }}
@@ -166,14 +194,16 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
           <motion.div
             initial={false}
             animate={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
-            transition={reduce ? { duration: 0 } : { duration: 0.45, ease: EASE }}
+            transition={reduce ? { duration: 0 } : { duration: 0.35, ease: EASE }}
             style={{
               height: "100%",
               borderRadius: 999,
-              background: "linear-gradient(90deg, #EF4444 0%, #F59E0B 45%, #22C55E 100%)",
+              background: isComplete
+                ? "linear-gradient(90deg, #16A34A 0%, #4ADE80 100%)"
+                : "linear-gradient(90deg, #B45309 0%, #D97706 55%, #F59E0B 100%)",
               boxShadow: isComplete
-                ? "0 0 12px rgba(34,197,94,0.45)"
-                : "0 0 8px rgba(59,130,246,0.18)",
+                ? "0 0 12px rgba(34,197,94,0.4)"
+                : "0 0 10px rgba(217,119,6,0.28)",
             }}
           />
         </div>

@@ -47,6 +47,7 @@ import { saveResume } from "../resumeDb";
 import { downloadResumeFromPreview } from "../downloadResumeFromPreview";
 import { clearBulletMarkers } from "../experiencePointsPreview";
 import CompletionStrip from "../components/CompletionStrip";
+import TemplateSelect from "../components/TemplateSelect";
 import AtsFixesPanel from "../components/ats/AtsFixesPanel";
 import AtsWelcomeModal from "../components/ats/AtsWelcomeModal";
 import { getDraftStorageKey, readCvDraft, writeCvDraft, clearCvDraft } from "../lib/cvDraft";
@@ -2687,7 +2688,10 @@ function ResumeBuilder({
     () => getDraftStorageKey(initialResumeId, location.search),
     [initialResumeId, location.search]
   );
-  const initialDraftRef = useRef(readCvDraft(draftStorageKey));
+  // Owner-scoped read: a draft stamped with a different user's id (or any
+  // user's id when this visit is anonymous) is ignored and cleared — on a
+  // shared machine the next visitor must never see the previous CV.
+  const initialDraftRef = useRef(readCvDraft(draftStorageKey, user?.id || null));
 
   const [selectedTemplate, setSelectedTemplate] = useState(() => {
     const draft = initialDraftRef.current;
@@ -3239,10 +3243,10 @@ function ResumeBuilder({
         atsWelcome: atsWelcomeRef.current || undefined,
         // Preserve inferred industry so the ATS-template recommendation holds.
         industry: initialDraftRef.current?.industry || undefined,
-      });
+      }, user?.id || null);
     }, 500);
     return () => clearTimeout(timer);
-  }, [resume, selectedTemplate?.id, resumeId, draftStorageKey]);
+  }, [resume, selectedTemplate?.id, resumeId, draftStorageKey, user?.id]);
 
   useEffect(() => {
     if (savedAtMs == null) {
@@ -3608,10 +3612,10 @@ function ResumeBuilder({
   const markAtsWelcomeSeen = useCallback(() => {
     atsWelcomeRef.current = "seen";
     try {
-      const cur = readCvDraft(draftStorageKey);
-      if (cur) writeCvDraft(draftStorageKey, { ...cur, atsWelcome: "seen" });
+      const cur = readCvDraft(draftStorageKey, user?.id || null);
+      if (cur) writeCvDraft(draftStorageKey, { ...cur, atsWelcome: "seen" }, user?.id || null);
     } catch { /* ignore — autosave will also persist "seen" */ }
-  }, [draftStorageKey]);
+  }, [draftStorageKey, user?.id]);
 
   const closeAtsWelcome = useCallback(() => {
     markAtsWelcomeSeen();
@@ -4203,9 +4207,11 @@ function ResumeBuilder({
             </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <select value={selectedTemplate?.id} onChange={e => setSelectedTemplate(TEMPLATES.find(t => t.id === Number(e.target.value)) || TEMPLATES[0])} className="cvp-builder-topbar-template" style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #2A2A2A", background: "#141414", color: "#FFFFFF", fontSize: 13, cursor: "pointer", minWidth: 0 }}>
-              {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
+            <TemplateSelect
+              templates={TEMPLATES}
+              value={selectedTemplate}
+              onChange={(t) => setSelectedTemplate(t)}
+            />
             {/* Top-bar Save + Download CV buttons removed — the sticky
                 BuilderActionBar at viewport bottom now owns both. Same
                 handleSave / handleDownload, same Supabase write path,

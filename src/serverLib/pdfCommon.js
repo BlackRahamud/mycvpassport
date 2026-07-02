@@ -156,10 +156,35 @@ function normalizeCvForPdf(cv) {
   return { ...cv, education, languages };
 }
 
+// Ordered personal-details entries for template headers (Gulf convention:
+// nationality + visa status lead). Returns [{ label, value }] for ONLY the
+// filled fields — empty/whitespace values are skipped, never "N/A".
+// Twin: buildPersonalDetailsEntries in src/cvShared.js (ESM) — keep the
+// field order and trimming identical when changing either.
+function buildPersonalDetailsEntries(resume) {
+  if (!resume || typeof resume !== "object") return [];
+  const defs = [
+    ["Nationality", "nationality"],
+    ["Visa Status", "visaStatus"],
+    ["Date of Birth", "dob"],
+    ["Marital Status", "maritalStatus"],
+    ["Driving License", "drivingLicense"],
+    ["Gender", "gender"],
+  ];
+  const entries = [];
+  for (const [label, key] of defs) {
+    const raw = resume[key];
+    const value = raw == null ? "" : String(raw).trim();
+    if (value) entries.push({ label, value });
+  }
+  return entries;
+}
+
 module.exports = {
   escapeHtml,
   stripEmojiPictographs,
   splitExperiencePointsForPreview,
   cvWithTemplateCertifications,
   normalizeCvForPdf,
+  buildPersonalDetailsEntries,
 };

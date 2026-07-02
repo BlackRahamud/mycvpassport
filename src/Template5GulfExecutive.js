@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -23,6 +24,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const personalDetails = buildPersonalDetailsEntries(cv);
 
   const SectionTitle = ({ children }) => (
     <div style={{ marginTop: "8mm", marginBottom: "5mm", breakAfter: "avoid" }}>
@@ -124,6 +126,25 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
             </>
           )}
         </div>
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              marginTop: "8px",
+              fontSize: pt(9),
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px 20px",
+              color: "#F1F5F9",
+              opacity: 0.9,
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       <div style={{ padding: "0 15mm" }}>

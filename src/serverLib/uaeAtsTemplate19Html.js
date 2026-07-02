@@ -11,7 +11,7 @@
 // section 13. CSS variable design tokens per section 17.
 // =============================================================
 
-const { escapeHtml, splitExperiencePointsForPreview } = require("./pdfCommon");
+const { escapeHtml, splitExperiencePointsForPreview, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 const SECTION_TITLES = {
   summary: "Summary",
@@ -56,8 +56,9 @@ function buildStatusEntries(cv) {
     }
   }
   if (entries.length === 0) {
-    if (cv.visaStatus) entries.push({ name: "Visa Status", value: trimStr(cv.visaStatus) });
-    if (cv.drivingLicense) entries.push({ name: "Driving License", value: trimStr(cv.drivingLicense) });
+    for (const e of buildPersonalDetailsEntries(cv)) {
+      entries.push({ name: e.label, value: e.value });
+    }
     if (cv.availability) entries.push({ name: "Availability", value: trimStr(cv.availability) });
   }
   return entries;

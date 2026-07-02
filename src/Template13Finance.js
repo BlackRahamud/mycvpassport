@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -53,6 +54,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const certifications = cv.certifications ? cv.certifications.split(",").map((c) => c.trim()).filter(Boolean) : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
+  const personalDetails = buildPersonalDetailsEntries(cv);
 
   const SectionHeading = ({ children }) => (
     <div style={{ marginBottom: "12px", breakAfter: "avoid" }}>
@@ -130,6 +132,28 @@ export function PreviewFinance({ cv, mobileMode = false }) {
             {(cv.email || cv.linkedin) && cv.location && <span>•</span>}
             {cv.location && <span>{cv.location}</span>}
           </div>
+
+          {personalDetails.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "10px",
+                fontSize: "12px",
+                color: COLORS.TEXT_SECONDARY,
+                marginTop: "8px",
+              }}
+            >
+              {personalDetails.map((d, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <span>•</span>}
+                  <span>
+                    {d.label}: {d.value}
+                  </span>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
         </header>
 
         <div style={{ display: "flex", flexDirection: "row", gap: "40px", padding: "0 32px 32px 32px" }}>

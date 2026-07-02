@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -33,6 +34,7 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
+  const personalDetails = buildPersonalDetailsEntries(cv);
 
   const SectionTitle = ({ children }) => (
     <div
@@ -95,6 +97,29 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
           {(cv.phone || cv.email || cv.linkedin) && cv.location && <span>|</span>}
           {cv.location && <span>{cv.location}</span>}
         </div>
+
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              columnGap: "12px",
+              rowGap: "2px",
+              marginTop: "4px",
+              fontSize: pt(9.5),
+              color: greyColor,
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span>|</span>}
+                <span>
+                  {d.label}: {d.value}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Summary */}

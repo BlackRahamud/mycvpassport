@@ -163,13 +163,21 @@ function Header({ cv }) {
   const role = trimStr(cv.title);
   const contactItems = [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.linkedin), trimStr(cv.location)].filter(Boolean);
 
+  const nationality = readCustomField(cv, ["nationality"], "nationality");
   const visa = readCustomField(cv, ["visa_status"], "visaStatus");
   const notice = readCustomField(cv, ["notice_period"], null);
+  const dob = readCustomField(cv, ["date_of_birth", "dob"], "dob");
+  const marital = readCustomField(cv, ["marital_status"], "maritalStatus");
   const license = readCustomField(cv, ["driving_license"], "drivingLicense");
+  const gender = readCustomField(cv, ["gender"], "gender");
   const statusItems = [];
+  if (nationality) statusItems.push(`Nationality: ${nationality}`);
   if (visa) statusItems.push(`Visa: ${visa}`);
   if (notice) statusItems.push(`Notice: ${notice}`);
+  if (dob) statusItems.push(`DOB: ${dob}`);
+  if (marital) statusItems.push(`Marital Status: ${marital}`);
   if (license) statusItems.push(`License: ${license}`);
+  if (gender) statusItems.push(`Gender: ${gender}`);
 
   return (
     <header

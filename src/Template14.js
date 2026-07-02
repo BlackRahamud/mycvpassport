@@ -1,6 +1,7 @@
 import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
+import { buildPersonalDetailsEntries } from "./cvShared";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -27,6 +28,7 @@ export function Template14({ cv, mobileMode = false }) {
   const languagesItems = cv.languages
     ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean)
     : [];
+  const personalDetails = buildPersonalDetailsEntries(cv);
 
   return (
     <div
@@ -86,6 +88,25 @@ export function Template14({ cv, mobileMode = false }) {
           {cv.linkedin && <span>{cv.linkedin}</span>}
           <span>{cv.location}</span>
         </div>
+
+        {personalDetails.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "6px 20px",
+              fontSize: "10pt",
+              color: "#6B7280",
+              marginTop: "2px",
+            }}
+          >
+            {personalDetails.map((d, i) => (
+              <span key={i}>
+                {d.label}: {d.value}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       <div style={{ padding: "40px 50px" }}>

@@ -47,6 +47,7 @@ function buildTechITProTemplate11Html(rawCv) {
     <div class="t11-side-text">
       ${cv.email ? `<div class="t11-break">${escapeHtml(stripEmojiPictographs(cv.email))}</div>` : ""}
       ${cv.phone ? `<div>${escapeHtml(stripEmojiPictographs(cv.phone))}</div>` : ""}
+      ${cv.linkedin ? `<div class="t11-break">${escapeHtml(stripEmojiPictographs(cv.linkedin))}</div>` : ""}
       ${cv.location ? `<div>${escapeHtml(stripEmojiPictographs(cv.location))}</div>` : ""}
     </div>`;
 

@@ -36,7 +36,14 @@ export function getDraftStorageKey(initialResumeId, locationSearch) {
   return `${CVP_DRAFT_PREFIX}:new:${sessionId}`;
 }
 
-export function readCvDraft(key) {
+/* Owner scoping — the privacy contract for shared machines.
+   Drafts written during a logged-in session are stamped with that user's
+   id. A later reader with a DIFFERENT identity (another account, or a
+   logged-out/anonymous visitor at the same browser) gets null and the
+   stale draft is cleared — a stranger opening /builder must never see the
+   previous person's CV. Drafts authored anonymously carry no ownerId and
+   stay readable in that browser (same anonymous person continuing). */
+export function readCvDraft(key, currentUserId = null) {
   if (!key || typeof window === "undefined" || !window.localStorage) return null;
   try {
     const raw = window.localStorage.getItem(key);
@@ -48,16 +55,23 @@ export function readCvDraft(key) {
       window.localStorage.removeItem(key);
       return null;
     }
+    if (parsed.ownerId && parsed.ownerId !== currentUserId) {
+      window.localStorage.removeItem(key);
+      return null;
+    }
     return parsed;
   } catch {
     return null;
   }
 }
 
-export function writeCvDraft(key, payload) {
+export function writeCvDraft(key, payload, ownerId = null) {
   if (!key || typeof window === "undefined" || !window.localStorage) return;
   try {
-    window.localStorage.setItem(key, JSON.stringify({ ...payload, updatedAt: Date.now() }));
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ ...payload, ownerId: ownerId || payload?.ownerId || null, updatedAt: Date.now() }),
+    );
   } catch { /* quota / private mode */ }
 }
 

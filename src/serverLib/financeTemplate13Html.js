@@ -8,6 +8,7 @@ const {
   stripEmojiPictographs,
   splitExperiencePointsForPreview,
   cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
 } = require("./pdfCommon");
 
 const ACCENT = "#5c6ac4";
@@ -82,6 +83,14 @@ function buildFinanceTemplate13Html(rawCv) {
   }
   // Preview contact row order: phone • email • location, omitting missing parts.
   const contactRow = contactParts.length ? `<div class="t13-contact">${contactParts.join(" ")}</div>` : "";
+
+  // Personal details line (Gulf convention: nationality + visa status lead).
+  const personalParts = [];
+  buildPersonalDetailsEntries(cv).forEach((e) => {
+    if (personalParts.length) personalParts.push("•");
+    personalParts.push(`${escapeHtml(e.label)}: ${escapeHtml(stripEmojiPictographs(e.value))}`);
+  });
+  const personalRow = personalParts.length ? `<div class="t13-contact" style="margin-top: 6px;">${personalParts.join(" ")}</div>` : "";
 
   let left = "";
   if (experience.length) {
@@ -263,6 +272,7 @@ function buildFinanceTemplate13Html(rawCv) {
       <h1 class="t13-name">${escapeHtml(cv.name || "").toUpperCase()}</h1>
       <div class="t13-title">${escapeHtml(cv.title || "Finance Professional")}</div>
       ${contactRow}
+      ${personalRow}
     </header>
     <div class="t13-content">
       <div class="t13-left">${left}</div>

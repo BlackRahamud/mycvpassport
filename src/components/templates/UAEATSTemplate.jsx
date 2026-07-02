@@ -25,6 +25,7 @@
 // =============================================================
 
 import React from "react";
+import { buildPersonalDetailsEntries } from "../../cvShared";
 import { parseExperiencePoints } from "../../experiencePointsPreview";
 
 const SECTION_TITLES = {
@@ -78,8 +79,9 @@ function buildStatusEntries(cv) {
     }
   }
   if (entries.length === 0) {
-    if (cv.visaStatus) entries.push({ name: "Visa Status", value: trimStr(cv.visaStatus) });
-    if (cv.drivingLicense) entries.push({ name: "Driving License", value: trimStr(cv.drivingLicense) });
+    for (const d of buildPersonalDetailsEntries(cv)) {
+      entries.push({ name: d.label, value: d.value });
+    }
     if (cv.availability) entries.push({ name: "Availability", value: trimStr(cv.availability) });
   }
   return entries;

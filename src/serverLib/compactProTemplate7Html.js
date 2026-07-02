@@ -1,4 +1,4 @@
-const { cvWithTemplateCertifications } = require("./pdfCommon");
+const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 function pdfCompactPro(cv) {
   const NAVY = "#1E3A5F";
@@ -23,6 +23,13 @@ function pdfCompactPro(cv) {
     cv.location ? `<div>${cv.location}</div>` : "<div></div>",
     cv.linkedin || cv.linkedIn ? `<div>LinkedIn Profile</div>` : "<div></div>",
   ].join("");
+
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div style="margin-top: 4px; font-size: 9pt; color: ${greyColor}; font-weight: bold;">${personalDetails
+        .map((d) => `${d.label}: ${d.value}`)
+        .join(" • ")}</div>`
+    : "";
 
   return `
     <html>
@@ -91,6 +98,7 @@ function pdfCompactPro(cv) {
               <div class="title">${cv.title || "Job Title"}</div>
             </div>
             <div class="contact">${contactGrid}</div>
+            ${personalDetailsHtml}
           </div>
 
           <div class="content">

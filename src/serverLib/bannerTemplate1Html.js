@@ -1,5 +1,13 @@
+const { buildPersonalDetailsEntries } = require("./pdfCommon");
+
 function pdfModernEmerald(cv) {
   const isEmpty = !cv.name || cv.name.trim() === "";
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div class="contact" style="margin-top: 4px;">${personalDetails
+        .map((d) => `${d.label}: ${d.value}`)
+        .join(" &nbsp; • &nbsp; ")}</div>`
+    : "";
   const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const techList = cv.technicalSkills ? cv.technicalSkills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const allSkills = [...skillList, ...techList];
@@ -54,6 +62,7 @@ function pdfModernEmerald(cv) {
           <div class="contact">
             ${[cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean).join(" &nbsp; • &nbsp; ")}
           </div>
+          ${personalDetailsHtml}
         </header>
 
         ${(cv.summary || isEmpty) ? `

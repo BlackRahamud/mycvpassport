@@ -1,4 +1,4 @@
-const { cvWithTemplateCertifications } = require("./pdfCommon");
+const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
 
 function pdfSlateMinimalist(cv) {
   const BAND_BG = "#F3F4F6";
@@ -12,6 +12,12 @@ function pdfSlateMinimalist(cv) {
         .map((l) => l.trim())
         .filter(Boolean)
     : [];
+  const personalDetails = buildPersonalDetailsEntries(cv);
+  const personalDetailsHtml = personalDetails.length
+    ? `<div class="contact-line" style="margin-top: 4px;">${personalDetails
+        .map((d) => `${d.label}: ${d.value}`)
+        .join(" &nbsp; | &nbsp; ")}</div>`
+    : "";
 
   return `
     <html>
@@ -54,6 +60,7 @@ function pdfSlateMinimalist(cv) {
           <div class="contact-line">
             ${[cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean).join(" &nbsp; | &nbsp; ")}
           </div>
+          ${personalDetailsHtml}
         </header>
 
         <div class="content-pad">
