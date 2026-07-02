@@ -45,8 +45,10 @@ export default function EmployerLandingPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const goGetStarted = () => navigate(hasSession ? "/hr" : "/register?as=employer");
-  const goSignIn = () => navigate(hasSession ? "/hr" : "/auth?mode=signin&as=employer");
+  // Logged-in visitors reuse their account: onboarding grants the recruiter
+  // role (no re-login). Logged-out visitors get the employer auth entries.
+  const goGetStarted = () => navigate(hasSession ? "/employer/onboarding" : "/employer/signup");
+  const goSignIn = () => navigate(hasSession ? "/hr" : "/employer/login");
 
   const rise = (delay = 0) =>
     reduceMotion

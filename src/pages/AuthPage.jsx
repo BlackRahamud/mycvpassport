@@ -150,10 +150,15 @@ function AuthPage({
   onForgotPassword,
   onGoToSignUp,
   onBackToSignIn,
+  // Entry intent: /employer/login, /employer/signup and ?as=employer preset
+  // the Candidate/Employer segmented control. In login mode (no visible
+  // toggle) this state still rides through doSubmit → handleAuth, where it
+  // drives employer-side post-login routing (portal vs onboarding).
+  initialUserType,
 }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [userType, setUserType] = useState("candidate");
+  const [userType, setUserType] = useState(initialUserType === "recruiter" ? "recruiter" : "candidate");
   const [workEmail, setWorkEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [loginUiSuccess, setLoginUiSuccess] = useState(false);

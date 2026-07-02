@@ -43,6 +43,7 @@ const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidat
 const HrPricing            = lazy(() => import(/* webpackChunkName: "hr-pricing" */    "./pages/hr/Pricing/HrPricing"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
 const EmployerLandingPage  = lazy(() => import(/* webpackChunkName: "employer" */    "./pages/employer/EmployerLandingPage"));
+const EmployerOnboardingPage = lazy(() => import(/* webpackChunkName: "employer" */  "./pages/employer/EmployerOnboardingPage"));
 const SharedCandidatePage  = lazy(() => import(/* webpackChunkName: "shared-candidate" */ "./pages/SharedCandidatePage"));
 // JobsListPage (dark-theme corridor list) replaced by JobBoardPage on 2026-05-05.
 // Kept the file in-place for one-PR cleanup; remove import after follow-up sweep.
@@ -144,6 +145,9 @@ export default function App() {
 
   const searchParams = new URLSearchParams(location.search);
   const newSessionId = searchParams.get("new");
+  // ?as=employer on /auth or /register presets the Employer toggle —
+  // the employer landing page links through with this intent.
+  const employerIntent = searchParams.get("as") === "employer";
   const builderKey = editingResume?.id
     ? `edit-${editingResume.id}`
     : (newSessionId ? `new-${newSessionId}` : "new-default");
@@ -166,6 +170,7 @@ export default function App() {
       {/* Employer front door — light theme, so it lives OUTSIDE the dark
           S.app wrapper below (same placement rationale as /hr). */}
       <Route path="/employer" element={<EmployerLandingPage />} />
+      <Route path="/employer/onboarding" element={<EmployerOnboardingPage />} />
       <Route path="/jobs" element={<JobBoardPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />
       {/* Public, unauthenticated read-only candidate share link (Phase A) */}
@@ -210,6 +215,7 @@ export default function App() {
                 element={
                   <AuthPage
                     mode={authMode}
+                    initialUserType={employerIntent ? "recruiter" : undefined}
                     {...authPageSharedProps}
                     onToggle={() => {
                       setPendingVerificationEmail(null);
@@ -224,12 +230,48 @@ export default function App() {
                 element={
                   <AuthPage
                     mode="signup"
+                    initialUserType={employerIntent ? "recruiter" : undefined}
                     {...authPageSharedProps}
                     onToggle={() => {
                       setPendingVerificationEmail(null);
                       setAuthMode("login");
                       setAuthError(null);
                       navigate("/auth");
+                    }}
+                  />
+                }
+              />
+              {/* Employer auth entries — same AuthPage, employer intent
+                  preset. Login without the recruiter role routes to
+                  /employer/onboarding (role granted there, no re-login). */}
+              <Route
+                path="/employer/login"
+                element={
+                  <AuthPage
+                    mode="login"
+                    initialUserType="recruiter"
+                    {...authPageSharedProps}
+                    onToggle={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthMode("signup");
+                      setAuthError(null);
+                      navigate("/employer/signup");
+                    }}
+                  />
+                }
+              />
+              <Route
+                path="/employer/signup"
+                element={
+                  <AuthPage
+                    mode="signup"
+                    initialUserType="recruiter"
+                    {...authPageSharedProps}
+                    onToggle={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthMode("login");
+                      setAuthError(null);
+                      navigate("/employer/login");
                     }}
                   />
                 }

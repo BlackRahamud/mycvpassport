@@ -528,7 +528,10 @@ export function useCvpAuth() {
           // destination URL (not /auth or /register) and skips naturally.
           const stored = consumePostAuthRedirect();
           const sessionReturn = consumeReturnPath();
-          const dest = stored || sessionReturn || (trimmed.userType === "recruiter" ? "/?welcome=true&type=hr" : "/?welcome=true");
+          // Employer signups flow straight into company onboarding (one
+          // flow: account → company → first job post), not the candidate
+          // landing toast.
+          const dest = stored || sessionReturn || (trimmed.userType === "recruiter" ? "/employer/onboarding" : "/?welcome=true");
           runPostAuthNavigate(dest, { replace: true });
           authLoginSuccessHoldRef.current = false;
           return { ok: true };
@@ -567,8 +570,22 @@ export function useCvpAuth() {
           .select("user_type")
           .eq("id", data.user.id)
           .single();
-        if (prof?.user_type === "recruiter") loginRoute = "/hr";
-      } catch { /* default to /dashboard */ }
+        const hasRecruiterRole = prof?.user_type === "recruiter" || prof?.user_type === "both";
+        if (trimmed.userType === "recruiter") {
+          // Employer-intent login (/employer/login): recruiters go to the
+          // portal; everyone else gets the role via company onboarding —
+          // same account, no re-login.
+          loginRoute = hasRecruiterRole ? "/hr" : "/employer/onboarding";
+        } else if (prof?.user_type === "recruiter") {
+          // Main-site login: recruiter-only accounts still enter their
+          // portal; dual-role ("both") accounts default to candidate home.
+          loginRoute = "/hr";
+        }
+      } catch {
+        // Profile read failed — employer intent still resolves to
+        // onboarding (which self-redirects recruiters); default otherwise.
+        if (trimmed.userType === "recruiter") loginRoute = "/employer/onboarding";
+      }
       // Admin-email override: if the intended destination is /admin
       // (stashed in postAuthRedirect or the current URL), skip /hr and
       // go to /admin. Keeps /hr as the default for the same account

@@ -178,6 +178,94 @@
   font-weight: 700;
 }
 
+/* ── Onboarding (/employer/onboarding) ── */
+.emp-onb-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 20px 64px;
+}
+.emp-onb-checking {
+  font-size: 14px;
+  color: var(--pj-muted);
+}
+.emp-onb-card {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--pj-border);
+  border-radius: var(--pj-radius-lg);
+  background: var(--pj-surface);
+  box-shadow: var(--pj-shadow-card);
+  padding: 28px 22px;
+  box-sizing: border-box;
+}
+.emp-onb-card h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.emp-onb-sub {
+  margin: 8px 0 22px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--pj-text-soft);
+}
+.emp-field {
+  display: block;
+  margin-bottom: 16px;
+}
+.emp-field span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pj-text-soft);
+}
+.emp-field span em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--pj-muted);
+}
+.emp-field input,
+.emp-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: var(--pj-radius-md);
+  background: var(--pj-input-bg);
+  color: var(--pj-text);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 160ms var(--pj-ease), background 160ms var(--pj-ease);
+}
+.emp-field input:focus,
+.emp-field select:focus {
+  outline: none;
+  border-color: var(--pj-text);
+  background: var(--pj-input-bg-focus);
+}
+.emp-onb-error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: var(--pj-radius-md);
+  background: rgba(220, 38, 38, 0.06);
+  color: var(--pj-danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.emp-onb-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+.emp-onb-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
 /* ── Footer strip ── */
 .emp-foot {
   margin-top: auto;
