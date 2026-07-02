@@ -105,6 +105,10 @@ export default function BlogPostPage() {
   const canonical = `https://www.mycvpassport.com/blog/${post.slug}`;
   const metaTitle = post.metaTitle || `${post.title} | CVPassport`;
   const metaDesc = post.metaDescription || post.excerpt;
+  // A post without a body is a stub ("coming soon"). Stubs are noindexed
+  // until written — thin placeholder pages in the index are an SEO and
+  // trust liability — and they must not claim a read time they don't have.
+  const isStub = !post.body || post.body.length === 0;
 
   return (
     <div className="blog-page blog-post-page">
@@ -112,6 +116,7 @@ export default function BlogPostPage() {
         <title>{metaTitle}</title>
         <meta name="description" content={metaDesc} />
         <link rel="canonical" href={canonical} />
+        {isStub && <meta name="robots" content="noindex" />}
         <meta property="og:type" content="article" />
         <meta property="og:title" content={metaTitle} />
         <meta property="og:description" content={metaDesc} />
@@ -133,7 +138,7 @@ export default function BlogPostPage() {
             <span>{post.date}</span>
             <span className="blog-post__meta-sep" aria-hidden>·</span>
             <span>{post.author}</span>
-            {post.readTime && (
+            {post.readTime && !isStub && (
               <>
                 <span className="blog-post__meta-sep" aria-hidden>·</span>
                 <span>{post.readTime}</span>
