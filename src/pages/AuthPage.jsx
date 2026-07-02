@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import CVPassportLogo from "../components/CVPassportLogo";
 import { logEvent } from "../lib/analytics/logEvent";
+import { getTheme } from "../lib/theme";
 
 const AUTH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 const pageWrapStyle = {
-  background: "#0A0A0A",
+  background: "var(--bg)",
   minHeight: "100vh",
   display: "flex",
   flexDirection: "column",
@@ -23,7 +24,7 @@ const logoBlockStyle = {
 };
 
 const taglineStyle = {
-  color: "#444",
+  color: "var(--text-muted)",
   fontSize: "12px",
   marginTop: "5px",
   letterSpacing: "0.03em",
@@ -33,7 +34,7 @@ const authLabelStyle = {
   display: "block",
   fontSize: "12px",
   fontWeight: 400,
-  color: "rgba(160,158,152,0.5)",
+  color: "var(--text-muted)",
   letterSpacing: "-0.01em",
   textTransform: "none",
   marginBottom: "8px",
@@ -43,10 +44,10 @@ const authLabelStyle = {
 const authInputStyle = {
   width: "100%",
   padding: "12px 14px",
-  background: "#1a1a1a",
-  border: "none",
+  background: "var(--input-bg)",
+  border: "1px solid var(--input-border)",
   borderRadius: "12px",
-  color: "#FFFFFF",
+  color: "var(--text-primary)",
   fontSize: "14px",
   outline: "none",
   boxSizing: "border-box",
@@ -56,10 +57,10 @@ const authInputStyle = {
 const cardInnerStyle = {
   position: "relative",
   zIndex: 1,
-  background: "linear-gradient(160deg, #161616 0%, #111111 100%)",
+  background: "var(--bg-surface)",
   borderRadius: "20px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+  border: "1px solid var(--border)",
+  boxShadow: "var(--shadow-card)",
   padding: "24px 18px 28px",
 };
 
@@ -70,7 +71,7 @@ const AUTH_ERR_BOX = {
   borderRadius: "8px",
   padding: "12px 16px",
   fontSize: "13px",
-  color: "#FCA5A5",
+  color: "var(--danger)",
   marginBottom: "16px",
   fontFamily: AUTH_FONT,
   lineHeight: 1.45,
@@ -97,14 +98,14 @@ function AuthFooter() {
               style={{
                 width: "2px",
                 height: "2px",
-                background: "#2A2A2A",
+                background: "var(--border-strong)",
                 borderRadius: "50%",
                 flexShrink: 0,
               }}
               aria-hidden
             />
           ) : null}
-          <span style={{ fontSize: "11px", color: "rgba(160,158,152,0.5)" }}>{label}</span>
+          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{label}</span>
         </Fragment>
       ))}
     </div>
@@ -128,8 +129,8 @@ function AuthCardShell({ children }) {
 function AuthLogoBlock() {
   return (
     <div style={logoBlockStyle}>
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        <CVPassportLogo height={32} />
+      <div style={{ display: "flex", justifyContent: "center", color: "var(--text-primary)" }}>
+        <CVPassportLogo height={32} color="currentColor" />
       </div>
       <p style={taglineStyle}>Your Gulf career starts here</p>
     </div>
@@ -311,11 +312,11 @@ function AuthPage({
       if (ok) setVerifyResendSuccess(true);
     };
     return (
-      <div className="cvp-auth-page" style={pageWrapStyle}>
+      <div className="cvp-auth-page" data-theme={getTheme()} style={pageWrapStyle}>
         <AuthLogoBlock />
         <AuthCardShell>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }} aria-hidden>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="1.5">
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px", color: "var(--text-primary)" }} aria-hidden>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
               <path d="M22 6l-10 7L2 6" />
             </svg>
@@ -334,7 +335,7 @@ function AuthPage({
           </h2>
           <p
             style={{
-              color: "#555",
+              color: "var(--text-secondary)",
               marginBottom: "16px",
               fontSize: "13px",
               fontFamily: AUTH_FONT,
@@ -342,9 +343,9 @@ function AuthPage({
               textAlign: "center",
             }}
           >
-            We sent a verification link to <span style={{ color: "#FFF" }}>{pendingVerificationEmail}</span>. Click it to activate your account — then come back here to sign in.
+            We sent a verification link to <span style={{ color: "var(--text-primary)" }}>{pendingVerificationEmail}</span>. Click it to activate your account — then come back here to sign in.
           </p>
-          <p style={{ color: "#555", marginBottom: "20px", fontSize: "12px", fontFamily: AUTH_FONT, textAlign: "center" }}>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "20px", fontSize: "12px", fontFamily: AUTH_FONT, textAlign: "center" }}>
             Didn&apos;t get it? Check your spam folder.
           </p>
           <button
@@ -353,9 +354,9 @@ function AuthPage({
             onClick={handleVerifyResend}
             style={{
               width: "100%",
-              border: "1px solid #2A2A2A",
+              border: "1px solid var(--border)",
               background: "transparent",
-              color: "#FFF",
+              color: "var(--text-primary)",
               fontSize: "13px",
               padding: "8px 16px",
               borderRadius: "10px",
@@ -368,7 +369,7 @@ function AuthPage({
             {verifyResendLoading ? "Sending…" : "Resend email"}
           </button>
           {verifyResendSuccess ? (
-            <p style={{ color: "#22C55E", fontSize: "12px", textAlign: "center", marginBottom: "16px", fontFamily: AUTH_FONT }}>
+            <p style={{ color: "var(--success-text)", fontSize: "12px", textAlign: "center", marginBottom: "16px", fontFamily: AUTH_FONT }}>
               Verification email sent! Check your inbox.
             </p>
           ) : null}
@@ -379,7 +380,7 @@ function AuthPage({
               width: "100%",
               border: "none",
               background: "none",
-              color: "#F59E0B",
+              color: "var(--accent-text)",
               fontSize: "13px",
               fontWeight: 600,
               cursor: "pointer",
@@ -398,7 +399,7 @@ function AuthPage({
   const showForgot = forgotPanel && mode === "login";
 
   return (
-    <div className="cvp-auth-page" style={pageWrapStyle}>
+    <div className="cvp-auth-page" data-theme={getTheme()} style={pageWrapStyle}>
       <AuthLogoBlock />
       <AuthCardShell>
         {showForgot ? (
@@ -408,13 +409,13 @@ function AuthPage({
                 fontSize: "21px",
                 fontWeight: 700,
                 marginBottom: "6px",
-                color: "#fff",
+                color: "var(--text-primary)",
                 fontFamily: AUTH_FONT,
               }}
             >
               Reset your password
             </h2>
-            <p style={{ color: "#555", marginBottom: "24px", fontSize: "13px", fontFamily: AUTH_FONT }}>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "13px", fontFamily: AUTH_FONT }}>
               Enter your email and we&apos;ll send you a reset link
             </p>
             {forgotMessage ? (
@@ -424,7 +425,7 @@ function AuthPage({
                   ...AUTH_ERR_BOX,
                   background: forgotMessage.includes("Reset") ? "rgba(34, 197, 94, 0.1)" : AUTH_ERR_BOX.background,
                   borderColor: forgotMessage.includes("Reset") ? "rgba(34, 197, 94, 0.35)" : "rgba(239, 68, 68, 0.3)",
-                  color: forgotMessage.includes("Reset") ? "#86EFAC" : "#FCA5A5",
+                  color: forgotMessage.includes("Reset") ? "var(--success-text)" : "var(--danger)",
                   marginBottom: "16px",
                 }}
               >
@@ -482,7 +483,7 @@ function AuthPage({
                 {!forgotSending ? <span className="cvp-auth-btn-shimmer" aria-hidden /> : null}
               </button>
             </form>
-            <div style={{ borderTop: "1px solid #1E1E1E", paddingTop: "20px", marginTop: "20px", textAlign: "center" }}>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "20px", marginTop: "20px", textAlign: "center" }}>
               <button
                 type="button"
                 onClick={() => {
@@ -492,7 +493,7 @@ function AuthPage({
                 style={{
                   border: "none",
                   background: "none",
-                  color: "#F59E0B",
+                  color: "var(--accent-text)",
                   fontSize: "13px",
                   fontWeight: 600,
                   cursor: "pointer",
@@ -510,13 +511,13 @@ function AuthPage({
                 fontSize: "21px",
                 fontWeight: 700,
                 marginBottom: "6px",
-                color: "#fff",
+                color: "var(--text-primary)",
                 fontFamily: AUTH_FONT,
               }}
             >
               {mode === "login" ? "Welcome back" : "Create your CVPassport account"}
             </h2>
-            <p style={{ color: "#555", marginBottom: "24px", fontSize: "13px", fontFamily: AUTH_FONT }}>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "13px", fontFamily: AUTH_FONT }}>
               {mode === "login" ? "Sign in to your CVPassport account" : "Free to start. No credit card required."}
             </p>
 
@@ -537,9 +538,9 @@ function AuthPage({
                         if (ok) setResendSuccess(true);
                       }}
                       style={{
-                        border: "1px solid #2A2A2A",
+                        border: "1px solid var(--border)",
                         background: "transparent",
-                        color: "#FFF",
+                        color: "var(--text-primary)",
                         fontSize: "13px",
                         padding: "8px 16px",
                         borderRadius: "10px",
@@ -551,7 +552,7 @@ function AuthPage({
                       {resendLoading ? "Sending…" : "Resend verification email"}
                     </button>
                     {resendSuccess ? (
-                      <p style={{ color: "#22C55E", fontSize: "12px", marginTop: "8px", marginBottom: 0, fontFamily: AUTH_FONT }}>
+                      <p style={{ color: "var(--success-text)", fontSize: "12px", marginTop: "8px", marginBottom: 0, fontFamily: AUTH_FONT }}>
                         Verification email sent! Check your inbox.
                       </p>
                     ) : null}
@@ -568,7 +569,7 @@ function AuthPage({
                       marginTop: "10px",
                       border: "none",
                       background: "none",
-                      color: "#F59E0B",
+                      color: "var(--accent-text)",
                       fontSize: "12px",
                       cursor: "pointer",
                       fontFamily: AUTH_FONT,
@@ -589,7 +590,7 @@ function AuthPage({
                       marginTop: "10px",
                       border: "none",
                       background: "none",
-                      color: "#F59E0B",
+                      color: "var(--accent-text)",
                       fontSize: "13px",
                       cursor: "pointer",
                       fontFamily: AUTH_FONT,
@@ -612,7 +613,7 @@ function AuthPage({
                   ...AUTH_ERR_BOX,
                   background: forgotMessage.includes("Reset") ? "rgba(34, 197, 94, 0.1)" : AUTH_ERR_BOX.background,
                   borderColor: forgotMessage.includes("Reset") ? "rgba(34, 197, 94, 0.35)" : "rgba(239, 68, 68, 0.3)",
-                  color: forgotMessage.includes("Reset") ? "#86EFAC" : "#FCA5A5",
+                  color: forgotMessage.includes("Reset") ? "var(--success-text)" : "var(--danger)",
                   marginBottom: "16px",
                 }}
               >
@@ -703,15 +704,16 @@ function AuthPage({
                       cursor: "pointer",
                       display: "grid",
                       placeItems: "center",
+                      color: "var(--text-secondary)",
                     }}
                   >
                     {showPassword ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" strokeWidth="2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                         <line x1="1" y1="1" x2="23" y2="23" />
                       </svg>
                     ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" strokeWidth="2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
                         <circle cx="12" cy="12" r="3" />
                       </svg>
@@ -723,7 +725,7 @@ function AuthPage({
                     <p
                       style={{
                         fontSize: "12px",
-                        color: form.password.length >= 8 ? "#22C55E" : "#A0A0A0",
+                        color: form.password.length >= 8 ? "var(--success-text)" : "var(--text-secondary)",
                         marginTop: "6px",
                         marginBottom: 0,
                         fontFamily: AUTH_FONT,
@@ -736,8 +738,8 @@ function AuthPage({
                       <label style={authLabelStyle}>What brings you here?</label>
                       <div
                         style={{
-                          background: "#141414",
-                          border: "0.5px solid #1e1e1e",
+                          background: "var(--bg)",
+                          border: "0.5px solid var(--border)",
                           borderRadius: "10px",
                           padding: "4px",
                           display: "flex",
@@ -759,17 +761,15 @@ function AuthPage({
                                 flex: 1,
                                 padding: "9px 0",
                                 borderRadius: "7px",
-                                border: active ? "0.5px solid rgba(255,255,255,0.1)" : "none",
-                                background: active ? "#2e2e2e" : "transparent",
-                                color: active ? "#e8e8e8" : "rgba(160,158,152,0.4)",
+                                border: active ? "0.5px solid var(--border-strong)" : "none",
+                                background: active ? "var(--bg-surface)" : "transparent",
+                                color: active ? "var(--text-primary)" : "var(--text-muted)",
                                 fontWeight: active ? 500 : 400,
                                 fontSize: "13px",
                                 textAlign: "center",
                                 cursor: "pointer",
                                 fontFamily: AUTH_FONT,
-                                boxShadow: active
-                                  ? "0 1px 4px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.07)"
-                                  : "none",
+                                boxShadow: active ? "var(--shadow-card)" : "none",
                                 transition: "background 0.18s ease, color 0.18s ease, font-weight 0.18s ease, border 0.18s ease, box-shadow 0.18s ease",
                               }}
                             >
@@ -785,8 +785,8 @@ function AuthPage({
                         className="cvp-auth-employer-fields"
                         style={{
                           marginTop: "12px",
-                          background: "#0e0e0e",
-                          border: "0.5px solid #1a1a1a",
+                          background: "var(--bg)",
+                          border: "0.5px solid var(--border)",
                           borderRadius: "12px",
                           padding: "12px",
                           display: "flex",
@@ -831,7 +831,7 @@ function AuthPage({
                       style={{
                         border: "none",
                         background: "none",
-                        color: "#F59E0B",
+                        color: "var(--accent-text)",
                         fontSize: "12px",
                         cursor: "pointer",
                         fontFamily: AUTH_FONT,
@@ -880,13 +880,13 @@ function AuthPage({
                 {!loading && !loginUiSuccess ? <span className="cvp-auth-btn-shimmer" aria-hidden /> : null}
               </button>
             </form>
-            <div style={{ borderTop: "1px solid #1E1E1E", paddingTop: "20px", marginTop: "20px", textAlign: "center" }}>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "20px", marginTop: "20px", textAlign: "center" }}>
               <p style={{ fontSize: "13px", color: "rgba(160,158,152,0.5)", fontFamily: AUTH_FONT, margin: 0 }}>
                 {mode === "login" ? "New here? " : "Already have an account? "}
                 <span
                   role="button"
                   tabIndex={0}
-                  style={{ color: "rgba(255,179,0,0.8)", cursor: "pointer", fontWeight: 600 }}
+                  style={{ color: "var(--accent-text)", cursor: "pointer", fontWeight: 600 }}
                   onClick={onToggle}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") onToggle();

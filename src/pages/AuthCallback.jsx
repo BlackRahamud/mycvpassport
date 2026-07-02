@@ -4,6 +4,8 @@
 // to /dashboard or the stashed postAuthRedirect. This component only needs to
 // render a quiet placeholder while that happens — no logic lives here.
 
+import { getTheme } from "../lib/theme";
+
 export default function AuthCallback() {
   return (
     <>
@@ -14,10 +16,11 @@ export default function AuthCallback() {
       <div
         role="status"
         aria-live="polite"
+        data-theme={getTheme()}
         style={{
           position: "fixed",
           inset: 0,
-          background: "#0A0A0A",
+          background: "var(--bg)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -25,7 +28,7 @@ export default function AuthCallback() {
           gap: 18,
         }}
       >
-        <div style={{ position: "relative", width: 96, height: 96, filter: "drop-shadow(0 0 18px rgba(255,255,255,0.18))" }}>
+        <div style={{ position: "relative", width: 96, height: 96 }}>
           <div
             aria-hidden
             style={{
@@ -33,7 +36,7 @@ export default function AuthCallback() {
               inset: 0,
               borderRadius: "50%",
               padding: 2,
-              background: "conic-gradient(from var(--cvp-cb-angle, 0deg), transparent 55%, rgba(255,255,255,0.75) 82%, transparent 100%)",
+              background: "conic-gradient(from var(--cvp-cb-angle, 0deg), transparent 55%, var(--text-secondary) 82%, transparent 100%)",
               WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
               WebkitMaskComposite: "xor",
               maskComposite: "exclude",
@@ -47,14 +50,14 @@ export default function AuthCallback() {
               position: "absolute",
               inset: 10,
               borderRadius: "50%",
-              background: "#0A0A0A",
-              border: "1px solid #2A2A2A",
+              background: "var(--bg)",
+              border: "1px solid var(--border)",
             }}
           />
         </div>
         <div
           style={{
-            color: "#A0A0A0",
+            color: "var(--text-secondary)",
             fontFamily: "'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace",
             fontSize: 12,
             letterSpacing: "0.16em",

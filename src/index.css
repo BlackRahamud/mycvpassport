@@ -61,6 +61,7 @@ html {
   --scroll-track: rgba(0, 0, 0, 0.03);
   --scroll-thumb: rgba(0, 0, 0, 0.14);
   --scroll-thumb-hover: rgba(0, 0, 0, 0.22);
+  --beam: rgba(22, 22, 26, 0.28); /* auth card traveling light beams */
   --input-bg: #FFFFFF;
   --input-bg-textarea: #FFFFFF;
   --input-border: #CFCFC9;
@@ -129,6 +130,7 @@ html {
   --scroll-track: rgba(255, 255, 255, 0.02);
   --scroll-thumb: rgba(255, 255, 255, 0.1);
   --scroll-thumb-hover: rgba(255, 255, 255, 0.15);
+  --beam: rgba(255, 255, 255, 0.5);
   --input-bg: #1C1C1C;
   --input-bg-textarea: #141414;
   --input-border: #2A2A2A;
@@ -774,7 +776,7 @@ select:focus,
   left: -50%;
   height: 2px;
   width: 50%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, var(--beam), transparent);
   animation: beam-top 2.5s ease-in-out infinite;
 }
 
@@ -784,7 +786,7 @@ select:focus,
   top: -50%;
   width: 2px;
   height: 50%;
-  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  background: linear-gradient(180deg, transparent, var(--beam), transparent);
   animation: beam-right 2.5s ease-in-out infinite;
   animation-delay: 0.6s;
 }
@@ -795,7 +797,7 @@ select:focus,
   right: -50%;
   height: 2px;
   width: 50%;
-  background: linear-gradient(270deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  background: linear-gradient(270deg, transparent, var(--beam), transparent);
   animation: beam-bottom 2.5s ease-in-out infinite;
   animation-delay: 1.2s;
 }
@@ -806,7 +808,7 @@ select:focus,
   bottom: -50%;
   width: 2px;
   height: 50%;
-  background: linear-gradient(0deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  background: linear-gradient(0deg, transparent, var(--beam), transparent);
   animation: beam-left 2.5s ease-in-out infinite;
   animation-delay: 1.8s;
 }

@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../appSupabaseClient";
+import { getTheme } from "../lib/theme";
 
 const AUTH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 const authCardStyle = {
-  background: "#141414",
-  backgroundColor: "#141414",
-  border: "1px solid #2A2A2A",
+  background: "var(--bg-surface)",
+  backgroundColor: "var(--bg-surface)",
+  border: "1px solid var(--border)",
   borderRadius: "16px",
   padding: "24px",
   fontFamily: AUTH_FONT,
@@ -16,7 +17,7 @@ const authCardStyle = {
 const authLabelStyle = {
   display: "block",
   fontWeight: 500,
-  color: "#A0A0A0",
+  color: "var(--text-secondary)",
   fontSize: "14px",
   marginBottom: "6px",
   fontFamily: AUTH_FONT,
@@ -25,10 +26,10 @@ const authLabelStyle = {
 const authInputStyle = {
   width: "100%",
   padding: "12px 16px",
-  background: "#1C1C1C",
-  border: "1px solid #2A2A2A",
+  background: "var(--input-bg)",
+  border: "1px solid var(--input-border)",
   borderRadius: "8px",
-  color: "#FFFFFF",
+  color: "var(--text-primary)",
   fontSize: "14px",
   outline: "none",
   boxSizing: "border-box",
@@ -40,8 +41,8 @@ const authPrimaryBtn = {
   padding: "14px 16px",
   borderRadius: "8px",
   border: "none",
-  background: "#FFFFFF",
-  color: "#000000",
+  background: "var(--text-primary)",
+  color: "var(--bg)",
   fontWeight: 600,
   fontSize: "16px",
   cursor: "pointer",
@@ -55,7 +56,7 @@ const AUTH_ERR_BOX = {
   borderRadius: "8px",
   padding: "12px 16px",
   fontSize: "13px",
-  color: "#FCA5A5",
+  color: "var(--danger)",
   marginBottom: "16px",
   fontFamily: AUTH_FONT,
   lineHeight: 1.45,
@@ -112,9 +113,9 @@ export default function ResetPassword() {
 
   if (linkValid === false) {
     return (
-      <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+      <div className="cvp-auth-page" data-theme={getTheme()} style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
         <div style={authCardStyle}>
-          <p style={{ color: "#A0A0A0", fontSize: "14px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "14px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
             Invalid or expired reset link.
           </p>
         </div>
@@ -124,9 +125,9 @@ export default function ResetPassword() {
 
   if (linkValid === null) {
     return (
-      <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+      <div className="cvp-auth-page" data-theme={getTheme()} style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
         <div style={authCardStyle}>
-          <p style={{ color: "#A0A0A0", fontSize: "14px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "14px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
             Loading…
           </p>
         </div>
@@ -136,9 +137,9 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+      <div className="cvp-auth-page" data-theme={getTheme()} style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
         <div style={authCardStyle}>
-          <p style={{ color: "#86EFAC", fontSize: "15px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
+          <p style={{ color: "var(--success-text)", fontSize: "15px", fontFamily: AUTH_FONT, margin: 0, textAlign: "center" }}>
             Password updated! Redirecting...
           </p>
         </div>
@@ -146,13 +147,13 @@ export default function ResetPassword() {
     );
   }
 
-  const submitBtnStyle = loading ? { ...authPrimaryBtn, background: "#2A2A2A", color: "#FFFFFF", cursor: "not-allowed" } : authPrimaryBtn;
+  const submitBtnStyle = loading ? { ...authPrimaryBtn, opacity: 0.6, cursor: "not-allowed" } : authPrimaryBtn;
 
   return (
-    <div className="cvp-auth-page" style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
+    <div className="cvp-auth-page" data-theme={getTheme()} style={{ maxWidth: "420px", margin: "60px auto", padding: "0 20px" }}>
       <div style={authCardStyle}>
-        <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "6px", color: "#FFFFFF", fontFamily: AUTH_FONT }}>Set new password</h2>
-        <p style={{ color: "#A0A0A0", marginBottom: "24px", fontSize: "14px", fontFamily: AUTH_FONT }}>Choose a strong password for your account.</p>
+        <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "6px", color: "var(--text-primary)", fontFamily: AUTH_FONT }}>Set new password</h2>
+        <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "14px", fontFamily: AUTH_FONT }}>Choose a strong password for your account.</p>
 
         {error ? (
           <div role="alert" style={AUTH_ERR_BOX}>
@@ -203,7 +204,7 @@ export default function ResetPassword() {
           <p
             style={{
               fontSize: "12px",
-              color: password.length >= 8 ? "#22C55E" : "#A0A0A0",
+              color: password.length >= 8 ? "var(--success-text)" : "var(--text-secondary)",
               marginTop: "-8px",
               marginBottom: "16px",
               fontFamily: AUTH_FONT,
