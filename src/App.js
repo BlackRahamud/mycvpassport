@@ -5,6 +5,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-
 import { deleteResume } from "./resumeDb";
 import { useCvpAuth } from "./useCvpAuth";
 import NavigateToAuth from "./lib/auth/navigateToAuth";
+import { setLastPortal } from "./lib/employer/portalMemory";
 import LandingPage from "./LandingPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
@@ -150,6 +151,21 @@ export default function App() {
   useEffect(() => {
     ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
   }, [location.pathname, location.search]);
+
+  // Remember which portal the user actually works in — read at login time
+  // to land dual-role accounts on the right side. Portal app routes only:
+  // /employer exact is the marketing landing, auth/onboarding don't count.
+  useEffect(() => {
+    const p = location.pathname;
+    if (
+      p.startsWith("/employer/")
+      && !["/employer/login", "/employer/signup", "/employer/onboarding"].includes(p)
+    ) {
+      setLastPortal("employer");
+    } else if (p === "/dashboard" || p.startsWith("/dashboard/")) {
+      setLastPortal("candidate");
+    }
+  }, [location.pathname]);
 
   const searchParams = new URLSearchParams(location.search);
   const newSessionId = searchParams.get("new");

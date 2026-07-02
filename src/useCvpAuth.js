@@ -9,6 +9,7 @@ import { identifyPostHog, resetPostHog } from "./lib/analytics/posthog";
 import { setCurrentAuthUserId } from "./lib/analytics/authState";
 import { hasProAccess } from "./config/access";
 import { isFounder } from "./utils/founder";
+import { getLastPortal } from "./lib/employer/portalMemory";
 
 // ── Auth trace logging ──────────────────────────────────────────────────────
 // The postAuth redirect logic is noisy by design while debugging. These traces
@@ -434,6 +435,7 @@ export function useCvpAuth() {
             profErr,
           });
           if (prof?.user_type === "recruiter") dest = "/employer/jobs";
+          else if (prof?.user_type === "both" && getLastPortal() === "employer") dest = "/employer/jobs";
         } catch (e) {
           trace("[cvp-auth-trace] postAuth profile query threw", e);
           /* default to /dashboard */
@@ -578,8 +580,12 @@ export function useCvpAuth() {
           loginRoute = hasRecruiterRole ? "/employer/jobs" : "/employer/onboarding";
         } else if (prof?.user_type === "recruiter") {
           // Main-site login: recruiter-only accounts still enter their
-          // portal; dual-role ("both") accounts default to candidate home.
+          // portal.
           loginRoute = "/employer/jobs";
+        } else if (prof?.user_type === "both") {
+          // Dual-role accounts land on the portal they last worked in;
+          // candidate home when there's no memory yet.
+          loginRoute = getLastPortal() === "employer" ? "/employer/jobs" : "/dashboard";
         }
       } catch {
         // Profile read failed — employer intent still resolves to

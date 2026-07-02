@@ -329,6 +329,25 @@ export default function DashboardPage({
 
   useEffect(() => { setResumeList(resumeListProp); }, [resumeListProp]);
 
+  // user_type gates the "Switch to Employer" item in the account popover —
+  // shown only for accounts that actually hold the recruiter role.
+  const [dashUserType, setDashUserType] = useState(null);
+  useEffect(() => {
+    if (!supabase || !user?.id) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_type")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!cancelled) setDashUserType(data?.user_type || null);
+      } catch { /* switcher simply stays hidden */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) return undefined;
     let cancelled = false;
@@ -741,6 +760,31 @@ export default function DashboardPage({
                   </span>
                   <span>Account Settings</span>
                 </button>
+
+                {(dashUserType === "both" || dashUserType === "recruiter") && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { setUserPopoverOpen(false); navigate("/employer/jobs"); }}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 10,
+                      padding: "8px 10px", background: "transparent",
+                      border: "none", borderRadius: 6,
+                      color: t.textPrimary, fontSize: 12, fontWeight: 500,
+                      cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                      transition: `background 120ms ${EASE}`,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.textSecondary }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                    </span>
+                    <span>Switch to Employer</span>
+                  </button>
+                )}
 
                 <div style={{ height: 1, background: t.border, margin: "4px 6px" }} />
 

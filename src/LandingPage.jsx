@@ -740,6 +740,29 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                     >
                       {userType === 'recruiter' ? 'Go to Portal' : 'Go to Dashboard'}
                     </button>
+                    {/* Dual-role accounts get the explicit switcher */}
+                    {userType === 'both' && (
+                      <button
+                        type="button"
+                        className="lp-avatar-dropdown-item"
+                        onClick={() => { setAvatarDropdownOpen(false); navigate('/employer/jobs'); }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 8,
+                          fontSize: 13,
+                          color: 'rgba(200,198,192,0.8)',
+                          cursor: 'pointer',
+                          background: 'none',
+                          border: 'none',
+                          textAlign: 'left',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Switch to Employer
+                      </button>
+                    )}
                     <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
                     <button
                       type="button"
