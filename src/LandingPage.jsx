@@ -643,6 +643,26 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
 
           {/* Right actions — desktop only */}
           <div className="lp-nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* The ONE recruiter breadcrumb in candidate nav (LinkedIn/Indeed
+                pattern) — everything employer-side lives behind /employer. */}
+            <button
+              type="button"
+              className="lp-ghost-btn"
+              onClick={() => navigate('/employer')}
+              style={{
+                background: 'none',
+                border:     'none',
+                color:      T.textSecondary,
+                fontSize:   '13px',
+                fontWeight: '600',
+                cursor:     'pointer',
+                fontFamily: 'inherit',
+                padding:    '8px 10px',
+                borderRadius: '8px',
+              }}
+            >
+              For Employers
+            </button>
             <button
               className="lp-theme-btn"
               onClick={toggleTheme}
@@ -963,6 +983,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
                 </div>
                 <div>
                   <p className="lp-site-footer-col-h">Company</p>
+                  <Link className="lp-site-footer-link" to="/employer">For Employers</Link>
                   <Link className="lp-site-footer-link" to="/about">About</Link>
                   <Link className="lp-site-footer-link" to="/india-to-uae">India to UAE</Link>
                   <Link className="lp-site-footer-link" to="/blog">Blog</Link>

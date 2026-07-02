@@ -42,6 +42,7 @@ const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline
 const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidates" */ "./pages/hr/Candidates/CandidatesPage"));
 const HrPricing            = lazy(() => import(/* webpackChunkName: "hr-pricing" */    "./pages/hr/Pricing/HrPricing"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
+const EmployerLandingPage  = lazy(() => import(/* webpackChunkName: "employer" */    "./pages/employer/EmployerLandingPage"));
 const SharedCandidatePage  = lazy(() => import(/* webpackChunkName: "shared-candidate" */ "./pages/SharedCandidatePage"));
 // JobsListPage (dark-theme corridor list) replaced by JobBoardPage on 2026-05-05.
 // Kept the file in-place for one-PR cleanup; remove import after follow-up sweep.
@@ -162,6 +163,9 @@ export default function App() {
         <Route path="candidates" element={<CandidatesPage />} />
         <Route path="pricing" element={<HrPricing />} />
       </Route>
+      {/* Employer front door — light theme, so it lives OUTSIDE the dark
+          S.app wrapper below (same placement rationale as /hr). */}
+      <Route path="/employer" element={<EmployerLandingPage />} />
       <Route path="/jobs" element={<JobBoardPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />
       {/* Public, unauthenticated read-only candidate share link (Phase A) */}
