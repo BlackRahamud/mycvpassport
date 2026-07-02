@@ -25,9 +25,15 @@
  *      `background:` shorthand on a rule set — freeze with `animation: none`
  *      instead (the shorthand resets background-clip and paints a box).
  *
- * Build rules (build/static + prerendered build/**.html):
- *   4. Any built file containing `background-clip:text` must also contain
- *      `-webkit-background-clip` and `-webkit-text-fill-color`.
+ * Build rules (build/static/css + prerendered build/**.html):
+ *   4. Any built CSS or prerendered HTML containing `background-clip:text`
+ *      must also contain `-webkit-background-clip` and
+ *      `-webkit-text-fill-color`. JS chunks are deliberately NOT scanned:
+ *      vendor libraries can embed the string in non-style code (mammoth's
+ *      docx style-map broke the Vercel deploy this way), and bundling
+ *      never rewrites our template strings anyway — the source rules plus
+ *      the prerendered-HTML scan (which contains our serialized runtime
+ *      <style> tags for every prerendered route) cover the real output.
  */
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -104,7 +110,7 @@ for (const file of walk(join(ROOT, "src"), [".js", ".jsx", ".css"])) {
 const buildDir = join(ROOT, "build");
 if (existsSync(buildDir)) {
   const builtFiles = [
-    ...(existsSync(join(buildDir, "static")) ? walk(join(buildDir, "static"), [".css", ".js"]) : []),
+    ...(existsSync(join(buildDir, "static")) ? walk(join(buildDir, "static"), [".css"]) : []),
     ...walk(buildDir, [".html"]),
   ];
   for (const file of builtFiles) {
