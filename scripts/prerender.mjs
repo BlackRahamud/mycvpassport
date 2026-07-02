@@ -14,8 +14,14 @@
  *      still contains the "You need to enable JavaScript" shell text — a
  *      silent prerender failure must never reach production again.
  *
- * Browsers: Playwright (already a devDependency). PLAYWRIGHT_BROWSERS_PATH=0
- * stores the binary inside node_modules so Vercel's build cache keeps it.
+ * Browsers — dual path, because Vercel's Amazon Linux build image lacks
+ * chromium's shared libraries (libnspr4.so — first deploy failed exactly
+ * there, caught by the gate):
+ *   linux (Vercel build): puppeteer-core (already a dependency) driving
+ *     @sparticuz/chromium, the Amazon-Linux-compiled build this repo
+ *     already trusts at runtime in api/generate-pdf.js.
+ *   win/mac (local + Husky): Playwright's chromium (devDependency);
+ *     PLAYWRIGHT_BROWSERS_PATH=0 keeps the binary inside node_modules.
  */
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -63,19 +69,41 @@ function startServer(shellHtml) {
   });
 }
 
-async function ensureChromium() {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Returns a puppeteer-or-playwright Page — the two APIs align for
+ * everything this script uses (goto/evaluate/content), except the
+ * networkidle waitUntil name, normalized here.
+ */
+async function launchPage() {
+  if (process.platform === "linux") {
+    const chromium = (await import("@sparticuz/chromium")).default;
+    const puppeteer = (await import("puppeteer-core")).default;
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
+    const page = await browser.newPage();
+    return { browser, page, idle: "networkidle0" };
+  }
+  let pw;
   try {
-    const { chromium } = await import("playwright");
-    const browser = await chromium.launch();
-    return browser;
+    pw = await import("playwright");
+    const browser = await pw.chromium.launch();
+    const page = await (await browser.newContext()).newPage();
+    return { browser, page, idle: "networkidle" };
   } catch {
     console.log("prerender: installing chromium (first build on this cache)…");
     const r = spawnSync("npx", ["playwright", "install", "chromium"], {
       stdio: "inherit", shell: true, env: process.env,
     });
     if (r.status !== 0) throw new Error("playwright install chromium failed");
-    const { chromium } = await import("playwright");
-    return chromium.launch();
+    pw = await import("playwright");
+    const browser = await pw.chromium.launch();
+    const page = await (await browser.newContext()).newPage();
+    return { browser, page, idle: "networkidle" };
   }
 }
 
@@ -86,14 +114,13 @@ const routes = routesFromSitemap();
 console.log(`prerender: ${routes.length} routes from sitemap.xml`);
 
 const server = await startServer(shell);
-const browser = await ensureChromium();
-const page = await (await browser.newContext()).newPage();
+const { browser, page, idle } = await launchPage();
 
 const failures = [];
 for (const route of routes) {
-  await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: idle, timeout: 60000 });
   // Let Helmet, lazy chunks and first-paint effects settle.
-  await page.waitForTimeout(1500);
+  await sleep(1500);
   await page.evaluate(() => {
     // Prerendered pages carry their content without JS — the shell's
     // noscript warning is obsolete and would trip the gate below.
