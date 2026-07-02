@@ -13,32 +13,73 @@ html {
   width: 100%;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   SEMANTIC THEME TOKENS — single source of truth for UI colors.
+
+   Light values live on :root (site default). Dark values live under the
+   [data-theme="dark"] ATTRIBUTE selector — <html data-theme> is stamped
+   pre-paint by the inline script in public/index.html (localStorage
+   cvp_theme; see src/lib/theme.js), and any unmigrated dark surface can
+   pin data-theme="dark" on its own root element to stay a coherent dark
+   island until it's migrated.
+
+   The legacy families (--bg-page/--text-*, --nav-*, --color-*) are
+   remapped below as ALIASES of this core so existing consumers flip with
+   the theme without edits. The alias block targets `:root, [data-theme]`
+   on purpose: a custom property resolves its var() references on the
+   element where it is DEFINED, so aliases must be re-declared at every
+   data-theme boundary to pick up that subtree's core values.
+
+   Components must reference tokens only — no raw hex/white/black text
+   colors (enforced by src/lib/noRawColors.test.js for migrated files).
+   ═══════════════════════════════════════════════════════════════════ */
 :root {
-  --bg-page: #0A0A0A;
-  --bg-surface: #141414;
-  --bg-elevated: #1C1C1C;
-  --text-primary: #FFF;
-  --text-secondary: #A0A0A0;
-  --border: #2A2A2A;
-  --border-default: #2A2A2A;
+  /* core — LIGHT (default) */
+  --bg: #F5F5F0;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --text-primary: #16161A;      /* 15.6:1 on --bg */
+  --text-secondary: #52525B;    /* 7.1:1 on --bg */
+  --text-muted: #6B6B74;        /* 4.8:1 on --bg — smallest text allowed */
+  --border: #E4E4E0;
+  --border-strong: #CFCFC9;
+  --accent: #D97706;            /* fills/CTAs — pair with --accent-contrast */
+  --accent-hover: #B45309;
+  --accent-text: #B45309;       /* accent used AS text — 4.9:1 on --bg */
+  --accent-contrast: #0A0A0A;   /* text ON accent fills — 6.2:1 on amber */
+  --success: #1D9E75;           /* icon/badge fill (3.4:1 UI) */
+  --success-text: #157A5B;      /* success used as text — 4.6:1 */
+  --warn: #A16207;
+  --danger: #DC2626;
+  --scrim: rgba(20, 20, 18, 0.45);
+  --glass: rgba(245, 245, 240, 0.92);
+  --hover-wash: rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 2px rgba(20, 19, 16, 0.05), 0 8px 24px -12px rgba(20, 19, 16, 0.12);
+  --scroll-track: rgba(0, 0, 0, 0.03);
+  --scroll-thumb: rgba(0, 0, 0, 0.14);
+  --scroll-thumb-hover: rgba(0, 0, 0, 0.22);
+  --input-bg: #FFFFFF;
+  --input-bg-textarea: #FFFFFF;
+  --input-border: #CFCFC9;
+
+  /* shared (theme-agnostic) */
+  --border-default: var(--border);
+  --input-border-error: #EF4444;
   --radius-lg: 16px;
   --radius-md: 12px;
-
-  /* Navigation-scoped tokens — additive, prefixed --nav- to avoid collision.
-     Colours are the original CVPassport dark design system (CLAUDE.md). The
-     motion tokens below use the snap easing kept from the nav restructure. */
+  --input-radius: 10px;
+  --input-radius-textarea: 14px;
+  --input-padding-y: 14px;
+  --input-padding-x: 16px;
+  --input-textarea-padding-y: 13px;
+  --input-textarea-padding-x: 14px;
+  --input-line-height: 1.5;
+  --input-textarea-line-height: 1.7;
+  --input-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --nav-accent: #D97706;
   --nav-accent-hover: #B25E03;
   --nav-accent-subtle: rgba(217, 119, 6, 0.12);
-  --nav-surface: #0A0A0A;
-  --nav-surface-elevated: #141414;
-  --nav-surface-glass: rgba(10, 10, 10, 0.72);
-  --nav-border-hairline: #2A2A2A;
   --nav-border-focus: rgba(217, 119, 6, 0.6);
-  --nav-text: #F5F5F7;
-  --nav-text-muted: #A0A0A0;
-  --nav-text-disabled: #48484A;
-  --nav-scrim: rgba(0, 0, 0, 0.48);
   --nav-dur-quick: 140ms;   /* hover / chevron / popIn */
   --nav-dur-pop: 160ms;     /* dropdown popIn */
   --nav-dur-standard: 220ms;/* drawer slide-in (webclaw sideDrawerIn) */
@@ -49,63 +90,79 @@ html {
   --nav-z-header: 100;
   --nav-z-drawer: 80;
   --nav-z-scrim: 70;
-
-  /* W18 landing-page tokens — additive, --color-* prefix per
-     [READY]_landing_page_conversion_rewrite_W18.json tokens_required.
-     Existing tokens above are untouched. --radius-md already present
-     at 12px — kept as-is (spec does not mandate a value). */
-  --color-surface-00: #0A0A0A;
-  --color-surface-01: #141414;
-  --color-surface-02: #1D1D1F;
-  --color-border: #2A2A2A;
-  --color-border-strong: rgba(255,255,255,0.18);
-  --color-accent: #D97706;
+  /* Bright amber stops used by gradient highlights (orbiting CTA ring head,
+     conversion-moment glows). Sit alongside the canonical accent (deep
+     brand amber, #D97706) and complete the gradient palette. */
   --color-accent-soft: rgba(217,119,6,0.12);
   --color-accent-line: rgba(217,119,6,0.45);
-  /* Bright amber stops used by gradient highlights (orbiting CTA ring head,
-     conversion-moment glows). Sit alongside the canonical --color-accent
-     (deep brand amber, #D97706) and complete the gradient palette. */
   --color-accent-bright: #F59E0B;
   --color-accent-tint:   #FFD79A;
-  --color-text-primary: #F5F5F7;
-  --color-text-secondary: #A0A0A0;
-  --color-text-tertiary: rgba(255,255,255,0.55);
-  --color-text-muted: rgba(255,255,255,0.45);
-  --color-success: #4ADE80;
-  --color-warn: #FACC15;
-  --color-danger: #F87171;
   --radius-pill: 9999px;
   --radius-lg: 18px;
+}
 
-  /* Builder input/textarea tokens — anchored to runtime values of
-     S.input / CB_UI.input / BUILDER_DESCR_TEXTAREA / BUILDER_SKILL_INPUT_BASE
-     so the className migration is visually neutral. */
+[data-theme="dark"] {
+  /* core — DARK (byte-identical to the pre-token dark design system) */
+  --bg: #0A0A0A;
+  --bg-surface: #141414;
+  --bg-elevated: #1C1C1C;
+  --text-primary: #F5F5F7;
+  --text-secondary: #A0A0A0;
+  --text-muted: rgba(255, 255, 255, 0.45);
+  --border: #2A2A2A;
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --accent: #D97706;
+  --accent-hover: #B25E03;
+  --accent-text: #D97706;       /* 6.2:1 on --bg */
+  --accent-contrast: #0A0A0A;
+  --success: #4ADE80;
+  --success-text: #4ADE80;
+  --warn: #FACC15;
+  --danger: #F87171;
+  --scrim: rgba(0, 0, 0, 0.48);
+  --glass: rgba(10, 10, 10, 0.72);
+  --hover-wash: rgba(255, 255, 255, 0.04);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --scroll-track: rgba(255, 255, 255, 0.02);
+  --scroll-thumb: rgba(255, 255, 255, 0.1);
+  --scroll-thumb-hover: rgba(255, 255, 255, 0.15);
   --input-bg: #1C1C1C;
   --input-bg-textarea: #141414;
   --input-border: #2A2A2A;
-  --input-border-error: #EF4444;
-  --input-radius: 10px;
-  --input-radius-textarea: 14px;
-  --input-padding-y: 14px;
-  --input-padding-x: 16px;
-  --input-textarea-padding-y: 13px;
-  --input-textarea-padding-x: 14px;
-  --input-line-height: 1.5;
-  --input-textarea-line-height: 1.7;
-  --input-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cvp-theme-light {
-  --bg-page: #F5F5F0;
-  --bg-surface: #FFF;
-  --text-primary: #111;
-  --text-secondary: #555;
-  --border: #E5E5E5;
+/* Legacy alias families → semantic core. Re-declared at every
+   [data-theme] boundary (see note above) so dark-pinned subtrees
+   resolve their own core values. */
+:root,
+[data-theme] {
+  --bg-page: var(--bg);
+  --nav-surface: var(--bg);
+  --nav-surface-elevated: var(--bg-surface);
+  --nav-surface-glass: var(--glass);
+  --nav-border-hairline: var(--border);
+  --nav-text: var(--text-primary);
+  --nav-text-muted: var(--text-secondary);
+  --nav-text-disabled: var(--text-muted);
+  --nav-scrim: var(--scrim);
+  --color-surface-00: var(--bg);
+  --color-surface-01: var(--bg-surface);
+  --color-surface-02: var(--bg-elevated);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-muted);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
 }
 
 body {
-  background: #0A0A0A;
-  color: #ffffff;
+  background: var(--bg);
+  color: var(--text-primary);
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   width: 100%;
@@ -122,11 +179,6 @@ body {
 @keyframes cvp-dl-shimmer {
   0% { background-position: 200% center; }
   100% { background-position: -200% center; }
-}
-
-html.light body {
-  background: #F5F5F0;
-  color: #111111;
 }
 
 @media (max-width: 768px) {
@@ -183,11 +235,11 @@ textarea:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #141414 inset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  box-shadow: 0 0 0px 1000px #141414 inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
   transition: background-color 5000s ease-in-out 0s !important;
-  caret-color: #ffffff !important;
+  caret-color: var(--text-primary) !important;
 }
 
 /* Focus state — amber accent, no blue, no gray */
@@ -546,16 +598,16 @@ select:focus,
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--scroll-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scroll-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--scroll-thumb-hover);
 }
 
 /* CV thumbnail — full A4 (794px) scaled to fit fixed preview strip */

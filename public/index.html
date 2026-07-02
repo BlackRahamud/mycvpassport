@@ -7,6 +7,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#1a1a2e" />
 
+    <!-- Theme before first paint — reads the user's explicit choice from
+         localStorage (cvp_theme) and stamps <html data-theme="..."> so the
+         CSS tokens resolve correctly from the very first frame (no flash of
+         wrong theme). prefers-color-scheme is intentionally ignored: the
+         default wins unless the user explicitly toggled.
+         Keep the fallback in sync with DEFAULT_THEME in src/lib/theme.js. -->
+    <script>
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('cvp_theme'); } catch (e) {}
+        if (t !== 'dark' && t !== 'light') t = 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+
     <!-- Google Search Console -->
     <meta name="google-site-verification" content="3e3d8f1b596b45d0" />
 

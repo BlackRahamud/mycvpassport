@@ -7,6 +7,7 @@ import CookieBanner from './components/CookieBanner';
 import PaymentTrustBar from './components/PaymentTrustBar';
 import MobileNav from './components/navigation/MobileNav';
 import DesktopNav from './components/navigation/DesktopNav';
+import { getTheme, setTheme as setGlobalTheme } from './lib/theme';
 // May-2026 restructure — landing renders exactly 9 sections in a fixed
 // order (see CLAUDE.md / restructure brief). Walk-In Mode, Salary
 // Intelligence, Free-tools row and the Final-CTA block were removed
@@ -113,9 +114,7 @@ const FAQ_ITEMS = [
 export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup, onWalkIn }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('cvp-theme') || 'dark'; } catch { return 'dark'; }
-  });
+  const [theme, setTheme] = useState(() => getTheme());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faqOpenIndex, setFaqOpenIndex] = useState(null);
 
@@ -228,12 +227,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
     accentCheck:  '#16A34A',
   };
 
-  useEffect(() => {
-    try { localStorage.setItem('cvp-theme', theme); } catch {}
-    document.documentElement.className = theme;
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => setTheme((t) => setGlobalTheme(t === 'dark' ? 'light' : 'dark'));
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -605,6 +599,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
 
       <div
         className="lp-wrapper"
+        data-theme={theme}
         style={{
           background:  T.bgPage,
           color:       T.textPrimary,

@@ -210,7 +210,11 @@ export default function App() {
       <Route
         path="*"
         element={
-          <div style={S.app}>
+          /* data-theme="dark" pins the token cascade for every unmigrated
+             dark page in this shell (builder, ATS, pricing, scout, …) so the
+             global light default can't half-break them. Migrated surfaces
+             inside (LandingPage, auth) re-stamp data-theme themselves. */
+          <div style={S.app} data-theme="dark">
             <Routes>
               <Route
                 path="/"
