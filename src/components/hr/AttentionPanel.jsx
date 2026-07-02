@@ -134,7 +134,7 @@ export default function AttentionPanel({ user }) {
     return () => { live = false; };
   }, [user?.id]);
 
-  const go = (jobId) => () => { if (jobId) navigate(`/hr/jobs/${jobId}`); };
+  const go = (jobId) => () => { if (jobId) navigate(`/employer/jobs/${jobId}`); };
   const clickable = (count, jobId) => (count && jobId ? go(jobId) : undefined);
 
   const cards = [

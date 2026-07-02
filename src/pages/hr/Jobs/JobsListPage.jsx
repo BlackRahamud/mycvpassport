@@ -63,15 +63,15 @@ function jobSignal(agg, job) {
   const lastTs = agg.lastTs || ts(job.posted_at || job.created_at);
   const daysSince = lastTs ? Math.floor((Date.now() - lastTs) / 86400000) : null;
   if (verdicts > 0) {
-    return { kind: "verdict", label: `${verdicts} client verdict${verdicts > 1 ? "s" : ""}`, action: { label: "See verdict", variant: "verdict", to: `/hr/jobs/${job.id}?app=${agg.verdictAppId}` } };
+    return { kind: "verdict", label: `${verdicts} client verdict${verdicts > 1 ? "s" : ""}`, action: { label: "See verdict", variant: "verdict", to: `/employer/jobs/${job.id}?app=${agg.verdictAppId}` } };
   }
   if (newCount > 0) {
-    return { kind: "hot", label: `hot, ${newCount} new`, action: { label: `Review ${newCount} new`, variant: "primary", to: `/hr/jobs/${job.id}?stage=shortlist` } };
+    return { kind: "hot", label: `hot, ${newCount} new`, action: { label: `Review ${newCount} new`, variant: "primary", to: `/employer/jobs/${job.id}?stage=shortlist` } };
   }
   if (daysSince != null && daysSince >= STALLED_DAYS) {
-    return { kind: "stalled", label: `stalled ${daysSince}d`, action: { label: "Source talent", variant: "ghost", to: "/hr/post" } };
+    return { kind: "stalled", label: `stalled ${daysSince}d`, action: { label: "Source talent", variant: "ghost", to: "/employer/post" } };
   }
-  return { kind: "active", label: "active", action: { label: "View applicants", variant: "quiet", to: `/hr/jobs/${job.id}` } };
+  return { kind: "active", label: "active", action: { label: "View applicants", variant: "quiet", to: `/employer/jobs/${job.id}` } };
 }
 
 /* Fresh-agency onboarding empty state — the first thing a brand-new, empty
@@ -286,7 +286,7 @@ export default function JobsListPage() {
         </div>
         <div className="hjl-center" />
         <div className="hjl-right">
-          <button type="button" className="hjl-cta" onClick={() => navigate("/hr/post")}>
+          <button type="button" className="hjl-cta" onClick={() => navigate("/employer/post")}>
             <BriefcaseIc size={14} white />
             Request Talent
           </button>
@@ -408,7 +408,7 @@ export default function JobsListPage() {
               </p>
             </div>
           ) : (
-            <EmptyOnboarding reduce={reduce} onPost={() => navigate("/hr/post")} />
+            <EmptyOnboarding reduce={reduce} onPost={() => navigate("/employer/post")} />
           )
         )}
 
@@ -436,8 +436,8 @@ export default function JobsListPage() {
                   className="hjl-trow"
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate(`/hr/jobs/${j.id}`)}
-                  onKeyDown={(e) => { if (e.key === "Enter") navigate(`/hr/jobs/${j.id}`); }}
+                  onClick={() => navigate(`/employer/jobs/${j.id}`)}
+                  onKeyDown={(e) => { if (e.key === "Enter") navigate(`/employer/jobs/${j.id}`); }}
                   initial={reduce ? false : { opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1], delay: Math.min(i * 0.025, 0.18) }}

@@ -178,7 +178,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
     return '?';
   })();
 
-  const avatarDest = userType === 'recruiter' ? '/hr' : '/dashboard';
+  const avatarDest = userType === 'recruiter' ? '/employer/jobs' : '/dashboard';
   const [avatarDropdownOpen, setAvatarDropdownOpen] = useState(false);
   const avatarDropdownRef = useRef(null);
 

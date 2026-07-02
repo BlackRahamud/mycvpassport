@@ -92,7 +92,7 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
       setItems((prev) => (prev || []).map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       supabase.from("hr_notifications").update({ read: true }).eq("id", n.id).then(() => {}, () => {});
     }
-    if (n.job_id) navigate(`/hr/jobs/${n.job_id}`);
+    if (n.job_id) navigate(`/employer/jobs/${n.job_id}`);
   };
 
   return (

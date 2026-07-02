@@ -905,7 +905,7 @@ export default function JobPage() {
             email={user.email || ""}
             name={profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || ""}
             plan={profile?.plan}
-            switchTo={{ label: "Switch to HR", path: "/hr/jobs" }}
+            switchTo={{ label: "Switch to HR", path: "/employer/jobs" }}
             settingsPath="/account"
             theme="light"
           />

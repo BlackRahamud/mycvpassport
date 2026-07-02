@@ -83,7 +83,7 @@ function CheckmarkBadge() {
 export default function PostJobSuccess({ onGoToJobList }) {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
-  const goBack = () => (onGoToJobList ? onGoToJobList() : navigate("/hr"));
+  const goBack = () => (onGoToJobList ? onGoToJobList() : navigate("/employer/jobs"));
 
   const item = reduce
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }

@@ -36,6 +36,7 @@ const ResetPassword        = lazy(() => import(/* webpackChunkName: "auth" */   
 // and scoreBand it once owned moved to src/components/hr/ +
 // src/lib/ats/ before the deletion.
 const HrShell              = lazy(() => import(/* webpackChunkName: "hr-shell" */    "./components/hr/HrShell"));
+const RequireRecruiter     = lazy(() => import(/* webpackChunkName: "hr-shell" */    "./components/hr/RequireRecruiter"));
 const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */     "./pages/hr/PostJob/PostJobPage"));
 const HRJobsListPage       = lazy(() => import(/* webpackChunkName: "hr-jobs" */     "./pages/hr/Jobs/JobsListPage"));
 const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline" */ "./pages/hr/Jobs/JobPipelinePage"));
@@ -67,6 +68,13 @@ const GulfSalaryPage       = lazy(() => import(/* webpackChunkName: "gulf-salary
 const S = {
   app: { minHeight: "100vh", width: "100%", overflowX: "hidden", background: C.bg, color: C.text, fontFamily: "'Outfit','Segoe UI',sans-serif" },
 };
+
+/** /hr/jobs/123 → /employer/jobs/123 — old portal bookmarks survive the rename. */
+function HrLegacyRedirect() {
+  const location = useLocation();
+  const rest = location.pathname.replace(/^\/hr/, "");
+  return <Navigate to={`/employer${rest}${location.search}`} replace />;
+}
 
 function TemplatesBrowseLayout({ user }) {
   const navigate = useNavigate();
@@ -159,14 +167,22 @@ export default function App() {
     <Routes>
       <Route path="/pricing" element={<PricingPage refreshProfile={refreshProfile} />} />
       <Route path="/payment-success" element={<PaymentSuccess refreshProfile={refreshProfile} />} />
-      <Route path="/hr" element={<HrShell />}>
-        <Route index element={<Navigate to="/hr/jobs" replace />} />
-        <Route path="post" element={<PostJobPage />} />
-        <Route path="jobs" element={<HRJobsListPage />} />
-        <Route path="jobs/:id" element={<JobPipelinePage />} />
-        <Route path="candidates" element={<CandidatesPage />} />
-        <Route path="pricing" element={<HrPricing />} />
+      {/* Employer portal — canonical URLs live under /employer/* (the
+          LinkedIn/Indeed two-front-doors pattern). RequireRecruiter keeps
+          the UX honest (RLS already keeps the data safe): logged-out →
+          /employer/login, candidates → an explicit set-up-a-company
+          screen, recruiters → the shell. Pathless parent so /employer
+          exact stays the marketing landing page below. */}
+      <Route element={<RequireRecruiter><HrShell /></RequireRecruiter>}>
+        <Route path="/employer/post" element={<PostJobPage />} />
+        <Route path="/employer/jobs" element={<HRJobsListPage />} />
+        <Route path="/employer/jobs/:id" element={<JobPipelinePage />} />
+        <Route path="/employer/candidates" element={<CandidatesPage />} />
+        <Route path="/employer/pricing" element={<HrPricing />} />
       </Route>
+      {/* Legacy /hr/* bookmarks keep working. */}
+      <Route path="/hr" element={<Navigate to="/employer/jobs" replace />} />
+      <Route path="/hr/*" element={<HrLegacyRedirect />} />
       {/* Employer front door — light theme, so it lives OUTSIDE the dark
           S.app wrapper below (same placement rationale as /hr). */}
       <Route path="/employer" element={<EmployerLandingPage />} />

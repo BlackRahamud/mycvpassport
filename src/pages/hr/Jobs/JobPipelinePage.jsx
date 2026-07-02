@@ -414,7 +414,7 @@ export default function JobPipelinePage() {
         <div><a href="/" className="jpp-wordmark">CV<span>Passport</span></a></div>
         <div className="jpp-topbar__center" />
         <div className="jpp-topbar__right">
-          <button type="button" className="jpp-cta" onClick={() => navigate("/hr/post")}>
+          <button type="button" className="jpp-cta" onClick={() => navigate("/employer/post")}>
             <BriefIc size={14} />
             Request Talent
           </button>
@@ -439,7 +439,7 @@ export default function JobPipelinePage() {
           transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
         >
           <div>
-            <button type="button" className="jpp-back" onClick={() => navigate("/hr/jobs")}>
+            <button type="button" className="jpp-back" onClick={() => navigate("/employer/jobs")}>
               <span className="jpp-back__chev"><ChevLeft /></span>
               {job?.title || (jobError ? "Job not found" : "Loading…")}
             </button>

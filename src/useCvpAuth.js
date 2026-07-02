@@ -433,7 +433,7 @@ export function useCvpAuth() {
             prof,
             profErr,
           });
-          if (prof?.user_type === "recruiter") dest = "/hr";
+          if (prof?.user_type === "recruiter") dest = "/employer/jobs";
         } catch (e) {
           trace("[cvp-auth-trace] postAuth profile query threw", e);
           /* default to /dashboard */
@@ -575,11 +575,11 @@ export function useCvpAuth() {
           // Employer-intent login (/employer/login): recruiters go to the
           // portal; everyone else gets the role via company onboarding —
           // same account, no re-login.
-          loginRoute = hasRecruiterRole ? "/hr" : "/employer/onboarding";
+          loginRoute = hasRecruiterRole ? "/employer/jobs" : "/employer/onboarding";
         } else if (prof?.user_type === "recruiter") {
           // Main-site login: recruiter-only accounts still enter their
           // portal; dual-role ("both") accounts default to candidate home.
-          loginRoute = "/hr";
+          loginRoute = "/employer/jobs";
         }
       } catch {
         // Profile read failed — employer intent still resolves to

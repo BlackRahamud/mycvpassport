@@ -294,7 +294,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
                 <button
                   type="button"
                   className="cand-applied__row"
-                  onClick={() => navigate(`/hr/jobs/${ap.job_id}?app=${ap.app_id}`)}
+                  onClick={() => navigate(`/employer/jobs/${ap.job_id}?app=${ap.app_id}`)}
                 >
                   <span className="cand-applied__title">{ap.jobTitle}</span>
                   <span className="cand-applied__meta">
@@ -781,7 +781,7 @@ export default function CandidatesPage() {
               Applicants show up here automatically once people apply to your jobs — searchable across every role you post.
               {error && <span style={{ display: "block", marginTop: 8, fontSize: 12, color: "var(--pj-muted)" }}>({error})</span>}
             </p>
-            <button type="button" className="hjl-cta" onClick={() => navigate("/hr/post")}>Post a Job</button>
+            <button type="button" className="hjl-cta" onClick={() => navigate("/employer/post")}>Post a Job</button>
           </div>
         )}
 

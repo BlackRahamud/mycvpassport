@@ -325,7 +325,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
           <button
             type="button"
             className="hjl-cta"
-            onClick={() => (noJobs ? navigate("/hr/post") : (onGoToJobs ? onGoToJobs() : navigate("/hr/jobs")))}
+            onClick={() => (noJobs ? navigate("/employer/post") : (onGoToJobs ? onGoToJobs() : navigate("/employer/jobs")))}
           >
             {noJobs ? "Request Talent" : "View your jobs"}
           </button>

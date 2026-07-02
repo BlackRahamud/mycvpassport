@@ -48,7 +48,7 @@ export default function EmployerLandingPage() {
   // Logged-in visitors reuse their account: onboarding grants the recruiter
   // role (no re-login). Logged-out visitors get the employer auth entries.
   const goGetStarted = () => navigate(hasSession ? "/employer/onboarding" : "/employer/signup");
-  const goSignIn = () => navigate(hasSession ? "/hr" : "/employer/login");
+  const goSignIn = () => navigate(hasSession ? "/employer/jobs" : "/employer/login");
 
   const rise = (delay = 0) =>
     reduceMotion
@@ -89,7 +89,7 @@ export default function EmployerLandingPage() {
             <button type="button" className="emp-btn emp-btn--primary" onClick={goGetStarted}>
               {hasSession ? "Use your existing account to start hiring" : "Post your first job free"}
             </button>
-            <button type="button" className="emp-btn emp-btn--ghost" onClick={() => navigate("/hr/pricing")}>
+            <button type="button" className="emp-btn emp-btn--ghost" onClick={() => navigate("/employer/pricing")}>
               View plans
             </button>
           </motion.div>

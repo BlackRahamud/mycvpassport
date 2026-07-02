@@ -46,7 +46,7 @@ export default function EmployerOnboardingPage() {
         if (cancelled) return;
         if (isRecruiter && hrProfile?.company_id) {
           // Nothing to onboard — straight into the portal.
-          navigate("/hr", { replace: true });
+          navigate("/employer/jobs", { replace: true });
           return;
         }
         // Prefill anything the signup form already captured.
@@ -71,7 +71,7 @@ export default function EmployerOnboardingPage() {
     setError(null);
     try {
       await completeEmployerOnboarding(userId, { companyName, companySize, workEmail });
-      navigate("/hr", { replace: true });
+      navigate("/employer/jobs", { replace: true });
     } catch {
       setError("Could not set up your company. Please try again — your account is unaffected.");
       setSaving(false);
