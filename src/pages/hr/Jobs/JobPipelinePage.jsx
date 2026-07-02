@@ -20,6 +20,7 @@ import { STAGES, STAGE_BY_DB, NEW_STATUSES, STAGE_DROP_STATUS } from "../../../l
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
 import { readViewPref, writeViewPref, effectiveView } from "../../../lib/hr/viewPref";
 import PipelineKanban, { KanbanSkeleton } from "./PipelineKanban";
+import PipelineAnalytics from "./PipelineAnalytics";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
@@ -295,7 +296,8 @@ export default function JobPipelinePage() {
     return () => { live = false; };
   }, [jobId]);
 
-  /* Load applications */
+  /* Load applications — rejected INCLUDED (the analytics strip needs
+     them for totals/funnel); the board/list buckets filter them out. */
   useEffect(() => {
     if (!jobId) return;
     let live = true;
@@ -304,7 +306,6 @@ export default function JobPipelinePage() {
         .from("applications")
         .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, match_keywords, missing_keywords, score_source, source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
         .eq("job_id", jobId)
-        .neq("status", "rejected")
         .order("ats_score", { ascending: false });
       if (!live) return;
       if (error) { setApps([]); return; }
@@ -313,11 +314,32 @@ export default function JobPipelinePage() {
     return () => { live = false; };
   }, [jobId, appsTick]);
 
-  /* Stage counts + active filter */
+  /* Load candidate_events for this job (stage history → time-in-stage
+     medians + funnel accuracy). Same RLS scoping as the list: the HR
+     SELECT policy only returns this recruiter's rows. */
+  const [events, setEvents] = useState(null);
+  useEffect(() => {
+    if (!jobId) return;
+    let live = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("candidate_events")
+        .select("candidate_id, event_type, created_at")
+        .eq("job_id", jobId)
+        .order("created_at", { ascending: true });
+      if (!live) return;
+      setEvents(error ? [] : (data || []));
+    })();
+    return () => { live = false; };
+  }, [jobId, appsTick]);
+
+  /* Stage counts + active filter. Rejected candidates exist in `apps`
+     for analytics but never appear on the board or in the list. */
   const stageBuckets = useMemo(() => {
     const empty = STAGES.reduce((m, s) => ({ ...m, [s.key]: [] }), {});
     if (!apps) return empty;
     return apps.reduce((acc, a) => {
+      if (a.status === "rejected") return acc;
       const key = STAGE_BY_DB[a.status] || "shortlist";
       acc[key] = acc[key] || [];
       acc[key].push(a);
@@ -580,6 +602,8 @@ export default function JobPipelinePage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <PipelineAnalytics apps={apps} events={events} reduce={reduce} />
 
         <div className="jpp-viewbar">
           {view === "list" ? (
