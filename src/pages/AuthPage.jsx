@@ -298,7 +298,7 @@ function AuthPage({
 
   const submitBtnStyle =
     loginUiSuccess
-      ? { ...amberBtnBase, background: "#22C55E", color: "#FFFFFF", cursor: "default" }
+      ? { ...amberBtnBase, background: "#22C55E", color: "#FFFFFF", cursor: "default" } // theme-fixed: white on green fill
       : loading
         ? { ...amberBtnBase, background: "linear-gradient(180deg, #FFD33D 0%, #FBBC05 100%)", opacity: 0.75, cursor: "not-allowed", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 14px rgba(255,193,7,0.32)" }
         : { ...amberBtnBase, background: "linear-gradient(180deg, #FFD33D 0%, #FBBC05 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 14px rgba(255,193,7,0.32)" };
@@ -326,7 +326,7 @@ function AuthPage({
               fontSize: "21px",
               fontWeight: 700,
               marginBottom: "6px",
-              color: "#FFFFFF",
+              color: "var(--text-primary)",
               fontFamily: AUTH_FONT,
               textAlign: "center",
             }}

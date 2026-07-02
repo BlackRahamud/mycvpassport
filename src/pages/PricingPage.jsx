@@ -760,7 +760,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                       background: "linear-gradient(180deg, #E08810 0%, #B25E03 100%)",
                       /* Fixed white on the amber gradient — label sits on the
                          fill, not the page, so it must NOT flip with theme. */
-                      color: "#FFFFFF", border: "none",
+                      color: "#FFFFFF", border: "none", // theme-fixed
                       fontSize: 15, fontWeight: 700, cursor: "pointer",
                       fontFamily: "inherit",
                       letterSpacing: "-0.005em",
@@ -773,7 +773,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                     onMouseUp={(e) => { e.currentTarget.style.transform = "none"; }}
                   >
                     <span>Start your hunt</span>
-                    <ArrowRightIcon size={14} color="#FFFFFF" />
+                    <ArrowRightIcon size={14} color={"#FFFFFF" /* theme-fixed */} />
                   </motion.button>
                 )}
 
