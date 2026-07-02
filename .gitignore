@@ -42,3 +42,6 @@ supabase/.temp/
 
 # Local screenshot output from scripts/screenshot-hr-post.mjs — design-review captures only
 scripts/.screenshots/
+
+# pdf.js worker copied from node_modules at build (scripts/copy-pdf-worker.mjs)
+public/pdf.worker.min.js

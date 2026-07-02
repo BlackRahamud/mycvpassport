@@ -13,8 +13,11 @@ import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
 import StageAdvanceMenu from "../../../components/hr/StageAdvanceMenu";
 import CvPreviewCard from "../../../components/hr/CvPreviewCard";
-import CvDrawer from "../../../components/hr/CvDrawer";
+// Import order matters to mini-css-extract: keep BulkCvImport before
+// CvViewerOverlay in every page that uses both (CandidatesPage does the
+// same) or the build emits a fatal-on-CI css order warning.
 import BulkCvImport from "../../../components/hr/BulkCvImport";
+import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
 import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
 import { STAGES, STAGE_BY_DB, NEW_STATUSES, STAGE_DROP_STATUS } from "../../../lib/hr/stages";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
@@ -1065,11 +1068,51 @@ function CandidateDetail({
         hrId={hrId}
       />
 
-      <CvDrawer
+      <CvViewerOverlay
         open={cvOpen}
+        onClose={() => setCvOpen(false)}
         path={candidate.cv_file_path}
         fileName={cvFileName}
-        onClose={() => setCvOpen(false)}
+        intel={{
+          name: candidate.candidate_name || "Unnamed candidate",
+          role: desiredJob || jobTitle || "Candidate",
+          location: personal.location || "",
+          visa: candidate.visa_status || "",
+          notice: noticePeriod,
+          score: candidate.ats_score,
+          scoreSource: candidate.score_source,
+          matchedKeywords: matchedKw,
+          missingKeywords: missingKw,
+          skills,
+          appliedTo: jobTitle
+            ? [{
+                title: jobTitle,
+                when: candidate.applied_at
+                  ? new Date(candidate.applied_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })
+                  : "",
+              }]
+            : [],
+          email: candidate.candidate_email || "",
+          // The composer is its own portal — close the viewer first so the
+          // two full-screen layers never stack.
+          onWhatsApp: () => { setCvOpen(false); onMessage?.(); },
+        }}
+        verdict={
+          <VerdictCard
+            hideHeader
+            cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
+            cvSnapshot={cv}
+            job={job}
+            header={{
+              name: candidate.candidate_name || "Unnamed candidate",
+              role: desiredJob || jobTitle || "Candidate",
+              location: personal.location || "",
+              visa: candidate.visa_status || "",
+              availability: noticePeriod,
+            }}
+            onReachOut={(template) => { setCvOpen(false); onReachOut?.(template); }}
+          />
+        }
       />
 
       <ShareReviews applicationId={candidate.id} />

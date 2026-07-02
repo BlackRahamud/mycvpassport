@@ -1145,143 +1145,12 @@
   font-weight: 600;
 }
 
-/* ── CV drawer (slide-over, portaled to body) ─────────────────
-   Portaled outside .jpp-root, so --hjl-* are out of scope; chrome uses
-   explicit light values (with --pj-* fallbacks where they resolve at :root). */
-.cvd-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  background: rgba(20, 19, 31, 0.45);
-  display: flex;
-  justify-content: flex-end;
-}
-.cvd-panel {
-  display: flex;
-  flex-direction: column;
-  width: min(560px, 92vw);
-  max-width: 100%;
-  height: 100%;
-  background: #FFFFFF;
-  border-left: 1px solid var(--pj-border, #E7E7EE);
-  box-shadow: -18px 0 48px -20px rgba(20, 19, 31, 0.35);
-  font-family: var(--pj-font);
-}
-.cvd-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-shrink: 0;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--pj-border, #E7E7EE);
-}
-.cvd-head__title {
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--pj-text, #14131F);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.cvd-head__tools { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.cvd-iconbtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: #FFFFFF;
-  border: 1px solid var(--pj-border, #E7E7EE);
-  color: var(--pj-text-soft, #4B4A5E);
-  cursor: pointer;
-  text-decoration: none;
-  transition: background-color 120ms var(--pj-ease), color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
-}
-.cvd-iconbtn:hover { background: var(--pj-input-bg, #F4F4F7); color: var(--pj-text, #14131F); }
-.cvd-iconbtn:active { transform: scale(0.96); }
-.cvd-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 16px 18px;
-  overflow: auto;
-}
-.cvd-frame {
-  flex: 1 1 0;
-  min-height: 0;
-  width: 100%;
-  border: 1px solid var(--pj-border, #E7E7EE);
-  border-radius: 6px;
-  background: var(--pj-input-bg, #F4F4F7);
-  display: block;
-}
-.cvd-foot { margin-top: 10px; font-size: 12.5px; color: var(--pj-muted, #8A8A9B); flex-shrink: 0; }
-.cvd-foot a { color: var(--pj-text, #14131F); text-decoration: none; border-bottom: 1px solid var(--pj-border, #E7E7EE); }
-.cvd-status { padding: 44px 24px; text-align: center; font-size: 13.5px; color: var(--pj-muted, #8A8A9B); }
-.cvd-status--error { color: #DC2626; }
-.cvd-status--error p { margin: 0 0 14px; }
-.cvd-retry {
-  display: inline-flex;
-  align-items: center;
-  padding: 9px 18px;
-  border-radius: 8px;
-  border: 1px solid var(--pj-border, #E7E7EE);
-  background: var(--pj-input-bg, #F4F4F7);
-  color: var(--pj-text, #14131F);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
-}
-.cvd-retry:hover { background: var(--pj-border, #E7E7EE); }
-.cvd-retry:active { transform: scale(0.97); }
-
-/* Non-PDF file card — doc/docx get explicit Download / new-tab actions
-   instead of an iframe (which would auto-download on every open). */
-.cvd-filecard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 18px;
-  border: 1px solid var(--pj-border, #E7E7EE);
-  border-radius: 12px;
-  background: var(--pj-input-bg, #F4F4F7);
-}
-.cvd-filecard__ic { color: var(--pj-text-soft, #4B4A5E); flex-shrink: 0; }
-.cvd-filecard__body { flex: 1 1 160px; min-width: 0; }
-.cvd-filecard__name { font-size: 13.5px; font-weight: 600; color: var(--pj-text, #14131F); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cvd-filecard__meta { font-size: 12px; color: var(--pj-muted, #8A8A9B); margin-top: 3px; }
-.cvd-filecard__actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.cvd-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--pj-border, #E7E7EE);
-  background: var(--pj-card, #FFFFFF);
-  color: var(--pj-text, #14131F);
-  font-size: 12.5px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background-color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
-}
-.cvd-btn:hover { background: var(--pj-input-bg, #F4F4F7); }
-.cvd-btn:active { transform: scale(0.97); }
-.cvd-btn--primary { background: var(--hjl-ink, #14131F); border-color: var(--hjl-ink, #14131F); color: #FFFFFF; /* theme-fixed: label on ink fill */ }
-.cvd-btn--primary:hover { background: var(--pj-text-soft, #4B4A5E); }
 
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .jpp-cta, .jpp-icon-btn, .jpp-tab, .jpp-card, .jpp-action, .jpp-card__wa, .jpp-note__input, .jpp-note__add,
-  .jpp-split__main, .jpp-split__chev, .jpp-passlink, .jpp-stage-menu__item, .jpp-cvcard, .cvd-iconbtn { transition: none !important; }
-  .jpp-split__main:active, .jpp-split__chev:active, .jpp-passlink:active, .cvd-iconbtn:active { transform: none; }
+  .jpp-split__main, .jpp-split__chev, .jpp-passlink, .jpp-stage-menu__item, .jpp-cvcard { transition: none !important; }
+  .jpp-split__main:active, .jpp-split__chev:active, .jpp-passlink:active { transform: none; }
 }
 
 /* ── Mobile: collapse to single column with detail below ────── */
@@ -1348,7 +1217,4 @@
   .jpp-cvcard { flex-wrap: wrap; }
   .jpp-cvcard__body { flex: 1 1 140px; }
   .jpp-cvcard__cta { margin-left: 58px; }
-
-  /* CV drawer goes full-screen on phones. */
-  .cvd-panel { width: 100%; }
 }

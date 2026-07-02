@@ -8,7 +8,7 @@ import VerdictCard from "../../../components/hr/VerdictCard";
 import BulkActions from "../../../components/hr/BulkActions";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import PaneEmpty from "../../../components/hr/PaneEmpty";
-import CvDrawer from "../../../components/hr/CvDrawer";
+import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
 import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
@@ -386,7 +386,46 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
         </section>
       )}
 
-      <CvDrawer open={cvOpen} path={a.cv_file_path} fileName={`${candidate.name} CV`} onClose={() => setCvOpen(false)} />
+      <CvViewerOverlay
+        open={cvOpen}
+        onClose={() => setCvOpen(false)}
+        path={a.cv_file_path}
+        fileName={`${candidate.name} CV`}
+        intel={{
+          name: candidate.name,
+          role: desiredJob || candidate.apps[0]?.jobTitle || "Candidate",
+          location: personal.location || "",
+          visa: candidate.visa || "",
+          notice: cv.notice_period || cv.availability || personal.notice_period || "",
+          score: a.ats_score,
+          scoreSource: a.score_source,
+          matchedKeywords: matchedKw,
+          missingKeywords: missingKw,
+          skills,
+          appliedTo: candidate.apps.map((ap) => ({
+            title: ap.jobTitle,
+            when: ap.kind === "pool" ? "Talent pool" : "",
+          })),
+          email: candidate.email || "",
+          onWhatsApp: () => { setCvOpen(false); onMessage?.(); },
+        }}
+        verdict={
+          <VerdictCard
+            hideHeader
+            cacheKey={`${a.candidate_id || candidate.key}:${candidate.apps[0]?.job_id || ""}`}
+            cvSnapshot={cv}
+            jobId={candidate.apps[0]?.job_id}
+            header={{
+              name: candidate.name,
+              role: desiredJob || candidate.apps[0]?.jobTitle || "Candidate",
+              location: personal.location || "",
+              visa: candidate.visa || "",
+              availability: cv.notice_period || cv.availability || personal.notice_period || "",
+            }}
+            onReachOut={(template) => { setCvOpen(false); onReachOut?.(template); }}
+          />
+        }
+      />
       <ShareForReviewModal open={shareOpen} onClose={() => setShareOpen(false)} applicationId={a.id} candidateName={candidate.name} hrId={hrId} />
     </motion.aside>
   );

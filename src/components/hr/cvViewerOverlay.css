@@ -1,0 +1,354 @@
+/* ────────────────────────────────────────────────────────────────
+   CvViewerOverlay — recruiter CV viewer (money screen).
+   Portaled to <body>; built on the :root-scoped --pj-* portal tokens
+   so it renders identically under either global data-theme. The CV
+   sheets themselves are candidate documents: always white
+   (theme-fixed), like paper.
+   ──────────────────────────────────────────────────────────────── */
+
+.cvv-backdrop {
+  position: fixed;
+  inset: 0;
+  /* Above the kanban drawer scrim (3000) — at 2000 the scrim intercepted
+     every click on the viewer when opened from board view (dead controls).
+     Below the portal modals + menus at 4000. */
+  z-index: 3500;
+  /* Solid scrim first — the blur is progressive enhancement. */
+  background: rgba(20, 19, 31, 0.52);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: clamp(0px, 2vh, 22px) clamp(0px, 2vw, 26px);
+}
+@supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
+  .cvv-backdrop {
+    background: rgba(20, 19, 31, 0.42);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+}
+
+.cvv-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 58fr) minmax(320px, 42fr);
+  width: min(1360px, 100%);
+  height: 100%;
+  min-height: 0;
+  background: var(--pj-bg, #FFFFFF);
+  border: 1px solid var(--pj-border, #E7E7EE);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px -28px rgba(20, 19, 31, 0.45);
+  font-family: var(--pj-font, 'Inter', sans-serif);
+}
+
+/* ── document side ───────────────────────────────────────────── */
+.cvv-doc {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--pj-input-bg, #F6F6F9);
+  border-right: 1px solid var(--pj-border, #E7E7EE);
+}
+.cvv-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 10px 14px;
+  background: var(--pj-bg, #FFFFFF);
+  border-bottom: 1px solid var(--pj-border, #E7E7EE);
+}
+.cvv-toolbar__meta { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.cvv-toolbar__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pj-text, #14131F);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.cvv-toolbar__pages { font-size: 11.5px; color: var(--pj-muted, #8A8A9B); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cvv-toolbar__zoom { display: inline-flex; align-items: center; gap: 2px; }
+.cvv-toolbar__pct { font-size: 11.5px; color: var(--pj-text-soft, #4B4A5E); min-width: 38px; text-align: center; font-variant-numeric: tabular-nums; }
+.cvv-toolbar__acts { display: inline-flex; align-items: center; gap: 2px; }
+.cvv-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--pj-text-soft, #4B4A5E);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 120ms var(--pj-ease), color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
+}
+.cvv-tool:hover { background: var(--pj-input-bg, #F6F6F9); color: var(--pj-text, #14131F); }
+.cvv-tool:active { transform: scale(0.94); }
+.cvv-tool--close-doc { display: none; } /* shown only when the rail collapses away (narrow) */
+
+.cvv-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  scrollbar-width: thin;
+}
+.cvv-pages { display: flex; flex-direction: column; align-items: center; gap: 18px; transform-origin: top center; }
+
+/* The CV sheet: white paper, soft shadow — candidate document, theme-fixed. */
+.cvv-page {
+  background: #FFFFFF; /* theme-fixed: paper */
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(20, 19, 31, 0.10), 0 12px 32px -14px rgba(20, 19, 31, 0.28);
+  max-width: 100%;
+  overflow: hidden;
+}
+.cvv-page canvas { display: block; max-width: 100%; height: auto; }
+
+/* HTML sheet (docx) + image sheet */
+.cvv-sheet {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 48px 52px;
+  box-sizing: border-box;
+  color: #16161A; /* theme-fixed: ink on paper */
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+.cvv-sheet h1, .cvv-sheet h2, .cvv-sheet h3 { line-height: 1.3; margin: 1.1em 0 0.45em; }
+.cvv-sheet h1:first-child, .cvv-sheet h2:first-child { margin-top: 0; }
+.cvv-sheet p { margin: 0 0 0.7em; }
+.cvv-sheet table { border-collapse: collapse; width: 100%; }
+.cvv-sheet td, .cvv-sheet th { border: 1px solid #E4E4E0; padding: 4px 8px; } /* theme-fixed: paper table rules */
+.cvv-sheet img { max-width: 100%; height: auto; }
+.cvv-sheet--img { padding: 0; }
+.cvv-sheet--img img { display: block; width: 100%; }
+
+/* Skeleton sheets with shimmer sweep while loading. */
+.cvv-skels { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.cvv-skel {
+  width: min(680px, 100%);
+  aspect-ratio: 1 / 1.35;
+  padding: 44px 46px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  position: relative;
+}
+.cvv-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(20, 19, 31, 0.035) 50%, transparent 70%);
+  background-size: 220% 100%;
+  animation: cvv-shimmer 1.5s ease-in-out infinite;
+}
+.cvv-skel--still::after { animation: none; }
+@keyframes cvv-shimmer {
+  0% { background-position: 160% 0; }
+  100% { background-position: -60% 0; }
+}
+.cvv-skel__bar { height: 10px; border-radius: 5px; background: var(--pj-input-bg, #F6F6F9); }
+.cvv-skel__bar--title { height: 20px; width: 55%; margin-bottom: 10px; }
+
+/* status / error / file card */
+.cvv-status { padding: 64px 28px; text-align: center; font-size: 13.5px; color: var(--pj-muted, #8A8A9B); }
+.cvv-status--error { color: var(--pj-danger, #DC2626); }
+.cvv-status--error p { margin: 0 0 14px; }
+
+.cvv-filecard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  width: min(560px, 100%);
+  margin: 48px auto 0;
+  padding: 20px;
+  border: 1px solid var(--pj-border, #E7E7EE);
+  border-radius: 12px;
+  background: var(--pj-bg, #FFFFFF);
+}
+.cvv-filecard__ic { color: var(--pj-text-soft, #4B4A5E); flex-shrink: 0; }
+.cvv-filecard__body { flex: 1 1 160px; min-width: 0; }
+.cvv-filecard__name { font-size: 13.5px; font-weight: 600; color: var(--pj-text, #14131F); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cvv-filecard__meta { font-size: 12px; color: var(--pj-muted, #8A8A9B); margin-top: 3px; }
+.cvv-filecard__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* buttons shared by card + rail */
+.cvv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--pj-border, #E7E7EE);
+  background: var(--pj-bg, #FFFFFF);
+  color: var(--pj-text, #14131F);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
+}
+.cvv-btn:hover { background: var(--pj-input-bg, #F6F6F9); }
+.cvv-btn:active { transform: scale(0.97); }
+.cvv-btn--primary { background: var(--pj-text, #14131F); border-color: var(--pj-text, #14131F); color: #FFFFFF; /* theme-fixed: label on ink fill */ }
+.cvv-btn--primary:hover { background: var(--pj-text-soft, #4B4A5E); }
+.cvv-btn--wa { background: var(--pj-success, #059669); border-color: var(--pj-success, #059669); color: #FFFFFF; /* theme-fixed: label on brand-green fill */ }
+.cvv-btn--wa:hover { background: var(--pj-success-ring, #10B981); }
+
+/* ── intelligence side ───────────────────────────────────────── */
+.cvv-intel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--pj-bg, #FFFFFF);
+}
+.cvv-intel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 12px 14px 12px 20px;
+  border-bottom: 1px solid var(--pj-border, #E7E7EE);
+}
+.cvv-intel__title {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pj-muted, #8A8A9B);
+}
+.cvv-intel__toggle { display: none; } /* narrow screens only */
+.cvv-intel__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.cvv-intel__inner { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+
+.cvv-block__title {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--pj-muted, #8A8A9B);
+}
+
+.cvv-id { display: flex; align-items: flex-start; gap: 13px; }
+.cvv-id__avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--pj-input-bg, #F6F6F9);
+  border: 1px solid var(--pj-border, #E7E7EE);
+  color: var(--pj-text-soft, #4B4A5E);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.cvv-id__meta { flex: 1 1 auto; min-width: 0; }
+.cvv-id__name { font-size: 16px; font-weight: 700; color: var(--pj-text, #14131F); letter-spacing: -0.01em; }
+.cvv-id__role { font-size: 12.5px; color: var(--pj-text-soft, #4B4A5E); margin-top: 2px; }
+.cvv-id__badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.cvv-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pj-text-soft, #4B4A5E);
+  background: var(--pj-input-bg, #F6F6F9);
+  border: 1px solid var(--pj-border, #E7E7EE);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.cvv-kw { margin-bottom: 10px; }
+.cvv-kw:last-child { margin-bottom: 0; }
+.cvv-kw__label { display: block; font-size: 11px; font-weight: 600; color: var(--pj-muted, #8A8A9B); margin-bottom: 6px; }
+.cvv-kw__chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.cvv-chip {
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--pj-input-bg, #F6F6F9);
+  border: 1px solid var(--pj-border, #E7E7EE);
+  color: var(--pj-text-soft, #4B4A5E);
+}
+.cvv-chip--hit { background: rgba(5, 150, 105, 0.08); border-color: rgba(5, 150, 105, 0.25); color: var(--pj-success, #059669); }
+.cvv-chip--miss { background: rgba(220, 38, 38, 0.06); border-color: rgba(220, 38, 38, 0.2); color: var(--pj-danger, #DC2626); }
+
+.cvv-applied { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cvv-applied li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--pj-border, #E7E7EE);
+  border-radius: 9px;
+  background: var(--pj-bg, #FFFFFF);
+}
+.cvv-applied__title { font-size: 12.5px; font-weight: 600; color: var(--pj-text, #14131F); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cvv-applied__when { font-size: 11px; color: var(--pj-muted, #8A8A9B); white-space: nowrap; }
+
+.cvv-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── narrow screens: stack, CV first, intelligence collapsible ── */
+@media (max-width: 880px) {
+  .cvv-backdrop { padding: 0; }
+  .cvv-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    border-radius: 0;
+    border: 0;
+  }
+  .cvv-doc { border-right: 0; }
+  .cvv-tool--close-doc { display: inline-flex; }
+  .cvv-toolbar__name { max-width: 120px; }
+
+  .cvv-intel { border-top: 1px solid var(--pj-border, #E7E7EE); max-height: 55vh; }
+  .cvv-intel__head { padding: 0; border-bottom: 0; }
+  .cvv-intel__head > .cvv-tool--close { display: none; }
+  .cvv-intel__title { display: none; }
+  .cvv-intel__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 20px;
+    border: 0;
+    background: var(--pj-bg, #FFFFFF);
+    color: var(--pj-text, #14131F);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .cvv-intel__chev { display: inline-flex; color: var(--pj-muted, #8A8A9B); transition: transform 200ms var(--pj-ease); }
+  .cvv-intel__chev.is-open { transform: rotate(180deg); }
+  .cvv-intel__scroll { display: none; }
+  .cvv-intel__scroll.is-open { display: block; border-top: 1px solid var(--pj-border, #E7E7EE); }
+  .cvv-stage { padding: 14px; }
+}
+
+/* ── reduced motion ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cvv-tool, .cvv-btn, .cvv-intel__chev { transition: none; }
+  .cvv-tool:active, .cvv-btn:active { transform: none; }
+  .cvv-skel::after { animation: none; }
+}
