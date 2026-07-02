@@ -45,6 +45,7 @@
     "prestart": "node scripts/build-attestation-content.mjs",
     "build": "react-app-rewired build",
     "prebuild": "node scripts/build-attestation-content.mjs && node scripts/generate-sitemap.mjs",
+    "postbuild": "node scripts/prerender.mjs",
     "build:content": "node scripts/build-attestation-content.mjs",
     "lint": "eslint src --ext .js,.jsx",
     "test": "react-app-rewired test",

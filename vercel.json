@@ -78,6 +78,6 @@
       ],
       "destination": "/api/prerender"
     },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/spa.html" }
   ]
 }

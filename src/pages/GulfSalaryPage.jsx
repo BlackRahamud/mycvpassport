@@ -28,6 +28,17 @@ export default function GulfSalaryPage() {
           fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
+        {/* The billboard card owns the visual headline; this page-level h1
+            carries the document outline for crawlers + screen readers
+            (visually hidden — required by the prerender deploy gate). */}
+        <h1
+          style={{
+            position: 'absolute', width: 1, height: 1, margin: -1, padding: 0,
+            overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+          }}
+        >
+          Gulf Salary Intelligence: What You&rsquo;re Worth in Dubai, Riyadh and Doha
+        </h1>
         <div style={{ padding: '16px 24px' }}>
           <Link
             to="/"
