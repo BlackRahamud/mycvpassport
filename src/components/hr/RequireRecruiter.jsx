@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../../appSupabaseClient";
 import { fetchRecruiterStatus, completeEmployerOnboarding } from "../../lib/employer/recruiterStatus";
 import "../../pages/hr/PostJob/postJob.css"; // --pj-* tokens
@@ -18,6 +18,11 @@ import "../../pages/employer/employerLanding.css"; // emp- button/card styles
  */
 export default function RequireRecruiter({ children }) {
   const [phase, setPhase] = useState("checking"); // checking|anon|blocked|onboarding|error|ok
+  // Router location in a ref so runCheck stays referentially stable (one
+  // check per portal entry, not one per in-portal navigation).
+  const location = useLocation();
+  const locationRef = useRef(location);
+  locationRef.current = location;
 
   const runCheck = useCallback(async () => {
     setPhase("checking");
@@ -29,7 +34,7 @@ export default function RequireRecruiter({ children }) {
       try {
         window.sessionStorage?.setItem(
           "cvp_return_path",
-          window.location.pathname + window.location.search,
+          locationRef.current.pathname + locationRef.current.search,
         );
       } catch { /* private mode */ }
       setPhase("anon");

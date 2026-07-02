@@ -10,6 +10,7 @@ import { setCurrentAuthUserId } from "./lib/analytics/authState";
 import { hasProAccess } from "./config/access";
 import { isFounder } from "./utils/founder";
 import { getLastPortal } from "./lib/employer/portalMemory";
+import { resolveLoginRoute } from "./lib/auth/loginRoute";
 
 // ── Auth trace logging ──────────────────────────────────────────────────────
 // The postAuth redirect logic is noisy by design while debugging. These traces
@@ -564,7 +565,8 @@ export function useCvpAuth() {
       setUser({ name: extractName(data.user), email: data.user.email, id: data.user.id });
       setPendingVerificationEmail(null);
       authLoginSuccessHoldRef.current = true;
-      // Fetch user_type to determine routing
+      // Fetch user_type to determine routing. The decision matrix lives in
+      // resolveLoginRoute (src/lib/auth/loginRoute.js) — pure + unit-tested.
       let loginRoute = "/dashboard";
       try {
         const { data: prof } = await supabase
@@ -572,25 +574,19 @@ export function useCvpAuth() {
           .select("user_type")
           .eq("id", data.user.id)
           .single();
-        const hasRecruiterRole = prof?.user_type === "recruiter" || prof?.user_type === "both";
-        if (trimmed.userType === "recruiter") {
-          // Employer-intent login (/employer/login): recruiters go to the
-          // portal; everyone else gets the role via company onboarding —
-          // same account, no re-login.
-          loginRoute = hasRecruiterRole ? "/employer/jobs" : "/employer/onboarding";
-        } else if (prof?.user_type === "recruiter") {
-          // Main-site login: recruiter-only accounts still enter their
-          // portal.
-          loginRoute = "/employer/jobs";
-        } else if (prof?.user_type === "both") {
-          // Dual-role accounts land on the portal they last worked in;
-          // candidate home when there's no memory yet.
-          loginRoute = getLastPortal() === "employer" ? "/employer/jobs" : "/dashboard";
-        }
+        loginRoute = resolveLoginRoute({
+          intentUserType: trimmed.userType || null,
+          profileUserType: prof?.user_type || null,
+          lastPortal: getLastPortal(),
+        });
       } catch {
         // Profile read failed — employer intent still resolves to
         // onboarding (which self-redirects recruiters); default otherwise.
-        if (trimmed.userType === "recruiter") loginRoute = "/employer/onboarding";
+        loginRoute = resolveLoginRoute({
+          intentUserType: trimmed.userType || null,
+          profileUserType: null,
+          lastPortal: null,
+        });
       }
       // Admin-email override: if the intended destination is /admin
       // (stashed in postAuthRedirect or the current URL), skip /hr and
