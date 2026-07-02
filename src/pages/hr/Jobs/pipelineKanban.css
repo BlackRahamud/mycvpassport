@@ -308,7 +308,11 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(560px, 94vw);
+  /* Roomy detail, matching the CV viewer rail's proportions — the old
+     560px strip wrapped names and broke phone numbers mid-number.
+     ~46vw on desktop, capped at 720px; full-width sheet on phones. */
+  width: clamp(560px, 46vw, 720px);
+  max-width: 100%; /* never 100vw — scrollbar width (iOS rule); clips to a full-width sheet on phones */
   background: var(--pj-bg);
   border-left: 1px solid var(--pj-border);
   box-shadow: -24px 0 60px -30px rgba(20, 19, 31, 0.35);

@@ -587,9 +587,12 @@
   min-height: 480px;
 }
 
+/* Identity header: avatar | identity. The stage cluster moved down into
+   the actions row (recruiter decision, not identity), which frees the
+   full width for the name/badges and stops the dropdown colliding. */
 .jpp-detail__head {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) auto;
+  grid-template-columns: 96px minmax(0, 1fr);
   gap: 22px;
   align-items: center;
 }
@@ -615,11 +618,17 @@
 .jpp-detail__avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .jpp-detail__name {
-  font-size: 22px;
+  /* One line, always: size steps down slightly on narrow panels, then
+     truncates with a tooltip (title attr) for genuinely long names. */
+  font-size: clamp(19px, 1.8vw, 22px);
   font-weight: 700;
   color: var(--pj-text);
   letter-spacing: -0.015em;
   margin: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .jpp-detail__role {
   font-size: 14px;
@@ -639,6 +648,9 @@
   gap: 6px;
   color: var(--pj-text-soft);
   text-decoration: none;
+  /* A phone number must never break mid-number (+971 58 550 / 8782).
+     Whole items wrap as units via the parent's flex-wrap. */
+  white-space: nowrap;
 }
 .jpp-detail__contact a:hover { color: var(--pj-text); }
 
@@ -1163,7 +1175,6 @@
   /* Drop the ring under the identity on narrow screens — it's
      readable but stops squeezing the name/role line. */
   .jpp-detail__head { grid-template-columns: 64px minmax(0, 1fr); row-gap: 14px; }
-  .jpp-detail__head > :nth-child(3) { grid-column: 1 / -1; justify-self: start; }
   .jpp-detail__avatar { width: 64px; height: 64px; font-size: 22px; }
   .jpp-action__spacer { display: none; }
   .jpp-grid3 { grid-template-columns: 1fr 1fr; }

@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion, useMotionValue, useTransform, animate } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
+import { scoreBand, BAND_LABELS, BAND_TONES } from "../../lib/ats/scoreBand";
 import "./verdictCard.css";
 
 const EASE = [0.4, 0, 0.2, 1];
@@ -82,7 +83,10 @@ function VerdictRing({ score, tone, reduce }) {
 const verdictCache = new Map();
 export function clearVerdictCache() { verdictCache.clear(); }
 
-const TONE = { "STRONG FIT": "strong", MAYBE: "maybe", PASS: "pass" };
+// Tone + chip label derive from the SCORE via scoreBand — never from the
+// AI's raw verdict string. An 8/100 once wore a "PASS" chip (ambiguous:
+// passed-the-screen vs pass-on-them); now text, color and ring always
+// agree by construction. See src/lib/ats/scoreBand.js.
 
 /* ───────── lazy + cached verdict fetch ───────── */
 function useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId }) {
@@ -168,7 +172,8 @@ export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, 
     header?.availability && { ic: <ClockIc />, text: header.availability },
   ].filter(Boolean);
 
-  const tone = data ? (TONE[data.verdict] || "maybe") : "maybe";
+  const band = data ? scoreBand(data.score, "ai_verdict") : "mid";
+  const tone = BAND_TONES[band];
 
   return (
     <motion.div
@@ -208,7 +213,7 @@ export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, 
       {!loading && !error && data && (
         <div className="vc-body">
           <div className="vc-verdict">
-            <span className={`vc-badge vc-badge--${tone}`}>{data.verdict}</span>
+            <span className={`vc-badge vc-badge--${tone}`}>{BAND_LABELS[band]}</span>
             <VerdictRing score={data.score} tone={tone} reduce={reduce} />
           </div>
 

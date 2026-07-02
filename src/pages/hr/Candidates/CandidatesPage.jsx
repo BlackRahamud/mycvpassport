@@ -11,7 +11,7 @@ import PaneEmpty from "../../../components/hr/PaneEmpty";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
-import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
+import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../../lib/ats/scoreBand";
 import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
@@ -108,13 +108,20 @@ const SELECT_CAP = 50; // hard cap on bulk selection
 /* Match pill — reuses scoreBand so a 78 reads the same band/colour as it
    does in the pipeline ring. 'none' (never scored) renders an honest grey
    chip rather than a silent gap. */
-function MatchPill({ score, source }) {
+function MatchPill({ score, source, context }) {
   const band = scoreBand(score, source);
   if (band === "none") return <span className="cand-match cand-match--none">Not scored</span>;
   const color = BAND_COLORS[band];
+  // One person can carry different scores on different applications
+  // (different CVs) — the context says which CV this number was scored
+  // from, so differing numbers read as intentional, not as a bug.
   return (
-    <span className="cand-match" style={{ color, borderColor: `${color}59`, background: `${color}16` }}>
-      {Math.round(Number(score) || 0)}/100
+    <span
+      className="cand-match"
+      style={{ color, borderColor: `${color}59`, background: `${color}16` }}
+      title={context ? `${BAND_LABELS[band]} — scored from the ${context}` : BAND_LABELS[band]}
+    >
+      {Math.round(Number(score) || 0)}/100 · {BAND_LABELS[band]}{context ? ` · ${context}` : ""}
     </span>
   );
 }
@@ -215,7 +222,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
       <header className="jpp-detail__head">
         <div className="jpp-detail__avatar">{initials}</div>
         <div className="jpp-detail__identity">
-          <h2 className="jpp-detail__name">{candidate.name}</h2>
+          <h2 className="jpp-detail__name" title={candidate.name || undefined}>{candidate.name}</h2>
           <p className="jpp-detail__role">{desiredJob || "Candidate"}</p>
           {candidate.visa && (
             <span className={`jpp-visa-chip jpp-visa-chip--${visaTone(candidate.visa)}`}>{candidate.visa}</span>
@@ -298,7 +305,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
                 >
                   <span className="cand-applied__title">{ap.jobTitle}</span>
                   <span className="cand-applied__meta">
-                    <MatchPill score={ap.ats_score} source={ap.score_source} />
+                    <MatchPill score={ap.ats_score} source={ap.score_source} context={ap.cv_origin} />
                     {isPool
                       ? <span className="cand-pooltag">Pool</span>
                       : <span className={`cand-market cand-market--${ap.market === "india" ? "india" : "gulf"}`}>{ap.market === "india" ? "India" : "Gulf"}</span>}
@@ -563,7 +570,7 @@ export default function CandidatesPage() {
         const [appsRes, jobsRes] = await Promise.all([
           supabase
             .from("applications")
-            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, score_source, status, visa_status, match_keywords, missing_keywords, applied_at")
+            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, score_source, source, status, visa_status, match_keywords, missing_keywords, applied_at")
             .eq("hr_id", uid)
             .limit(5000),
           supabase
@@ -594,6 +601,7 @@ export default function CandidatesPage() {
             applied_at: a.applied_at,
             ats_score: a.ats_score || 0,
             score_source: a.score_source,
+            cv_origin: a.source === "imported" ? "imported CV" : "applied CV",
           };
           let c = byKey.get(key);
           if (!c) {

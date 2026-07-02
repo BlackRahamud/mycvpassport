@@ -18,7 +18,7 @@ import CvPreviewCard from "../../../components/hr/CvPreviewCard";
 // same) or the build emits a fatal-on-CI css order warning.
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
-import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
+import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../../lib/ats/scoreBand";
 import { STAGES, STAGE_BY_DB, NEW_STATUSES, STAGE_DROP_STATUS } from "../../../lib/hr/stages";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
 import { readViewPref, writeViewPref, effectiveView } from "../../../lib/hr/viewPref";
@@ -134,16 +134,23 @@ const ShareIc = () => (
 /* Match badge — color-coded by the internal ATS score via the shared
    scoreBand thresholds (>=80 green, 50-79 amber, <50 red, no source grey).
    Internal only: this score is never sent to the public share page. */
-function MatchBadge({ score, source }) {
+function MatchBadge({ score, source, context }) {
   const band = scoreBand(score, source);
   if (band === "none") {
-    return <span className="jpp-deal__badge jpp-deal__badge--meta"><TargetIc /> Not scored</span>;
+    return <span className="jpp-deal__badge jpp-deal__badge--meta"><TargetIc /> Not scored{context ? ` · ${context}` : ""}</span>;
   }
   const color = BAND_COLORS[band];
   const pct = Math.round(Number(score) || 0);
+  // A person can hold different scores on different applications (different
+  // CVs) — the context names which application/CV this number belongs to,
+  // so two numbers for the same candidate read as intentional, not a bug.
   return (
-    <span className="jpp-deal__badge jpp-deal__badge--match" style={{ color, borderColor: `${color}55`, background: `${color}14` }}>
-      <TargetIc /> {pct}% match
+    <span
+      className="jpp-deal__badge jpp-deal__badge--match"
+      style={{ color, borderColor: `${color}55`, background: `${color}14` }}
+      title={context ? `Scored against: ${context}` : undefined}
+    >
+      <TargetIc /> {pct}% · {BAND_LABELS[band]}{context ? ` · ${context}` : ""}
     </span>
   );
 }
@@ -807,10 +814,14 @@ export default function JobPipelinePage() {
               role="dialog"
               aria-label={`${selected.candidate_name || "Candidate"} details`}
               onClick={(e) => e.stopPropagation()}
-              initial={reduce ? false : { x: 48, opacity: 0 }}
+              initial={reduce ? false : { x: 56, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={reduce ? { opacity: 0 } : { x: 48, opacity: 0 }}
-              transition={{ duration: 0.26, ease: [0.4, 0, 0.2, 1] }}
+              exit={reduce ? { opacity: 0 } : { x: 56, opacity: 0, transition: { duration: 0.2, ease: [0.2, 0.9, 0.3, 1] } }}
+              transition={reduce
+                ? { duration: 0.2 }
+                // Same spring family as CvViewerOverlay so the two surfaces
+                // read as one system.
+                : { type: "spring", stiffness: 380, damping: 34, mass: 0.9, opacity: { duration: 0.22, ease: [0.2, 0.9, 0.3, 1] } }}
             >
               <button type="button" className="jpp-kb-drawer__close" onClick={() => setDrawerOpen(false)} aria-label="Close details">
                 <CloseIc />
@@ -978,16 +989,19 @@ function CandidateDetail({
       <header className="jpp-detail__head">
         <div className="jpp-detail__avatar">{initials}</div>
         <div className="jpp-detail__identity">
-          <h2 className="jpp-detail__name">{candidate.candidate_name || "Unnamed candidate"}</h2>
+          <h2 className="jpp-detail__name" title={candidate.candidate_name || undefined}>
+            {candidate.candidate_name || "Unnamed candidate"}
+          </h2>
           <p className="jpp-detail__role">{desiredJob || jobTitle || "Candidate"}</p>
           <div className="jpp-deal">
             {personal.location && <span className="jpp-deal__badge"><MapPinIc /> {personal.location}</span>}
             {noticePeriod && <span className="jpp-deal__badge"><ClockIc /> {noticePeriod}</span>}
             {candidate.visa_status && <span className="jpp-deal__badge"><ShieldIc /> {candidate.visa_status}</span>}
-            <MatchBadge score={candidate.ats_score} source={candidate.score_source} />
-            {candidate.source === "imported" && (
-              <span className="jpp-deal__badge jpp-deal__badge--meta" title="Added via bulk CV import — no candidate account, so the journey timeline is limited.">Imported CV</span>
-            )}
+            <MatchBadge
+              score={candidate.ats_score}
+              source={candidate.score_source}
+              context={[jobTitle, candidate.source === "imported" ? "imported CV" : "applied CV"].filter(Boolean).join(" · ")}
+            />
           </div>
           <div className="jpp-detail__contact">
             {candidate.candidate_email && (
@@ -1002,19 +1016,12 @@ function CandidateDetail({
             )}
           </div>
         </div>
-        <div className="jpp-detail__stage">
-          <StageAdvanceMenu
-            stageDef={stageDef}
-            currentStatus={candidate.status}
-            options={STATUS_OVERRIDE_OPTIONS}
-            advancing={advancing}
-            onAdvance={onAdvance}
-            onJump={onStatusChange}
-          />
-          <button type="button" className="jpp-passlink" disabled={advancing} onClick={onPass}>Pass</button>
-        </div>
       </header>
 
+      {/* Stage cluster lives with the other ACTIONS, not in the identity
+          header — stage is the recruiter's decision, the score/verdict in
+          the cards above is the AI's read; keeping them apart stops
+          "Reject" reading as an AI verdict chip. */}
       <div className="jpp-detail__actions">
         <button
           type="button"
@@ -1040,6 +1047,18 @@ function CandidateDetail({
             Schedule interview
           </button>
         )}
+        <span className="jpp-action__spacer" aria-hidden="true" />
+        <div className="jpp-detail__stage">
+          <StageAdvanceMenu
+            stageDef={stageDef}
+            currentStatus={candidate.status}
+            options={STATUS_OVERRIDE_OPTIONS}
+            advancing={advancing}
+            onAdvance={onAdvance}
+            onJump={onStatusChange}
+          />
+          <button type="button" className="jpp-passlink" disabled={advancing} onClick={onPass}>Reject</button>
+        </div>
       </div>
 
       <CvPreviewCard path={candidate.cv_file_path} name={firstName(candidate.candidate_name)} onView={handleViewCv} />

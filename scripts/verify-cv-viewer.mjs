@@ -45,9 +45,9 @@ const APPLICATION = {
   id: "44444444-4444-4444-8444-444444444444",
   job_id: JOB.id,
   candidate_id: CAND_ID,
-  candidate_name: "Ayesha Rahman",
+  candidate_name: "Mohammed Abdulrahman Al-Balushi",
   candidate_email: "ayesha.rahman@example.com",
-  candidate_phone: "+971501234567",
+  candidate_phone: "+971585508782",
   cv_snapshot: {
     personal: { location: "Dubai, UAE", headline: "Senior Operations Lead" },
     skills: ["Logistics", "SAP", "Fleet management", "Vendor negotiation", "Route planning"],
@@ -231,7 +231,9 @@ const shot = (page, name) => page.screenshot({ path: join(OUT, `${tag}-${name}.p
 if (FAIL_STORAGE) {
   const { context, page } = await newPage();
   await page.goto(`http://localhost:4179/employer/jobs/${JOB.id}`, { waitUntil: "networkidle" });
-  await page.getByText("Ayesha Rahman").first().click(); // open the candidate detail
+  await page.getByText("Mohammed Abdulrahman Al-Balushi").first().click(); // open the candidate detail
+  await page.waitForTimeout(900);
+  await shot(page, "drawer-settled");
   await page.getByText("View CV", { exact: false }).first().click();
   await page.getByText(/couldn.t load this cv/i).waitFor({ timeout: 15000 });
   await page.waitForTimeout(400);
@@ -244,7 +246,9 @@ if (FAIL_STORAGE) {
   await page.goto(`http://localhost:4179/employer/jobs/${JOB.id}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(600);
   await shot(page, "pipeline-before");
-  await page.getByText("Ayesha Rahman").first().click(); // open the candidate detail
+  await page.getByText("Mohammed Abdulrahman Al-Balushi").first().click(); // open the candidate detail
+  await page.waitForTimeout(900);
+  await shot(page, "drawer-settled");
   await page.getByText("View CV", { exact: false }).first().click();
   await page.waitForTimeout(140); // mid-entrance
   await shot(page, "open-mid");
@@ -269,7 +273,7 @@ if (FAIL_STORAGE) {
   // 2) global dark theme — overlay must stay the portal's light surface
   const d = await newPage({ theme: "dark" });
   await d.page.goto(`http://localhost:4179/employer/jobs/${JOB.id}`, { waitUntil: "networkidle" });
-  await d.page.getByText("Ayesha Rahman").first().click();
+  await d.page.getByText("Mohammed Abdulrahman Al-Balushi").first().click();
   await d.page.getByText("View CV", { exact: false }).first().click();
   await d.page.locator(".cvv-page canvas").first().waitFor({ timeout: 20000 });
   await d.page.waitForTimeout(1200);
@@ -279,7 +283,9 @@ if (FAIL_STORAGE) {
   // 3) narrow — stacked, intel collapsed then expanded
   const m = await newPage({ width: 393, height: 852 });
   await m.page.goto(`http://localhost:4179/employer/jobs/${JOB.id}`, { waitUntil: "networkidle" });
-  await m.page.getByText("Ayesha Rahman").first().click();
+  await m.page.getByText("Mohammed Abdulrahman Al-Balushi").first().click();
+  await m.page.waitForTimeout(900);
+  await shot(m.page, "drawer-narrow");
   await m.page.getByText("View CV", { exact: false }).first().click();
   await m.page.locator(".cvv-page canvas").first().waitFor({ timeout: 20000 });
   await m.page.waitForTimeout(900);
@@ -292,7 +298,7 @@ if (FAIL_STORAGE) {
   // 4) reduced motion sanity
   const r = await newPage({ reducedMotion: "reduce" });
   await r.page.goto(`http://localhost:4179/employer/jobs/${JOB.id}`, { waitUntil: "networkidle" });
-  await r.page.getByText("Ayesha Rahman").first().click();
+  await r.page.getByText("Mohammed Abdulrahman Al-Balushi").first().click();
   await r.page.getByText("View CV", { exact: false }).first().click();
   await r.page.locator(".cvv-page canvas").first().waitFor({ timeout: 20000 });
   await r.page.waitForTimeout(600);

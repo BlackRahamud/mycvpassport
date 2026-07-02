@@ -34,3 +34,22 @@ export const BAND_COLORS = {
   low:  "#DC2626",
   none: "#C2C2CC",
 };
+
+/* Human tier labels — the ONLY verdict wording any surface may render.
+   "PASS" is banned: it reads as both "passes the screen" (good) and
+   "we pass on them" (bad), so an 8/100 wearing a PASS chip looked like
+   a triumph. Chip text, color and ring must all derive from the same
+   band so they can never disagree. */
+export const BAND_LABELS = {
+  high: "Strong Match",
+  mid:  "Maybe",
+  low:  "Weak Match",
+  none: "Not scored",
+};
+
+/* VerdictCard tone class per band (its css tone names predate this). */
+export const BAND_TONES = { high: "strong", mid: "maybe", low: "pass", none: "maybe" };
+
+export function bandLabel(score, source) {
+  return BAND_LABELS[scoreBand(score, source)];
+}
