@@ -16,13 +16,53 @@ import CvPreviewCard from "../../../components/hr/CvPreviewCard";
 import CvDrawer from "../../../components/hr/CvDrawer";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import { scoreBand, BAND_COLORS } from "../../../lib/ats/scoreBand";
-import { STAGES, STAGE_BY_DB, NEW_STATUSES } from "../../../lib/hr/stages";
+import { STAGES, STAGE_BY_DB, NEW_STATUSES, STAGE_DROP_STATUS } from "../../../lib/hr/stages";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
+import { readViewPref, writeViewPref, effectiveView } from "../../../lib/hr/viewPref";
+import PipelineKanban, { KanbanSkeleton } from "./PipelineKanban";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./jobPipeline.css";
 
 /* Stage config now lives in src/lib/hr/stages.js — shared with the kanban
    view, the analytics strip and their tests so views can never drift. */
+
+/* Segmented view toggle — animated selection indicator (layoutId). */
+function ViewToggle({ view, onChange, reduce }) {
+  const items = [
+    { key: "kanban", label: "Board", icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="12" rx="1.5"/></svg>
+    ) },
+    { key: "list", label: "List", icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
+    ) },
+  ];
+  return (
+    <div className="jpp-vt" role="tablist" aria-label="Pipeline view">
+      {items.map((it) => {
+        const active = view === it.key;
+        return (
+          <button
+            key={it.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className={`jpp-vt__btn${active ? " jpp-vt__btn--active" : ""}`}
+            onClick={() => onChange(it.key)}
+          >
+            {active && (
+              <motion.span
+                layoutId="jpp-vt-indicator"
+                className="jpp-vt__ind"
+                transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 42 }}
+              />
+            )}
+            <span className="jpp-vt__inner">{it.icon}{it.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /* ───────── Inline icons ───────── */
 const ChevLeft = () => (
@@ -195,6 +235,12 @@ export default function JobPipelinePage() {
   const [advancing, setAdvancing] = useState(false);
   const [moveError, setMoveError] = useState(null);
   const [showHiredModal, setShowHiredModal] = useState(false);
+  /* View mode: explicit user choice (persisted) > desktop/mobile default. */
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 900px)").matches : true,
+  );
+  const [viewPref, setViewPref] = useState(null); // read once user is known
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerInitialMessage, setComposerInitialMessage] = useState(null);
   const [outreachTick, setOutreachTick] = useState(0);
@@ -375,6 +421,41 @@ export default function JobPipelinePage() {
     return () => clearTimeout(t);
   }, [moveError]);
 
+  /* ── View mode plumbing ── */
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 900px)");
+    const onChange = (e) => setIsDesktop(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (user?.id) setViewPref(readViewPref(user.id));
+  }, [user?.id]);
+
+  const view = effectiveView(viewPref, isDesktop);
+  const setView = useCallback((v) => {
+    setViewPref(v);
+    writeViewPref(user?.id, v);
+  }, [user?.id]);
+
+  /* Kanban handlers — same persistence path as the list. The kanban
+     passes a stage key (or 'rejected' from the move menu); translate to
+     the canonical DB status the list's own actions write. */
+  const handleKanbanMove = useCallback((appId, target) => {
+    const newStatus = target === "rejected" ? "rejected" : STAGE_DROP_STATUS[target];
+    if (!newStatus) return;
+    updateStatus(appId, newStatus).then((ok) => {
+      if (ok && newStatus === "hired") setShowHiredModal(true);
+    });
+  }, [updateStatus]);
+
+  const handleKanbanOpen = useCallback((appId, stageKey) => {
+    setActiveStage(stageKey);
+    setSelectedAppId(appId);
+    setDrawerOpen(true);
+  }, []);
+
   const handleAddNote = useCallback(async () => {
     const trimmed = noteDraft.trim();
     if (!trimmed || !selected) return;
@@ -396,6 +477,35 @@ export default function JobPipelinePage() {
   }, [noteDraft, selected]);
 
   /* ── Renderers ─────────────────────────────────────────────── */
+  /* One CandidateDetail instance definition — rendered in the list grid
+     OR inside the kanban drawer, always with identical props. */
+  const detailNode = (
+    <CandidateDetail
+      key={selected?.id || "empty"}
+      candidate={selected}
+      job={job}
+      stageDef={stageDef}
+      jobTitle={jobTitle}
+      company={company}
+      screeningQuestions={job?.screening_questions || []}
+      advancing={advancing}
+      onAdvance={handleAdvance}
+      onPass={handlePass}
+      onStatusChange={(s) => selected && updateStatus(selected.id, s)}
+      onMessage={() => { setComposerInitialMessage(null); setComposerOpen(true); }}
+      onReachOut={(template) => { setComposerInitialMessage(template); setComposerOpen(true); }}
+      onSchedule={() => setScheduleOpen(true)}
+      hrId={user?.id}
+      outreachTick={outreachTick}
+      interviewTick={interviewTick}
+      noteDraft={noteDraft}
+      onNoteDraftChange={setNoteDraft}
+      onAddNote={handleAddNote}
+      noteSubmitting={noteSubmitting}
+      reduce={reduce}
+    />
+  );
+
   return (
     <div className="jpp-root">
       <Helmet><title>{job?.title ? `${job.title} · CVPassport` : "Pipeline · CVPassport"}</title></Helmet>
@@ -471,26 +581,73 @@ export default function JobPipelinePage() {
           )}
         </AnimatePresence>
 
-        <nav className="jpp-tabs" role="tablist" aria-label="Pipeline stages">
-          {STAGES.map((s) => {
-            const count = (stageBuckets[s.key] || []).length;
-            const active = activeStage === s.key;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                className={`jpp-tab${active ? " jpp-tab--active" : ""}`}
-                onClick={() => setActiveStage(s.key)}
-              >
-                {s.label}
-                <span className="jpp-tab__count">{count}</span>
-              </button>
-            );
-          })}
-        </nav>
+        <div className="jpp-viewbar">
+          {view === "list" ? (
+            <nav className="jpp-tabs jpp-tabs--inbar" role="tablist" aria-label="Pipeline stages">
+              {STAGES.map((s) => {
+                const count = (stageBuckets[s.key] || []).length;
+                const active = activeStage === s.key;
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`jpp-tab${active ? " jpp-tab--active" : ""}`}
+                    onClick={() => setActiveStage(s.key)}
+                  >
+                    {s.label}
+                    <span className="jpp-tab__count">{count}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          ) : (
+            <span className="jpp-viewbar__hint">Drag candidates between stages · click a card for details</span>
+          )}
+          <ViewToggle view={view} onChange={setView} reduce={reduce} />
+        </div>
 
+        <AnimatePresence mode="wait" initial={false}>
+        {view === "kanban" ? (
+          <motion.div
+            key="view-kanban"
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+          >
+            {apps === null ? (
+              <KanbanSkeleton />
+            ) : (
+              <PipelineKanban
+                stageBuckets={stageBuckets}
+                onMove={handleKanbanMove}
+                onOpen={handleKanbanOpen}
+                reduce={reduce}
+                headerExtras={{
+                  shortlist: (
+                    <button
+                      type="button"
+                      className="jpp-kb-col__import"
+                      onClick={() => setImportOpen(true)}
+                      title="Bulk-upload existing CVs into this pipeline"
+                    >
+                      + Import
+                    </button>
+                  ),
+                }}
+              />
+            )}
+          </motion.div>
+        ) : (
+        <motion.div
+          key="view-list"
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+        >
         <div className="jpp-grid">
           {/* Left column: candidate cards */}
           <section aria-label={`${stageDef.label} candidates`}>
@@ -598,32 +755,44 @@ export default function JobPipelinePage() {
           </section>
 
           {/* Right column: candidate detail */}
-          <CandidateDetail
-            key={selected?.id || "empty"}
-            candidate={selected}
-            job={job}
-            stageDef={stageDef}
-            jobTitle={jobTitle}
-            company={company}
-            screeningQuestions={job?.screening_questions || []}
-            advancing={advancing}
-            onAdvance={handleAdvance}
-            onPass={handlePass}
-            onStatusChange={(s) => selected && updateStatus(selected.id, s, selected.status)}
-            onMessage={() => { setComposerInitialMessage(null); setComposerOpen(true); }}
-            onReachOut={(template) => { setComposerInitialMessage(template); setComposerOpen(true); }}
-            onSchedule={() => setScheduleOpen(true)}
-            hrId={user?.id}
-            outreachTick={outreachTick}
-            interviewTick={interviewTick}
-            noteDraft={noteDraft}
-            onNoteDraftChange={setNoteDraft}
-            onAddNote={handleAddNote}
-            noteSubmitting={noteSubmitting}
-            reduce={reduce}
-          />
+          {detailNode}
         </div>
+        </motion.div>
+        )}
+        </AnimatePresence>
       </main>
+
+      {/* Kanban candidate drawer — the SAME detail panel, slid over the
+          board. Modals (WhatsApp, schedule, hired) live at page level and
+          key off `selected`, so every detail action works identically. */}
+      <AnimatePresence>
+        {view === "kanban" && drawerOpen && selected && (
+          <motion.div
+            className="jpp-kb-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            onClick={() => setDrawerOpen(false)}
+          >
+            <motion.aside
+              className="jpp-kb-drawer"
+              role="dialog"
+              aria-label={`${selected.candidate_name || "Candidate"} details`}
+              onClick={(e) => e.stopPropagation()}
+              initial={reduce ? false : { x: 48, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={reduce ? { opacity: 0 } : { x: 48, opacity: 0 }}
+              transition={{ duration: 0.26, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <button type="button" className="jpp-kb-drawer__close" onClick={() => setDrawerOpen(false)} aria-label="Close details">
+                <CloseIc />
+              </button>
+              {detailNode}
+            </motion.aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <WhatsAppComposer
         open={composerOpen && !!selected}
