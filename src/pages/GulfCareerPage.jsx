@@ -780,11 +780,8 @@ function ShareCard({ result, format, reportId }) {
           <div style={{ fontSize: 10, letterSpacing: "0.18em", color: "rgba(255,255,255,0.55)", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
             {result.industry.name.toUpperCase()} · {result.city.label.toUpperCase()}
           </div>
-          <div style={{
+          <div className="gci-share-num" style={{
             fontSize: isPortrait ? 56 : 48, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.95,
-            color: "#FFFFFF",
-            background: "linear-gradient(180deg, #FFFFFF 0%, #B8B8BC 100%)",
-            WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>
             {result.match}<span style={{ fontSize: "0.45em" }}>%</span>
           </div>
@@ -1355,8 +1352,12 @@ textarea.gci-input { padding: 14px 16px; resize: none; line-height: 1.4; }
 .gci-flash-eyebrow .gci-pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 14px rgba(255,255,255,0.6); animation: gci-blink 1.6s var(--gci-ease) infinite; }
 .gci-flash-card.is-green .gci-pulse-dot { background: #1D9E75; box-shadow: 0 0 14px rgba(29,158,117,0.7); }
 @keyframes gci-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-.gci-flash-num { font-size: clamp(60px, 11vw, 116px); line-height: 0.95; font-weight: 800; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #FFFFFF; background: linear-gradient(180deg, #FFFFFF 0%, #B8B8BC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-.gci-flash-num small { font-size: 0.32em; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0; vertical-align: 12%; margin-left: 4px; -webkit-text-fill-color: rgba(255,255,255,0.45); }
+.gci-flash-num { font-size: clamp(60px, 11vw, 116px); line-height: 0.95; font-weight: 800; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: #FFFFFF; }
+.gci-flash-num small { font-size: 0.32em; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0; vertical-align: 12%; margin-left: 4px; }
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .gci-flash-num { background: linear-gradient(180deg, #FFFFFF 0%, #B8B8BC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .gci-flash-num small { -webkit-text-fill-color: rgba(255,255,255,0.45); }
+}
 .gci-flash-sub { font-size: 14px; color: rgba(255,255,255,0.6); margin-top: 12px; line-height: 1.45; }
 .gci-flash-sub b { color: #FFFFFF; font-weight: 600; }
 
@@ -1482,6 +1483,10 @@ textarea.gci-input { padding: 14px 16px; resize: none; line-height: 1.4; }
 .gci-share-canvas-wrap { background: #000; border-radius: 14px; padding: 14px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); }
 .gci-share-canvas-wrap.is-square { aspect-ratio: 1; max-width: 360px; }
 .gci-share-canvas-wrap.is-portrait { aspect-ratio: 4/5; max-width: 320px; }
+.gci-share-num { color: #FFFFFF; }
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .gci-share-num { background: linear-gradient(180deg, #FFFFFF 0%, #B8B8BC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+}
 .gci-share-canvas-inner { width: 100%; height: 100%; background: radial-gradient(120% 80% at 50% 110%, rgba(255,255,255,0.08), transparent 65%), linear-gradient(180deg, #131316 0%, #050507 100%); border-radius: 8px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; color: #fff; border: 1px solid rgba(255,255,255,0.06); }
 .gci-share-info { display: grid; gap: 14px; }
 .gci-share-cta { position: relative; background: linear-gradient(180deg, #FFFFFF 0%, #DCDCE0 100%); color: #0A0A0A; border: 0; border-radius: 12px; padding: 14px 18px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: transform .12s var(--gci-ease), box-shadow .18s var(--gci-ease); box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 6px 18px rgba(0,0,0,0.4); letter-spacing: -0.005em; }
@@ -1495,8 +1500,12 @@ textarea.gci-input { padding: 14px 16px; resize: none; line-height: 1.4; }
 .gci-gap-eyebrow { font-size: 10.5px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.55); font-weight: 600; margin-bottom: 16px; font-family: ui-monospace, "SF Mono", monospace; position: relative; }
 .gci-gap-line { font-size: clamp(20px, 3.4vw, 28px); font-weight: 600; line-height: 1.3; letter-spacing: -0.022em; max-width: 720px; margin: 0 auto 8px; position: relative; color: #FFFFFF; }
 .gci-gap-line b { color: #FFFFFF; font-weight: 700; }
-.gci-gap-annual { font-size: clamp(40px, 6vw, 64px); font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #FFFFFF 0%, #A8A8AC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin: 18px 0 8px; position: relative; }
-.gci-gap-annual small { font-size: 0.32em; color: rgba(255,255,255,0.45); font-weight: 600; letter-spacing: 0.04em; margin-left: 6px; -webkit-text-fill-color: rgba(255,255,255,0.45); }
+.gci-gap-annual { font-size: clamp(40px, 6vw, 64px); font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: #FFFFFF; margin: 18px 0 8px; position: relative; }
+.gci-gap-annual small { font-size: 0.32em; color: rgba(255,255,255,0.45); font-weight: 600; letter-spacing: 0.04em; margin-left: 6px; }
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .gci-gap-annual { background: linear-gradient(180deg, #FFFFFF 0%, #A8A8AC 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .gci-gap-annual small { -webkit-text-fill-color: rgba(255,255,255,0.45); }
+}
 .gci-gap-cta { position: relative; margin-top: 28px; background: linear-gradient(180deg, #FFFFFF 0%, #DCDCE0 100%); color: #0A0A0A; border: 0; border-radius: 14px; padding: 18px 30px; font-family: inherit; font-size: 16px; font-weight: 700; letter-spacing: -0.005em; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: transform .12s var(--gci-ease), box-shadow .18s var(--gci-ease); box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 8px 24px rgba(0,0,0,0.5); }
 .gci-gap-cta:hover { box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 12px 36px rgba(255,255,255,0.22); }
 .gci-gap-cta:active { transform: scale(0.98); }

@@ -112,6 +112,7 @@ const HERO_TABLET_STYLES = `
   border-radius: var(--radius-pill);
   color: #FCD34D;
   font-size: 11px; font-weight: 600; letter-spacing: -0.01em;
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 16px rgba(217,119,6,0.25);
   animation: cvpAiPill 2.4s ease-in-out infinite;

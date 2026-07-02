@@ -169,7 +169,8 @@ function CVPlayCard() {
               background: "linear-gradient(to right, #ffffff, #f3f4f6, #d1d5db)",
               WebkitBackgroundClip: "text",
               backgroundClip: "text",
-              color: "transparent",
+              WebkitTextFillColor: "transparent",
+              color: "#f3f4f6",
             }}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

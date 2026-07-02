@@ -195,21 +195,28 @@ export default function HeroSection({ user }) {
           100% { background-position: 300% center; }
         }
         .hero-headline-shimmer {
-          /* Token-driven gradient: near-black→amber on light, white→amber
-             on dark — legible on both. The white glow is dark-only (it
-             flattens to grey haze on a light background). */
-          background: linear-gradient(90deg, var(--color-text-primary) 0%, var(--color-accent) 100%);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: headlineShimmer 4s linear infinite;
+          /* Fallback: solid accent when background-clip:text is unavailable —
+             intentional-looking in both themes, no gradient box. The gradient
+             treatment lives entirely inside the @supports guard below. */
+          color: var(--color-accent);
         }
-        /* Scoped to the landing wrapper's OWN theme attribute — a bare
-           [data-theme="dark"] descendant selector would also match through
-           the dark-pinned app shell that wraps the whole route tree. */
-        .lp-wrapper[data-theme="dark"] .hero-headline-shimmer {
-          filter: drop-shadow(0 0 12px rgba(255,255,255,0.4)) drop-shadow(0 0 30px rgba(217,119,6,0.35)) drop-shadow(0 0 60px rgba(217,119,6,0.2));
+        @supports (-webkit-background-clip: text) or (background-clip: text) {
+          .hero-headline-shimmer {
+            /* Token-driven gradient: near-black→amber on light, white→amber
+               on dark — legible on both. */
+            background: linear-gradient(90deg, var(--color-text-primary) 0%, var(--color-accent) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: headlineShimmer 4s linear infinite;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            /* Static gradient — never reset the background shorthand here:
+               background:<color> resets background-clip to border-box and
+               paints a solid rectangle over the (transparent-fill) text. */
+            .hero-headline-shimmer { animation: none; }
+          }
         }
         .cvp-hero-uae-line {
           font-size: 13px;
@@ -227,21 +234,20 @@ export default function HeroSection({ user }) {
         .cvp-hero-uae-percent {
           font-weight: 800;
           font-size: 16px;
-          background: linear-gradient(90deg, var(--color-text-primary) 0%, var(--color-accent) 100%);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: shimmer 3s linear infinite;
+          color: var(--color-accent);
           text-shadow: none;
         }
-        @media (prefers-reduced-motion: reduce) {
-          .cvp-hero-uae-percent { animation: none; }
-          .hero-headline-shimmer {
-            animation: none;
-            background: var(--color-text-primary);
-            -webkit-text-fill-color: var(--color-text-primary);
-            filter: none;
+        @supports (-webkit-background-clip: text) or (background-clip: text) {
+          .cvp-hero-uae-percent {
+            background: linear-gradient(90deg, var(--color-text-primary) 0%, var(--color-accent) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .cvp-hero-uae-percent { animation: none; }
           }
         }
 

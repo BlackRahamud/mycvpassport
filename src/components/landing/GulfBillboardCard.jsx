@@ -403,25 +403,28 @@ export default function GulfBillboardCard() {
         }
         .cvp-gbb-h em {
           font-style: normal;
-          background: linear-gradient(90deg, #ffffff 0%, #fde68a 35%, #d97706 70%, #f59e0b 100%);
-          background-size: 220% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: cvp-gbb-shimmer 6s linear infinite;
-          filter: drop-shadow(0 0 24px rgba(245,158,11,0.25));
+          /* Fallback: solid amber-lit when background-clip:text is
+             unavailable — the gradient lives inside the guard below. */
+          color: #fde68a;
+        }
+        @supports (-webkit-background-clip: text) or (background-clip: text) {
+          .cvp-gbb-h em {
+            background: linear-gradient(90deg, #ffffff 0%, #fde68a 35%, #d97706 70%, #f59e0b 100%);
+            background-size: 220% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: cvp-gbb-shimmer 6s linear infinite;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            /* Freeze the shimmer only — resetting the background shorthand
+               here would drop background-clip and paint a box over the text. */
+            .cvp-gbb-h em { animation: none; }
+          }
         }
         @keyframes cvp-gbb-shimmer {
           0%   { background-position: 0% center; }
           100% { background-position: 220% center; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .cvp-gbb-h em {
-            animation: none;
-            background: #fde68a;
-            -webkit-text-fill-color: #fde68a;
-            filter: none;
-          }
         }
 
         .cvp-gbb-sub {
@@ -468,22 +471,29 @@ export default function GulfBillboardCard() {
           font-weight: 700;
           letter-spacing: -0.04em;
           font-variant-numeric: tabular-nums;
-          background: linear-gradient(180deg, #ffffff 0%, #fde68a 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #ffffff;
           display: flex;
           align-items: baseline;
           gap: 10px;
           flex-wrap: wrap;
           row-gap: 2px;
         }
+        @supports (-webkit-background-clip: text) or (background-clip: text) {
+          .cvp-gbb-hook-num {
+            background: linear-gradient(180deg, #ffffff 0%, #fde68a 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+          }
+          .cvp-gbb-hook-num small {
+            -webkit-text-fill-color: rgba(255,255,255,0.5);
+          }
+        }
         .cvp-gbb-hook-num small {
           font-size: clamp(13px, 1.4vw, 15px);
           font-weight: 500;
           letter-spacing: 0.02em;
           color: rgba(255,255,255,0.5);
-          -webkit-text-fill-color: rgba(255,255,255,0.5);
           font-variant-numeric: normal;
         }
         .cvp-gbb-hook-foot {

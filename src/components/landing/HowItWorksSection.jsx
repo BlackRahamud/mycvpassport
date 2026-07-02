@@ -300,7 +300,7 @@ export default function HowItWorksSection() {
         @media (max-width:880px){ .hiw-head{ margin-bottom:40px; } }
         .hiw-eyebrow{ display:inline-flex; align-items:center; gap:10px; font-family:var(--mono); font-size:11px; letter-spacing:0.24em; color:var(--amber); font-weight:600; margin:0 0 18px; }
         .hiw-eyebrow::before{ content:""; width:24px; height:1px; background:var(--amber); }
-        .hiw-h{ font-size:clamp(36px,5.4vw,60px); line-height:0.98; letter-spacing:-0.035em; font-weight:600; margin:0; color:#fff; text-wrap:balance; }
+        .hiw-h{ font-size:clamp(36px,5.4vw,60px); line-height:0.98; letter-spacing:-0.035em; font-weight:600; margin:0; color:var(--color-text-primary,#fff); text-wrap:balance; }
         .hiw-h .em{ color:var(--amber-lit); }
         .hiw-sub{ font-size:clamp(15px,1.5vw,18px); line-height:1.55; color:var(--muted); font-weight:400; margin:18px 0 0; max-width:54ch; }
 
@@ -324,14 +324,17 @@ export default function HowItWorksSection() {
         .hiw-step--final{ background:radial-gradient(130% 80% at 100% 0%, rgba(217,119,6,0.10), transparent 58%), var(--s1); border-color:color-mix(in srgb,var(--amber),transparent 52%); }
 
         .hiw-step-head{ display:flex; align-items:flex-start; justify-content:space-between; }
-        .hiw-step-num{ font-family:var(--mono); font-size:46px; line-height:0.9; font-weight:600; letter-spacing:-0.04em;
-          background:linear-gradient(180deg,#fff 0%,rgba(255,255,255,0.32) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-        .hiw-step--final .hiw-step-num{ background:linear-gradient(180deg,var(--amber-lit) 0%,var(--amber) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .hiw-step-num{ font-family:var(--mono); font-size:46px; line-height:0.9; font-weight:600; letter-spacing:-0.04em; color:var(--color-text-primary,#fff); }
+        .hiw-step--final .hiw-step-num{ color:var(--amber-lit); }
+        @supports (-webkit-background-clip: text) or (background-clip: text) {
+          .hiw-step-num{ background:linear-gradient(180deg,var(--color-text-primary,#fff) 0%,var(--color-text-secondary,rgba(255,255,255,0.32)) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+          .hiw-step--final .hiw-step-num{ background:linear-gradient(180deg,var(--amber-lit) 0%,var(--amber) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+        }
         .hiw-step-icon{ width:34px; height:34px; border-radius:9px; border:1px solid var(--border); background:rgba(255,255,255,0.03);
           display:grid; place-items:center; color:var(--muted); }
         .hiw-step--final .hiw-step-icon{ border-color:rgba(217,119,6,0.4); background:rgba(217,119,6,0.1); color:var(--amber-lit); }
 
-        .hiw-step-title{ font-size:19px; font-weight:600; letter-spacing:-0.012em; line-height:1.25; margin:8px 0 0; color:#fff; text-wrap:balance; }
+        .hiw-step-title{ font-size:19px; font-weight:600; letter-spacing:-0.012em; line-height:1.25; margin:8px 0 0; color:var(--color-text-primary,#fff); text-wrap:balance; }
         .hiw-step-desc{ font-size:13.5px; line-height:1.55; color:var(--muted); font-weight:400; margin:0 0 4px; }
 
         .hiw-chip{ transition:transform .4s var(--ease); }
@@ -366,7 +369,10 @@ export default function HowItWorksSection() {
         .hiw-pc-top,.hiw-pc-bot{ display:flex; align-items:center; justify-content:space-between; }
         .hiw-ppe{ width:30px; height:30px; border-radius:50%; background:#2A2D31; color:#fff; font-size:14px; font-weight:700; display:grid; place-items:center; z-index:2; box-shadow:0 2px 6px rgba(0,0,0,0.2); }
         .hiw-gp{ height:30px; border-radius:15px; background:#fff; border:1px solid #e4e4e7; display:flex; align-items:center; gap:3px; padding:0 11px 0 8px; margin-left:-9px; box-shadow:0 1px 4px rgba(0,0,0,0.14); }
-        .hiw-gp-g{ font-weight:700; font-size:14px; background:linear-gradient(90deg,#4285F4,#EA4335 38%,#FBBC05 68%,#34A853); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .hiw-gp-g{ font-weight:700; font-size:14px; color:#4285F4; }
+        @supports (-webkit-background-clip: text) or (background-clip: text) {
+          .hiw-gp-g{ background:linear-gradient(90deg,#4285F4,#EA4335 38%,#FBBC05 68%,#34A853); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+        }
 
         /* step 2 */
         .hiw-doc-mini{ background:#0C0C0C; border:1px solid var(--border); border-radius:11px; padding:11px 12px; display:grid; gap:9px; }

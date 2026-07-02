@@ -65,12 +65,20 @@ const ATS_LIFT_BANNER_STYLES = `
   position: absolute; inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(74,222,128,0.18), transparent 50%);
-  mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
-  mask-composite: exclude;
-  -webkit-mask-composite: xor;
   padding: 1px;
   opacity: 0.55;
+}
+/* Gradient border ring only where mask compositing works — without the
+   guard, an unsupporting browser paints the full green wash over the
+   banner content. Fallback is simply no ring (the solid border remains). */
+@supports ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .cvp-tt-banner::before {
+    background: linear-gradient(180deg, rgba(74,222,128,0.18), transparent 50%);
+    -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    mask-composite: exclude;
+  }
 }
 .cvp-tt-banner-num {
   grid-row: 1 / span 2;

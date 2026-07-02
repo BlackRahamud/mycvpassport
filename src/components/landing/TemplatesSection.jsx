@@ -645,11 +645,12 @@ function TemplatesStyles() {
       }
       .cvp-tpl-h em {
         font-style: normal; font-weight: 600;
-        color: rgba(255,255,255,0.42);
+        /* Token, not white-alpha — white@0.42 disappears on the light theme. */
+        color: var(--color-text-secondary, rgba(255,255,255,0.42));
       }
       .cvp-tpl-sub {
         font-size: 17px; line-height: 1.55;
-        color: rgba(255,255,255,0.6); margin: 22px 0 0; max-width: 56ch;
+        color: var(--color-text-secondary, rgba(255,255,255,0.6)); margin: 22px 0 0; max-width: 56ch;
         font-weight: 400; letter-spacing: -0.005em;
       }
       .cvp-tpl-filters {
@@ -663,12 +664,12 @@ function TemplatesStyles() {
       }
       .cvp-tpl-chip {
         background: transparent; border: 0; padding: 9px 14px; border-radius: 9px;
-        font-family: inherit; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.62);
+        font-family: inherit; font-size: 13px; font-weight: 500; color: var(--color-text-secondary, rgba(255,255,255,0.62));
         cursor: pointer; white-space: nowrap; letter-spacing: -0.005em;
         transition: background-color 220ms cubic-bezier(0.4,0,0.2,1),
                     color 220ms cubic-bezier(0.4,0,0.2,1);
       }
-      .cvp-tpl-chip:hover { color: #fff; background: rgba(255,255,255,0.04); }
+      .cvp-tpl-chip:hover { color: var(--color-text-primary, #fff); background: rgba(255,255,255,0.04); }
       .cvp-tpl-chip.is-on { background: #fff; color: #0a0a0a; font-weight: 600; }
       .cvp-tpl-chip:focus-visible { outline: 2px solid var(--color-accent, #D97706); outline-offset: 2px; }
 

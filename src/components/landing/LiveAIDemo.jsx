@@ -596,16 +596,24 @@ const LIVE_AI_DEMO_STYLES = `
 }
 .cvp-d-section .cvp-sec-h2 em {
   font-style: normal;
-  background: linear-gradient(90deg, var(--color-accent), #FCD34D 60%, var(--color-accent));
-  background-size: 200% auto;
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-  animation: cvpDShimmer 5s linear infinite;
+  /* Fallback: solid accent when background-clip:text is unavailable. */
+  color: var(--color-accent);
+}
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .cvp-d-section .cvp-sec-h2 em {
+    background: linear-gradient(90deg, var(--color-accent), #FCD34D 60%, var(--color-accent));
+    background-size: 200% auto;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: cvpDShimmer 5s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* Freeze the shimmer only — a background:<color> reset here drops
+       background-clip and paints a solid box over the transparent text. */
+    .cvp-d-section .cvp-sec-h2 em { animation: none; }
+  }
 }
 @keyframes cvpDShimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
-@media (prefers-reduced-motion: reduce) {
-  .cvp-d-section .cvp-sec-h2 em { animation: none; background: #FCD34D; -webkit-text-fill-color: #FCD34D; }
-}
 .cvp-d-section .cvp-sec-sub {
   font-size: 17px; color: var(--color-text-secondary);
   margin: 22px 0 0; max-width: 620px; line-height: 1.55;
@@ -829,6 +837,7 @@ const LIVE_AI_DEMO_STYLES = `
 .cvp-d-backdrop {
   position: absolute; inset: 0;
   background: rgba(0,0,0,0.55);
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   z-index: 10;
   animation: cvpDFade 200ms ease-out;
