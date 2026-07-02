@@ -253,6 +253,30 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
         <script type="application/ld+json">{`
 {
   "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.mycvpassport.com/#organization",
+      "name": "CVPassport",
+      "url": "https://www.mycvpassport.com/",
+      "logo": "https://www.mycvpassport.com/logo192.png",
+      "description": "ATS-focused CV builder for UAE, Gulf and India job seekers.",
+      "email": "support@mycvpassport.com",
+      "address": { "@type": "PostalAddress", "addressLocality": "Dubai", "addressCountry": "AE" }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.mycvpassport.com/#website",
+      "url": "https://www.mycvpassport.com/",
+      "name": "CVPassport",
+      "publisher": { "@id": "https://www.mycvpassport.com/#organization" }
+    }
+  ]
+}
+        `}</script>
+        <script type="application/ld+json">{`
+{
+  "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
     {

@@ -78,6 +78,58 @@ function renderBlock(block, i) {
   }
 }
 
+// "Thursday, 2 Jul 2026" → "2026-07-02" (ISO date for JSON-LD). Returns
+// null on anything unparseable so we omit the field rather than lie.
+function postDateToISO(dateStr) {
+  if (!dateStr) return null;
+  const cleaned = dateStr.replace(/^[A-Za-z]+,\s*/, "");
+  const d = new Date(cleaned);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// Strip the body-block markdown (**bold**, [label](href)) for plain-text
+// JSON-LD values.
+function plainText(text) {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+}
+
+// Pull Q/A pairs out of the body's "Frequently Asked Questions" section:
+// each h3 is a question, the paragraphs until the next h3/h2/hr are its
+// answer. Returns [] when the article has no FAQ section.
+function extractFaq(body) {
+  if (!body) return [];
+  const start = body.findIndex(
+    (b) => b.type === "h2" && /frequently asked/i.test(b.text || ""),
+  );
+  if (start === -1) return [];
+  const faqs = [];
+  let question = null;
+  let answer = [];
+  const flush = () => {
+    if (question && answer.length) {
+      faqs.push({ question, answer: answer.join(" ") });
+    }
+    question = null;
+    answer = [];
+  };
+  for (let i = start + 1; i < body.length; i++) {
+    const b = body[i];
+    if (b.type === "h2" || b.type === "hr") break;
+    if (b.type === "h3") {
+      flush();
+      question = plainText(b.text);
+    } else if (b.type === "p" && question) {
+      answer.push(plainText(b.text));
+    }
+  }
+  flush();
+  return faqs;
+}
+
 function NotFound() {
   return (
     <div className="blog-page blog-post-page">
@@ -110,6 +162,39 @@ export default function BlogPostPage() {
   // trust liability — and they must not claim a read time they don't have.
   const isStub = !post.body || post.body.length === 0;
 
+  // JSON-LD: Article schema on every written post, FAQPage where the body
+  // carries a Frequently Asked Questions section. Stubs get neither.
+  const isoDate = postDateToISO(post.date);
+  const articleLd = !isStub
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: post.title,
+        description: metaDesc,
+        ...(post.image ? { image: [post.image] } : {}),
+        ...(isoDate ? { datePublished: isoDate, dateModified: isoDate } : {}),
+        author: { "@type": "Organization", name: "CVPassport", url: "https://www.mycvpassport.com/about" },
+        publisher: {
+          "@type": "Organization",
+          name: "CVPassport",
+          logo: { "@type": "ImageObject", url: "https://www.mycvpassport.com/logo192.png" },
+        },
+        mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+      }
+    : null;
+  const faqs = isStub ? [] : extractFaq(post.body);
+  const faqLd = faqs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqs.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
+        })),
+      }
+    : null;
+
   return (
     <div className="blog-page blog-post-page">
       <Helmet>
@@ -126,6 +211,12 @@ export default function BlogPostPage() {
         <meta name="twitter:title" content={metaTitle} />
         <meta name="twitter:description" content={metaDesc} />
         {post.image && <meta name="twitter:image" content={post.image} />}
+        {articleLd && (
+          <script type="application/ld+json">{JSON.stringify(articleLd)}</script>
+        )}
+        {faqLd && (
+          <script type="application/ld+json">{JSON.stringify(faqLd)}</script>
+        )}
       </Helmet>
 
       <BlogNav active="/blog" />
