@@ -35,6 +35,9 @@ function buildCvPdfHtmlDocument(cvFragmentHtml, templateId) {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: #ffffff; }
     body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    /* Placeholder text keeps the same muted treatment it has in the live
+       preview (src/previewPlaceholder.js) — WYSIWYG for unfinished CVs. */
+    .cvp-ph { opacity: 0.55; }
     .cvp-builder-a4-fit {
       background: #ffffff;
       width: 794px;
@@ -52,7 +55,7 @@ function buildCvPdfHtmlDocument(cvFragmentHtml, templateId) {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap"/>
 <style>${style}</style>
 </head>
 <body${templateId ? ` data-template-id="${Number(templateId)}"` : ""}>

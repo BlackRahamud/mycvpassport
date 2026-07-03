@@ -2,6 +2,7 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
 import { buildPersonalDetailsEntries } from "./cvShared";
+import { ph } from "./previewPlaceholder";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -16,7 +17,6 @@ const PRIMARY = "#1E3A5F"; // Deep Navy
 const ACCENT = "#C8A96E"; // Warm Gold
 const TEXT_MAIN = "#374151"; // Gray 700
 const TEXT_MUTED = "#6B7280"; // Gray 500
-const SKELETON = "#D1D5DB"; // Gray 300
 const FONT = 'Arial, "Helvetica Neue", Helvetica, sans-serif';
 
 export function PreviewModernEmerald({ cv, mobileMode = false }) {
@@ -39,7 +39,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
       style={{
         marginTop: first ? 0 : "10mm",
         marginBottom: "5mm",
-        borderLeft: `4px solid ${isEmpty ? SKELETON : ACCENT}`,
+        borderLeft: `4px solid ${ACCENT}`,
         paddingLeft: "10px",
         breakAfter: "avoid",
         pageBreakAfter: "avoid",
@@ -49,7 +49,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
         style={{
           fontSize: pt(13),
           fontWeight: "bold",
-          color: isEmpty ? SKELETON : PRIMARY,
+          color: PRIMARY,
           textTransform: "uppercase",
           letterSpacing: "0.05em",
         }}
@@ -80,11 +80,11 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
     >
       {/* Header - Left Aligned */}
       <header style={{ textAlign: "left", marginBottom: "12mm" }}>
-        <h1 style={{ fontSize: pt(26), fontWeight: "bold", color: isEmpty ? SKELETON : PRIMARY, margin: 0, lineHeight: 1.1 }}>
-          {cv.name || "Your Name"}
+        <h1 style={{ fontSize: pt(26), fontWeight: "bold", color: PRIMARY, margin: 0, lineHeight: 1.1 }}>
+          {ph(cv.name, "Your Name")}
         </h1>
-        <div style={{ fontSize: pt(13), fontWeight: "bold", color: isEmpty ? SKELETON : ACCENT, margin: "6px 0 10px" }}>
-          {cv.title || "Your Professional Title"}
+        <div style={{ fontSize: pt(13), fontWeight: "bold", color: ACCENT, margin: "6px 0 10px" }}>
+          {ph(cv.title, "Your Professional Title")}
         </div>
         <div
           style={{
@@ -99,7 +99,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
           {cv.phone && <span>{cv.phone}</span>}
           {cv.linkedin && <span>{cv.linkedin}</span>}
           {cv.location && <span>{cv.location}</span>}
-          {isEmpty && <span style={{ color: SKELETON }}>email@address.com • Phone Number • Location</span>}
+          {isEmpty && <span className="cvp-ph">email@address.com • Phone Number • Location</span>}
         </div>
         {personalDetails.length > 0 && (
           <div
@@ -133,7 +133,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
             }}
           >
             <GhostChip>{summaryDisplay}</GhostChip>
-            {summaryDisplay}
+            {ph(cv.summary, summaryDisplay)}
           </p>
         </section>
       )}
@@ -147,7 +147,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
               {isEmpty ? "Skill One, Skill Two, Skill Three" : skillList.join(", ")}
             </GhostChip>
             {isEmpty ? (
-              <span style={{ color: SKELETON }}>Skill One, Skill Two, Skill Three</span>
+              <span className="cvp-ph">Skill One, Skill Two, Skill Three</span>
             ) : (
               skillList.join(", ")
             )}
@@ -168,7 +168,7 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
                     .join(" ")}
             </GhostChip>
             {isEmpty ? (
-              <span style={{ color: SKELETON }}>Tool Name, Software Expertise</span>
+              <span className="cvp-ph">Tool Name, Software Expertise</span>
             ) : (
               (() => {
                 const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
@@ -197,12 +197,12 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
               <div>
                 <GhostChip>Job Role / Position Company Name | Location</GhostChip>
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
-                  <span style={{ color: SKELETON }}>Job Role / Position</span>
-                  <span style={{ color: SKELETON }}>2020 — Present</span>
+                  <span className="cvp-ph" style={{ fontSize: pt(11), color: PRIMARY }}>Job Role / Position</span>
+                  <span className="cvp-ph" style={{ fontSize: pt(10), color: ACCENT }}>2020 — Present</span>
                 </div>
-                <div style={{ color: SKELETON, fontStyle: "italic", marginBottom: "2mm" }}>Company Name | Location</div>
-                <p style={{ margin: 0, color: SKELETON }}>• Accomplishment or responsibility placeholder line</p>
-                <p style={{ margin: 0, color: SKELETON }}>• Key metric or project success indicator</p>
+                <div className="cvp-ph" style={{ fontSize: pt(10.5), fontWeight: "bold", color: TEXT_MUTED, marginBottom: "2mm" }}>Company Name | Location</div>
+                <p className="cvp-ph" style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>• Accomplishment or responsibility placeholder line</p>
+                <p className="cvp-ph" style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>• Key metric or project success indicator</p>
               </div>
             </EntryWrap>
           ) : (
@@ -239,9 +239,9 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
         <section data-section="education">
           <SectionTitle>Education</SectionTitle>
           {isEmpty ? (
-            <div style={{ color: SKELETON }}>
-              <div style={{ fontWeight: "bold" }}>Degree / Field of Study</div>
-              <div>University or School Name | 2018</div>
+            <div className="cvp-ph">
+              <div style={{ fontWeight: "bold", fontSize: pt(10.5), color: PRIMARY }}>Degree / Field of Study</div>
+              <div style={{ fontSize: pt(10), color: TEXT_MUTED }}>University or School Name | 2018</div>
             </div>
           ) : (
             cv.education.map((edu, i) => (

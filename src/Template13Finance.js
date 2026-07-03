@@ -2,6 +2,7 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
 import { buildPersonalDetailsEntries } from "./cvShared";
+import { ph } from "./previewPlaceholder";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -23,31 +24,12 @@ const COLORS = {
   TEXT_SECONDARY: "#6b7280",
   DIVIDER: "#e5e7eb",
   WHITE: "#ffffff",
-  SKELETON_BG: "#D1D5DB",
 };
 
 export function PreviewFinance({ cv, mobileMode = false }) {
-  // Empty state: placeholder skeleton per T11 requirement
-  if (!cv || !cv.name) {
-    return (
-      <div
-        style={{
-          width: mobileMode ? "100%" : "800px",
-          height: "600px",
-          backgroundColor: COLORS.SKELETON_BG,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 auto",
-          fontFamily: "Arial, sans-serif",
-          color: "#4B5563",
-        }}
-      >
-        Loading Template 13...
-      </div>
-    );
-  }
+  if (!cv) return null;
 
+  const isEmpty = !cv.name || cv.name.trim() === "";
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
@@ -109,10 +91,10 @@ export function PreviewFinance({ cv, mobileMode = false }) {
               textTransform: "uppercase",
             }}
           >
-            {cv.name.toUpperCase()}
+            {ph(cv.name && cv.name.toUpperCase(), "YOUR NAME")}
           </h1>
           <p style={{ fontSize: "14px", color: COLORS.TEXT_SECONDARY, margin: "4px 0 12px 0" }}>
-            {cv.title || "Finance Professional"}
+            {ph(cv.title, "Finance Professional")}
           </p>
 
           <div
@@ -124,6 +106,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
               color: COLORS.TEXT_SECONDARY,
             }}
           >
+            {isEmpty && <span className="cvp-ph">Phone Number • email@address.com • Location</span>}
             {cv.phone && <span>{cv.phone}</span>}
             {cv.phone && cv.email && <span>•</span>}
             {cv.email && <span>{cv.email}</span>}
@@ -158,9 +141,21 @@ export function PreviewFinance({ cv, mobileMode = false }) {
 
         <div style={{ display: "flex", flexDirection: "row", gap: "40px", padding: "0 32px 32px 32px" }}>
           <div style={{ flex: "0 0 62%" }}>
-            {experience.length > 0 && (
+            {(experience.length > 0 || isEmpty) && (
               <div data-section="experience">
                 <SectionHeading>Experience</SectionHeading>
+                {isEmpty && (
+                  <div style={{ marginBottom: "20px", pageBreakInside: "avoid", position: "relative" }}>
+                    <div className="cvp-ph" style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "14px" }}>Job Role / Position</div>
+                    <div className="cvp-ph" style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px", marginBottom: "6px" }}>
+                      Company Name • 2020 — Present
+                    </div>
+                    <div style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, marginBottom: "4px", display: "flex", lineHeight: "1.5" }}>
+                      <span style={{ marginRight: "8px" }}>•</span>
+                      <span className="cvp-ph">Accomplishment or responsibility placeholder line</span>
+                    </div>
+                  </div>
+                )}
                 {experience.map((exp, i) => (
                   <div key={i} style={{ marginBottom: "20px", pageBreakInside: "avoid", position: "relative" }}>
                     <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
@@ -185,9 +180,15 @@ export function PreviewFinance({ cv, mobileMode = false }) {
               </div>
             )}
 
-            {education.length > 0 && (
+            {(education.length > 0 || isEmpty) && (
               <div data-section="education">
                 <SectionHeading>Education</SectionHeading>
+                {isEmpty && (
+                  <div style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
+                    <div className="cvp-ph" style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "13px" }}>Degree / Field of Study</div>
+                    <div className="cvp-ph" style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px" }}>University or School Name • 2018</div>
+                  </div>
+                )}
                 {education.map((edu, i) => (
                   <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
                     <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "13px" }}>{edu.degree}</div>
@@ -199,14 +200,14 @@ export function PreviewFinance({ cv, mobileMode = false }) {
               </div>
             )}
 
-            {skills.length > 0 && (
+            {(skills.length > 0 || isEmpty) && (
               <div data-section="competencies">
                 <SectionHeading>Skills</SectionHeading>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", position: "relative" }}>
                   <GhostChip>{Array.isArray(skills) ? skills.join(" ") : cv.skills}</GhostChip>
-                  {skills.map((skill, i) => (
+                  {(isEmpty ? ["Skill One", "Skill Two", "Skill Three"] : skills).map((skill, i) => (
                     <span key={i} style={{ padding: "5px 12px", backgroundColor: "#e6eef7", color: COLORS.TEXT_PRIMARY, borderRadius: "6px", fontSize: "12px" }}>
-                      {skill}
+                      {isEmpty ? <span className="cvp-ph">{skill}</span> : skill}
                     </span>
                   ))}
                 </div>
@@ -236,12 +237,14 @@ export function PreviewFinance({ cv, mobileMode = false }) {
           </div>
 
           <div style={{ flex: "1" }}>
-            {cv.summary && (
+            {(cv.summary || isEmpty) && (
               <div data-section="summary">
                 <SectionHeading>Professional Summary</SectionHeading>
                 <div style={{ position: "relative", margin: "0 0 24px 0" }}>
-                  <GhostChip>{cv.summary}</GhostChip>
-                  <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: 0 }}>{cv.summary}</p>
+                  <GhostChip>{cv.summary || ""}</GhostChip>
+                  <p style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, lineHeight: "1.5", margin: 0 }}>
+                    {ph(cv.summary, "Write a brief overview of your professional background, key achievements, and career goals here.")}
+                  </p>
                 </div>
               </div>
             )}

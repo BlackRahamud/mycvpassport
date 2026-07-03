@@ -991,6 +991,21 @@ select:focus,
   box-sizing: border-box;
 }
 
+/* Placeholder content in the live preview — the template renders at full
+   fidelity, only the placeholder TEXT is muted. Filling a field flips the
+   span to .cvp-ph-real and the opacity crossfades (150ms). */
+.cvp-ph {
+  opacity: 0.55;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-ph-real {
+  opacity: 1;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cvp-ph, .cvp-ph-real { transition: none; }
+}
+
 /* Desktop builder preview only: paper height follows CV content (no forced full A4 white band) */
 .cvp-builder-desktop .cvp-builder-a4-fit {
   min-height: unset;
@@ -2091,8 +2106,13 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     align-items: start !important;
   }
   .cvp-builder-desktop {
+    /* Definite width: the grid is a flex child, and without it the 1fr
+       preview column resolves against content size — the paginated panel
+       then feedback-loops itself narrow (fit-scale ← stage width). */
+    width: 100% !important;
     max-width: 1600px !important;
     margin: 0 auto !important;
+    padding-left: 24px !important;
     grid-template-columns: 460px 1fr !important;
   }
   .cvp-builder-preview {
@@ -2100,14 +2120,13 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
     flex-direction: column !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    padding: 48px 40px !important;
-    /* Subtle radial backdrop — #0A0A0A center → #111111 edges, just
-       enough depth to make the white CV page feel spotlit on dark.
-       No noise, no grid (per design directive). */
-    background: radial-gradient(ellipse at center, #0A0A0A 0%, #111111 100%) !important;
+    padding: 16px 20px 0 !important;
+    /* Calm token-driven surface — the paginated sheet panel (dp-*) owns
+       the document presentation; no more black void behind a lone card. */
+    background: var(--bg, #0A0A0A) !important;
   }
   .cvp-builder-preview > div:first-child {
-    max-width: 860px !important;
+    max-width: 900px !important;
     width: 100% !important;
   }
   .cvp-builder-templates-tab-root {

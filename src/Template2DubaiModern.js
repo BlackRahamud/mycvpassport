@@ -2,6 +2,7 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
 import { buildPersonalDetailsEntries } from "./cvShared";
+import { ph } from "./previewPlaceholder";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -16,7 +17,6 @@ const GREEN = "#064E3B"; // Deep Forest Green
 const GOLD = "#B45309"; // Rich Gold/Sandstone
 const BG_CREAM = "#FDFBF7"; // Soft Cream Background
 const TEXT_BODY = "#374151"; // Dark Gray
-const SKELETON = "#D1D5DB";
 
 const FONT = 'Arial, "Helvetica Neue", Helvetica, sans-serif';
 
@@ -43,14 +43,14 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
         style={{
           fontSize: pt(13),
           fontWeight: "bold",
-          color: isEmpty ? SKELETON : GREEN,
+          color: GREEN,
           textTransform: "uppercase",
           letterSpacing: "0.05em",
         }}
       >
         {children}
       </span>
-      <div style={{ flex: 1, height: "1.5px", backgroundColor: isEmpty ? SKELETON : GOLD, opacity: 0.6 }} />
+      <div style={{ flex: 1, height: "1.5px", backgroundColor: GOLD, opacity: 0.6 }} />
     </div>
   );
 
@@ -83,20 +83,20 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       }}
     >
       {/* Modern Left-Aligned Header */}
-      <header style={{ marginBottom: "8mm", borderLeft: `4px solid ${isEmpty ? SKELETON : GREEN}`, paddingLeft: "15px" }}>
-        <h1 style={{ fontSize: pt(26), fontWeight: "900", color: isEmpty ? SKELETON : GREEN, margin: 0, lineHeight: 1 }}>
-          {cv.name || "JORDAN A. BLAKE"}
+      <header style={{ marginBottom: "8mm", borderLeft: `4px solid ${GREEN}`, paddingLeft: "15px" }}>
+        <h1 style={{ fontSize: pt(26), fontWeight: "900", color: GREEN, margin: 0, lineHeight: 1 }}>
+          {ph(cv.name, "JORDAN A. BLAKE")}
         </h1>
         <div
           style={{
             fontSize: pt(13),
-            color: isEmpty ? SKELETON : GOLD,
+            color: GOLD,
             fontWeight: "bold",
             marginTop: "4px",
             textTransform: "uppercase",
           }}
         >
-          {cv.title || "SENIOR PROJECT MANAGER"}
+          {ph(cv.title, "SENIOR PROJECT MANAGER")}
         </div>
         <div
           style={{
@@ -109,7 +109,7 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
           }}
         >
           {isEmpty ? (
-            <span style={{ color: SKELETON }}>jordan.b@email.com • +01 123 456 789 • Los Angeles, CA</span>
+            <span className="cvp-ph">jordan.b@email.com • +01 123 456 789 • Los Angeles, CA</span>
           ) : (
             <>
               {cv.email && <span>{cv.email}</span>}
@@ -148,9 +148,11 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
             {cv.summary ||
               "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
           </GhostChip>
-          <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
-            {cv.summary ||
-              "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."}
+          <p style={{ fontSize: pt(10), lineHeight: 1.5, margin: 0, color: TEXT_BODY }}>
+            {ph(
+              cv.summary,
+              "A dynamic and results-driven professional with 10+ years of experience. Expert in leading cross-functional teams to exceed corporate goals and delivering multi-million dollar impact."
+            )}
           </p>
         </section>
       )}
@@ -161,9 +163,16 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
         <SectionTitle>Work History</SectionTitle>
         {isEmpty ? (
           <EntryWrap>
-            <div style={{ height: "15px", width: "60%", backgroundColor: SKELETON, marginBottom: "5px" }} />
-            <div style={{ height: "10px", width: "40%", backgroundColor: SKELETON, marginBottom: "8px" }} />
-            <div style={{ height: "10px", width: "90%", backgroundColor: SKELETON }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span className="cvp-ph" style={{ fontSize: pt(11), fontWeight: "bold", color: GREEN }}>Job Role / Position</span>
+              <span className="cvp-ph" style={{ fontSize: pt(9.5), fontWeight: "bold", color: GOLD }}>2020 — Present</span>
+            </div>
+            <div className="cvp-ph" style={{ fontSize: pt(10), fontWeight: "bold", fontStyle: "italic", marginBottom: "2mm" }}>
+              Company Name | Location
+            </div>
+            <p className="cvp-ph" style={{ fontSize: pt(9.5), margin: "0 0 1.5mm", lineHeight: 1.4, paddingLeft: "4mm" }}>
+              • Accomplishment or responsibility placeholder line
+            </p>
           </EntryWrap>
         ) : (
           cv.experience
@@ -201,11 +210,11 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
             style={{
               fontSize: pt(10),
               lineHeight: 1.8,
-              color: isEmpty ? SKELETON : TEXT_BODY,
+              color: TEXT_BODY,
               fontWeight: "bold",
             }}
           >
-            {isEmpty ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")}
+            {isEmpty ? <span className="cvp-ph">Skill One • Skill Two • Skill Three</span> : skills.join(" • ")}
           </div>
         </section>
       )}
@@ -214,9 +223,9 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       {(hasTechnicalSkills || isEmpty) && (
         <section data-section="competencies">
           <SectionTitle>Technical Skills</SectionTitle>
-          <div style={{ fontSize: pt(10), lineHeight: 1.8, margin: 0, color: isEmpty ? SKELETON : TEXT_BODY }}>
+          <div style={{ fontSize: pt(10), lineHeight: 1.8, margin: 0, color: TEXT_BODY }}>
             {isEmpty ? (
-              "Python, SQL, cloud platforms"
+              <span className="cvp-ph">Python, SQL, cloud platforms</span>
             ) : (
               (() => {
                 const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);
@@ -241,7 +250,13 @@ function PreviewSandstoneExecutive({ cv, mobileMode = false }) {
       <section data-section="education">
         <SectionTitle>Academic Background</SectionTitle>
         {isEmpty ? (
-          <div style={{ height: "20px", width: "50%", backgroundColor: SKELETON }} />
+          <EntryWrap>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span className="cvp-ph" style={{ fontWeight: "bold", fontSize: pt(10.5), color: GREEN }}>Degree / Field of Study</span>
+              <span className="cvp-ph" style={{ color: GOLD, fontWeight: "bold", fontSize: pt(9.5) }}>2018</span>
+            </div>
+            <div className="cvp-ph" style={{ fontSize: pt(10) }}>University or School Name</div>
+          </EntryWrap>
         ) : (
           cv.education
             .filter((edu) => edu.school)

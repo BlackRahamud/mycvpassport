@@ -2,6 +2,7 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
 import { buildPersonalDetailsEntries } from "./cvShared";
+import { ph } from "./previewPlaceholder";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -89,23 +90,23 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
             fontSize: pt(28),
             fontWeight: "900",
             margin: 0,
-            color: isEmpty ? SKELETON : TEXT_PRIMARY,
+            color: TEXT_PRIMARY,
             letterSpacing: "-0.5px",
           }}
         >
-          {cv.name || "JONATHAN DOE"}
+          {ph(cv.name, "JONATHAN DOE")}
         </h1>
         <div
           style={{
             fontSize: pt(13),
             fontWeight: "400",
-            color: isEmpty ? SKELETON : TEXT_SECONDARY,
+            color: TEXT_SECONDARY,
             marginTop: "4px",
             textTransform: "uppercase",
             letterSpacing: "3px",
           }}
         >
-          {cv.title || "EXECUTIVE IT MANAGER"}
+          {ph(cv.title, "EXECUTIVE IT MANAGER")}
         </div>
         <div
           style={{
@@ -120,7 +121,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
           }}
         >
           {isEmpty ? (
-            <span style={{ color: SKELETON }}>email@address.com • +00 000 000 • Location</span>
+            <span className="cvp-ph">email@address.com • +00 000 000 • Location</span>
           ) : (
             <>
               {cv.email && <span>{cv.email}</span>}
@@ -170,7 +171,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
                 color: TEXT_SECONDARY,
               }}
             >
-              {cv.summary || "Strategically-minded professional with 10+ years of experience..."}
+              {ph(cv.summary, "Strategically-minded professional with 10+ years of experience...")}
             </p>
           </section>
         )}
@@ -236,9 +237,19 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
               {Array.isArray(cv.skills) ? cv.skills.join(" ") : cv.skills || ""}
             </GhostChip>
             {isEmpty ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px 20px" }}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} style={{ height: "12px", backgroundColor: SKELETON }} />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "8px 20px",
+                  fontSize: pt(9.5),
+                  color: TEXT_PRIMARY,
+                }}
+              >
+                {["Skill One", "Skill Two", "Skill Three", "Skill Four", "Skill Five", "Skill Six"].map((s, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ color: SKELETON }}>•</span> <span className="cvp-ph">{s}</span>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -267,7 +278,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
             <SectionBand>Technical Skills</SectionBand>
             <div style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
               {isEmpty ? (
-                "Tools, platforms, and stack"
+                <span className="cvp-ph">Tools, platforms, and stack</span>
               ) : (
                 (() => {
                   const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);

@@ -73,7 +73,9 @@ import {
 import BuilderCvImport from "../components/builder/BuilderCvImport";
 import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI } from "../builderStyles";
-import { ResumePreview, BuilderA4PreviewScaled, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
+import useDocumentPreview from "../components/preview/useDocumentPreview";
+import DocumentSheets from "../components/preview/DocumentSheets";
+import MobilePreviewPill from "../components/preview/MobilePreviewPill";
 import { useCvProgress } from "../hooks/useCvProgress";
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
@@ -2783,26 +2785,17 @@ function ResumeBuilder({
   const cvFinderPanelRef = useRef(null);
   const cvFinderToggleRef = useRef(null);
   const cvFinderInputRef = useRef(null);
-  const previewScrollRef = useRef(null);
-  const mobilePreviewScrollRef = useRef(null);
-  const desktopPreviewFitRef = useRef(null);
-  const desktopPreviewOuterRef = useRef(null);
-  const mobilePreviewFitRef = useRef(null);
-  const desktopCvPreviewRef = useRef(null);
-  const mobileCvPreviewRef = useRef(null);
+  // ONE canonical 794px render feeds the paginated preview (desktop panel,
+  // mobile overlay, pill thumbnail) AND the PDF export capture — desktop
+  // and mobile can no longer export different documents.
+  const docPreviewCaptureRef = useRef(null);
   const expDescriptionRef = useRef(null);
-  const [desktopPreviewContainerWidth, setDesktopPreviewContainerWidth] = useState(0);
-  const [mobilePreviewContainerWidth, setMobilePreviewContainerWidth] = useState(0);
-
-  const desktopPreviewScale = useMemo(() => {
-    if (!desktopPreviewContainerWidth) return 0.6;
-    return Math.min(desktopPreviewContainerWidth / 794, 0.85);
-  }, [desktopPreviewContainerWidth]);
-
-  const mobilePreviewScale = useMemo(() => {
-    if (!mobilePreviewContainerWidth) return 1;
-    return mobilePreviewContainerWidth / A4_PREVIEW_WIDTH_PX;
-  }, [mobilePreviewContainerWidth]);
+  const prefersReducedMotion = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+    [],
+  );
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   // Per-call-site reason for the upgrade modal. null falls through to
@@ -2845,6 +2838,18 @@ function ResumeBuilder({
   const [templatePickPending, setTemplatePickPending] = useState(null);
   const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
+
+  // Paginated document preview — shared print simulation (same layout pass
+  // the PDF export runs). Debounced internally: 150ms desktop / 400ms touch.
+  const {
+    measureNode: docMeasureNode,
+    doc: previewDoc,
+    pulse: previewPulse,
+  } = useDocumentPreview({
+    cv: resume,
+    template: previewTemplateOverride ?? selectedTemplate,
+    captureRef: docPreviewCaptureRef,
+  });
   const [pendingSection, setPendingSection] = useState(null);
   const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
   const [templateSessionApplyCount, setTemplateSessionApplyCount] = useState(0);
@@ -3402,39 +3407,24 @@ function ResumeBuilder({
     navigate(location.pathname, { replace: true, state: Object.keys(next).length ? next : undefined });
   }, [location.state, location.pathname, navigate, setResumeAsLoad]);
 
+  /* Keyboard-safe inputs (mobile): when the on-screen keyboard opens, the
+     focused field must never sit underneath it — settle, then centre it. */
   useEffect(() => {
-    if (isMobile) return undefined;
-    const el = desktopPreviewOuterRef.current;
-    if (!el) return undefined;
-    const apply = (width) => {
-      if (width == null || width < 1) return;
-      setDesktopPreviewContainerWidth((prev) => (Math.abs(prev - width) < 1 ? prev : width));
+    if (!isMobile) return undefined;
+    const onFocusIn = (e) => {
+      const t = e.target;
+      if (!t || !/^(input|textarea)$/i.test(t.tagName)) return;
+      setTimeout(() => {
+        try {
+          t.scrollIntoView({ block: "center", behavior: prefersReducedMotion ? "auto" : "smooth" });
+        } catch {
+          /* older WebKit: positional fallback not worth the complexity */
+        }
+      }, 260);
     };
-    const ro = new ResizeObserver((entries) => {
-      apply(entries[0]?.contentRect?.width);
-    });
-    ro.observe(el);
-    apply(el.getBoundingClientRect().width);
-    return () => ro.disconnect();
-  }, [isMobile]);
-
-  useEffect(() => {
-    if (fabSheet !== "preview") return;
-    const el = mobilePreviewFitRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width;
-      if (width == null || width < 1) return;
-      setMobilePreviewContainerWidth((prev) => (Math.abs(prev - width) < 1 ? prev : width));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [fabSheet]);
-
-  useEffect(() => {
-    previewScrollRef.current?.scrollTo(0, 0);
-    mobilePreviewScrollRef.current?.scrollTo(0, 0);
-  }, [selectedTemplate?.id]);
+    document.addEventListener("focusin", onFocusIn);
+    return () => document.removeEventListener("focusin", onFocusIn);
+  }, [isMobile, prefersReducedMotion]);
 
   useEffect(() => {
     writeFabMemory({ lastTabVisited: builderTab });
@@ -3887,7 +3877,7 @@ function ResumeBuilder({
           try { await handleSave(); } catch (e) { console.warn('Save failed, continuing download', e); }
         }
         await new Promise((r) => setTimeout(r, 500));
-        const el = isMobile ? mobileCvPreviewRef.current : desktopCvPreviewRef.current;
+        const el = docPreviewCaptureRef.current;
         if (!el) throw new Error('Preview not ready');
         await downloadResumeFromPreview(resume, el, {
           maxPages: pdfTargetPages,
@@ -4331,6 +4321,10 @@ function ResumeBuilder({
           ...(!isMobile ? { minHeight: 'calc(100vh - 56px)', height: 'auto', overflow: 'hidden' } : {}),
         }}
       >
+      {/* Canonical offscreen render — measured by the print simulation and
+          captured verbatim by the PDF export, in both view modes. */}
+      {docMeasureNode}
+
       {/* Desktop: split 380px | 1fr from 768px up — layout in index.css */}
       {!isMobile ? (
       <div className={`cvp-builder-desktop cvp-builder-mode desktop-preview-panel${builderTab === 'jobmatch' ? ' cvp-jobmatch-active' : ''}${builderTab === 'templates' ? ' cvp-templates-active' : ''}`} style={{ minHeight: 'calc(100vh - 56px)', height: 'auto', opacity: downloadState.status !== 'idle' ? 0 : 1, pointerEvents: downloadState.status !== 'idle' ? 'none' : 'auto', transition: 'opacity 0.3s ease' }}>
@@ -4788,33 +4782,16 @@ function ResumeBuilder({
           {builderTab === "coverletter" && guideCoverLetterPreview}
         </aside>
 
-        {/* Right panel — Live Preview; scale = containerWidth/794 (RO on outer wrapper only) */}
-        <div className="cvp-builder-preview" ref={previewScrollRef}>
-          <div
-            ref={desktopPreviewOuterRef}
-            style={{
-              width: "100%",
-              maxWidth: "794px",
-              margin: "0 auto",
-              minWidth: 0,
-              overflowY: "auto",
-              overflowX: "hidden",
-              height: "calc(100vh - 56px)",
-              position: "sticky",
-              top: "56px",
-              boxSizing: "border-box",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "flex-start",
-            }}
-          >
-            <BuilderA4PreviewScaled
-              cv={resume}
-              template={selectedTemplate}
-              scale={desktopPreviewScale}
-              fitRef={desktopPreviewFitRef}
-              padded={false}
-              previewCardRef={desktopCvPreviewRef}
+        {/* Right panel — paginated document preview (true A4 sheets, same
+            layout pass as the PDF export; zoom + page indicator). */}
+        <div className="cvp-builder-preview">
+          <div className="dp-panel-holder">
+            <DocumentSheets
+              doc={previewDoc}
+              pulse={previewPulse}
+              mode="panel"
+              reduce={prefersReducedMotion}
+              resetScrollKey={(previewTemplateOverride ?? selectedTemplate)?.id}
             />
           </div>
         </div>
@@ -5417,11 +5394,15 @@ function ResumeBuilder({
             </div>
           </div>
 
-        <div className="cvp-builder-mobile-hidden-capture" aria-hidden style={{ position: "absolute", left: -9999, top: 0, width: 794, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none", zIndex: -1 }}>
-          <div ref={mobileCvPreviewRef} className="cvp-builder-a4-fit" style={{ width: 794 }}>
-            <ResumePreview cv={resume} template={selectedTemplate} mobileMode />
-          </div>
-        </div>
+        {/* Persistent, thumb-reachable preview entry with a live page-1
+            thumbnail; nudges softly when a debounced edit lands. */}
+        {builderTab === "content" && fabSheet !== "preview" && fabMode !== "guide" && (
+          <MobilePreviewPill
+            doc={previewDoc}
+            reduce={prefersReducedMotion}
+            onOpen={() => setFabSheet("preview")}
+          />
+        )}
 
         {fabSheet === "preview" ? (
           <div
@@ -5447,18 +5428,18 @@ function ResumeBuilder({
               aria-label="Close preview"
               style={{
                 position: "fixed",
-                top: 16,
-                right: 16,
-                background: "#141414",
-                border: "1px solid #333",
+                top: "calc(8px + env(safe-area-inset-top, 0px))",
+                right: 12,
+                background: "var(--bg-surface, #141414)",
+                border: "1px solid var(--border-default, #2A2A2A)",
                 borderRadius: "50%",
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 minHeight: 44,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#fff",
+                color: "var(--text-primary, #fff)",
                 fontSize: 18,
                 zIndex: 101,
                 cursor: "pointer",
@@ -5467,30 +5448,17 @@ function ResumeBuilder({
             >
               ✕
             </button>
-            <div
-              ref={mobilePreviewScrollRef}
-              style={{
-                flex: 1,
-                width: "100%",
-                minHeight: 0,
-                overflowY: "auto",
-                overflowX: "hidden",
-                paddingTop: 56,
-                paddingLeft: 0,
-                paddingRight: 0,
-                paddingBottom: 16,
-                WebkitOverflowScrolling: "touch",
-                boxSizing: "border-box",
-              }}
-            >
-              <BuilderA4PreviewScaled
-                cv={resume}
-                template={previewTemplateOverride ?? selectedTemplate}
-                scale={mobilePreviewScale}
-                fitRef={mobilePreviewFitRef}
-                padded={false}
+            {/* Full-fidelity paginated document: fit-to-width A4 sheets,
+                pinch + double-tap zoom, page indicator, long-press a
+                section to jump to its form card. */}
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+              <DocumentSheets
+                doc={previewDoc}
+                pulse={previewPulse}
+                mode="overlay"
+                reduce={prefersReducedMotion}
+                resetScrollKey={(previewTemplateOverride ?? selectedTemplate)?.id}
                 onSectionHold={handleSectionHold}
-                pendingSection={pendingSection}
               />
             </div>
             {pendingSection ? (

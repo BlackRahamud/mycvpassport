@@ -2,6 +2,7 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
 import { buildPersonalDetailsEntries } from "./cvShared";
+import { ph } from "./previewPlaceholder";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -23,15 +24,11 @@ export function Template12Split({ cv, mobileMode = false }) {
   const SIDEBAR_BG = "#F3F4F6";
   const TEXT_DARK = "#1A1A1A";
   const TEXT_MUTED = "#4B5563";
-  const SKELETON = "#D1D5DB";
 
   // Typography
   const SERIF = "Georgia, 'Times New Roman', serif";
   const SANS = "Arial, Helvetica, sans-serif";
 
-  // Empty State Logic
-  const isPlaceholder = !cv.name;
-  const currentHeaderBg = isPlaceholder ? SKELETON : HEADER_BG;
   const skillItems = cv.skills
     ? (Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean))
     : [];
@@ -65,7 +62,7 @@ export function Template12Split({ cv, mobileMode = false }) {
       {/* HEADER SECTION - NO TOP GAP */}
       <header
         style={{
-          backgroundColor: currentHeaderBg,
+          backgroundColor: HEADER_BG,
           padding: "40px 50px",
           width: "100%",
           boxSizing: "border-box",
@@ -82,7 +79,7 @@ export function Template12Split({ cv, mobileMode = false }) {
             lineHeight: "1",
           }}
         >
-          {cv.name || "YOUR NAME"}
+          {ph(cv.name, "YOUR NAME")}
         </h1>
         <div
           style={{
@@ -95,7 +92,7 @@ export function Template12Split({ cv, mobileMode = false }) {
             letterSpacing: "2px",
           }}
         >
-          {cv.title || "PROFESSIONAL TITLE"}
+          {ph(cv.title, "PROFESSIONAL TITLE")}
         </div>
         <div
           style={{

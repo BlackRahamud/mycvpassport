@@ -1,0 +1,240 @@
+/* ────────────────────────────────────────────────────────────────
+   Document preview — paginated A4 sheets for the builder.
+   Chrome (stage/toolbar) is token-driven and lives on the builder's
+   dark-pinned island; the SHEET is a candidate document and stays
+   white in both themes, exactly like the HR CV viewer's paper
+   (.cvv-page) — same shadow vocabulary, same folio the PDF prints.
+   ──────────────────────────────────────────────────────────────── */
+
+.dp-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* ── Toolbar (CV-viewer vocabulary) ── */
+.dp-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-surface, #141414);
+  border-bottom: 1px solid var(--border-default, #2A2A2A);
+}
+.dp-toolbar__pages {
+  font-size: 11.5px;
+  color: var(--text-secondary, #A0A0A0);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.dp-toolbar__zoom { display: inline-flex; align-items: center; gap: 2px; }
+.dp-toolbar__pct {
+  font-size: 11.5px;
+  color: var(--text-secondary, #A0A0A0);
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.dp-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary, #A0A0A0);
+  cursor: pointer;
+  transition: background-color 120ms cubic-bezier(0.4, 0, 0.2, 1), color 120ms cubic-bezier(0.4, 0, 0.2, 1), transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dp-tool:hover { background: var(--bg-elevated, #1C1C1C); color: var(--text-primary, #FFFFFF); }
+.dp-tool:active { transform: scale(0.94); }
+
+/* ── Stage: calm neutral surface, not a black void ── */
+.dp-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 28px;
+  background: var(--bg-surface, #141414);
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.dp-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* ── The paper ── */
+.dp-sheetbox { position: relative; flex: 0 0 auto; }
+.dp-sheet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 794px;  /* A4 @ 96dpi — the export's exact canvas */
+  height: 1123px;
+  transform-origin: top left;
+  background: #FFFFFF; /* theme-fixed: paper, like .cvv-page */
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px -18px rgba(0, 0, 0, 0.60);
+}
+.dp-clip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
+.dp-slice { width: 794px; transform-origin: top left; }
+/* Neutralise on-screen card styling inside slices — the print wrapper
+   does the same to the captured markup. */
+.dp-slice > .cvp-builder-a4-fit {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  min-height: unset !important;
+  height: auto !important;
+}
+
+/* The same folio Puppeteer prints in the bottom margin. */
+.dp-folio {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 19px; /* ≈5mm, mirrors footerTemplate margin-bottom */
+  text-align: center;
+  font-family: 'Inter', 'DM Sans', sans-serif;
+  font-size: 9px;
+  color: #94A3B8; /* theme-fixed: printed artifact on paper */
+  pointer-events: none;
+}
+
+/* Edit pulse — barely-there accent tint where the last edit landed. */
+.dp-pulse {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  border-radius: 6px;
+  background: var(--color-accent, #D97706);
+  opacity: 0;
+  pointer-events: none;
+  animation: dpPulse 700ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes dpPulse {
+  0% { opacity: 0.11; }
+  45% { opacity: 0.08; }
+  100% { opacity: 0; }
+}
+
+/* Loading sheet — a real blank page, softly shimmering. */
+.dp-sheet--loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(0, 0, 0, 0.05) 50%, transparent 70%);
+  animation: dpShimmer 1.4s ease-in-out infinite;
+}
+@keyframes dpShimmer {
+  0% { transform: translateX(-60%); }
+  100% { transform: translateX(60%); }
+}
+
+/* ── Panel mode (desktop split view) ── */
+.dp-panel-holder {
+  position: sticky;
+  top: 64px;
+  width: 100%;
+  height: calc(100vh - 80px);
+  border: 1px solid var(--border-default, #2A2A2A);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-surface, #141414);
+}
+
+/* ── Overlay mode (mobile full-screen) ── */
+.dp-root--overlay .dp-toolbar {
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  padding-right: 64px; /* clear the floating close button */
+  border-bottom-color: var(--border-default, #2A2A2A);
+  background: transparent;
+}
+.dp-root--overlay .dp-stage {
+  padding: 12px 12px calc(24px + env(safe-area-inset-bottom, 0px));
+  touch-action: pan-x pan-y; /* JS owns pinch; native pan stays */
+}
+.dp-root--overlay .dp-tool {
+  width: 44px;
+  height: 44px; /* thumb targets */
+}
+
+/* ── Mobile preview pill ── */
+.dp-pill {
+  position: fixed;
+  left: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px)); /* clears the action bar */
+  z-index: 110; /* above the action bar (100), below modals (200) */
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 5px 14px 5px 5px;
+  border: 1px solid var(--border-default, #2A2A2A);
+  border-radius: 999px;
+  background: var(--bg-elevated, #1C1C1C);
+  color: var(--text-primary, #FFFFFF);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.6);
+  transition: transform 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dp-pill:active { transform: scale(0.96); }
+.dp-pill__thumb {
+  position: relative;
+  width: 34px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #FFFFFF; /* theme-fixed: miniature paper */
+  flex-shrink: 0;
+}
+.dp-pill__thumb-slice {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  display: block;
+  pointer-events: none;
+}
+.dp-pill__label { line-height: 1; }
+.dp-pill__pages {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-secondary, #A0A0A0);
+  line-height: 1;
+}
+.dp-pill--nudge .dp-pill__thumb { animation: dpNudge 600ms cubic-bezier(0.4, 0, 0.2, 1); }
+.dp-pill--nudge { border-color: var(--color-accent, #D97706); }
+@keyframes dpNudge {
+  0% { transform: scale(1); opacity: 0.55; }
+  40% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-tool { transition: none !important; }
+  .dp-tool:active { transform: none; }
+  .dp-pulse { animation: none; opacity: 0; }
+  .dp-sheet--loading::after { animation: none; }
+  .dp-pill { transition: none !important; }
+  .dp-pill--nudge .dp-pill__thumb { animation: none; }
+}

@@ -2,6 +2,7 @@ import React from "react";
 import GhostChip from "./components/GhostChip";
 import { parseExperiencePoints } from "./experiencePointsPreview";
 import { buildPersonalDetailsEntries } from "./cvShared";
+import { ph } from "./previewPlaceholder";
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -85,23 +86,23 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
             fontSize: pt(26),
             fontWeight: "900",
             margin: 0,
-            color: isEmpty ? SKELETON : "#FFFFFF",
+            color: "#FFFFFF",
             letterSpacing: "-0.5px",
           }}
         >
-          {cv.name || "JONATHAN DOE"}
+          {ph(cv.name, "JONATHAN DOE")}
         </h1>
         <div
           style={{
             fontSize: pt(12),
             fontWeight: "400",
-            color: isEmpty ? SKELETON : "#94A3B8",
+            color: "#94A3B8",
             marginTop: "2px",
             textTransform: "uppercase",
             letterSpacing: "2px",
           }}
         >
-          {cv.title || "STRATEGIC OPERATIONS DIRECTOR"}
+          {ph(cv.title, "STRATEGIC OPERATIONS DIRECTOR")}
         </div>
 
         <div
@@ -116,7 +117,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
           }}
         >
           {isEmpty ? (
-            <span style={{ color: SKELETON }}>email@address.com • +00 000 000 • Location</span>
+            <span className="cvp-ph">email@address.com • +00 000 000 • Location</span>
           ) : (
             <>
               {cv.email && <span>{cv.email}</span>}
@@ -231,7 +232,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
                     letterSpacing: "0.3px",
                   }}
                 >
-                  {s}
+                  {isEmpty ? <span className="cvp-ph">{s}</span> : s}
                 </span>
               ))}
             </div>
@@ -244,7 +245,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
             <SectionTitle>Technical Skills</SectionTitle>
             <div style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: 0, lineHeight: 1.6 }}>
               {isEmpty ? (
-                "Stack, tools, and platforms"
+                <span className="cvp-ph">Stack, tools, and platforms</span>
               ) : (
                 (() => {
                   const groups = technicalSkillsGroupsForTemplate(cv.technicalSkills);

@@ -12,9 +12,11 @@
 // ever lifted. Reduced motion collapses the spring to a fade.
 // =============================================================
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const EASE = [0.2, 0.9, 0.3, 1];
+const SHEET_MQ = "(max-width: 640px)";
 
 const S = {
   wrap: { position: "relative", minWidth: 0 },
@@ -76,6 +78,52 @@ const S = {
   }),
   meta: { marginLeft: "auto", fontSize: 10.5, color: "var(--text-muted, #7A7A82)", flexShrink: 0 },
   check: { flexShrink: 0, color: "var(--accent, #D97706)" },
+  /* Phone: the popover becomes a bottom sheet — thumb reach, 44px rows. */
+  scrim: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 240,
+    background: "rgba(0,0,0,0.5)",
+  },
+  sheet: {
+    position: "fixed",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 241,
+    maxHeight: "70dvh",
+    display: "flex",
+    flexDirection: "column",
+    background: "var(--bg-elevated, #1C1C1C)",
+    border: "1px solid var(--border, #2A2A2A)",
+    borderBottom: 0,
+    borderRadius: "16px 16px 0 0",
+    boxShadow: "0 -18px 50px -20px rgba(0,0,0,0.6)",
+    paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 999,
+    background: "var(--border, #2A2A2A)",
+    margin: "10px auto 6px",
+    flexShrink: 0,
+  },
+  sheetTitle: {
+    margin: 0,
+    padding: "4px 18px 10px",
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--text-secondary, #A0A0A0)",
+    letterSpacing: "0.02em",
+    flexShrink: 0,
+  },
+  sheetList: {
+    overflowY: "auto",
+    padding: "0 8px 8px",
+    scrollbarWidth: "thin",
+  },
+  sheetOption: { minHeight: 48, padding: "12px 12px", fontSize: 14 },
 };
 
 function CheckIc() {
@@ -94,19 +142,37 @@ export default function TemplateSelect({ templates, value, onChange }) {
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
+  const [isSheet, setIsSheet] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.(SHEET_MQ).matches,
+  );
   const wrapRef = useRef(null);
   const listRef = useRef(null);
   const listboxId = useId();
 
   const selectedIdx = templates.findIndex((t) => t.id === value?.id);
 
-  // Click-outside closes.
   useEffect(() => {
-    if (!open) return undefined;
+    const mq = window.matchMedia(SHEET_MQ);
+    const onChangeMq = (e) => setIsSheet(e.matches);
+    mq.addEventListener("change", onChangeMq);
+    return () => mq.removeEventListener("change", onChangeMq);
+  }, []);
+
+  // Click-outside closes (popover only — the sheet has its own scrim).
+  useEffect(() => {
+    if (!open || isSheet) return undefined;
     const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
+  }, [open, isSheet]);
+
+  // Sheet open: lock body scroll behind it.
+  useEffect(() => {
+    if (!open || !isSheet) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open, isSheet]);
 
   // Keep the active option in view while arrowing.
   useEffect(() => {
@@ -147,41 +213,96 @@ export default function TemplateSelect({ templates, value, onChange }) {
         <ChevIc open={open} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="tpl-panel"
-            id={listboxId}
-            role="listbox"
-            aria-label="CV templates"
-            aria-activedescendant={activeIdx >= 0 ? `${listboxId}-opt-${activeIdx}` : undefined}
-            ref={listRef}
-            style={S.panel}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-            animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.985, transition: { duration: 0.14, ease: EASE } }}
-            transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 480, damping: 32, mass: 0.7, opacity: { duration: 0.16, ease: EASE } }}
-          >
-            {templates.map((t, i) => (
-              <button
-                key={t.id}
-                id={`${listboxId}-opt-${i}`}
-                type="button"
-                role="option"
-                aria-selected={i === selectedIdx}
-                style={S.option(i === activeIdx, i === selectedIdx)}
-                onMouseEnter={() => setActiveIdx(i)}
-                onClick={() => pick(i)}
+      {!isSheet && (
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              key="tpl-panel"
+              id={listboxId}
+              role="listbox"
+              aria-label="CV templates"
+              aria-activedescendant={activeIdx >= 0 ? `${listboxId}-opt-${activeIdx}` : undefined}
+              ref={listRef}
+              style={S.panel}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
+              animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.985, transition: { duration: 0.14, ease: EASE } }}
+              transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 480, damping: 32, mass: 0.7, opacity: { duration: 0.16, ease: EASE } }}
+            >
+              {templates.map((t, i) => (
+                <button
+                  key={t.id}
+                  id={`${listboxId}-opt-${i}`}
+                  type="button"
+                  role="option"
+                  aria-selected={i === selectedIdx}
+                  style={S.option(i === activeIdx, i === selectedIdx)}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  onClick={() => pick(i)}
+                >
+                  <span style={S.swatch(t.accent)} aria-hidden="true" />
+                  <span style={S.name}>{t.name}</span>
+                  {t.tier === "premium" && i !== selectedIdx && <span style={S.meta}>Pro</span>}
+                  {i === selectedIdx && <span style={{ ...S.check, marginLeft: "auto" }}><CheckIc /></span>}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+
+      {/* Phone: bottom sheet — portaled so topbar transforms can't trap it. */}
+      {isSheet && typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {open && (
+            <>
+              <motion.div
+                key="tpl-scrim"
+                style={S.scrim}
+                role="presentation"
+                onClick={() => setOpen(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: EASE }}
+              />
+              <motion.div
+                key="tpl-sheet"
+                id={listboxId}
+                role="listbox"
+                aria-label="CV templates"
+                style={S.sheet}
+                initial={reduce ? { opacity: 0 } : { y: "100%" }}
+                animate={reduce ? { opacity: 1 } : { y: 0 }}
+                exit={reduce ? { opacity: 0 } : { y: "100%" }}
+                transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 420, damping: 38, mass: 0.9 }}
               >
-                <span style={S.swatch(t.accent)} aria-hidden="true" />
-                <span style={S.name}>{t.name}</span>
-                {t.tier === "premium" && i !== selectedIdx && <span style={S.meta}>Pro</span>}
-                {i === selectedIdx && <span style={{ ...S.check, marginLeft: "auto" }}><CheckIc /></span>}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <span style={S.sheetHandle} aria-hidden="true" />
+                <p style={S.sheetTitle}>Choose a template</p>
+                <div style={S.sheetList} ref={listRef}>
+                  {templates.map((t, i) => (
+                    <button
+                      key={t.id}
+                      id={`${listboxId}-opt-${i}`}
+                      type="button"
+                      role="option"
+                      aria-selected={i === selectedIdx}
+                      style={{ ...S.option(false, i === selectedIdx), ...S.sheetOption }}
+                      onClick={() => pick(i)}
+                    >
+                      <span style={S.swatch(t.accent)} aria-hidden="true" />
+                      <span style={S.name}>{t.name}</span>
+                      {t.tier === "premium" && i !== selectedIdx && <span style={S.meta}>Pro</span>}
+                      {i === selectedIdx && <span style={{ ...S.check, marginLeft: "auto" }}><CheckIc /></span>}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }
