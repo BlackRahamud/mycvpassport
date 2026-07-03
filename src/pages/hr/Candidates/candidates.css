@@ -162,11 +162,13 @@
 .cand-market--india { color: var(--pj-text); }
 .cand-statuschip { background: transparent; }
 
-/* Match pill (scoreBand-coloured) + availability chip */
+/* Match pill (scoreBand-coloured) + availability chip. Inline-block (pure
+   text, no icon) so text-overflow works: the score + verdict lead the string
+   and stay visible; the trailing CV-origin context is what ellipsizes. */
 .cand-match {
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
   height: 19px;
+  line-height: 17px;
   padding: 0 8px;
   border-radius: 999px;
   font-size: 10.5px;
@@ -175,7 +177,10 @@
   border: 1px solid transparent;
   white-space: nowrap;
   font-feature-settings: "tnum";
-  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .cand-match--none { background: var(--pj-input-bg); color: var(--pj-muted); border-color: var(--pj-border); }
 .cand-avail-line {
@@ -285,7 +290,8 @@
   min-height: 100vh;
   overflow-y: auto;
   background: var(--pj-bg);
-  padding: 20px 16px 44px; /* iOS rule: 32px horizontal too wide at 393px */
+  /* iOS rule: 32px horizontal too wide at 393px; top clears the notch. */
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 16px calc(44px + env(safe-area-inset-bottom, 0px));
 }
 .cand-detail__back {
   display: inline-flex;
@@ -347,7 +353,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.cand-applied__meta { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* Meta cluster may wrap on narrow phones instead of shoving the row past
+   the screen edge (it was flex-shrink: 0 with a nowrap score pill inside). */
+.cand-applied__meta { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px 8px; flex-wrap: wrap; min-width: 0; }
 
 .cand-nomatch { padding: 24px 8px; font-size: 13px; color: var(--pj-text-soft); text-align: center; }
 
@@ -392,7 +400,7 @@
 /* ── Phone (≤719px): lift the bulk action bar above HrShell's 60px
    fixed bottom tab bar so the two don't overlap. ── */
 @media (max-width: 719px) {
-  .cand-bulkbar { padding-bottom: 76px !important; }
+  .cand-bulkbar { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

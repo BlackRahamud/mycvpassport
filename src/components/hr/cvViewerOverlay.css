@@ -18,7 +18,11 @@
   display: flex;
   align-items: stretch;
   justify-content: center;
-  padding: clamp(0px, 2vh, 22px) clamp(0px, 2vw, 26px);
+  /* Phones collapse the gutters to 0 — keep the shell out of the iOS
+     status bar / home indicator via the safe-area insets. */
+  padding: max(clamp(0px, 2vh, 22px), env(safe-area-inset-top, 0px))
+    clamp(0px, 2vw, 26px)
+    max(clamp(0px, 2vh, 22px), env(safe-area-inset-bottom, 0px));
 }
 @supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
   .cvv-backdrop {

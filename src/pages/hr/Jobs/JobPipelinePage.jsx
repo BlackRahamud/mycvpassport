@@ -11,6 +11,7 @@ import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/h
 import NotificationsBell from "../../../components/hr/NotificationsBell";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
+import NoteText from "../../../components/hr/NoteText";
 import StageAdvanceMenu from "../../../components/hr/StageAdvanceMenu";
 import CvPreviewCard from "../../../components/hr/CvPreviewCard";
 // Import order matters to mini-css-extract: keep BulkCvImport before
@@ -137,20 +138,30 @@ const ShareIc = () => (
 function MatchBadge({ score, source, context }) {
   const band = scoreBand(score, source);
   if (band === "none") {
-    return <span className="jpp-deal__badge jpp-deal__badge--meta"><TargetIc /> Not scored{context ? ` · ${context}` : ""}</span>;
+    return (
+      <span className="jpp-deal__badge jpp-deal__badge--meta" title={context ? `Scored against: ${context}` : undefined}>
+        <TargetIc />
+        <span className="jpp-deal__badge-txt jpp-deal__badge-txt--keep">Not scored</span>
+        {context && <span className="jpp-deal__badge-txt">· {context}</span>}
+      </span>
+    );
   }
   const color = BAND_COLORS[band];
   const pct = Math.round(Number(score) || 0);
   // A person can hold different scores on different applications (different
   // CVs) — the context names which application/CV this number belongs to,
   // so two numbers for the same candidate read as intentional, not a bug.
+  // Score + verdict stay visible on narrow screens; the context segment
+  // (job title · CV origin) ellipsizes, with the full text on the tooltip.
   return (
     <span
       className="jpp-deal__badge jpp-deal__badge--match"
       style={{ color, borderColor: `${color}55`, background: `${color}14` }}
       title={context ? `Scored against: ${context}` : undefined}
     >
-      <TargetIc /> {pct}% · {BAND_LABELS[band]}{context ? ` · ${context}` : ""}
+      <TargetIc />
+      <span className="jpp-deal__badge-txt jpp-deal__badge-txt--keep">{pct}% · {BAND_LABELS[band]}</span>
+      {context && <span className="jpp-deal__badge-txt">· {context}</span>}
     </span>
   );
 }
@@ -823,9 +834,11 @@ export default function JobPipelinePage() {
                 // read as one system.
                 : { type: "spring", stiffness: 380, damping: 34, mass: 0.9, opacity: { duration: 0.22, ease: [0.2, 0.9, 0.3, 1] } }}
             >
-              <button type="button" className="jpp-kb-drawer__close" onClick={() => setDrawerOpen(false)} aria-label="Close details">
-                <CloseIc />
-              </button>
+              <div className="jpp-kb-drawer__head">
+                <button type="button" className="jpp-kb-drawer__close" onClick={() => setDrawerOpen(false)} aria-label="Close details">
+                  <CloseIc />
+                </button>
+              </div>
               {detailNode}
             </motion.aside>
           </motion.div>
@@ -933,6 +946,15 @@ function CandidateDetail({
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [cvOpen, setCvOpen] = useState(false);
+  // Reject is destructive → two-step confirm, reverting on its own if the
+  // recruiter walks away. State lives here so it resets per candidate (the
+  // panel is keyed by application id).
+  const [confirmReject, setConfirmReject] = useState(false);
+  useEffect(() => {
+    if (!confirmReject) return undefined;
+    const t = setTimeout(() => setConfirmReject(false), 5000);
+    return () => clearTimeout(t);
+  }, [confirmReject]);
   if (!candidate) {
     return (
       <PaneEmpty
@@ -994,9 +1016,9 @@ function CandidateDetail({
           </h2>
           <p className="jpp-detail__role">{desiredJob || jobTitle || "Candidate"}</p>
           <div className="jpp-deal">
-            {personal.location && <span className="jpp-deal__badge"><MapPinIc /> {personal.location}</span>}
-            {noticePeriod && <span className="jpp-deal__badge"><ClockIc /> {noticePeriod}</span>}
-            {candidate.visa_status && <span className="jpp-deal__badge"><ShieldIc /> {candidate.visa_status}</span>}
+            {personal.location && <span className="jpp-deal__badge" title={personal.location}><MapPinIc /> <span className="jpp-deal__badge-txt">{personal.location}</span></span>}
+            {noticePeriod && <span className="jpp-deal__badge" title={noticePeriod}><ClockIc /> <span className="jpp-deal__badge-txt">{noticePeriod}</span></span>}
+            {candidate.visa_status && <span className="jpp-deal__badge" title={candidate.visa_status}><ShieldIc /> <span className="jpp-deal__badge-txt">{candidate.visa_status}</span></span>}
             <MatchBadge
               score={candidate.ats_score}
               source={candidate.score_source}
@@ -1005,13 +1027,16 @@ function CandidateDetail({
           </div>
           <div className="jpp-detail__contact">
             {candidate.candidate_email && (
-              <a href={`mailto:${candidate.candidate_email}?subject=${encodeURIComponent(`Re: ${jobTitle || "your application"}`)}`}>
-                <MailIc /> {candidate.candidate_email}
+              <a
+                href={`mailto:${candidate.candidate_email}?subject=${encodeURIComponent(`Re: ${jobTitle || "your application"}`)}`}
+                title={candidate.candidate_email}
+              >
+                <MailIc /> <span className="jpp-detail__contact-txt">{candidate.candidate_email}</span>
               </a>
             )}
             {candidate.candidate_phone && (
               <a href={whatsappHref(candidate.candidate_phone, candidate.candidate_name, jobTitle, company)} target="_blank" rel="noreferrer noopener">
-                <PhoneIc /> {candidate.candidate_phone}
+                <PhoneIc /> <span className="jpp-detail__contact-txt">{candidate.candidate_phone}</span>
               </a>
             )}
           </div>
@@ -1057,7 +1082,38 @@ function CandidateDetail({
             onAdvance={onAdvance}
             onJump={onStatusChange}
           />
-          <button type="button" className="jpp-passlink" disabled={advancing} onClick={onPass}>Reject</button>
+          {confirmReject ? (
+            <motion.span
+              className="jpp-reject-confirm"
+              role="group"
+              aria-label="Confirm rejection"
+              initial={reduce ? false : { opacity: 0, x: 4 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <span className="jpp-reject-confirm__msg">Reject this candidate?</span>
+              <button
+                type="button"
+                className="jpp-reject-confirm__yes"
+                disabled={advancing}
+                onClick={() => { setConfirmReject(false); onPass(); }}
+              >
+                Reject
+              </button>
+              <button type="button" className="jpp-reject-confirm__no" onClick={() => setConfirmReject(false)}>
+                Cancel
+              </button>
+            </motion.span>
+          ) : (
+            <button
+              type="button"
+              className="jpp-action jpp-action--pass"
+              disabled={advancing}
+              onClick={() => setConfirmReject(true)}
+            >
+              Reject
+            </button>
+          )}
         </div>
       </div>
 
@@ -1297,7 +1353,7 @@ function CandidateDetail({
             <ul className="jpp-note__list">
               {recruiterNotes.slice(-6).reverse().map((n, i) => (
                 <li key={i} className="jpp-note__item">
-                  <span>{typeof n === "string" ? n : (n?.text || n?.note || "")}</span>
+                  <span><NoteText text={typeof n === "string" ? n : (n?.text || n?.note || "")} /></span>
                   <span className="jpp-note__item-time">{typeof n === "object" && n?.at ? timeAgo(n.at) : ""}</span>
                   <span />
                 </li>

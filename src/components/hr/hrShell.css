@@ -11,7 +11,7 @@
 /* ── Mobile base: content full-width, rail pinned to the bottom ── */
 .hrs-content {
   min-width: 0;
-  padding-bottom: 64px; /* clear the fixed bottom bar */
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); /* clear the fixed bottom bar */
 }
 
 .hrs-rail {
@@ -24,8 +24,8 @@
   flex-direction: row;
   align-items: center;
   gap: 6px;
-  height: 60px;
-  padding: 0 10px;
+  height: calc(60px + env(safe-area-inset-bottom, 0px));
+  padding: 0 10px env(safe-area-inset-bottom, 0px);
   background: #FFFFFF;
   border-top: 1px solid var(--pj-border);
 }

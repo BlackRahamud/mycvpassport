@@ -47,6 +47,16 @@
   color: var(--pj-text-soft);
   font-size: 11px;
   font-weight: 600;
+  min-width: 0;
+  max-width: 100%;
+}
+.vc-anchor svg { flex-shrink: 0; }
+/* Ellipsize inside a span — a bare text node in a flex chip clips mid-word. */
+.vc-anchor__txt {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vc-body { display: flex; flex-direction: column; gap: 14px; }

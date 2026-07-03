@@ -12,6 +12,7 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { supabase } from "../../appSupabaseClient";
+import NoteText from "./NoteText";
 
 function timeAgo(s) {
   const t = new Date(s).getTime();
@@ -72,8 +73,8 @@ export default function ShareReviews({ applicationId }) {
                 </span>
                 <span style={{ fontSize: 12, color: "var(--pj-muted)", fontFamily: "var(--pj-font)" }}>{timeAgo(r.created_at)}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 13.5, color: "var(--pj-text)", lineHeight: 1.5, fontFamily: "var(--pj-font)", whiteSpace: "pre-wrap" }}>
-                {r.feedback_text}
+              <p style={{ margin: 0, fontSize: 13.5, color: "var(--pj-text)", lineHeight: 1.5, fontFamily: "var(--pj-font)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                <NoteText text={r.feedback_text} />
               </p>
             </div>
           );

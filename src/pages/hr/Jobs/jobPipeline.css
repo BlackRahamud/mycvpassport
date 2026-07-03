@@ -427,7 +427,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.jpp-card__line-value--soft { color: var(--pj-text-soft); white-space: normal; }
+.jpp-card__line-value--soft { color: var(--pj-text-soft); white-space: normal; overflow-wrap: anywhere; }
 .jpp-card__line-meta {
   font-size: 11px;
   color: var(--pj-muted);
@@ -642,14 +642,24 @@
   font-size: 12.5px;
   color: var(--pj-text-soft);
 }
-.jpp-detail__contact a, .jpp-detail__contact span {
+.jpp-detail__contact > a, .jpp-detail__contact > span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--pj-text-soft);
   text-decoration: none;
   /* A phone number must never break mid-number (+971 58 550 / 8782).
-     Whole items wrap as units via the parent's flex-wrap. */
+     Whole items wrap as units via the parent's flex-wrap; an item longer
+     than the panel (long emails) ellipsizes instead of running off-screen. */
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+.jpp-detail__contact svg { flex-shrink: 0; }
+.jpp-detail__contact-txt {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .jpp-detail__contact a:hover { color: var(--pj-text); }
@@ -862,6 +872,38 @@
   color: var(--pj-text);
 }
 .jpp-note__item-time { font-size: 11px; color: var(--pj-muted); font-feature-settings: "tnum"; }
+/* Note body: long tokens (raw URLs that slipped past the chip regex,
+   unbroken IDs) wrap instead of stretching the row off-screen. */
+.jpp-note__item > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+
+/* URL-in-note chip (NoteText) — compact link pill inline with the text. */
+.jpp-notelink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 8px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  color: var(--pj-text);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  vertical-align: -3px;
+  transition: border-color 120ms var(--pj-ease), background-color 120ms var(--pj-ease);
+}
+.jpp-notelink:hover { border-color: var(--hjl-ink); }
+.jpp-notelink:active { background: var(--pj-input-bg); }
+.jpp-notelink svg { flex-shrink: 0; color: var(--pj-text-soft); }
+.jpp-notelink__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .jpp-note__item-del {
   background: transparent;
   border: 0;
@@ -959,10 +1001,15 @@
    Location, notice, visa, and match as quiet monotone pills. The
    match pill is the one colour accent — driven inline by scoreBand. */
 .jpp-deal {
-  display: inline-flex;
+  /* Block-level flex (not inline-flex): an inline box sizes to its widest
+     badge, so one long score pill pushed the whole row past the viewport
+     on phones. As a block it fills the column and the badges wrap. */
+  display: flex;
   flex-wrap: wrap;
   gap: 7px;
   margin-top: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 .jpp-deal__badge {
   display: inline-flex;
@@ -978,11 +1025,23 @@
   font-weight: 600;
   color: var(--pj-text-soft);
   white-space: nowrap;
+  min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .jpp-deal__badge svg { flex-shrink: 0; opacity: 0.8; }
+/* Text inside the badge lives in its own span so it can ellipsize — a bare
+   text node in a flex row just clips mid-word (the "Immediately Ava" bug). */
+.jpp-deal__badge-txt {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Score + verdict never truncate; the job-title context is the part that
+   gives way (ellipsis) when the pill runs out of room. */
+.jpp-deal__badge-txt--keep { flex-shrink: 0; overflow: visible; }
 .jpp-deal__badge--meta { background: transparent; color: var(--pj-muted); }
 .jpp-deal__badge--match { font-weight: 700; }
 
@@ -1034,21 +1093,53 @@
 .jpp-split__chev:active { transform: scale(0.97); }
 .jpp-split__chev[disabled] { opacity: 0.55; cursor: not-allowed; }
 
-.jpp-passlink {
-  background: none;
-  border: 0;
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-family: var(--pj-font);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--pj-muted);
-  cursor: pointer;
-  transition: color 120ms var(--pj-ease), background-color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
+/* Reject two-step confirm — replaces the old grey text link (.jpp-passlink),
+   which read as a disabled label next to the solid Give-offer pill. The
+   resting button is .jpp-action--pass (destructive outline, secondary). */
+.jpp-reject-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.jpp-passlink:hover { color: var(--hjl-pass); background: var(--hjl-pass-soft); }
-.jpp-passlink:active { transform: scale(0.97); }
-.jpp-passlink[disabled] { opacity: 0.5; cursor: not-allowed; }
+.jpp-reject-confirm__msg {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pj-text-soft);
+}
+.jpp-reject-confirm__yes {
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--hjl-pass);
+  border-radius: 8px;
+  background: var(--hjl-pass);
+  color: #FFFFFF; /* theme-fixed: label on the destructive fill */
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 120ms var(--pj-ease), transform 120ms var(--pj-ease);
+}
+.jpp-reject-confirm__yes:hover { opacity: 0.9; }
+.jpp-reject-confirm__yes:active { transform: scale(0.97); }
+.jpp-reject-confirm__yes[disabled] { opacity: 0.5; cursor: not-allowed; }
+.jpp-reject-confirm__no {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--pj-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pj-text);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms var(--pj-ease), border-color 120ms var(--pj-ease), transform 120ms var(--pj-ease);
+}
+.jpp-reject-confirm__no:hover { background: var(--pj-input-bg); border-color: var(--pj-border-strong); }
+.jpp-reject-confirm__no:active { transform: scale(0.97); }
 
 /* Jump-to-stage menu — portaled to body, anchored via useAnchoredPosition
    (so it never clips against the detail panel). Sits above the modal layer. */
@@ -1161,8 +1252,10 @@
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .jpp-cta, .jpp-icon-btn, .jpp-tab, .jpp-card, .jpp-action, .jpp-card__wa, .jpp-note__input, .jpp-note__add,
-  .jpp-split__main, .jpp-split__chev, .jpp-passlink, .jpp-stage-menu__item, .jpp-cvcard { transition: none !important; }
-  .jpp-split__main:active, .jpp-split__chev:active, .jpp-passlink:active { transform: none; }
+  .jpp-split__main, .jpp-split__chev, .jpp-reject-confirm__yes, .jpp-reject-confirm__no, .jpp-notelink,
+  .jpp-stage-menu__item, .jpp-cvcard { transition: none !important; }
+  .jpp-split__main:active, .jpp-split__chev:active,
+  .jpp-reject-confirm__yes:active, .jpp-reject-confirm__no:active { transform: none; }
 }
 
 /* ── Mobile: collapse to single column with detail below ────── */

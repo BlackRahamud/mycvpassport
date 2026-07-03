@@ -228,12 +228,12 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
             <span className={`jpp-visa-chip jpp-visa-chip--${visaTone(candidate.visa)}`}>{candidate.visa}</span>
           )}
           <div className="jpp-detail__contact">
-            {personal.location && <span><MapPinIc /> {personal.location}</span>}
+            {personal.location && <span title={personal.location}><MapPinIc /> <span className="jpp-detail__contact-txt">{personal.location}</span></span>}
             {candidate.email && (
-              <a href={`mailto:${candidate.email}`}><MailIc /> {candidate.email}</a>
+              <a href={`mailto:${candidate.email}`} title={candidate.email}><MailIc /> <span className="jpp-detail__contact-txt">{candidate.email}</span></a>
             )}
             {candidate.phone && (
-              <a href={whatsappHref(candidate.phone, candidate.name)} target="_blank" rel="noreferrer noopener"><PhoneIc /> {candidate.phone}</a>
+              <a href={whatsappHref(candidate.phone, candidate.name)} target="_blank" rel="noreferrer noopener"><PhoneIc /> <span className="jpp-detail__contact-txt">{candidate.phone}</span></a>
             )}
           </div>
         </div>

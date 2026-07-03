@@ -18,6 +18,14 @@ function CloseIcon() {
   );
 }
 
+function ChevronRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
 function ChevronDownIcon({ open }) {
   return (
     <svg
@@ -267,6 +275,28 @@ export default function MobileNav({
             }
             .cvp-nav-seeall:hover { background: var(--nav-accent-subtle); }
             .cvp-nav-seeall:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: -2px; }
+            /* Employer doorway — a separate-audience card AFTER the candidate
+               menu groups (the last accordion's hairline is the divider above
+               it). Outlined card on the elevated surface: quieter than the
+               menu items, unmistakably not one of them. */
+            .cvp-nav-employer {
+              width: 100%; min-height: 60px;
+              display: flex; align-items: center; gap: 12px;
+              margin: 14px 0 6px; padding: 12px;
+              background: var(--nav-surface-elevated);
+              border: 1px solid var(--nav-border-hairline);
+              border-radius: var(--nav-radius-md);
+              color: var(--nav-text);
+              font-family: inherit; text-align: left; cursor: pointer;
+              transition: background-color var(--nav-dur-quick) var(--nav-ease),
+                          border-color var(--nav-dur-quick) var(--nav-ease),
+                          transform var(--nav-dur-quick) var(--nav-ease);
+            }
+            .cvp-nav-employer:hover { border-color: var(--nav-text-muted); }
+            .cvp-nav-employer:active { transform: scale(0.985); background: var(--nav-accent-subtle); }
+            .cvp-nav-employer:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: 2px; }
+            .cvp-nav-employer-title { font-size: 14.5px; font-weight: 600; color: var(--nav-text); }
+            .cvp-nav-employer-chev { flex: 0 0 auto; color: var(--nav-text-muted); }
             /* Pinned bottom CTA */
             .cvp-nav-footer {
               flex: 0 0 auto;
@@ -300,7 +330,7 @@ export default function MobileNav({
             .cvp-nav-cta-secondary:focus-visible { outline: 2px solid var(--nav-border-focus); outline-offset: 2px; }
             @media (prefers-reduced-motion: reduce) {
               .cvp-nav-iconbtn, .cvp-nav-item, .cvp-nav-acc-header, .cvp-nav-acc-chev,
-              .cvp-nav-seeall, .cvp-nav-cta-primary, .cvp-nav-cta-secondary {
+              .cvp-nav-seeall, .cvp-nav-employer, .cvp-nav-cta-primary, .cvp-nav-cta-secondary {
                 transition-duration: 0.01ms !important;
               }
             }
@@ -436,6 +466,21 @@ export default function MobileNav({
                   </div>
                 );
               })}
+
+              {/* Separate audience: recruiters. One quiet card, not a menu row —
+                  the last accordion's bottom hairline is the divider above it. */}
+              <button
+                type="button"
+                className="cvp-nav-employer"
+                onClick={() => { navigate('/employer'); onClose(); }}
+              >
+                <NavIcon name="briefcase" />
+                <span className="cvp-nav-item-text">
+                  <span className="cvp-nav-employer-title">For Employers</span>
+                  <span className="cvp-nav-item-desc">Post jobs &amp; find Gulf talent</span>
+                </span>
+                <span className="cvp-nav-employer-chev" aria-hidden="true"><ChevronRightIcon /></span>
+              </button>
             </div>
 
             <div className="cvp-nav-footer">

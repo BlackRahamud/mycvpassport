@@ -189,7 +189,7 @@ export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, 
           {anchors.length > 0 && (
             <div className="vc-anchors">
               {anchors.map((a, i) => (
-                <span className="vc-anchor" key={i}>{a.ic} {a.text}</span>
+                <span className="vc-anchor" key={i} title={a.text}>{a.ic} <span className="vc-anchor__txt">{a.text}</span></span>
               ))}
             </div>
           )}
