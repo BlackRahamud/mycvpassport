@@ -76,7 +76,6 @@ import { getRoleSuggestions } from "../utils/detectRole";
 import { CB_UI } from "../builderStyles";
 import useDocumentPreview from "../components/preview/useDocumentPreview";
 import DocumentSheets from "../components/preview/DocumentSheets";
-import MobilePreviewPill from "../components/preview/MobilePreviewPill";
 import { useCvProgress } from "../hooks/useCvProgress";
 
 function CertificationsBuilderSection({ resume, setResume, certificationEditor, setCertificationEditor, onRemoveSection, jobTitle }) {
@@ -2847,6 +2846,10 @@ function ResumeBuilder({
   const [templatePickPending, setTemplatePickPending] = useState(null);
   const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
+  // Declared here (not with the other view state below) because the
+  // document-preview hook's `enabled` gate reads it. The resize listener
+  // stays with the rest of the effects.
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   // One click = the whole action: the progress-card CTA scrolls AND opens
   // the matching new-entry editor (a scroll alone reads as a dead click).
@@ -2899,6 +2902,9 @@ function ResumeBuilder({
     cv: previewResume,
     template: previewTemplateOverride ?? selectedTemplate,
     captureRef: docPreviewCaptureRef,
+    // Mobile pays for pagination ONLY while the preview is open — typing
+    // in the form never triggers the measure/fragment pass (freeze guard).
+    enabled: !isMobile || fabSheet === "preview",
   });
   const [pendingSection, setPendingSection] = useState(null);
   const [templatesInteractKey, setTemplatesInteractKey] = useState(0);
@@ -3179,7 +3185,6 @@ function ResumeBuilder({
   const [expModalHighEffortDirty, setExpModalHighEffortDirty] = useState(false);
   const [expCloseGuardOpen, setExpCloseGuardOpen] = useState(false);
   const [saveSuccessTick, setSaveSuccessTick] = useState(0);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
@@ -4119,7 +4124,7 @@ function ResumeBuilder({
         minHeight: "100vh",
         height: "100vh",
         width: "100%",
-        maxWidth: "100vw",
+        maxWidth: "100%", /* never 100vw — it includes the scrollbar (iOS rule) */
         overflowX: "hidden",
         boxSizing: "border-box",
         display: "flex",
@@ -4258,7 +4263,10 @@ function ResumeBuilder({
               </svg>
             </button>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {/* Mobile hides this slot: the picker wrapped onto its own header
+              row there (a third stacked band before the first input) — it
+              lives in the CVPassport/Import band instead. */}
+          <div className="cvp-topbar-template-slot" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <TemplateSelect
               templates={TEMPLATES}
               value={selectedTemplate}
@@ -4901,9 +4909,9 @@ function ResumeBuilder({
                     justifyContent: "space-between",
                     gap: 10,
                     flexWrap: "wrap",
-                    padding: "12px 12px 10px",
+                    padding: "6px 12px 6px",
                     borderBottom: "1px solid #2A2A2A",
-                    marginBottom: 10,
+                    marginBottom: 8,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -4915,7 +4923,16 @@ function ResumeBuilder({
                       </span>
                     ) : null}
                   </div>
-                  <BuilderCvImport variant="header-button" onImported={handleCvImported} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    {/* Template picker lives HERE on mobile (one band, not
+                        its own header row above the content). */}
+                    <TemplateSelect
+                      templates={TEMPLATES}
+                      value={selectedTemplate}
+                      onChange={(t) => setSelectedTemplate(t)}
+                    />
+                    <BuilderCvImport variant="header-button" onImported={handleCvImported} />
+                  </div>
                   {/* 1pg / 2pg toggle removed — see desktop layout note above. */}
                 </div>
                 <CompletionStrip
@@ -5464,16 +5481,8 @@ function ResumeBuilder({
             </div>
           </div>
 
-        {/* Persistent, thumb-reachable preview entry with a live page-1
-            thumbnail; nudges softly when a debounced edit lands. */}
-        {builderTab === "content" && fabSheet !== "preview" && fabMode !== "guide" && (
-          <MobilePreviewPill
-            doc={previewDoc}
-            reduce={prefersReducedMotion}
-            onOpen={() => setFabSheet("preview")}
-          />
-        )}
-
+        {/* ONE floating control: the FAB (progress ring + preview action).
+            The separate Preview pill doubled it and crowded the bottom. */}
         {fabSheet === "preview" ? (
           <div
             style={{

@@ -16,7 +16,7 @@ import { buildPaginatedDocument, changedFieldGroup } from "../../lib/preview/pri
  * mid-range phone must never wait on pagination); template switches and
  * the first build render immediately.
  */
-export default function useDocumentPreview({ cv, template, captureRef }) {
+export default function useDocumentPreview({ cv, template, captureRef, enabled = true }) {
   const fitRef = useRef(null);
   const [doc, setDoc] = useState(null);
   const [pulse, setPulse] = useState(null);
@@ -24,6 +24,7 @@ export default function useDocumentPreview({ cv, template, captureRef }) {
   const prevTemplateIdRef = useRef(undefined);
   const timerRef = useRef(null);
   const builtOnceRef = useRef(false);
+  const staleWhileDisabledRef = useRef(false);
 
   const debounceMs = useMemo(
     () =>
@@ -39,6 +40,16 @@ export default function useDocumentPreview({ cv, template, captureRef }) {
     prevCvRef.current = cv;
     prevTemplateIdRef.current = template?.id;
 
+    // Nothing on screen consumes the pagination (mobile form view with the
+    // preview closed) → do NOTHING. The measuring render stays live for
+    // PDF capture; a full rebuild runs the moment the preview opens.
+    // This is the freeze guard: typing/resizing on a phone never pays for
+    // pagination it can't see.
+    if (!enabled) {
+      staleWhileDisabledRef.current = true;
+      return undefined;
+    }
+
     const run = () => {
       const el = fitRef.current;
       if (!el) return;
@@ -47,6 +58,7 @@ export default function useDocumentPreview({ cv, template, captureRef }) {
         setDoc({ ...built, tick: Date.now() });
         if (group && builtOnceRef.current) setPulse({ group, tick: Date.now() });
         builtOnceRef.current = true;
+        staleWhileDisabledRef.current = false;
         // Parity hook — scripts/verify-preview-parity.mjs reads this to
         // compare the live preview's pagination against the exported PDF.
         window.__cvpPreviewParity = {
@@ -62,22 +74,38 @@ export default function useDocumentPreview({ cv, template, captureRef }) {
       }
     };
 
-    if (!builtOnceRef.current || templateChanged) {
+    // The measure+fragment pass forces layout — yield to the browser and
+    // run it when the main thread is idle (a tap must never wait on it).
+    const runWhenIdle = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(() => run(), { timeout: 600 });
+      } else {
+        window.setTimeout(run, 0);
+      }
+    };
+
+    if (!builtOnceRef.current || templateChanged || staleWhileDisabledRef.current) {
       clearTimeout(timerRef.current);
-      run();
+      runWhenIdle();
       return undefined;
     }
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(run, debounceMs);
+    timerRef.current = setTimeout(runWhenIdle, debounceMs);
     return () => clearTimeout(timerRef.current);
-  }, [cv, template, debounceMs]);
+  }, [cv, template, debounceMs, enabled]);
 
   // Webfonts settling after the first build change line wraps — rebuild once.
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   useEffect(() => {
     let live = true;
     if (typeof document !== "undefined" && document.fonts?.ready) {
       document.fonts.ready.then(() => {
         if (!live || !fitRef.current) return;
+        if (!enabledRef.current) {
+          staleWhileDisabledRef.current = true;
+          return;
+        }
         try {
           const built = buildPaginatedDocument(fitRef.current, prevTemplateIdRef.current);
           setDoc({ ...built, tick: Date.now() });

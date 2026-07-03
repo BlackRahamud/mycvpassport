@@ -524,6 +524,30 @@ const FAB = forwardRef(function FAB(
     };
   }, []);
 
+  // Hide while the user is scrolling the form — the FAB must never sit
+  // over content being read or aimed at (it grazes full-width inputs on
+  // narrow phones). Scrolls inside overlays/dialogs don't count: the FAB
+  // is already beneath them.
+  const [scrollHidden, setScrollHidden] = useState(false);
+  const scrollSettleRef = useRef(null);
+  useEffect(() => {
+    const onScroll = (e) => {
+      const t = e.target;
+      if (
+        t instanceof Element &&
+        t.closest(".cvp-fab-sheet-overlay, .dp-root--overlay, [role='dialog']")
+      ) return;
+      setScrollHidden(true);
+      clearTimeout(scrollSettleRef.current);
+      scrollSettleRef.current = setTimeout(() => setScrollHidden(false), 450);
+    };
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => {
+      clearTimeout(scrollSettleRef.current);
+      document.removeEventListener("scroll", onScroll, { capture: true });
+    };
+  }, []);
+
   // FIX 3 — Tab entrance animation class
   const prevTabKeyRef = useRef(tabKey);
   const [tabEnterClass, setTabEnterClass] = useState("");
@@ -1354,7 +1378,7 @@ const FAB = forwardRef(function FAB(
           isGhostPulsing ? "pulse-ghost" : "",
           variant === "builder" && fabBouncing ? "cvp-fab-bouncing" : "",
           fabVictoryClass,
-          keyboardOpen ? "cvp-fab--kb-open" : "",
+          keyboardOpen || (scrollHidden && !sheetOpen) ? "cvp-fab--kb-open" : "",
           tabEnterClass,
         ]
           .filter(Boolean)

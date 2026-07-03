@@ -75,7 +75,10 @@ async function auditOverflow(page, label) {
   res.offenders.forEach((o) => console.log(`   ↳ ${o.tag}.${o.cls} right=${o.right}`));
 }
 
-const browser = await chromium.launch();
+// Classic (non-overlay) scrollbars — a real desktop-class narrow window
+// consumes viewport width with the scrollbar; emulated overlay scrollbars
+// masked a 100vw overflow once already.
+const browser = await chromium.launch({ args: ["--disable-features=OverlayScrollbar"] });
 
 async function newBuilderPage({ width, cv = FULL_CV, templateId = 1, theme = "dark", touch = true }) {
   const context = await browser.newContext({
@@ -107,17 +110,55 @@ for (const width of [360, 393, 430]) {
   console.log(`\n── ${width}px ──`);
   const { context, page } = await newBuilderPage({ width });
 
-  // form mode + pill
-  const pill = page.locator(".dp-pill");
-  check(await pill.isVisible(), `${width}: preview pill visible in form mode`);
-  const pillBox = await pill.boundingBox();
-  check(!!pillBox && pillBox.height >= 44, `${width}: pill tap target ≥44px (${pillBox && Math.round(pillBox.height)})`);
+  // form mode: ONE floating control (the FAB) — the Preview pill is gone
+  check((await page.locator(".dp-pill").count()) === 0, `${width}: no separate Preview pill`);
+  const fab = page.locator(".cvp-fab-physical");
+  check(await fab.isVisible(), `${width}: FAB present`);
+
+  // no stray measurement/debug text nodes anywhere
+  const pxText = await page.evaluate(() => {
+    const hits = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n = walker.nextNode();
+    while (n) {
+      const t = (n.textContent || "").trim();
+      if (/^\d+(\.\d+)?px$/.test(t)) hits.push(t);
+      n = walker.nextNode();
+    }
+    return hits;
+  });
+  check(pxText.length === 0, `${width}: no debug px text on page${pxText.length ? ` (${pxText.join(", ")})` : ""}`);
+
+  // header chrome budget: first input reachable without scrolling
+  const firstInputTop = await page.evaluate(() => {
+    const el = document.querySelector(".cvp-builder-mobile input:not([type=file])");
+    return el ? Math.round(el.getBoundingClientRect().top) : null;
+  });
+  check(firstInputTop != null && firstInputTop < 300, `${width}: first input above the fold (top=${firstInputTop})`);
+
+  // completion breakdown: opens AND closes (chevron, outside tap)
+  const chevron = page.getByRole("button", { name: "CV completion breakdown" }).first();
+  await chevron.tap();
+  await page.waitForTimeout(400);
+  check(await page.getByText("CV Completion Breakdown").first().isVisible(), `${width}: breakdown opens`);
+  await shot(page, `w${width}-breakdown-open`);
+  await chevron.tap();
+  await page.waitForTimeout(400);
+  check((await page.getByText("CV Completion Breakdown").count()) === 0, `${width}: chevron toggles breakdown closed`);
+  await chevron.tap();
+  await page.waitForTimeout(400);
+  await page.touchscreen.tap(Math.round(width / 2), 620); // tap the form, outside
+  await page.waitForTimeout(400);
+  check((await page.getByText("CV Completion Breakdown").count()) === 0, `${width}: outside tap closes breakdown`);
+
   await shot(page, `w${width}-form`);
   await auditOverflow(page, `${width} form mode`);
 
-  // full-screen preview (fit)
-  await pill.tap();
-  await page.waitForTimeout(900);
+  // full-screen preview via the FAB (fit)
+  await fab.tap();
+  await page.waitForTimeout(700);
+  await page.getByRole("button", { name: "Preview CV" }).first().tap();
+  await page.waitForTimeout(1200);
   const sheet = page.locator(".dp-root--overlay .dp-sheetbox").first();
   check(await sheet.isVisible(), `${width}: full-screen preview opens with A4 sheet`);
   const pages = await page.locator(".dp-root--overlay .dp-sheetbox").count();
@@ -148,7 +189,7 @@ for (const width of [360, 393, 430]) {
   // close returns to the form
   await page.getByRole("button", { name: "Close preview" }).tap();
   await page.waitForTimeout(600);
-  check(await pill.isVisible(), `${width}: close returns to form (pill back)`);
+  check(await fab.isVisible(), `${width}: close returns to form (FAB back)`);
 
   // template bottom sheet
   await page.getByRole("button", { name: "CV template" }).tap();
@@ -163,7 +204,7 @@ for (const width of [360, 393, 430]) {
   await shot(page, `w${width}-template-sheet`);
   await sheetList.getByRole("option", { name: /Arabia Pro/ }).tap();
   await page.waitForTimeout(900);
-  check((await page.locator(".dp-pill--nudge, .dp-pill").count()) > 0, `${width}: pill present after template switch`);
+  check((await page.locator(".cvp-fab-physical").count()) > 0, `${width}: FAB present after template switch`);
 
   // ── addendum A-D: tab bar, FAB ring, strip opacity, overlap audit ──
   // D: tabs readable + tappable, "Job Match" not truncated
@@ -230,8 +271,10 @@ for (const width of [360, 393, 430]) {
 for (const theme of ["dark", "light"]) {
   for (const [label, cv] of [["empty", null], ["half", HALF_CV], ["full", FULL_CV]]) {
     const { context, page } = await newBuilderPage({ width: 393, cv, theme });
-    await page.locator(".dp-pill").tap();
-    await page.waitForTimeout(900);
+    await page.locator(".cvp-fab-physical").tap();
+    await page.waitForTimeout(700);
+    await page.getByRole("button", { name: "Preview CV" }).first().tap();
+    await page.waitForTimeout(1300);
     const sheetVisible = await page.locator(".dp-root--overlay .dp-sheet").first().isVisible();
     check(sheetVisible, `393 ${theme} ${label}: white sheet renders`);
     // the sheet is paper — white in BOTH themes
@@ -244,6 +287,47 @@ for (const theme of ["dark", "light"]) {
     await shot(page, `t1-${theme}-${label}-393`);
     await context.close();
   }
+}
+
+/* ── REAL narrow window (no touch emulation, classic scrollbars) ── */
+{
+  const { context, page } = await newBuilderPage({ width: 360, touch: false });
+  await auditOverflow(page, "360 real window (no touch flags)");
+  const pxText = await page.evaluate(() => {
+    const hits = [];
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n = walker.nextNode();
+    while (n) {
+      const t = (n.textContent || "").trim();
+      if (/^\d+(\.\d+)?px$/.test(t)) hits.push(t);
+      n = walker.nextNode();
+    }
+    return hits;
+  });
+  check(pxText.length === 0, `360 real window: no debug px text${pxText.length ? ` (${pxText.join(", ")})` : ""}`);
+
+  // responsiveness: resize churn + click must answer fast, no long tasks
+  await page.evaluate(() => {
+    window.__longTasks = [];
+    new PerformanceObserver((list) => {
+      list.getEntries().forEach((e) => window.__longTasks.push(Math.round(e.duration)));
+    }).observe({ entryTypes: ["longtask"] });
+  });
+  for (const w of [420, 362, 395, 360]) {
+    // eslint-disable-next-line no-await-in-loop
+    await page.setViewportSize({ width: w, height: 852 });
+    // eslint-disable-next-line no-await-in-loop
+    await page.waitForTimeout(120);
+  }
+  const t0 = Date.now();
+  await page.locator(".cvp-builder-mobile input:visible").first().click({ timeout: 5000 });
+  const clickMs = Date.now() - t0;
+  await page.waitForTimeout(800);
+  const longTasks = await page.evaluate(() => window.__longTasks.filter((d) => d > 500));
+  check(clickMs < 2000, `360 real window: click responds fast after resize churn (${clickMs}ms)`);
+  check(longTasks.length === 0, `360 real window: no >500ms main-thread stalls${longTasks.length ? ` (${longTasks.join(",")}ms)` : ""}`);
+  await shot(page, "w360-real-window");
+  await context.close();
 }
 
 /* ── desktop panel sanity (1440) ──────────────────────────────── */

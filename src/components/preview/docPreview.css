@@ -63,6 +63,11 @@
   padding: 28px;
   background: var(--bg-surface, #141414);
   scrollbar-width: thin;
+  /* Classic scrollbars must not feed back into fit-width: gutter stays
+     reserved whether or not the sheets overflow (scrollbar toggling
+     changed the stage width, which changed the fit scale, which changed
+     the content height — a ResizeObserver oscillation). */
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
 }
 .dp-pages {
@@ -175,66 +180,9 @@
   height: 44px; /* thumb targets */
 }
 
-/* ── Mobile preview pill ── */
-.dp-pill {
-  position: fixed;
-  left: 16px;
-  bottom: calc(76px + env(safe-area-inset-bottom, 0px)); /* clears the action bar */
-  z-index: 110; /* above the action bar (100), below modals (200) */
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 5px 14px 5px 5px;
-  border: 1px solid var(--border-default, #2A2A2A);
-  border-radius: 999px;
-  background: var(--bg-elevated, #1C1C1C);
-  color: var(--text-primary, #FFFFFF);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.6);
-  transition: transform 140ms cubic-bezier(0.4, 0, 0.2, 1), border-color 140ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-.dp-pill:active { transform: scale(0.96); }
-.dp-pill__thumb {
-  position: relative;
-  width: 34px;
-  height: 48px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #FFFFFF; /* theme-fixed: miniature paper */
-  flex-shrink: 0;
-}
-.dp-pill__thumb-slice {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: top left;
-  display: block;
-  pointer-events: none;
-}
-.dp-pill__label { line-height: 1; }
-.dp-pill__pages {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--text-secondary, #A0A0A0);
-  line-height: 1;
-}
-.dp-pill--nudge .dp-pill__thumb { animation: dpNudge 600ms cubic-bezier(0.4, 0, 0.2, 1); }
-.dp-pill--nudge { border-color: var(--color-accent, #D97706); }
-@keyframes dpNudge {
-  0% { transform: scale(1); opacity: 0.55; }
-  40% { transform: scale(1.06); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .dp-tool { transition: none !important; }
   .dp-tool:active { transform: none; }
   .dp-pulse { animation: none; opacity: 0; }
   .dp-sheet--loading::after { animation: none; }
-  .dp-pill { transition: none !important; }
-  .dp-pill--nudge .dp-pill__thumb { animation: none; }
 }

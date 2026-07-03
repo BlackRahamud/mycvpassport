@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { animate, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, animate, motion, useReducedMotion } from "framer-motion";
 import { SECTIONS as CV_PROGRESS_SECTIONS } from "../hooks/useCvProgress";
 import { splitCommaItems } from "../cvShared";
 
@@ -97,20 +97,28 @@ export default function CompletionStrip({
     prevCompletedCountRef.current = completedSections.length;
   }, [completedSections.length]);
 
-  // Breakdown disclosure (replaces the deleted 42px ring tooltip)
+  // Breakdown disclosure (replaces the deleted 42px ring tooltip).
+  // Dismissal must work on TOUCH: iOS Safari only synthesizes mousedown on
+  // interactive elements, so a tap on the plain form never closed the
+  // panel — pointerdown fires universally. Esc closes too.
   const [breakdownOpen, setBreakdownOpen] = useState(false);
   const wrapRef = useRef(null);
   useEffect(() => {
-    if (!breakdownOpen) return;
-    const onClickOutside = (e) => {
+    if (!breakdownOpen) return undefined;
+    const onPointerOutside = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setBreakdownOpen(false);
       }
     };
-    const t = window.setTimeout(() => document.addEventListener("mousedown", onClickOutside), 10);
+    const onKey = (e) => { if (e.key === "Escape") setBreakdownOpen(false); };
+    const t = window.setTimeout(() => {
+      document.addEventListener("pointerdown", onPointerOutside);
+      document.addEventListener("keydown", onKey);
+    }, 10);
     return () => {
       clearTimeout(t);
-      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("pointerdown", onPointerOutside);
+      document.removeEventListener("keydown", onKey);
     };
   }, [breakdownOpen]);
 
@@ -362,22 +370,24 @@ export default function CompletionStrip({
 
       {/* Breakdown panel — same checklist the deleted 42px ring tooltip
           showed, just full-width below the strip instead of a 200px popover */}
+      <AnimatePresence>
       {breakdownOpen && (
         <motion.div
           initial={reduce ? false : { opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0, transition: { duration: 0.1 } } : { opacity: 0, y: -4, transition: { duration: 0.14, ease: EASE } }}
           transition={reduce ? { duration: 0 } : { duration: 0.18, ease: EASE }}
           style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            right: 0,
-            left: 0,
-            background: "#1C1C1C",
-            border: "1px solid #2A2A2A",
+            // IN FLOW, not an overlay: a full-width child of the wrapping
+            // strip sits below every row — the old absolute panel covered
+            // the strip's own CTA/chevron on narrow phones (undismissable).
+            flexBasis: "100%",
+            width: "100%",
+            background: "var(--bg-elevated, #1C1C1C)",
+            border: "1px solid var(--border-default, #2A2A2A)",
             borderRadius: 12,
             padding: 12,
-            zIndex: 120,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            boxSizing: "border-box",
           }}
         >
           <div
@@ -437,6 +447,7 @@ export default function CompletionStrip({
           </div>
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

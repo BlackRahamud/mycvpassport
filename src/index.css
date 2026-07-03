@@ -1029,6 +1029,11 @@ select:focus,
   -webkit-overflow-scrolling: touch;
   padding: 12px;
   display: grid;
+  /* minmax(0,1fr): the default auto track sizes to the WIDEST child's
+     min-content, so one unshrinkable row inflated every sibling past the
+     viewport (the 2px right-edge bleed at 360px). Pin the track to the
+     container and let children shrink. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   align-content: start;
   background: #0a0a0a;
@@ -1463,6 +1468,12 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 
   .cvp-builder-mobile-form {
     padding-bottom: 100px;
+  }
+  /* One header band fewer: the top-bar template slot is desktop-only —
+     on phones the picker sits in the CVPassport/Import band, so the
+     stack is tabs → brand band → progress card, then the form. */
+  .cvp-topbar-template-slot {
+    display: none !important;
   }
   /* Tabs stay READABLE and tappable on phones: real 13px labels, ≥44px
      targets, horizontal scroll with edge-fade hints — never 8.5px

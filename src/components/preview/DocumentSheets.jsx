@@ -57,7 +57,10 @@ export default function DocumentSheets({
     const apply = (w) => {
       if (!w || w < 40) return;
       const f = Math.min(Math.max((w - pad * 2) / A4_W, 0.15), 1.6);
-      setFitScale((prev) => (prev != null && Math.abs(prev - f) < 0.002 ? prev : f));
+      // Hysteresis wide enough to swallow a classic-scrollbar width
+      // (~15px ≈ 0.019 of A4) — belt to scrollbar-gutter's braces, so a
+      // gutter toggle can never oscillate the fit scale.
+      setFitScale((prev) => (prev != null && Math.abs(prev - f) < 0.02 ? prev : f));
     };
     const ro = new ResizeObserver((entries) => apply(entries[0]?.contentRect?.width));
     ro.observe(el);
