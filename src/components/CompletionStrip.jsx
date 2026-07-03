@@ -14,6 +14,7 @@ const NUDGE_TARGETS = {
   experience: { open: "experience",   dom: '[data-cvp-accordion="experience"]' },
   education:  { open: "education",    dom: '[data-cvp-accordion="education"]' },
   skills:     { open: "competencies", dom: '[data-cvp-accordion="competencies"]' },
+  extras:     { open: "languages",    dom: '[data-cvp-accordion="languages"]' },
 };
 
 const NUDGE_LABEL = {
@@ -24,6 +25,7 @@ const NUDGE_LABEL = {
   experience: "Add experience",
   education:  "Add education",
   skills:     "Add 3 skills",
+  extras:     "Add languages",
 };
 
 function pickTopMissing(resume) {
@@ -67,7 +69,16 @@ function CountUpPercent({ value, reduce, color }) {
   );
 }
 
-export default function CompletionStrip({ progress, resume, onDownload, onOpenSection, stickyTop = 0 }) {
+export default function CompletionStrip({
+  progress,
+  resume,
+  onDownload,
+  onOpenSection,
+  onNudgeAction,
+  saveState = null,   // "saving" | "saved" | null
+  savedLabel = "",    // "Saved just now" / "Saved 2m ago"
+  stickyTop = 0,
+}) {
   const reduce = useReducedMotion();
   const { percent, label, completedSections } = progress;
   const isComplete = percent >= 100;
@@ -116,7 +127,15 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
       // (~70px). Without scroll-margin, the target lands behind both.
       el.style.scrollMarginTop = `${stickyTop + 70}px`;
       el.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Brief highlight so the eye lands where the click took you.
+      el.classList.add("cvp-section-pulse");
+      window.setTimeout(() => el.classList.remove("cvp-section-pulse"), 1100);
     }, delay);
+    // One click = the whole action: for entry sections the caller also
+    // opens the new-entry editor (a scroll alone reads as a dead click).
+    if (typeof onNudgeAction === "function") {
+      window.setTimeout(() => onNudgeAction(topMissing.id), delay + 260);
+    }
   };
 
   return (
@@ -126,8 +145,12 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
         position: "sticky",
         top: stickyTop,
         zIndex: 50,
-        background: "rgba(16,16,16,0.94)",
-        border: "1px solid rgba(255,255,255,0.07)",
+        // FULLY OPAQUE token surface. The old rgba(…,0.94)+blur let the
+        // section titles scrolling underneath ghost through on iOS
+        // (backdrop-filter is unreliable there) — the "Add experience →
+        // over Professional Experience" garble from the walkthrough.
+        background: "var(--bg-elevated, #1C1C1C)",
+        border: "1px solid var(--border-default, #2A2A2A)",
         borderRadius: 14,
         padding: "10px 14px",
         marginBottom: 14,
@@ -140,8 +163,6 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
         minHeight: 58,
         boxSizing: "border-box",
         boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px -18px rgba(0,0,0,0.8)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
       }}
     >
       {/* Section-flip pulse — re-mounted on each pulseKey bump */}
@@ -162,21 +183,51 @@ export default function CompletionStrip({ progress, resume, onDownload, onOpenSe
         />
       )}
 
-      {/* Percent (counts up/down) + label */}
+      {/* Percent (counts up/down) + label + autosave state */}
       <div style={{ display: "flex", flexDirection: "column", minWidth: 104, flexShrink: 0 }}>
-        <CountUpPercent value={percent} reduce={reduce} color={isComplete ? "#4ADE80" : "#FFFFFF"} />
+        <CountUpPercent value={percent} reduce={reduce} color={isComplete ? "#4ADE80" : "var(--text-primary, #FFFFFF)"} />
         <span
           style={{
             fontSize: 10.5,
             fontWeight: 500,
-            color: "#A0A0A0",
+            color: "var(--text-secondary, #A0A0A0)",
             marginTop: 3,
             letterSpacing: "0.02em",
             fontFamily: "inherit",
             whiteSpace: "nowrap",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
           }}
         >
           {label}
+          {/* Autosave — the work IS persisted; show it, don't make them wonder. */}
+          {(saveState || savedLabel) && (
+            <span
+              aria-live="polite"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                color: "var(--text-muted, #7A7A82)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span aria-hidden="true" style={{ color: "var(--border-default, #2A2A2A)" }}>·</span>
+              <span
+                aria-hidden="true"
+                className={saveState === "saving" && !reduce ? "cvp-savedot cvp-savedot--busy" : "cvp-savedot"}
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: saveState === "saving" ? "var(--color-accent, #D97706)" : "#4ADE80",
+                  flexShrink: 0,
+                }}
+              />
+              {saveState === "saving" ? "Saving…" : savedLabel || "Saved"}
+            </span>
+          )}
         </span>
       </div>
 

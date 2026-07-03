@@ -1363,28 +1363,35 @@ const FAB = forwardRef(function FAB(
       >
         {variant === "builder" ? (
           <div className="cvp-fab-sticky-wrap--builder">
+            {/* Ring geometry: the box matches the 68-unit viewBox exactly
+                (a 72px box scaled the arc past the button) and is centred
+                by margins, not transforms — the click pulse animates the
+                WHOLE svg, because scaling the circle itself needs
+                transform-origin on an SVG child, which iOS Safari resolves
+                against the wrong reference box (the "misaligned red arc"
+                from the walkthrough screenshots). */}
             <svg
-              className="cvp-fab-progress-svg"
+              className={`cvp-fab-progress-svg${fabRingClickClass ? ` ${fabRingClickClass}` : ""}`}
               viewBox="0 0 68 68"
               aria-hidden
               style={{
                 position: "absolute",
-                width: "72px",
-                height: "72px",
+                width: "68px",
+                height: "68px",
                 top: "50%",
                 left: "50%",
-                transform: "translate(-50%, -50%) translateZ(0)",
+                marginLeft: "-34px",
+                marginTop: "-34px",
                 pointerEvents: "none",
                 zIndex: 1,
                 overflow: "visible",
-                willChange: "transform",
               }}
             >
               <circle cx="34" cy="34" r="30" fill="none" stroke="#2A2A2A" strokeWidth="2" />
               <g transform="rotate(-90 34 34)">
                 <circle
                   ref={progressRingRef}
-                  className={`cvp-fab-progress-ring${fabRingClickClass ? ` ${fabRingClickClass}` : ""}`.trim()}
+                  className="cvp-fab-progress-ring"
                   cx="34"
                   cy="34"
                   r="30"
@@ -1394,7 +1401,6 @@ const FAB = forwardRef(function FAB(
                   strokeDasharray={FAB_PROGRESS_CIRCUMFERENCE}
                   strokeDashoffset={ringOffset}
                   strokeLinecap="round"
-                  style={{ transformOrigin: "34px 34px" }}
                 />
               </g>
             </svg>

@@ -5,25 +5,31 @@ import { splitCommaItems } from "../cvShared";
  * Weighted CV completion for FAB sheet (builder resume shape + optional personalInfo.*).
  * Weights sum to 100. Minimum 20% when full name is present (endowed progress).
  */
-/** Exported for builder progress tooltip breakdown (same weights as FAB completion). */
+/** Exported for builder progress tooltip breakdown (same weights as FAB completion).
+ *
+ * Weights are tuned so the number roughly tracks CV completeness as a
+ * recruiter would read it: the whole contact block is worth ~15 (it used
+ * to be 35 — typing your own name felt like a third of a CV), the first
+ * experience entry is the single biggest earn at 25, and the long tail
+ * (languages / certifications / personal details) counts as "extras". */
 export const SECTIONS = [
   {
     id: "fullName",
-    weight: 15,
+    weight: 7,
     completedLabel: "Full name",
     nudgePhrase: "your full name",
     isComplete: (d) => String(d?.name ?? d?.personalInfo?.fullName ?? "").trim().length > 0,
   },
   {
     id: "email",
-    weight: 10,
+    weight: 4,
     completedLabel: "Email",
     nudgePhrase: "an email address",
     isComplete: (d) => String(d?.email ?? d?.personalInfo?.email ?? "").trim().length > 0,
   },
   {
     id: "phone",
-    weight: 10,
+    weight: 4,
     completedLabel: "Phone",
     nudgePhrase: "a phone number",
     isComplete: (d) => String(d?.phone ?? d?.personalInfo?.phone ?? "").trim().length > 0,
@@ -37,7 +43,7 @@ export const SECTIONS = [
   },
   {
     id: "experience",
-    weight: 20,
+    weight: 25,
     completedLabel: "Experience",
     nudgePhrase: "work experience",
     isComplete: (d) => Array.isArray(d?.experience) && d.experience.length > 0,
@@ -59,6 +65,17 @@ export const SECTIONS = [
     completedLabel: "Summary",
     nudgePhrase: "a professional summary",
     isComplete: (d) => String(d?.summary ?? "").trim().length > 30,
+  },
+  {
+    id: "extras",
+    weight: 15,
+    completedLabel: "Extras (languages, certs…)",
+    nudgePhrase: "languages or certifications",
+    isComplete: (d) =>
+      String(d?.languages ?? "").trim().length > 0 ||
+      (Array.isArray(d?.certifications) && d.certifications.length > 0) ||
+      String(d?.nationality ?? "").trim().length > 0 ||
+      String(d?.visaStatus ?? "").trim().length > 0,
   },
 ];
 
@@ -126,6 +143,8 @@ export function computeCvProgress(cvData) {
               return "· Add a phone number and your CV gets stronger";
             case "fullName":
               return "· Add your name and your CV gets stronger";
+            case "extras":
+              return "· Add languages or certifications and your CV gets stronger";
             default:
               return `· Add ${top.nudgePhrase} and your CV gets stronger`;
           }

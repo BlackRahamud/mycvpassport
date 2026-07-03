@@ -21,60 +21,28 @@ function stripEmojiPictographs(s) {
     .trim();
 }
 
-function stripLeadingBulletToken(str) {
-  return String(str ?? "")
-    .replace(/^\s*[-•*]\s*/, "")
-    .trim();
-}
-
-function isNewBulletLine(line) {
-  return /^\s*[-•*]/.test(line);
-}
-
-function mergeContinuationLines(lines) {
-  if (lines.length === 0) return [];
-  const blocks = [];
-  let cur = stripLeadingBulletToken(lines[0]);
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (isNewBulletLine(line)) {
-      blocks.push(cur);
-      cur = stripLeadingBulletToken(line);
-    } else {
-      cur = `${cur} ${stripLeadingBulletToken(line)}`.trim();
-    }
-  }
-  blocks.push(cur);
-  return blocks;
-}
-
-function splitInlineBulletSegments(block) {
-  const t = String(block ?? "").trim();
-  if (!t) return [];
-  return t
-    .split(/\s*•\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+// CJS TWIN of src/experiencePointsPreview.js#parseExperiencePoints —
+// "each line becomes one bullet". Keep the regex and split rules
+// byte-identical with the ESM parser; src/experiencePointsPreview.test.js
+// locks the pair. (The old continuation-merge glued a user's plain-Enter
+// lines into one run-on paragraph — removed on both sides together.)
+const BULLET_LINE = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
 
 function splitExperiencePointsForPreview(text) {
   if (text == null || text === "") return [];
 
-  const rawLines = String(text)
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  if (rawLines.length === 0) return [];
-
-  const mergedBlocks = mergeContinuationLines(rawLines);
   const out = [];
-  for (const block of mergedBlocks) {
-    out.push(...splitInlineBulletSegments(block));
+  for (const rawLine of String(text).split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (BULLET_LINE.test(line)) {
+      const stripped = line.replace(BULLET_LINE, "").trim();
+      if (stripped) out.push(stripped);
+    } else {
+      out.push(line);
+    }
   }
-
-  return out.map((s) => s.replace(/^•\s*/, "").trim()).filter(Boolean);
+  return out;
 }
 
 function normalizeCertificationsArray(raw) {

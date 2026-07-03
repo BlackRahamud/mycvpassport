@@ -63,6 +63,7 @@ import {
   OPTIONAL_BUILDER_SECTIONS,
   normalizeCertificationsArray,
   normalizeResumeForBuilder,
+  scrubLegacyDraftPrefills,
   splitCommaItems,
   buildExperiencePeriod,
   buildEducationYearLine,
@@ -1816,7 +1817,7 @@ function snapshotResumeForDiscard(r) {
 // (cleared on explicit save or discard, else kept until TTL) recovers it.
 
 /** @param {{ title: string, subtitle: string, onRowClick: () => void, onMoveUp: () => void, onMoveDown: () => void, disableUp: boolean, disableDown: boolean, onEdit: () => void, onDelete: () => void }} props */
-function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {
+function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {
   const iconBtn = {
     background: "none",
     border: "none",
@@ -1841,6 +1842,7 @@ function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, di
           onRowClick();
         }
       }}
+      className="cvp-entry-row-in"
       style={{
         display: "flex",
         alignItems: "center",
@@ -1881,6 +1883,11 @@ function BuilderEntryRow({ title, subtitle, onRowClick, onMoveUp, onMoveDown, di
         >
           {subtitle}
         </div>
+        {hint ? (
+          <div style={{ marginTop: 5 }}>
+            <span className="cvp-hint-chip">{hint}</span>
+          </div>
+        ) : null}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -2730,7 +2737,9 @@ function ResumeBuilder({
   const [resume, setResumeRaw] = useState(() => {
     const draft = initialDraftRef.current;
     if (draft?.cv) {
-      const base = normalizeResumeForBuilder(draft.cv);
+      // Drafts written by older builds may still carry the removed
+      // prefills (languages "English, Hindi" etc.) — scrub on read.
+      const base = scrubLegacyDraftPrefills(normalizeResumeForBuilder(draft.cv));
       return {
         ...base,
         technicalSkills: normalizeTechnicalSkillsState(draft.cv.technicalSkills ?? base.technicalSkills),
@@ -2839,6 +2848,47 @@ function ResumeBuilder({
   const [templateConfirmOpen, setTemplateConfirmOpen] = useState(false);
   const [previewTemplateOverride, setPreviewTemplateOverride] = useState(null);
 
+  // One click = the whole action: the progress-card CTA scrolls AND opens
+  // the matching new-entry editor (a scroll alone reads as a dead click).
+  const handleProgressNudgeAction = useCallback((sectionId) => {
+    if (sectionId === "experience") {
+      setExperienceEditor((cur) => cur || { mode: "add", index: -1, draft: { ...EMPTY_EXP } });
+    } else if (sectionId === "education") {
+      setEducationEditor((cur) => cur || { mode: "add", index: -1, draft: { ...EMPTY_EDU } });
+    }
+    // Contact / summary / skills / extras: opening the section + the pulse
+    // IS the action — those fields edit in place.
+  }, []);
+
+  // Live preview CV: while an entry editor is open, its unsaved draft is
+  // merged in so the document updates AS THE USER TYPES each field — not
+  // only after Save. (The editors are side sheets that leave the preview
+  // visible for exactly this reason.)
+  const previewResume = useMemo(() => {
+    let cv = resume;
+    if (experienceEditor?.draft) {
+      const d = experienceEditor.draft;
+      const entry = { ...d, period: buildExperiencePeriod({ ...d, present: d.present }) || d.period || "" };
+      const hasContent = [d.role, d.company, d.points, d.location].some((v) => String(v || "").trim());
+      if (experienceEditor.mode === "edit") {
+        cv = { ...cv, experience: cv.experience.map((e, i) => (i === experienceEditor.index ? entry : e)) };
+      } else if (hasContent) {
+        cv = { ...cv, experience: [...cv.experience, entry] };
+      }
+    }
+    if (educationEditor?.draft) {
+      const d = educationEditor.draft;
+      const entry = { ...d, year: buildEducationYearLine(d) || d.year || "" };
+      const hasContent = [d.school, d.degree, d.fieldOfStudy].some((v) => String(v || "").trim());
+      if (educationEditor.mode === "edit") {
+        cv = { ...cv, education: cv.education.map((e, i) => (i === educationEditor.index ? entry : e)) };
+      } else if (hasContent) {
+        cv = { ...cv, education: [...cv.education, entry] };
+      }
+    }
+    return cv;
+  }, [resume, experienceEditor, educationEditor]);
+
   // Paginated document preview — shared print simulation (same layout pass
   // the PDF export runs). Debounced internally: 150ms desktop / 400ms touch.
   const {
@@ -2846,7 +2896,7 @@ function ResumeBuilder({
     doc: previewDoc,
     pulse: previewPulse,
   } = useDocumentPreview({
-    cv: resume,
+    cv: previewResume,
     template: previewTemplateOverride ?? selectedTemplate,
     captureRef: docPreviewCaptureRef,
   });
@@ -2958,6 +3008,8 @@ function ResumeBuilder({
   const [pdfTargetPages, setPdfTargetPages] = useState(2);
   const [savedAtMs, setSavedAtMs] = useState(null);
   const [savedBadgeLabel, setSavedBadgeLabel] = useState(null);
+  const [draftSaveState, setDraftSaveState] = useState(null); // "saving" | "saved" | null
+  const draftIndicatorArmedRef = useRef(false);
   const lastSavedSnapshotRef = useRef(null);
   // Replaces the old JSON-diff-vs-snapshot dirty detection. Flips true ONLY
   // on user-driven mutations (any call site using `setResume`). Data-load
@@ -3233,9 +3285,14 @@ function ResumeBuilder({
   }, []);
 
   // Debounced mirror of the working CV to localStorage. Survives tab-focus
-  // remounts, token-refresh cascades, and accidental reloads.
+  // remounts, token-refresh cascades, and accidental reloads. The
+  // saving→saved state is surfaced in the progress card — the work IS
+  // persisted, so show it (unsaved-work anxiety kills trust).
   useEffect(() => {
     if (!draftStorageKey) return undefined;
+    // First run mirrors the initial state — silent. The indicator only
+    // speaks once the user has actually edited something.
+    if (draftIndicatorArmedRef.current) setDraftSaveState("saving");
     const timer = setTimeout(() => {
       writeCvDraft(draftStorageKey, {
         version: 2,
@@ -3249,6 +3306,11 @@ function ResumeBuilder({
         // Preserve inferred industry so the ATS-template recommendation holds.
         industry: initialDraftRef.current?.industry || undefined,
       }, user?.id || null);
+      if (draftIndicatorArmedRef.current) {
+        setDraftSaveState("saved");
+        setSavedAtMs(Date.now());
+      }
+      draftIndicatorArmedRef.current = true;
     }, 500);
     return () => clearTimeout(timer);
   }, [resume, selectedTemplate?.id, resumeId, draftStorageKey, user?.id]);
@@ -4375,6 +4437,9 @@ function ResumeBuilder({
                 resume={resume}
                 onDownload={handleDownload}
                 onOpenSection={setOpenSection}
+                onNudgeAction={handleProgressNudgeAction}
+                saveState={draftSaveState}
+                savedLabel={savedBadgeLabel || ""}
                 stickyTop={56}
               />
 
@@ -4556,6 +4621,7 @@ function ResumeBuilder({
                         key={i}
                         title={exp.role || "Job title"}
                         subtitle={subtitle}
+                        hint={period ? undefined : "Add dates — recruiters check them"}
                         onRowClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
                         onMoveUp={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i - 1) }))}
                         onMoveDown={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i + 1) }))}
@@ -4857,6 +4923,9 @@ function ResumeBuilder({
                   resume={resume}
                   onDownload={handleDownload}
                   onOpenSection={setOpenSection}
+                  onNudgeAction={handleProgressNudgeAction}
+                  saveState={draftSaveState}
+                  savedLabel={savedBadgeLabel || ""}
                   stickyTop={0}
                 />
                 {cvImportedFilename && !userHasEdited ? (
@@ -5031,6 +5100,7 @@ function ResumeBuilder({
                         key={i}
                         title={exp.role || "Job title"}
                         subtitle={subtitle}
+                        hint={period ? undefined : "Add dates — recruiters check them"}
                         onRowClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
                         onMoveUp={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i - 1) }))}
                         onMoveDown={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i + 1) }))}
@@ -5835,11 +5905,11 @@ function ResumeBuilder({
         <div
           role="dialog"
           aria-modal="true"
-          className="cvp-glass-modal-overlay"
+          className="cvp-glass-modal-overlay cvp-entry-sheet-overlay"
           onClick={askCloseExperienceModal}
         >
           <div
-            className="cvp-glass-modal"
+            className="cvp-glass-modal cvp-entry-sheet"
             style={{
               position: "relative",
               maxWidth: 520,
@@ -6297,11 +6367,11 @@ function ResumeBuilder({
         <div
           role="dialog"
           aria-modal="true"
-          className="cvp-glass-modal-overlay"
+          className="cvp-glass-modal-overlay cvp-entry-sheet-overlay"
           onClick={() => setEducationEditor(null)}
         >
           <div
-            className="cvp-glass-modal"
+            className="cvp-glass-modal cvp-entry-sheet"
             style={{ padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >

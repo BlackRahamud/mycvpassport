@@ -1,16 +1,20 @@
 /**
- * Experience / achievement text → structured bullets (one per detected line).
+ * Experience / achievement text → structured bullets (one per line).
  *
- * STRICT PARSER — never hallucinates a split. Rules:
- *   1. Blank line (\n\n+) = forced bullet break.
- *   2. Within a paragraph: a line is a NEW bullet only if its first
- *      non-whitespace token matches BULLET_LINE.
- *   3. Lines without a marker merge into the previous bullet (a continuation
- *      from wrapped or pasted text).
- *   4. Inline mid-line markers do NOT split. "Built X • Y • Z" stays as one
- *      bullet — a too-long bullet beats a sentence cut in half.
- *   5. If no markers and no blank lines → format: 'paragraph' (templates
- *      render as prose, no leading •).
+ * THE PROMISE (the editor's own copy): "Each line becomes one bullet."
+ * Rules:
+ *   1. Every non-empty LINE is one bullet. Plain Enter = new bullet — no
+ *      continuation merging (the old merge silently glued the user's
+ *      lines into a run-on paragraph, the #1 walkthrough complaint).
+ *   2. Leading markers (• - – * 1.) are stripped; templates draw their own.
+ *   3. Inline mid-line markers do NOT split. "Built X • Y • Z" stays as
+ *      one bullet — a too-long bullet beats a sentence cut in half.
+ *   4. format: 'paragraph' only when there is a SINGLE line with no
+ *      marker (summary-style prose renders without a leading •);
+ *      anything multi-line is a real list.
+ *
+ * TWIN: src/serverLib/pdfCommon.js#splitExperiencePointsForPreview must
+ * split identically — src/experiencePointsPreview.test.js locks the pair.
  */
 
 // Line-leading bullet markers:
@@ -34,37 +38,23 @@ function stripMarker(line) {
 export function parseExperiencePoints(text) {
   if (text == null || text === "") return { bullets: [], format: "list" };
 
-  const raw = String(text);
-  const paragraphs = raw.split(/\r?\n\s*\r?\n+/);
-
   let sawAnyMarker = false;
   const bullets = [];
 
-  for (const para of paragraphs) {
-    const lines = para.split(/\r?\n/);
-    let current = null;
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line) continue;
-
-      if (isBulletLine(line)) {
-        sawAnyMarker = true;
-        if (current != null) bullets.push(current);
-        current = stripMarker(line);
-      } else if (current == null) {
-        current = line;
-      } else {
-        current = `${current} ${line}`.trim();
-      }
+  for (const rawLine of String(text).split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (isBulletLine(line)) {
+      sawAnyMarker = true;
+      const stripped = stripMarker(line);
+      if (stripped) bullets.push(stripped);
+    } else {
+      bullets.push(line);
     }
-    if (current != null && current.length > 0) bullets.push(current);
   }
 
-  const nonEmptyParas = paragraphs.filter((p) => p.trim()).length;
-  const format = sawAnyMarker || nonEmptyParas > 1 ? "list" : "paragraph";
-
-  return { bullets: bullets.filter(Boolean), format };
+  const format = sawAnyMarker || bullets.length > 1 ? "list" : "paragraph";
+  return { bullets, format };
 }
 
 /**

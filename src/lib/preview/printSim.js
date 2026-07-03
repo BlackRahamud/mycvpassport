@@ -69,11 +69,6 @@ function isAvoidInside(el) {
   return v.includes("avoid");
 }
 
-function isAvoidAfter(el) {
-  const v = `${el.style.breakAfter || ""} ${el.style.pageBreakAfter || ""}`;
-  return v.includes("avoid");
-}
-
 /**
  * Chromium fragmentation simulation. Walks the document top-down; when a
  * protected unit straddles a page boundary it inserts a spacer that pushes
@@ -99,33 +94,19 @@ function simulateFragmentation(clone, usable) {
     el.parentNode.insertBefore(spacer, el);
   };
 
-  const candidates = Array.from(clone.querySelectorAll("*")).filter(
-    (el) => isAvoidInside(el) || isAvoidAfter(el),
-  );
+  // Only inline break-inside:avoid fragments in the real export.
+  // break-after:avoid on section titles is DETECTED by templates' markup
+  // but Chromium's print engine largely ignores it (verified against real
+  // page.pdf output by the parity harness — gluing titles to their bodies
+  // here produced page starts the PDF doesn't have).
+  const candidates = Array.from(clone.querySelectorAll("*")).filter(isAvoidInside);
 
   candidates.forEach((el) => {
     if (!el.parentNode || !el.isConnected) return;
     const base = rootTop();
     const r = el.getBoundingClientRect();
     const top = r.top - base;
-
-    let bottom = r.bottom - base;
-    if (isAvoidAfter(el)) {
-      // Keep the title glued to the block that follows it: the unit that
-      // must not straddle is title + the first following sibling that has
-      // a real box (templates interleave zero-size ghost chips whose
-      // empty rects would otherwise produce negative unit heights).
-      let next = el.nextElementSibling;
-      while (next) {
-        const nr = next.getBoundingClientRect();
-        if (nr.height > 0.5) {
-          const nb = nr.bottom - base;
-          if (nb > bottom) bottom = nb;
-          break;
-        }
-        next = next.nextElementSibling;
-      }
-    }
+    const bottom = r.bottom - base;
 
     const height = bottom - top;
     if (height <= 0 || height >= usable) return; // degenerate, or can't be kept whole — print splits it too
@@ -137,7 +118,11 @@ function simulateFragmentation(clone, usable) {
   });
 }
 
-/** First non-empty text content at or below a given content offset. */
+/** First non-empty text that STARTS at or below a given content offset —
+ * i.e. the first line a reader sees on that page. Top-based on purpose:
+ * a line whose bottom merely grazes the cut belongs to the page above
+ * (Chromium fragments whole lines; bottom-based detection false-flagged
+ * exactly those grazing lines in the parity harness). */
 function firstTextAfter(clone, baseTop, offsetY) {
   const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
   let node = walker.nextNode();
@@ -147,7 +132,7 @@ function firstTextAfter(clone, baseTop, offsetY) {
       const range = document.createRange();
       range.selectNodeContents(node);
       const r = range.getBoundingClientRect();
-      if (r.height > 0 && r.bottom - baseTop > offsetY + 1) {
+      if (r.height > 0 && r.top - baseTop >= offsetY - 1) {
         return text.slice(0, 48);
       }
     }

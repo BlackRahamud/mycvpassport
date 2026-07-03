@@ -224,10 +224,10 @@ export default function TemplateSelect({ templates, value, onChange }) {
               aria-activedescendant={activeIdx >= 0 ? `${listboxId}-opt-${activeIdx}` : undefined}
               ref={listRef}
               style={S.panel}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.95 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.985, transition: { duration: 0.14, ease: EASE } }}
-              transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 480, damping: 32, mass: 0.7, opacity: { duration: 0.16, ease: EASE } }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.14, ease: EASE } }}
+              transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 420, damping: 29, mass: 0.8, opacity: { duration: 0.18, ease: EASE } }}
             >
               {templates.map((t, i) => (
                 <button

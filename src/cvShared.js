@@ -92,6 +92,33 @@ export const EMPTY_RESUME = {
   references: "References available upon request",
 };
 
+/* Legacy-draft scrub. Older builds shipped EMPTY_RESUME with prefilled
+   values; those defaults live on inside users' persisted localStorage
+   drafts (7-day TTL) and resurface as "why does my fresh CV speak Hindi?".
+   Blank a field ONLY when it verbatim-equals the old default — a user who
+   actually typed one of these exact strings loses nothing but a re-type,
+   while every stale draft stops leaking assumptions. */
+const LEGACY_PREFILLS = {
+  languages: ["English, Hindi"],
+  location: ["Dubai, UAE"],
+  availability: ["Immediately Available"],
+  willingToRelocate: ["Yes"],
+};
+
+export function scrubLegacyDraftPrefills(cv) {
+  if (!cv || typeof cv !== "object") return cv;
+  let changed = false;
+  const next = { ...cv };
+  Object.entries(LEGACY_PREFILLS).forEach(([field, legacyValues]) => {
+    const v = typeof next[field] === "string" ? next[field].trim() : next[field];
+    if (legacyValues.includes(v)) {
+      next[field] = "";
+      changed = true;
+    }
+  });
+  return changed ? next : cv;
+}
+
 export const OPTIONAL_BUILDER_SECTIONS = [
   { id: "certifications", label: "Certifications", field: "certifications", multiline: false },
   { id: "personalDetails", label: "Personal Details", custom: true },

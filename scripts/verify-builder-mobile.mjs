@@ -165,6 +165,52 @@ for (const width of [360, 393, 430]) {
   await page.waitForTimeout(900);
   check((await page.locator(".dp-pill--nudge, .dp-pill").count()) > 0, `${width}: pill present after template switch`);
 
+  // ── addendum A-D: tab bar, FAB ring, strip opacity, overlap audit ──
+  // D: tabs readable + tappable, "Job Match" not truncated
+  const tabChip = page.locator(".cvp-builder-tabchip", { hasText: "Job Match" });
+  check(await tabChip.count() > 0 && await tabChip.first().innerText() === "Job Match", `${width}: "Job Match" tab label intact`);
+  const chipBox = await page.locator(".cvp-builder-tabchip").first().boundingBox();
+  check(!!chipBox && chipBox.height >= 40, `${width}: tab chips tappable (h=${chipBox && Math.round(chipBox.height)})`);
+  const chipFont = await page.locator(".cvp-builder-tabchip").first().evaluate((el) => getComputedStyle(el).fontSize);
+  check(parseFloat(chipFont) >= 12, `${width}: tab labels readable (${chipFont})`);
+
+  // B: FAB ring geometry sane + hidden while typing
+  const fabSvg = page.locator(".cvp-fab-progress-svg");
+  if (await fabSvg.count()) {
+    const svgBox = await fabSvg.first().boundingBox();
+    check(!!svgBox && Math.abs(svgBox.width - 68) < 2 && Math.abs(svgBox.height - 68) < 2, `${width}: FAB ring box matches viewBox (${svgBox && Math.round(svgBox.width)}px)`);
+  }
+
+  // C: progress card is FULLY OPAQUE (no see-through garble over titles)
+  const stripBg = await page.evaluate(() => {
+    const strips = Array.from(document.querySelectorAll(".cvp-builder-mobile [style*='sticky']"));
+    const strip = strips.find((el) => el.textContent.includes("%"));
+    return strip ? getComputedStyle(strip).backgroundColor : null;
+  });
+  check(!!stripBg && !/rgba\(.*,\s*0?\.\d+\)/.test(stripBg), `${width}: progress card opaque (${stripBg})`);
+
+  // Fixed/floating elements must never overlap an input's tap area
+  const overlapReport = await page.evaluate(() => {
+    const floatSel = [".dp-pill", ".cvp-fab-physical", ".cvp-builder-action-bar"];
+    const floatRects = floatSel.flatMap((sel) => Array.from(document.querySelectorAll(sel)))
+      .filter((el) => el.offsetParent !== null || getComputedStyle(el).position === "fixed")
+      .map((el) => ({ sel: el.className.slice(0, 30), r: el.getBoundingClientRect() }))
+      .filter(({ r }) => r.width > 0 && r.height > 0);
+    const bad = [];
+    document.querySelectorAll("input, textarea, select").forEach((inp) => {
+      const ir = inp.getBoundingClientRect();
+      if (ir.width === 0 || ir.height === 0) return;
+      if (ir.bottom < 0 || ir.top > window.innerHeight) return; // offscreen
+      floatRects.forEach(({ sel, r }) => {
+        const x = Math.max(0, Math.min(r.right, ir.right) - Math.max(r.left, ir.left));
+        const y = Math.max(0, Math.min(r.bottom, ir.bottom) - Math.max(r.top, ir.top));
+        if (x > 4 && y > 4) bad.push(`${sel} over input @y=${Math.round(ir.top)}`);
+      });
+    });
+    return bad;
+  });
+  check(overlapReport.length === 0, `${width}: no floating element covers an input${overlapReport.length ? ` (${overlapReport.join("; ")})` : ""}`);
+
   // focused input (keyboard-open proxy: focus + centring behaviour)
   const nameInput = page.locator(".cvp-builder-mobile input:visible").first();
   await nameInput.scrollIntoViewIfNeeded();

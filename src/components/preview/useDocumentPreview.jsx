@@ -79,7 +79,15 @@ export default function useDocumentPreview({ cv, template, captureRef }) {
       document.fonts.ready.then(() => {
         if (!live || !fitRef.current) return;
         try {
-          setDoc({ ...buildPaginatedDocument(fitRef.current, prevTemplateIdRef.current), tick: Date.now() });
+          const built = buildPaginatedDocument(fitRef.current, prevTemplateIdRef.current);
+          setDoc({ ...built, tick: Date.now() });
+          // Keep the parity hook in sync — the harness must always read
+          // the post-webfont pagination, never the fallback-metrics one.
+          window.__cvpPreviewParity = {
+            templateId: prevTemplateIdRef.current ?? null,
+            pageCount: built.pageCount,
+            pageStarts: built.pageStarts,
+          };
         } catch {
           /* first build already covers rendering */
         }
