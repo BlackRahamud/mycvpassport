@@ -63,6 +63,7 @@ const AboutPage            = lazy(() => import(/* webpackChunkName: "about" */  
 const IndiaToUaePage       = lazy(() => import(/* webpackChunkName: "india-to-uae" */ "./pages/IndiaToUaePage"));
 const AttestationPage      = lazy(() => import(/* webpackChunkName: "attestation" */ "./pages/AttestationPage"));
 const AdminCostPage        = lazy(() => import(/* webpackChunkName: "admin" */       "./pages/AdminCostPage"));
+const AdminProspectsPage   = lazy(() => import(/* webpackChunkName: "admin" */       "./pages/AdminProspectsPage"));
 const GulfCareerPage       = lazy(() => import(/* webpackChunkName: "gulf-career" */ "./pages/GulfCareerPage"));
 const GulfSalaryPage       = lazy(() => import(/* webpackChunkName: "gulf-salary" */ "./pages/GulfSalaryPage"));
 
@@ -320,6 +321,7 @@ export default function App() {
               <Route path="/indian-cv-uae" element={<Navigate to="/india-to-uae" replace />} />
               <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanelV2 /> : <Navigate to="/" replace />} />
               <Route path="/admin/cost" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminCostPage /> : <Navigate to="/" replace />} />
+              <Route path="/admin/prospects" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminProspectsPage /> : <Navigate to="/" replace />} />
               <Route
                 path="/dashboard"
                 element={
