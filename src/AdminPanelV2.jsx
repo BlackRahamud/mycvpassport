@@ -22,6 +22,7 @@
 */
 
 import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 
 const ADMIN_EMAIL = "connectingjunaidkhan@gmail.com";
@@ -720,6 +721,9 @@ export default function AdminPanelV2() {
     ]},
     { group: "Admin", items: [
       { id: "unlock", label: "Manual unlock" },
+      // href items leave the panel for the standalone admin pages.
+      { id: "prospects", label: "Prospect Radar", href: "/admin/prospects" },
+      { id: "cost", label: "Cost dashboard", href: "/admin/cost" },
     ]},
   ];
 
@@ -1284,7 +1288,16 @@ export default function AdminPanelV2() {
           {NAV.map((g) => (
             <div key={g.group} style={s.navGroup}>
               <div style={s.navLabel}>{g.group}</div>
-              {g.items.map((it) => (
+              {g.items.map((it) => it.href ? (
+                <Link
+                  key={it.id}
+                  to={it.href}
+                  style={{ ...s.navItem(false), textDecoration: "none", justifyContent: "space-between" }}
+                >
+                  <span>{it.label}</span>
+                  <Icon.Arrow style={{ color: t.textMute }} />
+                </Link>
+              ) : (
                 <div
                   key={it.id}
                   onClick={() => { setSection(it.id); setNavOpen(false); }}
