@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { PAID_TIER_SLUGS, TIERS, TIER_TO_PROFILE_PLAN, getServerAmount } from '../src/config/tierConfig.js';
 import { issueDocument } from '../src/invoices/issue.js';
+import { capturePostHogServer } from '../src/lib/analytics/posthogServer.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -205,6 +206,17 @@ export default async function handler(req, res) {
 
     await recordPayment({ user_id: updated.user_id, service: 'transform' });
 
+    // purchase_completed fires server-side (webhook = source of truth,
+    // ad-blocker-proof) and only on fresh processing — idempotent retries
+    // exited above, so PostHog never double-counts revenue.
+    await capturePostHogServer(updated.user_id, 'purchase_completed', {
+      plan: 'transform',
+      amount: Number(amount || 0) / 100,
+      currency: 'AED',
+      transaction_id: payment_intent_id || null,
+      gateway: 'ziina',
+    });
+
     console.log('[ziina-webhook] transform session paid', {
       sessionId,
       userId: updated.user_id,
@@ -238,6 +250,14 @@ export default async function handler(req, res) {
     }
 
     await recordPayment({ user_id: userId, service });
+
+    await capturePostHogServer(userId, 'purchase_completed', {
+      plan: service,
+      amount: Number(amount || 0) / 100,
+      currency: 'AED',
+      transaction_id: payment_intent_id || null,
+      gateway: 'ziina',
+    });
 
     console.log('Service unlocked', { userId, service });
     return res.status(200).json({ success: true });
@@ -294,6 +314,14 @@ export default async function handler(req, res) {
   }
 
   await recordPayment({ user_id: external_reference, service: upgrade.plan });
+
+  await capturePostHogServer(external_reference, 'purchase_completed', {
+    plan: upgrade.plan,
+    amount: Number(amount || 0) / 100,
+    currency: 'AED',
+    transaction_id: payment_intent_id || null,
+    gateway: 'ziina',
+  });
 
   // Issue receipt + email (AE entity, RCP-AE-2026-NNNN series). Idempotent
   // on payment_id; email is best-effort and does not fail the webhook.

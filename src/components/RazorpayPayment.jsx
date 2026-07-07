@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import safeFetch from "../lib/net/safeFetch";
+import { logEvent } from "../lib/analytics/logEvent";
 
 const CHECKOUT_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -44,6 +45,16 @@ export default function RazorpayPayment({ plan, service, amountINR, onSuccess, o
     let cancelled = false;
 
     async function startCheckout() {
+      // Mounting this component is the result of an upgrade-CTA click on
+      // the INR path — the Ziina/AED twin fires the same event inside
+      // getPaymentLink (src/utils/paywall.js).
+      logEvent("upgrade_clicked", {
+        plan: plan || service,
+        price: amountINR ?? null,
+        currency: "INR",
+        gateway: "razorpay",
+        cta_location: typeof window !== "undefined" ? window.location.pathname : null,
+      });
       try {
         const keyId = process.env.REACT_APP_RAZORPAY_KEY_ID;
         if (!keyId) {
@@ -145,6 +156,15 @@ export default function RazorpayPayment({ plan, service, amountINR, onSuccess, o
 
         if (onModalOpen) onModalOpen();
         setBusy(false);
+        // Razorpay modal is about to open with a real server-derived order
+        // — the INR equivalent of redirecting to Ziina's hosted page.
+        logEvent("checkout_started", {
+          plan: plan || service,
+          price: Number(orderData.amount) / 100,
+          currency: orderData.currency || "INR",
+          gateway: "razorpay",
+          cta_location: typeof window !== "undefined" ? window.location.pathname : null,
+        });
         rzp.open();
       } catch (err) {
         if (!cancelled && onFailure) {

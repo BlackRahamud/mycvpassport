@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
+import { logEvent } from "../lib/analytics/logEvent";
 import safeFetch from "../lib/net/safeFetch";
 import { getTheme } from "../lib/theme";
 import PaymentTrustBar from "../components/PaymentTrustBar";
@@ -142,6 +143,28 @@ export default function PricingPage({ refreshProfile } = {}) {
     }
   }, []);
 
+  // pricing_viewed fires once per page load, AFTER the geo resolve settles
+  // so the currency property reflects what the visitor was actually shown.
+  // Anchors the monetization funnel: pricing_viewed → upgrade_clicked →
+  // checkout_started → purchase_completed.
+  const pricingViewedRef = useRef(false);
+  const firePricingViewed = useCallback((resolvedCurrency) => {
+    if (pricingViewedRef.current) return;
+    pricingViewedRef.current = true;
+    let source = "direct";
+    try {
+      if (document.referrer) {
+        const ref = new URL(document.referrer);
+        source = ref.origin === window.location.origin ? ref.pathname : ref.hostname;
+      }
+    } catch { /* keep "direct" */ }
+    logEvent("pricing_viewed", {
+      source,
+      currency: resolvedCurrency,
+      plans_shown: ["express_pass", "active_hunter", "career_pro"],
+    });
+  }, []);
+
   // Geo detection via Vercel's edge-injected country header. Same-origin
   // call, no third-party rate limit, far more reliable than ipapi.co.
   // On any failure we stay on INR (cheaper default).
@@ -152,10 +175,14 @@ export default function PricingPage({ refreshProfile } = {}) {
       .then((d) => {
         if (cancelled) return;
         if (d?.currency === "AED") setCurrency("AED");
+        firePricingViewed(d?.currency === "AED" ? "AED" : "INR");
       })
-      .catch(() => { /* stay on INR — cheaper default */ });
+      .catch(() => {
+        /* stay on INR — cheaper default */
+        if (!cancelled) firePricingViewed("INR");
+      });
     return () => { cancelled = true; };
-  }, []);
+  }, [firePricingViewed]);
 
   // Auth state + current plan detection
   useEffect(() => {

@@ -19,6 +19,7 @@ import {
   getServerAmount,
 } from '../src/config/tierConfig.js';
 import { issueDocument } from '../src/invoices/issue.js';
+import { capturePostHogServer } from '../src/lib/analytics/posthogServer.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -346,6 +347,17 @@ async function handleWebhook(req, res, rawBody) {
       payment_intent_id: payment.id,
     });
 
+    // purchase_completed fires server-side (webhook = source of truth,
+    // ad-blocker-proof) and only on fresh processing — idempotent retries
+    // exited above, so PostHog never double-counts revenue.
+    await capturePostHogServer(userId, 'purchase_completed', {
+      plan: service,
+      amount: Number(payment.amount || 0) / 100,
+      currency: 'INR',
+      transaction_id: payment.id,
+      gateway: 'razorpay',
+    });
+
     console.log('[razorpay] a-la-carte service unlocked', { userId, service, payment_id: payment.id });
     return res.status(200).json({ success: true });
   }
@@ -408,6 +420,14 @@ async function handleWebhook(req, res, rawBody) {
     amount: payment.amount,
     external_ref: payment.order_id,
     payment_intent_id: payment.id,
+  });
+
+  await capturePostHogServer(userId, 'purchase_completed', {
+    plan,
+    amount: Number(payment.amount || 0) / 100,
+    currency: 'INR',
+    transaction_id: payment.id,
+    gateway: 'razorpay',
   });
 
   // Issue invoice + email. Idempotent on payment_id; email is best-effort
