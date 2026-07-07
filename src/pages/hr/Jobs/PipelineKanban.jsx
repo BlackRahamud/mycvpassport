@@ -123,7 +123,7 @@ function MoveMenu({ app, currentStageKey, onMove, onClose, anchorRect }) {
 }
 
 /* ── Card ── */
-function KanbanCard({ app, stageKey, onOpen, onMenu, reduce, dragging }) {
+function KanbanCard({ app, stageKey, onOpen, onMenu, reduce, dragging, landed }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: app.id,
     data: { stageKey },
@@ -143,7 +143,7 @@ function KanbanCard({ app, stageKey, onOpen, onMenu, reduce, dragging }) {
         {...attributes}
         role="button"
         tabIndex={0}
-        className="jpp-kb-card"
+        className={`jpp-kb-card${landed ? " jpp-kb-card--landed" : ""}`}
         onClick={() => onOpen(app.id, stageKey)}
         onKeyDown={(e) => {
           if (e.key === "Enter") { e.preventDefault(); onOpen(app.id, stageKey); }
@@ -180,7 +180,7 @@ function KanbanCard({ app, stageKey, onOpen, onMenu, reduce, dragging }) {
 }
 
 /* ── Column ── */
-function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, headerExtra }) {
+function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, landedId, headerExtra }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   return (
     <section
@@ -202,6 +202,7 @@ function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, header
             onMenu={onMenu}
             reduce={reduce}
             dragging={draggingId === app.id}
+            landed={landedId === app.id}
           />
         ))}
         {cards.length === 0 && (
@@ -241,9 +242,22 @@ export function KanbanSkeleton() {
   );
 }
 
+/* During a pointer-captured drag the browser ignores per-element cursor
+   rules, so grab/grabbing must be pinned on <body> for the drag's whole
+   lifetime — otherwise the cursor flickers back to default mid-flight. */
+const setBodyDragging = (on) =>
+  document.body.classList.toggle("jpp-kb-dragging", on);
+
 export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, headerExtras = {} }) {
   const [draggingId, setDraggingId] = useState(null);
+  const [landedId, setLandedId] = useState(null); // settle flash after a stage move
   const [menu, setMenu] = useState(null); // { app, stageKey, rect }
+  const landedTimer = useRef(null);
+
+  useEffect(() => () => {
+    setBodyDragging(false);
+    clearTimeout(landedTimer.current);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -254,17 +268,31 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
     ? Object.values(stageBuckets).flat().find((a) => a.id === draggingId) || null
     : null;
 
+  /* Single move path for drag drops AND the keyboard menu, so both get
+     the same settle flash. Rejected cards leave the board — no flash. */
+  const handleMove = useCallback(
+    (id, toStage) => {
+      onMove(id, toStage);
+      if (toStage === "rejected" || reduce) return;
+      clearTimeout(landedTimer.current);
+      setLandedId(id);
+      landedTimer.current = setTimeout(() => setLandedId(null), 700);
+    },
+    [onMove, reduce],
+  );
+
   const handleDragEnd = useCallback(
     (event) => {
       setDraggingId(null);
+      setBodyDragging(false);
       const { active, over } = event;
       if (!over) return;
       const fromStage = active?.data?.current?.stageKey;
       const toStage = over.id;
       if (!toStage || toStage === fromStage) return;
-      onMove(active.id, toStage);
+      handleMove(active.id, toStage);
     },
-    [onMove],
+    [handleMove],
   );
 
   return (
@@ -272,8 +300,8 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
-        onDragStart={(e) => setDraggingId(e.active.id)}
-        onDragCancel={() => setDraggingId(null)}
+        onDragStart={(e) => { setDraggingId(e.active.id); setBodyDragging(true); }}
+        onDragCancel={() => { setDraggingId(null); setBodyDragging(false); }}
         onDragEnd={handleDragEnd}
       >
         <div className="jpp-kb" role="list" aria-label="Pipeline board">
@@ -286,6 +314,7 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
               onMenu={(app, stageKey, rect) => setMenu({ app, stageKey, rect })}
               reduce={reduce}
               draggingId={draggingId}
+              landedId={landedId}
               headerExtra={headerExtras[stage.key] || null}
             />
           ))}
@@ -311,7 +340,7 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
           app={menu.app}
           currentStageKey={menu.stageKey}
           anchorRect={menu.rect}
-          onMove={onMove}
+          onMove={handleMove}
           onClose={() => setMenu(null)}
         />
       )}

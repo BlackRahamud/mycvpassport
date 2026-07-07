@@ -87,11 +87,23 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  transition: border-color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease);
+  transition: border-color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease), background 160ms var(--pj-ease);
 }
 .jpp-kb-col--over {
   border-color: var(--hjl-ink);
   box-shadow: 0 0 0 1px var(--hjl-ink), var(--pj-shadow-card);
+  background: var(--hjl-ink-soft);
+}
+
+/* Card-in-flight: pin the grabbing cursor globally (per-element cursor
+   rules don't apply under pointer capture) and still card hover lifts —
+   only the drop column may light up while dragging. */
+body.jpp-kb-dragging,
+body.jpp-kb-dragging * { cursor: grabbing !important; }
+body.jpp-kb-dragging .jpp-kb-card:hover {
+  transform: none;
+  border-color: var(--pj-border);
+  box-shadow: none;
 }
 .jpp-kb-col__head {
   display: flex;
@@ -172,6 +184,25 @@
   cursor: grabbing;
   border-color: var(--pj-border-strong);
   width: 246px;
+}
+
+/* Settle flash — one-shot ring so the landing spot reads after a move.
+   Applied by JSX only when reduced motion is off. */
+.jpp-kb-card--landed {
+  animation: jpp-kb-land 640ms var(--pj-ease);
+}
+@keyframes jpp-kb-land {
+  0% {
+    border-color: var(--hjl-ink);
+    box-shadow: 0 0 0 5px var(--hjl-ink-ring);
+  }
+  100% {
+    border-color: var(--pj-border);
+    box-shadow: 0 0 0 12px rgba(20, 19, 31, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jpp-kb-card--landed { animation: none; }
 }
 .jpp-kb-card__top {
   display: flex;
