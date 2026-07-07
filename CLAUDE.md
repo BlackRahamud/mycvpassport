@@ -265,7 +265,7 @@ Pricing:
 7. CVPassport Jobs portal — job board with HR posting + user applying (early stage, 1 HR contact)
 8. Globe animation on landing page hero (deferred — complex)
 9. Framework 7 — Scale System (trigger: Junaid says "hit")
-10. Remotion install for programmatic marketing/demo video (trigger: a specific demo video task is on deck — install `remotion @remotion/player @remotion/cli`, set up `src/remotion/`, then build the first composition)
+10. ~~Remotion install~~ — DONE Jul 7 2026. `remotion @remotion/cli @remotion/player` installed (devDeps); project at `src/remotion/` (investor walkthrough film, 16:9 + 9:16). Captures come from `scripts/capture-investor-video.mjs` (production build + stubbed backend + Playwright, fixture data only); music bed from `scripts/make-audio.mjs`; Remotion public dir = `video-assets/` (never app `public/`). Renders land in `output/` (gitignored). Re-render: `npx remotion render src/remotion/index.js InvestorFilm output/film.mp4`.
 
 ---
 

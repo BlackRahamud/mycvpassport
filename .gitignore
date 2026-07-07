@@ -45,3 +45,8 @@ scripts/.screenshots/
 
 # pdf.js worker copied from node_modules at build (scripts/copy-pdf-worker.mjs)
 public/pdf.worker.min.js
+
+# Investor-video working assets + rendered deliverables (large binaries;
+# regenerate via scripts/capture-investor-video.mjs + npx remotion render)
+/video-assets/
+/output/*.mp4
