@@ -121,6 +121,25 @@ function bandTone(score) {
   return "low";
 }
 
+// Per-row progress bar: one segment per REAL pipeline stage
+// (Read → Upload → Structure → Score). `step` is the 1-based segment
+// currently in progress, set by the same update() calls that drive the
+// stage text — nothing here is timed, estimated, or faked.
+const SEGMENT_COUNT = 4;
+function segTone(i, it) {
+  const s = it.status;
+  if (s === "scored" || s === "imported") return "ok";
+  if (s === "duplicate") return "warn";
+  if (s === "unscored") return i < SEGMENT_COUNT - 1 ? "done" : "warn"; // scoring failed, rest done
+  if (s === "error") return i < (it.step || 1) ? "err" : "off"; // red up to where it died
+  if (s === "working") {
+    const step = it.step || 1;
+    if (i < step - 1) return "done";
+    if (i === step - 1) return "active";
+  }
+  return "off"; // queued / untouched
+}
+
 export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, market = null, onClose, onImported }) {
   const reduce = useReducedMotion();
   const inputRef = useRef(null);
@@ -128,6 +147,9 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
   const [dragging, setDragging] = useState(false);
   const [running, setRunning] = useState(false);
   const [notice, setNotice] = useState(null);
+  // "warn" (amber-red info strip) or "ok" — the committed-batch summary was
+  // rendering in the error tint, which read as a failure.
+  const [noticeTone, setNoticeTone] = useState("warn");
 
   // Latest items, readable synchronously after the async parse loop so the
   // batch step sees every parsed record.
@@ -135,6 +157,11 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
   useEffect(() => { itemsRef.current = items; }, [items]);
 
   const update = useCallback((id, patch) => {
+    // Sync the ref BEFORE React flushes: runImport reads itemsRef right after
+    // the last processOne resolves, before the re-render — with only the
+    // effect sync, the final file's "scored" update was invisible to the
+    // batch commit and the last CV was silently left out of every import.
+    itemsRef.current = itemsRef.current.map((it) => (it.id === id ? { ...it, ...patch } : it));
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }, []);
 
@@ -159,7 +186,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
       const overflow = accepted.length - take.length;
       const notes = [...rejected];
       if (overflow > 0) notes.push(`${overflow} file${overflow === 1 ? "" : "s"} skipped — ${MAX_BATCH}-CV batch limit`);
-      if (notes.length) setNotice(notes.join(" · "));
+      if (notes.length) { setNoticeTone("warn"); setNotice(notes.join(" · ")); }
       const mapped = take.map((file) => ({
         id: nextId(),
         file,
@@ -167,6 +194,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
         size: file.size,
         status: "queued",
         stage: null,
+        step: 0,
         error: null,
         text: null,
         path: null,
@@ -192,7 +220,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
         persist the score so the pipeline ranks it. Reused by the per-file
         pipeline AND the per-row "Retry scoring" action. ── */
   const scoreOne = useCallback(async (itemId, snapshot, candidateName) => {
-    update(itemId, { status: "working", stage: "Scoring fit…", error: null });
+    update(itemId, { status: "working", stage: "Scoring fit…", step: 4, error: null });
     try {
       const { data: { session } = {} } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -229,7 +257,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
         insert → score. ── */
   const processOne = useCallback(async (item) => {
     // 1. Extract text in the browser (OCR fallback on for image-only PDFs).
-    update(item.id, { status: "working", stage: "Reading the CV…", error: null });
+    update(item.id, { status: "working", stage: "Reading the CV…", step: 1, error: null });
     let extracted;
     try {
       extracted = await extractCvText(item.file, { ocrFallback: true });
@@ -240,7 +268,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
 
     // 2. Keep the original file — private applicant-cvs bucket, HR's own uid
     //    folder (021 policies cover this; the row's cv_file_path points here).
-    update(item.id, { stage: "Uploading…" });
+    update(item.id, { stage: "Uploading…", step: 2 });
     let path = null;
     try {
       const ext = fileExt(item.file);
@@ -261,7 +289,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
 
     // 3. Structure the extracted text into a candidate snapshot via the
     //    Phase-1-aligned parser contract (/api/ai?action=import_structure).
-    update(item.id, { stage: "Structuring…", text: extracted.text, path, ocr: extracted.ocr });
+    update(item.id, { stage: "Structuring…", step: 3, text: extracted.text, path, ocr: extracted.ocr });
     let snapshot = null;
     try {
       const { data: { session } = {} } = await supabase.auth.getSession();
@@ -330,6 +358,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
     const ready = latest.filter((it) => (it.status === "scored" || it.status === "unscored") && it.snapshot);
 
     if (failed.length > 0) {
+      setNoticeTone("warn");
       setNotice(`${failed.length} file${failed.length === 1 ? "" : "s"} couldn't be read. Remove ${failed.length === 1 ? "it" : "them"} and import again. Nothing was added yet.`);
       setRunning(false);
       return;
@@ -349,6 +378,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
       const inserted = data?.inserted || 0;
       const dupes = data?.skipped || 0;
       const target = poolName ? `the "${poolName.trim()}" pool` : "this job";
+      setNoticeTone(inserted > 0 ? "ok" : "warn");
       setNotice(`${inserted} candidate${inserted === 1 ? "" : "s"} added to ${target}${dupes > 0 ? ` · ${dupes} skipped as duplicate${dupes === 1 ? "" : "s"}` : ""}.`);
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -356,6 +386,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
       const msg = /row-level security|policy|function .* does not exist/i.test(String(e?.message || ""))
         ? "permissions or migrations missing, run 027 and 028"
         : (e?.message || "please try again");
+      setNoticeTone("warn");
       setNotice(`Nothing was added, the whole batch rolled back (${msg}).`);
       // Items stay scored/unscored, so a re-click retries only the commit.
     }
@@ -439,7 +470,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
             <AnimatePresence>
               {notice && (
                 <motion.p
-                  className="bci-notice"
+                  className={`bci-notice bci-notice--${noticeTone}`}
                   initial={reduce ? false : { opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
@@ -484,6 +515,11 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
                                       : it.stage
                                         ? <span className="bci-row__stage">{it.stage}</span>
                                         : `${sizeLabel(it.size)}${it.ocr ? " · OCR" : ""}`}
+                          </span>
+                          <span className="bci-prog" aria-hidden="true">
+                            {Array.from({ length: SEGMENT_COUNT }).map((_, i) => (
+                              <span key={i} className={`bci-prog__seg bci-prog__seg--${segTone(i, it)}`} />
+                            ))}
                           </span>
                         </span>
                         <span className={`bci-pill bci-pill--${meta.tone}${(it.status === "scored" || it.status === "imported") && typeof it.score === "number" ? ` bci-pill--band-${bandTone(it.score)}` : ""}`}>
