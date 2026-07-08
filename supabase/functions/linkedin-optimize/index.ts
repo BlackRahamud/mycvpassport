@@ -434,11 +434,17 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 4096,
+        // 4096 was too tight: four category feedbacks + a 4-paragraph About
+        // + 3 bullets per block can overrun it, and a tool call truncated by
+        // max_tokens arrives as partial/empty input → schema_violation.
+        max_tokens: 8192,
         temperature: 0.4,
         system: systemPrompt(),
         tools: [LINKEDIN_TOOL],
-        tool_choice: { type: "tool", name: LINKEDIN_TOOL.name },
+        // disable_parallel_tool_use: the model otherwise sometimes splits
+        // the emission into TWO tool calls (score in one, optimized in the
+        // other) and the single-call reader saw only half the payload.
+        tool_choice: { type: "tool", name: LINKEDIN_TOOL.name, disable_parallel_tool_use: true },
         messages: [
           { role: "user", content: userPrompt(rawProfile, targetRole, market ?? "") },
         ],
@@ -461,17 +467,49 @@ Deno.serve(async (req: Request) => {
   }
 
   const ai = await response.json();
-  const toolUse = (ai.content ?? []).find(
+  // A generation cut off by max_tokens yields a truncated tool call whose
+  // input is partial or empty. Say so explicitly instead of a shape error.
+  if (ai.stop_reason === "max_tokens") {
+    return json({ error: "output_truncated", stop_reason: ai.stop_reason }, 502);
+  }
+  // Merge every tool_use block: even with parallel tool use disabled this
+  // is a safe read, and if the model ever splits the emission again the
+  // halves recombine instead of failing.
+  const toolUses = (ai.content ?? []).filter(
     (b: { type?: string }) => b?.type === "tool_use",
   );
-  if (!toolUse || !toolUse.input || typeof toolUse.input !== "object") {
-    return json({ error: "no_tool_use_in_response" }, 502);
+  if (toolUses.length === 0) {
+    return json({ error: "no_tool_use_in_response", stop_reason: ai.stop_reason ?? null }, 502);
   }
-  const out = toolUse.input as Record<string, any>; // deno-lint-ignore no-explicit-any
-  const score = out.score;
-  const optimized = out.optimized;
+  // deno-lint-ignore no-explicit-any
+  const out = Object.assign(
+    {},
+    ...toolUses.map((t: { input?: unknown }) =>
+      t.input && typeof t.input === "object" ? t.input : {}
+    ),
+  ) as Record<string, any>;
+  let score = out.score;
+  let optimized = out.optimized;
+  // Observed haiku-4-5 failure mode: the full payload arrives with
+  // `optimized` nested INSIDE `score` (or, defensively, the reverse).
+  // Un-nest instead of rejecting — the content is complete and valid.
+  if (!optimized && score && typeof score === "object" && score.optimized) {
+    optimized = score.optimized;
+  }
+  if (!score?.categories && optimized && typeof optimized === "object" && optimized.score) {
+    score = optimized.score;
+  }
   if (!score || !optimized || !Array.isArray(optimized.experience_blocks)) {
-    return json({ error: "schema_violation" }, 502);
+    // Diagnostic detail: enough to see WHAT was malformed, never the content.
+    return json({
+      error: "schema_violation",
+      stop_reason: ai.stop_reason ?? null,
+      got_keys: Object.keys(out),
+      score_keys: score && typeof score === "object" ? Object.keys(score) : String(score),
+      blocks_type: optimized ? typeof optimized.experience_blocks : "no_optimized",
+      out_chars: JSON.stringify(out).length,
+      out_tokens: Number(ai.usage?.output_tokens ?? 0),
+    }, 502);
   }
 
   const overall = Math.max(0, Math.min(100, Math.round(Number(score.overall) || 0)));
