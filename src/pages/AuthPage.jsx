@@ -78,8 +78,10 @@ const AUTH_ERR_BOX = {
   lineHeight: 1.45,
 };
 
-function AuthFooter() {
-  const items = ["Free to start", "No credit card", "2,400+ CVs built"];
+function AuthFooter({ isEmployer }) {
+  const items = isEmployer
+    ? ["Free to start", "No credit card", "Post jobs in minutes"]
+    : ["Free to start", "No credit card", "2,400+ CVs built"];
   return (
     <div
       style={{
@@ -127,13 +129,19 @@ function AuthCardShell({ children }) {
   );
 }
 
-function AuthLogoBlock() {
+function AuthLogoBlock({ isEmployer }) {
   return (
     <div style={logoBlockStyle}>
       <div style={{ display: "flex", justifyContent: "center", color: "var(--text-primary)" }}>
         <CVPassportLogo height={32} color="currentColor" />
       </div>
-      <p style={taglineStyle}>Your Gulf career starts here</p>
+      {isEmployer ? (
+        <p style={{ ...taglineStyle, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, fontSize: "11px" }}>
+          For Employers
+        </p>
+      ) : (
+        <p style={taglineStyle}>Your Gulf career starts here</p>
+      )}
     </div>
   );
 }
@@ -152,17 +160,21 @@ function AuthPage({
   onForgotPassword,
   onGoToSignUp,
   onBackToSignIn,
-  // Entry intent: /employer/login, /employer/signup and ?as=employer preset
-  // the Candidate/Employer segmented control. In login mode (no visible
-  // toggle) this state still rides through doSubmit → handleAuth, where it
-  // drives employer-side post-login routing (portal vs onboarding).
-  initialUserType,
+  // Entry role: /employer/login, /employer/signup and ?as=employer render
+  // the employer variant (light surface, ink button, employer copy). The
+  // recruiter role lock rides through doSubmit → handleAuth as userType:
+  // signup puts user_type "recruiter" in the signUp metadata, login uses
+  // it for employer-side post-login routing (portal vs onboarding).
+  role,
+  // Low-emphasis role switch under the card. Provided by the route so the
+  // destination carries the OTHER role for real (candidate signup has no
+  // recruiter metadata, employer signup always does).
+  onCrossOver,
 }) {
+  const isEmployer = role === "employer";
+  const userType = isEmployer ? "recruiter" : "candidate";
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [userType, setUserType] = useState(initialUserType === "recruiter" ? "recruiter" : "candidate");
-  const [workEmail, setWorkEmail] = useState("");
-  const [companyName, setCompanyName] = useState("");
   const [loginUiSuccess, setLoginUiSuccess] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -217,14 +229,14 @@ function AuthPage({
     const email = emailRef.current?.value ?? form.email;
     const password = passwordRef.current?.value ?? form.password;
     const name = (nameRef.current?.value ?? form.name).trim();
+    // Company details are deferred to /employer/onboarding (the backend
+    // enforcement point) — signup sends role intent only.
     const result = await onAuth(
       {
         name: name || (email || "").split("@")[0] || "",
         email,
         password,
         userType,
-        workEmail: mode === "signup" && userType === "recruiter" ? workEmail : undefined,
-        companyName: mode === "signup" && userType === "recruiter" ? companyName : undefined,
       },
       mode,
     );
@@ -297,12 +309,17 @@ function AuthPage({
     transition: "opacity 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)",
   };
 
+  // Employer variant submits on ink (matches the /employer landing); the
+  // candidate variant keeps the amber gradient.
+  const idleBtnStyle = isEmployer
+    ? { ...amberBtnBase, background: "#14131F", color: "#FFFFFF", fontWeight: 600, boxShadow: "0 6px 18px rgba(20, 19, 31, 0.28)" } // theme-fixed: white label on ink fill
+    : { ...amberBtnBase, background: "linear-gradient(180deg, #FFD33D 0%, #FBBC05 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 14px rgba(255,193,7,0.32)" };
   const submitBtnStyle =
     loginUiSuccess
       ? { ...amberBtnBase, background: "#22C55E", color: "#FFFFFF", cursor: "default" } // theme-fixed: white on green fill
       : loading
-        ? { ...amberBtnBase, background: "linear-gradient(180deg, #FFD33D 0%, #FBBC05 100%)", opacity: 0.75, cursor: "not-allowed", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 14px rgba(255,193,7,0.32)" }
-        : { ...amberBtnBase, background: "linear-gradient(180deg, #FFD33D 0%, #FBBC05 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), 0 4px 14px rgba(255,193,7,0.32)" };
+        ? { ...idleBtnStyle, opacity: 0.75, cursor: "not-allowed" }
+        : idleBtnStyle;
 
   if (pendingVerificationEmail) {
     const handleVerifyResend = async () => {
@@ -313,9 +330,9 @@ function AuthPage({
       if (ok) setVerifyResendSuccess(true);
     };
     return (
-      <div className="cvp-auth-page" data-theme={getTheme()} style={pageWrapStyle}>
+      <div className="cvp-auth-page" data-theme={isEmployer ? "light" : getTheme()} style={pageWrapStyle}>
         <NoIndex />
-        <AuthLogoBlock />
+        <AuthLogoBlock isEmployer={isEmployer} />
         <AuthCardShell>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px", color: "var(--text-primary)" }} aria-hidden>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -393,7 +410,7 @@ function AuthPage({
             ← Back to sign in
           </button>
         </AuthCardShell>
-        <AuthFooter />
+        <AuthFooter isEmployer={isEmployer} />
       </div>
     );
   }
@@ -401,9 +418,9 @@ function AuthPage({
   const showForgot = forgotPanel && mode === "login";
 
   return (
-    <div className="cvp-auth-page" data-theme={getTheme()} style={pageWrapStyle}>
+    <div className="cvp-auth-page" data-theme={isEmployer ? "light" : getTheme()} style={pageWrapStyle}>
       <NoIndex />
-      <AuthLogoBlock />
+      <AuthLogoBlock isEmployer={isEmployer} />
       <AuthCardShell>
         {showForgot ? (
           <>
@@ -466,7 +483,8 @@ function AuthPage({
                 className="cvp-auth-btn--amber"
                 style={{
                   ...amberBtnBase,
-                  background: "#F59E0B",
+                  background: isEmployer ? "#14131F" : "#F59E0B",
+                  ...(isEmployer ? { color: "#FFFFFF" } : {}), // theme-fixed: white label on ink fill
                   opacity: forgotSending ? 0.75 : 1,
                   cursor: forgotSending ? "not-allowed" : "pointer",
                   marginTop: "4px",
@@ -518,10 +536,20 @@ function AuthPage({
                 fontFamily: AUTH_FONT,
               }}
             >
-              {mode === "login" ? "Welcome back" : "Create your CVPassport account"}
+              {mode === "login"
+                ? "Welcome back"
+                : isEmployer
+                  ? "Start hiring on CVPassport"
+                  : "Create your CVPassport account"}
             </h2>
             <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "13px", fontFamily: AUTH_FONT }}>
-              {mode === "login" ? "Sign in to your CVPassport account" : "Free to start. No credit card required."}
+              {mode === "login"
+                ? isEmployer
+                  ? "Sign in to the employer portal"
+                  : "Sign in to your CVPassport account"
+                : isEmployer
+                  ? "Free to start. No credit card required."
+                  : "Build your Gulf ready CV in minutes. Free to start."}
             </p>
 
             {errText ? (
@@ -724,105 +752,17 @@ function AuthPage({
                   </button>
                 </div>
                 {mode === "signup" ? (
-                  <>
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        color: form.password.length >= 8 ? "var(--success-text)" : "var(--text-secondary)",
-                        marginTop: "6px",
-                        marginBottom: 0,
-                        fontFamily: AUTH_FONT,
-                      }}
-                    >
-                      At least 8 characters
-                    </p>
-                    {/* Segmented control — Candidate / Employer */}
-                    <div style={{ marginTop: "16px" }}>
-                      <label style={authLabelStyle}>What brings you here?</label>
-                      <div
-                        style={{
-                          background: "var(--bg)",
-                          border: "0.5px solid var(--border)",
-                          borderRadius: "10px",
-                          padding: "4px",
-                          display: "flex",
-                          gap: "3px",
-                          width: "100%",
-                        }}
-                      >
-                        {[
-                          { key: "candidate", label: "Candidate" },
-                          { key: "recruiter", label: "Employer" },
-                        ].map((opt) => {
-                          const active = userType === opt.key;
-                          return (
-                            <button
-                              key={opt.key}
-                              type="button"
-                              onClick={() => setUserType(opt.key)}
-                              style={{
-                                flex: 1,
-                                padding: "9px 0",
-                                borderRadius: "7px",
-                                border: active ? "0.5px solid var(--border-strong)" : "none",
-                                background: active ? "var(--bg-surface)" : "transparent",
-                                color: active ? "var(--text-primary)" : "var(--text-muted)",
-                                fontWeight: active ? 500 : 400,
-                                fontSize: "13px",
-                                textAlign: "center",
-                                cursor: "pointer",
-                                fontFamily: AUTH_FONT,
-                                boxShadow: active ? "var(--shadow-card)" : "none",
-                                transition: "background 0.18s ease, color 0.18s ease, font-weight 0.18s ease, border 0.18s ease, box-shadow 0.18s ease",
-                              }}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    {/* Recruiter extra fields */}
-                    {userType === "recruiter" ? (
-                      <div
-                        className="cvp-auth-employer-fields"
-                        style={{
-                          marginTop: "12px",
-                          background: "var(--bg)",
-                          border: "0.5px solid var(--border)",
-                          borderRadius: "12px",
-                          padding: "12px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "12px",
-                        }}
-                      >
-                        <div>
-                          <label style={authLabelStyle} htmlFor="cvp-auth-work-email">Work email</label>
-                          <input
-                            id="cvp-auth-work-email"
-                            className="cvp-auth-field"
-                            style={authInputStyle}
-                            type="email"
-                            placeholder="work@company.com"
-                            value={workEmail}
-                            onChange={(e) => setWorkEmail(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label style={authLabelStyle} htmlFor="cvp-auth-company">Company name</label>
-                          <input
-                            id="cvp-auth-company"
-                            className="cvp-auth-field"
-                            style={authInputStyle}
-                            placeholder="Your company"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    ) : null}
-                  </>
+                  <p
+                    style={{
+                      fontSize: "12px",
+                      color: form.password.length >= 8 ? "var(--success-text)" : "var(--text-secondary)",
+                      marginTop: "6px",
+                      marginBottom: 0,
+                      fontFamily: AUTH_FONT,
+                    }}
+                  >
+                    At least 8 characters
+                  </p>
                 ) : (
                   <div style={{ textAlign: "right", marginTop: "8px", marginBottom: "24px" }}>
                     <button
@@ -902,7 +842,45 @@ function AuthPage({
           </>
         )}
       </AuthCardShell>
-      <AuthFooter />
+      {onCrossOver ? (
+        <p
+          style={{
+            marginTop: "18px",
+            marginBottom: 0,
+            fontSize: "12px",
+            color: "var(--text-muted)",
+            fontFamily: AUTH_FONT,
+            textAlign: "center",
+          }}
+        >
+          {isEmployer ? "Not an employer? " : "Hiring for your company? "}
+          <button
+            type="button"
+            onClick={onCrossOver}
+            style={{
+              border: "none",
+              background: "none",
+              color: "var(--accent-text)",
+              fontSize: "12px",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: AUTH_FONT,
+              padding: 0,
+              textDecoration: "underline",
+              textUnderlineOffset: "3px",
+            }}
+          >
+            {isEmployer
+              ? mode === "login"
+                ? "Sign in as a candidate"
+                : "Create a candidate account"
+              : mode === "login"
+                ? "Sign in as an employer"
+                : "Create an employer account"}
+          </button>
+        </p>
+      ) : null}
+      <AuthFooter isEmployer={isEmployer} />
     </div>
   );
 }

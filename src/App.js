@@ -252,12 +252,20 @@ export default function App() {
                 element={
                   <AuthPage
                     mode={authMode}
-                    initialUserType={employerIntent ? "recruiter" : undefined}
+                    role={employerIntent ? "employer" : undefined}
                     {...authPageSharedProps}
                     onToggle={() => {
                       setPendingVerificationEmail(null);
                       setAuthMode((m) => (m === "login" ? "signup" : "login"));
                       setAuthError(null);
+                    }}
+                    onCrossOver={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthError(null);
+                      // ?as=employer → drop the query (candidate side);
+                      // plain /auth → the employer entry for this mode.
+                      if (employerIntent) navigate("/auth", { replace: true });
+                      else navigate(authMode === "login" ? "/employer/login" : "/employer/signup");
                     }}
                   />
                 }
@@ -267,13 +275,19 @@ export default function App() {
                 element={
                   <AuthPage
                     mode="signup"
-                    initialUserType={employerIntent ? "recruiter" : undefined}
+                    role={employerIntent ? "employer" : undefined}
                     {...authPageSharedProps}
                     onToggle={() => {
                       setPendingVerificationEmail(null);
                       setAuthMode("login");
                       setAuthError(null);
                       navigate("/auth");
+                    }}
+                    onCrossOver={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthError(null);
+                      if (employerIntent) navigate("/register", { replace: true });
+                      else navigate("/employer/signup");
                     }}
                   />
                 }
@@ -286,13 +300,19 @@ export default function App() {
                 element={
                   <AuthPage
                     mode="login"
-                    initialUserType="recruiter"
+                    role="employer"
                     {...authPageSharedProps}
                     onToggle={() => {
                       setPendingVerificationEmail(null);
                       setAuthMode("signup");
                       setAuthError(null);
                       navigate("/employer/signup");
+                    }}
+                    onCrossOver={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthError(null);
+                      setAuthMode("login");
+                      navigate("/auth");
                     }}
                   />
                 }
@@ -302,13 +322,18 @@ export default function App() {
                 element={
                   <AuthPage
                     mode="signup"
-                    initialUserType="recruiter"
+                    role="employer"
                     {...authPageSharedProps}
                     onToggle={() => {
                       setPendingVerificationEmail(null);
                       setAuthMode("login");
                       setAuthError(null);
                       navigate("/employer/login");
+                    }}
+                    onCrossOver={() => {
+                      setPendingVerificationEmail(null);
+                      setAuthError(null);
+                      navigate("/register");
                     }}
                   />
                 }
