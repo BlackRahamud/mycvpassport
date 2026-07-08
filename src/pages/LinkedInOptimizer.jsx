@@ -22,6 +22,7 @@ import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { useCvpAuth } from "../useCvpAuth";
+import logoIcon from "../assets/logo512.png";
 import safeFetch from "../lib/net/safeFetch";
 import { extractCvText, CvExtractionError } from "../services/cvExtraction";
 import { useGeoContent } from "../hooks/useGeoContent";
@@ -67,7 +68,6 @@ const SCAN_TICKER = [
   "Measuring search visibility",
   "Drafting your rewrite",
 ];
-const FAILURES = ["No role clarity", "Generic", "No seniority", "No location", "No numbers", "Weak verbs"];
 
 // Style metadata for the three headline variants; body text comes from the API.
 const STYLE_META = [
@@ -314,8 +314,10 @@ function HeadlineIdle({ profileName, initials, headline, setHeadline, onOptimize
   );
 }
 
-// Decorative progress ring used for both the headline and the deep scan.
-function Loader({ title, ticker }) {
+// Calm loading body: one quiet ring with a rotating arc, the title line,
+// the step ticker, and the progress bar. No floating warning chips.
+// Rendered INSIDE a stable wrapper — never as a swapping AnimatePresence root.
+function LoaderBody({ title, ticker }) {
   const [pct, setPct] = useState(0);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -324,21 +326,14 @@ function Loader({ title, ticker }) {
     return () => { clearInterval(id); clearInterval(tk); };
   }, [ticker.length]);
   return (
-    <motion.div key="loading" className="phase load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+    <>
       <div className="orb">
-        {[0, 1, 2].map((i) => (
-          <motion.span key={i} className="orb-ring" style={{ inset: i * 15 }} animate={{ rotate: i % 2 ? -360 : 360 }} transition={{ duration: 9 - i * 2, repeat: Infinity, ease: "linear" }} />
-        ))}
+        <span className="orb-ring" style={{ inset: 0 }} />
         <motion.span className="orb-arc" animate={{ rotate: 360 }} transition={{ duration: 1.3, repeat: Infinity, ease: "linear" }} />
         <div className="orb-core">
           <span className="orb-lab">Reading</span>
           <span className="orb-pct">{Math.floor(pct)}<i>%</i></span>
         </div>
-        {FAILURES.map((f, i) => (
-          <motion.span key={f} className="fchip" style={{ left: (16 + (i % 3) * 28) + "%" }}
-            initial={{ y: -8, opacity: 0 }} animate={{ y: [-8, 150], opacity: [0, 0.9, 0] }}
-            transition={{ duration: 4.4, repeat: Infinity, delay: i * 0.6, ease: "easeIn" }}>{f}</motion.span>
-        ))}
       </div>
       <div className="load-txt">
         <p className="load-title">{title}</p>
@@ -349,6 +344,19 @@ function Loader({ title, ticker }) {
         </div>
         <div className="load-bar"><motion.span animate={{ width: pct + "%" }} transition={{ ease: "linear" }} /></div>
       </div>
+    </>
+  );
+}
+
+// Full-phase loader for TOP-LEVEL AnimatePresence slots only (headline check,
+// deep scan). Views that swap between loading and content internally must use
+// LoaderBody inside their own stable root instead — an AnimatePresence child
+// that swaps its root motion element never signals exit completion, and
+// mode="wait" then blocks the next view forever (the Step 2 bounce bug).
+function Loader({ title, ticker }) {
+  return (
+    <motion.div key="loading" className="phase load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+      <LoaderBody title={title} ticker={ticker} />
     </motion.div>
   );
 }
@@ -508,10 +516,18 @@ function ProfileIntake({ onParsed, authHeaders }) {
     });
   };
 
-  if (busy) return <Loader title="Reading your profile the way a recruiter skims it." ticker={SCAN_TICKER} />;
-
+  // ONE stable root for the whole intake lifecycle (upload / reading /
+  // manual). Swapping the root motion element between keyed variants broke
+  // AnimatePresence mode="wait": the exit-complete signal never fired and
+  // the confirm screen could never mount (the Step 2 bounce bug).
   return (
     <motion.div key="intake" className="phase" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.35, ease }}>
+      {busy ? (
+        <div className="load">
+          <LoaderBody title="Reading your profile the way a recruiter skims it." ticker={SCAN_TICKER} />
+        </div>
+      ) : (
+        <>
       <div className="res-head"><div><span className="eyebrow">Step 2 of 4</span><h2 className="res-title">Add your profile.</h2></div></div>
 
       {mode === "upload" ? (
@@ -568,6 +584,8 @@ function ProfileIntake({ onParsed, authHeaders }) {
             <motion.button className="btn-primary" onClick={pasteContinue} whileTap={{ scale: 0.99 }}>Review what we read <Icon.arrow /></motion.button>
           </div>
         </motion.div>
+      )}
+        </>
       )}
     </motion.div>
   );
@@ -826,14 +844,14 @@ function CopyWizard({ result, pricing, unlocked, onUnlock, unlockBusy, onBack })
 }
 
 // ── Shell ───────────────────────────────────────────────────────────────────
-function TopNav({ name, onReset }) {
+function TopNav({ name, onReset, onHome }) {
   return (
     <div className="li-nav">
       <div className="li-nav-inner">
-        <div className="brand">
-          <div className="mark">CV</div>
+        <button type="button" className="brand brand--btn" onClick={onHome} aria-label="Go to CVPassport home">
+          <img className="mark-img" src={logoIcon} alt="CVPassport logo" />
           <div className="brand-txt"><strong>CVPassport</strong><span>LinkedIn Optimizer</span></div>
-        </div>
+        </button>
         <div className="nav-r">
           {name && <span className="acct"><span className="acct-av">{name.slice(0, 1).toUpperCase()}</span>{name.split(" ")[0]}</span>}
           <button className="nav-reset" onClick={onReset}>Start over</button>
@@ -1114,7 +1132,7 @@ export default function LinkedInOptimizer() {
       <div className="liopt-root">
         <style>{CSS_TEXT}</style>
         <div className="page">
-          <TopNav name={user ? displayName : ""} onReset={reset} />
+          <TopNav name={user ? displayName : ""} onReset={reset} onHome={() => navigate("/")} />
 
           {step === 1 && (
             <header className="hero">
@@ -1237,7 +1255,8 @@ const CSS_TEXT = `
   .li-nav-inner{max-width:1180px;margin:0 auto;padding:11px 24px;display:flex;align-items:center;justify-content:space-between}
   @media (max-width:560px){.li-nav-inner{padding:10px 14px}}
   .brand{display:flex;align-items:center;gap:11px}
-  .brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(150deg,var(--blue),#0A4E96);display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 6px rgba(10,102,194,.3)}
+  .brand--btn{background:none;border:none;padding:0;cursor:pointer;font-family:inherit;text-align:left;color:inherit}
+  .brand .mark-img{width:34px;height:34px;border-radius:9px;display:block;box-shadow:0 2px 6px rgba(10,102,194,.3)}
   .brand-txt{display:flex;flex-direction:column;line-height:1.15}
   .brand-txt strong{font-size:15px;font-weight:700;letter-spacing:-.01em}
   .brand-txt span{font-size:11.5px;color:var(--ink4);font-weight:500}
@@ -1357,7 +1376,6 @@ const CSS_TEXT = `
   .orb-lab{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--blue)}
   .orb-pct{font-size:31px;font-weight:700;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
   .orb-pct i{font-size:15px;color:var(--ink4);font-style:normal;font-weight:600}
-  .fchip{position:absolute;top:0;padding:4px 9px;border:1px solid rgba(145,89,7,.25);background:var(--warn-soft);color:var(--warn);border-radius:999px;font-size:10.5px;font-weight:600;white-space:nowrap;pointer-events:none}
   .load-txt{max-width:420px}
   .load-title{font-size:18px;font-weight:600;color:var(--ink);line-height:1.4;margin:0 0 16px}
   .load-ticker{height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--blue)}
@@ -1411,9 +1429,14 @@ const CSS_TEXT = `
   /* Reclaim focus styling from the global amber input:focus !important rule
      (src/index.css). Amber reads as a warning on this LinkedIn-blue surface;
      inputs here focus blue, and the borderless headline field keeps its own
-     .hl-field ring instead of an inner glow. */
-  .liopt-root input:focus,.liopt-root textarea:focus,.liopt-root select:focus{border-color:var(--blue) !important;box-shadow:0 0 0 3px rgba(10,102,194,.12) !important;outline:none !important}
-  .liopt-root .hl-input:focus{border-color:transparent !important;box-shadow:none !important}
+     .hl-field ring instead of an inner glow.
+     NEST-AWARE: this whole sheet lives inside the .liopt-root{} block, so
+     selectors here already compile to ".liopt-root <selector>". Do NOT
+     prefix .liopt-root again — that compiles to ".liopt-root .liopt-root …"
+     and matches nothing (the original amber-focus regression). */
+  input:focus,textarea:focus,select:focus{border-color:var(--blue) !important;box-shadow:0 0 0 3px rgba(10,102,194,.12) !important;outline:none !important}
+  .hl-input:focus{border-color:transparent !important;box-shadow:none !important}
+  .hl-input{caret-color:var(--blue)}
   .ta.sm{min-height:54px}
   .form-stack{display:flex;flex-direction:column;gap:18px;margin-bottom:22px}
   .confirm-note{font-size:14px;color:var(--ink3);margin:-8px 0 18px}
