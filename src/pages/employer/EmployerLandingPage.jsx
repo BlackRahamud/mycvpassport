@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import { HR_SALES } from "../../utils/paywall";
+import logoIcon from "../../assets/logo512.png";
 import "../hr/PostJob/postJob.css"; // --pj-* tokens (font stack fallback)
 import "./employerLandingPage.css";
 
@@ -124,7 +125,7 @@ export default function EmployerLandingPage() {
       <header className="empl-nav">
         <div className="empl-container empl-nav-inner">
           <button type="button" className="empl-brand empl-brand--btn" onClick={scrollTop} aria-label="Back to top">
-            <img src="/logo512.png" alt="CVPassport logo" />
+            <img src={logoIcon} alt="CVPassport logo" />
             <span className="empl-brand-name">CVPassport</span>
           </button>
           <nav className="empl-nav-links">
@@ -305,7 +306,7 @@ export default function EmployerLandingPage() {
       <footer className="empl-footer">
         <div className="empl-container empl-footer-inner">
           <Link to="/" className="empl-brand" aria-label="CVPassport home">
-            <img src="/logo512.png" alt="CVPassport logo" />
+            <img src={logoIcon} alt="CVPassport logo" />
             <span className="empl-brand-name">CVPassport</span>
           </Link>
           <nav className="empl-footer-links">
