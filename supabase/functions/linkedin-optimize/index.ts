@@ -416,10 +416,17 @@ Deno.serve(async (req: Request) => {
 
   const model = modelForPro(isPro);
 
+  // Bounded upstream call: without the abort, a stalled Anthropic socket
+  // hangs this function until the platform kills it and the client only
+  // ever sees a dead spinner. 55s stays inside every relevant budget.
+  const ANTHROPIC_TIMEOUT_MS = 55_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
@@ -438,7 +445,15 @@ Deno.serve(async (req: Request) => {
       }),
     });
   } catch (err) {
-    return json({ error: "anthropic_unreachable", message: String(err) }, 502);
+    const timedOut = err instanceof Error && err.name === "AbortError";
+    return json(
+      timedOut
+        ? { error: "upstream_timeout", message: "The scan took too long upstream." }
+        : { error: "anthropic_unreachable", message: String(err) },
+      timedOut ? 504 : 502,
+    );
+  } finally {
+    clearTimeout(timer);
   }
   if (!response.ok) {
     const text = await response.text();

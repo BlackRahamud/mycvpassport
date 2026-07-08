@@ -90,6 +90,83 @@ function pricingFor(market) {
     : { currency: "AED", amount: "29", provider: "Ziina" };
 }
 
+// ── Hardened edge-function call (deep scan) ─────────────────────────────────
+// Direct fetch instead of supabase.functions.invoke: it exposes the real
+// status code for plain-language error mapping, and takes an AbortSignal so
+// a stalled call can never leave the user on a dead screen.
+const OPTIMIZE_FN_URL = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/linkedin-optimize`;
+const OPTIMIZE_TIMEOUT_MS = 75000;
+
+async function callOptimizeFn(body, token) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), OPTIMIZE_TIMEOUT_MS);
+  try {
+    const res = await safeFetch(OPTIMIZE_FN_URL, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        apikey: process.env.REACT_APP_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data, timedOut: false };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// One automatic retry on transient failure (network drop or a fast 5xx).
+// A timeout is NOT auto-retried: the user already waited, show them a
+// real error with a Retry button instead of silently doubling the wait.
+async function callOptimizeFnWithRetry(body, token) {
+  const RETRYABLE = new Set([502, 503, 529]);
+  let first;
+  try {
+    first = await callOptimizeFn(body, token);
+    if (first.ok || !RETRYABLE.has(first.status)) return first;
+  } catch (err) {
+    if (err?.name === "AbortError") return { ok: false, status: 0, data: {}, timedOut: true };
+    first = null; // network error → retry below
+  }
+  await new Promise((r) => setTimeout(r, 1500));
+  try {
+    return await callOptimizeFn(body, token);
+  } catch (err) {
+    return { ok: false, status: 0, data: {}, timedOut: err?.name === "AbortError" };
+  }
+}
+
+// Plain-language mapping: every failure resolves to a message that says
+// what happened and what to do next.
+function scanErrorText(r) {
+  if (r.timedOut) return "The scan took too long to respond. Your profile is safe, retry now.";
+  if (r.status === 0) return "We could not reach the scoring service. Check your connection, then retry.";
+  if (r.status === 401) return "Your session expired. Sign in again, then retry.";
+  if (r.status === 404) return "The scoring service is temporarily unavailable. Please try again in a few minutes.";
+  if (r.status === 429) return r.data?.message || "Daily scan limit reached. Try again tomorrow.";
+  if (r.status === 402) return r.data?.message || "Daily limit reached. Try again tomorrow.";
+  if (r.status === 400) return r.data?.message || "Your profile looked empty. Add a headline, About, or one role, then retry.";
+  return "The scan failed on our side. Nothing was lost, retry now.";
+}
+
+// Red error panel: title, plain message, and real actions. Used for scan
+// and upload failures so no failure is ever an ambiguous amber note.
+function ErrorPanel({ title, msg, actions }) {
+  return (
+    <div className="err-panel" role="alert">
+      <div className="ep-head">
+        <span className="ep-ic" aria-hidden="true">!</span>
+        <span>{title}</span>
+      </div>
+      <p className="ep-msg">{msg}</p>
+      {actions ? <div className="ep-actions">{actions}</div> : null}
+    </div>
+  );
+}
+
 // ── Icons ───────────────────────────────────────────────────────────────────
 const Icon = {
   arrow: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 12h14M13 6l6 6-6 6" /></svg>,
@@ -357,15 +434,24 @@ function fileToBase64(file) {
   });
 }
 
+// Plain-language mapping for the upload/parse path.
+function uploadErrorText(status, data) {
+  if (status === 401) return "Your session expired. Sign in again, then retry.";
+  if (status === 413) return "That file is too large. Use a screenshot under 4 MB, or type your profile in instead.";
+  if (status === 400 || status === 422) return data?.message || "We could not read a profile in that file. Try a clearer screenshot, or type it in instead.";
+  return "Reading that file failed on our side. Retry, or type your profile in instead.";
+}
+
 function ProfileIntake({ onParsed, authHeaders }) {
   const [mode, setMode] = useState("upload"); // upload | manual
   const [fileName, setFileName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [uploadError, setUploadError] = useState(null);
   const [headline, setHeadline] = useState("");
   const [about, setAbout] = useState("");
   const [exp, setExp] = useState([emptyExp()]);
   const fileRef = useRef(null);
+  const lastFileRef = useRef(null);
 
   const toBlocks = (blocks) => blocks.map((b, i) => ({
     id: b.id || `exp-${i}`, role: b.role || "", company: b.company || "", period: b.duration || b.period || "", description: b.description || "",
@@ -373,8 +459,9 @@ function ProfileIntake({ onParsed, authHeaders }) {
 
   const onFile = async (f) => {
     if (!f || busy) return;
+    lastFileRef.current = f;
     setFileName(f.name);
-    setNotice("");
+    setUploadError(null);
     setBusy(true);
     const isImg = /image\//.test(f.type) || /\.(png|jpe?g|webp|heic)$/i.test(f.name);
     try {
@@ -391,13 +478,20 @@ function ProfileIntake({ onParsed, authHeaders }) {
       }
       const res = await safeFetch("/api/ai?action=linkedin_parse", { method: "POST", headers, body: JSON.stringify(payload) });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.raw_profile) throw new Error(data.message || data.error || "parse_failed");
+      if (!res.ok || !data.raw_profile) {
+        setUploadError(uploadErrorText(res.status, data));
+        return;
+      }
       const rp = data.raw_profile;
       onParsed({ headline: rp.headline || "", about: rp.about || "", experience: toBlocks(rp.experience_blocks || []), source: (isImg ? "image" : "pdf") });
     } catch (err) {
-      const hint = err instanceof CvExtractionError ? err.hint : "We could not read that file. Type your profile in instead.";
-      setNotice(hint || "We could not read that file. Type your profile in instead.");
-      setMode("manual");
+      // Stay on the upload view and say what happened — never silently
+      // switch modes on the user.
+      if (err instanceof CvExtractionError) {
+        setUploadError(err.hint || "We could not read that file. Retry, or type your profile in instead.");
+      } else {
+        setUploadError("We could not reach the reading service. Check your connection, then retry.");
+      }
     } finally {
       setBusy(false);
     }
@@ -429,12 +523,23 @@ function ProfileIntake({ onParsed, authHeaders }) {
             <span className="dz-s">Drag and drop, or <b>browse</b>. A PDF export or a screenshot of your profile both work.</span>
           </label>
           <div className="dz-privacy"><Icon.lock /> Your screenshot is deleted after we read it.</div>
+          {uploadError ? (
+            <ErrorPanel
+              title="We could not read your file"
+              msg={uploadError}
+              actions={
+                <>
+                  <button className="btn-retry" disabled={!lastFileRef.current || busy} onClick={() => onFile(lastFileRef.current)}>Retry upload</button>
+                  <button className="link-btn" onClick={() => { setUploadError(null); setMode("manual"); }}>Type it in instead</button>
+                </>
+              }
+            />
+          ) : null}
           <div className="dz-alt"><button className="link-btn" onClick={() => setMode("manual")}>or type it in manually</button></div>
         </motion.div>
       ) : (
         <motion.div key="man" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}>
           <button className="link-btn back" onClick={() => setMode("upload")}><Icon.back /> Use upload instead</button>
-          {notice ? <div className="li-note">{notice}</div> : null}
           <div className="form-stack">
             <label className="field">
               <span className="field-l">Headline <Counter value={headline.length} max={220} /></span>
@@ -468,7 +573,7 @@ function ProfileIntake({ onParsed, authHeaders }) {
   );
 }
 
-function ProfileConfirm({ draft, setDraft, onBack, onAnalyze }) {
+function ProfileConfirm({ draft, setDraft, onBack, onAnalyze, busy }) {
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
   const setExpAt = (i, k, v) => setDraft((d) => ({ ...d, experience: d.experience.map((e, j) => (j === i ? { ...e, [k]: v } : e)) }));
   return (
@@ -503,7 +608,9 @@ function ProfileConfirm({ draft, setDraft, onBack, onAnalyze }) {
       </div>
 
       <div className="cta-row">
-        <motion.button className="btn-primary" onClick={onAnalyze} whileHover={{ y: -1 }} whileTap={{ scale: 0.99 }}><Icon.spark /> Analyse my profile <Icon.arrow /></motion.button>
+        <motion.button className="btn-primary" disabled={busy} onClick={onAnalyze} whileHover={{ y: -1 }} whileTap={{ scale: 0.99 }}>
+          <Icon.spark /> {busy ? "Analysing your profile..." : "Analyse my profile"} <Icon.arrow />
+        </motion.button>
         <span className="cta-note">Full score is free to view.</span>
       </div>
     </motion.div>
@@ -839,10 +946,13 @@ export default function LinkedInOptimizer() {
   const refetchResult = useCallback(async (id) => {
     if (!id) return;
     try {
-      const { data, error } = await supabase.functions.invoke("linkedin-optimize", { body: { mode: "get", id } });
-      if (!error && data?.result) {
-        setResult(data.result);
-        setUnlocked(!!data.is_unlocked);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      const r = await callOptimizeFnWithRetry({ mode: "get", id }, token);
+      if (r.ok && r.data?.result) {
+        setResult(r.data.result);
+        setUnlocked(!!r.data.is_unlocked);
       }
     } catch { /* non-fatal */ }
   }, []);
@@ -915,7 +1025,7 @@ export default function LinkedInOptimizer() {
   }, [headline, navigate]);
 
   const runScan = useCallback(async () => {
-    if (!draft) return;
+    if (!draft || analyzing) return;
     setScanError(null);
     setAnalyzing(true);
     const raw_profile = {
@@ -929,21 +1039,28 @@ export default function LinkedInOptimizer() {
         description: (e.description || "").trim(),
       })),
     };
-    try {
-      const { data, error } = await supabase.functions.invoke("linkedin-optimize", {
-        body: { input_method: draft.source === "paste" ? "paste" : "pdf", target_role: draft.headline || null, market, raw_profile },
-      });
-      if (error || !data?.result) throw new Error(error?.message || "Scan failed");
-      setResult(data.result);
-      setOptId(data.id);
-      setUnlocked(!!data.is_unlocked);
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      setScanError("Your session expired. Sign in again, then retry.");
+      setAnalyzing(false);
+      return;
+    }
+    const r = await callOptimizeFnWithRetry(
+      { input_method: draft.source === "paste" ? "paste" : "pdf", target_role: draft.headline || null, market, raw_profile },
+      token,
+    );
+    if (r.ok && r.data?.result) {
+      setResult(r.data.result);
+      setOptId(r.data.id);
+      setUnlocked(!!r.data.is_unlocked);
       setAnalyzing(false);
       goStep(3);
-    } catch (err) {
-      setScanError(err?.message || "We could not score that. Please retry.");
+    } else {
+      setScanError(scanErrorText(r));
       setAnalyzing(false);
     }
-  }, [draft, market, goStep]);
+  }, [draft, analyzing, market, goStep]);
 
   const openZiina = useCallback(async () => {
     setUnlockBusy(true);
@@ -1032,9 +1149,9 @@ export default function LinkedInOptimizer() {
                   {step === 2 && s2 === "intake" && !analyzing &&
                     <ProfileIntake key="s2i" onParsed={(d) => { setDraft(d); setS2("confirm"); }} authHeaders={authHeaders} />}
                   {step === 2 && s2 === "confirm" && draft && !analyzing &&
-                    <ProfileConfirm key="s2c" draft={draft} setDraft={setDraft} onBack={() => setS2("intake")} onAnalyze={runScan} />}
+                    <ProfileConfirm key="s2c" draft={draft} setDraft={setDraft} onBack={() => { setScanError(null); setS2("intake"); }} onAnalyze={runScan} busy={analyzing} />}
                   {step === 2 && analyzing &&
-                    <Loader key="s2scan" title="Scoring your profile the way a recruiter screens it." ticker={SCAN_TICKER} />}
+                    <Loader key="s2scan" title="Analysing your profile the way a recruiter screens it." ticker={SCAN_TICKER} />}
 
                   {step === 3 && result &&
                     <Assessment key="s3" result={result} onContinue={() => goStep(4)} />}
@@ -1043,7 +1160,13 @@ export default function LinkedInOptimizer() {
                     <CopyWizard key="s4" result={result} pricing={pricing} unlocked={effectiveUnlocked} onUnlock={handleUnlock} unlockBusy={unlockBusy} onBack={() => goStep(3)} />}
                 </AnimatePresence>
 
-                {scanError && step === 2 && <div className="li-err">{scanError}</div>}
+                {scanError && step === 2 && !analyzing && (
+                  <ErrorPanel
+                    title="The scan did not finish"
+                    msg={scanError}
+                    actions={<button className="btn-retry" onClick={runScan}>Retry the scan</button>}
+                  />
+                )}
               </div>
             </div>
             {step === 1 && <Sidebar />}
@@ -1079,7 +1202,7 @@ const CSS_TEXT = `
   --blue:#0A66C2; --blue-d:#004182; --blue-soft:#E8F0FA;
   --green:#057642; --green-soft:#EAF4EE;
   --gold:#B47B14; --gold2:#E7A33E; --gold-soft:#FBF3E2;
-  --red:#B24020; --warn:#915907; --warn-soft:#FBF0DD;
+  --red:#B24020; --red-soft:#FBE9E4; --warn:#915907; --warn-soft:#FBF0DD;
   --track:#E6EBE4;
   --shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 14px rgba(20,30,40,.05);
   --shadow-lg:0 2px 6px rgba(0,0,0,.05), 0 18px 50px rgba(20,30,40,.10);
@@ -1099,8 +1222,15 @@ const CSS_TEXT = `
   .page{max-width:1180px;margin:0 auto;padding:0 24px 90px}
   @media (max-width:560px){.page{padding:0 14px 64px}}
 
-  .li-err{margin-top:16px;border:1px solid rgba(178,64,32,.3);background:var(--warn-soft);color:var(--red);border-radius:10px;padding:11px 14px;font-size:13.5px;font-weight:600}
-  .li-note{margin-bottom:14px;border:1px solid var(--line);background:var(--card2);color:var(--ink3);border-radius:10px;padding:10px 13px;font-size:13.5px}
+  .li-err{margin-top:16px;border:1px solid rgba(178,64,32,.45);background:var(--red-soft);color:var(--red);border-radius:10px;padding:11px 14px;font-size:13.5px;font-weight:600}
+  .err-panel{margin-top:18px;border:1px solid rgba(178,64,32,.45);background:var(--red-soft);border-radius:12px;padding:16px 18px}
+  .ep-head{display:flex;align-items:center;gap:9px;color:var(--red);font-size:15px;font-weight:700}
+  .ep-ic{width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;flex-shrink:0}
+  .ep-msg{margin:8px 0 0;color:var(--ink2);font-size:14px;line-height:1.55}
+  .ep-actions{display:flex;align-items:center;gap:14px;margin-top:13px;flex-wrap:wrap}
+  .btn-retry{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--red);background:var(--card);color:var(--red);padding:9px 18px;border-radius:999px;font-size:13.5px;font-weight:700;cursor:pointer;transition:background 160ms var(--ease)}
+  .btn-retry:hover{background:#F6DCD3}
+  .btn-retry:disabled{opacity:.55;cursor:not-allowed}
 
   .li-nav{position:sticky;top:0;z-index:50;margin:0 -24px;background:rgba(244,242,238,.85);backdrop-filter:blur(14px) saturate(1.4);border-bottom:1px solid var(--line)}
   @media (max-width:560px){.li-nav{margin:0 -14px}}
@@ -1278,6 +1408,12 @@ const CSS_TEXT = `
   .field-l{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--ink2)}
   .ta{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:12px 13px;font-size:15px;color:var(--ink);line-height:1.5;resize:vertical;outline:none;width:100%}
   .ta:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(10,102,194,.12)}
+  /* Reclaim focus styling from the global amber input:focus !important rule
+     (src/index.css). Amber reads as a warning on this LinkedIn-blue surface;
+     inputs here focus blue, and the borderless headline field keeps its own
+     .hl-field ring instead of an inner glow. */
+  .liopt-root input:focus,.liopt-root textarea:focus,.liopt-root select:focus{border-color:var(--blue) !important;box-shadow:0 0 0 3px rgba(10,102,194,.12) !important;outline:none !important}
+  .liopt-root .hl-input:focus{border-color:transparent !important;box-shadow:none !important}
   .ta.sm{min-height:54px}
   .form-stack{display:flex;flex-direction:column;gap:18px;margin-bottom:22px}
   .confirm-note{font-size:14px;color:var(--ink3);margin:-8px 0 18px}
