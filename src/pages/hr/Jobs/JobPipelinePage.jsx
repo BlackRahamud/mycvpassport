@@ -942,9 +942,6 @@ function CandidateDetail({
   noteDraft, onNoteDraftChange, onAddNote, noteSubmitting,
   reduce,
 }) {
-  // "View full fit analysis" reveals the old keyword score + chips; the
-  // Verdict card is the headline by default.
-  const [showAnalysis, setShowAnalysis] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [cvOpen, setCvOpen] = useState(false);
   // Reject is destructive → two-step confirm, reverting on its own if the
@@ -1133,7 +1130,8 @@ function CandidateDetail({
           availability: cv.notice_period || cv.availability || personal.notice_period || "",
         }}
         onReachOut={onReachOut}
-        onViewAnalysis={(matchedKw.length + missingKw.length) > 0 ? () => setShowAnalysis(true) : undefined}
+        matchedKeywords={matchedKw}
+        missingKeywords={missingKw}
       />
 
       <ShareForReviewModal
@@ -1209,33 +1207,6 @@ function CandidateDetail({
 
       <OutreachHistory hrId={hrId} candidateId={candidate.candidate_id} refreshKey={outreachTick} />
 
-      {showAnalysis && (matchedKw.length + missingKw.length) > 0 && (
-        <section className="jpp-section">
-          <h3 className="jpp-section__title">Keyword details</h3>
-          <div className="jpp-match">
-            {matchedKw.length > 0 && (
-              <div className="jpp-match__col">
-                <span className="jpp-match__label">Matched</span>
-                <div className="jpp-match__chips">
-                  {matchedKw.slice(0, 8).map((k, i) => (
-                    <span key={`m-${i}`} className="jpp-match__chip jpp-match__chip--hit">{k}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {missingKw.length > 0 && (
-              <div className="jpp-match__col">
-                <span className="jpp-match__label">Missing</span>
-                <div className="jpp-match__chips">
-                  {missingKw.slice(0, 8).map((k, i) => (
-                    <span key={`x-${i}`} className="jpp-match__chip jpp-match__chip--miss">{k}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
 
       {skills.length > 0 && (
         <section className="jpp-section">

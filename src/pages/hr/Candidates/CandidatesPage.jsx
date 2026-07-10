@@ -146,15 +146,12 @@ const PlusIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
 function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce, activeJobs = [], onMoved }) {
   const navigate = useNavigate();
-  // "View full fit analysis" reveals the old keyword score + chips; reset
-  // when switching candidates (this component isn't remounted per pick).
-  const [showAnalysis, setShowAnalysis] = useState(false);
   const [moveForId, setMoveForId] = useState(null); // app id whose move picker is open
   const [moveBusy, setMoveBusy] = useState(false);
   const [moveErr, setMoveErr] = useState(null);     // { appId, msg }
   const [cvOpen, setCvOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  useEffect(() => { setShowAnalysis(false); setCvOpen(false); setShareOpen(false); setMoveForId(null); setMoveErr(null); }, [candidate?.key]);
+  useEffect(() => { setCvOpen(false); setShareOpen(false); setMoveForId(null); setMoveErr(null); }, [candidate?.key]);
 
   // Move a pooled application to an active job via the RPC (validates ownership,
   // active target, and no duplicate). On success the parent refetches and the
@@ -218,7 +215,8 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
           availability: cv.notice_period || cv.availability || personal.notice_period || "",
         }}
         onReachOut={onReachOut}
-        onViewAnalysis={(matchedKw.length + missingKw.length) > 0 ? () => setShowAnalysis(true) : undefined}
+        matchedKeywords={matchedKw}
+        missingKeywords={missingKw}
       />
 
       <header className="jpp-detail__head">
@@ -276,34 +274,6 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
       )}
 
       <ShareReviews applicationId={a.id} />
-
-      {showAnalysis && (matchedKw.length + missingKw.length) > 0 && (
-        <section className="jpp-section">
-          <h3 className="jpp-section__title">Keyword details</h3>
-          <div className="jpp-match">
-            {matchedKw.length > 0 && (
-              <div className="jpp-match__col">
-                <span className="jpp-match__label">Matched</span>
-                <div className="jpp-match__chips">
-                  {matchedKw.slice(0, 8).map((k, i) => (
-                    <span key={`m-${i}`} className="jpp-match__chip jpp-match__chip--hit">{k}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {missingKw.length > 0 && (
-              <div className="jpp-match__col">
-                <span className="jpp-match__label">Missing</span>
-                <div className="jpp-match__chips">
-                  {missingKw.slice(0, 8).map((k, i) => (
-                    <span key={`x-${i}`} className="jpp-match__chip jpp-match__chip--miss">{k}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
 
       {/* Applied to — the cross-job view that makes this a CRM, not a list */}
       <section className="jpp-section">

@@ -1265,7 +1265,10 @@ async function handleSuggestSkills(req, res, body) {
 // because the project is at the Vercel Hobby 12-function ceiling.
 //
 // Request:  { cvSnapshot, job: { title, description, skills, requirements } }
-// Response: { verdict, score, two_second_why[3], whatsapp_cta_template }
+// Response: { verdict, score, two_second_why[3], whatsapp_cta_template,
+//             strengths?[2-3], gaps?[2-3] }   (arrays are additive + best
+//             effort; clients must tolerate their absence — old cached
+//             verdicts predate them)
 // =====================================================================
 
 const VERDICT_MODEL = process.env.VERDICT_MODEL || 'claude-sonnet-4-6';
@@ -1330,10 +1333,12 @@ OUTPUT - STRICT JSON ONLY, no markdown, no prose, no preamble:
   "verdict": "STRONG FIT" | "MAYBE" | "PASS",
   "score": <integer 0-100>,
   "two_second_why": ["Match: <strongest alignment to the JD>", "Corridor: <visa/location/notice/GCC-experience read>", "Gap: <single biggest risk or omission>"],
+  "strengths": ["<2 to 3 items: real capabilities ON THIS CV that matter for THIS role>"],
+  "gaps": ["<2 to 3 items: capabilities genuinely absent from the CV, or corridor risks, for THIS role>"],
   "whatsapp_cta_template": "<one short, warm, professional WhatsApp message to the candidate referencing a real strength and the role>"
 }
 
-two_second_why MUST be exactly 3 strings, each starting with "Match:", "Corridor:", "Gap:" in that order, each under 18 words. No emoji. ASCII punctuation only.`;
+two_second_why MUST be exactly 3 strings, each starting with "Match:", "Corridor:", "Gap:" in that order, each under 18 words. strengths and gaps MUST each contain 2 to 3 strings, each under 12 words, grounded in the same semantic-equivalence rules (a strength must exist on the CV; a gap must be genuinely absent, never a missing exact phrase). No emoji. ASCII punctuation only. Never use dash characters in any output string; use commas or periods instead.`;
 }
 
 function buildVerdictUserPrompt({ cvSnapshot, job }) {
@@ -1362,6 +1367,20 @@ function verdictFromScore(s) {
 
 // Enforce the score<->verdict invariant + the exactly-3 prefixed bullets
 // server-side so the UI can trust the shape unconditionally.
+//
+// strengths/gaps are ADDITIVE and best-effort: 2-3 short items each when
+// the model returns them cleanly, silently omitted otherwise. They must
+// never fail an otherwise-valid verdict — old clients ignore them and the
+// UI falls back to the two_second_why Gap line when absent.
+function normaliseStrengthGapList(v) {
+  if (!Array.isArray(v)) return null;
+  const out = v
+    .map((x) => String(x || '').trim().replace(/\s+[-–—]{1,2}\s+/g, ', ').slice(0, 140))
+    .filter(Boolean)
+    .slice(0, 3);
+  return out.length >= 2 ? out : null;
+}
+
 function normaliseVerdict(p) {
   if (!p || typeof p !== 'object') return null;
   let score = Math.round(Number(p.score));
@@ -1377,7 +1396,12 @@ function normaliseVerdict(p) {
   });
   const cta = String(p.whatsapp_cta_template || '').trim();
   if (!cta) return null;
-  return { verdict, score, two_second_why, whatsapp_cta_template: cta };
+  const out = { verdict, score, two_second_why, whatsapp_cta_template: cta };
+  const strengths = normaliseStrengthGapList(p.strengths);
+  const gaps = normaliseStrengthGapList(p.gaps);
+  if (strengths) out.strengths = strengths;
+  if (gaps) out.gaps = gaps;
+  return out;
 }
 
 async function handleCandidateVerdict(req, res, body) {
@@ -1410,7 +1434,7 @@ async function handleCandidateVerdict(req, res, body) {
       },
       body: JSON.stringify({
         model: VERDICT_MODEL,
-        max_tokens: 700,
+        max_tokens: 900,
         temperature: 0.2,
         system: buildVerdictSystem(),
         messages: [{ role: 'user', content: prompt }],

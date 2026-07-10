@@ -3,11 +3,16 @@
 //
 // Candidate Verdict — a light, corridor-aware decision card at the top
 // of the HR candidate detail (pipeline + Candidates CRM). It calls the
-// new /api/ai?action=candidate_verdict semantic matcher (lazy, on
-// open), caches per candidate+job in session memory, and renders:
+// /api/ai?action=candidate_verdict semantic matcher (lazy, on open),
+// caches per candidate+job in session memory, and renders:
 //   badge (STRONG FIT / MAYBE / PASS) + prominent score + 3 reasons
-//   (Match / Corridor / Gap) + two actions (view full analysis, reach
-//   out via WhatsApp).
+//   (Match / Corridor / Gap) + strengths/gaps checklist + the matched/
+//   missing keyword chips (always visible, no reveal) + WhatsApp action.
+//
+// Backward compatibility: strengths/gaps are OPTIONAL on the response —
+// verdicts cached before the arrays existed render exactly as before
+// (the Gap line in the 3-reason list carries the risk). Never force a
+// re-run for shape differences.
 //
 // The WhatsApp action hands the verdict's whatsapp_cta_template back to
 // the caller (onReachOut) which opens the EXISTING WhatsAppComposer —
@@ -162,8 +167,85 @@ const BadgeIc = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="non
 const ClockIc = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>);
 const RefreshIc = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M23 4v6h-6" /><path d="M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>);
 const WaIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" /></svg>);
+const CheckSmIc = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>);
+const AlertSmIc = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="12.5" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>);
 
-export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, onReachOut, onViewAnalysis }) {
+/* ── Strengths / gaps checklist — renders ONLY when the verdict carries
+      the arrays (new responses). Old cached verdicts skip it and keep
+      their Gap line in the 3-reason list above. ── */
+function StrengthsGaps({ strengths, gaps, reduce }) {
+  const cols = [
+    strengths?.length ? { key: "s", title: "Strengths", cls: "vc-sg__col--strengths", ic: <CheckSmIc />, items: strengths } : null,
+    gaps?.length ? { key: "g", title: "Gaps", cls: "vc-sg__col--gaps", ic: <AlertSmIc />, items: gaps } : null,
+  ].filter(Boolean);
+  if (cols.length === 0) return null;
+  return (
+    <div className="vc-sg">
+      {cols.map((c) => (
+        <div className={`vc-sg__col ${c.cls}`} key={c.key}>
+          <span className="vc-sg__title">{c.title}</span>
+          <ul className="vc-sg__list">
+            {c.items.slice(0, 3).map((line, i) => (
+              <motion.li
+                className="vc-sg__item"
+                key={i}
+                initial={reduce ? false : { opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: EASE, delay: reduce ? 0 : Math.min(0.05 + i * 0.05, 0.35) }}
+              >
+                <span className="vc-sg__ic" aria-hidden="true">{c.ic}</span>
+                <span className="vc-sg__text">{line}</span>
+              </motion.li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Keyword chips — always visible under the verdict, no reveal click.
+      Mirrors the page-level jpp-match chip styling (see verdictCard.css)
+      so the card is self-contained on every surface it mounts. ── */
+const CHIP_CAP = 6;
+function KeywordChips({ matched, missing }) {
+  const [expanded, setExpanded] = useState(false);
+  const total = matched.length + missing.length;
+  const overflow = matched.length > CHIP_CAP || missing.length > CHIP_CAP;
+  const shown = (list) => (expanded ? list : list.slice(0, CHIP_CAP));
+  if (total === 0) return null;
+  return (
+    <div className="vc-kw">
+      {matched.length > 0 && (
+        <div className="vc-kw__col">
+          <span className="vc-kw__label">Matched</span>
+          <div className="vc-kw__chips">
+            {shown(matched).map((k, i) => (
+              <span key={`m-${i}`} className="vc-kw__chip vc-kw__chip--hit">{k}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {missing.length > 0 && (
+        <div className="vc-kw__col">
+          <span className="vc-kw__label">Missing</span>
+          <div className="vc-kw__chips">
+            {shown(missing).map((k, i) => (
+              <span key={`x-${i}`} className="vc-kw__chip vc-kw__chip--miss">{k}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {overflow && (
+        <button type="button" className="vc-kw__toggle" onClick={() => setExpanded((v) => !v)}>
+          {expanded ? "Show fewer" : `Show all ${total}`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, onReachOut, matchedKeywords = [], missingKeywords = [] }) {
   const reduce = useReducedMotion();
   const { loading, data, error, retry } = useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId });
 
@@ -229,15 +311,11 @@ export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, 
             ))}
           </ul>
 
+          <StrengthsGaps strengths={data.strengths} gaps={data.gaps} reduce={reduce} />
+
+          <KeywordChips matched={matchedKeywords} missing={missingKeywords} />
+
           <div className="vc-actions">
-            {/* Only render when the caller supplies a handler — i.e. there is
-                keyword content to reveal. Without this the button dead-clicks
-                for candidates whose scan produced no match/missing keywords. */}
-            {onViewAnalysis && (
-              <button type="button" className="vc-btn vc-btn--ghost" onClick={onViewAnalysis}>
-                View full fit analysis
-              </button>
-            )}
             <button type="button" className="vc-btn vc-btn--solid" onClick={() => onReachOut && onReachOut(data.whatsapp_cta_template)}>
               <WaIc /> Reach out via WhatsApp
             </button>

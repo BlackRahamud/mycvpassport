@@ -121,6 +121,102 @@
 .vc-dot--corridor { background: var(--vc-blue); }
 .vc-dot--gap      { background: var(--vc-red); }
 
+/* ── Strengths / gaps checklist (new-shape verdicts only) — reads as a
+      sibling of the interview kit's "Listen for" line. Two columns on
+      desktop, one clean column on phones. ── */
+.vc-sg {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pj-border);
+}
+.vc-sg__col { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.vc-sg__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+}
+.vc-sg__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.vc-sg__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pj-text-soft);
+}
+.vc-sg__ic { flex-shrink: 0; margin-top: 2px; display: inline-flex; }
+.vc-sg__col--strengths .vc-sg__ic { color: var(--vc-green); }
+.vc-sg__col--gaps .vc-sg__ic { color: var(--vc-amber); }
+.vc-sg__text { min-width: 0; }
+
+@media (max-width: 480px) {
+  .vc-sg { grid-template-columns: 1fr; }
+}
+
+/* ── Keyword chips — always visible, mirrors the page-level jpp-match
+      chip look so the card is self-contained on every surface. ── */
+.vc-kw {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pj-border);
+}
+.vc-kw__col { display: flex; flex-direction: column; gap: 7px; }
+.vc-kw__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+}
+.vc-kw__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.vc-kw__chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 1px solid var(--pj-border);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vc-kw__chip--hit {
+  background: var(--vc-green-soft);
+  color: var(--vc-green);
+  border-color: rgba(29, 158, 117, 0.20);
+}
+.vc-kw__chip--miss {
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  border-color: var(--pj-border);
+  text-decoration: line-through;
+  text-decoration-color: var(--vc-red-glow);
+  text-decoration-thickness: 1.5px;
+}
+.vc-kw__toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pj-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.vc-kw__toggle:hover { color: var(--pj-text); }
+
 /* ── Actions ── */
 .vc-actions { display: flex; flex-direction: column; gap: 8px; }
 .vc-btn {
