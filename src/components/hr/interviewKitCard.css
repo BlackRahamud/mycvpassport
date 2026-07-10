@@ -12,6 +12,10 @@
   --ik-green-soft: rgba(29, 158, 117, 0.12);
   --ik-amber-soft: rgba(217, 119, 6, 0.12);
   --ik-blue-soft: rgba(55, 138, 221, 0.12);
+  /* Derived shades (design 4a): strike = --pj-text at 30%, lift shadow =
+     --pj-primary at 35%. Tokenised here per the no-raw-hex-in-markup rule. */
+  --ik-strike: rgba(20, 19, 31, 0.3);
+  --ik-lift-shadow: 0 6px 14px -10px rgba(124, 58, 237, 0.35);
 
   background: #FFFFFF;
   border: 1px solid var(--pj-border);
@@ -40,7 +44,7 @@
   color: var(--pj-text);
 }
 .ik-head__title svg { color: var(--pj-primary); flex-shrink: 0; }
-.ik-head__actions { display: flex; gap: 6px; }
+.ik-head__actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .ik-mini {
   display: inline-flex;
@@ -49,17 +53,48 @@
   background: transparent;
   border: 1px solid var(--pj-border-strong);
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   font: inherit;
   font-family: var(--pj-font);
   font-size: 12px;
   font-weight: 600;
   color: var(--pj-text);
   cursor: pointer;
-  transition: background 160ms var(--pj-ease), border-color 160ms var(--pj-ease);
+  transition: background 150ms var(--pj-ease), border-color 150ms var(--pj-ease), transform 150ms var(--pj-ease);
 }
 .ik-mini:hover { background: var(--pj-input-bg); }
+.ik-mini:active { transform: scale(0.97); }
 .ik-mini:disabled { opacity: 0.55; cursor: default; }
+.ik-mini--spin svg { animation: ik-rotate 350ms var(--pj-ease); }
+@keyframes ik-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Asked counter (header) ── */
+.ik-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ik-green);
+}
+.ik-counter__bar {
+  display: inline-block;
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--pj-input-bg);
+  overflow: hidden;
+}
+.ik-counter__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ik-green);
+  transition: width 300ms var(--pj-ease);
+}
 
 /* ── Idle (pre-generation) ── */
 .ik-idle { margin-top: 12px; }
@@ -87,9 +122,10 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 160ms var(--pj-ease), transform 160ms var(--pj-ease);
+  transition: background 150ms var(--pj-ease), transform 150ms var(--pj-ease);
 }
 .ik-generate:hover { background: var(--pj-primary-hover); transform: translateY(-1px); }
+.ik-generate:active { transform: scale(0.98); transition-duration: 100ms; }
 
 /* ── Loading (designed, no skeleton) ── */
 .ik-loading { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 6px 0; }
@@ -125,8 +161,28 @@
   border-radius: 10px;
   padding: 12px 14px;
   background: var(--pj-input-bg);
+  transition: border-color 150ms var(--pj-ease), transform 150ms var(--pj-ease),
+    box-shadow 150ms var(--pj-ease), opacity 150ms var(--pj-ease);
 }
+/* Hover lift is the "which question am I on" cue beside a video call. */
+.ik-item:hover:not(.ik-item--asked) {
+  border-color: var(--pj-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--ik-lift-shadow);
+}
+
+/* ── Asked state: dim + strike, Listen for hidden in markup ── */
+.ik-item--asked { opacity: 0.55; }
+.ik-item--asked:hover { opacity: 0.8; }
+.ik-item--asked .ik-item__q {
+  text-decoration: line-through;
+  text-decoration-color: var(--ik-strike);
+}
+
 .ik-item__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ik-item__lead { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.ik-item__num { font-size: 11px; font-weight: 700; color: var(--pj-muted); }
+.ik-item__tools { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .ik-chip {
   display: inline-flex;
   align-items: center;
@@ -159,9 +215,46 @@
 }
 .ik-item__copy:hover { background: #FFFFFF; color: var(--pj-text); }
 
+/* ── Mark asked pill ── */
+.ik-asked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1.5px solid var(--pj-border-strong);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pj-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 150ms var(--pj-ease), color 150ms var(--pj-ease),
+    background 150ms var(--pj-ease), transform 150ms var(--pj-ease);
+}
+.ik-asked:hover { border-color: var(--ik-green); color: var(--ik-green); }
+.ik-asked:active { transform: scale(0.95); }
+.ik-asked--on {
+  border-color: transparent;
+  background: var(--ik-green-soft);
+  color: var(--ik-green);
+}
+.ik-asked--on:hover { border-color: transparent; }
+.ik-asked--on svg { width: 11px; height: 11px; }
+
+/* ── Copy check pop (200ms, design 4a) ── */
+.ik-pop { display: inline-flex; animation: ik-pop 200ms var(--pj-ease); }
+@keyframes ik-pop {
+  from { transform: scale(0.6); opacity: 0.4; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 .ik-item__q {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 600;
   line-height: 1.5;
   color: var(--pj-text);
@@ -171,7 +264,7 @@
   align-items: flex-start;
   gap: 6px;
   margin: 7px 0 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--pj-text-soft);
 }
@@ -184,5 +277,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ik-mini, .ik-generate, .ik-item__copy { transition: none !important; }
+  .ik-mini, .ik-generate, .ik-item, .ik-item__copy, .ik-asked, .ik-counter__fill { transition: none !important; }
+  .ik-item:hover:not(.ik-item--asked) { transform: none; box-shadow: none; }
+  .ik-generate:active, .ik-mini:active, .ik-asked:active { transform: none; }
+  .ik-pop, .ik-mini--spin svg { animation: none !important; }
 }

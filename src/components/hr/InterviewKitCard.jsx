@@ -3,8 +3,14 @@
 //
 // Interview kit — click-to-generate tailored interview questions for a
 // candidate against a specific job. Calls /api/ai?action=interview_kit
-// (Haiku) and renders 6-8 questions, each with a category chip and a
+// (Haiku) and renders 6 to 8 questions, each with a category chip and a
 // plain-language "Listen for" note a non-technical HR can judge by.
+//
+// Mark-as-asked (design 4a): each question carries a "Mark asked" pill for
+// live-interview use. Asked items dim + strike the question and hide the
+// Listen for line; the header shows an "N of M asked" counter with a mini
+// progress bar. Session memory only (same keying as the kit cache) — resets
+// on reload, cleared by Regenerate, never persisted.
 //
 // Deliberately NOT auto-fetched on open (unlike VerdictCard): questions
 // only matter once a candidate reaches interview stage, and the button
@@ -26,9 +32,11 @@ import "./interviewKitCard.css";
 const EASE = [0.4, 0, 0.2, 1];
 
 // Session memory: `${candidateId}:${jobId}` -> questions[]. Same pattern
-// as VerdictCard's verdictCache.
+// as VerdictCard's verdictCache. askedCache mirrors it with the set of
+// question indices the HR has marked asked mid-interview.
 const kitCache = new Map();
-export function clearInterviewKitCache() { kitCache.clear(); }
+const askedCache = new Map();
+export function clearInterviewKitCache() { kitCache.clear(); askedCache.clear(); }
 
 const CATEGORY_LABELS = {
   technical: "Technical",
@@ -45,9 +53,10 @@ const RefreshIc = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="n
 const EarIc = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 8.5a6 6 0 1 1 12 0c0 4.5-3.5 4.6-3.5 8a3 3 0 0 1-6 0" /><path d="M9.5 8.5a2.5 2.5 0 0 1 5 0" /></svg>);
 
 // Plain-text export for the clipboard — formatted so it pastes cleanly
-// into WhatsApp, email, or a printed sheet.
+// into WhatsApp, email, or a printed sheet. Heading is dash-free per the
+// portal copy rule.
 function kitToText({ candidateName, jobTitle, questions }) {
-  const head = `Interview questions — ${candidateName || "Candidate"}${jobTitle ? ` · ${jobTitle}` : ""}`;
+  const head = `Interview questions for ${candidateName || "candidate"}${jobTitle ? `, ${jobTitle}` : ""}`;
   const body = questions.map((q, i) =>
     `${i + 1}. [${CATEGORY_LABELS[q.category] || "Question"}] ${q.question}\n   Listen for: ${q.listen_for}`
   ).join("\n\n");
@@ -63,12 +72,15 @@ export default function InterviewKitCard({ cacheKey, cvSnapshot, job, jobId, can
   );
   const [copied, setCopied] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState(null);
+  const [asked, setAsked] = useState(() => new Set((cacheKey && askedCache.get(cacheKey)) || []));
+  const [spinning, setSpinning] = useState(false);
   const liveRef = useRef(true);
   useEffect(() => () => { liveRef.current = false; }, []);
 
   // Re-sync when the recruiter switches candidates (cacheKey changes).
   useEffect(() => {
-    setCopied(false); setCopiedIdx(null);
+    setCopied(false); setCopiedIdx(null); setSpinning(false);
+    setAsked(new Set((cacheKey && askedCache.get(cacheKey)) || []));
     setState(
       cacheKey && kitCache.has(cacheKey)
         ? { loading: false, data: kitCache.get(cacheKey), error: null }
@@ -76,9 +88,17 @@ export default function InterviewKitCard({ cacheKey, cvSnapshot, job, jobId, can
     );
   }, [cacheKey]);
 
+  const toggleAsked = (i) => {
+    const next = new Set(asked);
+    if (next.has(i)) next.delete(i); else next.add(i);
+    if (cacheKey) askedCache.set(cacheKey, next);
+    setAsked(next);
+  };
+
   const generate = async ({ fresh } = {}) => {
     if (state.loading) return;
-    if (fresh && cacheKey) kitCache.delete(cacheKey);
+    if (fresh && cacheKey) { kitCache.delete(cacheKey); askedCache.delete(cacheKey); }
+    if (fresh) setAsked(new Set());
     if (!fresh && cacheKey && kitCache.has(cacheKey)) {
       setState({ loading: false, data: kitCache.get(cacheKey), error: null });
       return;
@@ -147,16 +167,45 @@ export default function InterviewKitCard({ cacheKey, cvSnapshot, job, jobId, can
     } catch { /* clipboard blocked */ }
   };
 
+  // Regenerate micro-interaction (design 4a): one quick rotate of the
+  // refresh icon, then hand off to the loading state. Reduced-motion users
+  // skip straight to the fetch.
+  const regenerate = () => {
+    if (state.loading || spinning) return;
+    if (reduce) { generate({ fresh: true }); return; }
+    setSpinning(true);
+    setTimeout(() => {
+      if (!liveRef.current) return;
+      setSpinning(false);
+      generate({ fresh: true });
+    }, 360);
+  };
+
+  const askedCount = state.data ? Math.min(asked.size, state.data.length) : 0;
+
   return (
-    <section className="ik-card">
+    <motion.section
+      className="ik-card"
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: EASE }}
+    >
       <div className="ik-head">
         <h3 className="ik-head__title"><SparkIc /> Interview questions</h3>
         {state.data && (
           <div className="ik-head__actions">
+            {askedCount > 0 && (
+              <span className="ik-counter" aria-live="polite">
+                <span className="ik-counter__bar" aria-hidden="true">
+                  <span className="ik-counter__fill" style={{ width: `${Math.round((askedCount / state.data.length) * 100)}%` }} />
+                </span>
+                {askedCount} of {state.data.length} asked
+              </span>
+            )}
             <button type="button" className="ik-mini" onClick={copyAll}>
-              {copied ? <CheckIc /> : <CopyIc />} {copied ? "Copied" : "Copy all"}
+              {copied ? <span className="ik-pop"><CheckIc /></span> : <CopyIc />} {copied ? "Copied" : "Copy all"}
             </button>
-            <button type="button" className="ik-mini" disabled={state.loading} onClick={() => generate({ fresh: true })}>
+            <button type="button" className={`ik-mini${spinning ? " ik-mini--spin" : ""}`} disabled={state.loading || spinning} onClick={regenerate}>
               <RefreshIc /> Regenerate
             </button>
           </div>
@@ -166,7 +215,7 @@ export default function InterviewKitCard({ cacheKey, cvSnapshot, job, jobId, can
       {!state.data && !state.loading && !state.error && (
         <div className="ik-idle">
           <p className="ik-idle__text">
-            {`Get 6-8 questions written for ${candidateName ? `${candidateName.split(" ")[0]}'s` : "this candidate's"} actual CV and this role — each with a note on what a good answer sounds like.`}
+            {`Get 6 to 8 questions written for ${candidateName ? `${candidateName.split(" ")[0]}'s` : "this candidate's"} actual CV and this role. Each comes with a note on what a good answer sounds like.`}
           </p>
           <button type="button" className="ik-generate" onClick={() => generate()}>
             <SparkIc /> Generate questions
@@ -192,31 +241,52 @@ export default function InterviewKitCard({ cacheKey, cvSnapshot, job, jobId, can
 
       {!state.loading && state.data && (
         <ol className="ik-list">
-          {state.data.map((q, i) => (
-            <motion.li
-              className="ik-item"
-              key={`${cacheKey}-${i}`}
-              initial={reduce ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, ease: EASE, delay: reduce ? 0 : Math.min(i * 0.05, 0.35) }}
-            >
-              <div className="ik-item__top">
-                <span className={`ik-chip ik-chip--${q.category}`}>{CATEGORY_LABELS[q.category] || "Question"}</span>
-                <button
-                  type="button"
-                  className="ik-item__copy"
-                  aria-label={copiedIdx === i ? "Copied" : "Copy this question"}
-                  onClick={() => copyOne(q, i)}
-                >
-                  {copiedIdx === i ? <CheckIc /> : <CopyIc />}
-                </button>
-              </div>
-              <p className="ik-item__q">{q.question}</p>
-              <p className="ik-item__listen"><EarIc /> <span className="ik-item__listen-label">Listen for:</span> {q.listen_for}</p>
-            </motion.li>
-          ))}
+          {state.data.map((q, i) => {
+            const isAsked = asked.has(i);
+            return (
+              <motion.li
+                className={`ik-item${isAsked ? " ik-item--asked" : ""}`}
+                key={`${cacheKey}-${i}`}
+                initial={reduce ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: EASE, delay: reduce ? 0 : Math.min(i * 0.05, 0.35) }}
+              >
+                <div className="ik-item__top">
+                  <span className="ik-item__lead">
+                    <span className="ik-item__num" aria-hidden="true">{i + 1}</span>
+                    <span className={`ik-chip ik-chip--${q.category}`}>{CATEGORY_LABELS[q.category] || "Question"}</span>
+                  </span>
+                  <span className="ik-item__tools">
+                    {!isAsked && (
+                      <button
+                        type="button"
+                        className="ik-item__copy"
+                        aria-label={copiedIdx === i ? "Copied" : "Copy this question"}
+                        onClick={() => copyOne(q, i)}
+                      >
+                        {copiedIdx === i ? <span className="ik-pop"><CheckIc /></span> : <CopyIc />}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={`ik-asked${isAsked ? " ik-asked--on" : ""}`}
+                      aria-pressed={isAsked}
+                      title={isAsked ? "Tap again to undo" : undefined}
+                      onClick={() => toggleAsked(i)}
+                    >
+                      {isAsked ? <><CheckIc /> Asked</> : "Mark asked"}
+                    </button>
+                  </span>
+                </div>
+                <p className="ik-item__q">{q.question}</p>
+                {!isAsked && (
+                  <p className="ik-item__listen"><EarIc /> <span className="ik-item__listen-label">Listen for:</span> {q.listen_for}</p>
+                )}
+              </motion.li>
+            );
+          })}
         </ol>
       )}
-    </section>
+    </motion.section>
   );
 }
