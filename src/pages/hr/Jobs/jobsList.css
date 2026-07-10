@@ -139,6 +139,17 @@
   padding: 28px 32px 56px;
 }
 
+/* ── Greeting header (design 2a) ────────────────────────────── */
+.hjl-greet { margin-bottom: 18px; }
+.hjl-greet__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--pj-text);
+}
+.hjl-greet__sub { margin: 3px 0 0; font-size: 13px; color: var(--pj-text-soft); }
+
 .hjl-header {
   display: flex;
   align-items: center;
@@ -426,24 +437,30 @@
 
 .hjl-empty__body { font-size: 13px; margin: 0; max-width: 380px; line-height: 1.55; }
 
-/* ── Fresh-agency onboarding empty state ────────────────────── */
-.hjl-empty--onboard { padding: 44px 24px; gap: 8px; }
+/* ── First-run "Get set up" checklist (design 2a) ───────────── */
+.hjl-onboard-card {
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 560px;
+  box-shadow: 0 4px 12px -10px rgba(20, 19, 31, 0.10);
+}
+.hjl-onboard-card__title { margin: 0 0 14px; font-size: 14px; font-weight: 700; color: var(--pj-text); }
 
-.hjl-onboard-steps {
+.hjl-setup {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 420px;
-  margin: 18px 0 22px;
-  text-align: left;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
 }
-.hjl-onboard-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.hjl-onboard-step__num {
+.hjl-setup + .hjl-setup { margin-top: 10px; }
+.hjl-setup--active { border-color: var(--hjl-ink); }
+.hjl-setup--waiting { opacity: 0.75; }
+
+.hjl-setup__num {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
@@ -451,19 +468,57 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--hjl-ink);
-  color: #FFFFFF;
+  border: 1.5px solid var(--pj-border-strong);
+  color: var(--pj-muted);
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
+  box-sizing: border-box;
 }
-.hjl-onboard-step__text { display: flex; flex-direction: column; gap: 2px; }
-.hjl-onboard-step__title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--pj-text); }
-.hjl-onboard-step__body { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--pj-text-soft); }
-.hjl-onboard__cta { height: 40px; }
+.hjl-setup__num--filled { border: 0; background: var(--hjl-ink); color: #FFFFFF; }
 
-@media (min-width: 560px) {
-  .hjl-empty--onboard { padding: 56px 32px; }
+.hjl-setup__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hjl-setup__title { font-size: 13.5px; font-weight: 600; color: var(--pj-text); }
+.hjl-setup__body { font-size: 12.5px; line-height: 1.5; color: var(--pj-text-soft); }
+
+.hjl-setup__start {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--hjl-ink);
+  color: #FFFFFF;
+  border: 0;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 150ms var(--pj-ease), opacity 150ms var(--pj-ease);
+}
+.hjl-setup__start:hover { transform: translateY(-1px); }
+.hjl-setup__start:active { transform: scale(0.98); }
+
+.hjl-onboard-card__foot { margin: 14px 0 0; font-size: 12px; color: var(--pj-muted); line-height: 1.55; }
+.hjl-onboard-card__link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pj-primary);
+  cursor: pointer;
+  text-decoration: none;
+}
+.hjl-onboard-card__link:hover { text-decoration: underline; }
+
+/* Step 1 stacks on narrow phones so the Start pill never squeezes the text. */
+@media (max-width: 420px) {
+  .hjl-setup--active { flex-wrap: wrap; }
+  .hjl-setup--active .hjl-setup__start { margin-left: 40px; }
 }
 
 /* ── Phone (≤600px / iPhone 14 = 393px): stop edge clipping ──── */
@@ -487,11 +542,16 @@
      rule (the dashboard fix went 28px -> 16px). Covers both the Jobs
      list and the Insights tab, which share this page wrapper. */
   .hjl-page { padding: 20px 16px 48px; }
+
+  /* Greeting scales down like the 2a mobile mock (19px at 393px). */
+  .hjl-greet__title { font-size: 19px; }
+  .hjl-greet__sub { margin-top: 2px; font-size: 12.5px; }
 }
 
 /* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .hjl-cta, .hjl-icon-btn, .hjl-userpill, .hjl-toggle__btn, .hjl-trow, .hjl-act, .hjl-search input {
+  .hjl-cta, .hjl-icon-btn, .hjl-userpill, .hjl-toggle__btn, .hjl-trow, .hjl-act, .hjl-search input, .hjl-setup__start {
     transition: none !important;
   }
+  .hjl-setup__start:hover, .hjl-setup__start:active { transform: none; }
 }

@@ -74,48 +74,60 @@ function jobSignal(agg, job) {
   return { kind: "active", label: "active", action: { label: "View applicants", variant: "quiet", to: `/employer/jobs/${job.id}` } };
 }
 
-/* Fresh-agency onboarding empty state — the first thing a brand-new, empty
-   account sees on the open Jobs view. Designed (not a skeleton): headline,
-   3-step hint, single primary CTA into the post-job flow. */
-const ONBOARD_STEPS = [
-  { n: 1, title: "Post a job", body: "Tell us the role — our team helps you get it live in minutes." },
-  { n: 2, title: "Candidates land in your pipeline", body: "Applicants flow straight into your shortlist, ready to review." },
-  { n: 3, title: "Message them on WhatsApp", body: "Reach out in a tap — assisted, personalised per candidate." },
+/* First-run starter (design 2a) — the "Get set up" checklist shown when a
+   brand-new account has no open jobs yet. Step 1 is the one live action;
+   steps 2 and 3 preview what unlocks next and stay dimmed until a job
+   exists. The footnote covers the CVs-but-no-role path via talent pools. */
+const SETUP_STEPS = [
+  { n: 2, title: "Import the CVs you already have", body: "Up to 20 at once, parsed, scored, and ranked." },
+  { n: 3, title: "Share your best candidate with your client", body: "They approve or pass with one tap." },
 ];
 
-function EmptyOnboarding({ reduce, onPost }) {
+function EmptyOnboarding({ reduce, onPost, onImport }) {
   return (
     <motion.div
-      className="hjl-empty hjl-empty--onboard"
+      className="hjl-onboard-card"
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.36, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
     >
-      <p className="hjl-empty__title">Your hiring pipeline starts here</p>
-      <p className="hjl-empty__body">Post your first role and watch candidates flow in. Here's how it works:</p>
+      <p className="hjl-onboard-card__title">Get set up</p>
 
-      <div className="hjl-onboard-steps">
-        {ONBOARD_STEPS.map((s, i) => (
-          <motion.div
-            key={s.n}
-            className="hjl-onboard-step"
-            initial={reduce ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1], delay: 0.08 + i * 0.07 }}
-          >
-            <span className="hjl-onboard-step__num" aria-hidden>{s.n}</span>
-            <div className="hjl-onboard-step__text">
-              <p className="hjl-onboard-step__title">{s.title}</p>
-              <p className="hjl-onboard-step__body">{s.body}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      <motion.div
+        className="hjl-setup hjl-setup--active"
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1], delay: 0.04 }}
+      >
+        <span className="hjl-setup__num hjl-setup__num--filled" aria-hidden>1</span>
+        <span className="hjl-setup__text">
+          <span className="hjl-setup__title">Post a job</span>
+          <span className="hjl-setup__body">The wizard writes the ad with you in five short steps.</span>
+        </span>
+        <button type="button" className="hjl-setup__start" onClick={onPost}>Start</button>
+      </motion.div>
 
-      <button type="button" className="hjl-cta hjl-onboard__cta" onClick={onPost}>
-        <BriefcaseIc size={14} white />
-        Post your first job
-      </button>
+      {SETUP_STEPS.map((s, i) => (
+        <motion.div
+          key={s.n}
+          className="hjl-setup hjl-setup--waiting"
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1], delay: 0.08 + i * 0.04 }}
+        >
+          <span className="hjl-setup__num" aria-hidden>{s.n}</span>
+          <span className="hjl-setup__text">
+            <span className="hjl-setup__title">{s.title}</span>
+            <span className="hjl-setup__body">{s.body}</span>
+          </span>
+        </motion.div>
+      ))}
+
+      <p className="hjl-onboard-card__foot">
+        Have CVs but no role yet?{" "}
+        <button type="button" className="hjl-onboard-card__link" onClick={onImport}>Import them into a talent pool.</button>{" "}
+        You can move them onto a job later.
+      </p>
     </motion.div>
   );
 }
@@ -277,6 +289,31 @@ export default function JobsListPage() {
     return meta.full_name || meta.name || user?.email?.split("@")[0] || "Sign in";
   }, [user]);
 
+  // Greeting header (design 2a). First run (zero open jobs, nothing searched,
+  // no load error) swaps the time greeting for the Welcome variant that pairs
+  // with the setup checklist below. While jobs are still loading we stay on
+  // the time greeting so the header never flashes between the two.
+  const firstRun = jobs !== null && jobs.length === 0 && view === "open" && !search.trim() && !error;
+  const firstName = (profile?.full_name || "").trim().split(/\s+/)[0] || "";
+  const greeting = useMemo(() => {
+    const now = new Date();
+    const h = now.getHours();
+    const part = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
+    // Composed by hand: ICU builds vary on whether en-GB includes the comma,
+    // and the 2a mock wants "Thursday, 10 July" everywhere.
+    const dateLine = `${now.toLocaleDateString("en-GB", { weekday: "long" })}, ${now.getDate()} ${now.toLocaleDateString("en-GB", { month: "long" })}`;
+    if (firstRun) {
+      return {
+        title: firstName ? `Welcome, ${firstName}` : "Welcome",
+        sub: "Let's get your first role live. It takes about two minutes.",
+      };
+    }
+    return {
+      title: firstName ? `Good ${part}, ${firstName}` : "Welcome back",
+      sub: dateLine,
+    };
+  }, [firstRun, firstName]);
+
   return (
     <div className="hjl-root">
       <Helmet><title>Jobs · CVPassport</title></Helmet>
@@ -304,6 +341,16 @@ export default function JobsListPage() {
       </header>
 
       <main className="hjl-page">
+        <motion.div
+          className="hjl-greet"
+          initial={reduce ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <h1 className="hjl-greet__title">{greeting.title}</h1>
+          <p className="hjl-greet__sub">{greeting.sub}</p>
+        </motion.div>
+
         <div style={{ display: "flex", marginBottom: 18 }}>
           <div className="hjl-toggle" role="tablist" aria-label="HR view" style={{ marginLeft: 0 }}>
             <button
@@ -408,7 +455,7 @@ export default function JobsListPage() {
               </p>
             </div>
           ) : (
-            <EmptyOnboarding reduce={reduce} onPost={() => navigate("/employer/post")} />
+            <EmptyOnboarding reduce={reduce} onPost={() => navigate("/employer/post")} onImport={() => navigate("/employer/import")} />
           )
         )}
 
