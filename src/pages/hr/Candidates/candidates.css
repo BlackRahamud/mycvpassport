@@ -47,42 +47,11 @@
 .cand-add:hover { background: var(--hjl-ink-hover); }
 .cand-add:active { transform: scale(0.98); }
 
-/* Job picker rows inside the add-candidate modal */
-.cand-pick {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  padding: 12px 14px;
-  background: #FFFFFF;
-  border: 1px solid var(--pj-border);
-  border-radius: 10px;
-  font: inherit;
-  font-family: var(--pj-font);
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 140ms var(--pj-ease), box-shadow 140ms var(--pj-ease);
-}
-.cand-pick:hover { border-color: var(--hjl-ink); box-shadow: 0 6px 18px -12px rgba(20, 19, 31, 0.25); }
-.cand-pick__title { font-size: 13.5px; font-weight: 600; color: var(--hjl-ink, var(--pj-text)); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Create a sourcing pool — the primary option at the top (ink accent, to
-   match the Candidates page; purple is reserved for the post-job wizard) */
-.cand-pick--create { border: 1px dashed var(--pj-border-strong, var(--pj-border)); background: var(--hjl-ink-soft, var(--pj-input-bg)); }
-.cand-pick--create .cand-pick__title { color: var(--hjl-ink, var(--pj-text)); }
-.cand-pick--create:hover { border-color: var(--hjl-ink, var(--pj-text)); }
-.cand-pick__plus { font-size: 18px; font-weight: 700; line-height: 1; color: var(--hjl-ink, var(--pj-text)); flex-shrink: 0; }
-.cand-pick__divider { font-size: 11px; font-weight: 600; color: var(--pj-muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 2px 2px; }
+/* The job/pool picker inside the add-candidate modal moved to the shared
+   ImportTargetPicker component (importTargetPicker.css, itp-* classes) —
+   it is also the heart of /employer/import. Only .cand-pooltag stays:
+   the candidate detail panel's "applied to" list still renders it. */
 .cand-pooltag { display: inline-flex; align-items: center; height: 19px; padding: 0 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; background: var(--hjl-ink, var(--pj-text)); color: #FFFFFF; border: 1px solid transparent; white-space: nowrap; flex-shrink: 0; }
-
-/* Inline pool-create form */
-.cand-pool-form { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--pj-border-strong, var(--pj-border)); border-radius: 10px; background: var(--hjl-ink-soft, var(--pj-input-bg)); }
-.cand-pool-form__input { width: 100%; height: 40px; border: 1px solid var(--pj-border); border-radius: 8px; padding: 0 12px; font: inherit; font-family: var(--pj-font); font-size: 13.5px; color: var(--pj-text); background: #FFFFFF; outline: none; box-sizing: border-box; }
-.cand-pool-form__input:focus { border-color: var(--hjl-ink, var(--pj-text)); box-shadow: 0 0 0 3px var(--hjl-ink-ring, rgba(20,19,31,0.12)); }
-.cand-pool-form__cancel { height: 34px; padding: 0 14px; border: 1px solid var(--pj-border); border-radius: 8px; background: #FFFFFF; color: var(--pj-text); font: inherit; font-family: var(--pj-font); font-size: 12.5px; font-weight: 600; cursor: pointer; }
-.cand-pool-form__go { height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--hjl-ink, var(--pj-text)); color: #FFFFFF; font: inherit; font-family: var(--pj-font); font-size: 12.5px; font-weight: 700; cursor: pointer; }
-.cand-pool-form__go:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 520px) {
   .cand-head { flex-direction: column; }
@@ -90,7 +59,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cand-add, .cand-pick { transition: none !important; }
+  .cand-add { transition: none !important; }
 }
 
 /* ── Filters ── */

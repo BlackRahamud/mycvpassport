@@ -7,6 +7,7 @@ import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsA
 import VerdictCard from "../../../components/hr/VerdictCard";
 import BulkActions from "../../../components/hr/BulkActions";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
+import { ImportTargetModal } from "../../../components/hr/ImportTargetPicker";
 import PaneEmpty from "../../../components/hr/PaneEmpty";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
@@ -435,92 +436,6 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
       />
       <ShareForReviewModal open={shareOpen} onClose={() => setShareOpen(false)} applicationId={a.id} candidateName={candidate.name} hrId={hrId} />
     </motion.aside>
-  );
-}
-
-/* Lightweight job picker shown before the importer when the recruiter has
-   more than one job (CV imports attach to a specific job's pipeline). */
-function JobPickerModal({ open, jobs, onPick, onCreatePool, onClose, reduce }) {
-  const [creating, setCreating] = useState(false);
-  const [poolName, setPoolName] = useState("");
-  const [poolMarket, setPoolMarket] = useState("gulf");
-  useEffect(() => {
-    if (!open) { setCreating(false); setPoolName(""); setPoolMarket("gulf"); }
-  }, [open]);
-  const submitPool = () => {
-    const n = poolName.trim();
-    if (!n) return;
-    onCreatePool(n, poolMarket);
-  };
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          role="dialog" aria-modal="true" aria-label="Add candidate"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: EASE }}
-          onClick={onClose}
-          style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(20,19,31,0.42)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
-        >
-          <motion.div
-            onClick={(e) => e.stopPropagation()}
-            initial={reduce ? false : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
-            transition={{ duration: 0.22, ease: EASE }}
-            style={{ width: "min(440px, 100%)", maxHeight: "80vh", overflowY: "auto", background: "var(--pj-surface)", border: "1px solid var(--pj-border)", borderRadius: 16, boxShadow: "var(--pj-shadow-card)", padding: 18 }}
-          >
-            <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "var(--pj-text)" }}>Add candidate</h3>
-            <p style={{ margin: "0 0 14px", fontSize: 12.5, color: "var(--pj-muted)", lineHeight: 1.45 }}>
-              Drop a batch into a new sourcing pool, or add it to an existing job.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {/* Create a sourcing pool — at the top, works even with zero jobs */}
-              {creating ? (
-                <div className="cand-pool-form">
-                  <input
-                    autoFocus type="text" value={poolName} maxLength={80}
-                    onChange={(e) => setPoolName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") submitPool(); }}
-                    placeholder='name this pool, e.g. "ready to deploy"'
-                    className="cand-pool-form__input"
-                    aria-label="Pool name"
-                  />
-                  <div className="hjl-toggle" role="radiogroup" aria-label="Market" style={{ alignSelf: "flex-start" }}>
-                    {[["gulf", "Gulf"], ["india", "India"]].map(([k, l]) => (
-                      <button key={k} type="button" role="radio" aria-checked={poolMarket === k}
-                        className={`hjl-toggle__btn${poolMarket === k ? " hjl-toggle__btn--active" : ""}`}
-                        onClick={() => setPoolMarket(k)}>{l}</button>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <button type="button" className="cand-pool-form__cancel" onClick={() => setCreating(false)}>Cancel</button>
-                    <button type="button" className="cand-pool-form__go" onClick={submitPool} disabled={!poolName.trim()}>Create and import</button>
-                  </div>
-                </div>
-              ) : (
-                <button type="button" className="cand-pick cand-pick--create" onClick={() => setCreating(true)}>
-                  <span className="cand-pick__title">Create a sourcing pool</span>
-                  <span className="cand-pick__plus" aria-hidden>+</span>
-                </button>
-              )}
-
-              {jobs.length > 0 && (
-                <div className="cand-pick__divider">or add to an existing job</div>
-              )}
-              {jobs.map((j) => (
-                <button key={j.id} type="button" className="cand-pick" onClick={() => onPick(j)}>
-                  <span className="cand-pick__title">{j.title || "Untitled role"}</span>
-                  {j.kind === "pool"
-                    ? <span className="cand-pooltag">Pool</span>
-                    : <span className={`cand-market cand-market--${j.market === "india" ? "india" : "gulf"}`}>{j.market === "india" ? "India" : "Gulf"}</span>}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }
 
@@ -953,10 +868,10 @@ export default function CandidatesPage() {
         />
       )}
 
-      <JobPickerModal
+      <ImportTargetModal
         open={pickerOpen}
         jobs={jobsList.filter((j) => j.status !== "closed")}
-        onPick={(j) => { setPickerOpen(false); setImportJob(j); }}
+        onPickJob={(j) => { setPickerOpen(false); setImportJob(j); }}
         onCreatePool={(name, mkt) => { setPickerOpen(false); setImportJob({ isPool: true, id: null, title: name, market: mkt }); }}
         onClose={() => setPickerOpen(false)}
         reduce={reduce}

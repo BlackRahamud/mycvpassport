@@ -1,0 +1,74 @@
+/* ────────────────────────────────────────────────────────────────
+   ImportPage — /employer/import. One centred column, one question.
+   Light HR-portal theme; --pj-* tokens from postJob.css :root,
+   --hjl-* ink accents from .jpp-root (jobPipeline.css). Mobile-first;
+   HrShell's bottom bar clearance is handled by .hrs-content padding.
+   ──────────────────────────────────────────────────────────────── */
+
+.imp-root {
+  background: #FAFAFB;
+  min-height: 100vh;
+  font-family: var(--pj-font);
+}
+
+.imp-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+}
+
+.imp-head { margin-bottom: 18px; }
+.imp-head__title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--pj-text);
+}
+.imp-head__sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--pj-muted);
+}
+
+.imp-card {
+  background: #FFFFFF;
+  border: 1px solid var(--pj-border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.imp-card__q {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pj-text);
+}
+
+.imp-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pj-muted);
+}
+.imp-status--err { color: var(--pj-text); }
+.imp-retry {
+  border: 1px solid var(--pj-border);
+  border-radius: 7px;
+  background: #FFFFFF;
+  padding: 4px 10px;
+  margin-left: 6px;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pj-text);
+  cursor: pointer;
+}
+
+/* ── Desktop ── */
+@media (min-width: 720px) {
+  .imp-page { padding: 48px 24px 64px; }
+  .imp-head { margin-bottom: 22px; }
+  .imp-head__title { font-size: 26px; }
+  .imp-card { padding: 20px; }
+}

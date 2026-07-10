@@ -42,6 +42,7 @@ const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */
 const HRJobsListPage       = lazy(() => import(/* webpackChunkName: "hr-jobs" */     "./pages/hr/Jobs/JobsListPage"));
 const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline" */ "./pages/hr/Jobs/JobPipelinePage"));
 const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidates" */ "./pages/hr/Candidates/CandidatesPage"));
+const HrImportPage         = lazy(() => import(/* webpackChunkName: "hr-import" */     "./pages/hr/Import/ImportPage"));
 const HrPricing            = lazy(() => import(/* webpackChunkName: "hr-pricing" */    "./pages/hr/Pricing/HrPricing"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
 const EmployerLandingPage  = lazy(() => import(/* webpackChunkName: "employer" */    "./pages/employer/EmployerLandingPage"));
@@ -195,6 +196,7 @@ export default function App() {
         <Route path="/employer/jobs" element={<HRJobsListPage />} />
         <Route path="/employer/jobs/:id" element={<JobPipelinePage />} />
         <Route path="/employer/candidates" element={<CandidatesPage />} />
+        <Route path="/employer/import" element={<HrImportPage />} />
         <Route path="/employer/pricing" element={<HrPricing />} />
       </Route>
       {/* Legacy /hr/* bookmarks keep working. */}
