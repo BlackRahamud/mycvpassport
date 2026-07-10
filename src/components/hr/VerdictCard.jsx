@@ -82,6 +82,9 @@ function VerdictRing({ score, tone, reduce }) {
 // from re-firing every time the HR clicks back onto a candidate.
 const verdictCache = new Map();
 export function clearVerdictCache() { verdictCache.clear(); }
+// Read-only peek for siblings (InterviewKitCard feeds the verdict's "Gap:"
+// line into its prompt when the verdict has already been generated).
+export function getCachedVerdict(key) { return (key && verdictCache.get(key)) || null; }
 
 // Tone + chip label derive from the SCORE via scoreBand — never from the
 // AI's raw verdict string. An 8/100 once wore a "PASS" chip (ambiguous:

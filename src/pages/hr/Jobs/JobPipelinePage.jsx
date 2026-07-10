@@ -6,6 +6,7 @@ import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
+import InterviewKitCard from "../../../components/hr/InterviewKitCard";
 import PaneEmpty from "../../../components/hr/PaneEmpty";
 import ScheduleInterviewModal, { InterviewTimeline } from "../../../components/hr/ScheduleInterviewModal";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
@@ -1193,6 +1194,18 @@ function CandidateDetail({
       <ShareReviews applicationId={candidate.id} />
 
       <InterviewTimeline hrId={hrId} candidateId={candidate.candidate_id} refreshKey={interviewTick} />
+
+      {/* Interview prep lives where interviews live — same stage gate as
+          the "Schedule interview" action above. */}
+      {["shortlist", "ready", "interviewed", "offer", "hired"].includes(stageDef?.key) && (
+        <InterviewKitCard
+          cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
+          cvSnapshot={cv}
+          job={job}
+          candidateName={candidate.candidate_name || "Candidate"}
+          jobTitle={jobTitle}
+        />
+      )}
 
       <OutreachHistory hrId={hrId} candidateId={candidate.candidate_id} refreshKey={outreachTick} />
 

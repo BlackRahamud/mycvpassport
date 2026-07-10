@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
+import InterviewKitCard from "../../../components/hr/InterviewKitCard";
 import BulkActions from "../../../components/hr/BulkActions";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import { ImportTargetModal } from "../../../components/hr/ImportTargetPicker";
@@ -260,6 +261,19 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
       </div>
 
       <OutreachHistory hrId={hrId} candidateId={candidate.record?.candidate_id} refreshKey={outreachTick} />
+
+      {/* Interview prep needs a real job to write against — pool-only
+          candidates would get generic questions, so the card stays hidden
+          until they're moved onto a job. */}
+      {candidate.apps[0]?.job_id && candidate.apps[0]?.kind !== "pool" && (
+        <InterviewKitCard
+          cacheKey={`${a.candidate_id || candidate.key}:${candidate.apps[0]?.job_id || ""}`}
+          cvSnapshot={cv}
+          jobId={candidate.apps[0]?.job_id}
+          candidateName={candidate.name}
+          jobTitle={candidate.apps[0]?.jobTitle || ""}
+        />
+      )}
 
       <ShareReviews applicationId={a.id} />
 

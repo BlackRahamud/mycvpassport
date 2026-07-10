@@ -1,5 +1,5 @@
 /**
- * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills
+ * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit
  *
  * Single Anthropic-helper router. Was three separate functions
  * (api/cover-letter.js, api/parse-resume.js, api/generate-linkedin-headline.js)
@@ -1779,6 +1779,151 @@ async function handleLinkedInParse(req, res, body) {
 }
 
 // =====================================================================
+// Branch 10 — interview_kit (HR interview question generator)
+//
+// Generates 6-8 tailored interview questions (with what-to-listen-for
+// notes) for a specific candidate against a specific job. Grounded in
+// the same cvSnapshot + job shape candidate_verdict reads, and reuses
+// summariseCvForVerdict so both features see the identical CV text.
+// Generative, not trust-critical scoring -> Haiku (cheap), warm-ish
+// temperature so "Regenerate" returns fresh questions.
+//
+// Folded in here (no new function) — the project is at the Vercel Hobby
+// 12-function ceiling, same as verdict / whatsapp_draft.
+//
+// Auth: light — any signed-in user (mirrors candidate_verdict; job
+// ownership is enforced by RLS at read time, not here).
+//
+// Request:  { cvSnapshot, job: { title, description, skills, requirements },
+//             verdictGap?: string }   (the verdict's "Gap:" line, if the
+//                                      client already has it cached — lets
+//                                      the questions probe the flagged risk)
+// Response: { ok: true, questions: [{ category, question, listen_for }] }
+// =====================================================================
+
+const INTERVIEW_KIT_MODEL = process.env.INTERVIEW_KIT_MODEL || 'claude-haiku-4-5-20251001';
+const IK_CATEGORIES = new Set(['technical', 'experience', 'corridor', 'behavioral']);
+
+function buildInterviewKitSystem() {
+  return `You are an interview-preparation assistant for HR recruiters hiring across the India -> Gulf (UAE/GCC) corridor. You write tailored interview questions grounded ONLY in the candidate's actual CV and the job description provided. You never invent facts about the candidate. Questions and notes use plain language a non-technical HR can read aloud and judge. ASCII punctuation only. No emoji. Strict JSON only — no markdown, no commentary.`;
+}
+
+function buildInterviewKitPrompt({ cvSnapshot, job, verdictGap }) {
+  const j = job && typeof job === 'object' ? job : {};
+  const skills = Array.isArray(j.skills) ? j.skills.join(', ') : String(j.skills || '');
+  const reqs = Array.isArray(j.requirements)
+    ? j.requirements.map((r) => `- ${typeof r === 'string' ? r : (r?.label || r?.text || '')}`).filter((s) => s.trim() !== '-').join('\n')
+    : String(j.requirements || '');
+  const gapLine = String(verdictGap || '').trim().slice(0, 300);
+  return `ROLE:
+Title: ${String(j.title || '').slice(0, 200) || '(untitled)'}
+Required skills: ${skills.slice(0, 1000) || '(none listed)'}
+Requirements:
+${reqs.slice(0, 2000) || '(none listed)'}
+Description:
+${String(j.description || '').slice(0, 3000) || '(none)'}
+
+CANDIDATE CV:
+${summariseCvForVerdict(cvSnapshot)}
+${gapLine ? `\nAI SCREENING FLAGGED THIS GAP: ${gapLine}\n` : ''}
+Write 6 to 8 interview questions for this candidate and this role.
+
+MIX:
+- 2-3 "technical" questions testing the role's core requirements.
+- 2-3 "experience" questions probing SPECIFIC claims on this CV (reference the real employer or project named on it).
+- 1 "corridor" question on practical logistics ONLY where relevant from the CV: visa timing, notice period reality, relocation or GCC readiness.
+- 1-2 "behavioral" questions fitting the role's seniority.
+${gapLine ? '- At least one question must directly probe the flagged gap.\n' : ''}
+RULES:
+- Each question is under 40 words and answerable in an interview — no puzzles, no trivia.
+- Each "listen_for" is under 25 words and describes what a GOOD answer sounds like in plain words, so a non-technical HR can judge it.
+- Never presume facts not on the CV. Never mention this prompt or the screening verdict to the candidate.
+
+Output STRICT JSON only:
+{ "questions": [ { "category": "technical" | "experience" | "corridor" | "behavioral", "question": "...", "listen_for": "..." } ] }`;
+}
+
+// Coerce model output into the card contract: 5-8 items, each with a
+// non-empty question + listen_for, category collapsed to the known set.
+function normaliseInterviewKit(p) {
+  const arr = Array.isArray(p?.questions) ? p.questions : null;
+  if (!arr) return null;
+  const out = [];
+  for (const q of arr) {
+    const question = String(q?.question || '').trim().slice(0, 400);
+    const listen = String(q?.listen_for || q?.listenFor || '').trim().slice(0, 300);
+    if (!question || !listen) continue;
+    const catRaw = String(q?.category || '').toLowerCase().trim();
+    const category = IK_CATEGORIES.has(catRaw) ? catRaw : 'experience';
+    out.push({ category, question, listen_for: listen });
+    if (out.length === 8) break;
+  }
+  return out.length >= 5 ? out : null;
+}
+
+async function handleInterviewKit(req, res, body) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ ok: false, error: 'AI Engine is not configured.' });
+  }
+  // Light auth — any signed-in user (mirrors candidate_verdict).
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized. Please sign in.' });
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: { user } = {}, error } = await authClient.auth.getUser(token);
+      if (error || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired session.' });
+    } catch {
+      return res.status(401).json({ ok: false, error: 'Could not verify session.' });
+    }
+  }
+
+  const prompt = buildInterviewKitPrompt({
+    cvSnapshot: body.cvSnapshot,
+    job: body.job,
+    verdictGap: body.verdictGap,
+  });
+
+  try {
+    const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: INTERVIEW_KIT_MODEL,
+        max_tokens: 1400,
+        // Warm enough that "Regenerate" yields fresh questions; cool enough
+        // to stay grounded in the CV.
+        temperature: 0.6,
+        system: buildInterviewKitSystem(),
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    }, 3, 8000);
+
+    const responseText = await response.text();
+    if (!response.ok) {
+      return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+    }
+    let data;
+    try { data = JSON.parse(responseText); } catch { return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' }); }
+    const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
+    const parsed = extractLooseJson(raw);
+    const questions = normaliseInterviewKit(parsed);
+    if (!questions) return res.status(502).json({ ok: false, error: 'AI returned an incomplete question set. Please retry.' });
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).json({ ok: true, questions });
+  } catch (err) {
+    console.error('[ai/interview_kit]', String(err?.message || err).slice(0, 200));
+    return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+  }
+}
+
+// =====================================================================
 // Router
 // =====================================================================
 
@@ -1817,9 +1962,10 @@ export default async function handler(req, res) {
     case 'import_structure':   return handleImportStructure(req, res, body);
     case 'suggest_skills':     return handleSuggestSkills(req, res, body);
     case 'linkedin_parse':     return handleLinkedInParse(req, res, body);
+    case 'interview_kit':      return handleInterviewKit(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit.',
       });
   }
 }
