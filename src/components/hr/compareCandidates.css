@@ -1,0 +1,359 @@
+/* ────────────────────────────────────────────────────────────────
+   CompareCandidates — side by side compare overlay (design 2a hybrid).
+   Chrome from --pj-* tokens; the semantic palette (green / amber / red)
+   is tokenised once here, mirroring verdictCard.css — no raw hex in
+   markup. z 3400: above kanban drawer (3000), below CV viewer (3500).
+
+   Mobile: the grid lives in an overflow-x scroller and every .cc-label
+   is sticky left on an opaque background, so the label rail never
+   scrolls away.
+   ──────────────────────────────────────────────────────────────── */
+
+.cc-scrim {
+  --cc-green: #1D9E75;
+  --cc-amber: #D97706;
+  --cc-red: #DC2626;
+  --cc-green-soft: rgba(29, 158, 117, 0.12);
+  --cc-green-wash: rgba(29, 158, 117, 0.07);
+  --cc-green-line: rgba(29, 158, 117, 0.25);
+  --cc-green-line-strong: rgba(29, 158, 117, 0.35);
+  --cc-amber-soft: rgba(217, 119, 6, 0.12);
+  --cc-red-soft: rgba(220, 38, 38, 0.10);
+  --cc-red-strike: rgba(220, 38, 38, 0.28);
+
+  position: fixed;
+  inset: 0;
+  z-index: 3400;
+  background: rgba(20, 19, 31, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.cc-panel {
+  width: min(1080px, 100%);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--pj-input-bg);
+  border: 1px solid var(--pj-border);
+  border-radius: 18px;
+  box-shadow: var(--pj-shadow-card);
+  overflow: hidden;
+  font-family: var(--pj-font);
+}
+
+/* ── Header ── */
+.cc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  flex-shrink: 0;
+}
+.cc-head__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cc-head__title { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--pj-text); }
+.cc-head__sub { font-size: 12.5px; color: var(--pj-muted); }
+.cc-back {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--pj-border-strong);
+  background: var(--pj-surface);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pj-text);
+  cursor: pointer;
+  transition: background 150ms var(--pj-ease);
+}
+.cc-back:hover { background: var(--pj-input-bg); }
+.cc-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--pj-muted);
+  cursor: pointer;
+  transition: background 150ms var(--pj-ease), color 150ms var(--pj-ease);
+}
+.cc-x:hover { background: var(--pj-surface); color: var(--pj-text); }
+
+/* ── Grid + pinned label rail ── */
+.cc-scroll { overflow: auto; padding: 4px 18px 18px; }
+.cc-grid {
+  display: grid;
+  grid-template-columns: 132px repeat(var(--cc-cols, 3), minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+.cc-label {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+  padding-left: 2px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--pj-input-bg);
+}
+.cc-label--top { align-items: flex-start; padding-top: 14px; }
+
+/* ── Cells ── */
+.cc-cell {
+  position: relative;
+  background: var(--pj-surface);
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  transition: transform 150ms var(--pj-ease), box-shadow 150ms var(--pj-ease);
+}
+.cc-cell:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -10px rgba(20, 19, 31, 0.22); }
+.cc-cell--lead {
+  background: var(--cc-green-wash);
+  border-color: var(--cc-green-line);
+}
+.cc-cell--head { padding: 16px; }
+.cc-cell--head.cc-cell--lead { border-width: 1.5px; border-color: var(--cc-green-line-strong); }
+.cc-cell--list { flex-direction: column; align-items: stretch; gap: 7px; padding: 14px 16px; }
+.cc-cell--chips { flex-wrap: wrap; gap: 6px; align-content: flex-start; padding: 14px 16px; }
+.cc-cell--actions { gap: 8px; background: transparent; border: 0; padding: 4px 0 0; }
+.cc-cell--actions:hover { transform: none; box-shadow: none; }
+
+.cc-ribbon {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--cc-green);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cc-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--pj-primary-soft);
+  color: var(--pj-primary);
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.cc-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cc-who__name { font-size: 14.5px; font-weight: 700; color: var(--pj-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-who__role { font-size: 11.5px; color: var(--pj-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Score ── */
+.cc-score { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cc-ring { position: relative; width: 60px; height: 60px; flex-shrink: 0; display: inline-flex; }
+.cc-ring__num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 800;
+  font-feature-settings: "tnum";
+}
+.cc-ring--empty { border-radius: 50%; border: 5px solid var(--pj-border); box-sizing: border-box; }
+.cc-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.cc-chip--top { background: var(--cc-green-soft); color: var(--cc-green); }
+.cc-behind { font-size: 11.5px; color: var(--pj-muted); }
+
+/* ── Verdict chip (scoreBand bands, never "Pass") ── */
+.cc-verdict {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.cc-verdict--high { background: var(--cc-green-soft); color: var(--cc-green); }
+.cc-verdict--mid { background: var(--cc-amber-soft); color: var(--cc-amber); }
+.cc-verdict--low { background: var(--cc-red-soft); color: var(--cc-red); }
+.cc-verdict--none { background: var(--pj-input-bg); color: var(--pj-muted); }
+
+/* ── Strength / gap items ── */
+.cc-item { display: flex; gap: 6px; font-size: 12.5px; line-height: 1.5; color: var(--pj-text-soft); }
+.cc-item__ic { flex-shrink: 0; margin-top: 2px; display: inline-flex; }
+.cc-item__ic--good { color: var(--cc-green); }
+.cc-item__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cc-amber); flex-shrink: 0; margin-top: 6px; }
+
+/* ── Keyword chips (mirrors the verdict card chips) ── */
+.cc-kw {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-kw--hit { background: var(--cc-green-soft); color: var(--cc-green); border: 1px solid var(--cc-green-line); }
+.cc-kw--miss {
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  border: 1px solid var(--pj-border);
+  text-decoration: line-through;
+  text-decoration-color: var(--cc-red-strike);
+  text-decoration-thickness: 1.5px;
+}
+.cc-tally { display: inline-flex; align-items: center; height: 24px; padding: 0 4px; font-size: 11.5px; font-weight: 600; color: var(--pj-muted); }
+
+/* ── Facts + pills ── */
+.cc-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cc-fact strong { font-size: 14px; font-weight: 700; color: var(--pj-text); }
+.cc-fact em { font-style: normal; font-size: 11.5px; color: var(--pj-muted); }
+.cc-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  border: 1px solid var(--pj-border);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-pill--none { color: var(--pj-muted); font-weight: 500; border: 1px dashed var(--pj-border-strong); }
+.cc-soft { font-size: 11.5px; color: var(--pj-muted); }
+.cc-soft--dark { font-size: 13px; color: var(--pj-text-soft); }
+
+/* ── Per column load / error ── */
+.cc-shimmer { display: flex; flex-direction: column; gap: 9px; width: 100%; }
+.cc-shimmer span {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--pj-border);
+}
+.cc-shimmer em { font-style: normal; font-size: 11px; color: var(--pj-muted); margin-top: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .cc-shimmer span { animation: cc-pulse 1.4s ease-in-out infinite; }
+}
+@keyframes cc-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+.cc-err { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--pj-text-soft); }
+.cc-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: 8px;
+  padding: 5px 10px;
+  background: var(--pj-surface);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pj-text);
+  cursor: pointer;
+}
+
+/* ── Actions ── */
+.cc-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--pj-border-strong);
+  background: var(--pj-surface);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pj-text);
+  cursor: pointer;
+  transition: background 150ms var(--pj-ease), transform 150ms var(--pj-ease);
+}
+.cc-btn:hover { background: var(--pj-input-bg); }
+.cc-btn:active { transform: scale(0.98); }
+.cc-btn--primary {
+  background: var(--pj-primary);
+  border-color: var(--pj-primary);
+  color: #FFFFFF;
+  box-shadow: var(--pj-shadow-button);
+}
+.cc-btn--primary:hover { background: var(--pj-primary-hover); }
+.cc-btn--primary:disabled { opacity: 0.7; cursor: default; }
+
+/* ── Phones: horizontal scroll, pinned rail, compact cells ── */
+@media (max-width: 600px) {
+  .cc-scrim { padding: 0; align-items: stretch; }
+  .cc-panel { width: 100%; max-height: 100%; border-radius: 0; border: 0; }
+  .cc-scroll { padding: 4px 10px 14px; }
+  .cc-grid { grid-template-columns: 84px repeat(var(--cc-cols, 3), 148px); width: max-content; }
+  .cc-label { font-size: 9.5px; }
+  .cc-cell { padding: 9px 10px; border-radius: 10px; gap: 8px; }
+  .cc-cell--head { flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px; }
+  .cc-avatar { width: 26px; height: 26px; font-size: 10px; }
+  .cc-who__name { font-size: 11.5px; white-space: normal; }
+  .cc-who__role { display: none; }
+  /* Per the 360 mock: the ring gives way to one big banded number. */
+  .cc-ring { width: auto; height: auto; }
+  .cc-ring svg { display: none; }
+  .cc-ring__num { position: static; font-size: 19px; }
+  .cc-ring--empty { width: 24px; height: 24px; border-width: 4px; }
+  .cc-cell--actions { flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-cell, .cc-btn, .cc-back, .cc-x { transition: none !important; }
+  .cc-cell:hover { transform: none; box-shadow: none; }
+  .cc-btn:active { transform: none; }
+  .cc-shimmer span { animation: none; }
+}

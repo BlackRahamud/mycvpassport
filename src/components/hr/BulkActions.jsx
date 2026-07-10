@@ -109,6 +109,9 @@ const WaIcon = ({ size = 15 }) => (
 const DownloadIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
 );
+const CompareIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5" /><rect x="14" y="4" width="7" height="16" rx="1.5" /></svg>
+);
 const CloseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
 );
@@ -119,15 +122,18 @@ const pill = (kind) => ({
   padding: "9px 13px", borderRadius: 10, font: "inherit", fontSize: 13, fontWeight: 600,
   cursor: "pointer", whiteSpace: "nowrap", lineHeight: 1,
   border: "1px solid var(--pj-border)",
-  background: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : kind === "danger" ? "var(--hjl-pass)" : "var(--pj-surface)",
-  color: (kind === "ink" || kind === "wa" || kind === "danger") ? "#FFFFFF" : "var(--pj-text)",
-  borderColor: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : kind === "danger" ? "var(--hjl-pass)" : "var(--pj-border)",
+  background: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : kind === "danger" ? "var(--hjl-pass)" : kind === "primary" ? "var(--pj-primary)" : "var(--pj-surface)",
+  color: (kind === "ink" || kind === "wa" || kind === "danger" || kind === "primary") ? "#FFFFFF" : "var(--pj-text)",
+  borderColor: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : kind === "danger" ? "var(--hjl-pass)" : kind === "primary" ? "var(--pj-primary)" : "var(--pj-border)",
 });
-export default function BulkActions({ selected, onClear, onApplyStatus, statusBusy, statusError, hrId, onLogged }) {
+export default function BulkActions({ selected, onClear, onApplyStatus, statusBusy, statusError, hrId, onLogged, onCompare }) {
   const reduce = useReducedMotion();
   const [queueOpen, setQueueOpen] = useState(false);
 
   const count = selected.length;
+  // Compare reads well at 2 or 3 aligned columns; beyond that it turns
+  // into a spreadsheet, so the action caps rather than squeezing.
+  const canCompare = count === 2 || count === 3;
 
   return (
     <>
@@ -180,10 +186,28 @@ export default function BulkActions({ selected, onClear, onApplyStatus, statusBu
             <WaIcon /> WhatsApp
           </motion.button>
 
+          {onCompare && (
+            <motion.button
+              type="button"
+              whileTap={reduce || !canCompare ? undefined : { scale: 0.96 }}
+              style={{ ...pill("primary"), opacity: canCompare ? 1 : 0.5, cursor: canCompare ? "pointer" : "default" }}
+              disabled={!canCompare}
+              onClick={() => { if (canCompare) onCompare(); }}
+              title={canCompare ? "Compare the selected candidates side by side" : "compare up to 3 at a time"}
+            >
+              <CompareIcon /> Compare
+            </motion.button>
+          )}
+
           <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={pill("plain")} onClick={onClear}>
             Clear
           </motion.button>
 
+          {onCompare && count > 3 && (
+            <span role="status" style={{ flexBasis: "100%", fontSize: 12, color: "var(--pj-muted)", fontWeight: 600 }}>
+              compare up to 3 at a time
+            </span>
+          )}
           {statusError && (
             <span role="status" style={{ flexBasis: "100%", fontSize: 12, color: "var(--hjl-pass)", fontWeight: 600 }}>
               {statusError}

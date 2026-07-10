@@ -11,6 +11,7 @@ import BulkCvImport from "../../../components/hr/BulkCvImport";
 import { ImportTargetModal } from "../../../components/hr/ImportTargetPicker";
 import PaneEmpty from "../../../components/hr/PaneEmpty";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
+import CompareCandidates from "../../../components/hr/CompareCandidates";
 import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
 import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../../lib/ats/scoreBand";
@@ -450,6 +451,7 @@ export default function CandidatesPage() {
   // Bulk selection (distinct from `selectedKey`, which is the detail-panel
   // pick). Set of candidate keys; hard-capped at SELECT_CAP.
   const [checkedKeys, setCheckedKeys] = useState(() => new Set());
+  const [compareOpen, setCompareOpen] = useState(false);
   const [checkNotice, setCheckNotice] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkError, setBulkError] = useState(null);
@@ -652,6 +654,25 @@ export default function CandidatesPage() {
     }
   };
 
+  /* Compare (2 or 3 checked): per column Shortlist reuses the exact
+     one row write the bulk path uses — optimistic, honest rollback. */
+  const shortlistOne = async (cand) => {
+    const id = cand.record?.id;
+    if (!id) return false;
+    const prevRows = rows;
+    setRows((prev) => (prev || []).map((c) => {
+      if (c.key !== cand.key) return c;
+      const apps = c.apps.map((ap) => (ap.app_id === id ? { ...ap, status: "shortlisted" } : ap));
+      return { ...c, record: { ...c.record, status: "shortlisted" }, apps, statuses: new Set(apps.map((x) => x.status)) };
+    }));
+    const { error } = await supabase
+      .from("applications")
+      .update({ status: "shortlisted", updated_at: new Date().toISOString() })
+      .in("id", [id]);
+    if (error) { setRows(prevRows); return false; }
+    return true;
+  };
+
   const loading = rows === null;
   const totalCandidates = rows ? rows.length : 0;
 
@@ -849,8 +870,16 @@ export default function CandidatesPage() {
           statusError={bulkError}
           hrId={user?.id}
           onLogged={() => setOutreachTick((t) => t + 1)}
+          onCompare={() => setCompareOpen(true)}
         />
       )}
+
+      <CompareCandidates
+        open={compareOpen && selectedArr.length >= 2}
+        onClose={() => setCompareOpen(false)}
+        candidates={selectedArr.slice(0, 3)}
+        onShortlist={shortlistOne}
+      />
 
       <ImportTargetModal
         open={pickerOpen}

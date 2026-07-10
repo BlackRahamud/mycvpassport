@@ -90,6 +90,10 @@ export function clearVerdictCache() { verdictCache.clear(); }
 // Read-only peek for siblings (InterviewKitCard feeds the verdict's "Gap:"
 // line into its prompt when the verdict has already been generated).
 export function getCachedVerdict(key) { return (key && verdictCache.get(key)) || null; }
+// Write path for siblings that fetch the same verdict themselves
+// (CompareCandidates loads per column) — one shared cache, one AI call
+// per candidate+job across every surface.
+export function putCachedVerdict(key, data) { if (key && data) verdictCache.set(key, data); }
 
 // Tone + chip label derive from the SCORE via scoreBand — never from the
 // AI's raw verdict string. An 8/100 once wore a "PASS" chip (ambiguous:
