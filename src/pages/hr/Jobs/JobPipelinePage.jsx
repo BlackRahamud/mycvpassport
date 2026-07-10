@@ -625,7 +625,7 @@ export default function JobPipelinePage() {
           )}
         </AnimatePresence>
 
-        <PipelineAnalytics apps={apps} events={events} reduce={reduce} />
+        <PipelineAnalytics apps={apps} events={events} reduce={reduce} userId={user?.id} />
 
         <div className="jpp-viewbar">
           {view === "list" ? (

@@ -29,14 +29,17 @@ import "./pipelineKanban.css";
 
 const EASE = [0.4, 0, 0.2, 1];
 
+/* Null for a missing/bad date so callers can omit the line entirely —
+   never an em dash in interface text. */
 const fmtDate = (iso) => {
-  if (!iso) return "—";
+  if (!iso) return null;
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
-/* ── ATS score badge — color-coded via the shared scoreBand tokens ── */
+/* ── ATS score badge — color-coded via the shared scoreBand tokens.
+      Says "match" in the badge so red vs green needs no guesswork. ── */
 function ScoreBadge({ score, source }) {
   const band = scoreBand(score, source);
   const color = BAND_COLORS[band];
@@ -46,8 +49,39 @@ function ScoreBadge({ score, source }) {
       style={{ "--kb-band": color }}
       title={band === "none" ? "No ATS score yet" : `ATS match ${score}%`}
     >
-      {band === "none" ? "—" : `${score}%`}
+      {band === "none" ? "No score" : `${score}% match`}
     </span>
+  );
+}
+
+/* ── Six-dot grip — the visible "you can drag this" affordance, so the
+      cursor is never the only signal. ── */
+const GripIc = () => (
+  <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+    <circle cx="2.5" cy="2.5" r="1.5" /><circle cx="7.5" cy="2.5" r="1.5" />
+    <circle cx="2.5" cy="8" r="1.5" /><circle cx="7.5" cy="8" r="1.5" />
+    <circle cx="2.5" cy="13.5" r="1.5" /><circle cx="7.5" cy="13.5" r="1.5" />
+  </svg>
+);
+
+/* ── Score legend — one line above the board; thresholds mirror
+      scoreBand (80/50), never restated numbers that could drift. ── */
+function ScoreLegend() {
+  const items = [
+    { band: "high", text: "80 and up, strong" },
+    { band: "mid", text: "50 to 79, maybe" },
+    { band: "low", text: "under 50, weak" },
+  ];
+  return (
+    <div className="jpp-kb-legend" aria-label="Match score legend">
+      <span className="jpp-kb-legend__label">Match score:</span>
+      {items.map((it) => (
+        <span key={it.band} className="jpp-kb-legend__item">
+          <span className="jpp-kb-legend__dot" style={{ background: BAND_COLORS[it.band] }} aria-hidden />
+          {it.text}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -129,6 +163,7 @@ function KanbanCard({ app, stageKey, onOpen, onMenu, reduce, dragging, landed })
     data: { stageKey },
   });
   const isNew = NEW_STATUSES.has(app.status);
+  const appliedOn = fmtDate(app.applied_at);
   return (
     <motion.div
       layout={reduce ? false : "position"}
@@ -143,19 +178,20 @@ function KanbanCard({ app, stageKey, onOpen, onMenu, reduce, dragging, landed })
         {...attributes}
         role="button"
         tabIndex={0}
-        className={`jpp-kb-card${landed ? " jpp-kb-card--landed" : ""}`}
+        className={`jpp-kb-card jpp-kb-card--grip${landed ? " jpp-kb-card--landed" : ""}`}
         onClick={() => onOpen(app.id, stageKey)}
         onKeyDown={(e) => {
           if (e.key === "Enter") { e.preventDefault(); onOpen(app.id, stageKey); }
         }}
         aria-label={`${app.candidate_name || "Unnamed candidate"}, ${stageKey} stage. Enter to open, space to drag, or use the move menu.`}
       >
+        <span className="jpp-kb-card__grip" aria-hidden><GripIc /></span>
         <div className="jpp-kb-card__top">
           <span className="jpp-kb-card__name">{app.candidate_name || "Unnamed candidate"}</span>
           <ScoreBadge score={app.ats_score} source={app.score_source} />
         </div>
         <div className="jpp-kb-card__meta">
-          <span>Applied {fmtDate(app.applied_at)}</span>
+          {appliedOn && <span>Applied {appliedOn}</span>}
           {isNew && <span className="jpp-kb-card__new">New</span>}
           {app.source === "imported" && <span className="jpp-kb-card__new jpp-kb-card__new--imported">Imported</span>}
         </div>
@@ -179,12 +215,59 @@ function KanbanCard({ app, stageKey, onOpen, onMenu, reduce, dragging, landed })
   );
 }
 
+/* ── Phone card — drag between columns is impractical at 393px, so the
+      grip gives way to an explicit "Move to" button on each card,
+      opening the same move menu the keyboard path uses. ── */
+function PhoneCard({ app, stageKey, onOpen, onMenu }) {
+  const isNew = NEW_STATUSES.has(app.status);
+  const appliedOn = fmtDate(app.applied_at);
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      className="jpp-kb-card jpp-kb-card--phone"
+      onClick={() => onOpen(app.id, stageKey)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") { e.preventDefault(); onOpen(app.id, stageKey); }
+      }}
+      aria-label={`${app.candidate_name || "Unnamed candidate"}, ${stageKey} stage. Enter to open.`}
+    >
+      <div className="jpp-kb-card__top">
+        <span className="jpp-kb-card__name">{app.candidate_name || "Unnamed candidate"}</span>
+        <ScoreBadge score={app.ats_score} source={app.score_source} />
+      </div>
+      <div className="jpp-kb-card__meta jpp-kb-card__meta--phone">
+        <span className="jpp-kb-card__meta-left">
+          {appliedOn && <span>Applied {appliedOn}</span>}
+          {isNew && <span className="jpp-kb-card__new">New</span>}
+          {app.source === "imported" && <span className="jpp-kb-card__new jpp-kb-card__new--imported">Imported</span>}
+        </span>
+        <button
+          type="button"
+          className="jpp-kb-card__moveto"
+          aria-label={`Move ${app.candidate_name || "candidate"} to another stage`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMenu(app, stageKey, e.currentTarget.getBoundingClientRect());
+          }}
+        >
+          Move to
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Column ── */
-function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, landedId, headerExtra }) {
+function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, draggingFromStage, landedId, headerExtra }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
+  // The dashed landing slot only appears when the hovered card is coming
+  // FROM another column — same-column hovers can't move anything.
+  const showDropSlot = isOver && draggingFromStage && draggingFromStage !== stage.key;
   return (
     <section
-      className={`jpp-kb-col${isOver ? " jpp-kb-col--over" : ""}`}
+      className={`jpp-kb-col jpp-kb-col--${stage.key}${isOver ? " jpp-kb-col--over" : ""}`}
       aria-label={`${stage.label}, ${cards.length} candidates`}
     >
       <header className="jpp-kb-col__head">
@@ -205,13 +288,16 @@ function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, landed
             landed={landedId === app.id}
           />
         ))}
+        {showDropSlot && cards.length > 0 && (
+          <div className="jpp-kb-dropslot" aria-hidden>Drop here</div>
+        )}
         {cards.length === 0 && (
           <div className="jpp-kb-empty">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="16" y1="11" x2="22" y2="11" />
             </svg>
             <p>{stage.key === "shortlist" ? "New applicants land here" : `No one at ${stage.label} yet`}</p>
-            <span>Drag a card here to move them</span>
+            <span className="jpp-kb-empty__drag-hint">Drag a card here to move them</span>
           </div>
         )}
       </div>
@@ -248,11 +334,31 @@ export function KanbanSkeleton() {
 const setBodyDragging = (on) =>
   document.body.classList.toggle("jpp-kb-dragging", on);
 
+/* ≤480px: drag is a thumb trap, so the board becomes one column at a time
+   with a stage-chip pager (see PhonePager below). */
+const PHONE_QUERY = "(max-width: 480px)";
+
 export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, headerExtras = {} }) {
   const [draggingId, setDraggingId] = useState(null);
   const [landedId, setLandedId] = useState(null); // settle flash after a stage move
   const [menu, setMenu] = useState(null); // { app, stageKey, rect }
   const landedTimer = useRef(null);
+  // Guarded: jsdom (unit tests) has no matchMedia.
+  const [isPhone, setIsPhone] = useState(() =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia(PHONE_QUERY).matches
+      : false,
+  );
+  const [phoneStage, setPhoneStage] = useState("shortlist");
+  const touchStartX = useRef(null);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const mq = window.matchMedia(PHONE_QUERY);
+    const onChange = (e) => setIsPhone(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => () => {
     setBodyDragging(false);
@@ -295,6 +401,79 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
     [handleMove],
   );
 
+  /* ── Phone: stage-chip pager, one column at a time, swipe to switch ── */
+  if (isPhone) {
+    const stageIdx = STAGES.findIndex((s) => s.key === phoneStage);
+    const cards = stageBuckets[phoneStage] || [];
+    const activeStageDef = STAGES[stageIdx] || STAGES[0];
+    const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+    const onTouchEnd = (e) => {
+      if (touchStartX.current == null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      touchStartX.current = null;
+      if (Math.abs(dx) < 48) return;
+      const next = stageIdx + (dx < 0 ? 1 : -1);
+      if (next >= 0 && next < STAGES.length) setPhoneStage(STAGES[next].key);
+    };
+    return (
+      <div className="jpp-kbm" role="region" aria-label="Pipeline board">
+        <div className="jpp-kbm-chips" role="tablist" aria-label="Pipeline stages">
+          {STAGES.map((s) => {
+            const active = s.key === phoneStage;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`jpp-kbm-chip jpp-kbm-chip--${s.key}${active ? " jpp-kbm-chip--active" : ""}`}
+                onClick={() => setPhoneStage(s.key)}
+              >
+                {s.label} {(stageBuckets[s.key] || []).length}
+              </button>
+            );
+          })}
+        </div>
+        <div className="jpp-kbm-body" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          {headerExtras[phoneStage] && (
+            <div className="jpp-kbm-extra">{headerExtras[phoneStage]}</div>
+          )}
+          {cards.map((app) => (
+            <PhoneCard
+              key={app.id}
+              app={app}
+              stageKey={phoneStage}
+              onOpen={onOpen}
+              onMenu={(app2, stageKey, rect) => setMenu({ app: app2, stageKey, rect })}
+            />
+          ))}
+          {cards.length === 0 && (
+            <div className="jpp-kb-empty">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="16" y1="11" x2="22" y2="11" />
+              </svg>
+              <p>{phoneStage === "shortlist" ? "New applicants land here" : `No one at ${activeStageDef.label} yet`}</p>
+              <span>Use Move to on a card to bring someone here</span>
+            </div>
+          )}
+        </div>
+        {menu && (
+          <MoveMenu
+            app={menu.app}
+            currentStageKey={menu.stageKey}
+            anchorRect={menu.rect}
+            onMove={handleMove}
+            onClose={() => setMenu(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  const draggingFromStage = draggingApp
+    ? (STAGES.find((s) => (stageBuckets[s.key] || []).some((a) => a.id === draggingId))?.key || null)
+    : null;
+
   return (
     <LayoutGroup>
       <DndContext
@@ -304,6 +483,7 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
         onDragCancel={() => { setDraggingId(null); setBodyDragging(false); }}
         onDragEnd={handleDragEnd}
       >
+        <ScoreLegend />
         <div className="jpp-kb" role="list" aria-label="Pipeline board">
           {STAGES.map((stage) => (
             <KanbanColumn
@@ -314,6 +494,7 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
               onMenu={(app, stageKey, rect) => setMenu({ app, stageKey, rect })}
               reduce={reduce}
               draggingId={draggingId}
+              draggingFromStage={draggingFromStage}
               landedId={landedId}
               headerExtra={headerExtras[stage.key] || null}
             />
@@ -322,13 +503,14 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
 
         <DragOverlay dropAnimation={reduce ? null : { duration: 220, easing: "cubic-bezier(0.4, 0, 0.2, 1)" }}>
           {draggingApp ? (
-            <div className="jpp-kb-card jpp-kb-card--lifted">
+            <div className="jpp-kb-card jpp-kb-card--grip jpp-kb-card--lifted">
+              <span className="jpp-kb-card__grip jpp-kb-card__grip--live" aria-hidden><GripIc /></span>
               <div className="jpp-kb-card__top">
                 <span className="jpp-kb-card__name">{draggingApp.candidate_name || "Unnamed candidate"}</span>
                 <ScoreBadge score={draggingApp.ats_score} source={draggingApp.score_source} />
               </div>
               <div className="jpp-kb-card__meta">
-                <span>Applied {fmtDate(draggingApp.applied_at)}</span>
+                {fmtDate(draggingApp.applied_at) && <span>Applied {fmtDate(draggingApp.applied_at)}</span>}
               </div>
             </div>
           ) : null}

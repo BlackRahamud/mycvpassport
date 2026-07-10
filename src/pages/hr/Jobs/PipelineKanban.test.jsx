@@ -28,7 +28,7 @@ describe("PipelineKanban", () => {
     expect(screen.getByLabelText("Ready, 0 candidates")).toBeInTheDocument();
     expect(screen.getByLabelText("Hired, 0 candidates")).toBeInTheDocument();
     expect(screen.getByText("Rahul Sharma")).toBeInTheDocument();
-    expect(screen.getByText("91%")).toBeInTheDocument();
+    expect(screen.getByText("91% match")).toBeInTheDocument();
     // Empty columns render a designed placeholder, not a collapsed nothing.
     expect(screen.getByText("No one at Ready yet")).toBeInTheDocument();
     expect(screen.getAllByText("Drag a card here to move them").length).toBeGreaterThan(0);

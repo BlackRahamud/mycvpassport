@@ -5,6 +5,29 @@
    dnd-kit); CSS hover transitions stay 120-160ms.
    ═══════════════════════════════════════════════════════════════ */
 
+/* Stage colors (design 5a) — one hue per pipeline stage, used for the
+   column top border, count pill, drop highlight, and the mobile chip
+   pager. Deep variants keep pill text AA-readable on the 12% tint. */
+:root {
+  --kbstage-shortlist: #3B82F6;
+  --kbstage-shortlist-deep: #1D4ED8;
+  --kbstage-ready: #6366F1;
+  --kbstage-ready-deep: #4F46E5;
+  --kbstage-interviewed: #10B981;
+  --kbstage-interviewed-deep: #047857;
+  --kbstage-offer: #14B8A6;
+  --kbstage-offer-deep: #0F766E;
+  --kbstage-hired: #22C55E;
+  --kbstage-hired-deep: #15803D;
+  /* Accent lift shadow for card hover — --pj-primary at 35%. */
+  --kb-accent-shadow: 0 6px 14px -10px rgba(124, 58, 237, 0.35);
+}
+.jpp-kb-col--shortlist,   .jpp-kbm-chip--shortlist   { --kb-stage: var(--kbstage-shortlist);   --kb-stage-deep: var(--kbstage-shortlist-deep); }
+.jpp-kb-col--ready,       .jpp-kbm-chip--ready       { --kb-stage: var(--kbstage-ready);       --kb-stage-deep: var(--kbstage-ready-deep); }
+.jpp-kb-col--interviewed, .jpp-kbm-chip--interviewed { --kb-stage: var(--kbstage-interviewed); --kb-stage-deep: var(--kbstage-interviewed-deep); }
+.jpp-kb-col--offer,       .jpp-kbm-chip--offer       { --kb-stage: var(--kbstage-offer);       --kb-stage-deep: var(--kbstage-offer-deep); }
+.jpp-kb-col--hired,       .jpp-kbm-chip--hired       { --kb-stage: var(--kbstage-hired);       --kb-stage-deep: var(--kbstage-hired-deep); }
+
 /* View bar — stage tabs (list mode) or hint (kanban mode) + toggle */
 .jpp-viewbar {
   display: flex;
@@ -81,18 +104,21 @@
 }
 
 .jpp-kb-col {
-  background: var(--pj-input-bg);
+  background: var(--pj-surface);
   border: 1px solid var(--pj-border);
-  border-radius: 14px;
+  border-top: 3px solid var(--kb-stage, var(--pj-border));
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   min-width: 0;
   transition: border-color 160ms var(--pj-ease), box-shadow 160ms var(--pj-ease), background 160ms var(--pj-ease);
 }
+/* Drop target lights up in ITS stage color — you can see where the card
+   will land without reading the cursor. */
 .jpp-kb-col--over {
-  border-color: var(--hjl-ink);
-  box-shadow: 0 0 0 1px var(--hjl-ink), var(--pj-shadow-card);
-  background: var(--hjl-ink-soft);
+  border-color: var(--kb-stage);
+  box-shadow: 0 0 0 1px var(--kb-stage), 0 0 0 4px color-mix(in srgb, var(--kb-stage) 12%, transparent);
+  background: color-mix(in srgb, var(--kb-stage) 5%, var(--pj-surface));
 }
 
 /* Card-in-flight: pin the grabbing cursor globally (per-element cursor
@@ -110,27 +136,28 @@ body.jpp-kb-dragging .jpp-kb-card:hover {
   align-items: center;
   gap: 8px;
   padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--pj-border);
+  margin-bottom: 10px;
 }
 .jpp-kb-col__title {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--pj-text-soft);
+  color: var(--pj-text);
 }
 .jpp-kb-col__count {
   display: inline-flex;
-  min-width: 20px;
+  min-width: 22px;
   height: 20px;
   align-items: center;
   justify-content: center;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--pj-surface);
-  border: 1px solid var(--pj-border);
-  font-size: 11px;
+  background: color-mix(in srgb, var(--kb-stage, var(--pj-border)) 12%, transparent);
+  font-size: 11.5px;
   font-weight: 700;
-  color: var(--pj-text);
+  color: var(--kb-stage-deep, var(--pj-text));
   overflow: hidden;
 }
 .jpp-kb-col__import {
@@ -173,18 +200,65 @@ body.jpp-kb-dragging .jpp-kb-card:hover {
 }
 .jpp-kb-card:hover {
   transform: translateY(-1px);
-  border-color: var(--pj-border-strong);
-  box-shadow: 0 4px 14px -6px rgba(20, 19, 31, 0.16);
+  border-color: var(--pj-primary);
+  box-shadow: var(--kb-accent-shadow);
 }
 .jpp-kb-card:focus-visible { outline: 2px solid var(--hjl-ink); outline-offset: 2px; }
 .jpp-kb-card:active { cursor: grabbing; }
 .jpp-kb-card--lifted {
-  transform: scale(1.03) rotate(0.5deg);
-  box-shadow: 0 18px 40px -14px rgba(20, 19, 31, 0.35), 0 4px 12px -4px rgba(20, 19, 31, 0.18);
+  transform: scale(1.03) rotate(2deg);
+  box-shadow: 0 18px 40px -14px rgba(20, 19, 31, 0.45), 0 4px 12px -4px rgba(20, 19, 31, 0.18);
   cursor: grabbing;
-  border-color: var(--pj-border-strong);
+  border-color: var(--pj-primary);
   width: 246px;
 }
+
+/* ── Six-dot grip — always visible at 30%, accent on hover/drag, so the
+      cursor is never the only "you can drag this" signal. ── */
+.jpp-kb-card--grip { padding-left: 26px; }
+.jpp-kb-card__grip {
+  position: absolute;
+  left: 8px;
+  top: 13px;
+  line-height: 0;
+  color: var(--pj-text);
+  opacity: 0.3;
+  transition: color 150ms var(--pj-ease), opacity 150ms var(--pj-ease);
+}
+.jpp-kb-card:hover .jpp-kb-card__grip,
+.jpp-kb-card__grip--live {
+  color: var(--pj-primary);
+  opacity: 1;
+}
+
+/* Dashed landing slot inside the hovered column (cross-column drags). */
+.jpp-kb-dropslot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 58px;
+  border: 2px dashed var(--kb-stage, var(--pj-border-strong));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--kb-stage, var(--pj-border)) 6%, transparent);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--kb-stage-deep, var(--pj-text-soft));
+}
+
+/* ── Score legend — one line, right-aligned above the board ── */
+.jpp-kb-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  color: var(--pj-text-soft);
+}
+.jpp-kb-legend__label { font-weight: 600; color: var(--pj-muted); }
+.jpp-kb-legend__item { display: inline-flex; align-items: center; gap: 5px; }
+.jpp-kb-legend__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* Settle flash — one-shot ring so the landing spot reads after a move.
    Applied by JSX only when reduced motion is off. */
@@ -281,7 +355,79 @@ body.jpp-kb-dragging .jpp-kb-card:hover {
 }
 .jpp-kb-empty p { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--pj-text-soft); }
 .jpp-kb-empty span { font-size: 11.5px; }
-.jpp-kb-col--over .jpp-kb-empty { border-color: var(--hjl-ink); color: var(--pj-text-soft); }
+.jpp-kb-col--over .jpp-kb-empty {
+  border-color: var(--kb-stage, var(--hjl-ink));
+  background: color-mix(in srgb, var(--kb-stage, var(--pj-border)) 4%, transparent);
+  color: var(--pj-text-soft);
+}
+
+/* ── Phone board (≤480px): stage-chip pager + one column at a time ── */
+.jpp-kbm-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.jpp-kbm-chips::-webkit-scrollbar { display: none; }
+.jpp-kbm-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--pj-surface);
+  border: 1px solid var(--pj-border);
+  color: var(--pj-text-soft);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms var(--pj-ease), color 150ms var(--pj-ease),
+    border-color 150ms var(--pj-ease), transform 150ms var(--pj-ease);
+}
+.jpp-kbm-chip:active { transform: scale(0.95); }
+.jpp-kbm-chip--active {
+  background: var(--kb-stage, var(--hjl-ink));
+  border-color: transparent;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+.jpp-kbm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  touch-action: pan-y;
+}
+.jpp-kbm-extra { display: flex; justify-content: flex-end; }
+.jpp-kb-card--phone { cursor: pointer; padding: 13px 12px; }
+.jpp-kb-card--phone:hover { transform: none; border-color: var(--pj-border); box-shadow: none; }
+.jpp-kb-card__meta--phone { justify-content: space-between; margin-top: 8px; }
+.jpp-kb-card__meta-left { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.jpp-kb-card__moveto {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid var(--pj-border-strong);
+  background: var(--pj-surface);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pj-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 150ms var(--pj-ease), transform 150ms var(--pj-ease);
+}
+.jpp-kb-card__moveto:active { transform: scale(0.95); }
 
 /* Move-to-stage menu (portaled) */
 .jpp-kb-menu {
@@ -392,3 +538,9 @@ body.jpp-kb-dragging .jpp-kb-card:hover {
 .jpp-kb-skel--name { width: 70%; height: 13px; margin-bottom: 8px; }
 .jpp-kb-skel--meta { width: 45%; height: 10px; }
 .jpp-kb-card--skel { cursor: default; }
+
+/* ── Reduced motion — new affordances go still, nothing moves ── */
+@media (prefers-reduced-motion: reduce) {
+  .jpp-kb-card__grip, .jpp-kbm-chip, .jpp-kb-card__moveto { transition: none !important; }
+  .jpp-kbm-chip:active, .jpp-kb-card__moveto:active { transform: none; }
+}

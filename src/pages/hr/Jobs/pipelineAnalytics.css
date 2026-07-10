@@ -29,7 +29,43 @@
   cursor: pointer;
 }
 .jpp-an__toggle:hover { color: var(--pj-text); }
-.jpp-an__chev { display: inline-flex; color: var(--pj-muted); }
+.jpp-an__chev { display: inline-flex; color: currentColor; }
+
+/* ── Collapsed slim bar (design 5a) — one line of live numbers, the
+      "Show details" cue pinned right. ── */
+.jpp-an--slim { box-shadow: none; transition: border-color 150ms var(--pj-ease), box-shadow 150ms var(--pj-ease); }
+.jpp-an--slim:hover { border-color: var(--pj-border-strong); box-shadow: 0 4px 12px -10px rgba(20, 19, 31, 0.15); }
+.jpp-an__toggle-name { flex-shrink: 0; }
+.jpp-an__summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.jpp-an__stat {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--pj-text-soft);
+  white-space: nowrap;
+}
+.jpp-an__stat b { font-size: 14px; font-weight: 700; color: var(--pj-text); margin-left: 3px; }
+.jpp-an__stat-good.jpp-an__stat-good { color: var(--pj-success); }
+.jpp-an__toggle-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--pj-primary);
+}
 
 .jpp-an__grid {
   display: grid;

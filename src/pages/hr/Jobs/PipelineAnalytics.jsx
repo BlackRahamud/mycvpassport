@@ -7,7 +7,9 @@ import {
   medianTimeInStage,
   pipelineTotals,
   formatDuration,
+  median,
 } from "../../../lib/hr/pipelineAnalytics";
+import { readInsightsPref, writeInsightsPref } from "../../../lib/hr/viewPref";
 import "./pipelineAnalytics.css";
 
 /*
@@ -183,13 +185,59 @@ export function AnalyticsSkeleton() {
   );
 }
 
-export default function PipelineAnalytics({ apps, events, reduce }) {
-  const [open, setOpen] = useState(true);
+/* Slim one-line summary (design 5a) — shown while the panel is collapsed
+   so the board owns the fold. Stats with no honest value are hidden, never
+   faked: conversion needs a shortlist base, dwell needs completed moves. */
+function SummaryBar({ data }) {
+  const funnelByKey = Object.fromEntries(data.funnel.map((r) => [r.key, r.count]));
+  const shortlistBase = funnelByKey.shortlist || 0;
+  const conversion = shortlistBase > 0
+    ? Math.round(((funnelByKey.interviewed || 0) / shortlistBase) * 100)
+    : null;
+  const stageMedians = Object.values(data.dwell)
+    .map((d) => d.medianMs)
+    .filter((ms) => ms != null)
+    .sort((a, b) => a - b);
+  const dwellLabel = formatDuration(median(stageMedians));
+  const weekAgo = Date.now() - 7 * 86400000;
+  const newThisWeek = (data.apps || []).filter((a) => {
+    const t = new Date(a.applied_at || 0).getTime();
+    return !Number.isNaN(t) && t >= weekAgo;
+  }).length;
+  return (
+    <span className="jpp-an__summary">
+      <span className="jpp-an__stat">Applicants <b>{data.totals.total}</b></span>
+      {conversion != null && (
+        <span className="jpp-an__stat">Shortlist to interview <b>{conversion}%</b></span>
+      )}
+      {dwellLabel && (
+        <span className="jpp-an__stat">Typical time in stage <b>{dwellLabel}</b></span>
+      )}
+      <span className="jpp-an__stat">New this week <b className="jpp-an__stat-good">{newThisWeek}</b></span>
+    </span>
+  );
+}
+
+export default function PipelineAnalytics({ apps, events, reduce, userId }) {
+  const [open, setOpen] = useState(() => readInsightsPref(userId) === "open");
   const loading = apps === null || events === null;
+
+  // Re-read once the user id resolves (auth loads after first render).
+  useEffect(() => {
+    setOpen(readInsightsPref(userId) === "open");
+  }, [userId]);
+
+  const toggle = () => {
+    setOpen((o) => {
+      writeInsightsPref(userId, o ? "collapsed" : "open");
+      return !o;
+    });
+  };
 
   const data = useMemo(() => {
     if (loading) return null;
     return {
+      apps,
       series: applicantsOverTime(apps),
       funnel: stageFunnel(apps, events),
       dwell: medianTimeInStage(apps, events),
@@ -200,22 +248,26 @@ export default function PipelineAnalytics({ apps, events, reduce }) {
   if (loading) return <AnalyticsSkeleton />;
 
   return (
-    <section className="jpp-an" aria-label="Job insights">
+    <section className={`jpp-an${open ? "" : " jpp-an--slim"}`} aria-label="Job insights">
       <button
         type="button"
         className="jpp-an__toggle"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
       >
-        <span>Insights</span>
-        <motion.span
-          className="jpp-an__chev"
-          animate={{ rotate: open ? 0 : -90 }}
-          transition={reduce ? { duration: 0 } : { duration: 0.2, ease: EASE }}
-          aria-hidden
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-        </motion.span>
+        <span className="jpp-an__toggle-name">Insights</span>
+        {!open && <SummaryBar data={data} />}
+        <span className="jpp-an__toggle-cta">
+          {open ? "Hide details" : "Show details"}
+          <motion.span
+            className="jpp-an__chev"
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={reduce ? { duration: 0 } : { duration: 0.2, ease: EASE }}
+            aria-hidden
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+          </motion.span>
+        </span>
       </button>
       <AnimatePresence initial={false}>
         {open && (
