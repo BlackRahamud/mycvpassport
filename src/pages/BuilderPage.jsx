@@ -3058,6 +3058,29 @@ function ResumeBuilder({
     setHistoryState({ entries: [value], index: 0 });
   }, []);
 
+  /* Job Match chip inserts — the SAME dedup-aware skills write the
+     Content tab's skill adders use, so a tapped keyword lands in the CV
+     for real (preview, draft autosave, PDF) and is undoable like any
+     other edit. Removal is the chip's own undo path. */
+  const addSkillFromMatch = useCallback((name) => {
+    const clean = String(name || "").trim();
+    if (!clean) return;
+    setResume((r) => {
+      const cur = splitCommaItems(r.skills);
+      if (cur.some((x) => x.toLowerCase() === clean.toLowerCase())) return r;
+      return { ...r, skills: [...cur, clean].join(", ") };
+    });
+  }, [setResume]);
+
+  const removeSkillFromMatch = useCallback((name) => {
+    const clean = String(name || "").trim();
+    if (!clean) return;
+    setResume((r) => {
+      const cur = splitCommaItems(r.skills);
+      return { ...r, skills: cur.filter((x) => x.toLowerCase() !== clean.toLowerCase()).join(", ") };
+    });
+  }, [setResume]);
+
   const handleUndo = useCallback(() => {
     setHistoryState((h) => {
       if (h.index <= 0) return h;
@@ -4851,6 +4874,8 @@ function ResumeBuilder({
               handleDownload={handleDownload}
               downloadState={downloadState}
               onNavigateToContent={() => setBuilderTab("content")}
+              onAddSkill={addSkillFromMatch}
+              onRemoveSkill={removeSkillFromMatch}
             />
           )}
           {builderTab === "coverletter" && guideCoverLetterPreview}
@@ -5356,6 +5381,8 @@ function ResumeBuilder({
                   handleDownload={handleDownload}
                   downloadState={downloadState}
                   onNavigateToContent={() => setBuilderTab("content")}
+                  onAddSkill={addSkillFromMatch}
+                  onRemoveSkill={removeSkillFromMatch}
                 />
               </div>
             )}

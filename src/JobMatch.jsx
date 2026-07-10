@@ -213,9 +213,13 @@ function useCountUp(target, reduce) {
 }
 
 /* ─── Keyword chip ─── */
-function KwChip({ k, kind, t, reduce, onClick }) {
-  const matched = kind === "matched";
+function KwChip({ k, kind, t, reduce, onClick, real = false }) {
+  // "matched" and "added" both mean the keyword is in the CV now —
+  // green, check icon, and (for added) a tap removes it.
+  const matched = kind !== "missing";
   const tappable = Boolean(onClick);
+  const tipAdd = real ? "add to your CV skills" : "add to preview";
+  const tipRemove = real ? "remove from your CV skills" : "remove from preview";
   return (
     <motion.button
       type="button"
@@ -235,7 +239,7 @@ function KwChip({ k, kind, t, reduce, onClick }) {
         fontSize: 12.5, fontWeight: 600, cursor: tappable ? "pointer" : "default",
         font: "inherit", fontFamily: "inherit", lineHeight: 1,
       }}
-      title={tappable ? (matched ? "remove from preview" : "add to preview") : undefined}
+      title={tappable ? (matched ? tipRemove : tipAdd) : undefined}
     >
       <span style={{ display: "inline-flex" }}>{matched ? <IconCheck size={13} /> : <IconPlus size={13} />}</span>
       {k}
@@ -317,6 +321,8 @@ export default function JobMatch({
   handleDownload = null,
   downloadState = { status: "idle" },
   onNavigateToContent = null,
+  onAddSkill = null,
+  onRemoveSkill = null,
 }) {
   const reduce = useReducedMotion();
   const hasCv = Boolean(resume?.name && String(resume.name).trim());
@@ -334,7 +340,13 @@ export default function JobMatch({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
-  const [added, setAdded] = useState(() => new Set()); // tapped missing keywords (preview only)
+  // Tapped missing keywords. When onAddSkill is wired (the builder), a tap
+  // REALLY inserts the skill into the CV; this set tracks which chips came
+  // from Job Match so the score and the undo path stay in sync.
+  const [added, setAdded] = useState(() => new Set());
+  const [skillNotice, setSkillNotice] = useState(""); // transient add/remove feedback
+  const noticeTimer = useRef(null);
+  useEffect(() => () => clearTimeout(noticeTimer.current), []);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallDismissed, setPaywallDismissed] = useState(false);
   const templateKey = useMemo(() => detectTemplateKey(selectedTemplate), [selectedTemplate]);
@@ -453,7 +465,8 @@ export default function JobMatch({
     else alert("Payment could not start. Please try again in a moment.");
   }, []);
 
-  /* ── Projection (preview only, honest formula) ── */
+  /* ── Live score (same formula; with real inserts wired it reflects the
+        actual CV, not a preview) ── */
   const projected = useMemo(() => {
     if (!result) return 0;
     const poolSize = result.poolSize || 0;
@@ -468,11 +481,35 @@ export default function JobMatch({
   const inZone = projected >= 80;
   const gap = Math.max(0, 80 - projected);
 
-  const toggleAdd = (k) => setAdded((prev) => {
-    const n = new Set(prev);
-    if (n.has(k)) n.delete(k); else n.add(k);
-    return n;
-  });
+  // Real inserts when the builder wires the handlers (both call sites do).
+  const realInsert = Boolean(onAddSkill && onRemoveSkill);
+
+  const flashNotice = (msg) => {
+    setSkillNotice(msg);
+    clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setSkillNotice(""), 2600);
+  };
+
+  const toggleAdd = (k) => {
+    const removing = added.has(k);
+    if (realInsert) {
+      if (removing) { onRemoveSkill(k); flashNotice(`${k} removed from your CV skills`); }
+      else { onAddSkill(k); flashNotice(`${k} added to your CV skills`); }
+    }
+    setAdded((prev) => {
+      const n = new Set(prev);
+      if (removing) n.delete(k); else n.add(k);
+      return n;
+    });
+  };
+
+  const removeAllAdded = () => {
+    if (realInsert) {
+      added.forEach((k) => onRemoveSkill(k));
+      if (added.size > 0) flashNotice("all added keywords removed from your CV skills");
+    }
+    setAdded(new Set());
+  };
 
   const matchedNow = result ? [...result.matched, ...result.missing.filter((k) => added.has(k))] : [];
   const missingNow = result ? result.missing.filter((k) => !added.has(k)) : [];
@@ -527,7 +564,7 @@ export default function JobMatch({
         <motion.div layout={!reduce} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <AnimatePresence mode="popLayout" initial={false}>
             {matchedNow.length ? matchedNow.map((k) => (
-              <KwChip key={`m-${k}`} k={k} t={t} reduce={reduce}
+              <KwChip key={`m-${k}`} k={k} t={t} reduce={reduce} real={realInsert}
                 kind={added.has(k) ? "added" : "matched"}
                 onClick={added.has(k) ? () => toggleAdd(k) : undefined} />
             )) : <span style={{ color: t.textMuted, fontSize: 13 }}>No matches yet.</span>}
@@ -540,14 +577,33 @@ export default function JobMatch({
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: t.textPrimary }}>Missing keywords</div>
           {added.size > 0 ? (
-            <button type="button" onClick={() => setAdded(new Set())} style={{ border: "none", background: "transparent", color: t.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>reset preview</button>
+            <button type="button" onClick={removeAllAdded} style={{ border: "none", background: "transparent", color: t.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>{realInsert ? "remove all added" : "reset preview"}</button>
           ) : null}
         </div>
-        <div style={{ fontSize: 12, color: t.textSecondary, marginBottom: 2 }}>tap a keyword to preview your score climbing. fix my cv adds them for real.</div>
+        <div style={{ fontSize: 12, color: t.textSecondary, marginBottom: 2 }}>
+          {realInsert
+            ? "tap a keyword you actually have to add it to your CV skills. it saves with your CV, tap again to remove."
+            : "tap a keyword to preview your score climbing."}
+        </div>
+        <AnimatePresence>
+          {skillNotice ? (
+            <motion.div
+              role="status"
+              aria-live="polite"
+              initial={reduce ? false : { opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22, ease: EASE }}
+              style={{ fontSize: 12, fontWeight: 600, color: t.green, marginBottom: 2 }}
+            >
+              {skillNotice}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
         <motion.div layout={!reduce} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <AnimatePresence mode="popLayout" initial={false}>
             {missingNow.length ? missingNow.map((k) => (
-              <KwChip key={`x-${k}`} k={k} t={t} reduce={reduce} kind="missing" onClick={() => toggleAdd(k)} />
+              <KwChip key={`x-${k}`} k={k} t={t} reduce={reduce} real={realInsert} kind="missing" onClick={() => toggleAdd(k)} />
             )) : <span style={{ color: t.green, fontSize: 13, fontWeight: 600 }}>nothing missing, you are fully covered.</span>}
           </AnimatePresence>
         </motion.div>
@@ -566,9 +622,12 @@ export default function JobMatch({
       {/* CTAs */}
       <motion.div variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.4, ease: EASE }}
         style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {/* Honest label: this opens the editor so the user can weave the
+            missing terms into their summary and bullets (per the tip).
+            Real keyword inserts happen on the chips above, per tap. */}
         <button type="button" onClick={() => onNavigateToContent?.()}
           style={{ flex: "1 1 150px", height: 48, borderRadius: 12, border: "none", background: t.amber, color: t.onAmber, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-          Fix my CV <IconArrow size={16} />
+          Edit my CV <IconArrow size={16} />
         </button>
         <button type="button"
           onClick={() => { if (hasCv && handleDownload) handleDownload(); else if (onNavigateToContent) onNavigateToContent(); }}
