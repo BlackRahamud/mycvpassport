@@ -2,8 +2,11 @@
    build with a stubbed backend (verify-mobile-polish pattern):
    - red badge with unread count, gone after Mark all read
    - panel opens; rows render label + Title Cased name, NO dash chars
-   - hover "…" reveals actions; Delete issues a real DELETE and the row
-     leaves; Mute hides the type and the footer offers Unmute
+   - desktop (hover+fine pointer): "…" opens the row MENU, no swipe
+     tiles rendered; Delete issues a real DELETE and the row leaves;
+     Mute hides the type and the footer offers Unmute
+   - touch (coarse pointer): swipe tiles render, NO "…" button; a drag
+     reveals compact tiles inset from the panel edge
    Usage: node scripts/verify-notifications-bell.mjs <outDir> */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, mkdirSync } from "node:fs";
@@ -96,70 +99,120 @@ async function stubRoutes(context) {
 }
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1280, height: 852 } });
-await stubRoutes(context);
-await context.addInitScript(([key, session]) => {
-  localStorage.setItem(key, JSON.stringify(session));
-  localStorage.setItem("cvp_theme", "light");
-}, [`sb-${REF}-auth-token`, SESSION]);
-const page = await context.newPage();
-page.on("pageerror", (e) => { console.log("[pageerror]", e.message); failures += 1; });
 
-await page.goto("http://localhost:4185/employer/jobs", { waitUntil: "networkidle" });
-await page.waitForTimeout(800);
+/* ═══ Desktop: hover + fine pointer → "…" menu, NO swipe tiles ═══ */
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 852 } });
+  await stubRoutes(context);
+  await context.addInitScript(([key, session]) => {
+    localStorage.setItem(key, JSON.stringify(session));
+    localStorage.setItem("cvp_theme", "light");
+  }, [`sb-${REF}-auth-token`, SESSION]);
+  const page = await context.newPage();
+  page.on("pageerror", (e) => { console.log("[pageerror]", e.message); failures += 1; });
 
-/* 1. Badge */
-check(await page.locator(".nb-badge").textContent().then((t) => t === "2"), "badge shows unread count 2 (muted-aware)");
+  await page.goto("http://localhost:4185/employer/jobs", { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
 
-/* 2. Open panel */
-await page.locator("button[aria-label='Notifications (2 unread)']").click();
-await page.waitForTimeout(500);
-check(await page.locator(".nb-pop").isVisible(), "panel opens");
-check(await page.locator(".nb-head__mark", { hasText: "Mark all read" }).isVisible(), "Mark all read stays at top");
+  /* 1. Badge */
+  check(await page.locator(".nb-badge").textContent().then((t) => t === "2"), "badge shows unread count 2 (muted-aware)");
 
-/* 3. Row format: label + Title Cased name, no dashes anywhere */
-const row1 = page.locator(".nb-row").first();
-check(await row1.locator(".nb-item__label").textContent().then((t) => t === "New applicant"), "row label is New applicant");
-check(await row1.locator(".nb-item__title").textContent().then((t) => t === "Junaid Khan"), "name Title Cased: Junaid Khan");
-const row2 = page.locator(".nb-row").nth(1);
-check(await row2.locator(".nb-item__title").textContent().then((t) => t === "Fatima Al-Balushi"), "ALL CAPS + hyphen name normalized: Fatima Al-Balushi");
-const popText = await page.locator(".nb-pop").textContent();
-check(!/[–—]|\s-\s|--/.test(popText), "no dash characters rendered in the panel");
-await page.screenshot({ path: join(OUT, "panel-open.png") });
+  /* 2. Open panel */
+  await page.locator("button[aria-label='Notifications (2 unread)']").click();
+  await page.waitForTimeout(500);
+  check(await page.locator(".nb-pop").isVisible(), "panel opens");
+  check(await page.locator(".nb-head__mark", { hasText: "Mark all read" }).isVisible(), "Mark all read stays at top");
 
-/* 4. Hover "…" reveals actions; Delete removes the row via a real DELETE */
-await row1.hover();
-await page.waitForTimeout(200);
-check(await row1.locator(".nb-item__more").isVisible(), "hover reveals the actions button");
-await row1.locator(".nb-item__more").click();
-await page.waitForTimeout(400);
-check(await row1.locator(".nb-act--delete").isVisible(), "swipe actions revealed (Delete visible)");
-check(await row1.locator(".nb-act--read").isVisible(), "Read action on unread row");
-await page.screenshot({ path: join(OUT, "row-revealed.png") });
-await row1.locator(".nb-act--delete").click();
-await page.waitForTimeout(600);
-check(deleteCalled, "Delete issued a real DELETE to hr_notifications");
-check(await page.locator(".nb-row").count() === 2, "deleted row left the list");
+  /* 3. Row format: label + Title Cased name, no dashes anywhere */
+  const row1 = page.locator(".nb-row").first();
+  check(await row1.locator(".nb-item__label").textContent().then((t) => t === "New applicant"), "row label is New applicant");
+  check(await row1.locator(".nb-item__title").textContent().then((t) => t === "Junaid Khan"), "name Title Cased: Junaid Khan");
+  const row2 = page.locator(".nb-row").nth(1);
+  check(await row2.locator(".nb-item__title").textContent().then((t) => t === "Fatima Al-Balushi"), "ALL CAPS + hyphen name normalized: Fatima Al-Balushi");
+  const popText = await page.locator(".nb-pop").textContent();
+  check(!/[–—]|\s-\s|--/.test(popText), "no dash characters rendered in the panel");
+  check(await page.locator(".nb-row__actions").count() === 0, "desktop: NO swipe tiles rendered (menu model only)");
+  await page.screenshot({ path: join(OUT, "panel-open.png") });
 
-/* 5. Mute hides the type + footer offers Unmute */
-const rowA = page.locator(".nb-row").first();
-await rowA.hover();
-await rowA.locator(".nb-item__more").click();
-await page.waitForTimeout(300);
-await rowA.locator(".nb-act--mute").click();
-await page.waitForTimeout(500);
-check(await page.locator(".nb-row").count() === 1, "muted type hidden from the list");
-check(await page.locator(".nb-muted").textContent().then((t) => t.includes("New applicant")), "muted footer names the muted type");
-check(await page.locator(".nb-badge").count() === 0, "badge respects mute (0 visible unread)");
-await page.screenshot({ path: join(OUT, "muted.png") });
-await page.locator(".nb-muted button", { hasText: "Unmute" }).click();
-await page.waitForTimeout(400);
-check(await page.locator(".nb-row").count() === 2, "Unmute restores the hidden rows");
+  /* 4. Hover "…" opens the menu; Delete removes the row via a real DELETE */
+  await row1.hover();
+  await page.waitForTimeout(200);
+  check(await row1.locator(".nb-item__more").isVisible(), "hover reveals the … button");
+  await row1.locator(".nb-item__more").click();
+  await page.waitForTimeout(300);
+  check(await page.locator(".nb-menu").isVisible(), "… opens the row menu");
+  check(await page.locator(".nb-menu__item", { hasText: "Mark as read" }).isVisible(), "menu: Mark as read on unread row");
+  check(await page.locator(".nb-menu__item", { hasText: "Mute new applicant" }).isVisible(), "menu: Mute names the type");
+  await page.screenshot({ path: join(OUT, "row-menu.png") });
+  await page.locator(".nb-menu__item--danger", { hasText: "Delete" }).click();
+  await page.waitForTimeout(600);
+  check(deleteCalled, "Delete issued a real DELETE to hr_notifications");
+  check(await page.locator(".nb-menu").count() === 0, "menu closes after an action");
+  check(await page.locator(".nb-pop").isVisible(), "panel STAYS open after a menu action");
+  check(await page.locator(".nb-row").count() === 2, "deleted row left the list");
 
-/* 6. Mark all read clears the badge */
-await page.locator(".nb-head__mark").click();
-await page.waitForTimeout(400);
-check(await page.locator(".nb-badge").count() === 0, "badge gone after Mark all read");
+  /* 5. Mute hides the type + footer offers Unmute */
+  const rowA = page.locator(".nb-row").first();
+  await rowA.hover();
+  await rowA.locator(".nb-item__more").click();
+  await page.waitForTimeout(300);
+  await page.locator(".nb-menu__item", { hasText: "Mute" }).click();
+  await page.waitForTimeout(500);
+  check(await page.locator(".nb-row").count() === 1, "muted type hidden from the list");
+  check(await page.locator(".nb-muted").textContent().then((t) => t.includes("New applicant")), "muted footer names the muted type");
+  check(await page.locator(".nb-badge").count() === 0, "badge respects mute (0 visible unread)");
+  await page.screenshot({ path: join(OUT, "muted.png") });
+  await page.locator(".nb-muted button", { hasText: "Unmute" }).click();
+  await page.waitForTimeout(400);
+  check(await page.locator(".nb-row").count() === 2, "Unmute restores the hidden rows");
+
+  /* 6. Mark all read clears the badge */
+  await page.locator(".nb-head__mark").click();
+  await page.waitForTimeout(400);
+  check(await page.locator(".nb-badge").count() === 0, "badge gone after Mark all read");
+  await context.close();
+}
+
+/* ═══ Touch: coarse pointer → swipe tiles, NO "…" button ═══ */
+{
+  const context = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  await stubRoutes(context);
+  await context.addInitScript(([key, session]) => {
+    localStorage.setItem(key, JSON.stringify(session));
+    localStorage.setItem("cvp_theme", "light");
+  }, [`sb-${REF}-auth-token`, SESSION]);
+  const page = await context.newPage();
+  page.on("pageerror", (e) => { console.log("[pageerror]", e.message); failures += 1; });
+
+  await page.goto("http://localhost:4185/employer/jobs", { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await page.locator("button[aria-label='Notifications (2 unread)']").tap();
+  await page.waitForTimeout(500);
+  check(await page.locator(".nb-pop").isVisible(), "touch: panel opens");
+  check(await page.locator(".nb-item__more").count() === 0, "touch: NO … button (swipe model only)");
+  check(await page.locator(".nb-row__actions").count() > 0, "touch: swipe tile layer present");
+
+  /* Swipe the first row left with a pointer drag (framer drag responds). */
+  const row = page.locator(".nb-row").first();
+  const box = await row.boundingBox();
+  const cy = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width - 30, cy);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(box.x + box.width - 30 - i * 25, cy);
+  await page.mouse.up();
+  await page.waitForTimeout(600);
+  const tiles = row.locator(".nb-tile");
+  check(await tiles.count() === 3, "touch: swipe reveals 3 compact tiles on unread row");
+  check(await tiles.nth(2).textContent().then((t) => t.includes("Delete")), "touch: Delete tile present");
+  const tileBox = await tiles.first().boundingBox();
+  check(tileBox && tileBox.height <= box.height - 12, "touch: tiles are row-height, inset from edges");
+  await page.screenshot({ path: join(OUT, "touch-swiped.png") });
+  await context.close();
+}
 
 await browser.close();
 server.close();

@@ -13,11 +13,13 @@
 // - rows render "New applicant" as a small label with the candidate's
 //   name (Title Cased) as the line — the stored "title — name" em dash
 //   is parsed out and NEVER rendered.
-// - per-row actions like iOS Mail: swipe left (touch/pointer drag) or
-//   the hover "…" button reveal Read / Mute / Delete. Delete removes
-//   the DB row and collapses the row out. Mute hides that notification
-//   TYPE on this device (localStorage, viewPref pattern) — a footer
-//   line shows what's muted with one-tap Unmute, no mystery states.
+// - per-row actions, ONE interaction model per device (never both):
+//   touch (coarse pointer) swipes left to reveal compact iOS-style
+//   action tiles (Read / Mute / Delete); desktop (hover + fine pointer)
+//   gets a hover "…" button opening a small anchored menu. Delete
+//   removes the DB row and collapses the row out. Mute hides that
+//   notification TYPE on this device (localStorage, viewPref pattern) —
+//   a footer line shows what's muted with one-tap Unmute.
 //
 // `buttonClassName` lets each page keep its own bell button styling
 // (hjl-icon-btn on Jobs, jpp-icon-btn on the pipeline).
@@ -100,6 +102,25 @@ const MoreIc = () => (
     <circle cx="5" cy="12" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="19" cy="12" r="1.7" />
   </svg>
 );
+const CheckIc = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 6L9 17l-5-5" />
+  </svg>
+);
+const BellOffIc = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M8.6 3.6A6 6 0 0 1 18 8.6v3.2c0 .9.31 1.77.88 2.47" /><path d="M6 8v3.8c0 .9-.31 1.77-.88 2.47L4 15.58c-.5.62-.06 1.42.73 1.42H17" /><path d="M10 20a2 2 0 0 0 4 0" /><line x1="3" y1="3" x2="21" y2="21" />
+  </svg>
+);
+const TrashIc = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+/* ONE interaction model per device: fine-pointer hover devices get the
+   "…" menu; coarse-pointer (touch) devices get swipe tiles. Never both. */
+const HOVER_FINE_QUERY = "(hover: hover) and (pointer: fine)";
 
 function timeAgo(s) {
   const t = new Date(s).getTime();
@@ -114,12 +135,61 @@ function timeAgo(s) {
   return new Date(t).toLocaleDateString();
 }
 
-/* ── One notification row: swipe left (or "…") reveals Read/Mute/Delete ── */
-function NotificationRow({ n, revealed, onReveal, onOpen, onDelete, onMute, onMarkRead, reduce }) {
+/* ── Desktop "…" menu — anchored portal (nb-pop clips overflow, so the
+      menu can't live inside it). Same pattern as the kanban MoveMenu. ── */
+function RowMenu({ n, anchorRect, onClose, onDelete, onMute, onMarkRead }) {
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    const onDown = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [onClose]);
+  if (!anchorRect) return null;
+  const style = {
+    position: "fixed",
+    top: Math.min(anchorRect.bottom + 4, window.innerHeight - 160),
+    left: Math.min(anchorRect.left, window.innerWidth - 196),
+    zIndex: 4100,
+  };
+  const typeLabel = TYPE_LABELS[n.type] || "this type";
+  return createPortal(
+    <div ref={menuRef} className="nb-menu" role="menu" aria-label="Notification actions" style={style}>
+      {!n.read && (
+        <button type="button" role="menuitem" className="nb-menu__item" onClick={() => { onMarkRead(n); onClose(); }}>
+          <CheckIc /> Mark as read
+        </button>
+      )}
+      <button type="button" role="menuitem" className="nb-menu__item" onClick={() => { onMute(n); onClose(); }}>
+        <BellOffIc /> Mute {typeLabel.toLowerCase()}
+      </button>
+      <button type="button" role="menuitem" className="nb-menu__item nb-menu__item--danger" onClick={() => { onDelete(n); onClose(); }}>
+        <TrashIc /> Delete
+      </button>
+    </div>,
+    document.body,
+  );
+}
+
+/* ── One notification row.
+      Touch: swipe left reveals compact iOS tiles (Read / Mute / Delete),
+      row-height, rounded, inset from the panel edge. Desktop: hover "…"
+      opens RowMenu — no swipe layer rendered at all. ── */
+const TILE_W = 56;
+const TILE_GAP = 6;
+const TILE_PAD = 8; /* inset from the panel edge + between content and tiles */
+
+function NotificationRow({ n, revealed, anyRevealed, onReveal, onOpen, onDelete, onMute, onMarkRead, onMenu, hoverFine, reduce }) {
   const isUnread = !n.read;
-  const revealWidth = isUnread ? 168 : 116;
+  const tileCount = isUnread ? 3 : 2;
+  const revealWidth = tileCount * TILE_W + (tileCount - 1) * TILE_GAP + TILE_PAD * 2;
   const draggingRef = useRef(false);
   const { label, main } = formatNotification(n);
+  const swipeable = !hoverFine && !reduce;
   return (
     <motion.div
       className="nb-row"
@@ -127,22 +197,24 @@ function NotificationRow({ n, revealed, onReveal, onOpen, onDelete, onMute, onMa
       initial={false}
       exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0, transition: { duration: 0.22, ease: EASE } }}
     >
-      <div className="nb-row__actions" style={{ width: revealWidth }} aria-hidden={!revealed}>
-        {isUnread && (
-          <button type="button" className="nb-act nb-act--read" tabIndex={revealed ? 0 : -1} onClick={() => onMarkRead(n)}>
-            Read
+      {!hoverFine && (
+        <div className="nb-row__actions" style={{ width: revealWidth }} aria-hidden={!revealed}>
+          {isUnread && (
+            <button type="button" className="nb-tile" tabIndex={revealed ? 0 : -1} onClick={() => onMarkRead(n)}>
+              <CheckIc /><span>Read</span>
+            </button>
+          )}
+          <button type="button" className="nb-tile" tabIndex={revealed ? 0 : -1} onClick={() => onMute(n)}>
+            <BellOffIc /><span>Mute</span>
           </button>
-        )}
-        <button type="button" className="nb-act nb-act--mute" tabIndex={revealed ? 0 : -1} onClick={() => onMute(n)}>
-          Mute
-        </button>
-        <button type="button" className="nb-act nb-act--delete" tabIndex={revealed ? 0 : -1} onClick={() => onDelete(n)}>
-          Delete
-        </button>
-      </div>
+          <button type="button" className="nb-tile nb-tile--delete" tabIndex={revealed ? 0 : -1} onClick={() => onDelete(n)}>
+            <TrashIc /><span>Delete</span>
+          </button>
+        </div>
+      )}
       <motion.div
         className="nb-row__content"
-        drag={reduce ? false : "x"}
+        drag={swipeable ? "x" : false}
         dragConstraints={{ left: -revealWidth, right: 0 }}
         dragElastic={0.06}
         dragDirectionLock
@@ -160,7 +232,8 @@ function NotificationRow({ n, revealed, onReveal, onOpen, onDelete, onMute, onMa
           className={`nb-item${isUnread ? " nb-item--unread" : ""}`}
           onClick={() => {
             if (draggingRef.current) return;
-            if (revealed) { onReveal(null); return; }
+            // Any open row: a tap anywhere just closes it, iOS-style.
+            if (anyRevealed) { onReveal(null); return; }
             onOpen(n);
           }}
         >
@@ -172,15 +245,20 @@ function NotificationRow({ n, revealed, onReveal, onOpen, onDelete, onMute, onMa
             <span className="nb-item__time">{timeAgo(n.created_at)}</span>
           </span>
         </button>
-        <button
-          type="button"
-          className="nb-item__more"
-          aria-label={`Actions for ${main}`}
-          aria-expanded={!!revealed}
-          onClick={(e) => { e.stopPropagation(); onReveal(revealed ? null : n.id); }}
-        >
-          <MoreIc />
-        </button>
+        {hoverFine && (
+          <button
+            type="button"
+            className="nb-item__more"
+            aria-label={`Actions for ${main}`}
+            aria-haspopup="menu"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMenu(n, e.currentTarget.getBoundingClientRect());
+            }}
+          >
+            <MoreIc />
+          </button>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -193,7 +271,22 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
   const [items, setItems] = useState(null); // null = loading
   const [muted, setMuted] = useState(() => readMutedTypes(userId));
   const [revealedId, setRevealedId] = useState(null);
+  const [rowMenu, setRowMenu] = useState(null); // { n, rect } — desktop "…" menu
   const rootRef = useRef(null);
+  // Guarded: jsdom has no matchMedia. Defaults to the desktop menu model.
+  const [hoverFine, setHoverFine] = useState(() =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia(HOVER_FINE_QUERY).matches
+      : true,
+  );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const mq = window.matchMedia(HOVER_FINE_QUERY);
+    const onChange = (e) => setHoverFine(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   // Portal + Floating UI so the popover can't be clipped by a topbar/card.
   const { referenceRef, floatingRef, floatingStyle } = useAnchoredPosition({
@@ -222,10 +315,11 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
   }, [userId, load]);
 
   useEffect(() => {
-    if (!open) { setRevealedId(null); return undefined; }
+    if (!open) { setRevealedId(null); setRowMenu(null); return undefined; }
     const onDown = (e) => {
       if (rootRef.current?.contains(e.target)) return;
       if (floatingRef.current?.contains(e.target)) return;
+      if (e.target.closest?.(".nb-menu")) return; // row menu is portaled outside the panel
       setOpen(false);
     };
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
@@ -351,11 +445,14 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
                       key={n.id}
                       n={n}
                       revealed={revealedId === n.id}
+                      anyRevealed={revealedId !== null}
                       onReveal={setRevealedId}
                       onOpen={openRow}
                       onDelete={deleteRow}
                       onMute={muteRow}
                       onMarkRead={markReadRow}
+                      onMenu={(row, rect) => setRowMenu({ n: row, rect })}
+                      hoverFine={hoverFine}
                       reduce={reduce}
                     />
                   ))}
@@ -372,6 +469,17 @@ export default function NotificationsBell({ userId, buttonClassName = "hjl-icon-
         )}
         </AnimatePresence>,
         document.body,
+      )}
+
+      {rowMenu && (
+        <RowMenu
+          n={rowMenu.n}
+          anchorRect={rowMenu.rect}
+          onClose={() => setRowMenu(null)}
+          onDelete={deleteRow}
+          onMute={muteRow}
+          onMarkRead={markReadRow}
+        />
       )}
     </div>
   );
