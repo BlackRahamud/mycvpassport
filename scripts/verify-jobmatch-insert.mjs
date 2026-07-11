@@ -1,11 +1,16 @@
-/* Job Match real-insert harness (trust bug fix). Serves the PRODUCTION
-   build with a stubbed backend and a seeded draft CV, then:
-   - analyses a banking JD against a CV missing those keywords
+/* Job Match harness (real inserts + one-engine Sonnet path). Serves the
+   PRODUCTION build with a stubbed backend and a seeded draft CV, then:
+   - analyses a banking JD and asserts the candidate_match AI payload
+     (not the keyword bank) drives the score, chips, and suggestion
    - taps a missing chip and asserts the skill REALLY lands in the CV
      (visible in the builder preview, not just the chip column)
+   - asserts the labeled estimate + "analyse again" nudge after a tap,
+     and that it clears on removal
    - asserts the add notice, then taps again and asserts real removal
-   - asserts the honest copy (no "adds them for real" promise, button
-     says Edit my CV) and scans new strings for dash characters
+   - asserts honest copy and scans new strings for dash characters
+   - second pass: candidate_match returns 502 -> bank fallback renders
+     with the honest keyword-estimate badge (never an empty pane)
+   - checks 360/393/430 widths for horizontal overflow
    Usage: node scripts/verify-jobmatch-insert.mjs <outDir> */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, mkdirSync } from "node:fs";
@@ -62,13 +67,24 @@ const SESSION = {
   },
 };
 
-async function stubRoutes(context) {
+const AI_MATCH = {
+  ok: true, score: 62, verdict: "MAYBE",
+  matched: ["Customer Service", "Retail Banking Operations"],
+  missing: ["KYC", "AML", "Credit Analysis", "Risk Assessment"],
+  suggestion: "Add your KYC and AML exposure to your latest role bullets, recruiters scan for both.",
+  credits_remaining: 97,
+};
+
+async function stubRoutes(context, { matchMode = "ok" } = {}) {
   await context.route("**/*", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
     const href = req.url();
-    if (url.pathname.startsWith("/api/job-match-suggestion")) {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ additionalMissingKeywords: [], suggestion: "Add two or three high priority missing terms naturally in your summary and latest role bullets." }) });
+    if (url.pathname.startsWith("/api/ai") && url.searchParams.get("action") === "candidate_match") {
+      if (matchMode === "fail") {
+        return route.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ ok: false, error: "AI Engine is busy, please try again." }) });
+      }
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(AI_MATCH) });
     }
     // Analytics script has no build file; serving spa.html for it throws.
     if (url.pathname.startsWith("/_vercel")) {
@@ -123,6 +139,14 @@ await jm.getByRole("button", { name: "Analyse match" }).click();
 await page.waitForTimeout(2500);
 check(await jm.locator("[data-jobmatch-result]").count() === 1, "analysis result rendered (pro access stub worked)");
 
+/* 1b. One engine both sides: the Sonnet payload, not the keyword bank,
+      drives score, chips, and the suggestion */
+check((await jm.locator("[data-jobmatch-result]").getAttribute("data-jobmatch-score")) === String(AI_MATCH.score), `AI score ${AI_MATCH.score} drives the gauge (not a bank pool percentage)`);
+const aiText = await jm.innerText();
+check(aiText.includes(AI_MATCH.suggestion), "AI suggestion text rendered (proves candidate_match payload used)");
+check(aiText.includes("Retail Banking Operations"), "semantic matched chip from AI payload present");
+check(!aiText.toLowerCase().includes("keyword estimate"), "no fallback badge on the AI path");
+
 /* 2. Honest copy: no false promise, honest button */
 const rootText = await jm.innerText();
 check(!/adds them for real/i.test(rootText), "old false promise copy is gone");
@@ -139,7 +163,16 @@ const kw = (await missChip.innerText()).trim().toLowerCase();
 console.log(`   (tapping "${kw}")`);
 await missChip.click();
 await page.waitForTimeout(900);
-check((await jm.innerText()).includes(`${kw} added to your CV skills`), "add feedback notice shown");
+check((await jm.innerText()).toLowerCase().includes(`${kw} added to your cv skills`), "add feedback notice shown");
+
+/* 3b. Labeled estimate + re-analyse nudge (the AI score cannot be
+      recomputed client side, so the climb is an honest estimate) */
+const estText = await jm.innerText();
+check(/estimated score/i.test(estText), "estimate label shown after a tap on an AI result");
+check(estText.includes("you added skills to your CV. analyse again to confirm your new score."), "re analyse nudge copy present");
+check(await jm.getByRole("button", { name: "Analyse again" }).isVisible(), "Analyse again button present in the nudge");
+const nudgeStrings = estText.match(/estimated score|you added skills[^\n]*/gi) || [];
+check(nudgeStrings.every((s) => !/[–—]|\s-\s|--/.test(s)), "no dash characters in estimate strings");
 // The builder preview renders resume.skills — the keyword must now be IN
 // the CV. The sheet layout pass re-renders asynchronously, so give it a beat.
 await page.waitForTimeout(1500);
@@ -152,7 +185,8 @@ const addedChip = jm.locator("button[title='remove from your CV skills']").first
 check(await addedChip.isVisible(), "added chip offers removal (undo)");
 await addedChip.click();
 await page.waitForTimeout(900);
-check((await jm.innerText()).includes(`${kw} removed from your CV skills`), "remove feedback notice shown");
+check((await jm.innerText()).toLowerCase().includes(`${kw} removed from your cv skills`), "remove feedback notice shown");
+check(!/estimated score/i.test(await jm.innerText()), "estimate label clears when the added chip is removed");
 await page.waitForTimeout(1500);
 const previewText2 = (await page.locator(".cvp-builder-preview, .dp-panel-holder").first().innerText().catch(() => "")) || (await page.locator("body").innerText());
 check(!previewText2.toLowerCase().includes(kw), `"${kw}" is really gone from the CV preview`);
@@ -166,6 +200,44 @@ const bodyText = await page.locator("body").innerText();
 check(bodyText.toLowerCase().includes(kw), "Content tab reflects the inserted skill");
 await page.screenshot({ path: join(OUT, "content-after-add.png"), fullPage: false });
 
+/* 6. Fallback pass: candidate_match 502s -> the keyword bank scores
+      instead, with the honest estimate badge. Never an empty pane. */
+const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+await stubRoutes(ctx2, { matchMode: "fail" });
+await ctx2.addInitScript(([key, session, cv, ownerId]) => {
+  localStorage.setItem(key, JSON.stringify(session));
+  localStorage.setItem("cvp_cv_draft:new:default", JSON.stringify({ version: 2, cv, templateId: 1, resumeId: null, ownerId, updatedAt: Date.now() }));
+}, [`sb-${REF}-auth-token`, SESSION, CV, USER_ID]);
+const page2 = await ctx2.newPage();
+page2.on("pageerror", (e) => { console.log("[pageerror:fallback]", e.message); failures += 1; });
+await page2.goto("http://localhost:4188/builder", { waitUntil: "networkidle" });
+await page2.waitForTimeout(2500);
+await page2.getByRole("button", { name: /Job Match/i }).first().click();
+await page2.waitForTimeout(800);
+const jm2 = page2.locator(".cvp-jobmatch-root").first();
+await jm2.locator("textarea[data-jobmatch-textarea]").fill(JD);
+await jm2.getByRole("button", { name: "Analyse match" }).click();
+await page2.waitForTimeout(2500);
+check(await jm2.locator("[data-jobmatch-result]").count() === 1, "fallback: bank result rendered when AI 502s (no empty pane)");
+const fbText = await jm2.innerText();
+check(/keyword estimate/i.test(fbText), "fallback: honest keyword estimate badge shown");
+const badgeStrings = fbText.match(/AI engine unavailable[^\n]*|keyword estimate[^\n]*/gi) || [];
+check(badgeStrings.every((s) => !/[–—]|\s-\s|--/.test(s)), "fallback: no dash characters in badge copy");
+await page2.screenshot({ path: join(OUT, "fallback-badge.png"), fullPage: false });
+
+/* 7. Mobile widths: no horizontal overflow with the result + nudge open */
+await page.getByRole("button", { name: /Job Match/i }).first().click();
+await page.waitForTimeout(600);
+for (const w of [360, 393, 430]) {
+  await page.setViewportSize({ width: w, height: 860 });
+  await page.waitForTimeout(600);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  check(overflow <= 1, `no horizontal overflow at ${w}px (delta ${overflow}px)`);
+}
+await page.setViewportSize({ width: 393, height: 860 });
+await page.screenshot({ path: join(OUT, "mobile-393.png"), fullPage: false });
+
+await ctx2.close();
 await browser.close();
 server.close();
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);

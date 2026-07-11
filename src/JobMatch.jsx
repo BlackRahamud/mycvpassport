@@ -77,11 +77,42 @@ function buildCvText(resume) {
   );
 }
 
-function buildCvSummary(resume) {
-  const summary =
-    resume?.summary?.trim() ||
-    `${resume?.title || "Professional"} with experience in ${resume?.skills || "multiple domains"}.`;
-  return `${resume?.name || "Candidate"} | ${resume?.title || "Role not set"} | ${summary}`.slice(0, 800);
+/* djb2 string hash — keys the sessionStorage AI-result cache (the candidate
+   side twin of the recruiter verdictCache). Not cryptographic, just stable. */
+function hashKey(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return `${h.toString(36)}-${s.length}`;
+}
+
+/* Keyword-bank scoring. Was the primary engine; demoted to the graceful
+   fallback when the candidate_match AI call is unavailable (offline, 502,
+   monthly cap). Same pool formula as before, minus the dead enrichment
+   endpoint this file used to call. */
+async function bankScore({ jd, templateKey, resume }) {
+  const response = await fetch(BANK_FILE, { cache: "no-store" });
+  if (!response.ok) throw new Error("Keyword bank file not found.");
+  const bank = await response.json();
+  const templateBank = keywordToList(bank?.[templateKey]);
+  if (!templateBank.length) throw new Error(`No keyword bank found for ${templateKey}.`);
+
+  const cvText = buildCvText(resume);
+  const relevant = templateBank.filter((kw) => jd.includes(normalizeText(kw)));
+  const pool = relevant.length ? relevant : templateBank;
+  const matched = pool.filter((kw) => cvText.includes(normalizeText(kw)));
+  const missing = pool.filter((kw) => !cvText.includes(normalizeText(kw)));
+
+  return {
+    source: "bank",
+    score: pool.length
+      ? Math.max(0, Math.min(100, Math.round(((pool.length - missing.length) / pool.length) * 100)))
+      : 0,
+    matched: matched.slice(0, 40),
+    missing: missing.slice(0, 40),
+    suggestion: "Add 2 to 3 high priority missing terms naturally in your summary and latest role bullets.",
+    poolSize: pool.length,
+    missingTotal: missing.length,
+  };
 }
 
 /** Count unique words >4 chars in text */
@@ -393,64 +424,59 @@ export default function JobMatch({
         return;
       }
 
-      const response = await fetch(BANK_FILE, { cache: "no-store" });
-      if (!response.ok) throw new Error("Keyword bank file not found.");
-      const bank = await response.json();
-      const templateBank = keywordToList(bank?.[templateKey]);
-      if (!templateBank.length) throw new Error(`No keyword bank found for ${templateKey}.`);
-
-      const cvText = buildCvText(resume);
-      const relevant = templateBank.filter((kw) => jd.includes(normalizeText(kw)));
-      const pool = relevant.length ? relevant : templateBank;
-
-      const matched = pool.filter((kw) => cvText.includes(normalizeText(kw)));
-      const missing = pool.filter((kw) => !cvText.includes(normalizeText(kw)));
-
-      let aiMissing = [];
-      let suggestion = "";
-
-      if (missing.length > 0) {
-        try {
-          const aiRes = await safeFetch("/api/job-match-suggestion", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              unmatchedKeywords: missing,
-              jobDescription: jobDescription.trim(),
-              cvSummary: buildCvSummary(resume),
-            }),
-          });
-
-          if (aiRes.ok) {
-            const aiData = await aiRes.json();
-            aiMissing = Array.isArray(aiData?.additionalMissingKeywords)
-              ? aiData.additionalMissingKeywords.map((k) => String(k).trim()).filter(Boolean)
-              : [];
-            suggestion = String(aiData?.suggestion || "").trim();
-          }
-          // Non-OK responses are absorbed — never retry, never throw.
-        } catch {
-          /* AI suggestion is enrichment, not required, silently fall back. */
+      // Session cache: same CV + same JD is instant and free. The key
+      // includes the CV text, so inserting skills and re-analysing is a
+      // genuinely new call by construction.
+      const cacheKey = `jm-ai-${hashKey(`${buildCvText(resume)}::${jd}`)}`;
+      try {
+        const hit = sessionStorage.getItem(cacheKey);
+        if (hit) {
+          const parsed = JSON.parse(hit);
+          if (parsed && Number.isFinite(parsed.score)) { setResult(parsed); return; }
         }
+      } catch { /* storage unavailable, run live */ }
+
+      // Primary engine: the same Sonnet rubric the recruiter verdict runs.
+      // One scoring brain, both sides of the product.
+      let notice = "";
+      try {
+        const aiRes = await safeFetch("/api/ai?action=candidate_match", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ cvSnapshot: resume, jobDescription: jobDescription.trim() }),
+        });
+        if (aiRes.ok) {
+          const data = await aiRes.json();
+          const score = Math.max(0, Math.min(100, Math.round(Number(data?.score))));
+          if (Number.isFinite(score) && Array.isArray(data?.matched)) {
+            const aiResult = {
+              source: "ai",
+              score,
+              matched: data.matched.map((k) => String(k).trim()).filter(Boolean).slice(0, 40),
+              missing: (Array.isArray(data.missing) ? data.missing : []).map((k) => String(k).trim()).filter(Boolean).slice(0, 40),
+              suggestion: String(data?.suggestion || "").trim() || "Weave the missing capabilities you genuinely have into your summary and latest role bullets.",
+            };
+            setResult(aiResult);
+            try { sessionStorage.setItem(cacheKey, JSON.stringify(aiResult)); } catch { /* storage full, skip */ }
+            return;
+          }
+          notice = "AI engine unavailable right now. This score is a keyword estimate.";
+        } else if (aiRes.status === 402) {
+          notice = "You used all your AI analyses for this month. This score is a keyword estimate.";
+        } else {
+          notice = "AI engine unavailable right now. This score is a keyword estimate.";
+        }
+      } catch {
+        notice = "AI engine unavailable right now. This score is a keyword estimate.";
       }
 
-      const uniqueMissing = Array.from(new Set([...missing, ...aiMissing]));
-      const finalScore = pool.length
-        ? Math.max(0, Math.min(100, Math.round(((pool.length - uniqueMissing.length) / pool.length) * 100)))
-        : 0;
-
-      setResult({
-        score: finalScore,
-        matched: matched.slice(0, 40),
-        missing: uniqueMissing.slice(0, 40),
-        suggestion: suggestion || "Add 2 to 3 high-priority missing terms naturally in your summary and latest role bullets.",
-        // exposed for the honest live projection (already-computed values, not new logic):
-        poolSize: pool.length,
-        missingTotal: uniqueMissing.length,
-      });
+      // Honest fallback: the old keyword bank, clearly labeled as an
+      // estimate. Never an empty pane, never a silent mystery score.
+      const fallback = await bankScore({ jd, templateKey, resume });
+      setResult({ ...fallback, notice });
     } catch (e) {
       setError(e.message || "Analysis failed.");
     } finally {
@@ -465,16 +491,29 @@ export default function JobMatch({
     else alert("Payment could not start. Please try again in a moment.");
   }, []);
 
-  /* ── Live score (same formula; with real inserts wired it reflects the
-        actual CV, not a preview) ── */
+  /* ── Live score after chip taps.
+        Bank result: the pool formula IS the engine, so the climb is exact.
+        AI result: there is no client formula that reproduces Sonnet, so the
+        climb is a labeled ESTIMATE (proportional share of the gap to 100,
+        capped at 99). The confirmed number comes from the next analyse. ── */
   const projected = useMemo(() => {
     if (!result) return 0;
+    if (result.source === "ai") {
+      if (!added.size) return result.score;
+      const missingCount = result.missing.length || 1;
+      const est = result.score + Math.round((100 - result.score) * (Math.min(added.size, missingCount) / missingCount));
+      return Math.min(99, Math.max(result.score, est));
+    }
     const poolSize = result.poolSize || 0;
     if (!poolSize) return result.score;
     const total = result.missingTotal ?? result.missing.length;
     const projMissing = Math.max(0, total - added.size);
     return Math.max(0, Math.min(100, Math.round(((poolSize - projMissing) / poolSize) * 100)));
   }, [result, added]);
+
+  // Estimate mode: an AI score has been locally projected past its
+  // confirmed value. Drives the "estimated" label + the re-analyse nudge.
+  const isEstimate = Boolean(result && result.source === "ai" && added.size > 0);
 
   const display = useCountUp(result ? projected : 0, reduce);
   const dispColor = scoreColor(t, display);
@@ -542,6 +581,50 @@ export default function JobMatch({
           {inZone ? "you are in the shortlist zone" : `you are ${gap} ${gap === 1 ? "point" : "points"} from the shortlist zone`}
         </div>
         <div style={{ fontSize: 11.5, color: t.textMuted }}>recruiters usually shortlist 80 and above</div>
+
+        {/* honest source badge: bank fallback ran instead of the AI engine */}
+        {result.notice ? (
+          <div role="status" style={{
+            display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 10,
+            background: t.amberSoft, border: `1px solid ${t.amberBorder}`, color: t.textSecondary,
+            fontSize: 12, fontWeight: 500, lineHeight: 1.45, maxWidth: 340, textAlign: "left",
+          }}>
+            {result.notice}
+          </div>
+        ) : null}
+
+        {/* estimate mode: AI score projected past its confirmed value */}
+        <AnimatePresence>
+          {isEstimate ? (
+            <motion.div
+              key="estimate-nudge"
+              role="status" aria-live="polite"
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduce ? 0 : 0.3, ease: EASE }}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                padding: "10px 14px", borderRadius: 12,
+                background: t.amberSoft, border: `1px solid ${t.amberBorder}`, maxWidth: 340,
+              }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: t.amber, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                estimated score
+              </div>
+              <div style={{ fontSize: 12.5, color: t.textSecondary, lineHeight: 1.5, textAlign: "center" }}>
+                you added skills to your CV. analyse again to confirm your new score.
+              </div>
+              <button type="button" onClick={handleAnalyse} disabled={loading}
+                style={{
+                  border: "none", background: "transparent", color: t.amber, fontWeight: 700,
+                  fontSize: 12.5, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
+                  padding: "4px 8px", textDecoration: "underline", textUnderlineOffset: 3,
+                }}>
+                Analyse again
+              </button>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </motion.div>
 
       {/* match / gap counts */}

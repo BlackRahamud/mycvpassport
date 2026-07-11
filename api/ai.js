@@ -1,5 +1,5 @@
 /**
- * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit
+ * POST /api/ai?action=cover_letter|parse_resume|linkedin_headline|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit|candidate_match
  *
  * Single Anthropic-helper router. Was three separate functions
  * (api/cover-letter.js, api/parse-resume.js, api/generate-linkedin-headline.js)
@@ -51,6 +51,7 @@
  *   - BUILDER_TAILOR_MODEL                              default 'claude-sonnet-4-6'
  */
 
+import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { hasProAccess } from '../src/config/access.js';
 
@@ -82,7 +83,7 @@ const BUILDER_TAILOR_FREE_LIMIT = 3;
 const AI_MONTHLY_CAP = {
   free: BUILDER_TAILOR_FREE_LIMIT, // 3
   single_cv: 30,                   // Single-CV Unlock (durable single_cv_unlocked flag)
-  active_hunter: 60,
+  active_hunter: 100,              // raised from 60 when candidate_match joined the shared pool (founder call, Jul 2026)
   career_pro: 1000,                // unlimited soft cap
 };
 
@@ -1463,6 +1464,288 @@ async function handleCandidateVerdict(req, res, body) {
 }
 
 // =====================================================================
+// Branch 11 — candidate_match (candidate-side Job Match, one engine both sides)
+//
+// The candidate Job Match tab scores the SAME Sonnet rubric the recruiter
+// candidate_verdict uses (same model, same weights, same semantic
+// equivalence rule), so the number a candidate sees is the number a
+// recruiter running that CV against that job would see. Replaces the
+// client-side keyword-overlap score as the primary engine; the keyword
+// bank survives client-side as the offline/error fallback only.
+//
+// Request:  { cvSnapshot, jobDescription }   (raw pasted JD text, no job row)
+// Response: { ok, score, verdict, matched[], missing[], suggestion,
+//             credits_remaining, cached? }
+//
+// Cost guards (this action is self-serve, so both are new here):
+//   1. Warm-instance dedupe keyed by sha1(userId + cvSnapshot + normalized
+//      JD), 15 min TTL. Identical repeats return the cached verdict and do
+//      NOT re-bill. Best effort by design (module scope survives warm
+//      serverless invocations only) — the client sessionStorage cache is
+//      the first line, this is defense in depth.
+//   2. Metered through the SAME monthly pool as builder tailor rewrites
+//      (try_deduct_ai_credit / refund_ai_credit, migration 019). Active
+//      Hunter cap raised 60 -> 100 to make room. Every call audits one
+//      row to anthropic_calls with endpoint='job_match'.
+// =====================================================================
+
+const MATCH_DEDUPE_TTL_MS = 15 * 60 * 1000;
+const MATCH_DEDUPE_MAX = 200;
+const matchDedupe = new Map(); // key -> { out, ts }
+
+function matchDedupeKey(userId, cvSnapshot, jd) {
+  const norm = String(jd || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return createHash('sha1')
+    .update(String(userId))
+    .update(JSON.stringify(cvSnapshot || {}))
+    .update(norm)
+    .digest('hex');
+}
+
+function matchDedupeGet(key) {
+  const hit = matchDedupe.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.ts > MATCH_DEDUPE_TTL_MS) { matchDedupe.delete(key); return null; }
+  return hit.out;
+}
+
+function matchDedupeSet(key, out) {
+  if (matchDedupe.size >= MATCH_DEDUPE_MAX) {
+    const oldest = matchDedupe.keys().next().value;
+    if (oldest !== undefined) matchDedupe.delete(oldest);
+  }
+  matchDedupe.set(key, { out, ts: Date.now() });
+}
+
+function buildMatchSystem() {
+  return `You are a corridor-aware match engine for the India -> Gulf (UAE/GCC) recruitment corridor. You score how well a candidate's CV fits a specific job description, speaking TO THE CANDIDATE. You apply exactly the same rubric a recruiter-side verdict uses, so both sides of the product see one number.
+
+SCORING WEIGHTS (sum to 100):
+- Core technical skills / non-negotiables: 50%
+- Domain-specific experience (same field/industry): 25%
+- Corridor logistics (visa status, location, notice period, GCC experience): 15%
+- Soft skills / secondary certifications: 10%
+
+CRITICAL - SEMANTIC EQUIVALENCE, NOT KEYWORD MATCHING:
+Credit real, equivalent experience even when the CV does not use the JD's exact words. Examples:
+- "IT Service Desk L2 / enterprise infrastructure support" SATISFIES a JD asking for "Windows Server / Active Directory".
+- "managed virtualised servers" SATISFIES "VMware / Hyper-V administration".
+Reward genuine capability. Only count a true GAP when the capability is genuinely absent from the CV - never penalise merely for a missing exact phrase. Do not inflate either: if a real non-negotiable is genuinely absent, reflect it in the score.
+
+VERDICT MUST MATCH SCORE:
+- score >= 80 -> "STRONG FIT"
+- score 50-79 -> "MAYBE"
+- score < 50 -> "PASS"
+
+OUTPUT - STRICT JSON ONLY, no markdown, no prose, no preamble:
+{
+  "score": <integer 0-100>,
+  "verdict": "STRONG FIT" | "MAYBE" | "PASS",
+  "matched": ["<skills or requirements from the JD this CV genuinely covers, judged semantically>"],
+  "missing": ["<capabilities the JD needs that are genuinely absent from the CV>"],
+  "suggestion": "<one honest, specific improvement tip in second person, under 40 words>"
+}
+
+matched MUST contain 4 to 14 short labels, missing 0 to 10, each label 1 to 4 words, concrete and JD-grounded (e.g. "Active Directory", "GCC banking experience", not sentences). A label appears in matched only if the CV demonstrates it; in missing only if it is genuinely absent. No emoji. ASCII punctuation only. Never use dash characters in any output string; use commas or periods instead.`;
+}
+
+function buildMatchUserPrompt({ cvSnapshot, jobDescription }) {
+  return `JOB DESCRIPTION (pasted by the candidate):
+${String(jobDescription || '').slice(0, 5000)}
+
+CANDIDATE CV:
+${summariseCvForVerdict(cvSnapshot)}
+
+Return the strict JSON match now.`;
+}
+
+function normaliseChipList(v, max) {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const x of v) {
+    const s = String(x || '').trim().replace(/\s*[-–—]+\s*/g, ', ').slice(0, 60);
+    const key = s.toLowerCase();
+    if (!s || seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+function normaliseMatch(p) {
+  if (!p || typeof p !== 'object') return null;
+  let score = Math.round(Number(p.score));
+  if (!Number.isFinite(score)) return null;
+  score = Math.max(0, Math.min(100, score));
+  const matched = normaliseChipList(p.matched, 20);
+  const missing = normaliseChipList(p.missing, 15);
+  if (!matched.length && !missing.length) return null;
+  const suggestion = String(p.suggestion || '').trim().replace(/\s*[-–—]+\s*/g, ', ').slice(0, 300)
+    || 'Weave two or three of the missing capabilities you genuinely have into your summary and latest role bullets.';
+  return { score, verdict: verdictFromScore(score), matched, missing, suggestion };
+}
+
+async function handleCandidateMatch(req, res, body) {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(500).json({ ok: false, error: 'AI Engine is not configured.' });
+  }
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ ok: false, error: 'Server not configured: Supabase env missing.' });
+  }
+
+  const jobDescription = typeof body.jobDescription === 'string' ? body.jobDescription.trim() : '';
+  if (jobDescription.length < 40) {
+    return res.status(400).json({ ok: false, error: 'Paste a fuller job description to analyse.' });
+  }
+  const cvSnapshot = (body.cvSnapshot && typeof body.cvSnapshot === 'object' && !Array.isArray(body.cvSnapshot)) ? body.cvSnapshot : null;
+  if (!cvSnapshot) {
+    return res.status(400).json({ ok: false, error: 'Missing cvSnapshot.' });
+  }
+
+  // Auth (Bearer JWT via anon client — mirrors tailor).
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized. Please sign in.' });
+  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: { user } = {}, error: userErr } = await authClient.auth.getUser(token);
+  if (userErr || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired session.' });
+
+  // Dedupe BEFORE the credit gate: identical repeats never re-bill.
+  const dedupeKey = matchDedupeKey(user.id, cvSnapshot, jobDescription);
+  const cachedOut = matchDedupeGet(dedupeKey);
+  if (cachedOut) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(200).json({ ...cachedOut, cached: true });
+  }
+
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: profile, error: profileErr } = await db
+    .from('profiles')
+    .select('id, is_pro, plan, ai_credits_used, pro_access_expires_at, single_cv_unlocked')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileErr) {
+    console.error('[ai/candidate_match] profile lookup failed:', JSON.stringify(profileErr));
+    return res.status(500).json({ ok: false, error: 'Could not verify your account.' });
+  }
+  const tier = classifyTier(profile);
+  const { aiTier, cap } = aiTierAndCap(profile);
+  const before = Number(profile?.ai_credits_used) || 0;
+  const creditsRemainingPreDeduct = Math.max(0, cap - before);
+
+  const deduct = await tryDeductCredit(db, user.id, cap);
+  if (deduct.dbError) {
+    return res.status(500).json({ ok: false, error: 'Could not deduct credit. Please try again.' });
+  }
+  if (!deduct.ok) {
+    await logAnthropicCall(db, {
+      user_id: user.id,
+      ip_hash: null,
+      tier,
+      endpoint: 'job_match',
+      model: VERDICT_MODEL,
+      input_tokens: null,
+      output_tokens: null,
+      estimated_cost_usd: 0,
+      status: 'spend_capped',
+      error_code: 'monthly_cap',
+      meta: { reason: 'monthly_cap', ai_tier: aiTier, cap },
+    });
+    return res.status(402).json({
+      ok: false,
+      error: 'You have used your AI analyses for this month. Your limit resets next month.',
+      credits_remaining: 0,
+      action: 'upgrade',
+    });
+  }
+  const computeRemaining = (usedNow) => Math.max(0, cap - usedNow);
+
+  const failAndRefund = async (status, message, errorCode, usage) => {
+    let refundedRemaining = creditsRemainingPreDeduct;
+    const refund = await refundCredit(db, user.id);
+    if (refund.ok) refundedRemaining = computeRemaining(refund.used);
+    await logAnthropicCall(db, {
+      user_id: user.id,
+      ip_hash: null,
+      tier,
+      endpoint: 'job_match',
+      model: VERDICT_MODEL,
+      input_tokens: usage?.input_tokens ?? null,
+      output_tokens: usage?.output_tokens ?? null,
+      estimated_cost_usd: usage ? estimateCostUsd(usage) : 0,
+      status: 'error',
+      error_code: errorCode,
+      meta: { refunded: true, ai_tier: aiTier },
+    });
+    return res.status(status).json({ ok: false, error: message, credits_remaining: refundedRemaining });
+  };
+
+  let data;
+  try {
+    const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: VERDICT_MODEL,
+        max_tokens: 900,
+        temperature: 0.2,
+        system: buildMatchSystem(),
+        messages: [{ role: 'user', content: buildMatchUserPrompt({ cvSnapshot, jobDescription }) }],
+      }),
+    }, 3, 8000);
+    const responseText = await response.text();
+    if (!response.ok) {
+      return failAndRefund(502, 'AI Engine is busy, please try again.', `anthropic_${response.status}`);
+    }
+    try { data = JSON.parse(responseText); } catch {
+      return failAndRefund(502, 'AI Engine is busy, please try again.', 'anthropic_bad_json');
+    }
+  } catch (err) {
+    console.error('[ai/candidate_match]', String(err?.message || err).slice(0, 200));
+    return failAndRefund(502, 'AI Engine is busy, please try again.', 'anthropic_network');
+  }
+
+  const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
+  const cleaned = String(raw).replace(/```json|```/g, '').trim();
+  let parsed;
+  try { parsed = JSON.parse(cleaned); } catch {
+    return failAndRefund(502, 'AI returned an unparseable result. Please retry.', 'unparseable_match', data.usage);
+  }
+  const out = normaliseMatch(parsed);
+  if (!out) {
+    return failAndRefund(502, 'AI returned an incomplete result. Please retry.', 'incomplete_match', data.usage);
+  }
+
+  await logAnthropicCall(db, {
+    user_id: user.id,
+    ip_hash: null,
+    tier,
+    endpoint: 'job_match',
+    model: VERDICT_MODEL,
+    input_tokens: data.usage?.input_tokens ?? null,
+    output_tokens: data.usage?.output_tokens ?? null,
+    estimated_cost_usd: estimateCostUsd(data.usage),
+    status: 'ok',
+    error_code: null,
+    meta: { ai_tier: aiTier, matched_count: out.matched.length, missing_count: out.missing.length },
+  });
+
+  const payload = { ok: true, ...out, credits_remaining: computeRemaining(deduct.used) };
+  matchDedupeSet(dedupeKey, payload);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  return res.status(200).json(payload);
+}
+
+// =====================================================================
 // Branch 7 — import_structure (HR bulk CV import parser)
 //
 // Structures browser-extracted CV plain text into a candidate snapshot for
@@ -1983,13 +2266,14 @@ export default async function handler(req, res) {
     case 'tailor':             return handleTailor(req, res, body);
     case 'whatsapp_draft':     return handleWhatsappDraft(req, res, body);
     case 'candidate_verdict':  return handleCandidateVerdict(req, res, body);
+    case 'candidate_match':    return handleCandidateMatch(req, res, body);
     case 'import_structure':   return handleImportStructure(req, res, body);
     case 'suggest_skills':     return handleSuggestSkills(req, res, body);
     case 'linkedin_parse':     return handleLinkedInParse(req, res, body);
     case 'interview_kit':      return handleInterviewKit(req, res, body);
     default:
       return res.status(400).json({
-        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit.',
+        error: 'Missing or unknown action. Use ?action=cover_letter|linkedin_headline|parse_resume|tailor|whatsapp_draft|candidate_verdict|import_structure|suggest_skills|linkedin_parse|interview_kit|candidate_match.',
       });
   }
 }
