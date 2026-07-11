@@ -21,6 +21,16 @@ import PostJobSuccess from "./PostJobSuccess";
 import ScreeningCategoryModal from "./screening/ScreeningCategoryModal";
 import ScreeningDrawer from "./screening/ScreeningDrawer";
 
+// Realistic starting salary band per currency (walkthrough blocker: the
+// old 50 to 1000 default read as absurd and was leaking into live jobs,
+// e.g. "AED 50 to 4,000"). Only the STARTING value changes — jobs already
+// posted keep whatever the HR saved.
+const DEFAULT_SALARY_BAND = {
+  AED: { min: 3000, max: 8000 },
+  INR: { min: 25000, max: 60000 },
+  USD: { min: 1000, max: 2500 },
+};
+
 const INITIAL_JOB = {
   // Step 1 — Start
   jobTitle: "",
@@ -31,12 +41,14 @@ const INITIAL_JOB = {
   educationLevel: "",
   currency: "AED",
   salaryUnit: "per month",
-  salaryMin: 50,
-  salaryMax: 1000,
+  salaryMin: DEFAULT_SALARY_BAND.AED.min,
+  salaryMax: DEFAULT_SALARY_BAND.AED.max,
   relevantSkills: [],
   tools: [],
   // Step 3 — Qualifications
-  yearsExperience: { min: 18, max: 25 },
+  // Walkthrough blocker: 18 to 25 read as a senior-only demand out of the
+  // box. 1 to 3 is a sane opener for the corridor's typical roles.
+  yearsExperience: { min: 1, max: 3 },
   yearsExperiencePolicy: "required",
   workAuthPolicy: "required",
   visaStatus: [],
@@ -88,6 +100,23 @@ export default function PostJobPage() {
   useEffect(() => {
     setJob((j) => (j.salaryUnit === DEFAULT_SALARY_PERIOD ? j : { ...j, salaryUnit: DEFAULT_SALARY_PERIOD }));
   }, [job.jobType]);
+
+  // Salary band follows the currency, but ONLY while untouched: if the
+  // values still equal one of the default bands, a currency switch snaps
+  // to that currency's band (so an INR job never opens at the AED numbers).
+  // The moment the HR edits the band it is theirs and never overwritten.
+  useEffect(() => {
+    setJob((j) => {
+      const band = DEFAULT_SALARY_BAND[j.currency];
+      if (!band) return j;
+      const untouched = Object.values(DEFAULT_SALARY_BAND).some(
+        (b) => b.min === Number(j.salaryMin) && b.max === Number(j.salaryMax)
+      );
+      if (!untouched) return j;
+      if (Number(j.salaryMin) === band.min && Number(j.salaryMax) === band.max) return j;
+      return { ...j, salaryMin: band.min, salaryMax: band.max };
+    });
+  }, [job.currency]);
 
   const tier = user ? freeTierStatus(user) : null;
   const isFreeTier = gate ? !gate.isPaidUser : false;

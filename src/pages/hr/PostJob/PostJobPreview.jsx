@@ -12,6 +12,18 @@ const CURRENCY_PREFIX = { AED: "AED", INR: "₹", USD: "$" };
 function periodLabel(unit) {
   return unit ? String(unit).replace(/^per\s+/i, "").trim() : ""; // "per month" -> "month"
 }
+// Bound to the Qualifications slider (walkthrough blocker: this stat was
+// hardcoded "Less than 1 Year" no matter what the HR set). Dash free copy.
+function formatExperience(job) {
+  const yr = job.yearsExperience || {};
+  const min = Number(yr.min);
+  const max = Number(yr.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return "Not specified";
+  if (max <= 1) return "Less than 1 year";
+  if (min === max) return `${min} ${min === 1 ? "year" : "years"}`;
+  return `${min} to ${max} years`;
+}
+
 function formatSalary(job) {
   const code = CURRENCY_PREFIX[job.currency] ? job.currency : "AED";
   const prefix = CURRENCY_PREFIX[code];
@@ -103,7 +115,7 @@ function PopulatedJobCard({ job, step }) {
       <motion.div className="pj-pcard__stats" variants={item}>
         <div className="pj-stat">
           <span className="pj-stat__label">Experience</span>
-          <span className="pj-stat__value-row"><ChartIcon /><span className="pj-stat__value">Less than 1 Year</span></span>
+          <span className="pj-stat__value-row"><ChartIcon /><span className="pj-stat__value">{formatExperience(job)}</span></span>
         </div>
         <div className="pj-stat">
           <span className="pj-stat__label">Type</span>

@@ -104,7 +104,7 @@ export default function HireStep({ value, onChange, onHire, onBack, submitting =
           whileTap={(reduce || !canHire) ? undefined : { scale: 0.985 }}
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
         >
-          {submitting ? "Posting…" : "Hire Now"}
+          {submitting ? "Posting…" : "Post job"}
         </motion.button>
       </motion.div>
     </motion.div>

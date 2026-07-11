@@ -6,7 +6,7 @@ const STEPS = [
   { key: "new-job",        label: "New Job" },
   { key: "qualifications", label: "Qualifications" },
   { key: "job-description",label: "Job Description" },
-  { key: "hire",           label: "Hire" },
+  { key: "hire",           label: "Post" },
 ];
 
 function StepperAllDone() {
