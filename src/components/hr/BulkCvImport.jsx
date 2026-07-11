@@ -240,10 +240,13 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
       });
       const out = await res.json().catch(() => ({}));
       if (!res.ok || typeof out.score !== "number") throw new Error(out.error || "verdict failed");
-      // The score travels with the record into the batch insert (no row exists
-      // yet). score_source 'import_verdict' so it is never clobbered by the
-      // Phase-1 retro-rescan.
-      update(itemId, { status: "scored", stage: null, score: out.score, verdict: out.verdict, candidateName, snapshot });
+      // The FULL verdict travels with the record into the batch insert (no
+      // row exists yet): since 036 import_candidates_batch persists it to
+      // applications.ai_verdict, so the number the HR sees at import IS the
+      // number on every later surface (drawer, Compare, board) — no re-run,
+      // no drift, no second Sonnet bill. score_source 'import_verdict' so it
+      // is never clobbered by the Phase-1 retro-rescan.
+      update(itemId, { status: "scored", stage: null, score: out.score, verdict: out.verdict, verdictFull: out, candidateName, snapshot });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("[bulk-import] scoring failed:", err?.message || err);
@@ -336,6 +339,10 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
     cv_file_path: it.path || null,
     ats_score: typeof it.score === "number" ? it.score : 0,
     score_source: typeof it.score === "number" ? "import_verdict" : "import_pending",
+    // 036: the full verdict persists on the row so no surface re-runs it.
+    // Pre-036 DBs ignore the extra key (the old function reads only the
+    // fields it knows).
+    ai_verdict: typeof it.score === "number" && it.verdictFull ? it.verdictFull : null,
   }), []);
 
   const runImport = useCallback(async () => {

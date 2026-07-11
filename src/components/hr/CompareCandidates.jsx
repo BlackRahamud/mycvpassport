@@ -8,11 +8,12 @@
 // Data reality:
 // - Stored fields (keywords, visa, notice, experience, applied) render
 //   instantly from the rows the page already fetched.
-// - Score, verdict, strengths and gaps come from the SAME
-//   candidate_verdict call VerdictCard makes, shared through its session
-//   cache (getCachedVerdict/putCachedVerdict) — one AI call per
-//   candidate+job across every surface. Each column loads independently
-//   with its own shimmer; one slow candidate never blocks the rest.
+// - Score, verdict, strengths and gaps come from VerdictCard's shared
+//   resolveVerdict loader (036): session Map -> the row's persisted
+//   ai_verdict -> one Sonnet call that writes back to the row. One
+//   number per candidate+job across every surface, permanently. Each
+//   column loads independently with its own shimmer; one slow candidate
+//   never blocks the rest.
 // - The "Leading" ribbon + green wash appear only after EVERY column
 //   has a score — never a premature winner.
 // - Old cached verdicts without strengths/gaps arrays fall back to the
@@ -25,10 +26,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { supabase } from "../../appSupabaseClient";
-import safeFetch from "../../lib/net/safeFetch";
 import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../lib/ats/scoreBand";
-import { getCachedVerdict, putCachedVerdict } from "./VerdictCard";
+import { resolveVerdict } from "./VerdictCard";
 import CvViewerOverlay from "./CvViewerOverlay";
 import "./compareCandidates.css";
 
@@ -123,7 +122,7 @@ function ShimmerLines({ note }) {
   );
 }
 
-export default function CompareCandidates({ open, onClose, candidates = [], onShortlist }) {
+export default function CompareCandidates({ open, onClose, candidates = [], onShortlist, onVerdictPersisted }) {
   const reduce = useReducedMotion();
   const cols = candidates.slice(0, 3);
   const n = cols.length;
@@ -136,56 +135,35 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
 
   const loadVerdict = useCallback(async (cand) => {
     const key = vKey(cand);
-    const cached = getCachedVerdict(key);
-    if (cached) {
-      setVerdicts((v) => ({ ...v, [key]: { loading: false, data: cached, error: null } }));
-      return;
-    }
     setVerdicts((v) => ({ ...v, [key]: { loading: true, data: null, error: null } }));
     try {
-      let job = null;
-      const jobId = cand.apps?.[0]?.job_id;
-      if (jobId) {
-        const { data: jrow } = await supabase
-          .from("jobs")
-          .select("title, description, skills, requirements")
-          .eq("id", jobId)
-          .maybeSingle();
-        job = jrow || null;
-      }
-      const { data: { session } = {} } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("auth");
-      const res = await safeFetch("/api/ai?action=candidate_verdict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          cvSnapshot: getCv(cand.record) || null,
-          job: {
-            title: job?.title || "",
-            description: job?.description || "",
-            skills: job?.skills || [],
-            requirements: job?.requirements || [],
-          },
-        }),
+      // Shared 036 loader: Map -> the row's persisted ai_verdict -> one
+      // Sonnet call that writes back. Same number as the drawer and the
+      // list badge, by construction.
+      const out = await resolveVerdict({
+        cacheKey: key,
+        cvSnapshot: getCv(cand.record) || null,
+        jobId: cand.apps?.[0]?.job_id,
+        applicationId: cand.record?.id,
+        storedVerdict: cand.record?.ai_verdict,
+        onPersisted: onVerdictPersisted ? (v) => onVerdictPersisted(cand, v) : undefined,
       });
-      const out = await res.json().catch(() => ({}));
-      if (!res.ok || !out.verdict) throw new Error(out.error || "failed");
       if (!liveRef.current) return;
-      putCachedVerdict(key, out);
       setVerdicts((v) => ({ ...v, [key]: { loading: false, data: out, error: null } }));
     } catch (_e) {
       if (!liveRef.current) return;
       setVerdicts((v) => ({ ...v, [key]: { loading: false, data: null, error: "Couldn't score this candidate." } }));
     }
-  }, []);
+  }, [onVerdictPersisted]);
 
   const colKeys = cols.map(vKey).join("|");
   useEffect(() => {
     if (!open) return;
     cols.forEach((cand) => {
       const key = vKey(cand);
-      if (!verdicts[key] || (verdicts[key].error && getCachedVerdict(key))) loadVerdict(cand);
+      // Load once per column; errored columns retry on the next open
+      // (cheap when the verdict is already stored or cached).
+      if (!verdicts[key] || verdicts[key].error) loadVerdict(cand);
     });
     // cols are keyed by colKeys; verdicts is written here, not a trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps

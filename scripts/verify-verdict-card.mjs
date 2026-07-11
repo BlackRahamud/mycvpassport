@@ -1,10 +1,15 @@
-/* VerdictCard upgrade harness (skill chips un-hidden + strengths/gaps
-   checklist). Serves the PRODUCTION build with a stubbed backend:
+/* VerdictCard harness (chips + checklist + 036 one-verdict persistence).
+   Serves the PRODUCTION build with a stubbed backend:
    - NEW-shape verdict: checklist renders (two columns desktop, one at
      360), keyword chips visible WITHOUT any click, Show all toggle,
      old "View full fit analysis" button gone, dash scan
+   - 036 persist contract: a fresh generation fires EXACTLY ONE AI call
+     and one guarded PATCH (ai_verdict=is.null) writing ai_verdict +
+     ats_score synced to the verdict score
+   - 036 stored contract: a row that already carries ai_verdict renders
+     the stored score with ZERO AI calls and ZERO writes
    - LEGACY-shape verdict (no arrays): no checklist, Gap line intact,
-     no crash — old cached verdicts keep working
+     no crash — old stored verdicts keep working
    Usage: node scripts/verify-verdict-card.mjs <outDir> */
 import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, mkdirSync } from "node:fs";
@@ -94,7 +99,7 @@ const SESSION = {
   },
 };
 
-function pgrest(url, accept) {
+function pgrest(url, accept, appRow) {
   const path = url.pathname;
   const wantsObject = /vnd\.pgrst\.object/.test(accept || "");
   const t = (name) => path.includes(`/rest/v1/${name}`);
@@ -102,18 +107,21 @@ function pgrest(url, accept) {
   if (t("profiles")) rows = [{ user_type: "recruiter", plan: "recruiter", full_name: "Meridian HR", company_name: "Meridian Logistics", work_email: "r@m.example" }];
   else if (t("hr_profiles")) rows = [{ company_name: "Meridian Logistics", work_email: "r@m.example", company_id: "55555555-5555-4555-8555-555555555555" }];
   else if (t("jobs")) rows = [JOB];
-  else if (t("applications")) rows = [APP1];
+  else if (t("applications")) rows = [appRow];
   else rows = [];
   const body = wantsObject ? (rows[0] ?? null) : rows;
   return JSON.stringify(body);
 }
 
-async function stubRoutes(context, verdictPayload) {
+/* stats: { ai: number, patches: [{ query, body }] } — the 036 contract
+   is asserted on these counters. */
+async function stubRoutes(context, verdictPayload, appRow = APP1, stats = null) {
   await context.route("**/*", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
     const href = req.url();
     if (url.pathname.startsWith("/api/ai") && url.searchParams.get("action") === "candidate_verdict") {
+      if (stats) stats.ai += 1;
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(verdictPayload) });
     }
     if (url.port === "4186") return route.continue();
@@ -122,8 +130,15 @@ async function stubRoutes(context, verdictPayload) {
       if (url.pathname.includes("/auth/v1/user")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SESSION.user) });
       if (url.pathname.includes("/auth/v1/token")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SESSION) });
       if (url.pathname.includes("/rest/v1/")) {
+        if (req.method() === "PATCH" && url.pathname.includes("applications")) {
+          let body = {};
+          try { body = JSON.parse(req.postData() || "{}"); } catch { /* keep {} */ }
+          if (stats) stats.patches.push({ query: url.search, body });
+          // Echo the written row back (PostgREST returning=representation).
+          return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ai_verdict: body.ai_verdict ?? null }) });
+        }
         if (req.method() !== "GET") return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
-        return route.fulfill({ status: 200, contentType: "application/json", body: pgrest(url, req.headers().accept) });
+        return route.fulfill({ status: 200, contentType: "application/json", body: pgrest(url, req.headers().accept, appRow) });
       }
       return route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
     }
@@ -134,9 +149,9 @@ async function stubRoutes(context, verdictPayload) {
 
 const browser = await chromium.launch();
 
-async function openDetail({ width, verdictPayload }) {
+async function openDetail({ width, verdictPayload, appRow = APP1, stats = null }) {
   const context = await browser.newContext({ viewport: { width, height: 900 } });
-  await stubRoutes(context, verdictPayload);
+  await stubRoutes(context, verdictPayload, appRow, stats);
   await context.addInitScript(([key, session, viewKey]) => {
     localStorage.setItem(key, JSON.stringify(session));
     localStorage.setItem("cvp_theme", "light");
@@ -152,10 +167,21 @@ async function openDetail({ width, verdictPayload }) {
 
 const shot = (page, name) => page.screenshot({ path: join(OUT, `${name}.png`), fullPage: false });
 
-/* ── 1) New-shape verdict, desktop ────────────────────────────── */
+/* ── 1) New-shape verdict, desktop — plus the 036 persist contract ── */
 {
-  const { context, page } = await openDetail({ width: 1280, verdictPayload: NEW_VERDICT });
+  const stats = { ai: 0, patches: [] };
+  const { context, page } = await openDetail({ width: 1280, verdictPayload: NEW_VERDICT, stats });
   const card = page.locator(".vc-card").first();
+
+  /* 036: fresh generation = exactly one AI call + one guarded write that
+     syncs ats_score to the verdict score. */
+  check(stats.ai === 1, `036: exactly one AI call on first open (${stats.ai})`);
+  check(stats.patches.length === 1, `036: exactly one persist write (${stats.patches.length})`);
+  const patch = stats.patches[0] || { query: "", body: {} };
+  check(/ai_verdict=is\.null/.test(patch.query), "036: write is guarded first-write-wins (ai_verdict=is.null)");
+  check(patch.body?.ai_verdict?.score === NEW_VERDICT.score, "036: full verdict JSON persisted to ai_verdict");
+  check(patch.body?.ats_score === NEW_VERDICT.score, "036: ats_score synced to the verdict score (badge equals ring)");
+  check(patch.body?.score_source === "sonnet_verdict", "036: score_source marks the Sonnet writeback");
   check(await card.locator(".vc-kw__chip--hit").count() === 6, "desktop: matched chips visible with NO click (capped 6)");
   check(await card.locator(".vc-kw__chip--miss").count() === 6, "desktop: missing chips visible with NO click (capped 6)");
   check(await card.locator(".vc-kw__toggle").textContent().then((t) => t === "Show all 15"), "desktop: quiet Show all toggle with total");
@@ -185,6 +211,25 @@ for (const width of [360, 393, 430]) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
   check(overflow, `phone ${width}px: no horizontal overflow`);
   if (width === 393) await shot(page, "phone-393-new-shape");
+  await context.close();
+}
+
+/* ── 2b) 036 stored contract: ai_verdict on the row -> ZERO AI calls,
+      ZERO writes, and the STORED score drives the ring (the walkthrough
+      blocker was 84 on the list vs 82 in the drawer — with the stored
+      verdict there is exactly one number). ── */
+{
+  const STORED_VERDICT = { ...NEW_VERDICT, score: 77 }; // distinct from ats_score AND the stub payload
+  const APP_STORED = { ...APP1, ats_score: 77, score_source: "sonnet_verdict", ai_verdict: STORED_VERDICT };
+  const stats = { ai: 0, patches: [] };
+  const { context, page } = await openDetail({ width: 1280, verdictPayload: NEW_VERDICT, appRow: APP_STORED, stats });
+  const card = page.locator(".vc-card").first();
+  await page.waitForTimeout(1200); // ring count-up settles
+  check(stats.ai === 0, `036: stored verdict opens with ZERO AI calls (${stats.ai})`);
+  check(stats.patches.length === 0, `036: stored verdict triggers ZERO writes (${stats.patches.length})`);
+  check(await card.locator(".vc-ring__num").textContent().then((t) => t.trim() === "77"), "036: the ring shows the STORED score, not a fresh reroll");
+  check(await card.locator(".vc-sg__col--strengths .vc-sg__item").count() === 3, "036: stored strengths render (full JSON round-trips)");
+  await shot(page, "desktop-stored-verdict");
   await context.close();
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -145,7 +145,7 @@ const ClockIc = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="non
 const PlusIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
 
 /* ───────── Candidate detail (reuses jpp-detail classes) ───────── */
-function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce, activeJobs = [], onMoved }) {
+function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce, activeJobs = [], onMoved, onVerdictPersisted }) {
   const navigate = useNavigate();
   const [moveForId, setMoveForId] = useState(null); // app id whose move picker is open
   const [moveBusy, setMoveBusy] = useState(false);
@@ -208,6 +208,9 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
         cacheKey={`${a.candidate_id || candidate.key}:${candidate.apps[0]?.job_id || ""}`}
         cvSnapshot={cv}
         jobId={candidate.apps[0]?.job_id}
+        applicationId={a.id}
+        storedVerdict={a.ai_verdict}
+        onVerdictPersisted={(v) => onVerdictPersisted?.(a.id, v)}
         header={{
           name: candidate.name,
           role: desiredJob || candidate.apps[0]?.jobTitle || "Candidate",
@@ -408,6 +411,9 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
             cacheKey={`${a.candidate_id || candidate.key}:${candidate.apps[0]?.job_id || ""}`}
             cvSnapshot={cv}
             jobId={candidate.apps[0]?.job_id}
+            applicationId={a.id}
+            storedVerdict={a.ai_verdict}
+            onVerdictPersisted={(v) => onVerdictPersisted?.(a.id, v)}
             header={{
               name: candidate.name,
               role: desiredJob || candidate.apps[0]?.jobTitle || "Candidate",
@@ -471,7 +477,7 @@ export default function CandidatesPage() {
         const [appsRes, jobsRes] = await Promise.all([
           supabase
             .from("applications")
-            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, score_source, source, status, visa_status, match_keywords, missing_keywords, applied_at")
+            .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, score_source, source, status, visa_status, match_keywords, missing_keywords, ai_verdict, applied_at")
             .eq("hr_id", uid)
             .limit(5000),
           supabase
@@ -611,6 +617,23 @@ export default function CandidatesPage() {
   };
 
   const clearSelection = () => { setCheckedKeys(new Set()); setCheckNotice(false); setBulkError(null); };
+
+  /* 036: a surface generated + persisted a verdict — sync the local rows so
+     the list badge shows the same number as the ring, without a refetch. */
+  const patchVerdict = useCallback((appId, v) => {
+    if (!appId || !v || typeof v.score !== "number") return;
+    setRows((prev) => (prev || []).map((c) => {
+      if (c.record?.id !== appId) return c;
+      return {
+        ...c,
+        score: v.score,
+        score_source: "sonnet_verdict",
+        record: { ...c.record, ai_verdict: v, ats_score: v.score, score_source: "sonnet_verdict" },
+        apps: c.apps.map((x) => (x.app_id === appId ? { ...x, ats_score: v.score, score_source: "sonnet_verdict" } : x)),
+      };
+    }));
+  }, []);
+  const compareVerdictPersisted = useCallback((cand, v) => patchVerdict(cand?.record?.id, v), [patchVerdict]);
 
   // Resolve checked keys to candidate objects, ordered by list position so the
   // WhatsApp queue's "first 10" is the first 10 the recruiter sees.
@@ -840,6 +863,7 @@ export default function CandidatesPage() {
                 reduce={reduce}
                 activeJobs={jobsList.filter((j) => j.kind !== "pool" && (j.status === "active" || j.status === "published"))}
                 onMoved={() => setReloadTick((t) => t + 1)}
+                onVerdictPersisted={patchVerdict}
               />
             </AnimatePresence>
           </div>
@@ -879,6 +903,7 @@ export default function CandidatesPage() {
         onClose={() => setCompareOpen(false)}
         candidates={selectedArr.slice(0, 3)}
         onShortlist={shortlistOne}
+        onVerdictPersisted={compareVerdictPersisted}
       />
 
       <ImportTargetModal

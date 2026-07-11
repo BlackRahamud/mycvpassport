@@ -326,7 +326,7 @@ export default function JobPipelinePage() {
     (async () => {
       const { data, error } = await supabase
         .from("applications")
-        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, match_keywords, missing_keywords, score_source, source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
+        .select("id, job_id, candidate_id, candidate_name, candidate_email, candidate_phone, cv_snapshot, cv_file_path, ats_score, match_keywords, missing_keywords, ai_verdict, score_source, source, status, recruiter_notes, applied_at, viewed_at, updated_at, is_visible_to_hr")
         .eq("job_id", jobId)
         .order("ats_score", { ascending: false });
       if (!live) return;
@@ -520,6 +520,17 @@ export default function JobPipelinePage() {
     }
   }, [noteDraft, selected]);
 
+  /* 036: a surface generated + persisted a verdict — sync the local apps
+     so board cards and the drawer ring show one number, no refetch. */
+  const patchVerdict = useCallback((appId, v) => {
+    if (!appId || !v || typeof v.score !== "number") return;
+    setApps((prev) => (prev || []).map((a) => (
+      a.id === appId
+        ? { ...a, ai_verdict: v, ats_score: v.score, score_source: "sonnet_verdict" }
+        : a
+    )));
+  }, []);
+
   /* ── Renderers ─────────────────────────────────────────────── */
   /* One CandidateDetail instance definition — rendered in the list grid
      OR inside the kanban drawer, always with identical props. */
@@ -527,6 +538,7 @@ export default function JobPipelinePage() {
     <CandidateDetail
       key={selected?.id || "empty"}
       candidate={selected}
+      onVerdictPersisted={patchVerdict}
       job={job}
       stageDef={stageDef}
       jobTitle={jobTitle}
@@ -940,7 +952,7 @@ function CandidateDetail({
   advancing, onAdvance, onPass, onStatusChange,
   onMessage, onReachOut, onSchedule, hrId, outreachTick, interviewTick,
   noteDraft, onNoteDraftChange, onAddNote, noteSubmitting,
-  reduce,
+  reduce, onVerdictPersisted,
 }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [cvOpen, setCvOpen] = useState(false);
@@ -1122,6 +1134,9 @@ function CandidateDetail({
         cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
         cvSnapshot={cv}
         job={job}
+        applicationId={candidate.id}
+        storedVerdict={candidate.ai_verdict}
+        onVerdictPersisted={(v) => onVerdictPersisted?.(candidate.id, v)}
         header={{
           name: candidate.candidate_name || "Unnamed candidate",
           role: desiredJob || jobTitle || "Candidate",
@@ -1177,6 +1192,9 @@ function CandidateDetail({
             cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
             cvSnapshot={cv}
             job={job}
+            applicationId={candidate.id}
+            storedVerdict={candidate.ai_verdict}
+            onVerdictPersisted={(v) => onVerdictPersisted?.(candidate.id, v)}
             header={{
               name: candidate.candidate_name || "Unnamed candidate",
               role: desiredJob || jobTitle || "Candidate",

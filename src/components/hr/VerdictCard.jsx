@@ -2,15 +2,25 @@
 // src/components/hr/VerdictCard.jsx
 //
 // Candidate Verdict — a light, corridor-aware decision card at the top
-// of the HR candidate detail (pipeline + Candidates CRM). It calls the
-// /api/ai?action=candidate_verdict semantic matcher (lazy, on open),
-// caches per candidate+job in session memory, and renders:
-//   badge (STRONG FIT / MAYBE / PASS) + prominent score + 3 reasons
-//   (Match / Corridor / Gap) + strengths/gaps checklist + the matched/
-//   missing keyword chips (always visible, no reveal) + WhatsApp action.
+// of the HR candidate detail (pipeline + Candidates CRM).
+//
+// ONE VERDICT, ONE NUMBER (migration 036): the verdict is computed once
+// per candidate+job and PERSISTED on the applications row (ai_verdict
+// jsonb, ats_score synced to its score). Read order everywhere:
+//   session Map -> the row's stored ai_verdict -> one Sonnet call, then
+//   write back (first-write-wins: UPDATE ... WHERE ai_verdict IS NULL,
+//   losers converge on the winner's row). The board card, CRM list badge,
+//   drawer ring and Compare all show the same number by construction.
+// resolveVerdict() is the single shared loader — CompareCandidates uses
+// it too. Pre-036 databases degrade gracefully: the persist step fails
+// quietly and behavior is the old session-cache-only one.
+//
+// Renders: badge (Strong Match / Maybe / Weak Match) + prominent score +
+// 3 reasons (Match / Corridor / Gap) + strengths/gaps checklist + the
+// matched/missing keyword chips + WhatsApp action.
 //
 // Backward compatibility: strengths/gaps are OPTIONAL on the response —
-// verdicts cached before the arrays existed render exactly as before
+// verdicts stored before the arrays existed render exactly as before
 // (the Gap line in the 3-reason list carries the risk). Never force a
 // re-run for shape differences.
 //
@@ -19,7 +29,7 @@
 // no new WhatsApp path here.
 // =============================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, useMotionValue, useTransform, animate } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
@@ -100,14 +110,120 @@ export function putCachedVerdict(key, data) { if (key && data) verdictCache.set(
 // passed-the-screen vs pass-on-them); now text, color and ring always
 // agree by construction. See src/lib/ats/scoreBand.js.
 
-/* ───────── lazy + cached verdict fetch ───────── */
-function useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId }) {
+/* A verdict (stored or cached) is trustworthy when it carries the fields
+   every surface renders. Guards against half-written or legacy rows. */
+export function isVerdictShape(v) {
+  return Boolean(
+    v && typeof v === "object" && !Array.isArray(v)
+    && typeof v.score === "number" && v.verdict && Array.isArray(v.two_second_why)
+  );
+}
+
+async function fetchVerdictFromApi({ cvSnapshot, job, jobId }) {
+  // Resolve the full job (description/skills/requirements) if the
+  // caller only had a jobId (the Candidates page case).
+  let fullJob = job;
+  if ((!fullJob || fullJob.description == null) && jobId) {
+    const { data: jrow } = await supabase
+      .from("jobs")
+      .select("title, description, skills, requirements")
+      .eq("id", jobId)
+      .maybeSingle();
+    if (jrow) fullJob = jrow;
+  }
+  const { data: { session } = {} } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("auth");
+  const res = await safeFetch("/api/ai?action=candidate_verdict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      cvSnapshot: cvSnapshot || null,
+      job: {
+        title: fullJob?.title || "",
+        description: fullJob?.description || "",
+        skills: fullJob?.skills || [],
+        requirements: fullJob?.requirements || [],
+      },
+    }),
+  });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok || !out.verdict) throw new Error(out.error || "failed");
+  return out;
+}
+
+/* Persist a freshly generated verdict onto its applications row so every
+   surface reads the same number. First-write-wins unless force (the
+   explicit Regenerate action): the guarded UPDATE only lands on a NULL
+   ai_verdict; if another surface won the race we converge on the stored
+   winner. ats_score mirrors the verdict score so the list badge and board
+   card agree with the ring. Best effort by design — RLS trouble or a
+   pre-036 database (no ai_verdict column) returns null and the caller
+   keeps the in-session verdict. */
+async function persistVerdict({ applicationId, verdict, force }) {
+  if (!applicationId) return null;
+  try {
+    let q = supabase
+      .from("applications")
+      .update({
+        ai_verdict: verdict,
+        ats_score: verdict.score,
+        score_source: "sonnet_verdict",
+        verdict_generated_at: new Date().toISOString(),
+      })
+      .eq("id", applicationId);
+    if (!force) q = q.is("ai_verdict", null);
+    const { data, error } = await q.select("ai_verdict").maybeSingle();
+    if (error) throw error;
+    if (isVerdictShape(data?.ai_verdict)) return data.ai_verdict;
+    if (!force) {
+      // 0 rows updated: another surface persisted first — read the winner.
+      const { data: row } = await supabase
+        .from("applications")
+        .select("ai_verdict")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (isVerdictShape(row?.ai_verdict)) return row.ai_verdict;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/* THE single verdict loader, shared by this card and CompareCandidates.
+   Read order: session Map -> stored row value -> one Sonnet call + persist.
+   onPersisted fires only when a NEW verdict was generated, with the
+   canonical (persisted or in-session) object — pages use it to sync their
+   local row state so list badges update without a refetch. */
+export async function resolveVerdict({
+  cacheKey, cvSnapshot, job, jobId, applicationId,
+  storedVerdict = null, force = false, onPersisted,
+}) {
+  if (!force) {
+    if (cacheKey && verdictCache.has(cacheKey)) return verdictCache.get(cacheKey);
+    if (isVerdictShape(storedVerdict)) {
+      if (cacheKey) verdictCache.set(cacheKey, storedVerdict);
+      return storedVerdict;
+    }
+  }
+  const out = await fetchVerdictFromApi({ cvSnapshot, job, jobId });
+  const canonical = (await persistVerdict({ applicationId, verdict: out, force })) || out;
+  if (cacheKey) verdictCache.set(cacheKey, canonical);
+  if (onPersisted) onPersisted(canonical);
+  return canonical;
+}
+
+/* ───────── lazy + cached + persisted verdict fetch ───────── */
+function useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onPersisted }) {
   const [state, setState] = useState(() =>
     cacheKey && verdictCache.has(cacheKey)
       ? { loading: false, data: verdictCache.get(cacheKey), error: null }
       : { loading: false, data: null, error: null }
   );
   const [nonce, setNonce] = useState(0);
+  const onPersistedRef = useRef(onPersisted);
+  onPersistedRef.current = onPersisted;
   const retry = () => { if (cacheKey) verdictCache.delete(cacheKey); setNonce((n) => n + 1); };
 
   useEffect(() => {
@@ -116,41 +232,25 @@ function useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId }) {
       setState({ loading: false, data: verdictCache.get(cacheKey), error: null });
       return undefined;
     }
+    // Stored verdict renders instantly — no loading flash, no network.
+    if (nonce === 0 && isVerdictShape(storedVerdict)) {
+      verdictCache.set(cacheKey, storedVerdict);
+      setState({ loading: false, data: storedVerdict, error: null });
+      return undefined;
+    }
     let live = true;
     setState({ loading: true, data: null, error: null });
     (async () => {
       try {
-        // Resolve the full job (description/skills/requirements) if the
-        // caller only had a jobId (the Candidates page case).
-        let fullJob = job;
-        if ((!fullJob || fullJob.description == null) && jobId) {
-          const { data: jrow } = await supabase
-            .from("jobs")
-            .select("title, description, skills, requirements")
-            .eq("id", jobId)
-            .maybeSingle();
-          if (jrow) fullJob = jrow;
-        }
-        const { data: { session } = {} } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        if (!token) throw new Error("auth");
-        const res = await safeFetch("/api/ai?action=candidate_verdict", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({
-            cvSnapshot: cvSnapshot || null,
-            job: {
-              title: fullJob?.title || "",
-              description: fullJob?.description || "",
-              skills: fullJob?.skills || [],
-              requirements: fullJob?.requirements || [],
-            },
-          }),
+        // nonce > 0 = explicit retry/regenerate: bypass the stored value and
+        // overwrite the row so the new number propagates to every surface.
+        const out = await resolveVerdict({
+          cacheKey, cvSnapshot, job, jobId, applicationId,
+          storedVerdict: nonce > 0 ? null : storedVerdict,
+          force: nonce > 0,
+          onPersisted: (v) => onPersistedRef.current?.(v),
         });
-        const out = await res.json().catch(() => ({}));
-        if (!res.ok || !out.verdict) throw new Error(out.error || "failed");
         if (!live) return;
-        verdictCache.set(cacheKey, out);
         setState({ loading: false, data: out, error: null });
       } catch (_e) {
         if (!live) return;
@@ -158,7 +258,8 @@ function useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId }) {
       }
     })();
     return () => { live = false; };
-    // cvSnapshot/job/jobId are keyed by cacheKey; depend only on the key.
+    // cvSnapshot/job/jobId/applicationId/storedVerdict are keyed by cacheKey;
+    // depend only on the key (same contract as before 036).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheKey, nonce]);
 
@@ -249,9 +350,9 @@ function KeywordChips({ matched, missing }) {
   );
 }
 
-export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, onReachOut, matchedKeywords = [], missingKeywords = [] }) {
+export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onVerdictPersisted, onReachOut, matchedKeywords = [], missingKeywords = [] }) {
   const reduce = useReducedMotion();
-  const { loading, data, error, retry } = useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId });
+  const { loading, data, error, retry } = useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onPersisted: onVerdictPersisted });
 
   const name = header?.name || "Candidate";
   const role = header?.role || "";

@@ -138,7 +138,11 @@ async function stubRoutes(context) {
       if (url.pathname.includes("/auth/v1/token")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SESSION) });
       if (url.pathname.includes("/rest/v1/")) {
         if (req.method() === "PATCH" && url.pathname.includes("applications")) {
-          patchedIds.push(url.searchParams.get("id") || url.search);
+          let body = {};
+          try { body = JSON.parse(req.postData() || "{}"); } catch { /* keep {} */ }
+          // Since 036, columns also PATCH ai_verdict (the persisted verdict
+          // writeback). Only STATUS writes count as shortlist actions.
+          if (body.status) patchedIds.push(url.searchParams.get("id") || url.search);
           return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
         }
         if (req.method() !== "GET") return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
