@@ -28,12 +28,14 @@ import {
   digitsOf,
   logWhatsappEvent,
 } from "./WhatsAppComposer";
+import givenName from "../../lib/hr/givenName";
 
 const EASE = [0.4, 0, 0.2, 1];
 const WA_QUEUE_CAP = 10;       // WhatsApp safe limit — lower than the 50 DB cap
 const DAILY_SOFT_LIMIT = 30;   // heuristic; soft warning, never a hard block
 
-function firstName(full) { return String(full || "").trim().split(/\s+/)[0] || "there"; }
+// Honorific-aware (Md/Mohd prefixes skipped) — one name rule everywhere.
+function firstName(full) { return givenName(full, "there"); }
 
 /* Real DB status values (mirrors the pipeline's STATUS_OVERRIDE_OPTIONS /
    migration 013 CHECK set). The founder note said "shortlist/reject" — the
@@ -52,7 +54,7 @@ const STATUS_LABEL = {
   ready: "Ready", interviewing: "Interviewing", interviewed: "Interviewed",
   offered: "Offer", hired: "Hired", rejected: "Passed",
 };
-function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "—"); }
+function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "Not set"); }
 
 /* Default first-contact template: nudges the candidate to save the number
    and reply. Reuses the composer's substitute() token format; the rest of the
@@ -60,8 +62,8 @@ function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "—"); }
 const FIRST_CONTACT = {
   key: "first_contact", label: "First contact",
   body: {
-    gulf: "Hi {first_name}, thanks for applying for the {job_title} role. Please save this number so we can keep in touch about next steps — and reply here to confirm you're still interested. Are you free for a quick call this week?",
-    india: "Hello {first_name}, thank you for applying for the {job_title} position. Please save this number so we can stay in touch about next steps — and do reply here to confirm your interest. Would you be available for a brief call this week?",
+    gulf: "Hi {first_name}, thanks for applying for the {job_title} role. Please save this number so we can keep in touch about next steps, and reply here to confirm you're still interested. Are you free for a quick call this week?",
+    india: "Hello {first_name}, thank you for applying for the {job_title} position. Please save this number so we can stay in touch about next steps, and do reply here to confirm your interest. Would you be available for a brief call this week?",
   },
 };
 const QUEUE_TEMPLATES = [FIRST_CONTACT, ...WA_TEMPLATES];
@@ -170,7 +172,7 @@ export default function BulkActions({ selected, onClear, onApplyStatus, statusBu
               size="sm"
               menuAlign="right"
               value=""
-              placeholder={statusBusy ? "Updating…" : "Move latest to…"}
+              placeholder={statusBusy ? "Updating…" : "Move newest application to…"}
               disabled={statusBusy || count === 0}
               onChange={(v) => { if (v) onApplyStatus(v); }}
               options={BULK_STATUS}
@@ -344,7 +346,7 @@ function WhatsAppQueue({ open, onClose, selected, hrId, onLogged, reduce }) {
                   Bulk WhatsApp
                 </div>
                 <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--pj-muted)", lineHeight: 1.45 }}>
-                  Assisted send — WhatsApp opens with each message ready and <strong>you tap send</strong>. One candidate at a time, never multiple tabs.
+                  Assisted send. WhatsApp opens with each message ready and <strong>you tap send</strong>. One candidate at a time, never multiple tabs.
                 </p>
               </div>
               <button type="button" onClick={onClose} aria-label="Close" style={{ background: "transparent", border: 0, color: "var(--pj-muted)", cursor: "pointer", padding: 4 }}>
@@ -354,7 +356,7 @@ function WhatsAppQueue({ open, onClose, selected, hrId, onLogged, reduce }) {
 
             {capped && (
               <p style={noticeBox("info")}>
-                Acting on the first {WA_QUEUE_CAP} of {selected.length} selected — WhatsApp's safe limit is lower than bulk database actions.
+                Acting on the first {WA_QUEUE_CAP} of {selected.length} selected. WhatsApp's safe limit is lower than bulk database actions.
               </p>
             )}
             {skipped.length > 0 && (
@@ -364,7 +366,7 @@ function WhatsAppQueue({ open, onClose, selected, hrId, onLogged, reduce }) {
             )}
             {volumeWarn && (
               <p style={noticeBox("warn")}>
-                You've sent {sentTodayTotal} WhatsApp messages today. WhatsApp may flag high volume — consider spacing these out.
+                You've sent {sentTodayTotal} WhatsApp messages today. WhatsApp may flag high volume, consider spacing these out.
               </p>
             )}
 

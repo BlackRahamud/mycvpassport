@@ -119,6 +119,27 @@ export function isVerdictShape(v) {
   );
 }
 
+/* Dash-free copy rule: new verdicts are scrubbed server-side, but verdicts
+   persisted before the scrub live on the row forever — clean them at
+   hydration so no surface ever renders an em dash. Hyphens survive unless
+   spaced (hyphenated names stay intact). */
+const scrubText = (s) => String(s || "")
+  .replace(/\s*[–—]+\s*/g, ", ")
+  .replace(/\s+-{1,2}\s+/g, ", ")
+  .replace(/,\s*,+/g, ",")
+  .trim();
+function sanitizeVerdict(v) {
+  if (!isVerdictShape(v)) return v;
+  const out = {
+    ...v,
+    two_second_why: v.two_second_why.map(scrubText),
+    whatsapp_cta_template: scrubText(v.whatsapp_cta_template),
+  };
+  if (Array.isArray(v.strengths)) out.strengths = v.strengths.map(scrubText);
+  if (Array.isArray(v.gaps)) out.gaps = v.gaps.map(scrubText);
+  return out;
+}
+
 async function fetchVerdictFromApi({ cvSnapshot, job, jobId }) {
   // Resolve the full job (description/skills/requirements) if the
   // caller only had a jobId (the Candidates page case).
@@ -203,8 +224,9 @@ export async function resolveVerdict({
   if (!force) {
     if (cacheKey && verdictCache.has(cacheKey)) return verdictCache.get(cacheKey);
     if (isVerdictShape(storedVerdict)) {
-      if (cacheKey) verdictCache.set(cacheKey, storedVerdict);
-      return storedVerdict;
+      const clean = sanitizeVerdict(storedVerdict);
+      if (cacheKey) verdictCache.set(cacheKey, clean);
+      return clean;
     }
   }
   const out = await fetchVerdictFromApi({ cvSnapshot, job, jobId });
@@ -234,8 +256,9 @@ function useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId, applicationId, 
     }
     // Stored verdict renders instantly — no loading flash, no network.
     if (nonce === 0 && isVerdictShape(storedVerdict)) {
-      verdictCache.set(cacheKey, storedVerdict);
-      setState({ loading: false, data: storedVerdict, error: null });
+      const clean = sanitizeVerdict(storedVerdict);
+      verdictCache.set(cacheKey, clean);
+      setState({ loading: false, data: clean, error: null });
       return undefined;
     }
     let live = true;

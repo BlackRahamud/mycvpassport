@@ -176,10 +176,35 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose, viewCvFor]);
 
-  /* Leader: only once every column has a score — never a premature winner. */
+  /* Leader: only once every column has a score — never a premature winner.
+     On an exact tie no one is crowned: no ribbon, no Top score, a "Tied"
+     chip instead of the misleading "0 behind". */
   const scores = cols.map((c) => verdicts[vKey(c)]?.data?.score);
   const allScored = n >= 2 && scores.every((s) => typeof s === "number");
-  const leaderIdx = allScored ? scores.indexOf(Math.max(...scores)) : -1;
+  const topScore = allScored ? Math.max(...scores) : null;
+  const tied = allScored && scores.filter((s) => s === topScore).length > 1;
+  const leaderIdx = allScored && !tied ? scores.indexOf(topScore) : -1;
+
+  /* Row presence: a row renders only when at least ONE column has the value
+     (walkthrough item 7: imported candidates produced a wall of "Not
+     provided"). With partial data the empty columns still say Not provided,
+     because that absence is itself comparison signal. */
+  const visaOf = (c) => {
+    const cv = getCv(c.record);
+    return c.visa || c.record?.visa_status || cv.visa_status || (cv.personal || cv.basics || {}).visa_status || "";
+  };
+  const noticeOf = (c) => {
+    const cv = getCv(c.record);
+    const personal = cv.personal || cv.basics || {};
+    return cv.notice_period || cv.availability || personal.notice_period || personal.availability || "";
+  };
+  const rowHas = {
+    matchedKw: cols.some((c) => (Array.isArray(c.record?.match_keywords) ? c.record.match_keywords : []).length > 0),
+    missingKw: cols.some((c) => (Array.isArray(c.record?.missing_keywords) ? c.record.missing_keywords : []).length > 0),
+    visa: cols.some((c) => Boolean(visaOf(c))),
+    notice: cols.some((c) => Boolean(noticeOf(c))),
+    experience: cols.some((c) => careerSpan(getCv(c.record).experience).years !== null),
+  };
 
   const sameJob = cols.length > 0 && cols.every((c) => c.apps?.[0]?.job_id && c.apps[0].job_id === cols[0].apps?.[0]?.job_id);
   const subtitle = sameJob && cols[0].apps?.[0]?.jobTitle
@@ -289,9 +314,11 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
                           color={BAND_COLORS[scoreBand(v.data.score, "ai_verdict")]}
                           reduce={reduce}
                         />
-                        {allScored && (lead
-                          ? <span className="cc-chip cc-chip--top">Top score</span>
-                          : <span className="cc-behind">{scores[leaderIdx] - v.data.score} behind</span>)}
+                        {allScored && (tied && v.data.score === topScore
+                          ? <span className="cc-chip cc-chip--top">Tied</span>
+                          : lead
+                            ? <span className="cc-chip cc-chip--top">Top score</span>
+                            : <span className="cc-behind">{topScore - v.data.score} behind</span>)}
                       </span>
                     ) : v.error ? (
                       <span className="cc-err">
@@ -361,80 +388,99 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
                 );
               })}
 
-              {/* ── Matched keywords ── */}
-              <div className="cc-label cc-label--top">Matched keywords</div>
-              {cols.map((c, i) => {
-                const matched = Array.isArray(c.record?.match_keywords) ? c.record.match_keywords : [];
-                const missing = Array.isArray(c.record?.missing_keywords) ? c.record.missing_keywords : [];
-                const total = matched.length + missing.length;
-                const lead = i === leaderIdx;
-                return (
-                  <motion.div key={`mk-${c.key}`} className={`cc-cell cc-cell--chips${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
-                    {matched.length ? (
-                      <>
-                        {matched.slice(0, 6).map((k, j) => <span className="cc-kw cc-kw--hit" key={j}>{k}</span>)}
-                        {total > 0 && <span className="cc-tally">{matched.length} of {total}</span>}
-                      </>
-                    ) : <NotProvided />}
-                  </motion.div>
-                );
-              })}
+              {/* ── Matched keywords (hidden when NO column has any) ── */}
+              {rowHas.matchedKw && (
+                <>
+                  <div className="cc-label cc-label--top">Matched keywords</div>
+                  {cols.map((c, i) => {
+                    const matched = Array.isArray(c.record?.match_keywords) ? c.record.match_keywords : [];
+                    const missing = Array.isArray(c.record?.missing_keywords) ? c.record.missing_keywords : [];
+                    const total = matched.length + missing.length;
+                    const lead = i === leaderIdx;
+                    return (
+                      <motion.div key={`mk-${c.key}`} className={`cc-cell cc-cell--chips${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
+                        {matched.length ? (
+                          <>
+                            {matched.slice(0, 6).map((k, j) => <span className="cc-kw cc-kw--hit" key={j}>{k}</span>)}
+                            {total > 0 && <span className="cc-tally">{matched.length} of {total}</span>}
+                          </>
+                        ) : <NotProvided />}
+                      </motion.div>
+                    );
+                  })}
+                </>
+              )}
 
-              {/* ── Missing keywords ── */}
-              <div className="cc-label cc-label--top">Missing keywords</div>
-              {cols.map((c, i) => {
-                const missing = Array.isArray(c.record?.missing_keywords) ? c.record.missing_keywords : [];
-                const lead = i === leaderIdx;
-                return (
-                  <motion.div key={`xk-${c.key}`} className={`cc-cell cc-cell--chips${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
-                    {missing.length
-                      ? missing.slice(0, 6).map((k, j) => <span className="cc-kw cc-kw--miss" key={j}>{k}</span>)
-                      : <span className="cc-soft">None</span>}
-                  </motion.div>
-                );
-              })}
+              {/* ── Missing keywords (hidden when NO column has any) ── */}
+              {rowHas.missingKw && (
+                <>
+                  <div className="cc-label cc-label--top">Missing keywords</div>
+                  {cols.map((c, i) => {
+                    const missing = Array.isArray(c.record?.missing_keywords) ? c.record.missing_keywords : [];
+                    const lead = i === leaderIdx;
+                    return (
+                      <motion.div key={`xk-${c.key}`} className={`cc-cell cc-cell--chips${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
+                        {missing.length
+                          ? missing.slice(0, 6).map((k, j) => <span className="cc-kw cc-kw--miss" key={j}>{k}</span>)
+                          : <span className="cc-soft">None</span>}
+                      </motion.div>
+                    );
+                  })}
+                </>
+              )}
 
-              {/* ── Experience ── */}
-              <div className="cc-label">Experience</div>
-              {cols.map((c, i) => {
-                const span = careerSpan(getCv(c.record).experience);
-                const lead = i === leaderIdx;
-                return (
-                  <motion.div key={`e-${c.key}`} className={`cc-cell${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
-                    {span.years !== null ? (
-                      <span className="cc-fact">
-                        <strong>{span.years} {span.years === 1 ? "year" : "years"}</strong>
-                        <em>{span.roles} {span.roles === 1 ? "role" : "roles"} listed</em>
-                      </span>
-                    ) : <NotProvided />}
-                  </motion.div>
-                );
-              })}
+              {/* ── Experience (hidden when NO column has parseable dates) ── */}
+              {rowHas.experience && (
+                <>
+                  <div className="cc-label">Experience</div>
+                  {cols.map((c, i) => {
+                    const span = careerSpan(getCv(c.record).experience);
+                    const lead = i === leaderIdx;
+                    return (
+                      <motion.div key={`e-${c.key}`} className={`cc-cell${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
+                        {span.years !== null ? (
+                          <span className="cc-fact">
+                            <strong>{span.years} {span.years === 1 ? "year" : "years"}</strong>
+                            <em>{span.roles} {span.roles === 1 ? "role" : "roles"} listed</em>
+                          </span>
+                        ) : <NotProvided />}
+                      </motion.div>
+                    );
+                  })}
+                </>
+              )}
 
-              {/* ── Visa status ── */}
-              <div className="cc-label">Visa status</div>
-              {cols.map((c, i) => {
-                const lead = i === leaderIdx;
-                return (
-                  <motion.div key={`vi-${c.key}`} className={`cc-cell${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
-                    {c.visa ? <span className="cc-pill">{c.visa}</span> : <NotProvided />}
-                  </motion.div>
-                );
-              })}
+              {/* ── Visa status (record column OR parsed CV; hidden when empty everywhere) ── */}
+              {rowHas.visa && (
+                <>
+                  <div className="cc-label">Visa status</div>
+                  {cols.map((c, i) => {
+                    const visa = visaOf(c);
+                    const lead = i === leaderIdx;
+                    return (
+                      <motion.div key={`vi-${c.key}`} className={`cc-cell${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
+                        {visa ? <span className="cc-pill">{visa}</span> : <NotProvided />}
+                      </motion.div>
+                    );
+                  })}
+                </>
+              )}
 
-              {/* ── Notice period ── */}
-              <div className="cc-label">Notice period</div>
-              {cols.map((c, i) => {
-                const cv = getCv(c.record);
-                const personal = cv.personal || cv.basics || {};
-                const notice = cv.notice_period || cv.availability || personal.notice_period || personal.availability || "";
-                const lead = i === leaderIdx;
-                return (
-                  <motion.div key={`np-${c.key}`} className={`cc-cell${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
-                    {notice ? <span className="cc-fact"><strong>{notice}</strong></span> : <NotProvided />}
-                  </motion.div>
-                );
-              })}
+              {/* ── Notice period (hidden when empty everywhere) ── */}
+              {rowHas.notice && (
+                <>
+                  <div className="cc-label">Notice period</div>
+                  {cols.map((c, i) => {
+                    const notice = noticeOf(c);
+                    const lead = i === leaderIdx;
+                    return (
+                      <motion.div key={`np-${c.key}`} className={`cc-cell${lead ? " cc-cell--lead" : ""}`} {...cellMotion(i)}>
+                        {notice ? <span className="cc-fact"><strong>{notice}</strong></span> : <NotProvided />}
+                      </motion.div>
+                    );
+                  })}
+                </>
+              )}
 
               {/* ── Applied ── */}
               <div className="cc-label">Applied</div>

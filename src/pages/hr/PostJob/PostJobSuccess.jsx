@@ -80,7 +80,7 @@ function CheckmarkBadge() {
   );
 }
 
-export default function PostJobSuccess({ onGoToJobList }) {
+export default function PostJobSuccess({ onGoToJobList, postedJobId }) {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
   const goBack = () => (onGoToJobList ? onGoToJobList() : navigate("/employer/jobs"));
@@ -124,6 +124,35 @@ export default function PostJobSuccess({ onGoToJobList }) {
           >
             Your job has been successfully posted.
           </motion.p>
+          {/* Guided next steps (walkthrough item 12: "Go back to Job List"
+              alone was a dead end). Primary: bring candidates in. Secondary:
+              see the live job. The job list stays as the quiet third path. */}
+          {postedJobId ? (
+            <motion.div variants={item} style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 14 }}>
+              <motion.button
+                type="button"
+                onClick={() => navigate(`/employer/import?job=${postedJobId}`)}
+                className="pj-btn pj-btn--primary"
+                whileHover={reduce ? undefined : { y: -1 }}
+                whileTap={reduce ? undefined : { scale: 0.985 }}
+                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+                style={{ height: 46, padding: "0 24px" }}
+              >
+                Import candidates for this job
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={() => navigate(`/employer/jobs/${postedJobId}`)}
+                className="pj-btn pj-btn--ghost"
+                whileHover={reduce ? undefined : { y: -1 }}
+                whileTap={reduce ? undefined : { scale: 0.985 }}
+                transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+                style={{ height: 46, padding: "0 24px" }}
+              >
+                View job
+              </motion.button>
+            </motion.div>
+          ) : null}
           <motion.button
             type="button"
             onClick={goBack}
@@ -132,7 +161,7 @@ export default function PostJobSuccess({ onGoToJobList }) {
             whileHover={reduce ? undefined : { y: -1 }}
             whileTap={reduce ? undefined : { scale: 0.985 }}
             transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-            style={{ marginTop: 14, height: 46, padding: "0 28px" }}
+            style={{ marginTop: postedJobId ? 0 : 14, height: postedJobId ? 40 : 46, padding: "0 22px", fontSize: postedJobId ? 13 : undefined }}
           >
             Go back to Job List
           </motion.button>

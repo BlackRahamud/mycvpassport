@@ -101,10 +101,10 @@ export default function QualificationsStep({ value, onChange, onContinue, onBack
   const market = marketFromCurrency(value.currency);
   const isGulf = market === "gulf";
 
-  const containerVariants = { initial: {}, animate: { transition: { staggerChildren: 0.055, delayChildren: 0.06 } } };
+  const containerVariants = { initial: {}, animate: { transition: { staggerChildren: 0.04, delayChildren: 0.04 } } };
   const item = reduce
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
-    : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] } } };
+    : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } } };
 
   const groups = value.screeningQuestionGroups || [];
 

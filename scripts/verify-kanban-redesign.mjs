@@ -170,7 +170,7 @@ const URL_ = `http://localhost:4184/employer/jobs/${JOB.id}`;
   const topColor = await page.locator(".jpp-kb-col--shortlist").evaluate((el) => getComputedStyle(el).borderTopColor);
   check(topColor === "rgb(59, 130, 246)", `desktop: shortlist column stage-colored top border (${topColor})`);
   check(await page.locator(".jpp-kb-card__grip").count() >= 3, "desktop: grip handle on every card");
-  check(await page.locator(".jpp-kb-score", { hasText: "82% match" }).first().isVisible(), "desktop: badge says 82% match");
+  check(await page.locator(".jpp-kb-score", { hasText: "82/100" }).first().isVisible(), "desktop: badge says 82/100 (unified score format)");
   check(await page.locator(".jpp-kb-score", { hasText: "No score" }).first().isVisible(), "desktop: unscored badge says No score");
   check(await page.locator(".jpp-kb-empty", { hasText: "No one at Offer yet" }).isVisible(), "desktop: empty column drop target");
   await auditOverflow(page, "desktop board");

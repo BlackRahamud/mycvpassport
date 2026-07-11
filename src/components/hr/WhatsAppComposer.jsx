@@ -22,12 +22,14 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
+import givenName from "../../lib/hr/givenName";
 import "./whatsappComposer.css";
 
 const EASE = [0.4, 0, 0.2, 1];
 
+// Honorific-aware (Md/Mohd prefixes skipped) — one name rule everywhere.
 function firstNameOf(full) {
-  return String(full || "").trim().split(/\s+/)[0] || "there";
+  return givenName(full, "there");
 }
 export function digitsOf(phone) {
   return String(phone || "").replace(/\D/g, "");
@@ -65,14 +67,14 @@ export const TEMPLATES = [
   {
     key: "intro", label: "Intro",
     body: {
-      gulf: "Hi {first_name}, thanks for applying for the {job_title} role. I'd like to learn more about your experience — are you free for a quick call this week?",
-      india: "Hello {first_name}, thank you for applying for the {job_title} position. I'd like to know more about your background — would you be available for a brief call this week?",
+      gulf: "Hi {first_name}, thanks for applying for the {job_title} role. I'd like to learn more about your experience. Are you free for a quick call this week?",
+      india: "Hello {first_name}, thank you for applying for the {job_title} position. I'd like to know more about your background. Would you be available for a brief call this week?",
     },
   },
   {
     key: "shortlisted", label: "Shortlisted",
     body: {
-      gulf: "Hi {first_name}, good news — you've been shortlisted for the {job_title} role. Can we set up a short call to take things forward?",
+      gulf: "Hi {first_name}, good news, you've been shortlisted for the {job_title} role. Can we set up a short call to take things forward?",
       india: "Hello {first_name}, we're pleased to share that you've been shortlisted for the {job_title} position. Can we schedule a call to proceed?",
     },
   },
@@ -86,8 +88,8 @@ export const TEMPLATES = [
   {
     key: "followup", label: "Follow-up",
     body: {
-      gulf: "Hi {first_name}, just following up on the {job_title} role — are you still interested? Happy to answer any questions.",
-      india: "Hello {first_name}, following up regarding the {job_title} position — are you still interested? I'm happy to help with any questions.",
+      gulf: "Hi {first_name}, just following up on the {job_title} role. Are you still interested? Happy to answer any questions.",
+      india: "Hello {first_name}, following up regarding the {job_title} position. Are you still interested? I'm happy to help with any questions.",
     },
   },
   {
@@ -352,7 +354,7 @@ export function OutreachHistory({ hrId, candidateId, refreshKey }) {
       <section className="jpp-section">
         <h3 className="jpp-section__title">Outreach</h3>
         <p className="jpp-timeline__sub" style={{ margin: 0, color: "var(--pj-muted)" }}>
-          No messages yet — WhatsApp outreach you send to this candidate will show up here.
+          No messages yet. WhatsApp outreach you send to this candidate will show up here.
         </p>
       </section>
     );

@@ -19,19 +19,22 @@ import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
 import "../Jobs/jobsList.css";     // .hjl-toggle / .hjl-empty
+import givenName from "../../../lib/hr/givenName";
+import dedupeSkills from "../../../lib/hr/dedupeSkills";
 import "./candidates.css";
 
 /* ───────── Helpers (mirrors JobPipelinePage so the data shape + look
    stay identical across the pipeline detail panel and this CRM view) ── */
 function getCv(c) { return c?.cv_snapshot || c?.cv_data || {}; }
 function ts(s) { const t = new Date(s).getTime(); return Number.isNaN(t) ? 0 : t; }
-function firstName(full) { return String(full || "").trim().split(/\s+/)[0] || "candidate"; }
+// Honorific-aware (Md/Mohd prefixes skipped) — one name rule everywhere.
+function firstName(full) { return givenName(full, "candidate"); }
 
 function deriveSkills(c) {
   const cv = getCv(c);
   const list = cv.skills || cv.skill_list || cv.tools || [];
   if (Array.isArray(list)) {
-    return list.map((s) => (typeof s === "string" ? s : s?.name || s?.label)).filter(Boolean).slice(0, 14);
+    return dedupeSkills(list.map((s) => (typeof s === "string" ? s : s?.name || s?.label))).slice(0, 14);
   }
   return [];
 }
@@ -46,7 +49,7 @@ function visaTone(visa) {
 
 function whatsappHref(phone, name) {
   const digits = String(phone || "").replace(/\D/g, "");
-  const first = String(name || "").split(" ")[0] || "there";
+  const first = givenName(name, "there");
   const msg = encodeURIComponent(`Hi ${first}, I'm reaching out regarding your application. Are you available for a quick call?`);
   return digits ? `https://wa.me/${digits}?text=${msg}` : `https://wa.me/?text=${msg}`;
 }
@@ -56,7 +59,7 @@ const STATUS_LABEL = {
   ready: "Ready", interviewing: "Interviewing", interviewed: "Interviewed",
   offered: "Offer", hired: "Hired", rejected: "Passed",
 };
-function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "—"); }
+function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "Not set"); }
 
 /* Status buckets for the filter (a candidate matches if ANY of their
    applications falls in the selected bucket). */
@@ -122,7 +125,7 @@ function MatchPill({ score, source, context }) {
     <span
       className="cand-match"
       style={{ color, borderColor: `${color}59`, background: `${color}16` }}
-      title={context ? `${BAND_LABELS[band]} — scored from the ${context}` : BAND_LABELS[band]}
+      title={context ? `${BAND_LABELS[band]}, scored from the ${context}` : BAND_LABELS[band]}
     >
       {Math.round(Number(score) || 0)}/100 · {BAND_LABELS[band]}{context ? ` · ${context}` : ""}
     </span>
@@ -353,7 +356,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
                   <p className="jpp-timeline__title">{e.title || e.role || "Role"}</p>
                   <p className="jpp-timeline__sub">{e.company || e.employer || ""}</p>
                   {(e.start_date || e.end_date) && (
-                    <p className="jpp-timeline__date">{e.start_date || ""}{e.end_date ? ` – ${e.end_date}` : (e.start_date ? " – Present" : "")}</p>
+                    <p className="jpp-timeline__date">{e.start_date || ""}{e.end_date ? ` to ${e.end_date}` : (e.start_date ? " to Present" : "")}</p>
                   )}
                 </div>
               </div>
@@ -373,7 +376,7 @@ function CandidateDetail({ candidate, onBack, onMessage, onReachOut, hrId, outre
                   <p className="jpp-timeline__title">{e.school || e.institution || "Institution"}</p>
                   <p className="jpp-timeline__sub">{[e.degree, e.field].filter(Boolean).join(", ")}</p>
                   {(e.start_date || e.end_date) && (
-                    <p className="jpp-timeline__date">{e.start_date || ""}{e.end_date ? ` – ${e.end_date}` : ""}</p>
+                    <p className="jpp-timeline__date">{e.start_date || ""}{e.end_date ? ` to ${e.end_date}` : ""}</p>
                   )}
                 </div>
               </div>
@@ -671,7 +674,7 @@ export default function CandidatesPage() {
       clearSelection();
     } catch (e) {
       setRows(prevRows); // rollback
-      setBulkError("Couldn't update — please try again.");
+      setBulkError("Couldn't update, please try again.");
     } finally {
       setBulkBusy(false);
     }
@@ -768,7 +771,7 @@ export default function CandidatesPage() {
           <div className="hjl-empty">
             <p className="hjl-empty__title">No candidates yet</p>
             <p className="hjl-empty__body">
-              Applicants show up here automatically once people apply to your jobs — searchable across every role you post.
+              Applicants show up here automatically once people apply to your jobs, searchable across every role you post.
               {error && <span style={{ display: "block", marginTop: 8, fontSize: 12, color: "var(--pj-muted)" }}>({error})</span>}
             </p>
             <button type="button" className="hjl-cta" onClick={() => navigate("/employer/post")}>Post a Job</button>

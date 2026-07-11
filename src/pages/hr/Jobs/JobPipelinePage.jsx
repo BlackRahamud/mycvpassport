@@ -20,6 +20,8 @@ import CvPreviewCard from "../../../components/hr/CvPreviewCard";
 // same) or the build emits a fatal-on-CI css order warning.
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
+import givenName from "../../../lib/hr/givenName";
+import dedupeSkills from "../../../lib/hr/dedupeSkills";
 import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../../lib/ats/scoreBand";
 import { STAGES, STAGE_BY_DB, NEW_STATUSES, STAGE_DROP_STATUS } from "../../../lib/hr/stages";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
@@ -181,7 +183,7 @@ function formatSalary(j) {
   if (!lo && !hi) return "";
   const cur = j.currency || "AED";
   const fmt = (n) => Number(n).toLocaleString();
-  if (lo && hi) return `${cur} ${fmt(lo)}–${fmt(hi)}`;
+  if (lo && hi) return `${cur} ${fmt(lo)} to ${fmt(hi)}`;
   return `${cur} ${fmt(lo || hi)}`;
 }
 
@@ -198,7 +200,7 @@ function shortJobRef(id) {
 
 function whatsappHref(phone, name, jobTitle, hrCompany) {
   const digits = String(phone || "").replace(/\D/g, "");
-  const firstName = String(name || "").split(" ")[0] || "there";
+  const firstName = givenName(name, "there");
   const msg = encodeURIComponent(
     `Hi ${firstName}, I'm reaching out${hrCompany ? ` from ${hrCompany}` : ""} regarding your application${jobTitle ? ` for ${jobTitle}` : ""}. Are you available for a quick call?`
   );
@@ -221,18 +223,16 @@ function timeAgo(s) {
 
 function getCv(c) { return c?.cv_snapshot || c?.cv_data || {}; }
 
+// Honorific-aware (Md/Mohd prefixes skipped) — one name rule everywhere.
 function firstName(full) {
-  return String(full || "").trim().split(/\s+/)[0] || "candidate";
+  return givenName(full, "candidate");
 }
 
 function deriveSkills(c) {
   const cv = getCv(c);
   const list = cv.skills || cv.skill_list || cv.tools || [];
   if (Array.isArray(list)) {
-    return list
-      .map((s) => (typeof s === "string" ? s : s?.name || s?.label))
-      .filter(Boolean)
-      .slice(0, 12);
+    return dedupeSkills(list.map((s) => (typeof s === "string" ? s : s?.name || s?.label))).slice(0, 12);
   }
   return [];
 }
@@ -440,7 +440,7 @@ export default function JobPipelinePage() {
       // eslint-disable-next-line no-console
       console.warn("[pipeline] status update failed:", e?.message || e);
       setApps((prev) => (prev || []).map((a) => (a.id === appId ? { ...a, status: prevApp.status, updated_at: prevApp.updated_at } : a)));
-      setMoveError(`Couldn't move ${prevApp.candidate_name || "this candidate"} — the change was not saved. Check your connection and try again.`);
+      setMoveError(`Couldn't move ${prevApp.candidate_name || "this candidate"}, the change was not saved. Check your connection and try again.`);
       return false;
     } finally {
       setAdvancing(false);
@@ -607,7 +607,7 @@ export default function JobPipelinePage() {
                   {job.posted_at && <><span className="jpp-dot">·</span>Posted {timeAgo(job.posted_at)}</>}
                   {job.id && <><span className="jpp-dot">·</span>{shortJobRef(job.id)}</>}
                 </>
-              ) : "—"}
+              ) : ""}
             </p>
           </div>
 
@@ -737,7 +737,7 @@ export default function JobPipelinePage() {
             {apps !== null && visibleCards.length === 0 && (
               <p className="jpp-empty-cards">
                 {activeStage === "shortlist"
-                  ? "No applicants in your shortlist yet — share the job link to start collecting CVs."
+                  ? "No applicants in your shortlist yet. Share the job link to start collecting CVs."
                   : `No candidates at the ${stageDef.label} stage yet.`}
               </p>
             )}
@@ -1058,12 +1058,15 @@ function CandidateDetail({
           the cards above is the AI's read; keeping them apart stops
           "Reject" reading as an AI verdict chip. */}
       <div className="jpp-detail__actions">
+        {/* "Message {name}": quick generic opener. The VerdictCard below keeps
+            the ONE "Reach out via WhatsApp" button (it carries the AI drafted
+            opener) — same label twice read as a duplicate in the walkthrough. */}
         <button
           type="button"
           className="jpp-action jpp-action--message"
           onClick={onMessage}
         >
-          <WhatsAppIc /> Reach out via WhatsApp
+          <WhatsAppIc /> Message {firstName(candidate.candidate_name)}
         </button>
         {candidate.candidate_email && (
           <a
@@ -1241,27 +1244,27 @@ function CandidateDetail({
         <div className="jpp-grid3">
           <div className="jpp-grid3__cell">
             <span className="jpp-grid3__label">Location</span>
-            <span className="jpp-grid3__value"><MapPinIc /> {personal.location || "—"}</span>
+            <span className="jpp-grid3__value"><MapPinIc /> {personal.location || "Not provided"}</span>
           </div>
           <div className="jpp-grid3__cell">
             <span className="jpp-grid3__label">Position</span>
-            <span className="jpp-grid3__value">{positionPreference || "—"}</span>
+            <span className="jpp-grid3__value">{positionPreference || "Not provided"}</span>
           </div>
           <div className="jpp-grid3__cell">
             <span className="jpp-grid3__label">Job Type</span>
-            <span className="jpp-grid3__value">{personal.job_type || cv.job_type || "—"}</span>
+            <span className="jpp-grid3__value">{personal.job_type || cv.job_type || "Not provided"}</span>
           </div>
           <div className="jpp-grid3__cell">
             <span className="jpp-grid3__label">Compensation Expectation</span>
-            <span className="jpp-grid3__value">{compensation || "—"}</span>
+            <span className="jpp-grid3__value">{compensation || "Not provided"}</span>
           </div>
           <div className="jpp-grid3__cell">
             <span className="jpp-grid3__label">Sector</span>
-            <span className="jpp-grid3__value">{sector || "—"}</span>
+            <span className="jpp-grid3__value">{sector || "Not provided"}</span>
           </div>
           <div className="jpp-grid3__cell">
             <span className="jpp-grid3__label">Desired Job</span>
-            <span className="jpp-grid3__value">{desiredJob || jobTitle || "—"}</span>
+            <span className="jpp-grid3__value">{desiredJob || jobTitle || "Not provided"}</span>
           </div>
         </div>
       </section>
@@ -1279,7 +1282,7 @@ function CandidateDetail({
                   <p className="jpp-timeline__sub">{e.company || e.employer || ""}</p>
                   {(e.start_date || e.end_date) && (
                     <p className="jpp-timeline__date">
-                      {e.start_date || ""}{e.end_date ? ` – ${e.end_date}` : (e.start_date ? " – Present" : "")}
+                      {e.start_date || ""}{e.end_date ? ` to ${e.end_date}` : (e.start_date ? " to Present" : "")}
                     </p>
                   )}
                 </div>

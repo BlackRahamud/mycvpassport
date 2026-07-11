@@ -39,7 +39,9 @@ const fmtDate = (iso) => {
 };
 
 /* ── ATS score badge — color-coded via the shared scoreBand tokens.
-      Says "match" in the badge so red vs green needs no guesswork. ── */
+      One score format everywhere: N/100 (matches import rows, the CRM
+      list pill, and the verdict ring — the walkthrough flagged "84%
+      match" vs "84/100 fit" as the same number in four costumes). ── */
 function ScoreBadge({ score, source }) {
   const band = scoreBand(score, source);
   const color = BAND_COLORS[band];
@@ -47,9 +49,9 @@ function ScoreBadge({ score, source }) {
     <span
       className={`jpp-kb-score jpp-kb-score--${band}`}
       style={{ "--kb-band": color }}
-      title={band === "none" ? "No ATS score yet" : `ATS match ${score}%`}
+      title={band === "none" ? "No match score yet" : `Match score ${score}/100`}
     >
-      {band === "none" ? "No score" : `${score}% match`}
+      {band === "none" ? "No score" : `${score}/100`}
     </span>
   );
 }

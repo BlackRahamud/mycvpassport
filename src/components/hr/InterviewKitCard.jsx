@@ -27,6 +27,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
 import { getCachedVerdict } from "./VerdictCard";
+import givenName from "../../lib/hr/givenName";
 import "./interviewKitCard.css";
 
 const EASE = [0.4, 0, 0.2, 1];
@@ -215,7 +216,7 @@ export default function InterviewKitCard({ cacheKey, cvSnapshot, job, jobId, can
       {!state.data && !state.loading && !state.error && (
         <div className="ik-idle">
           <p className="ik-idle__text">
-            {`Get 6 to 8 questions written for ${candidateName ? `${candidateName.split(" ")[0]}'s` : "this candidate's"} actual CV and this role. Each comes with a note on what a good answer sounds like.`}
+            {`Get 6 to 8 questions written for ${candidateName ? `${givenName(candidateName, "this candidate")}'s` : "this candidate's"} actual CV and this role. Each comes with a note on what a good answer sounds like.`}
           </p>
           <button type="button" className="ik-generate" onClick={() => generate()}>
             <SparkIc /> Generate questions

@@ -13,7 +13,7 @@
 // =============================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
@@ -35,6 +35,19 @@ export default function ImportPage() {
   // Where the batch goes: a job row, or { isPool, title, market } for a new pool.
   const [target, setTarget] = useState(null);
   const importedRef = useRef(false);
+
+  // ?job=<id> deep link (the post-success "Import candidates for this job"
+  // button): once jobs load, skip the picker and open the importer on that
+  // job directly. One-shot — closing the importer clears the param so the
+  // recruiter lands back on the normal picker.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const preselectId = searchParams.get("job");
+  const preselectedRef = useRef(false);
+  useEffect(() => {
+    if (!preselectId || preselectedRef.current || !Array.isArray(jobs)) return;
+    const match = jobs.find((j) => j.id === preselectId);
+    if (match) { preselectedRef.current = true; setTarget(match); }
+  }, [preselectId, jobs]);
 
   useEffect(() => {
     let live = true;
@@ -58,7 +71,7 @@ export default function ImportPage() {
       setJobs((data || []).filter((j) => j.status !== "closed"));
     } catch (e) {
       setJobs([]);
-      setError("Couldn't load your jobs — check your connection and try again.");
+      setError("Couldn't load your jobs. Check your connection and try again.");
     }
   }, []);
 
@@ -73,11 +86,12 @@ export default function ImportPage() {
   const handleImporterClose = useCallback(() => {
     const t = target;
     setTarget(null);
+    if (preselectId) setSearchParams({}, { replace: true });
     if (importedRef.current && t) {
       importedRef.current = false;
       navigate(t.isPool ? "/employer/candidates" : `/employer/jobs/${t.id}`);
     }
-  }, [target, navigate]);
+  }, [target, navigate, preselectId, setSearchParams]);
 
   return (
     <div className="jpp-root imp-root">
@@ -91,7 +105,7 @@ export default function ImportPage() {
         >
           <h1 className="imp-head__title">Import CVs</h1>
           <p className="imp-head__sub">
-            Upload the CVs you already have — we read each one and add the candidates for you.
+            Upload the CVs you already have. We read each one and add the candidates for you.
           </p>
         </motion.header>
 

@@ -1366,6 +1366,20 @@ function verdictFromScore(s) {
   return s >= 80 ? 'STRONG FIT' : s >= 50 ? 'MAYBE' : 'PASS';
 }
 
+// Dash-free interface copy is a product-wide rule. The prompts forbid dash
+// characters, but models drift, and verdicts persisted before the rule (036
+// stores them forever) would otherwise carry dashes into the UI — so every
+// user-facing string is scrubbed server-side too. En/em dashes are replaced
+// anywhere; hyphens only when spaced, so hyphenated names like "Al-Balushi"
+// survive.
+function scrubDashes(s) {
+  return String(s || '')
+    .replace(/\s*[–—]+\s*/g, ', ')
+    .replace(/\s+-{1,2}\s+/g, ', ')
+    .replace(/,\s*,+/g, ',')
+    .trim();
+}
+
 // Enforce the score<->verdict invariant + the exactly-3 prefixed bullets
 // server-side so the UI can trust the shape unconditionally.
 //
@@ -1376,7 +1390,7 @@ function verdictFromScore(s) {
 function normaliseStrengthGapList(v) {
   if (!Array.isArray(v)) return null;
   const out = v
-    .map((x) => String(x || '').trim().replace(/\s+[-–—]{1,2}\s+/g, ', ').slice(0, 140))
+    .map((x) => scrubDashes(x).slice(0, 140))
     .filter(Boolean)
     .slice(0, 3);
   return out.length >= 2 ? out : null;
@@ -1392,10 +1406,10 @@ function normaliseVerdict(p) {
   const labels = ['Match', 'Corridor', 'Gap'];
   const two_second_why = labels.map((lab, i) => {
     let line = why[i] || '';
-    if (!new RegExp(`^${lab}\\s*:`, 'i').test(line)) line = `${lab}: ${line || '—'}`;
-    return line;
+    if (!new RegExp(`^${lab}\\s*:`, 'i').test(line)) line = `${lab}: ${line || 'Not noted'}`;
+    return scrubDashes(line);
   });
-  const cta = String(p.whatsapp_cta_template || '').trim();
+  const cta = scrubDashes(p.whatsapp_cta_template);
   if (!cta) return null;
   const out = { verdict, score, two_second_why, whatsapp_cta_template: cta };
   const strengths = normaliseStrengthGapList(p.strengths);
@@ -2112,7 +2126,7 @@ const INTERVIEW_KIT_MODEL = process.env.INTERVIEW_KIT_MODEL || 'claude-haiku-4-5
 const IK_CATEGORIES = new Set(['technical', 'experience', 'corridor', 'behavioral']);
 
 function buildInterviewKitSystem() {
-  return `You are an interview-preparation assistant for HR recruiters hiring across the India -> Gulf (UAE/GCC) corridor. You write tailored interview questions grounded ONLY in the candidate's actual CV and the job description provided. You never invent facts about the candidate. Questions and notes use plain language a non-technical HR can read aloud and judge. ASCII punctuation only. No emoji. Strict JSON only — no markdown, no commentary.`;
+  return `You are an interview-preparation assistant for HR recruiters hiring across the India -> Gulf (UAE/GCC) corridor. You write tailored interview questions grounded ONLY in the candidate's actual CV and the job description provided. You never invent facts about the candidate. Questions and notes use plain language a non-technical HR can read aloud and judge. ASCII punctuation only. No emoji. Never use dash characters (hyphen, en dash, em dash) inside any question or listen_for string; use commas or periods instead. Strict JSON only, no markdown, no commentary.`;
 }
 
 function buildInterviewKitPrompt({ cvSnapshot, job, verdictGap }) {
@@ -2157,8 +2171,9 @@ function normaliseInterviewKit(p) {
   if (!arr) return null;
   const out = [];
   for (const q of arr) {
-    const question = String(q?.question || '').trim().slice(0, 400);
-    const listen = String(q?.listen_for || q?.listenFor || '').trim().slice(0, 300);
+    // scrubDashes: dash-free copy rule, enforced on output not just in the prompt.
+    const question = scrubDashes(q?.question).slice(0, 400);
+    const listen = scrubDashes(q?.listen_for || q?.listenFor).slice(0, 300);
     if (!question || !listen) continue;
     const catRaw = String(q?.category || '').toLowerCase().trim();
     const category = IK_CATEGORIES.has(catRaw) ? catRaw : 'experience';

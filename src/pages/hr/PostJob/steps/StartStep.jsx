@@ -23,13 +23,13 @@ export default function StartStep({ value, onChange, onContinue }) {
 
   const containerVariants = {
     initial: {},
-    animate: { transition: { staggerChildren: 0.06, delayChildren: 0.08 } },
+    animate: { transition: { staggerChildren: 0.04, delayChildren: 0.04 } },
   };
   const itemVariants = reduce
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : {
         initial: { opacity: 0, y: 10 },
-        animate: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.4, 0, 0.2, 1] } },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] } },
       };
 
   return (

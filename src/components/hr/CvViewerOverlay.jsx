@@ -129,7 +129,7 @@ function FileCard({ name, ext, downloadUrl, tabUrl, note }) {
       <span className="cvv-filecard__ic" aria-hidden="true">{Ic.doc}</span>
       <div className="cvv-filecard__body">
         <div className="cvv-filecard__name">{name}</div>
-        <div className="cvv-filecard__meta">{note || `${(ext || "file").toUpperCase()} — preview not supported in the browser`}</div>
+        <div className="cvv-filecard__meta">{note || `${(ext || "file").toUpperCase()} preview is not supported in the browser`}</div>
       </div>
       <div className="cvv-filecard__actions">
         {downloadUrl && <a className="cvv-btn cvv-btn--primary" href={downloadUrl} download={name}>{Ic.download} Download</a>}
@@ -389,7 +389,7 @@ export default function CvViewerOverlay({ open, onClose, path, fileName, intel, 
   const stageBody = () => {
     if (file.status === "loading" || file.status === "idle") return <SkeletonSheets reduce={reduce} />;
     if (file.status === "missing") {
-      return <div className="cvv-status">This candidate has no uploaded CV file — only the parsed profile.</div>;
+      return <div className="cvv-status">This candidate has no uploaded CV file, only the parsed profile.</div>;
     }
     if (file.status === "error") {
       return (
@@ -457,7 +457,7 @@ export default function CvViewerOverlay({ open, onClose, path, fileName, intel, 
             className="cvv-shell"
             role="dialog"
             aria-modal="true"
-            aria-label={`${intel?.name || "Candidate"} — CV`}
+            aria-label={`${intel?.name || "Candidate"} CV`}
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: 26 }}
             animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}

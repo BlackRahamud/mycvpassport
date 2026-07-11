@@ -28,6 +28,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
 import { extractCvText, CvExtractionError } from "../../services/cvExtraction";
+import { bandLabel } from "../../lib/ats/scoreBand";
 import "./bulkCvImport.css";
 
 const MAX_BATCH = 20;
@@ -101,7 +102,7 @@ function isSupported(file) {
 // user-facing hint; everything else gets a generic retryable message.
 function errorHint(err) {
   if (err instanceof CvExtractionError) return err.hint || err.message;
-  return "Couldn't process this file — try again.";
+  return "Couldn't process this file, try again.";
 }
 
 const STATUS_META = {
@@ -175,8 +176,8 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
     const accepted = [];
     const rejected = [];
     for (const file of incoming) {
-      if (!isSupported(file)) { rejected.push(`${file.name} — not a PDF or DOCX`); continue; }
-      if (file.size > MAX_FILE_BYTES) { rejected.push(`${file.name} — over 15 MB`); continue; }
+      if (!isSupported(file)) { rejected.push(`${file.name} is not a PDF or DOCX`); continue; }
+      if (file.size > MAX_FILE_BYTES) { rejected.push(`${file.name} is over 15 MB`); continue; }
       accepted.push(file);
     }
 
@@ -185,7 +186,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
       const take = accepted.slice(0, Math.max(0, slots));
       const overflow = accepted.length - take.length;
       const notes = [...rejected];
-      if (overflow > 0) notes.push(`${overflow} file${overflow === 1 ? "" : "s"} skipped — ${MAX_BATCH}-CV batch limit`);
+      if (overflow > 0) notes.push(`${overflow} file${overflow === 1 ? "" : "s"} skipped, the batch limit is ${MAX_BATCH} CVs`);
       if (notes.length) { setNoticeTone("warn"); setNotice(notes.join(" · ")); }
       const mapped = take.map((file) => ({
         id: nextId(),
@@ -286,7 +287,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("[bulk-import] upload failed:", err?.message || err);
-      update(item.id, { status: "error", stage: null, error: "Upload failed — retry." });
+      update(item.id, { status: "error", stage: null, error: "Upload failed, retry." });
       return;
     }
 
@@ -309,7 +310,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn("[bulk-import] structure failed:", err?.message || err);
-      update(item.id, { status: "error", stage: null, error: "Couldn't read this CV — retry." });
+      update(item.id, { status: "error", stage: null, error: "Couldn't read this CV, retry." });
       return;
     }
 
@@ -514,11 +515,11 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
                               : it.status === "duplicate"
                                 ? <span className="bci-row__warn">Already in this job · skipped</span>
                                 : it.status === "imported"
-                                  ? <span className="bci-row__ok">Added{typeof it.score === "number" ? ` · ${it.score}/100 fit` : ""}</span>
+                                  ? <span className="bci-row__ok">Added{typeof it.score === "number" ? ` · ${it.score}/100` : ""}</span>
                                   : it.status === "unscored"
                                     ? <span className="bci-row__warn">Ready · scoring will retry later</span>
                                     : it.status === "scored"
-                                      ? <span className="bci-row__ok">{it.verdict ? `${it.verdict} · ` : ""}{it.score}/100 fit</span>
+                                      ? <span className="bci-row__ok">{it.score}/100 · {bandLabel(it.score, "import_verdict")}</span>
                                       : it.stage
                                         ? <span className="bci-row__stage">{it.stage}</span>
                                         : `${sizeLabel(it.size)}${it.ocr ? " · OCR" : ""}`}

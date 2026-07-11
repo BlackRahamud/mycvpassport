@@ -123,6 +123,10 @@ export default function PostJobPage() {
   const showPaywall = isFreeTier && tier?.isExpired;
   const showBanner  = isFreeTier && tier?.showBanner && !tier?.isExpired;
 
+  // Every step change opens at the top of the page — the walkthrough kept
+  // landing mid-step and had to scroll up to find the heading.
+  useEffect(() => { window.scrollTo(0, 0); }, [step]);
+
   const idx = STEP_ORDER.indexOf(step);
   const goNext = () => { if (idx < STEP_ORDER.length - 1) setStep(STEP_ORDER[idx + 1]); };
   const goPrev = () => { if (idx > 0) setStep(STEP_ORDER[idx - 1]); };
@@ -198,7 +202,9 @@ export default function PostJobPage() {
   );
 
   if (step === "success") {
-    return <PostJobSuccess onGoToJobList={() => navigate("/jobs")} postedJobId={postedJobId} />;
+    // /employer/jobs is the HR job list; bare /jobs is the PUBLIC board and
+    // dropped recruiters outside their portal.
+    return <PostJobSuccess onGoToJobList={() => navigate("/employer/jobs")} postedJobId={postedJobId} />;
   }
 
   if (showPaywall) {
