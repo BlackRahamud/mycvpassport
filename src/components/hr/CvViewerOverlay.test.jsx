@@ -37,20 +37,23 @@ jest.mock("../../appSupabaseClient", () => ({
   },
 }));
 
-// pdf.js stub: one 600x800 page that "renders" instantly.
+// pdf.js stub: one 600x800 page that "renders" instantly. getDocument is a
+// swappable mock so tests can simulate stale-deploy chunk/worker failures.
+const mockGetDocument = jest.fn();
 jest.mock("pdfjs-dist", () => ({
   GlobalWorkerOptions: {},
-  getDocument: () => ({
-    promise: Promise.resolve({
-      numPages: 1,
-      getPage: async () => ({
-        getViewport: ({ scale }) => ({ width: 600 * scale, height: 800 * scale }),
-        render: () => ({ promise: Promise.resolve() }),
-      }),
-      destroy: jest.fn(),
-    }),
-  }),
+  getDocument: (...a) => mockGetDocument(...a),
 }));
+const happyPdf = () => ({
+  promise: Promise.resolve({
+    numPages: 1,
+    getPage: async () => ({
+      getViewport: ({ scale }) => ({ width: 600 * scale, height: 800 * scale }),
+      render: () => ({ promise: Promise.resolve() }),
+    }),
+    destroy: jest.fn(),
+  }),
+});
 
 jest.mock("mammoth/mammoth.browser", () => ({
   convertToHtml: async () => ({ value: "<h1>Jane Candidate</h1><p>Operations lead.</p>" }),
@@ -74,6 +77,8 @@ beforeEach(() => {
   mockDownload.mockReset();
   mockCreateSignedUrl.mockReset();
   mockCreateSignedUrl.mockResolvedValue({ data: { signedUrl: "https://signed.example/cv" }, error: null });
+  mockGetDocument.mockReset();
+  mockGetDocument.mockImplementation(happyPdf);
 });
 
 test("failure path: honest error + Retry refetches", async () => {
@@ -111,7 +116,7 @@ test("unsupported type ends the chain at the file card, never a dead panel", asy
   mockDownload.mockResolvedValueOnce({ data: new Blob(["bin"], { type: "application/octet-stream" }), error: null });
   render(<CvViewerOverlay open path="uid/job-4.doc" fileName="Jane CV.doc" intel={INTEL} onClose={() => {}} />);
 
-  expect(await screen.findByText(/preview not supported/i)).toBeInTheDocument();
+  expect(await screen.findByText(/preview is not supported/i)).toBeInTheDocument();
   const download = screen.getByRole("link", { name: /^download$/i });
   expect(download).toHaveAttribute("href", "https://signed.example/cv");
   expect(download).toHaveAttribute("download");
@@ -119,6 +124,33 @@ test("unsupported type ends the chain at the file card, never a dead panel", asy
   const tabLinks = screen.getAllByRole("link", { name: /^open in new tab$/i });
   expect(tabLinks.length).toBeGreaterThanOrEqual(1);
   tabLinks.forEach((l) => expect(l).toHaveAttribute("target", "_blank"));
+});
+
+test("stale deploy (chunk/worker gone) says refresh, not 'preview not supported'", async () => {
+  mockDownload.mockResolvedValueOnce({ data: new Blob(["%PDF-1.4"], { type: "application/pdf" }), error: null });
+  mockGetDocument.mockImplementation(() => {
+    throw Object.assign(new Error("Loading chunk 42 failed."), { name: "ChunkLoadError" });
+  });
+  render(<CvViewerOverlay open path="uid/job-6.pdf" fileName="Jane CV.pdf" intel={INTEL} onClose={() => {}} />);
+
+  expect(await screen.findByText(/updated since this page loaded/i)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /refresh page/i })).toBeInTheDocument();
+  expect(screen.queryByText(/preview is not supported/i)).toBeNull();
+  // one immediate retry happened before giving up
+  expect(mockGetDocument).toHaveBeenCalledTimes(2);
+});
+
+test("corrupt pdf ends at the file card with honest copy, not 'not supported'", async () => {
+  mockDownload.mockResolvedValueOnce({ data: new Blob(["%PDF-1.4"], { type: "application/pdf" }), error: null });
+  mockGetDocument.mockImplementation(() => {
+    throw new Error("Invalid PDF structure");
+  });
+  render(<CvViewerOverlay open path="uid/job-7.pdf" fileName="Jane CV.pdf" intel={INTEL} onClose={() => {}} />);
+
+  expect(await screen.findByText(/could not be rendered/i)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /^download$/i })).toBeInTheDocument();
+  // parse errors are not retried
+  expect(mockGetDocument).toHaveBeenCalledTimes(1);
 });
 
 test("missing path: honest empty state, no spinner, no fetch", async () => {

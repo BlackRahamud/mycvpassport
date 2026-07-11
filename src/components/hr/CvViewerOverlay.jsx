@@ -49,6 +49,30 @@ async function getPdfjs() {
   return pdfjs;
 }
 
+/* A tab left open across a deploy asks for lazy chunks (pdfjs, mammoth) or a
+   worker that no longer exist on the server. That is not "preview not
+   supported", it is a stale page: detect it so the UI can say refresh. */
+export function isStaleAsset(e) {
+  if (e?.name === "ChunkLoadError") return true;
+  const m = String(e?.message || e || "");
+  return /loading chunk|chunkloaderror/i.test(m)
+    || /failed to fetch dynamically imported module/i.test(m)
+    || /does not match the worker version/i.test(m)
+    || /fake worker failed/i.test(m)
+    || /importscripts/i.test(m)
+    || /unexpected token '?</i.test(m) // HTML served where JS was expected
+    || /networkerror|failed to fetch/i.test(m);
+}
+
+/* One immediate retry for transient fetch blips; webpack 5 re-requests a
+   failed chunk on the next import(). A dead deployment fails both attempts. */
+async function withRetry(fn) {
+  try { return await fn(); } catch (e) {
+    if (!isStaleAsset(e)) throw e;
+    return fn();
+  }
+}
+
 /* ── icons ────────────────────────────────────────────────────── */
 const Ic = {
   close: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
@@ -297,23 +321,28 @@ export default function CvViewerOverlay({ open, onClose, path, fileName, intel, 
 
         if (loaded.ext === "pdf") {
           try {
-            const pdfjs = await getPdfjs();
-            const bytes = await blobToArrayBuffer(loaded.blob);
-            const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+            const pdf = await withRetry(async () => {
+              const pdfjs = await getPdfjs();
+              const bytes = await blobToArrayBuffer(loaded.blob);
+              return pdfjs.getDocument({ data: bytes }).promise;
+            });
             if (live) setDoc({ kind: "pdf", pdf });
           } catch (e) {
             console.error(`CV viewer: pdf.js failed for "${path}":`, e?.message || e);
-            if (live) setDoc({ kind: "card" }); // fallback chain, not a dead panel
+            // fallback chain, not a dead panel; a stale tab gets the truth
+            if (live) setDoc(isStaleAsset(e) ? { kind: "stale" } : { kind: "card", note: "This PDF could not be rendered. Download it to view." });
           }
         } else if (loaded.ext === "docx") {
           try {
-            const mammoth = await import(/* webpackChunkName: "mammoth" */ "mammoth/mammoth.browser");
-            const bytes = await blobToArrayBuffer(loaded.blob);
-            const { value } = await mammoth.convertToHtml({ arrayBuffer: bytes });
+            const value = await withRetry(async () => {
+              const mammoth = await import(/* webpackChunkName: "mammoth" */ "mammoth/mammoth.browser");
+              const bytes = await blobToArrayBuffer(loaded.blob);
+              return (await mammoth.convertToHtml({ arrayBuffer: bytes })).value;
+            });
             if (live) setDoc(value ? { kind: "html", html: value } : { kind: "card" });
           } catch (e) {
             console.error(`CV viewer: docx convert failed for "${path}":`, e?.message || e);
-            if (live) setDoc({ kind: "card" });
+            if (live) setDoc(isStaleAsset(e) ? { kind: "stale" } : { kind: "card", note: "This document could not be rendered. Download it to view." });
           }
         } else if (["png", "jpg", "jpeg", "webp"].includes(loaded.ext)) {
           setDoc({ kind: "img" });
@@ -434,8 +463,16 @@ export default function CvViewerOverlay({ open, onClose, path, fileName, intel, 
         </motion.div>
       );
     }
+    if (doc?.kind === "stale") {
+      return (
+        <div className="cvv-status cvv-status--error">
+          <p>CVPassport was updated since this page loaded. Refresh to open the new viewer.</p>
+          <button type="button" className="cvv-btn cvv-btn--primary" onClick={() => window.location.reload()}>Refresh page</button>
+        </div>
+      );
+    }
     if (doc?.kind === "card") {
-      return <FileCard name={dlName} ext={file.ext} downloadUrl={file.downloadUrl} tabUrl={file.tabUrl} />;
+      return <FileCard name={dlName} ext={file.ext} downloadUrl={file.downloadUrl} tabUrl={file.tabUrl} note={doc.note} />;
     }
     return <SkeletonSheets reduce={reduce} />;
   };

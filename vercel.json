@@ -70,6 +70,6 @@
     { "source": "/indian-cv-uae", "destination": "/india-to-uae", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/spa.html" }
+    { "source": "/((?!api/|static/).*)", "destination": "/spa.html" }
   ]
 }
