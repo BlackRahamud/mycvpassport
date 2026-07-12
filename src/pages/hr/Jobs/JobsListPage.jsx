@@ -7,6 +7,7 @@ import UserMenu from "../../../components/UserMenu/UserMenu";
 import HrInsightsPanel from "../Insights/HrInsightsPanel";
 import NotificationsBell from "../../../components/hr/NotificationsBell";
 import AttentionPanel from "../../../components/hr/AttentionPanel";
+import InterviewsToday from "../../../components/hr/InterviewsToday";
 import "../PostJob/postJob.css"; // :root tokens
 import "./jobsList.css";
 
@@ -383,6 +384,10 @@ export default function JobsListPage() {
         ) : (
         <>
         <AttentionPanel user={user} />
+
+        {/* Interviews today: the flight board (renders nothing when there
+            is nothing scheduled and nobody waiting at To interview). */}
+        <InterviewsToday user={user} />
 
         <motion.div
           className="hjl-header"

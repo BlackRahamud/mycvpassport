@@ -1034,9 +1034,10 @@ export default function JobPipelinePage() {
         open={scheduleOpen && !!selected}
         onClose={() => setScheduleOpen(false)}
         application={selected}
-        job={job ? { id: job.id, title: job.title } : null}
+        job={job ? { id: job.id, title: job.title, location: job.location, market: job.market } : null}
         hrId={user?.id}
-        onScheduled={() => setInterviewTick((t) => t + 1)}
+        hrEmail={user?.email}
+        onScheduled={() => { setInterviewTick((t) => t + 1); setAppsTick((t) => t + 1); }}
       />
 
       <BulkCvImport
@@ -1467,7 +1468,7 @@ function CandidateDetail({
 
       <ShareReviews applicationId={candidate.id} />
 
-      <InterviewTimeline hrId={hrId} candidateId={candidate.candidate_id} refreshKey={interviewTick} />
+      <InterviewTimeline hrId={hrId} applicationId={candidate.id} refreshKey={interviewTick} />
 
       {/* Interview prep lives where interviews live — same stage gate as
           the "Schedule interview" action above. */}
@@ -1478,6 +1479,8 @@ function CandidateDetail({
           job={job}
           candidateName={candidate.candidate_name || "Candidate"}
           jobTitle={jobTitle}
+          hrId={hrId}
+          applicationId={candidate.id}
         />
       )}
 

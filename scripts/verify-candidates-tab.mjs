@@ -302,7 +302,7 @@ const URL_CAND = "http://localhost:4189/employer/candidates";
   check(await page.getByText("Pass on Ayesha Noor for Cashier").isVisible(), "reject: modal named per job");
   check(await page.getByText("This only changes Cashier.").isVisible(), "reject: blast radius line");
   check(await page.getByRole("button", { name: "Pass on Cashier" }).isDisabled(), "reject: reason required");
-  check((await page.locator(".rjm-reason").count()) === 7, "reject: seven reason codes");
+  check((await page.locator(".rjm-reason").count()) === 8, "reject: eight reason codes (039 added Did not join)");
   await dashScan(page, ".rjm-modal", "reject modal");
   await shot(page, "desktop-reject-modal");
   await page.getByRole("radio", { name: "Salary mismatch" }).click();

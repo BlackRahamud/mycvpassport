@@ -42,6 +42,7 @@ const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */
 const HRJobsListPage       = lazy(() => import(/* webpackChunkName: "hr-jobs" */     "./pages/hr/Jobs/JobsListPage"));
 const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline" */ "./pages/hr/Jobs/JobPipelinePage"));
 const ReviewModePage       = lazy(() => import(/* webpackChunkName: "hr-review" */ "./pages/hr/Jobs/ReviewMode"));
+const InterviewCompanionPage = lazy(() => import(/* webpackChunkName: "hr-interview" */ "./pages/hr/Interview/InterviewCompanionPage"));
 const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidates" */ "./pages/hr/Candidates/CandidatesPage"));
 const HrImportPage         = lazy(() => import(/* webpackChunkName: "hr-import" */     "./pages/hr/Import/ImportPage"));
 const HrPricing            = lazy(() => import(/* webpackChunkName: "hr-pricing" */    "./pages/hr/Pricing/HrPricing"));
@@ -205,6 +206,10 @@ export default function App() {
           bottom tab bar — so it sits inside RequireRecruiter but OUTSIDE
           HrShell. Back button returns to the job pipeline. */}
       <Route path="/employer/jobs/:id/review" element={<RequireRecruiter><ReviewModePage /></RequireRecruiter>} />
+      {/* The live interview companion sits beside her own video window —
+          same outside-the-shell rationale as review mode (own pinned
+          bottom bar, narrow third-of-screen window). */}
+      <Route path="/employer/interview/:id" element={<RequireRecruiter><InterviewCompanionPage /></RequireRecruiter>} />
       {/* Legacy /hr/* bookmarks keep working. */}
       <Route path="/hr" element={<Navigate to="/employer/jobs" replace />} />
       <Route path="/hr/*" element={<HrLegacyRedirect />} />

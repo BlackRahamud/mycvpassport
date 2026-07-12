@@ -52,7 +52,96 @@
   -webkit-text-fill-color: #9A98A8;
 }
 
+/* Same out-of-scope hazard for the action buttons: --hjl-* lives on
+   .jpp-root (jobPipeline.css), and this modal also mounts from the
+   interview companion page, which has no .jpp-root ancestor. Without
+   these pins the ink CTA computes to a transparent background with
+   white text, an invisible confirm button. */
+.si-panel .jpp-action,
+.si-panel .jpp-action--primary { background: #14131F; color: #FFFFFF; }
+.si-panel .jpp-action:hover,
+.si-panel .jpp-action--primary:hover { background: #000000; }
+.si-panel .jpp-action--ghost { background: #FFFFFF; color: #14131F; }
+.si-panel .jpp-action--ghost:hover { background: #F6F6F9; }
+.si-panel .jpp-action--message { background: #1FAE54; color: #FFFFFF; }
+.si-panel .jpp-action--message:hover { background: #178A42; }
+.si-panel .jpp-note__input:focus {
+  border-color: #14131F;
+  box-shadow: 0 0 0 3px rgba(20, 19, 31, 0.16);
+}
+
 .si-error { margin: 0; font-size: 12.5px; color: var(--hjl-pass); }
+
+/* ── Dual timezone readout (appears once date + time are both set) ──
+   Purple is the wizard accent; the readout is informational, matching
+   the postJob primary tokens rather than the ink CTA ladder. */
+.si-tz {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: var(--pj-primary-soft, rgba(124, 58, 237, 0.06));
+  border: 1px solid var(--pj-primary-ring, rgba(124, 58, 237, 0.22));
+}
+.si-tz__icon { color: var(--pj-primary, #7C3AED); margin-top: 1px; flex-shrink: 0; display: inline-flex; }
+.si-tz__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.si-tz__line { font-size: 13px; font-weight: 700; color: var(--pj-text, #14131F); }
+.si-tz__sub { font-size: 11.5px; color: var(--pj-text-soft, #4B4A5E); line-height: 1.5; }
+.si-tz__change {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pj-primary, #7C3AED);
+  cursor: pointer;
+  transition: color 150ms var(--pj-ease);
+}
+.si-tz__change:hover { color: var(--pj-primary-hover, #6D28D9); }
+.si-tz__zones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.si-tz__zone {
+  height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--pj-border-strong, #D5D5DE);
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: var(--pj-text-soft, #4B4A5E);
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms var(--pj-ease), color 150ms var(--pj-ease), background 150ms var(--pj-ease);
+}
+.si-tz__zone:hover { border-color: var(--pj-primary, #7C3AED); color: var(--pj-primary, #7C3AED); }
+.si-tz__zone--on {
+  border-color: var(--pj-primary, #7C3AED);
+  background: var(--pj-primary-soft, rgba(124, 58, 237, 0.1));
+  color: var(--pj-primary, #7C3AED);
+  font-weight: 700;
+}
+
+/* ── Stage pill on the confirmation (the move already happened) ── */
+.si-stagepill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--pj-input-bg, #F6F6F9);
+  border: 1px solid var(--pj-border, #E7E7EE);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pj-text-soft, #4B4A5E);
+  margin-bottom: 20px;
+}
+.si-stagepill__arrow { color: var(--pj-muted, #8A8A9B); }
+.si-stagepill b { color: var(--pj-primary, #7C3AED); font-weight: 700; }
+
+.si-timeline__note { font-style: italic; }
 
 .si-timeline__icon { background: var(--pj-input-bg) !important; color: var(--hjl-ink) !important; }
 
@@ -102,7 +191,7 @@
   align-items: center;
   justify-content: center;
   background: var(--pj-input-bg);
-  color: var(--hjl-ink);
+  color: #14131F; /* pinned: --hjl-ink is out of scope on the companion page */
   margin-bottom: 14px;
 }
 .si-success__title { margin: 0 0 6px; font-size: 19px; font-weight: 700; color: var(--pj-text); }

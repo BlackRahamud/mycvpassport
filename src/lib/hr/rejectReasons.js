@@ -1,10 +1,11 @@
 /**
  * Reject reason codes — shared by the review mode's reject modal and the
  * pipeline list's bulk reject. Codes mirror the CHECK constraint added by
- * migration 037 (applications.reject_reason); labels are the interface
- * copy. Change both together.
+ * migration 037 and widened by migration 039 (applications.reject_reason);
+ * labels are the interface copy. Change both together.
  */
 export const REJECT_REASONS = [
+  { code: "did_not_join", label: "Did not join" },
   { code: "salary_mismatch", label: "Salary mismatch" },
   { code: "notice_period_too_long", label: "Notice period too long" },
   { code: "visa_not_viable", label: "Visa not viable" },

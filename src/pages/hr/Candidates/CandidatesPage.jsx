@@ -30,16 +30,19 @@ import WhatsAppComposer, { OutreachHistory } from "../../../components/hr/WhatsA
 import VerdictCard, { resolveVerdict } from "../../../components/hr/VerdictCard";
 import InterviewKitCard from "../../../components/hr/InterviewKitCard";
 import BulkActions from "../../../components/hr/BulkActions";
+// select.css must load BEFORE bulkCvImport.css in every chunk group that
+// carries both (hr-pipeline gets that order via ScheduleInterviewModal →
+// Select) — mini-css-extract ordering conflicts are fatal on CI.
+import Select from "../../../components/ui/Select";
+import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import { ImportTargetModal } from "../../../components/hr/ImportTargetPicker";
 import PaneEmpty from "../../../components/hr/PaneEmpty";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
 import CompareCandidates from "../../../components/hr/CompareCandidates";
-import ShareForReviewModal from "../../../components/hr/ShareForReviewModal";
 import ShareReviews from "../../../components/hr/ShareReviews";
 import RejectModal from "../../../components/hr/RejectModal";
 import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../../lib/ats/scoreBand";
-import Select from "../../../components/ui/Select";
 import "../PostJob/postJob.css";   // --pj-* tokens
 import "../Jobs/jobPipeline.css";  // .jpp-root tokens + jpp-detail / jpp-card / jpp-section
 import "../Jobs/jobsList.css";     // .hjl-toggle / .hjl-empty / --hjl-ink
@@ -466,6 +469,8 @@ function CandidateDetail({
           jobId={firstJob.job_id}
           candidateName={candidate.name}
           jobTitle={firstJob.jobTitle}
+          hrId={hrId}
+          applicationId={firstJob.app_id || a.id}
         />
       )}
 

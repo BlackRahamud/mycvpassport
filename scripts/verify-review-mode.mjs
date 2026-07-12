@@ -453,7 +453,7 @@ const REVIEW_URL = `http://localhost:4187/employer/jobs/${JOB_ID}/review`;
   await page.waitForTimeout(250);
   check(await page.locator(".rjm-modal").isVisible(), "desktop: reject modal opens (ArrowLeft)");
   check(await page.getByRole("button", { name: "Reject candidate" }).isDisabled(), "desktop: confirm disabled without a reason");
-  check((await page.locator(".rjm-reason").count()) === 7, "desktop: seven reason codes");
+  check((await page.locator(".rjm-reason").count()) === 8, "desktop: eight reason codes (039 added Did not join)");
   await dashScan(page, ".rjm-modal", "desktop reject modal");
   await shot(page, "desktop-reject-modal");
   await page.getByRole("radio", { name: "Salary mismatch" }).click();
@@ -561,7 +561,7 @@ for (const width of [360, 393, 430]) {
   await shot(page, "pipeline-list-bulk");
   await page.locator(".jpp-bulkbar__btn--ghost").click();
   await page.waitForTimeout(300);
-  check((await page.locator(".jpp-reason").count()) === 7, "pipeline list: bulk reject reasons");
+  check((await page.locator(".jpp-reason").count()) === 8, "pipeline list: bulk reject reasons (039 added Did not join)");
   check(await page.getByRole("button", { name: "Reject 2" }).isDisabled(), "pipeline list: bulk reject needs a reason");
   await page.getByRole("radio", { name: "Visa not viable" }).click();
   await page.getByRole("button", { name: "Reject 2" }).click();

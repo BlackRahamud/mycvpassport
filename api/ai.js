@@ -2116,13 +2116,19 @@ async function handleLinkedInParse(req, res, body) {
 // ownership is enforced by RLS at read time, not here).
 //
 // Request:  { cvSnapshot, job: { title, description, skills, requirements },
-//             verdictGap?: string }   (the verdict's "Gap:" line, if the
+//             verdictGap?: string,    (the verdict's "Gap:" line, if the
 //                                      client already has it cached — lets
 //                                      the questions probe the flagged risk)
-// Response: { ok: true, questions: [{ category, question, listen_for }] }
+//             tailored?: boolean }    (Regenerate, tailored to this CV:
+//                                      Sonnet + 1 shared-pool credit,
+//                                      deducted/refunded like candidate_match.
+//                                      The base Haiku generation stays free.)
+// Response: { ok: true, questions: [{ category, question, listen_for }],
+//             credits_remaining? }    (only on the tailored path)
 // =====================================================================
 
 const INTERVIEW_KIT_MODEL = process.env.INTERVIEW_KIT_MODEL || 'claude-haiku-4-5-20251001';
+const INTERVIEW_KIT_TAILOR_MODEL = process.env.INTERVIEW_KIT_TAILOR_MODEL || 'claude-sonnet-4-6';
 const IK_CATEGORIES = new Set(['technical', 'experience', 'corridor', 'behavioral']);
 
 function buildInterviewKitSystem() {
@@ -2191,21 +2197,104 @@ async function handleInterviewKit(req, res, body) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) return res.status(401).json({ ok: false, error: 'Unauthorized. Please sign in.' });
+  let user = null;
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
     try {
       const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      const { data: { user } = {}, error } = await authClient.auth.getUser(token);
-      if (error || !user) return res.status(401).json({ ok: false, error: 'Invalid or expired session.' });
+      const { data: { user: u } = {}, error } = await authClient.auth.getUser(token);
+      if (error || !u) return res.status(401).json({ ok: false, error: 'Invalid or expired session.' });
+      user = u;
     } catch {
       return res.status(401).json({ ok: false, error: 'Could not verify session.' });
     }
   }
+
+  // Credit discipline: the base generation is Haiku and free. Only the
+  // explicit "tailored to this CV" regenerate spends 1 shared-pool credit
+  // and steps up to Sonnet (same deduct/refund dance as candidate_match).
+  const tailored = body.tailored === true;
+  let db = null;
+  let deduct = null;
+  let cap = 0;
+  let tier = null;
+  let aiTier = null;
+  let creditsRemainingPreDeduct = 0;
+  if (tailored) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !user) {
+      return res.status(500).json({ ok: false, error: 'Server not configured: Supabase env missing.' });
+    }
+    db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: profile, error: profileErr } = await db
+      .from('profiles')
+      .select('id, is_pro, plan, ai_credits_used, pro_access_expires_at, single_cv_unlocked')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profileErr) {
+      console.error('[ai/interview_kit] profile lookup failed:', JSON.stringify(profileErr));
+      return res.status(500).json({ ok: false, error: 'Could not verify your account.' });
+    }
+    tier = classifyTier(profile);
+    ({ aiTier, cap } = aiTierAndCap(profile));
+    creditsRemainingPreDeduct = Math.max(0, cap - (Number(profile?.ai_credits_used) || 0));
+    deduct = await tryDeductCredit(db, user.id, cap);
+    if (deduct.dbError) {
+      return res.status(500).json({ ok: false, error: 'Could not deduct credit. Please try again.' });
+    }
+    if (!deduct.ok) {
+      await logAnthropicCall(db, {
+        user_id: user.id,
+        ip_hash: null,
+        tier,
+        endpoint: 'interview_kit',
+        model: INTERVIEW_KIT_TAILOR_MODEL,
+        input_tokens: null,
+        output_tokens: null,
+        estimated_cost_usd: 0,
+        status: 'spend_capped',
+        error_code: 'monthly_cap',
+        meta: { reason: 'monthly_cap', ai_tier: aiTier, cap, tailored: true },
+      });
+      return res.status(402).json({
+        ok: false,
+        error: 'You have used your AI credits for this month. Your limit resets next month.',
+        credits_remaining: 0,
+        action: 'upgrade',
+      });
+    }
+  }
+  const failTailored = async (status, message, errorCode, usage) => {
+    let refundedRemaining = creditsRemainingPreDeduct;
+    const refund = await refundCredit(db, user.id);
+    if (refund.ok) refundedRemaining = Math.max(0, cap - refund.used);
+    await logAnthropicCall(db, {
+      user_id: user.id,
+      ip_hash: null,
+      tier,
+      endpoint: 'interview_kit',
+      model: INTERVIEW_KIT_TAILOR_MODEL,
+      input_tokens: usage?.input_tokens ?? null,
+      output_tokens: usage?.output_tokens ?? null,
+      estimated_cost_usd: usage ? estimateCostUsd(usage) : 0,
+      status: 'error',
+      error_code: errorCode,
+      meta: { refunded: true, ai_tier: aiTier, tailored: true },
+    });
+    return res.status(status).json({ ok: false, error: message, credits_remaining: refundedRemaining });
+  };
+  const fail = (status, message, errorCode, usage) => (
+    tailored
+      ? failTailored(status, message, errorCode, usage)
+      : res.status(status).json({ ok: false, error: message })
+  );
 
   const prompt = buildInterviewKitPrompt({
     cvSnapshot: body.cvSnapshot,
     job: body.job,
     verdictGap: body.verdictGap,
   });
+  const model = tailored ? INTERVIEW_KIT_TAILOR_MODEL : INTERVIEW_KIT_MODEL;
 
   try {
     const response = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
@@ -2216,7 +2305,7 @@ async function handleInterviewKit(req, res, body) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: INTERVIEW_KIT_MODEL,
+        model,
         max_tokens: 1400,
         // Warm enough that "Regenerate" yields fresh questions; cool enough
         // to stay grounded in the CV.
@@ -2228,20 +2317,40 @@ async function handleInterviewKit(req, res, body) {
 
     const responseText = await response.text();
     if (!response.ok) {
-      return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+      return fail(502, 'AI Engine is busy, please try again.', `anthropic_${response.status}`);
     }
     let data;
-    try { data = JSON.parse(responseText); } catch { return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' }); }
+    try { data = JSON.parse(responseText); } catch { return fail(502, 'AI Engine is busy, please try again.', 'anthropic_bad_json'); }
     const raw = (Array.isArray(data.content) && data.content[0] && data.content[0].text) || '';
     const parsed = extractLooseJson(raw);
     const questions = normaliseInterviewKit(parsed);
-    if (!questions) return res.status(502).json({ ok: false, error: 'AI returned an incomplete question set. Please retry.' });
+    if (!questions) return fail(502, 'AI returned an incomplete question set. Please retry.', 'incomplete_kit', data.usage);
+
+    if (tailored) {
+      await logAnthropicCall(db, {
+        user_id: user.id,
+        ip_hash: null,
+        tier,
+        endpoint: 'interview_kit',
+        model,
+        input_tokens: data.usage?.input_tokens ?? null,
+        output_tokens: data.usage?.output_tokens ?? null,
+        estimated_cost_usd: estimateCostUsd(data.usage),
+        status: 'ok',
+        error_code: null,
+        meta: { ai_tier: aiTier, tailored: true, question_count: questions.length },
+      });
+    }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.status(200).json({ ok: true, questions });
+    return res.status(200).json({
+      ok: true,
+      questions,
+      ...(tailored ? { credits_remaining: Math.max(0, cap - deduct.used) } : {}),
+    });
   } catch (err) {
     console.error('[ai/interview_kit]', String(err?.message || err).slice(0, 200));
-    return res.status(502).json({ ok: false, error: 'AI Engine is busy, please try again.' });
+    return fail(502, 'AI Engine is busy, please try again.', 'anthropic_network');
   }
 }
 

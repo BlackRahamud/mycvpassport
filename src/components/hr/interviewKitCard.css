@@ -271,6 +271,142 @@
 .ik-item__listen svg { flex-shrink: 0; margin-top: 3px; }
 .ik-item__listen-label { font-weight: 700; color: var(--pj-text); }
 
+/* ── Her question chip (purple, matches the wizard accent) ── */
+.ik-chip--yours { background: var(--pj-primary-soft); color: var(--pj-primary); }
+
+/* ── Quiet Edit / Remove links per question ── */
+.ik-link {
+  border: 0;
+  padding: 2px 3px;
+  background: none;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pj-muted);
+  cursor: pointer;
+  transition: color 150ms var(--pj-ease);
+}
+.ik-link:hover { color: var(--pj-text); }
+.ik-link--strong { color: var(--pj-primary); }
+.ik-link--strong:hover { color: var(--pj-primary-hover); }
+
+/* ── Inline edit / add-your-own textarea ── */
+.ik-edit {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 54px;
+  margin-top: 8px;
+  border: 1px solid var(--pj-primary-ring);
+  border-radius: 8px;
+  background: #FFFFFF;
+  padding: 9px 11px;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--pj-text);
+  resize: vertical;
+  outline: none;
+  transition: border-color 150ms var(--pj-ease);
+}
+.ik-edit:focus { border-color: var(--pj-primary); }
+
+/* ── "+ Add your own question" dashed row ── */
+.ik-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 10px;
+  border: 1.5px dashed var(--pj-border-strong);
+  border-radius: 10px;
+  padding: 11px 14px;
+  background: transparent;
+  font: inherit;
+  font-family: var(--pj-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pj-muted);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms var(--pj-ease), color 150ms var(--pj-ease), background 150ms var(--pj-ease);
+}
+.ik-add:hover { border-color: var(--pj-primary); color: var(--pj-primary); background: var(--pj-primary-soft); }
+
+.ik-addform { margin-top: 10px; }
+.ik-addform .ik-edit { margin-top: 0; }
+.ik-addform__actions { display: flex; gap: 8px; margin-top: 8px; }
+
+.ik-mini--primary {
+  background: var(--pj-primary);
+  border-color: var(--pj-primary);
+  color: #FFFFFF;
+}
+.ik-mini--primary:hover { background: var(--pj-primary-hover); border-color: var(--pj-primary-hover); }
+.ik-mini--primary:disabled { opacity: 0.45; }
+
+/* ── Regenerate confirm strip (cost is never a surprise) ── */
+.ik-regen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pj-primary-soft);
+  border: 1px solid var(--pj-primary-ring);
+}
+.ik-regen__text { font-size: 12px; line-height: 1.5; color: var(--pj-text-soft); }
+.ik-regen__actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ── Calm generating state: pulse + sentence + quiet ghost rows ── */
+.ik-genstate { margin-top: 4px; }
+.ik-ghosts { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.ik-ghost {
+  display: block;
+  height: 64px;
+  border-radius: 10px;
+  background: linear-gradient(100deg, var(--pj-input-bg) 40%, #EFEFF4 50%, var(--pj-input-bg) 60%);
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ik-ghost { animation: ik-shimmer 1.6s var(--pj-ease) infinite; }
+}
+@keyframes ik-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -20% 0; }
+}
+.ik-genstate__foot {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pj-input-bg);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pj-muted);
+}
+
+/* ── Footer: save-as-set + the credit note ── */
+.ik-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pj-border);
+}
+.ik-foot__save { max-width: 100%; }
+.ik-foot__note { font-size: 11.5px; color: var(--pj-muted); }
+
+.ik-idle__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
 /* ── Desktop: header actions stay inline ── */
 @media (min-width: 480px) {
   .ik-generate { width: auto; }

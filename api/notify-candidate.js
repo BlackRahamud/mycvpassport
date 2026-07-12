@@ -36,32 +36,54 @@ function icsEscape(s) {
     .replace(/,/g, '\\,')
     .replace(/\r?\n/g, '\\n');
 }
-function buildIcs({ start, durationMin, summary, description, location, uid }) {
+/**
+ * A real invite, not just a file: stable UID per interview
+ * (interview-<id>@mycvpassport.com) + SEQUENCE so reschedules and cancels
+ * update the SAME calendar entry, ORGANIZER + ATTENDEE lines so Outlook
+ * and Google render Accept/Decline instead of a dead attachment.
+ * method: 'REQUEST' (schedule + reschedule) | 'CANCEL'.
+ */
+function buildIcs({ start, durationMin, summary, description, location, uid, sequence = 0, method = 'REQUEST', organizerName, organizerEmail, attendees = [] }) {
   const end = new Date(start.getTime() + (Number(durationMin) || 30) * 60000);
+  const cancelled = method === 'CANCEL';
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//CVPassport//Interview//EN',
     'CALSCALE:GREGORIAN',
-    'METHOD:REQUEST',
+    `METHOD:${method}`,
     'BEGIN:VEVENT',
     `UID:${uid}`,
+    `SEQUENCE:${Number(sequence) || 0}`,
     `DTSTAMP:${icsStamp(new Date())}`,
     `DTSTART:${icsStamp(start)}`,
     `DTEND:${icsStamp(end)}`,
     `SUMMARY:${icsEscape(summary)}`,
     description ? `DESCRIPTION:${icsEscape(description)}` : null,
     location ? `LOCATION:${icsEscape(location)}` : null,
-    'STATUS:CONFIRMED',
+    organizerEmail ? `ORGANIZER;CN=${icsEscape(organizerName || 'CVPassport HR')}:mailto:${organizerEmail}` : null,
+    ...attendees
+      .filter((a) => a && a.email)
+      .map((a) => `ATTENDEE;CN=${icsEscape(a.name || a.email)};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${a.email}`),
+    `STATUS:${cancelled ? 'CANCELLED' : 'CONFIRMED'}`,
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean);
   return lines.join('\r\n');
 }
 
-// ── Interview-scheduled email (with .ics attachment) ────────────────
-async function sendInterviewEmail(res, apiKey, body) {
-  const { candidateEmail, candidateName, jobTitle, scheduledAt, durationMin, meetingLink, note, whenLabel } = body;
+// ── Interview emails (schedule / reschedule / cancel, with .ics) ────
+// kind: 'interview' | 'interview_reschedule' | 'interview_cancel'.
+// The UID is stable per interview (interview-<interviewId>@mycvpassport.com)
+// and `sequence` (interviews.ics_sequence) bumps on every change, so the
+// candidate's calendar updates in place instead of growing duplicates.
+// hrEmail lands as reply-to + a copy to the HR (her own calendar entry).
+async function sendInterviewEmail(res, apiKey, body, kind = 'interview') {
+  const {
+    candidateEmail, candidateName, jobTitle, scheduledAt, durationMin,
+    meetingLink, note, whenLabel, dualTimeLine, interviewId, sequence,
+    hrEmail, hrName,
+  } = body;
   if (!candidateEmail || !jobTitle || !scheduledAt) {
     return res.status(400).json({ ok: false, error: 'Missing candidateEmail, jobTitle or scheduledAt' });
   }
@@ -69,10 +91,21 @@ async function sendInterviewEmail(res, apiKey, body) {
   if (Number.isNaN(start.getTime())) {
     return res.status(400).json({ ok: false, error: 'Invalid scheduledAt' });
   }
+  const cancel = kind === 'interview_cancel';
+  const reschedule = kind === 'interview_reschedule';
   const dur = Number(durationMin) || 30;
   const firstName = String(candidateName || '').split(' ')[0] || 'there';
-  const when = whenLabel || start.toUTCString();
-  const subject = `Interview scheduled — ${jobTitle}`;
+  const when = dualTimeLine ? `${whenLabel || ''}${whenLabel ? ', ' : ''}${dualTimeLine}` : (whenLabel || start.toUTCString());
+  const subject = cancel
+    ? `Interview cancelled, ${jobTitle}`
+    : reschedule
+      ? `Interview rescheduled, ${jobTitle}`
+      : `Interview scheduled, ${jobTitle}`;
+  const banner = cancel
+    ? 'Your interview has been cancelled'
+    : reschedule
+      ? 'Your interview has a new time'
+      : 'Your interview is scheduled';
 
   const ics = buildIcs({
     start,
@@ -80,18 +113,34 @@ async function sendInterviewEmail(res, apiKey, body) {
     summary: `Interview: ${jobTitle}`,
     description: [note, meetingLink ? `Join: ${meetingLink}` : ''].filter(Boolean).join('\n') || `Interview for ${jobTitle}`,
     location: meetingLink || '',
-    uid: `${start.getTime()}-${Math.round(Math.random() * 1e9)}@mycvpassport.com`,
+    uid: interviewId
+      ? `interview-${interviewId}@mycvpassport.com`
+      : `${start.getTime()}-${Math.round(Math.random() * 1e9)}@mycvpassport.com`,
+    sequence: Number(sequence) || 0,
+    method: cancel ? 'CANCEL' : 'REQUEST',
+    organizerName: hrName || 'CVPassport HR',
+    organizerEmail: 'hr@mycvpassport.com',
+    attendees: [
+      { name: candidateName, email: candidateEmail },
+      hrEmail ? { name: hrName, email: hrEmail } : null,
+    ].filter(Boolean),
   });
   const icsB64 = Buffer.from(ics, 'utf8').toString('base64');
 
+  const lede = cancel
+    ? `Your interview for ${jobTitle} has been cancelled. If a new time is picked you will receive a fresh invite.`
+    : reschedule
+      ? `Your interview for ${jobTitle} has moved to a new time. The attached invite updates the entry already on your calendar.`
+      : `Your interview for ${jobTitle} has been scheduled.`;
+
   const text = `Hi ${firstName},
 
-Your interview for ${jobTitle} has been scheduled.
+${lede}
 
 When: ${when}
 Duration: ${dur} minutes${meetingLink ? `\nJoin link: ${meetingLink}` : ''}${note ? `\nNote: ${note}` : ''}
 
-A calendar invite (.ics) is attached — add it to your calendar so you don't miss it.
+${cancel ? 'The attached calendar file removes the entry from your calendar.' : 'A calendar invite is attached. Add it to your calendar so you do not miss it.'}
 
 Best regards,
 The CVPassport HR Team`;
@@ -106,12 +155,12 @@ The CVPassport HR Team`;
         <div style="font-size:11px;color:#94c8e8;letter-spacing:2px;margin-top:4px;text-transform:uppercase;">HR Portal</div>
       </td></tr>
       <tr><td style="background:#0F3460;padding:14px 40px;text-align:center;">
-        <span style="color:#ffffff;font-size:13px;font-weight:600;letter-spacing:0.5px;">Your interview is scheduled</span>
+        <span style="color:#ffffff;font-size:13px;font-weight:600;letter-spacing:0.5px;">${escapeHtml(banner)}</span>
       </td></tr>
       <tr><td style="padding:40px 40px 32px;">
         <p style="margin:0 0 20px;font-size:16px;color:#0F172A;font-weight:600;">Hi ${escapeHtml(firstName)},</p>
         <p style="margin:0 0 16px;font-size:15px;color:#334155;line-height:1.65;">
-          We're pleased to confirm your interview for <strong style="color:#0F3460;">${escapeHtml(jobTitle)}</strong>. Details below — the attached calendar invite (.ics) holds the exact time in your timezone.
+          ${escapeHtml(lede)} The attached calendar invite holds the exact time in your timezone.
         </p>
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:4px solid #0F3460;border-radius:8px;margin:24px 0;">
           <tr><td style="padding:20px 24px;">
@@ -123,7 +172,7 @@ The CVPassport HR Team`;
             ${note ? `<div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px;">Note</div><div style="font-size:14px;color:#334155;line-height:1.55;">${escapeHtml(note)}</div>` : ''}
           </td></tr>
         </table>
-        ${meetingLink ? `<table cellpadding="0" cellspacing="0" style="margin:0 auto 8px;"><tr><td style="background:#0F3460;border-radius:8px;text-align:center;"><a href="${escapeHtml(meetingLink)}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">Join the interview &rarr;</a></td></tr></table>` : ''}
+        ${meetingLink && !cancel ? `<table cellpadding="0" cellspacing="0" style="margin:0 auto 8px;"><tr><td style="background:#0F3460;border-radius:8px;text-align:center;"><a href="${escapeHtml(meetingLink)}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">Join the interview &rarr;</a></td></tr></table>` : ''}
       </td></tr>
       <tr><td style="padding:0 40px;"><div style="border-top:1px solid #E5E7EB;"></div></td></tr>
       <tr><td style="padding:24px 40px 32px;text-align:center;">
@@ -139,10 +188,18 @@ The CVPassport HR Team`;
     const { data, error } = await resend.emails.send({
       from: 'CVPassport HR <hr@mycvpassport.com>',
       to: [candidateEmail],
+      // Her own copy: the same invite lands on the HR's calendar too.
+      ...(hrEmail ? { cc: [hrEmail] } : {}),
+      // Replies go to the human, not the noreply void.
+      ...(hrEmail ? { replyTo: hrEmail } : {}),
       subject,
       text,
       html,
-      attachments: [{ filename: 'interview.ics', content: icsB64 }],
+      attachments: [{
+        filename: 'interview.ics',
+        content: icsB64,
+        contentType: `text/calendar; method=${cancel ? 'CANCEL' : 'REQUEST'}; charset=UTF-8`,
+      }],
     });
     if (error) {
       console.error('[notify-candidate/interview] Resend rejected:', error);
@@ -166,10 +223,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Email service not configured' });
   }
 
-  // Interview-scheduled email (with .ics) is a distinct branch; the
-  // default/no-type path remains the original shortlist email verbatim.
-  if ((req.body || {}).type === 'interview') {
-    return sendInterviewEmail(res, apiKey, req.body || {});
+  // Interview emails (schedule / reschedule / cancel, with .ics) are a
+  // distinct branch; the default/no-type path remains the original
+  // shortlist email verbatim.
+  const bodyType = (req.body || {}).type;
+  if (bodyType === 'interview' || bodyType === 'interview_reschedule' || bodyType === 'interview_cancel') {
+    return sendInterviewEmail(res, apiKey, req.body || {}, bodyType);
   }
 
   const { candidateEmail, candidateName, jobTitle } = req.body || {};
