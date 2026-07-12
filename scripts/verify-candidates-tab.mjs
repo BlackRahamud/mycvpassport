@@ -91,6 +91,9 @@ const APPS = [
   // Divya: one job plus a pool copy
   app({ id: "aaaa0000-0000-4000-8000-000000000008", job_id: J.cashier.id, candidate_id: "ca000000-0000-4000-8000-000000000006", candidate_name: "Divya Nair", candidate_email: "divya.n@example.com", candidate_phone: "+971500000006", status: "shortlisted", ...scored(82), cv_snapshot: { notice_period: "Immediate" } }),
   app({ id: "aaaa0000-0000-4000-8000-000000000009", job_id: J.pool.id, candidate_id: "ca000000-0000-4000-8000-000000000006", candidate_name: "Divya Nair", candidate_email: "divya.n@example.com", candidate_phone: "+971500000006", status: "new", added_from: "aaaa0000-0000-4000-8000-000000000008" }),
+  // Obaid: one organic row (Cashier) plus a removable copy (Sales)
+  app({ id: "aaaa0000-0000-4000-8000-000000000010", job_id: J.cashier.id, candidate_id: "ca000000-0000-4000-8000-000000000007", candidate_name: "Obaid M. Khan", candidate_email: "obaid.k@example.com", candidate_phone: "+971500000007", status: "shortlisted", ...scored(75), cv_snapshot: { notice_period: "Immediate" } }),
+  app({ id: "aaaa0000-0000-4000-8000-000000000011", job_id: J.sales.id, candidate_id: "ca000000-0000-4000-8000-000000000007", candidate_name: "Obaid M. Khan", candidate_email: "obaid.k@example.com", candidate_phone: "+971500000007", status: "ready", ...scored(74), added_from: "aaaa0000-0000-4000-8000-000000000010" }),
 ];
 
 /* ── static server ────────────────────────────────────────────── */
@@ -156,11 +159,18 @@ async function stubRoutes(context) {
       if (url.pathname.includes("/auth/v1/token")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SESSION) });
       if (url.pathname.includes("/rest/v1/rpc/add_application_to_job")) {
         rpcCounter += 1;
+        let wantStatus = "new";
+        try { wantStatus = JSON.parse(req.postData() || "{}").p_status || "new"; } catch { /* default */ }
         const id = `bbbb0000-0000-4000-8000-00000000000${rpcCounter}`;
-        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ added: true, id, job_id: "x", status: "new" }) });
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ added: true, id, job_id: "x", status: wantStatus }) });
       }
       if (url.pathname.includes("/rest/v1/")) {
-        if (req.method() === "DELETE") return route.fulfill({ status: 204, contentType: "application/json", body: "" });
+        if (req.method() === "DELETE") {
+          // .delete().select('id') expects the deleted rows back — echo the
+          // ids the query filtered on.
+          const ids = [...url.search.matchAll(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi)].map((m) => m[0]);
+          return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(ids.map((id) => ({ id }))) });
+        }
         if (req.method() === "PATCH" && url.pathname.includes("applications")) {
           // persistVerdict does .update().select().maybeSingle(); hand back
           // a stored verdict so the scoring pass resolves deterministically.
@@ -214,7 +224,7 @@ const URL_CAND = "http://localhost:4189/employer/candidates";
   await page.goto(URL_CAND, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
 
-  check(await page.getByText("6 people across all your jobs").isVisible(), "desktop: six people counted");
+  check(await page.getByText("7 people across all your jobs").isVisible(), "desktop: seven people counted");
 
   /* honest multi job card */
   const ayeshaCard = page.locator(".cand-card", { hasText: "Ayesha Noor" });
@@ -270,7 +280,7 @@ const URL_CAND = "http://localhost:4189/employer/candidates";
   /* stage menu: 7 options, Passed carries a note */
   await rows.first().locator(".cand-stagebtn").click();
   await page.waitForTimeout(250);
-  check((await page.locator(".cand-stagemenu__item").count()) === 7, "profile: seven stage options");
+  check((await page.locator(".cand-stagemenu__item:not(.cand-stagemenu__item--remove)").count()) === 7, "profile: seven stage options");
   check(await page.getByText("Asks for a reason first").isVisible(), "profile: Passed option carries the note");
   await shot(page, "desktop-stage-menu");
 
@@ -302,6 +312,42 @@ const URL_CAND = "http://localhost:4189/employer/candidates";
   await page.locator(".cand-toast button").click(); // undo, keep fixtures stable
   await page.waitForTimeout(400);
 
+  /* Remove from job: only the copy row offers it; organic rows explain why not */
+  await page.locator(".cand-card", { hasText: "Obaid M. Khan" }).click();
+  await page.waitForTimeout(500);
+  const obaidRows = page.locator(".cand-jobrow");
+  check((await obaidRows.count()) === 2, "remove: Obaid is on two jobs");
+  check((await obaidRows.first().locator(".cand-jobrow__title").textContent()) === "Sales Associate", "remove: copy row (To interview) sorts first");
+  /* organic row: disabled item with the plain reason */
+  await obaidRows.nth(1).locator(".cand-stagebtn").click();
+  await page.waitForTimeout(250);
+  check(await page.locator(".cand-stagemenu__item--remove").isDisabled(), "remove: organic row item disabled");
+  check(await page.getByText("Applicants can be passed, not removed").isVisible(), "remove: organic row carries the reason");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(200);
+  /* copy row: enabled, confirm, toast, undo re-adds at the same stage */
+  await obaidRows.first().locator(".cand-stagebtn").click();
+  await page.waitForTimeout(250);
+  check(!(await page.locator(".cand-stagemenu__item--remove").isDisabled()), "remove: copy row item enabled");
+  check(await page.getByText("Takes them off this job only").isVisible(), "remove: copy row item note");
+  await dashScan(page, ".cand-stagemenu", "remove: stage menu");
+  await page.locator(".cand-stagemenu__item--remove").click();
+  await page.waitForTimeout(300);
+  check(await page.getByText("Remove Obaid from Sales Associate?").isVisible(), "remove: confirm names person and job");
+  check(await page.getByText(/This takes them off this job only/).isVisible(), "remove: confirm blast radius line");
+  await dashScan(page, ".rjm-modal", "remove: confirm dialog");
+  await shot(page, "desktop-remove-confirm");
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  await page.waitForTimeout(500);
+  check(await page.getByText("Removed Obaid from Sales Associate.").isVisible(), "remove: toast");
+  check((await page.locator(".cand-jobrow").count()) === 1, "remove: only that job row went away");
+  check((await page.locator(".cand-jobrow").first().locator(".cand-jobrow__title").textContent()) === "Cashier", "remove: organic Cashier row untouched");
+  await page.locator(".cand-toast button").click(); // undo
+  await page.waitForTimeout(600);
+  check((await page.locator(".cand-jobrow").count()) === 2, "remove: undo re-added the copy");
+  check((await page.locator(".cand-jobrow", { hasText: "Sales Associate" }).locator(".cand-stagebtn").textContent())?.includes("To interview"), "remove: undo restored the same stage");
+  await shot(page, "desktop-remove-undone");
+
   /* pooled person: banner + Add to job as a copy with a scoring pass */
   await page.locator(".cand-card", { hasText: "Priya Sharma" }).click();
   await page.waitForTimeout(500);
@@ -311,7 +357,7 @@ const URL_CAND = "http://localhost:4189/employer/candidates";
   await page.getByRole("button", { name: "Add to job" }).click();
   await page.waitForTimeout(300);
   check(await page.getByText("Add Priya to a job").isVisible(), "add: picker opens");
-  check(await page.getByText("3 people on it").first().isVisible(), "add: job rows carry people counts");
+  check(await page.getByText("4 people on it").first().isVisible(), "add: job rows carry people counts");
   check(await page.getByText(/also stays in your Retail walk in, July pool/).isVisible(), "add: copy semantics note");
   await dashScan(page, ".rjm-modal", "add to job modal");
   await shot(page, "desktop-add-to-job");

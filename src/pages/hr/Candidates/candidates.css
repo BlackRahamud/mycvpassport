@@ -741,3 +741,9 @@
   .cand-stagectl { flex: 1; }
   .cand-stagemenu { left: 0; right: 0; width: auto; }
 }
+
+/* Remove from job: quiet menu tail item; disabled on organic rows with
+   the plain reason (the database would block those deletes anyway). */
+.cand-stagemenu__item--remove { color: var(--pj-muted); border-top: 1px solid var(--pj-border); }
+.cand-stagemenu__item--remove:not(:disabled):hover { color: var(--pj-danger); }
+.cand-stagemenu__item--remove:disabled { cursor: default; opacity: 0.6; background: var(--pj-surface); }

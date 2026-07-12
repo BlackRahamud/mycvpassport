@@ -166,7 +166,7 @@ const ClockIc = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="non
 const PlusIc = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>);
 
 /* ───────── per job stage control (the heart) ───────── */
-function StageMenu({ jobApp, scoring, onPick, disabled }) {
+function StageMenu({ jobApp, scoring, onPick, onRemove, disabled }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -232,6 +232,35 @@ function StageMenu({ jobApp, scoring, onPick, disabled }) {
                 </button>
               );
             })}
+            {/* Remove from job — only rows the recruiter added herself
+                (added_from marker) are deletable; the database blocks the
+                rest, so the control never lies. Organic rows keep the item
+                visible but disabled with the plain reason. */}
+            {jobApp.raw?.added_from ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="cand-stagemenu__item cand-stagemenu__item--remove"
+                onClick={() => { setOpen(false); onRemove(); }}
+              >
+                <span className="cand-stagemenu__label">
+                  Remove from job
+                  <span className="cand-stagemenu__note">Takes them off this job only</span>
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                role="menuitem"
+                className="cand-stagemenu__item cand-stagemenu__item--remove"
+                disabled
+              >
+                <span className="cand-stagemenu__label">
+                  Remove from job
+                  <span className="cand-stagemenu__note">Applicants can be passed, not removed</span>
+                </span>
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -239,10 +268,54 @@ function StageMenu({ jobApp, scoring, onPick, disabled }) {
   );
 }
 
+/* ───────── short remove confirm (rjm shell reuse) ───────── */
+function RemoveConfirmModal({ ctx, busy, onCancel, onConfirm, mobile, reduce }) {
+  return (
+    <AnimatePresence>
+      {ctx && (
+        <motion.div
+          key="cand-remove-scrim"
+          className="rjm-scrim"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: EASE }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+        >
+          <motion.div
+            className={`rjm-modal${mobile ? " rjm-modal--sheet" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Remove ${firstName(ctx.person.name)} from ${ctx.jobApp.jobTitle}`}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: mobile ? 32 : 14, scale: mobile ? 1 : 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: mobile ? 24 : 8, scale: mobile ? 1 : 0.98 }}
+            transition={{ duration: 0.22, ease: EASE }}
+          >
+            <div className="rjm-modal__head">
+              <span className="rjm-modal__title">Remove {firstName(ctx.person.name)} from {ctx.jobApp.jobTitle}?</span>
+              <button type="button" className="rjm-modal__close" onClick={onCancel} aria-label="Close">✕</button>
+            </div>
+            <p className="rjm-modal__lede">
+              This takes them off this job only. {ctx.person.jobApps.length > 1 ? "Their other jobs stay where they are" : "They stay in the CRM"}{ctx.person.pools.length ? ", and they keep their place in your pool" : ""}.
+            </p>
+            <div className="rjm-modal__acts">
+              <button type="button" className="rjm-btn" onClick={onCancel}>Cancel</button>
+              <button type="button" className="rjm-btn rjm-btn--danger" disabled={busy} onClick={onConfirm}>
+                {busy ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 /* ───────── person profile ───────── */
 function CandidateDetail({
   candidate, onBack, onMessage, onReachOut, hrId, outreachTick, reduce,
-  onStagePick, onAddToJob, scoringIds, onVerdictPersisted,
+  onStagePick, onAddToJob, onRemoveFromJob, scoringIds, onVerdictPersisted,
 }) {
   const [cvOpen, setCvOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -366,6 +439,7 @@ function CandidateDetail({
                     jobApp={ja}
                     scoring={scoringIds.has(ja.app_id)}
                     onPick={(opt) => onStagePick(candidate, ja, opt)}
+                    onRemove={() => onRemoveFromJob(candidate, ja)}
                   />
                 </span>
               </div>
@@ -735,6 +809,8 @@ export default function CandidatesPage() {
   const [toast, setToast] = useState(null); // { msg, undo }
   const toastTimer = useRef(null);
   const [rejectCtx, setRejectCtx] = useState(null); // { person, jobApp, reason }
+  const [removeCtx, setRemoveCtx] = useState(null); // { person, jobApp }
+  const [removeBusy, setRemoveBusy] = useState(false);
   const [addJobCtx, setAddJobCtx] = useState(null); // { keys, jobId, stageDb }
   const [addPoolCtx, setAddPoolCtx] = useState(null); // { keys, poolId, newName, market }
   const [addBusy, setAddBusy] = useState(false);
@@ -1046,14 +1122,80 @@ export default function CandidatesPage() {
   }, [jobsList, pools, people, queueVerdictPass, showToast]);
 
   const undoAddCopies = useCallback(async (ids) => {
-    const { error } = await supabase.from("applications").delete().in("id", ids);
-    if (error) {
+    // .select() so an RLS-blocked delete (0 rows) reads as the failure it
+    // is, never a silent local-only removal.
+    const { data, error } = await supabase.from("applications").delete().in("id", ids).select("id");
+    const deleted = new Set((data || []).map((r) => r.id));
+    if (error || deleted.size === 0) {
       showToast("Couldn't undo. The people stay where you added them.");
       return;
     }
-    setRows((prev) => (prev || []).filter((a) => !ids.includes(a.id)));
+    setRows((prev) => (prev || []).filter((a) => !deleted.has(a.id)));
     setToast(null);
   }, [showToast]);
+
+  /* ── Remove from job: delete one copy row (the add-to-job undo path).
+        Only rows carrying added_from are removable; the menu already hides
+        the action from organic rows, and the RLS delete policy is the
+        backstop. Other jobs and pools are untouched by construction. ── */
+  const READD_OK = useMemo(() => new Set(["new", "shortlisted", "ready", "interviewed", "offered", "hired"]), []);
+  const confirmRemove = useCallback(async () => {
+    if (!removeCtx || removeBusy) return;
+    const { person, jobApp } = removeCtx;
+    const removed = { ...jobApp.raw };
+    setRemoveBusy(true);
+    const { data, error } = await supabase.from("applications").delete().eq("id", jobApp.app_id).select("id");
+    setRemoveBusy(false);
+    setRemoveCtx(null);
+    if (error || !data || data.length === 0) {
+      showToast(`Couldn't remove ${firstName(person.name)} from ${jobApp.jobTitle}. ${error ? "Check your connection and try again." : "The database needs migration 038 first."}`);
+      return;
+    }
+    setRows((prev) => (prev || []).filter((a) => a.id !== removed.id));
+    showToast(`Removed ${firstName(person.name)} from ${jobApp.jobTitle}.`, async () => {
+      /* Undo re-adds the same copy at the same stage through the same RPC. */
+      const startStatus = READD_OK.has(removed.status)
+        ? removed.status
+        : (removed.status === "interviewing" ? "interviewed" : "new");
+      const { data: out, error: e2 } = await supabase.rpc("add_application_to_job", {
+        p_app_id: removed.added_from,
+        p_job_id: removed.job_id,
+        p_status: startStatus,
+      });
+      if (e2 || !out?.added) {
+        showToast(`Couldn't undo. ${firstName(person.name)} stays off ${jobApp.jobTitle}.`);
+        return;
+      }
+      const iso = new Date().toISOString();
+      const newRow = {
+        ...removed,
+        id: out.id,
+        status: startStatus,
+        ats_score: 0,
+        score_source: null,
+        ai_verdict: null,
+        match_keywords: [],
+        missing_keywords: [],
+        reject_reason: null,
+        applied_at: iso,
+        updated_at: iso,
+      };
+      setRows((prev) => ([...(prev || []), newRow]));
+      /* A passed copy comes back as passed, reason and all. */
+      if (removed.status === "rejected") {
+        const res = await setApplicationStage({
+          applicationId: out.id,
+          newStatus: "rejected",
+          app: newRow,
+          hrId: user?.id,
+          rejectReason: removed.reject_reason || null,
+        });
+        if (res.ok) patchRow(out.id, { status: "rejected", reject_reason: removed.reject_reason || null });
+      }
+      queueVerdictPass(out.id, removed, jobsList.find((j) => j.id === removed.job_id));
+      setToast(null);
+    });
+  }, [removeCtx, removeBusy, READD_OK, showToast, jobsList, queueVerdictPass, user?.id, patchRow]);
 
   const confirmAddToJob = useCallback(async () => {
     if (!addJobCtx?.jobId || addBusy) return;
@@ -1323,6 +1465,7 @@ export default function CandidatesPage() {
                 reduce={reduce}
                 onStagePick={onStagePick}
                 onAddToJob={(person) => openAddToJob([person.key])}
+                onRemoveFromJob={(person, ja) => setRemoveCtx({ person, jobApp: ja })}
                 scoringIds={scoringIds}
                 onVerdictPersisted={patchVerdict}
               />
@@ -1377,6 +1520,15 @@ export default function CandidatesPage() {
         onPick={(code) => setRejectCtx((ctx) => (ctx ? { ...ctx, reason: code } : ctx))}
         onCancel={() => setRejectCtx(null)}
         onConfirm={confirmReject}
+        mobile={mobile}
+        reduce={reduce}
+      />
+
+      <RemoveConfirmModal
+        ctx={removeCtx}
+        busy={removeBusy}
+        onCancel={() => { if (!removeBusy) setRemoveCtx(null); }}
+        onConfirm={confirmRemove}
         mobile={mobile}
         reduce={reduce}
       />
