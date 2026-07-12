@@ -343,17 +343,18 @@
 
 /* original cv tab */
 .rvm-original { display: flex; flex-direction: column; gap: 12px; }
+/* Sheets flow at full height and scroll with the page — never an inner
+   scrollbox that slices the CV (founder feedback). The full-screen deep
+   dive is one click away via the CV viewer button above the sheets. */
 .rvm-original__stage {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
   background: var(--pj-input-bg);
   border: 1px solid var(--pj-border);
   border-radius: 10px;
-  padding: 12px 4px;
-  overflow: auto;
-  max-height: 560px;
+  padding: 16px 8px;
 }
 .rvm-original__acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .rvm-original__hint { margin: 0; font-size: 11.5px; color: var(--pj-muted); }

@@ -377,7 +377,26 @@ const REVIEW_URL = `http://localhost:4187/employer/jobs/${JOB_ID}/review`;
   await page.getByRole("tab", { name: "Original CV" }).click();
   await page.waitForSelector(".rvm-sheet canvas", { timeout: 20000 });
   check((await page.locator(".rvm-sheet canvas").count()) >= 1, "desktop: Original CV renders pdf.js canvas");
+  /* sheets flow with the page — no inner scrollbox slicing the CV */
+  const stageScroll = await page.evaluate(() => {
+    const el = document.querySelector(".rvm-original__stage");
+    if (!el) return null;
+    const s = getComputedStyle(el);
+    return { overflowY: s.overflowY, clipped: el.scrollHeight > el.clientHeight + 4 };
+  });
+  check(stageScroll && stageScroll.overflowY === "visible" && !stageScroll.clipped, "desktop: CV sheets flow with the page, no inner scrollbox");
   await shot(page, "desktop-original-cv");
+  /* the full money screen is one click away */
+  await page.getByRole("button", { name: "Open CV viewer" }).click();
+  await page.waitForSelector(".cvv-shell", { timeout: 20000 });
+  check((await page.locator(".cvv-shell").count()) === 1, "desktop: Open CV viewer launches the full overlay");
+  await page.waitForSelector(".cvv-page canvas", { timeout: 20000 });
+  check((await page.locator(".cvv-page canvas").count()) >= 1, "desktop: overlay renders the same pdf");
+  await shot(page, "desktop-cv-overlay");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(500);
+  check((await page.locator(".cvv-shell").count()) === 0, "desktop: Escape closes the overlay");
+  check((await page.locator(".rvm-topbar__counter").textContent()) === "Candidate 1 of 3", "desktop: Escape did not decide or advance");
   await page.getByRole("tab", { name: "Screening" }).click();
   check((await page.locator(".rvm-screen__chip--pass").count()) === 2, "desktop: screening passes render");
 

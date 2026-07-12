@@ -9,6 +9,9 @@
    column top border, count pill, drop highlight, and the mobile chip
    pager. Deep variants keep pill text AA-readable on the 12% tint. */
 :root {
+  /* New entry stage (evaluation redesign frame 1k): amber, urgency tint. */
+  --kbstage-new: #F59E0B;
+  --kbstage-new-deep: #B45309;
   --kbstage-shortlist: #3B82F6;
   --kbstage-shortlist-deep: #1D4ED8;
   --kbstage-ready: #6366F1;
@@ -22,6 +25,7 @@
   /* Accent lift shadow for card hover — --pj-primary at 35%. */
   --kb-accent-shadow: 0 6px 14px -10px rgba(124, 58, 237, 0.35);
 }
+.jpp-kb-col--new,         .jpp-kbm-chip--new         { --kb-stage: var(--kbstage-new);         --kb-stage-deep: var(--kbstage-new-deep); }
 .jpp-kb-col--shortlist,   .jpp-kbm-chip--shortlist   { --kb-stage: var(--kbstage-shortlist);   --kb-stage-deep: var(--kbstage-shortlist-deep); }
 .jpp-kb-col--ready,       .jpp-kbm-chip--ready       { --kb-stage: var(--kbstage-ready);       --kb-stage-deep: var(--kbstage-ready-deep); }
 .jpp-kb-col--interviewed, .jpp-kbm-chip--interviewed { --kb-stage: var(--kbstage-interviewed); --kb-stage-deep: var(--kbstage-interviewed-deep); }

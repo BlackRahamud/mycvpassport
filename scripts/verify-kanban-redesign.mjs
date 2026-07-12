@@ -197,8 +197,10 @@ for (const width of [360, 393, 430]) {
   await page.waitForTimeout(700);
 
   check(await page.locator(".jpp-kbm-chips").isVisible(), `phone ${width}px: stage chip pager renders`);
-  check(await page.locator(".jpp-kbm-chip--active", { hasText: "Shortlist" }).isVisible(), `phone ${width}px: Shortlist chip active with count`);
-  check(await page.locator(".jpp-kb-card--phone").count() === 2, `phone ${width}px: shortlist cards render (2)`);
+  /* New is the entry stage since the evaluation redesign: the pager opens
+     on it, and the 'new' fixture buckets there (shortlisted has its own). */
+  check(await page.locator(".jpp-kbm-chip--active", { hasText: "New" }).isVisible(), `phone ${width}px: New chip active with count`);
+  check(await page.locator(".jpp-kb-card--phone").count() === 1, `phone ${width}px: New card renders (1)`);
   check(await page.locator(".jpp-kb-card__moveto").first().isVisible(), `phone ${width}px: Move to button on cards`);
   await auditOverflow(page, `phone ${width}px board`);
 

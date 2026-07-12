@@ -28,9 +28,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
-import VerdictCard from "../../../components/hr/VerdictCard";
+// Shared-component import order mirrors JobPipelinePage (WhatsAppComposer →
+// VerdictCard → NoteText → CvViewerOverlay → JobDescriptionPanel) so
+// mini-css-extract never sees conflicting css order between the two chunks.
 import WhatsAppComposer from "../../../components/hr/WhatsAppComposer";
+import VerdictCard from "../../../components/hr/VerdictCard";
 import NoteText from "../../../components/hr/NoteText";
+import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
 import JobDescriptionPanel from "../../../components/hr/JobDescriptionPanel";
 import givenName from "../../../lib/hr/givenName";
 import dedupeSkills from "../../../lib/hr/dedupeSkills";
@@ -119,7 +123,7 @@ function RvmPdfPage({ pdfDoc, pageNo, scale, reduce }) {
   );
 }
 
-function OriginalCvPanel({ path, fileName, parseFailed, reduce }) {
+function OriginalCvPanel({ path, fileName, parseFailed, onOpenViewer, reduce }) {
   const [file, setFile] = useState({ status: "idle" });
   const [doc, setDoc] = useState(null);
   const [scale, setScale] = useState(null);
@@ -189,7 +193,7 @@ function OriginalCvPanel({ path, fileName, parseFailed, reduce }) {
       try {
         const page = await doc.pdf.getPage(1);
         if (!live || !stageRef.current) return;
-        const stageW = stageRef.current.clientWidth - 8;
+        const stageW = stageRef.current.clientWidth - 20;
         const naturalW = page.getViewport({ scale: 1 }).width;
         setScale(Math.min(Math.max(stageW / naturalW, 0.4), 1.6));
       } catch { if (live) setScale(1); }
@@ -282,14 +286,19 @@ function OriginalCvPanel({ path, fileName, parseFailed, reduce }) {
           <span>This CV could not be parsed, it may be a scanned image. Showing the original document.</span>
         </div>
       )}
-      <div className="rvm-original__stage" ref={stageRef}>{body()}</div>
       {file.status === "ready" && (
         <div className="rvm-original__acts">
+          {onOpenViewer && (
+            <button type="button" className="rvm-btn rvm-btn--primary" onClick={onOpenViewer}>
+              Open CV viewer
+            </button>
+          )}
           {file.downloadUrl && <a className="rvm-btn" href={file.downloadUrl} download={fileName}>{Ic.download} Download</a>}
           {file.tabUrl && <a className="rvm-btn" href={file.tabUrl} target="_blank" rel="noreferrer noopener">{Ic.newTab} Open in new tab</a>}
         </div>
       )}
-      <p className="rvm-original__hint">The document as the candidate sent it.</p>
+      <div className="rvm-original__stage" ref={stageRef}>{body()}</div>
+      <p className="rvm-original__hint">The document as the candidate sent it. The CV viewer opens it full screen next to the verdict.</p>
     </div>
   );
 }
@@ -509,6 +518,8 @@ export default function ReviewModePage() {
   const [done, setDone] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState(null);
+  const [cvOpen, setCvOpen] = useState(false); // full CvViewerOverlay
+
   const [toast, setToast] = useState(null);
   const [moveError, setMoveError] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -628,6 +639,7 @@ export default function ReviewModePage() {
   useEffect(() => {
     if (!current) return;
     setTab(cvParseFailed(getCv(current)) && current.cv_file_path ? "original" : "cv");
+    setCvOpen(false); // never carry the full viewer across candidates
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── queue mechanics ── */
@@ -763,13 +775,14 @@ export default function ReviewModePage() {
         if (e.key === "Enter") confirmReject();
         return;
       }
+      if (cvOpen) return; // the CV viewer owns the keyboard while open
       if (done || !current || decisions[current.id]) return;
       if (e.key === "ArrowRight") { e.preventDefault(); decide(current, "shortlist"); }
       if (e.key === "ArrowLeft") { e.preventDefault(); setRejectOpen(true); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [rejectOpen, done, current, decisions, decide, confirmReject]);
+  }, [rejectOpen, cvOpen, done, current, decisions, decide, confirmReject]);
 
   /* Request details → the existing WhatsApp composer, prefilled with the
      missing readiness fields. */
@@ -1044,6 +1057,7 @@ export default function ReviewModePage() {
                         path={current.cv_file_path}
                         fileName={cvFileName}
                         parseFailed={parseFailed}
+                        onOpenViewer={current.cv_file_path ? () => setCvOpen(true) : null}
                         reduce={reduce}
                       />
                     )}
@@ -1170,6 +1184,54 @@ export default function ReviewModePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Full-screen CV viewer — the same money screen as the pipeline's
+          View CV, opened from the Original CV tab. */}
+      {current && (
+        <CvViewerOverlay
+          open={cvOpen}
+          onClose={() => setCvOpen(false)}
+          path={current.cv_file_path}
+          fileName={cvFileName}
+          intel={{
+            name: current.candidate_name || "Unnamed candidate",
+            role: desiredJob || job?.title || "Candidate",
+            location: personal.location || cv.location || "",
+            visa: current.visa_status || cv.visa_status || "",
+            notice: cv.notice_period || cv.availability || personal.notice_period || "",
+            score: current.ats_score,
+            scoreSource: current.score_source,
+            matchedKeywords: Array.isArray(current.match_keywords) ? current.match_keywords : [],
+            missingKeywords: Array.isArray(current.missing_keywords) ? current.missing_keywords : [],
+            skills,
+            appliedTo: job?.title
+              ? [{
+                  title: job.title,
+                  when: current.applied_at
+                    ? new Date(current.applied_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })
+                    : "",
+                }]
+              : [],
+            email: current.candidate_email || "",
+            // The composer is its own portal — close the viewer first so the
+            // two full-screen layers never stack.
+            onWhatsApp: () => { setCvOpen(false); setComposerMessage(null); setComposerOpen(true); },
+          }}
+          verdict={
+            <VerdictCard
+              hideHeader
+              cacheKey={`${current.candidate_id || current.id}:${job?.id || ""}`}
+              cvSnapshot={cv}
+              job={job}
+              applicationId={current.id}
+              storedVerdict={current.ai_verdict}
+              onVerdictPersisted={(v) => patchVerdict(current.id, v)}
+              knockout={knockoutActive ? { synthesis } : null}
+              onReachOut={(template) => { setCvOpen(false); setComposerMessage(template || null); setComposerOpen(true); }}
+            />
+          }
+        />
+      )}
 
       <WhatsAppComposer
         open={composerOpen && !!current}
