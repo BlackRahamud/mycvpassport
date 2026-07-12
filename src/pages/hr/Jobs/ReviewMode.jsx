@@ -36,6 +36,7 @@ import VerdictCard from "../../../components/hr/VerdictCard";
 import NoteText from "../../../components/hr/NoteText";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
 import JobDescriptionPanel from "../../../components/hr/JobDescriptionPanel";
+import RejectModal from "../../../components/hr/RejectModal";
 import givenName from "../../../lib/hr/givenName";
 import dedupeSkills from "../../../lib/hr/dedupeSkills";
 import { NEW_STATUSES } from "../../../lib/hr/stages";
@@ -425,78 +426,6 @@ function NotesTab({ app, onNotesSaved }) {
         </ul>
       )}
     </div>
-  );
-}
-
-/* ── Reject modal (frame 1e) ── */
-function RejectModal({ open, name, reason, onPick, onCancel, onConfirm, mobile, reduce }) {
-  useEffect(() => {
-    if (!open) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          key="rvm-reject-scrim"
-          className="rvm-scrim"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: EASE }}
-          onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
-        >
-          <motion.div
-            className={`rvm-modal${mobile ? " rvm-modal--sheet" : ""}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Reject ${name}`}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: mobile ? 32 : 14, scale: mobile ? 1 : 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: mobile ? 24 : 8, scale: mobile ? 1 : 0.98 }}
-            transition={{ duration: 0.22, ease: EASE }}
-          >
-            <div className="rvm-modal__head">
-              <span className="rvm-modal__title">Reject {name}</span>
-              <button type="button" className="rvm-modal__close" onClick={onCancel} aria-label="Close">{Ic.x}</button>
-            </div>
-            <p className="rvm-modal__lede">Pick a reason. It sharpens future AI matching and talent pool search.</p>
-            <div className="rvm-modal__reasons" role="radiogroup" aria-label="Reject reason">
-              {REJECT_REASONS.map((r) => (
-                <button
-                  key={r.code}
-                  type="button"
-                  role="radio"
-                  aria-checked={reason === r.code}
-                  className={`rvm-reason${reason === r.code ? " rvm-reason--active" : ""}`}
-                  onClick={() => onPick(r.code)}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-            <div className="rvm-modal__note">
-              <span aria-hidden="true">{Ic.clock}</span>
-              <span>The candidate is not notified right away, and you can undo this decision. Rejected candidates stay in the Rejected bucket and are never deleted.</span>
-            </div>
-            <div className="rvm-modal__acts">
-              <button type="button" className="rvm-btn" onClick={onCancel}>Cancel</button>
-              <button
-                type="button"
-                className="rvm-btn rvm-btn--danger"
-                disabled={!reason}
-                onClick={onConfirm}
-              >
-                Reject candidate
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }
 
@@ -1156,10 +1085,10 @@ export default function ReviewModePage() {
         )}
       </AnimatePresence>
 
-      {/* ── reject modal ── */}
+      {/* ── reject modal (shared portal-wide) ── */}
       <RejectModal
         open={rejectOpen && !!current}
-        name={current?.candidate_name || "candidate"}
+        title={`Reject ${current?.candidate_name || "candidate"}`}
         reason={rejectReason}
         onPick={setRejectReason}
         onCancel={() => { setRejectOpen(false); setRejectReason(null); }}

@@ -1,9 +1,14 @@
 // =============================================================
 // src/components/hr/BulkActions.jsx
 //
-// Bulk candidate handling for the Candidates CRM. Two surfaces:
-//   1. A floating action bar (appears when >= 1 candidate is checked) with
-//      bulk status, CSV export, and the WhatsApp queue trigger.
+// Bulk candidate handling for the Candidates tab. SAFE cross job actions
+// only (Candidates tab redesign, frame 1h): Message on WhatsApp, Compare,
+// Add to job, Add to pool, Export, Clear. There is deliberately NO bulk
+// stage move here — a stage belongs to one job, and this tab spans all of
+// them; staging lives on the person profile (per job) and on the job board.
+//
+// Two surfaces:
+//   1. The floating ink action bar (appears when >= 1 person is checked).
 //   2. An assisted bulk-WhatsApp queue (sub-action) — sequential, ONE wa.me
 //      tab at a time. The recruiter taps send in their own WhatsApp; this is
 //      NOT auto-send (true one-click bulk needs the Meta Cloud API, a later
@@ -11,16 +16,11 @@
 //
 // Reuses WhatsAppComposer's exported helpers (templates, substitute, wa.me
 // link, candidate_events logging) — no duplication of that logic here.
-//
-// Status mutation itself lives in the parent (CandidatesPage owns `rows`);
-// this component calls onApplyStatus(value). Per product decision, bulk
-// status acts ONLY on each selected row's latest/displayed application.
 // =============================================================
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
-import Select from "../ui/Select";
 import {
   TEMPLATES as WA_TEMPLATES,
   substitute,
@@ -36,26 +36,6 @@ const DAILY_SOFT_LIMIT = 30;   // heuristic; soft warning, never a hard block
 
 // Honorific-aware (Md/Mohd prefixes skipped) — one name rule everywhere.
 function firstName(full) { return givenName(full, "there"); }
-
-/* Real DB status values (mirrors the pipeline's STATUS_OVERRIDE_OPTIONS /
-   migration 013 CHECK set). The founder note said "shortlist/reject" — the
-   actual column values are "shortlisted"/"rejected". */
-const BULK_STATUS = [
-  { value: "new",         label: "New" },
-  { value: "shortlisted", label: "Shortlisted" },
-  { value: "ready",       label: "To interview" },
-  { value: "interviewed", label: "Interviewed" },
-  { value: "offered",     label: "Offer extended" },
-  { value: "hired",       label: "Hired" },
-  { value: "rejected",    label: "Passed" },
-];
-
-const STATUS_LABEL = {
-  submitted: "New", viewed: "New", shortlisted: "Shortlisted", new: "New",
-  ready: "To interview", interviewing: "Interviewing", interviewed: "Interviewed",
-  offered: "Offer", hired: "Hired", rejected: "Passed",
-};
-function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "Not set"); }
 
 /* Default first-contact template: nudges the candidate to save the number
    and reply. Reuses the composer's substitute() token format; the rest of the
@@ -75,16 +55,17 @@ function csvCell(v) {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 function exportCsv(rows) {
-  const header = ["Name", "Email", "Phone", "Market", "Latest status", "Jobs applied", "Visa", "Skills"];
+  const header = ["Name", "Email", "Phone", "Markets", "Jobs", "Furthest stage", "Pools", "Visa", "Skills"];
   const lines = [header.join(",")];
   rows.forEach((c) => {
     lines.push([
       csvCell(c.name),
       csvCell(c.email),
       csvCell(c.phone),
-      csvCell(c.market === "india" ? "India" : "Gulf"),
-      csvCell(statusLabel(c.apps?.[0]?.status)),
-      csvCell(c.apps?.length || 0),
+      csvCell([...(c.markets || [])].map((m) => (m === "india" ? "India" : "Gulf")).join("; ") || "Gulf"),
+      csvCell(c.jobApps?.length ?? c.apps?.length ?? 0),
+      csvCell(c.furthest || ""),
+      csvCell((c.pools || []).map((p) => p.name).join("; ")),
       csvCell(c.visa),
       csvCell((c.skills || []).join("; ")),
     ].join(","));
@@ -119,17 +100,27 @@ const CloseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
 );
 
-/* ───────── Shared inline styles (HR portal --pj-* / --hjl-* tokens) ───────── */
+/* ───────── Shared inline styles (light surfaces: the WhatsApp queue modal) ───────── */
 const pill = (kind) => ({
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
   padding: "9px 13px", borderRadius: 10, font: "inherit", fontSize: 13, fontWeight: 600,
   cursor: "pointer", whiteSpace: "nowrap", lineHeight: 1,
   border: "1px solid var(--pj-border)",
-  background: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : kind === "danger" ? "var(--hjl-pass)" : kind === "primary" ? "var(--pj-primary)" : "var(--pj-surface)",
-  color: (kind === "ink" || kind === "wa" || kind === "danger" || kind === "primary") ? "#FFFFFF" : "var(--pj-text)",
-  borderColor: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : kind === "danger" ? "var(--hjl-pass)" : kind === "primary" ? "var(--pj-primary)" : "var(--pj-border)",
+  background: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : "var(--pj-surface)",
+  color: (kind === "ink" || kind === "wa") ? "#FFFFFF" : "var(--pj-text)",
+  borderColor: kind === "ink" ? "var(--hjl-ink)" : kind === "wa" ? "var(--hjl-whatsapp)" : "var(--pj-border)",
 });
-export default function BulkActions({ selected, onClear, onApplyStatus, statusBusy, statusError, hrId, onLogged, onCompare }) {
+
+/* ───────── Pills on the INK bar (frame 1h) ───────── */
+const barPill = (kind) => ({
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+  height: 36, padding: "0 14px", borderRadius: 9, font: "inherit", fontSize: 12.5,
+  fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", lineHeight: 1, border: 0,
+  background: kind === "wa" ? "var(--hjl-whatsapp, #1FAE54)" : "rgba(255, 255, 255, 0.10)",
+  color: "#FFFFFF", /* theme-fixed: light pills on the dark bar */
+});
+
+export default function BulkActions({ selected, onClear, hrId, onLogged, onCompare, onAddToJob, onAddToPool }) {
   const reduce = useReducedMotion();
   const [queueOpen, setQueueOpen] = useState(false);
 
@@ -140,8 +131,8 @@ export default function BulkActions({ selected, onClear, onApplyStatus, statusBu
 
   return (
     <>
-      {/* ── Floating action bar ── */}
-      <div className="cand-bulkbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", justifyContent: "center", padding: "0 12px 16px", zIndex: 60, pointerEvents: "none" }}>
+      {/* ── Floating ink action bar — safe cross job actions only ── */}
+      <div className="cand-bulkbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, display: "flex", justifyContent: "center", padding: "0 12px calc(16px + env(safe-area-inset-bottom, 0px))", zIndex: 60, pointerEvents: "none" }}>
         <motion.div
           role="region"
           aria-label="Bulk actions"
@@ -149,71 +140,63 @@ export default function BulkActions({ selected, onClear, onApplyStatus, statusBu
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.26, ease: EASE }}
           style={{
-            pointerEvents: "auto", width: "min(760px, 100%)",
+            pointerEvents: "auto", width: "min(860px, 100%)",
             display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-            padding: "10px 12px",
-            // Floating surface → glass: translucent white + blur so the list
-            // shows through. Allowed here precisely because it floats.
-            background: "rgba(255, 255, 255, 0.74)",
-            backdropFilter: "blur(18px) saturate(1.7)",
-            WebkitBackdropFilter: "blur(18px) saturate(1.7)",
-            border: "1px solid rgba(255, 255, 255, 0.6)",
-            borderRadius: 16,
-            boxShadow: "0 16px 44px -16px rgba(20, 19, 31, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+            padding: "12px 16px",
+            background: "var(--hjl-ink, #14131F)",
+            color: "#FFFFFF", /* theme-fixed: the bar is deliberately ink */
+            borderRadius: 14,
+            boxShadow: "0 22px 50px -20px rgba(20, 19, 31, 0.5)",
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--pj-text)" }}>
-            {count} selected
-          </span>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>{count} selected</span>
+          <span aria-hidden="true" style={{ width: 1, height: 22, background: "rgba(255, 255, 255, 0.18)", flexShrink: 0 }} />
 
-          <span style={{ flex: 1, minWidth: 8 }} />
-
-          <div style={{ width: 190 }} title="Updates each selected candidate's latest (displayed) application only">
-            <Select
-              size="sm"
-              menuAlign="right"
-              value=""
-              placeholder={statusBusy ? "Updating…" : "Move newest application to…"}
-              disabled={statusBusy || count === 0}
-              onChange={(v) => { if (v) onApplyStatus(v); }}
-              options={BULK_STATUS}
-              ariaLabel="Move latest application to status"
-            />
-          </div>
-
-          <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={pill("plain")} onClick={() => exportCsv(selected)}>
-            <DownloadIcon /> Export CSV
-          </motion.button>
-
-          <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={pill("wa")} onClick={() => setQueueOpen(true)}>
-            <WaIcon /> WhatsApp
+          <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={barPill("wa")} onClick={() => setQueueOpen(true)}>
+            <WaIcon /> Message on WhatsApp
           </motion.button>
 
           {onCompare && (
             <motion.button
               type="button"
               whileTap={reduce || !canCompare ? undefined : { scale: 0.96 }}
-              style={{ ...pill("primary"), opacity: canCompare ? 1 : 0.5, cursor: canCompare ? "pointer" : "default" }}
+              style={{ ...barPill(), opacity: canCompare ? 1 : 0.5, cursor: canCompare ? "pointer" : "default" }}
               disabled={!canCompare}
               onClick={() => { if (canCompare) onCompare(); }}
-              title={canCompare ? "Compare the selected candidates side by side" : "compare up to 3 at a time"}
+              title={canCompare ? "Compare the selected people side by side" : "Compare up to 3 at a time"}
             >
               <CompareIcon /> Compare
             </motion.button>
           )}
 
-          <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={pill("plain")} onClick={onClear}>
+          {onAddToJob && (
+            <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={barPill()} onClick={onAddToJob}>
+              + Add to job
+            </motion.button>
+          )}
+
+          {onAddToPool && (
+            <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={barPill()} onClick={onAddToPool}>
+              Add to pool
+            </motion.button>
+          )}
+
+          <motion.button type="button" whileTap={reduce ? undefined : { scale: 0.96 }} style={barPill()} onClick={() => exportCsv(selected)}>
+            <DownloadIcon /> Export
+          </motion.button>
+
+          <motion.button
+            type="button"
+            whileTap={reduce ? undefined : { scale: 0.96 }}
+            style={{ ...barPill(), background: "transparent", color: "rgba(255, 255, 255, 0.7)", marginLeft: "auto" }}
+            onClick={onClear}
+          >
             Clear
           </motion.button>
 
           {onCompare && count > 3 && (
-            <span role="status" style={{ flexBasis: "100%", fontSize: 12, color: "var(--pj-muted)", fontWeight: 600 }}>
-              compare up to 3 at a time
-            </span>
-          )}
-          {statusError && (
-            <span role="status" style={{ flexBasis: "100%", fontSize: 12, color: "var(--hjl-pass)", fontWeight: 600 }}>
-              {statusError}
+            <span role="status" style={{ flexBasis: "100%", fontSize: 12, color: "rgba(255, 255, 255, 0.7)", fontWeight: 600 }}>
+              Compare works with up to 3 people at a time
             </span>
           )}
         </motion.div>

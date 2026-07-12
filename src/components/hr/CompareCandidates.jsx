@@ -501,14 +501,19 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
                 const already = shortlisted[key] || c.apps?.[0]?.status === "shortlisted";
                 return (
                   <motion.div key={`act-${c.key}`} className="cc-cell cc-cell--actions" {...cellMotion(i)}>
-                    <button
-                      type="button"
-                      className="cc-btn cc-btn--primary"
-                      disabled={!!shortlistBusy[key] || already}
-                      onClick={() => doShortlist(c)}
-                    >
-                      {already ? <><CheckIc /> Shortlisted</> : shortlistBusy[key] ? "Saving…" : "Shortlist"}
-                    </button>
+                    {/* Shortlist targets the specific job shown in this column
+                        (apps[0]); a person with no job has nothing to stage,
+                        so the button never renders as a dead control. */}
+                    {onShortlist && c.apps?.[0] && (
+                      <button
+                        type="button"
+                        className="cc-btn cc-btn--primary"
+                        disabled={!!shortlistBusy[key] || already}
+                        onClick={() => doShortlist(c)}
+                      >
+                        {already ? <><CheckIc /> Shortlisted</> : shortlistBusy[key] ? "Saving…" : "Shortlist"}
+                      </button>
+                    )}
                     <button type="button" className="cc-btn" onClick={() => setViewCvFor(c)}>View CV</button>
                   </motion.div>
                 );

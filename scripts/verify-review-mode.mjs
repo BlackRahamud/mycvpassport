@@ -451,10 +451,10 @@ const REVIEW_URL = `http://localhost:4187/employer/jobs/${JOB_ID}/review`;
   /* reject flow: reason required, honest note, banner, advance to done */
   await page.keyboard.press("ArrowLeft"); // v1.5: left opens reject
   await page.waitForTimeout(250);
-  check(await page.locator(".rvm-modal").isVisible(), "desktop: reject modal opens (ArrowLeft)");
+  check(await page.locator(".rjm-modal").isVisible(), "desktop: reject modal opens (ArrowLeft)");
   check(await page.getByRole("button", { name: "Reject candidate" }).isDisabled(), "desktop: confirm disabled without a reason");
-  check((await page.locator(".rvm-reason").count()) === 7, "desktop: seven reason codes");
-  await dashScan(page, ".rvm-modal", "desktop reject modal");
+  check((await page.locator(".rjm-reason").count()) === 7, "desktop: seven reason codes");
+  await dashScan(page, ".rjm-modal", "desktop reject modal");
   await shot(page, "desktop-reject-modal");
   await page.getByRole("radio", { name: "Salary mismatch" }).click();
   await page.getByRole("button", { name: "Reject candidate" }).click();
@@ -502,7 +502,7 @@ for (const width of [360, 393, 430]) {
   if (width === 393) {
     await page.locator(".rvm-decide--reject").click();
     await page.waitForTimeout(300);
-    check(await page.locator(".rvm-modal--sheet").isVisible(), "mobile 393: reject modal is a bottom sheet");
+    check(await page.locator(".rjm-modal--sheet").isVisible(), "mobile 393: reject modal is a bottom sheet");
     await auditOverflow(page, "mobile 393 with sheet");
     await shot(page, "mobile-393-reject-sheet");
   }

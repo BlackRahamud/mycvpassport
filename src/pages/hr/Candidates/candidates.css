@@ -375,3 +375,369 @@
 @media (prefers-reduced-motion: reduce) {
   .cand-search input, .cand-card, .cand-applied__row, .cand-applied__chev { transition: none !important; }
 }
+
+/* ═══════════ Candidates tab redesign (Option A) ═══════════ */
+
+/* ── person tags ── */
+.cand-tag-ink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 19px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: var(--hjl-ink, #14131F);
+  color: #FFFFFF; /* theme-fixed: the import tag is deliberately ink */
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cand-tag-pool {
+  display: inline-flex;
+  align-items: center;
+  min-height: 19px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  border: 1px solid var(--pj-border);
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── stage chip on single job cards ── */
+.cand-stagechip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 19px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.cand-stagechip--new { color: var(--pj-success); background: rgba(5, 150, 105, 0.08); }
+.cand-stagechip--mid { color: var(--pj-text-soft); background: var(--pj-input-bg); }
+.cand-stagechip--good { color: #1D9E75; background: rgba(29, 158, 117, 0.09); }
+.cand-stagechip--passed { color: var(--pj-danger); background: rgba(220, 38, 38, 0.07); }
+
+/* ── multi job card line ── */
+.cand-card__multi { font-size: 11.5px; font-weight: 700; color: var(--pj-text); }
+.cand-card__furthest { font-size: 11.5px; font-weight: 600; color: var(--pj-muted); }
+.cand-card__jobtitle {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pj-text-soft);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cand-rowwrap { display: flex; align-items: stretch; gap: 10px; }
+.cand-rowwrap__check { display: flex; align-items: center; padding-left: 2px; cursor: pointer; }
+.cand-selectall {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 2px 2px 8px;
+}
+.cand-selectall label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pj-text-soft);
+}
+.cand-selectall__count { font-size: 12.5px; font-weight: 700; color: var(--pj-text); }
+.cand-selectall__cap { font-size: 12px; font-weight: 600; color: var(--hjl-pass, #D85A30); }
+
+/* ── no match empty state ── */
+.cand-nomatch__title { margin: 0 0 4px; font-size: 13.5px; font-weight: 700; color: var(--pj-text); }
+.cand-nomatch__body { margin: 0; font-size: 12.5px; color: var(--pj-text-soft); line-height: 1.55; }
+
+/* ── profile header ── */
+.cand-id__toprow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cand-id__tags { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.cand-id__meta { margin-top: 5px; }
+
+/* ── pool only banner ── */
+.cand-poolbanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--pj-input-bg);
+  border: 1px solid var(--pj-border);
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.cand-poolbanner__text { font-size: 12.5px; line-height: 1.5; color: var(--pj-text-soft); flex: 1 1 220px; }
+
+.cand-inkbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--hjl-ink, #14131F);
+  color: #FFFFFF; /* theme-fixed: ink primary, matching cand-add */
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 160ms var(--pj-ease);
+}
+.cand-inkbtn:hover { background: var(--hjl-ink-hover, #2A2937); }
+.cand-inkbtn--solid {
+  background: var(--hjl-ink, #14131F);
+  border-color: var(--hjl-ink, #14131F);
+  color: #FFFFFF; /* theme-fixed */
+}
+.cand-inkbtn--solid:hover { background: var(--hjl-ink-hover, #2A2937); }
+.cand-inkbtn--solid:disabled { opacity: 0.5; cursor: default; }
+.cand-ghostbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: 10px;
+  background: var(--pj-surface);
+  color: var(--pj-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease);
+}
+.cand-ghostbtn:hover { background: var(--pj-input-bg); }
+
+/* ── THE HEART: per job staging rows ── */
+.cand-jobs { display: flex; flex-direction: column; gap: 8px; }
+.cand-jobrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  background: var(--pj-surface);
+}
+.cand-jobrow__who { min-width: 0; flex: 1; }
+.cand-jobrow__title { display: block; font-size: 13.5px; font-weight: 700; color: var(--pj-text); overflow-wrap: anywhere; }
+.cand-jobrow__sub { display: block; font-size: 11.5px; color: var(--pj-muted); margin-top: 2px; }
+.cand-jobrow__ctl { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.cand-stagectl { position: relative; display: inline-flex; }
+.cand-stagebtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: 9px;
+  background: var(--pj-surface);
+  color: var(--pj-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 140ms var(--pj-ease), box-shadow 140ms var(--pj-ease);
+}
+.cand-stagebtn--open {
+  border: 1.5px solid var(--hjl-ink, #14131F);
+  box-shadow: 0 0 0 3px rgba(20, 19, 31, 0.08);
+}
+.cand-stagebtn--passed { color: var(--pj-danger); }
+.cand-stagebtn__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pj-success); flex-shrink: 0; }
+.cand-stagebtn__chev { display: inline-flex; color: var(--pj-muted); }
+.cand-stagemenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 90;
+  width: 240px;
+  background: var(--pj-surface);
+  border: 1px solid var(--pj-border);
+  border-radius: 12px;
+  box-shadow: 0 22px 50px -20px rgba(20, 19, 31, 0.35);
+  overflow: hidden;
+}
+.cand-stagemenu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 14px;
+  border: 0;
+  background: var(--pj-surface);
+  color: var(--pj-text-soft);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+.cand-stagemenu__item:hover { background: var(--pj-input-bg); }
+.cand-stagemenu__item--current { color: var(--pj-text); font-weight: 700; background: var(--pj-input-bg); }
+.cand-stagemenu__item--passed { color: var(--pj-danger); border-top: 1px solid var(--pj-border); }
+.cand-stagemenu__label { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cand-stagemenu__note { font-size: 10.5px; font-weight: 400; color: var(--pj-muted); }
+.cand-stagemenu__tick { color: #1D9E75; flex-shrink: 0; }
+.cand-match--scoring {
+  background: rgba(217, 119, 6, 0.09);
+  color: #B45309;
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+/* ── Add to job / pool picker (inside the shared rjm modal shell) ── */
+.cand-jobpick { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+.cand-jobpick__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--pj-border);
+  border-radius: 11px;
+  background: var(--pj-surface);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: border-color 140ms var(--pj-ease);
+}
+.cand-jobpick__row--active { border: 1.5px solid var(--hjl-ink, #14131F); }
+.cand-jobpick__who { min-width: 0; }
+.cand-jobpick__title { display: block; font-size: 13px; font-weight: 700; color: var(--pj-text); }
+.cand-jobpick__sub { display: block; font-size: 11.5px; color: var(--pj-muted); margin-top: 1px; }
+.cand-jobpick__radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pj-border-strong);
+  background: var(--pj-surface);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.cand-jobpick__radio--on { border: 5.5px solid var(--hjl-ink, #14131F); }
+.cand-stagepick { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cand-stagepick__label { font-size: 12.5px; font-weight: 600; color: var(--pj-text-soft); }
+.cand-poolnew { display: flex; flex-direction: column; gap: 10px; }
+.cand-poolnew__input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  background: var(--pj-input-bg);
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--pj-text);
+}
+.cand-poolnew__input:focus { outline: none; border-color: var(--hjl-ink, #14131F); }
+
+/* ── toast ── */
+.cand-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 4500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--hjl-ink, #14131F);
+  color: #FFFFFF; /* theme-fixed: light text on the dark toast */
+  border-radius: 12px;
+  padding: 11px 16px;
+  box-shadow: 0 18px 40px -18px rgba(20, 19, 31, 0.5);
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.cand-toast button {
+  border: 0;
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF; /* theme-fixed */
+  border-radius: 7px;
+  height: 28px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── mobile stage chips (frame 1k) vs desktop selects ── */
+.cand-stagechips {
+  display: none;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 2px 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.cand-stagechips::-webkit-scrollbar { display: none; }
+.cand-stagechips__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--pj-border);
+  background: var(--pj-surface);
+  color: var(--pj-text-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cand-stagechips__chip--active {
+  background: var(--hjl-ink, #14131F);
+  border-color: var(--hjl-ink, #14131F);
+  color: #FFFFFF; /* theme-fixed: active chip is ink */
+}
+
+@media (max-width: 899px) {
+  .cand-stagechips { display: flex; }
+  .cand-stagefilter-select { display: none; }
+  .cand-add { min-width: 44px; min-height: 44px; }
+  .cand-add__label { display: none; }
+  /* per job rows stack; the stage control stays a 44px target (frame 1l) */
+  .cand-jobrow { flex-direction: column; align-items: stretch; gap: 10px; }
+  .cand-jobrow__ctl { justify-content: space-between; }
+  .cand-stagebtn { min-height: 44px; flex: 1; justify-content: space-between; }
+  .cand-stagectl { flex: 1; }
+  .cand-stagemenu { left: 0; right: 0; width: auto; }
+}
