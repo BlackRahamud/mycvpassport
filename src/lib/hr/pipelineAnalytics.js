@@ -84,7 +84,7 @@ export function stageFunnel(apps, events = []) {
 
 /* 3) Median time-in-stage — durations between entering a stage and
       entering any LATER stage (or being rejected), from candidate_events
-      timestamps; applied_at seeds the shortlist entry. Open intervals
+      timestamps; applied_at seeds the New (entry stage) interval. Open intervals
       (candidate still sitting in the stage) are excluded — only real,
       completed dwell times count. */
 export function medianTimeInStage(apps, events = []) {

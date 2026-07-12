@@ -27,51 +27,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { loadCvFile, blobToArrayBuffer } from "../../lib/hr/cvFile";
+import { loadCvFile } from "../../lib/hr/cvFile";
+// One pdf.js / docx render path, shared with the review mode's Original CV
+// tab (src/lib/hr/cvDocEngine.js). Never re-inline a second copy here.
+import { isStaleAsset, openPdfFromBlob, docxToHtml } from "../../lib/hr/cvDocEngine";
+import usePdfPageCanvas from "./usePdfPageCanvas";
 import ScoreRing from "./ScoreRing";
 import { scoreBand } from "../../lib/ats/scoreBand";
 import "./cvViewerOverlay.css";
+
+// Back-compat re-export: isStaleAsset used to live in this file.
+export { isStaleAsset } from "../../lib/hr/cvDocEngine";
 
 const EASE = [0.2, 0.9, 0.3, 1];
 const SPRING = { type: "spring", stiffness: 380, damping: 34, mass: 0.9 };
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.6;
 const ZOOM_STEP = 0.15;
-
-/* Lazy pdf.js: loaded only when a PDF actually opens. The worker is served
-   from public/ (scripts/copy-pdf-worker.mjs keeps it in lockstep with the
-   installed pdfjs-dist). Failure anywhere falls through to the file card. */
-async function getPdfjs() {
-  const pdfjs = await import(/* webpackChunkName: "pdfjs" */ "pdfjs-dist");
-  if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL || ""}/pdf.worker.min.js`;
-  }
-  return pdfjs;
-}
-
-/* A tab left open across a deploy asks for lazy chunks (pdfjs, mammoth) or a
-   worker that no longer exist on the server. That is not "preview not
-   supported", it is a stale page: detect it so the UI can say refresh. */
-export function isStaleAsset(e) {
-  if (e?.name === "ChunkLoadError") return true;
-  const m = String(e?.message || e || "");
-  return /loading chunk|chunkloaderror/i.test(m)
-    || /failed to fetch dynamically imported module/i.test(m)
-    || /does not match the worker version/i.test(m)
-    || /fake worker failed/i.test(m)
-    || /importscripts/i.test(m)
-    || /unexpected token '?</i.test(m) // HTML served where JS was expected
-    || /networkerror|failed to fetch/i.test(m);
-}
-
-/* One immediate retry for transient fetch blips; webpack 5 re-requests a
-   failed chunk on the next import(). A dead deployment fails both attempts. */
-async function withRetry(fn) {
-  try { return await fn(); } catch (e) {
-    if (!isStaleAsset(e)) throw e;
-    return fn();
-  }
-}
 
 /* ── icons ────────────────────────────────────────────────────── */
 const Ic = {
@@ -89,34 +61,7 @@ const Ic = {
 
 /* ── page canvas ──────────────────────────────────────────────── */
 function PdfPage({ pdfDoc, pageNo, scale, reduce, onVisible }) {
-  const canvasRef = useRef(null);
-  const [drawn, setDrawn] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    let task = null;
-    (async () => {
-      try {
-        const page = await pdfDoc.getPage(pageNo);
-        if (!live || !canvasRef.current) return;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const viewport = page.getViewport({ scale: scale * dpr });
-        const canvas = canvasRef.current;
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        canvas.style.width = `${viewport.width / dpr}px`;
-        canvas.style.height = `${viewport.height / dpr}px`;
-        task = page.render({ canvasContext: canvas.getContext("2d"), viewport });
-        await task.promise;
-        if (live) setDrawn(true);
-      } catch (e) {
-        if (e?.name !== "RenderingCancelledException") {
-          console.error(`CV viewer: page ${pageNo} render failed:`, e?.message || e);
-        }
-      }
-    })();
-    return () => { live = false; task?.cancel?.(); };
-  }, [pdfDoc, pageNo, scale]);
+  const { canvasRef, drawn } = usePdfPageCanvas({ pdfDoc, pageNo, scale });
 
   return (
     <motion.div
@@ -321,11 +266,7 @@ export default function CvViewerOverlay({ open, onClose, path, fileName, intel, 
 
         if (loaded.ext === "pdf") {
           try {
-            const pdf = await withRetry(async () => {
-              const pdfjs = await getPdfjs();
-              const bytes = await blobToArrayBuffer(loaded.blob);
-              return pdfjs.getDocument({ data: bytes }).promise;
-            });
+            const pdf = await openPdfFromBlob(loaded.blob);
             if (live) setDoc({ kind: "pdf", pdf });
           } catch (e) {
             console.error(`CV viewer: pdf.js failed for "${path}":`, e?.message || e);
@@ -334,11 +275,7 @@ export default function CvViewerOverlay({ open, onClose, path, fileName, intel, 
           }
         } else if (loaded.ext === "docx") {
           try {
-            const value = await withRetry(async () => {
-              const mammoth = await import(/* webpackChunkName: "mammoth" */ "mammoth/mammoth.browser");
-              const bytes = await blobToArrayBuffer(loaded.blob);
-              return (await mammoth.convertToHtml({ arrayBuffer: bytes })).value;
-            });
+            const value = await docxToHtml(loaded.blob);
             if (live) setDoc(value ? { kind: "html", html: value } : { kind: "card" });
           } catch (e) {
             console.error(`CV viewer: docx convert failed for "${path}":`, e?.message || e);

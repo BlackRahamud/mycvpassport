@@ -14,7 +14,8 @@ const app = (id, name, status, score = 82) => ({
 });
 
 const BUCKETS = {
-  shortlist: [app("a1", "Rahul Sharma", "shortlisted", 91), app("a2", "Fatima Noor", "new", 76)],
+  new: [app("a2", "Fatima Noor", "new", 76)],
+  shortlist: [app("a1", "Rahul Sharma", "shortlisted", 91)],
   ready: [],
   interviewed: [app("a3", "Joseph Mathew", "interviewed", 68)],
   offer: [],
@@ -24,13 +25,15 @@ const BUCKETS = {
 describe("PipelineKanban", () => {
   test("renders one column per stage with counts, cards and designed empty states", () => {
     render(<PipelineKanban stageBuckets={BUCKETS} onMove={jest.fn()} onOpen={jest.fn()} reduce />);
-    expect(screen.getByLabelText("Shortlist, 2 candidates")).toBeInTheDocument();
-    expect(screen.getByLabelText("Ready, 0 candidates")).toBeInTheDocument();
+    expect(screen.getByLabelText("New, 1 candidates")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shortlist, 1 candidates")).toBeInTheDocument();
+    expect(screen.getByLabelText("To interview, 0 candidates")).toBeInTheDocument();
     expect(screen.getByLabelText("Hired, 0 candidates")).toBeInTheDocument();
     expect(screen.getByText("Rahul Sharma")).toBeInTheDocument();
+    expect(screen.getByText("Fatima Noor")).toBeInTheDocument();
     expect(screen.getByText("91/100")).toBeInTheDocument();
     // Empty columns render a designed placeholder, not a collapsed nothing.
-    expect(screen.getByText("No one at Ready yet")).toBeInTheDocument();
+    expect(screen.getByText("No one at To interview yet")).toBeInTheDocument();
     expect(screen.getAllByText("Drag a card here to move them").length).toBeGreaterThan(0);
   });
 

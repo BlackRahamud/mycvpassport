@@ -66,7 +66,7 @@ function jobSignal(agg, job) {
     return { kind: "verdict", label: `${verdicts} client verdict${verdicts > 1 ? "s" : ""}`, action: { label: "See verdict", variant: "verdict", to: `/employer/jobs/${job.id}?app=${agg.verdictAppId}` } };
   }
   if (newCount > 0) {
-    return { kind: "hot", label: `hot, ${newCount} new`, action: { label: `Review ${newCount} new`, variant: "primary", to: `/employer/jobs/${job.id}?stage=shortlist` } };
+    return { kind: "hot", label: `hot, ${newCount} new`, action: { label: `Review ${newCount} new`, variant: "primary", to: `/employer/jobs/${job.id}/review` } };
   }
   if (daysSince != null && daysSince >= STALLED_DAYS) {
     return { kind: "stalled", label: `stalled ${daysSince}d`, action: { label: "Source talent", variant: "ghost", to: "/employer/post" } };

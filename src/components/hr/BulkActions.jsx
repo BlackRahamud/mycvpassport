@@ -41,8 +41,9 @@ function firstName(full) { return givenName(full, "there"); }
    migration 013 CHECK set). The founder note said "shortlist/reject" — the
    actual column values are "shortlisted"/"rejected". */
 const BULK_STATUS = [
+  { value: "new",         label: "New" },
   { value: "shortlisted", label: "Shortlisted" },
-  { value: "ready",       label: "Ready to interview" },
+  { value: "ready",       label: "To interview" },
   { value: "interviewed", label: "Interviewed" },
   { value: "offered",     label: "Offer extended" },
   { value: "hired",       label: "Hired" },
@@ -50,8 +51,8 @@ const BULK_STATUS = [
 ];
 
 const STATUS_LABEL = {
-  submitted: "Applied", viewed: "Viewed", shortlisted: "Shortlisted", new: "Applied",
-  ready: "Ready", interviewing: "Interviewing", interviewed: "Interviewed",
+  submitted: "New", viewed: "New", shortlisted: "Shortlisted", new: "New",
+  ready: "To interview", interviewing: "Interviewing", interviewed: "Interviewed",
   offered: "Offer", hired: "Hired", rejected: "Passed",
 };
 function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "Not set"); }

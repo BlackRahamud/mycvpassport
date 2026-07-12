@@ -544,3 +544,25 @@ body.jpp-kb-dragging .jpp-kb-card:hover {
   .jpp-kb-card__grip, .jpp-kbm-chip, .jpp-kb-card__moveto { transition: none !important; }
   .jpp-kbm-chip:active, .jpp-kb-card__moveto:active { transform: none; }
 }
+
+/* ── New column lead: the Review CTA block button (frame 1k) ── */
+.jpp-kb-col__lead { display: flex; flex-direction: column; }
+.jpp-kb-col__review {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  border: 1px solid var(--pj-primary);
+  border-radius: 9px;
+  background: var(--pj-primary);
+  color: #FFFFFF; /* theme-fixed: white on the purple CTA */
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 14px -6px rgba(124, 58, 237, 0.45);
+  transition: background 160ms var(--pj-ease);
+  width: 100%;
+}
+.jpp-kb-col__review:hover { background: var(--pj-primary-hover); }

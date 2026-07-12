@@ -1,0 +1,147 @@
+/* JobDescriptionPanel — shared by the review mode right rail and the
+   job pipeline header. Tokens from postJob.css (--pj-*). */
+
+.jdp {
+  background: var(--pj-surface);
+  border: 1px solid var(--pj-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 6px -3px rgba(20, 19, 31, 0.06);
+  overflow: hidden;
+}
+.jdp__head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  color: inherit;
+  box-sizing: border-box;
+}
+.jdp__titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.jdp__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pj-muted);
+}
+.jdp__title { font-size: 14px; font-weight: 700; color: var(--pj-text); }
+.jdp__chev { color: var(--pj-muted); display: inline-flex; transition: transform 180ms var(--pj-ease); }
+.jdp__chev.is-open { transform: rotate(180deg); }
+.jdp__body { padding: 0 18px 18px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+.jdp__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.jdp__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid var(--pj-border);
+  box-sizing: border-box;
+}
+.jdp__chip--soft { color: var(--pj-muted); }
+.jdp__desc { font-size: 12.5px; line-height: 1.6; color: var(--pj-text-soft); }
+.jdp__desc p { margin: 0 0 10px; }
+.jdp__desc p:last-child { margin-bottom: 0; }
+.jdp__desc--rich ul, .jdp__desc--rich ol { margin: 0 0 10px; padding-left: 18px; }
+.jdp__desc--rich * { max-width: 100%; }
+.jdp__subhead { font-size: 12px; font-weight: 700; color: var(--pj-text); margin: 0 0 6px; }
+.jdp__list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.jdp__ground {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--pj-input-bg);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pj-muted);
+}
+.jdp__empty {
+  border: 1.5px dashed var(--pj-border-strong);
+  border-radius: 12px;
+  padding: 22px 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.jdp__empty-title { font-size: 13px; font-weight: 600; color: var(--pj-text-soft); }
+.jdp__empty-body { font-size: 12px; color: var(--pj-muted); line-height: 1.5; margin-bottom: 10px; }
+.jdp__addbtn {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid var(--pj-primary);
+  border-radius: 9px;
+  background: var(--pj-surface);
+  color: var(--pj-primary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease);
+}
+.jdp__addbtn:hover { background: rgba(124, 58, 237, 0.06); }
+.jdp__editor { display: flex; flex-direction: column; gap: 10px; }
+.jdp__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  background: var(--pj-input-bg);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--pj-text);
+  resize: vertical;
+}
+.jdp__textarea:focus { outline: none; border-color: var(--pj-primary); }
+.jdp__error { font-size: 12px; color: var(--pj-danger); }
+.jdp__editor-acts { display: flex; gap: 8px; justify-content: flex-end; }
+.jdp__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: 9px;
+  background: var(--pj-surface);
+  color: var(--pj-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease);
+}
+.jdp__btn:hover { background: var(--pj-input-bg); }
+.jdp__btn:disabled { opacity: 0.5; cursor: default; }
+.jdp__btn--primary {
+  background: var(--pj-primary);
+  border-color: var(--pj-primary);
+  color: #FFFFFF; /* theme-fixed: white on the purple CTA */
+}
+.jdp__btn--primary:hover { background: var(--pj-primary-hover); }
+.jdp__linkbtn {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pj-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}

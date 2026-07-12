@@ -262,7 +262,7 @@ function PhoneCard({ app, stageKey, onOpen, onMenu }) {
 }
 
 /* ── Column ── */
-function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, draggingFromStage, landedId, headerExtra }) {
+function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, draggingFromStage, landedId, headerExtra, leadExtra }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   // The dashed landing slot only appears when the hovered card is coming
   // FROM another column — same-column hovers can't move anything.
@@ -278,6 +278,7 @@ function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, draggi
         {headerExtra}
       </header>
       <div ref={setNodeRef} className="jpp-kb-col__body">
+        {leadExtra && cards.length > 0 && <div className="jpp-kb-col__lead">{leadExtra}</div>}
         {cards.map((app) => (
           <KanbanCard
             key={app.id}
@@ -298,7 +299,7 @@ function KanbanColumn({ stage, cards, onOpen, onMenu, reduce, draggingId, draggi
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="16" y1="11" x2="22" y2="11" />
             </svg>
-            <p>{stage.key === "shortlist" ? "New applicants land here" : `No one at ${stage.label} yet`}</p>
+            <p>{stage.key === "new" ? "New applicants land here" : `No one at ${stage.label} yet`}</p>
             <span className="jpp-kb-empty__drag-hint">Drag a card here to move them</span>
           </div>
         )}
@@ -340,7 +341,7 @@ const setBodyDragging = (on) =>
    with a stage-chip pager (see PhonePager below). */
 const PHONE_QUERY = "(max-width: 480px)";
 
-export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, headerExtras = {} }) {
+export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, headerExtras = {}, leadExtras = {} }) {
   const [draggingId, setDraggingId] = useState(null);
   const [landedId, setLandedId] = useState(null); // settle flash after a stage move
   const [menu, setMenu] = useState(null); // { app, stageKey, rect }
@@ -351,7 +352,7 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
       ? window.matchMedia(PHONE_QUERY).matches
       : false,
   );
-  const [phoneStage, setPhoneStage] = useState("shortlist");
+  const [phoneStage, setPhoneStage] = useState(STAGES[0].key);
   const touchStartX = useRef(null);
 
   useEffect(() => {
@@ -437,6 +438,9 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
           })}
         </div>
         <div className="jpp-kbm-body" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+          {leadExtras[phoneStage] && cards.length > 0 && (
+            <div className="jpp-kbm-extra">{leadExtras[phoneStage]}</div>
+          )}
           {headerExtras[phoneStage] && (
             <div className="jpp-kbm-extra">{headerExtras[phoneStage]}</div>
           )}
@@ -454,7 +458,7 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="16" y1="11" x2="22" y2="11" />
               </svg>
-              <p>{phoneStage === "shortlist" ? "New applicants land here" : `No one at ${activeStageDef.label} yet`}</p>
+              <p>{phoneStage === "new" ? "New applicants land here" : `No one at ${activeStageDef.label} yet`}</p>
               <span>Use Move to on a card to bring someone here</span>
             </div>
           )}
@@ -499,6 +503,7 @@ export default function PipelineKanban({ stageBuckets, onMove, onOpen, reduce, h
               draggingFromStage={draggingFromStage}
               landedId={landedId}
               headerExtra={headerExtras[stage.key] || null}
+              leadExtra={leadExtras[stage.key] || null}
             />
           ))}
         </div>

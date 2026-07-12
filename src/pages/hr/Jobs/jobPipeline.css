@@ -1322,3 +1322,132 @@
   .jpp-cvcard__body { flex: 1 1 140px; }
   .jpp-cvcard__cta { margin-left: 58px; }
 }
+
+/* ═══════════ Evaluation redesign additions (New stage + bulk review) ═══════════ */
+
+/* Header side group: Review CTA + account manager card. */
+.jpp-header__side { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.jpp-review-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--pj-primary);
+  border-radius: 10px;
+  background: var(--pj-primary);
+  color: #FFFFFF; /* theme-fixed: white on the purple CTA */
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 14px -6px rgba(124, 58, 237, 0.45);
+  transition: background 160ms var(--pj-ease);
+  flex-shrink: 0;
+}
+.jpp-review-cta:hover { background: var(--pj-primary-hover); }
+
+/* Collapsible job description row under the header (frame 1h). */
+.jpp-jdrow { margin: 0 0 14px; }
+
+/* New-stage list column head extras. */
+.jpp-col-head__sort { font-size: 11.5px; color: var(--pj-muted); font-weight: 600; }
+.jpp-col-head__import--review { color: var(--pj-primary); }
+
+/* Score pill on New-stage cards (band colors set inline via BAND_COLORS). */
+.jpp-card__score {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Readiness state line on New-stage cards. */
+.jpp-card__readiness { font-size: 11.5px; font-weight: 600; }
+.jpp-card__readiness--ok { color: #1D9E75; }
+.jpp-card__readiness--flag { color: var(--pj-danger); }
+.jpp-card__readiness--missing { color: var(--pj-muted); }
+
+/* Bulk-selected card tint. */
+.jpp-card--bulked { background: rgba(124, 58, 237, 0.03); border-color: rgba(124, 58, 237, 0.35); }
+
+/* ── Bulk review bar — dark, fixed, reuses the CRM bulk bar feel ── */
+.jpp-bulkbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 14px;
+  background: var(--pj-text);
+  color: #FFFFFF; /* theme-fixed: light text on the dark bar */
+  box-shadow: 0 18px 40px -18px rgba(20, 19, 31, 0.5);
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+}
+.jpp-bulkbar__count { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.jpp-bulkbar__acts { display: inline-flex; gap: 8px; }
+.jpp-bulkbar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #FFFFFF; /* theme-fixed */
+  transition: background 160ms var(--pj-ease);
+}
+.jpp-bulkbar__btn:disabled { opacity: 0.6; cursor: default; }
+.jpp-bulkbar__btn--ghost { background: rgba(255, 255, 255, 0.12); }
+.jpp-bulkbar__btn--ghost:hover { background: rgba(255, 255, 255, 0.2); }
+.jpp-bulkbar__btn--primary { background: var(--pj-primary); padding: 0 16px; }
+.jpp-bulkbar__btn--primary:hover { background: var(--pj-primary-hover); }
+
+/* ── Bulk reject reason chips (inside the shared jpp-modal panel) ── */
+.jpp-reasons { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0; }
+.jpp-reason {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 13px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--pj-border);
+  background: var(--pj-surface);
+  color: var(--pj-text-soft);
+  transition: border-color 140ms var(--pj-ease), background 140ms var(--pj-ease), color 140ms var(--pj-ease);
+}
+.jpp-reason--active {
+  border-color: var(--pj-danger);
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--pj-danger);
+}
+.jpp-modal__body--soft { font-size: 11.5px; color: var(--pj-muted); }
+.jpp-action--danger {
+  background: var(--pj-danger);
+  border-color: var(--pj-danger);
+  color: #FFFFFF; /* theme-fixed: white on the destructive CTA */
+}
+.jpp-action--danger:hover { background: #B91C1C; }
+.jpp-action--danger:disabled { opacity: 0.45; }
+
+@media (max-width: 640px) {
+  .jpp-header__side { width: 100%; }
+  .jpp-review-cta { flex: 1; justify-content: center; }
+}

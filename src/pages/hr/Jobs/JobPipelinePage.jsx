@@ -20,10 +20,13 @@ import CvPreviewCard from "../../../components/hr/CvPreviewCard";
 // same) or the build emits a fatal-on-CI css order warning.
 import BulkCvImport from "../../../components/hr/BulkCvImport";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
+import JobDescriptionPanel from "../../../components/hr/JobDescriptionPanel";
 import givenName from "../../../lib/hr/givenName";
 import dedupeSkills from "../../../lib/hr/dedupeSkills";
 import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../../lib/ats/scoreBand";
 import { STAGES, STAGE_BY_DB, NEW_STATUSES, STAGE_DROP_STATUS } from "../../../lib/hr/stages";
+import { buildReadiness } from "../../../lib/hr/readiness";
+import { REJECT_REASONS } from "../../../lib/hr/rejectReasons";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
 import { readViewPref, writeViewPref, effectiveView } from "../../../lib/hr/viewPref";
 import PipelineKanban, { KanbanSkeleton } from "./PipelineKanban";
@@ -251,7 +254,13 @@ export default function JobPipelinePage() {
   const [apps, setApps] = useState(null); // null = loading
   const [appsTick, setAppsTick] = useState(0); // bump to refetch (e.g. after bulk import)
   const [importOpen, setImportOpen] = useState(false);
-  const [activeStage, setActiveStage] = useState("shortlist");
+  const [activeStage, setActiveStage] = useState("new");
+  /* Bulk review (list view, New stage): true multi-select, separate from
+     the detail-panel selection. */
+  const [bulkChecked, setBulkChecked] = useState(() => new Set());
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
+  const [bulkReason, setBulkReason] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSubmitting, setNoteSubmitting] = useState(false);
@@ -458,6 +467,62 @@ export default function JobPipelinePage() {
     updateStatus(selected.id, "rejected");
   }, [selected, updateStatus]);
 
+  const openReview = useCallback(() => navigate(`/employer/jobs/${jobId}/review`), [navigate, jobId]);
+
+  /* ── Bulk review actions (list view, New stage; frame 1l) ──
+     One .in() write for the whole selection, optimistic with an honest
+     revert; reject carries the 037 reason columns with a status-only
+     fallback for a pre-037 database. */
+  const bulkApply = useCallback(async (kind, reasonCode) => {
+    const ids = Array.from(bulkChecked);
+    if (!ids.length || bulkBusy) return;
+    const newStatus = kind === "shortlist" ? "shortlisted" : "rejected";
+    const iso = new Date().toISOString();
+    const prevRows = (apps || []).filter((a) => bulkChecked.has(a.id));
+    setBulkBusy(true);
+    setMoveError(null);
+    setApps((prev) => (prev || []).map((a) => (bulkChecked.has(a.id) ? { ...a, status: newStatus, updated_at: iso } : a)));
+    const base = { status: newStatus, updated_at: iso };
+    const full = kind === "reject"
+      ? { ...base, reject_reason: reasonCode || null, rejected_at: iso, reject_notify_at: new Date(new Date(iso).getTime() + 24 * 3600 * 1000).toISOString() }
+      : base;
+    let { error } = await supabase.from("applications").update(full).in("id", ids);
+    if (error && /column|schema cache/i.test(error.message || "")) {
+      ({ error } = await supabase.from("applications").update(base).in("id", ids));
+    }
+    setBulkBusy(false);
+    if (error) {
+      setApps((prev) => (prev || []).map((a) => {
+        const p = prevRows.find((r) => r.id === a.id);
+        return p ? { ...a, status: p.status, updated_at: p.updated_at } : a;
+      }));
+      setMoveError("Couldn't save the bulk decision, nothing was changed. Check your connection and try again.");
+      return;
+    }
+    /* Best-effort history trail, same event vocabulary as single moves. */
+    const events = prevRows
+      .map((a) => buildStageMoveWrites({ app: a, newStatus, hrId: user?.id, now: new Date(iso) }).event)
+      .filter(Boolean);
+    if (events.length) {
+      supabase.from("candidate_events").insert(events).then(
+        () => {},
+        (e) => console.warn("[pipeline] bulk event insert failed:", e?.message || e), // eslint-disable-line no-console
+      );
+    }
+    setBulkChecked(new Set());
+    setBulkRejectOpen(false);
+    setBulkReason(null);
+  }, [bulkChecked, bulkBusy, apps, user?.id]);
+
+  const toggleBulk = useCallback((id) => {
+    setBulkChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+
   /* Move-failure toast auto-dismisses; manual dismiss stays available. */
   useEffect(() => {
     if (!moveError) return undefined;
@@ -482,6 +547,10 @@ export default function JobPipelinePage() {
     setViewPref(v);
     writeViewPref(user?.id, v);
   }, [user?.id]);
+
+  /* Bulk selection only makes sense inside the New list — clear it when
+     the stage or view changes so a hidden selection can never act. */
+  useEffect(() => { setBulkChecked(new Set()); }, [activeStage, view]);
 
   /* Kanban handlers — same persistence path as the list. The kanban
      passes a stage key (or 'rejected' from the move menu); translate to
@@ -611,15 +680,37 @@ export default function JobPipelinePage() {
             </p>
           </div>
 
-          <div className="jpp-am" aria-label="Account manager">
-            <div className="jpp-am__avatar">CV</div>
-            <div>
-              <div className="jpp-am__label">Your Account Manager</div>
-              <div className="jpp-am__name">CVPassport Talent Team</div>
-              <a className="jpp-am__contact" href="mailto:hello@mycvpassport.com"><MailIc /> hello@mycvpassport.com</a>
+          <div className="jpp-header__side">
+            {(stageBuckets.new || []).length > 0 && (
+              <button type="button" className="jpp-review-cta" onClick={openReview}>
+                Review {(stageBuckets.new || []).length} new
+              </button>
+            )}
+            <div className="jpp-am" aria-label="Account manager">
+              <div className="jpp-am__avatar">CV</div>
+              <div>
+                <div className="jpp-am__label">Your Account Manager</div>
+                <div className="jpp-am__name">CVPassport Talent Team</div>
+                <a className="jpp-am__contact" href="mailto:hello@mycvpassport.com"><MailIc /> hello@mycvpassport.com</a>
+              </div>
             </div>
           </div>
         </motion.div>
+
+        {/* Job description, always one click away (frame 1h). Collapsed by
+            default; owns the empty state + inline editor. */}
+        {job && (
+          <div className="jpp-jdrow">
+            <JobDescriptionPanel
+              job={job}
+              collapsible
+              defaultOpen={false}
+              showChips={false}
+              onDescriptionSaved={(text) => setJob((j) => (j ? { ...j, description: text } : j))}
+              reduce={reduce}
+            />
+          </div>
+        )}
 
         <AnimatePresence>
           {moveError && (
@@ -684,7 +775,9 @@ export default function JobPipelinePage() {
                 onOpen={handleKanbanOpen}
                 reduce={reduce}
                 headerExtras={{
-                  shortlist: (
+                  // Imports land in New (migration 037), so the import
+                  // affordance lives on the entry column.
+                  new: (
                     <button
                       type="button"
                       className="jpp-kb-col__import"
@@ -692,6 +785,13 @@ export default function JobPipelinePage() {
                       title="Bulk-upload existing CVs into this pipeline"
                     >
                       + Import
+                    </button>
+                  ),
+                }}
+                leadExtras={{
+                  new: (
+                    <button type="button" className="jpp-kb-col__review" onClick={openReview}>
+                      Review {(stageBuckets.new || []).length} new →
                     </button>
                   ),
                 }}
@@ -710,8 +810,18 @@ export default function JobPipelinePage() {
           {/* Left column: candidate cards */}
           <section aria-label={`${stageDef.label} candidates`}>
             <div className="jpp-col-head">
-              <span className="jpp-col-head__title">{stageDef.label}</span>
-              {activeStage === "shortlist" && (
+              <span className="jpp-col-head__title">
+                {activeStage === "new" ? `New applicants · ${visibleCards.length}` : stageDef.label}
+              </span>
+              {activeStage === "new" && visibleCards.length > 0 && (
+                <span className="jpp-col-head__sort">Sorted best match first</span>
+              )}
+              {activeStage === "new" && visibleCards.length > 0 && (
+                <button type="button" className="jpp-col-head__import jpp-col-head__import--review" onClick={openReview}>
+                  Review one by one →
+                </button>
+              )}
+              {activeStage === "new" && (
                 <button
                   type="button"
                   className="jpp-col-head__import"
@@ -736,8 +846,8 @@ export default function JobPipelinePage() {
             {apps === null && <p className="jpp-empty-cards">Loading candidates…</p>}
             {apps !== null && visibleCards.length === 0 && (
               <p className="jpp-empty-cards">
-                {activeStage === "shortlist"
-                  ? "No applicants in your shortlist yet. Share the job link to start collecting CVs."
+                {activeStage === "new"
+                  ? "No new applicants right now. Share the job link or import CVs to start collecting candidates."
                   : `No candidates at the ${stageDef.label} stage yet.`}
               </p>
             )}
@@ -750,6 +860,18 @@ export default function JobPipelinePage() {
                   const isNew = NEW_STATUSES.has(c.status);
                   const showBadge = isNew || isImported;
                   const dateStamp = formatStartDate(c.updated_at || c.viewed_at || c.applied_at);
+                  const isNewStageList = activeStage === "new";
+                  const cardReadiness = isNewStageList
+                    ? buildReadiness({ cv: getCv(c), application: c, job: job || {} })
+                    : null;
+                  const readinessState = cardReadiness
+                    ? (cardReadiness.flagCount > 0
+                      ? { tone: "flag", text: `${cardReadiness.knockouts.length > 0 ? "1 knockout · " : ""}${cardReadiness.flagCount} ${cardReadiness.flagCount === 1 ? "flag" : "flags"}` }
+                      : cardReadiness.missingCount > 0
+                        ? { tone: "missing", text: `${cardReadiness.missingCount} ${cardReadiness.missingCount === 1 ? "field" : "fields"} not stated` }
+                        : { tone: "ok", text: "Ready to deploy" })
+                    : null;
+                  const cardBand = scoreBand(c.ats_score, c.score_source);
                   return (
                     <motion.div
                       key={c.id}
@@ -761,7 +883,7 @@ export default function JobPipelinePage() {
                     >
                       <button
                         type="button"
-                        className={`jpp-card${isActive ? " jpp-card--active" : ""}`}
+                        className={`jpp-card${isActive ? " jpp-card--active" : ""}${isNewStageList && bulkChecked.has(c.id) ? " jpp-card--bulked" : ""}`}
                         onClick={() => setSelectedAppId(c.id)}
                       >
                         <div className="jpp-card__top">
@@ -773,27 +895,62 @@ export default function JobPipelinePage() {
                             {isImported ? "Imported" : "New Applicant"}
                           </span>
                           <span className="jpp-card__top-right">
+                            {isNewStageList && cardBand !== "none" && (
+                              <span
+                                className="jpp-card__score"
+                                style={{ color: BAND_COLORS[cardBand], borderColor: `${BAND_COLORS[cardBand]}55`, background: `${BAND_COLORS[cardBand]}14` }}
+                              >
+                                {Math.round(Number(c.ats_score) || 0)}
+                              </span>
+                            )}
                             <input
                               type="checkbox"
                               className="jpp-card__check"
-                              checked={isActive}
-                              onChange={(e) => { e.stopPropagation(); setSelectedAppId(c.id); }}
+                              checked={isNewStageList ? bulkChecked.has(c.id) : isActive}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                if (isNewStageList) toggleBulk(c.id); else setSelectedAppId(c.id);
+                              }}
                               onClick={(e) => e.stopPropagation()}
-                              aria-label={`Select ${c.candidate_name || "candidate"}`}
+                              aria-label={isNewStageList
+                                ? `Select ${c.candidate_name || "candidate"} for bulk actions`
+                                : `Select ${c.candidate_name || "candidate"}`}
                             />
                           </span>
                         </div>
                         <div className="jpp-card__name">{c.candidate_name || "Unnamed candidate"}</div>
-                        <div className="jpp-card__line">
-                          <span className="jpp-card__line-label">Status</span>
-                          <span className="jpp-card__line-value">· {stageDef.statusLine(dateStamp).replace(/\s+/, "  ")}</span>
-                          <span className="jpp-card__line-meta" />
-                        </div>
-                        <div className="jpp-card__line">
-                          <span className="jpp-card__line-label">Next</span>
-                          <span className="jpp-card__line-value jpp-card__line-value--soft">{stageDef.nextLine}</span>
-                          <span className="jpp-card__line-meta" />
-                        </div>
+                        {isNewStageList && cardReadiness ? (
+                          <>
+                            <div className="jpp-card__line">
+                              <span className="jpp-card__line-value jpp-card__line-value--soft">
+                                {cardReadiness.rows
+                                  .filter((r) => ["location", "visa", "notice", "salary"].includes(r.key))
+                                  .map((r) => (r.tone === "missing" ? `${r.label} not stated` : r.value))
+                                  .join(" · ")}
+                              </span>
+                              <span className="jpp-card__line-meta" />
+                            </div>
+                            <div className="jpp-card__line">
+                              <span className={`jpp-card__readiness jpp-card__readiness--${readinessState.tone}`}>
+                                {readinessState.text}
+                              </span>
+                              <span className="jpp-card__line-meta" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="jpp-card__line">
+                              <span className="jpp-card__line-label">Status</span>
+                              <span className="jpp-card__line-value">· {stageDef.statusLine(dateStamp).replace(/\s+/, "  ")}</span>
+                              <span className="jpp-card__line-meta" />
+                            </div>
+                            <div className="jpp-card__line">
+                              <span className="jpp-card__line-label">Next</span>
+                              <span className="jpp-card__line-value jpp-card__line-value--soft">{stageDef.nextLine}</span>
+                              <span className="jpp-card__line-meta" />
+                            </div>
+                          </>
+                        )}
 
                         <a
                           className="jpp-card__wa"
@@ -929,6 +1086,104 @@ export default function JobPipelinePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Bulk review bar (list view, New stage; frame 1l) ── */}
+      <AnimatePresence>
+        {view === "list" && activeStage === "new" && bulkChecked.size > 0 && (
+          <motion.div
+            className="jpp-bulkbar"
+            role="toolbar"
+            aria-label="Bulk actions"
+            initial={reduce ? false : { y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={reduce ? { opacity: 0 } : { y: 24, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <span className="jpp-bulkbar__count">{bulkChecked.size} selected</span>
+            <span className="jpp-bulkbar__acts">
+              <button
+                type="button"
+                className="jpp-bulkbar__btn jpp-bulkbar__btn--ghost"
+                disabled={bulkBusy}
+                onClick={() => { setBulkReason(null); setBulkRejectOpen(true); }}
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                className="jpp-bulkbar__btn jpp-bulkbar__btn--primary"
+                disabled={bulkBusy}
+                onClick={() => bulkApply("shortlist")}
+              >
+                {bulkBusy ? "Saving…" : `Shortlist ${bulkChecked.size}`}
+              </button>
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Bulk reject reason modal ── */}
+      <AnimatePresence>
+        {bulkRejectOpen && (
+          <motion.div
+            className="jpp-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Reject ${bulkChecked.size} candidates`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            onClick={() => { setBulkRejectOpen(false); setBulkReason(null); }}
+          >
+            <motion.div
+              className="jpp-modal__panel"
+              onClick={(e) => e.stopPropagation()}
+              initial={reduce ? false : { opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <button type="button" className="jpp-modal__close" onClick={() => { setBulkRejectOpen(false); setBulkReason(null); }} aria-label="Close">
+                <CloseIc />
+              </button>
+              <h3 className="jpp-modal__title">Reject {bulkChecked.size} {bulkChecked.size === 1 ? "candidate" : "candidates"}</h3>
+              <div className="jpp-modal__divider" />
+              <p className="jpp-modal__body">Pick one reason for the whole selection. It sharpens future AI matching and talent pool search.</p>
+              <div className="jpp-reasons" role="radiogroup" aria-label="Reject reason">
+                {REJECT_REASONS.map((r) => (
+                  <button
+                    key={r.code}
+                    type="button"
+                    role="radio"
+                    aria-checked={bulkReason === r.code}
+                    className={`jpp-reason${bulkReason === r.code ? " jpp-reason--active" : ""}`}
+                    onClick={() => setBulkReason(r.code)}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+              <p className="jpp-modal__body jpp-modal__body--soft">
+                Candidates are not notified right away. They stay in the Rejected bucket and are never deleted.
+              </p>
+              <div className="jpp-modal__actions">
+                <button type="button" className="jpp-action" onClick={() => { setBulkRejectOpen(false); setBulkReason(null); }}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="jpp-action jpp-action--danger"
+                  disabled={!bulkReason || bulkBusy}
+                  onClick={() => bulkApply("reject", bulkReason)}
+                >
+                  {bulkBusy ? "Saving…" : `Reject ${bulkChecked.size}`}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -940,7 +1195,7 @@ export default function JobPipelinePage() {
 const STATUS_OVERRIDE_OPTIONS = [
   { value: "new",          label: "New" },
   { value: "shortlisted",  label: "Shortlisted" },
-  { value: "ready",        label: "Ready to interview" },
+  { value: "ready",        label: "To interview" },
   { value: "interviewed",  label: "Interviewed" },
   { value: "offered",      label: "Offer extended" },
   { value: "hired",        label: "Hired" },

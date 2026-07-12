@@ -41,6 +41,7 @@ const RequireRecruiter     = lazy(() => import(/* webpackChunkName: "hr-shell" *
 const PostJobPage          = lazy(() => import(/* webpackChunkName: "hr-post" */     "./pages/hr/PostJob/PostJobPage"));
 const HRJobsListPage       = lazy(() => import(/* webpackChunkName: "hr-jobs" */     "./pages/hr/Jobs/JobsListPage"));
 const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline" */ "./pages/hr/Jobs/JobPipelinePage"));
+const ReviewModePage       = lazy(() => import(/* webpackChunkName: "hr-review" */ "./pages/hr/Jobs/ReviewMode"));
 const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidates" */ "./pages/hr/Candidates/CandidatesPage"));
 const HrImportPage         = lazy(() => import(/* webpackChunkName: "hr-import" */     "./pages/hr/Import/ImportPage"));
 const HrPricing            = lazy(() => import(/* webpackChunkName: "hr-pricing" */    "./pages/hr/Pricing/HrPricing"));
@@ -199,6 +200,11 @@ export default function App() {
         <Route path="/employer/import" element={<HrImportPage />} />
         <Route path="/employer/pricing" element={<HrPricing />} />
       </Route>
+      {/* Review mode is a focused full-screen flow: it carries its own fixed
+          bottom decision bar, which would collide with the shell's mobile
+          bottom tab bar — so it sits inside RequireRecruiter but OUTSIDE
+          HrShell. Back button returns to the job pipeline. */}
+      <Route path="/employer/jobs/:id/review" element={<RequireRecruiter><ReviewModePage /></RequireRecruiter>} />
       {/* Legacy /hr/* bookmarks keep working. */}
       <Route path="/hr" element={<Navigate to="/employer/jobs" replace />} />
       <Route path="/hr/*" element={<HrLegacyRedirect />} />

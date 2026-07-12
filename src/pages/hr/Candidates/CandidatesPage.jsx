@@ -55,23 +55,26 @@ function whatsappHref(phone, name) {
 }
 
 const STATUS_LABEL = {
-  submitted: "Applied", viewed: "Viewed", shortlisted: "Shortlisted", new: "Applied",
-  ready: "Ready", interviewing: "Interviewing", interviewed: "Interviewed",
+  submitted: "New", viewed: "New", shortlisted: "Shortlisted", new: "New",
+  ready: "To interview", interviewing: "Interviewing", interviewed: "Interviewed",
   offered: "Offer", hired: "Hired", rejected: "Passed",
 };
 function statusLabel(s) { return STATUS_LABEL[s] || (s ? String(s) : "Not set"); }
 
 /* Status buckets for the filter (a candidate matches if ANY of their
-   applications falls in the selected bucket). */
+   applications falls in the selected bucket). New is its own entry stage
+   since the evaluation redesign; Shortlisted covers shortlisted + ready. */
 const STATUS_BUCKETS = {
   all: null,
-  shortlisted: new Set(["submitted", "viewed", "shortlisted", "new", "ready"]),
+  new: new Set(["new", "submitted", "viewed"]),
+  shortlisted: new Set(["shortlisted", "ready"]),
   interviewing: new Set(["interviewing", "interviewed"]),
   offered: new Set(["offered"]),
   hired: new Set(["hired"]),
 };
 const STATUS_OPTIONS = [
   { key: "all", label: "Any status" },
+  { key: "new", label: "New" },
   { key: "shortlisted", label: "Shortlisted" },
   { key: "interviewing", label: "Interviewing" },
   { key: "offered", label: "Offer" },

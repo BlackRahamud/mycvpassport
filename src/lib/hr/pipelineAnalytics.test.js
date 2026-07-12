@@ -46,12 +46,13 @@ describe("applicantsOverTime", () => {
 describe("stageFunnel", () => {
   test("counts entering each stage from history + current status, with drop-off", () => {
     const rows = stageFunnel(APPS, EVENTS);
-    // Max reached rank per app: a1 hired(4) · a2 interviewing(2) ·
-    // a3 shortlisted(0) · a4 rejected-but-interviewed-via-events(2) ·
-    // a5 new(0) · a6 offered(3).
+    // New is its own entry stage (evaluation redesign). Max reached rank
+    // per app: a1 hired(5) · a2 interviewing(3) · a3 shortlisted(1) ·
+    // a4 rejected-but-interviewed-via-events(3) · a5 new(0) · a6 offered(4).
     expect(rows.map((r) => `${r.key}:${r.count}`)).toEqual([
       "applied:6",     // everyone, incl. rejected
-      "shortlist:6",   // every app reached at least shortlist
+      "new:6",         // every app entered the pipeline
+      "shortlist:5",   // a1, a2, a3, a4, a6
       "ready:4",       // a1, a2, a4, a6
       "interviewed:4", // a1, a2, a4, a6
       "offer:2",       // a1, a6
@@ -79,12 +80,12 @@ describe("stageFunnel", () => {
 describe("medianTimeInStage", () => {
   test("computes medians only from completed intervals", () => {
     const out = medianTimeInStage(APPS, EVENTS);
-    // Shortlist completed intervals: c1 = applied 5 Jun → interviewing
-    // 10 Jun = 5d (the 7 Jun 'shortlisted' event is the SAME stage as
-    // applied, so it does not restart the clock); c4 = 28 → 30 Jun = 2d.
-    // Median of [5d, 2d] (even count) = 3.5d.
-    expect(out.shortlist.samples).toBe(2);
-    expect(out.shortlist.medianMs).toBe(3.5 * 86400000);
+    // applied_at now seeds the NEW stage. Completed New intervals:
+    // c1 = applied 5 Jun → shortlisted event 7 Jun = 2d;
+    // c4 = applied 28 Jun → interviewed event 30 Jun = 2d.
+    // Median of [2d, 2d] = 2d.
+    expect(out.new.samples).toBe(2);
+    expect(out.new.medianMs).toBe(2 * 86400000);
     // interviewed stage: c1 (10→14 Jun) completed; c4's interviewed→rejected
     // (30 Jun→1 Jul) also completes on rejection = 2 samples
     expect(out.interviewed.samples).toBe(2);
@@ -95,6 +96,9 @@ describe("medianTimeInStage", () => {
 
   test("sparse stages degrade to null medians, never fake numbers", () => {
     const out = medianTimeInStage(APPS, EVENTS);
+    // shortlist: only c1 completed (7→10 Jun) = 1 sample < 2 → null
+    expect(out.shortlist.samples).toBe(1);
+    expect(out.shortlist.medianMs).toBeNull();
     // offer stage: only c1 completed (14→20 Jun) = 1 sample < 2 → null
     expect(out.offer.samples).toBe(1);
     expect(out.offer.medianMs).toBeNull();

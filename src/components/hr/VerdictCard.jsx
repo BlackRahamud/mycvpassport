@@ -373,7 +373,12 @@ function KeywordChips({ matched, missing }) {
   );
 }
 
-export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onVerdictPersisted, onReachOut, matchedKeywords = [], missingKeywords = [] }) {
+/* knockout (optional): { synthesis } — the evaluation redesign's hard
+   knockout treatment (frame 1b). The pill reads "Skills fit, not
+   deployable" and a one line red synthesis sits under the verdict row.
+   The score ring keeps its band color: the SKILL number stays visible,
+   the headline carries the deployability decision. */
+export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onVerdictPersisted, onReachOut, matchedKeywords = [], missingKeywords = [], knockout = null }) {
   const reduce = useReducedMotion();
   const { loading, data, error, retry } = useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onPersisted: onVerdictPersisted });
 
@@ -411,8 +416,15 @@ export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, 
 
       {loading && (
         <div className="vc-body vc-loading" aria-live="polite">
-          <span className="vc-loading__pulse" aria-hidden="true" />
-          <span className="vc-loading__text">Reading this CV against the role…</span>
+          <div className="vc-loading__row">
+            <span className="vc-loading__pulse" aria-hidden="true" />
+            <span className="vc-loading__text">Reading this CV against the role…</span>
+          </div>
+          {/* Calm reading state, not a bare spinner: the page around this
+              card stays fully usable while the verdict writes itself. */}
+          <span className="vc-loading__bar" style={{ width: "82%" }} aria-hidden="true" />
+          <span className="vc-loading__bar" style={{ width: "64%" }} aria-hidden="true" />
+          <span className="vc-loading__bar" style={{ width: "71%" }} aria-hidden="true" />
         </div>
       )}
 
@@ -426,9 +438,15 @@ export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, 
       {!loading && !error && data && (
         <div className="vc-body">
           <div className="vc-verdict">
-            <span className={`vc-badge vc-badge--${tone}`}>{BAND_LABELS[band]}</span>
+            <span className={`vc-badge vc-badge--${knockout ? "knockout" : tone}`}>
+              {knockout ? "Skills fit, not deployable" : BAND_LABELS[band]}
+            </span>
             <VerdictRing score={data.score} tone={tone} reduce={reduce} />
           </div>
+
+          {knockout?.synthesis && (
+            <div className="vc-ko" role="note">{knockout.synthesis}</div>
+          )}
 
           <ul className="vc-why">
             {data.two_second_why.slice(0, 3).map((line, i) => (

@@ -77,6 +77,25 @@
 .vc-badge--strong { background: var(--vc-green-soft); color: var(--vc-green); }
 .vc-badge--maybe  { background: var(--vc-amber-soft); color: var(--vc-amber); }
 .vc-badge--pass   { background: var(--vc-red-soft);   color: var(--vc-red); }
+/* Hard knockout (evaluation redesign frame 1b): longer label, so smaller
+   type + no uppercase shouting next to the score ring. */
+.vc-badge--knockout {
+  background: var(--vc-red-soft);
+  color: var(--vc-red);
+  font-size: 11px;
+}
+
+/* One line knockout synthesis under the verdict row. */
+.vc-ko {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.20);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--vc-red);
+}
 
 /* ── Score ring ── */
 .vc-ring {
@@ -250,13 +269,33 @@
 .vc-btn--solid:hover { background: var(--pj-primary-hover); transform: translateY(-1px); }
 
 /* ── Loading (designed, no skeleton) ── */
-.vc-loading { flex-direction: row; align-items: center; gap: 12px; padding: 6px 0; }
+.vc-loading { flex-direction: column; gap: 13px; padding: 6px 0; }
+.vc-loading__row { display: flex; flex-direction: row; align-items: center; gap: 12px; }
 .vc-loading__pulse {
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--pj-primary);
   flex-shrink: 0;
 }
 .vc-loading__text { font-size: 13px; color: var(--pj-text-soft); }
+/* Calm reading state (frame 1d): quiet text-shaped bars, shimmer only when
+   motion is allowed. */
+.vc-loading__bar {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--pj-input-bg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vc-loading__bar {
+    background: linear-gradient(100deg, var(--pj-input-bg) 30%, var(--pj-primary-soft, rgba(124, 58, 237, 0.06)) 50%, var(--pj-input-bg) 70%);
+    background-size: 200% 100%;
+    animation: vc-shimmer 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+@keyframes vc-shimmer {
+  0% { background-position: 180% 0; }
+  100% { background-position: -80% 0; }
+}
 
 .vc-error { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
 .vc-error__text { font-size: 12.5px; color: var(--pj-text-soft); }

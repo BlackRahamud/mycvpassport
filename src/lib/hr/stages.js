@@ -7,13 +7,22 @@
  * advance target, and how DB statuses map onto a stage.
  */
 export const STAGES = [
-  { key: "shortlist",   label: "Shortlist",   dbValues: ["new", "submitted", "viewed", "shortlisted"],
+  // Entry stage (migration 037): applies AND imports land here. Existing
+  // shortlist-column rows were moved to 'shortlisted' once by 037, so this
+  // column starts empty for pre-migration candidates.
+  { key: "new",         label: "New",         dbValues: ["new", "submitted", "viewed"],
+    actionLabel: "Shortlist",   advanceTo: "shortlisted",
+    statusLine: (date) => `Applied   ${date}`,
+    nextLine: "Review the application, then Shortlist to keep them moving or Pass to archive." },
+  { key: "shortlist",   label: "Shortlist",   dbValues: ["shortlisted"],
     actionLabel: "Interviewed", advanceTo: "interviewed",
     statusLine: (date) => `Shortlisted   ${date}`,
     nextLine: "Click Interviewed to request a screening call, or Pass to remove from Shortlist." },
-  { key: "ready",       label: "Ready",       dbValues: ["ready"],
+  // Renamed from "Ready" (evaluation redesign): the DB status string stays
+  // 'ready', only the label changed.
+  { key: "ready",       label: "To interview", dbValues: ["ready"],
     actionLabel: "Interviewed", advanceTo: "interviewed",
-    statusLine: (date) => `Ready to interview   ${date}`,
+    statusLine: (date) => `To interview   ${date}`,
     nextLine: "Schedule the interview and confirm when it has been completed." },
   { key: "interviewed", label: "Interviewed", dbValues: ["interviewed", "interviewing"],
     actionLabel: "Give offer",  advanceTo: "offered",
@@ -26,7 +35,7 @@ export const STAGES = [
   { key: "hired",       label: "Hired",       dbValues: ["hired"],
     actionLabel: null,           advanceTo: null,
     statusLine: (date) => `Hired   ${date}`,
-    nextLine: "Onboarding tracker is in your Account Manager's hands — you'll get a follow-up note shortly." },
+    nextLine: "Onboarding tracker is in your Account Manager's hands. You'll get a follow up note shortly." },
 ];
 
 export const STAGE_BY_DB = STAGES.reduce((m, s) => {
@@ -42,6 +51,7 @@ export const NEW_STATUSES = new Set(["new", "submitted", "viewed"]);
  * the list's advance/jump actions already write.
  */
 export const STAGE_DROP_STATUS = {
+  new: "new",
   shortlist: "shortlisted",
   ready: "ready",
   interviewed: "interviewed",

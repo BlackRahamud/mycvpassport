@@ -22,11 +22,12 @@ const IcUserX = () => (<svg {...S}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-
    linear stages, so "reached stage X" = rank >= X. "rejected" dropped
    out (rank -1) and counts only toward total applicants. */
 const STATUS_RANK = {
-  new: 0, submitted: 0, viewed: 0, shortlisted: 0,
-  ready: 1,
-  interviewing: 2, interviewed: 2,
-  offered: 3,
-  hired: 4,
+  new: 0, submitted: 0, viewed: 0,
+  shortlisted: 1,
+  ready: 2,
+  interviewing: 3, interviewed: 3,
+  offered: 4,
+  hired: 5,
   rejected: -1,
 };
 function rankOf(status) {
@@ -186,19 +187,16 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
              (market === "all" || (j.market || "gulf") === market)
     ).length;
 
-    // "Shortlisted" = explicitly shortlisted OR advanced past it. new/submitted/
-    // viewed share rank 0 with "shortlisted" (all sit in the Shortlist stage), so
-    // rank alone can't gate this — without the status check it would count every
-    // non-rejected applicant and read identical to "Applicants". Match the
-    // "shortlisted" status explicitly, then add everyone at rank >= 1
-    // (ready/interviewing/interviewed/offered/hired).
+    // New is its own entry stage since the evaluation redesign, so the
+    // funnel is purely rank-driven and monotonic: "reached stage X" =
+    // rank >= X. Rejected (rank -1) counts only toward total applicants.
     const funnel = {
       applicants: fApps.length,
-      shortlisted: fApps.filter((a) => a.status === "shortlisted" || rankOf(a.status) >= 1).length,
-      ready: fApps.filter((a) => rankOf(a.status) >= 1).length,
-      interviewed: fApps.filter((a) => rankOf(a.status) >= 2).length,
-      offered: fApps.filter((a) => rankOf(a.status) >= 3).length,
-      hired: fApps.filter((a) => rankOf(a.status) >= 4).length,
+      shortlisted: fApps.filter((a) => rankOf(a.status) >= 1).length,
+      ready: fApps.filter((a) => rankOf(a.status) >= 2).length,
+      interviewed: fApps.filter((a) => rankOf(a.status) >= 3).length,
+      offered: fApps.filter((a) => rankOf(a.status) >= 4).length,
+      hired: fApps.filter((a) => rankOf(a.status) >= 5).length,
     };
 
     // Per-job rollup
@@ -340,7 +338,7 @@ export default function HrInsightsPanel({ user, onGoToJobs }) {
   const funnelRows = [
     { key: "new", label: "New", value: f.applicants, color: "blue" },
     { key: "shortlisted", label: "Shortlisted", value: f.shortlisted, color: "indigo" },
-    { key: "ready", label: "Ready to interview", value: f.ready, color: "purple" },
+    { key: "ready", label: "To interview", value: f.ready, color: "purple" },
     { key: "interviewed", label: "Interviewed", value: f.interviewed, color: "emerald" },
     { key: "offered", label: "Offer", value: f.offered, color: "teal" },
     { key: "hired", label: "Hired", value: f.hired, color: "green" },
