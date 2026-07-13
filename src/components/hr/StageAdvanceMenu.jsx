@@ -47,7 +47,7 @@ export default function StageAdvanceMenu({ stageDef, currentStatus, options, adv
   }, [open, referenceRef, floatingRef]);
 
   const canAdvance = Boolean(stageDef?.actionLabel) && !advancing;
-  const mainLabel = stageDef?.actionLabel || "Hired";
+  const mainLabel = stageDef?.actionLabel || "Mark hired";
 
   const choose = (v) => {
     setOpen(false);

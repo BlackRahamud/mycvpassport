@@ -221,7 +221,7 @@ export default function InterviewKitCard({
           <p className="ik-idle__text">
             {savedSet
               ? `Your saved set for ${roleWord} is ready, or write a fresh one from ${first}'s CV.`
-              : `Get 6 to 8 questions written for ${first}'s actual CV and this role. Each comes with a note on what a good answer sounds like.`}
+              : `Get 6 to 8 questions written for ${first}'s actual CV and this role, with notes on what a good answer sounds like.`}
           </p>
           {savedSet ? (
             <div className="ik-idle__row">

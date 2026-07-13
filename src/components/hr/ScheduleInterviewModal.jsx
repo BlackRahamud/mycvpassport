@@ -36,7 +36,8 @@
 // half the interviews).
 // =============================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
@@ -99,6 +100,39 @@ export default function ScheduleInterviewModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const panelRef = useRef(null);
+
+  /* Keyboard contract: Escape closes, Tab never leaves the panel, and
+     focus lands on the first field on open (the drawer beneath must not
+     keep receiving keys while this dialog is up). */
+  useEffect(() => {
+    if (!open) return undefined;
+    const prior = document.activeElement;
+    const focusables = () => Array.from(
+      panelRef.current?.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])") || []
+    ).filter((el) => !el.disabled && el.getClientRects().length > 0);
+    const t = setTimeout(() => {
+      const list = focusables();
+      (list.find((el) => el.tagName === "INPUT") || list[0])?.focus();
+    }, 0);
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); onClose(); return; }
+      if (e.key !== "Tab") return;
+      const list = focusables();
+      if (!list.length) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (!panelRef.current?.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("keydown", onKey);
+      if (prior && typeof prior.focus === "function") prior.focus();
+    };
+  }, [open, onClose]);
 
   const reschedule = Boolean(rescheduleOf?.id);
   const first = String(application?.candidate_name || "the candidate").split(" ")[0] || "the candidate";
@@ -308,6 +342,7 @@ export default function ScheduleInterviewModal({
         >
           <motion.div
             className="jpp-modal__panel si-panel"
+            ref={panelRef}
             onClick={(e) => e.stopPropagation()}
             initial={reduce ? false : { opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -529,7 +564,8 @@ function whenFromMeta(at) {
  * candidate_id, which is null for imported candidates (half the
  * candidates) and hid their interviews entirely.
  */
-export function InterviewTimeline({ hrId, applicationId, refreshKey }) {
+export function InterviewTimeline({ hrId, applicationId, refreshKey, onReschedule }) {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [tick, setTick] = useState(0);
 
@@ -570,7 +606,20 @@ export function InterviewTimeline({ hrId, applicationId, refreshKey }) {
                 )}
                 {iv.rating_note && <p className="jpp-timeline__sub si-timeline__note">{iv.rating_note}</p>}
                 <div className="si-timeline__actions">
+                  {/* Persistent door to the companion — the flight board
+                      only lists today, so a future interview needs its
+                      own way in. */}
+                  {iv.status === "scheduled" && (
+                    <button type="button" className="si-flip si-flip--open" onClick={() => navigate(`/employer/interview/${iv.id}`)}>
+                      Open interview
+                    </button>
+                  )}
                   <InterviewStatusActions interview={iv} hrId={hrId} onChanged={() => setTick((t) => t + 1)} />
+                  {onReschedule && ["no_show", "cancelled"].includes(iv.status) && (
+                    <button type="button" className="si-flip" onClick={() => onReschedule(iv)}>
+                      Reschedule
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

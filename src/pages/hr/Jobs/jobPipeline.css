@@ -943,7 +943,10 @@
 .jpp-modal {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  /* Modal layer of the portal z ladder: kanban drawer scrim 3000, CV
+     viewer 3500, modals 4000. At the old 70 the schedule modal painted
+     BENEATH the drawer (invisible on phones). */
+  z-index: 4000;
   display: flex;
   align-items: center;
   justify-content: center;

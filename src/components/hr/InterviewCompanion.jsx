@@ -26,7 +26,7 @@
 // interviews row on every change — nothing dies on refresh.
 // =============================================================
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import givenName from "../../lib/hr/givenName";
@@ -94,6 +94,7 @@ export default function InterviewCompanion({
   const [toast, setToast] = useState("");
   const liveRef = useRef(true);
   const scrollRef = useRef(null);
+  const askAnchor = useRef(null);
   const noteTimer = useRef(null);
   const rescheduledRef = useRef(false);
   const toastTimer = useRef(null);
@@ -160,6 +161,18 @@ export default function InterviewCompanion({
       saveKit(interview.id, next);
     }
   };
+
+  /* Marking a question asked shrinks its card (listen for + note input
+     leave the DOM); with the list near its end the browser clamps the
+     scroll to the new bottom — the scorecard — and she loses her place
+     mid interview. Pin the tapped button to the same viewport spot. */
+  useLayoutEffect(() => {
+    const a = askAnchor.current;
+    askAnchor.current = null;
+    if (!a || !scrollRef.current || !a.el.isConnected) return;
+    const delta = a.el.getBoundingClientRect().top - a.top;
+    if (delta) scrollRef.current.scrollTop += delta;
+  }, [kit]);
 
   const questions = useMemo(() => kit?.questions || [], [kit]);
   const asked = useMemo(() => kit?.asked || {}, [kit]);
@@ -457,7 +470,10 @@ export default function InterviewCompanion({
                       type="button"
                       className={`ic-asked${isAsked ? " ic-asked--on" : ""}`}
                       aria-pressed={isAsked}
-                      onClick={() => commitKit(kitToggleAsked(kit, q.id))}
+                      onClick={(e) => {
+                        askAnchor.current = { el: e.currentTarget, top: e.currentTarget.getBoundingClientRect().top };
+                        commitKit(kitToggleAsked(kit, q.id));
+                      }}
                     >
                       {isAsked ? "✓ Asked" : "Mark asked"}
                     </button>

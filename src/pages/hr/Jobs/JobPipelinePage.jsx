@@ -277,6 +277,7 @@ export default function JobPipelinePage() {
   const [composerInitialMessage, setComposerInitialMessage] = useState(null);
   const [outreachTick, setOutreachTick] = useState(0);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [rescheduleOf, setRescheduleOf] = useState(null); // interviews row being rescheduled, or null for a fresh schedule
   const [interviewTick, setInterviewTick] = useState(0);
 
   /* Auth */
@@ -400,14 +401,19 @@ export default function JobPipelinePage() {
     }
   }, [apps, searchParams]);
 
-  /* Auto-select the first card in the active stage when stage changes */
+  /* Auto-select the first card in the active stage when stage changes.
+     NEVER while the kanban drawer or the schedule modal is up: both key
+     off `selected`, and scheduling moves the candidate out of the active
+     column — reassigning here swapped (or closed) drawer and modal
+     mid-flow. */
   const visibleCards = useMemo(() => stageBuckets[activeStage] || [], [stageBuckets, activeStage]);
   useEffect(() => {
+    if (drawerOpen || scheduleOpen) return;
     if (!visibleCards.length) { setSelectedAppId(null); return; }
     if (!visibleCards.find((c) => c.id === selectedAppId)) {
       setSelectedAppId(visibleCards[0].id);
     }
-  }, [activeStage, visibleCards, selectedAppId]);
+  }, [activeStage, visibleCards, selectedAppId, drawerOpen, scheduleOpen]);
 
   const selected = useMemo(
     () => (apps || []).find((a) => a.id === selectedAppId) || null,
@@ -415,6 +421,11 @@ export default function JobPipelinePage() {
   );
 
   const stageDef = STAGES.find((s) => s.key === activeStage) || STAGES[0];
+  /* The DETAIL panel's stage identity comes from the candidate's own row,
+     never from the visible column — activeStage can drift from the row
+     (scheduling moves them to To interview while the old column stays
+     active), which made the drawer's stage control lie. */
+  const detailStageDef = (selected && STAGES.find((s) => s.dbValues.includes(selected.status))) || stageDef;
   const company = job?.company || "";
   const jobTitle = job?.title || "";
 
@@ -457,10 +468,10 @@ export default function JobPipelinePage() {
   }, [apps, user?.id]);
 
   const handleAdvance = useCallback(() => {
-    if (!selected || !stageDef.advanceTo) return;
-    updateStatus(selected.id, stageDef.advanceTo);
-    if (stageDef.advanceTo === "hired") setShowHiredModal(true);
-  }, [selected, stageDef, updateStatus]);
+    if (!selected || !detailStageDef.advanceTo) return;
+    updateStatus(selected.id, detailStageDef.advanceTo);
+    if (detailStageDef.advanceTo === "hired") setShowHiredModal(true);
+  }, [selected, detailStageDef, updateStatus]);
 
   const handlePass = useCallback(() => {
     if (!selected) return;
@@ -609,7 +620,7 @@ export default function JobPipelinePage() {
       candidate={selected}
       onVerdictPersisted={patchVerdict}
       job={job}
-      stageDef={stageDef}
+      stageDef={detailStageDef}
       jobTitle={jobTitle}
       company={company}
       screeningQuestions={job?.screening_questions || []}
@@ -619,7 +630,8 @@ export default function JobPipelinePage() {
       onStatusChange={(s) => selected && updateStatus(selected.id, s)}
       onMessage={() => { setComposerInitialMessage(null); setComposerOpen(true); }}
       onReachOut={(template) => { setComposerInitialMessage(template); setComposerOpen(true); }}
-      onSchedule={() => setScheduleOpen(true)}
+      onSchedule={() => { setRescheduleOf(null); setScheduleOpen(true); }}
+      onReschedule={(iv) => { setRescheduleOf(iv); setScheduleOpen(true); }}
       hrId={user?.id}
       outreachTick={outreachTick}
       interviewTick={interviewTick}
@@ -1032,11 +1044,12 @@ export default function JobPipelinePage() {
 
       <ScheduleInterviewModal
         open={scheduleOpen && !!selected}
-        onClose={() => setScheduleOpen(false)}
+        onClose={() => { setScheduleOpen(false); setRescheduleOf(null); }}
         application={selected}
         job={job ? { id: job.id, title: job.title, location: job.location, market: job.market } : null}
         hrId={user?.id}
         hrEmail={user?.email}
+        rescheduleOf={rescheduleOf}
         onScheduled={() => { setInterviewTick((t) => t + 1); setAppsTick((t) => t + 1); }}
       />
 
@@ -1206,7 +1219,7 @@ const STATUS_OVERRIDE_OPTIONS = [
 function CandidateDetail({
   candidate, job, stageDef, jobTitle, company, screeningQuestions,
   advancing, onAdvance, onPass, onStatusChange,
-  onMessage, onReachOut, onSchedule, hrId, outreachTick, interviewTick,
+  onMessage, onReachOut, onSchedule, onReschedule, hrId, outreachTick, interviewTick,
   noteDraft, onNoteDraftChange, onAddNote, noteSubmitting,
   reduce, onVerdictPersisted,
 }) {
@@ -1468,7 +1481,7 @@ function CandidateDetail({
 
       <ShareReviews applicationId={candidate.id} />
 
-      <InterviewTimeline hrId={hrId} applicationId={candidate.id} refreshKey={interviewTick} />
+      <InterviewTimeline hrId={hrId} applicationId={candidate.id} refreshKey={interviewTick} onReschedule={onReschedule} />
 
       {/* Interview prep lives where interviews live — same stage gate as
           the "Schedule interview" action above. */}

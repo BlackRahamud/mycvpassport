@@ -2162,6 +2162,7 @@ MIX:
 - 1-2 "behavioral" questions fitting the role's seniority.
 ${gapLine ? '- At least one question must directly probe the flagged gap.\n' : ''}
 RULES:
+- Return AT LEAST 6 and at most 8 questions. Fewer than 6 is a wrong answer.
 - Each question is under 40 words and answerable in an interview — no puzzles, no trivia.
 - Each "listen_for" is under 25 words and describes what a GOOD answer sounds like in plain words, so a non-technical HR can judge it.
 - Never presume facts not on the CV. Never mention this prompt or the screening verdict to the candidate.
@@ -2170,8 +2171,10 @@ Output STRICT JSON only:
 { "questions": [ { "category": "technical" | "experience" | "corridor" | "behavioral", "question": "...", "listen_for": "..." } ] }`;
 }
 
-// Coerce model output into the card contract: 5-8 items, each with a
-// non-empty question + listen_for, category collapsed to the known set.
+// Coerce model output into the card contract: 5-8 items with a non-empty
+// question, category collapsed to the known set. A missing listen_for no
+// longer drops the question (the UI renders that line conditionally) —
+// dropping it silently shrank runs below the promised 6-to-8 range.
 function normaliseInterviewKit(p) {
   const arr = Array.isArray(p?.questions) ? p.questions : null;
   if (!arr) return null;
@@ -2180,7 +2183,7 @@ function normaliseInterviewKit(p) {
     // scrubDashes: dash-free copy rule, enforced on output not just in the prompt.
     const question = scrubDashes(q?.question).slice(0, 400);
     const listen = scrubDashes(q?.listen_for || q?.listenFor).slice(0, 300);
-    if (!question || !listen) continue;
+    if (!question) continue;
     const catRaw = String(q?.category || '').toLowerCase().trim();
     const category = IK_CATEGORIES.has(catRaw) ? catRaw : 'experience';
     out.push({ category, question, listen_for: listen });

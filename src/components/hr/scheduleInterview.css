@@ -165,6 +165,8 @@
 .si-flip:hover:not(:disabled) { border-color: var(--hjl-ink); color: var(--hjl-ink); }
 .si-flip:disabled { opacity: 0.5; cursor: default; }
 .si-flip--done:hover:not(:disabled) { background: var(--hjl-ink); border-color: var(--hjl-ink); color: #FFFFFF; }
+/* Open interview: the row's primary door, ink text so it reads first. */
+.si-flip--open { border-color: var(--pj-border-strong); color: var(--pj-text, #14131F); font-weight: 700; }
 
 .si-status {
   display: inline-flex;

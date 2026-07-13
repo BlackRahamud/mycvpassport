@@ -14,14 +14,16 @@ export const STAGES = [
     actionLabel: "Shortlist",   advanceTo: "shortlisted",
     statusLine: (date) => `Applied   ${date}`,
     nextLine: "Review the application, then Shortlist to keep them moving or Pass to archive." },
+  // actionLabel is a VERB on a button, not a state readout — "Interviewed"
+  // on the advance button read as the candidate's current stage in testing.
   { key: "shortlist",   label: "Shortlist",   dbValues: ["shortlisted"],
-    actionLabel: "Interviewed", advanceTo: "interviewed",
+    actionLabel: "Mark interviewed", advanceTo: "interviewed",
     statusLine: (date) => `Shortlisted   ${date}`,
     nextLine: "Click Interviewed to request a screening call, or Pass to remove from Shortlist." },
   // Renamed from "Ready" (evaluation redesign): the DB status string stays
   // 'ready', only the label changed.
   { key: "ready",       label: "To interview", dbValues: ["ready"],
-    actionLabel: "Interviewed", advanceTo: "interviewed",
+    actionLabel: "Mark interviewed", advanceTo: "interviewed",
     statusLine: (date) => `To interview   ${date}`,
     nextLine: "Schedule the interview and confirm when it has been completed." },
   { key: "interviewed", label: "Interviewed", dbValues: ["interviewed", "interviewing"],
@@ -29,7 +31,7 @@ export const STAGES = [
     statusLine: (date) => `Interviewed   ${date}`,
     nextLine: "If you want to hire, extend an offer via email soon and cc your Account Manager so you don't lose the candidate." },
   { key: "offer",       label: "Offer",       dbValues: ["offered"],
-    actionLabel: "Hired",       advanceTo: "hired",
+    actionLabel: "Mark hired",  advanceTo: "hired",
     statusLine: (date) => `Offer extended   ${date}`,
     nextLine: "Let us know if the candidate accepted your offer, so we can congratulate you." },
   { key: "hired",       label: "Hired",       dbValues: ["hired"],
