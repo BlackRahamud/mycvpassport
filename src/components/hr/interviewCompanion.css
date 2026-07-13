@@ -635,11 +635,186 @@
   text-align: center;
 }
 
+/* ────────────────────────────────────────────────────────────────
+   Float, the always on top companion (Document Picture in Picture).
+
+   surface-glass (Interviews tab canvas 1d) — THE one glass token for
+   the portal's floating family: the Interviews page header, the live
+   now banner, and this float window. Ordinary cards stay on the solid
+   tokens so glass keeps reading as "floating and live". Both variants
+   carry a solid fallback for browsers without backdrop-filter.
+   ──────────────────────────────────────────────────────────────── */
+:root {
+  --surface-glass-bg: rgba(255, 255, 255, 0.68);
+  --surface-glass-solid: #FBFBFD;
+  --surface-glass-blur: blur(18px) saturate(1.6);
+  --surface-glass-border: rgba(20, 19, 31, 0.08);
+  --surface-glass-shadow: 0 14px 34px -16px rgba(20, 19, 31, 0.22), 0 2px 6px -2px rgba(20, 19, 31, 0.08);
+  --surface-glass-ink: #14131F;
+}
+[data-theme="dark"] {
+  --surface-glass-bg: rgba(32, 31, 43, 0.62);
+  --surface-glass-solid: #201F2B;
+  --surface-glass-blur: blur(18px) saturate(1.4);
+  --surface-glass-border: rgba(255, 255, 255, 0.09);
+  --surface-glass-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.6);
+  --surface-glass-ink: #F2F2F7;
+}
+
+/* The PiP document's body — the companion fills the whole window. */
+.ic-pip-body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-glass-solid);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Floated companion: the window IS the glass surface. Square to the
+   window edges; the glass tint + blur carry the family look. */
+.ic-root--float {
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-glass-solid);
+  animation: ic-float-in 350ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .ic-root--float {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
+}
+.ic-root--float .ic-head { border-bottom-color: var(--surface-glass-border); }
+/* Header meter already tells N of M in the float window; the pinned bar
+   keeps only Finish and rate so the count never reads twice. */
+.ic-root--float .ic-pin__progress { display: none; }
+.ic-root--float .ic-pin__finish { flex: 1; }
+@keyframes ic-float-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Header actions cluster (docked: Float + no show, floated: Dock + close) */
+.ic-head__acts { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ic-float-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: 9px;
+  background: var(--pj-surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pj-text-soft);
+  cursor: pointer;
+  transition: border-color 150ms var(--pj-ease), color 150ms var(--pj-ease);
+}
+.ic-float-btn:hover { border-color: var(--pj-text); color: var(--pj-text); }
+.ic-float-btn:active { transform: scale(0.97); transition-duration: 100ms; }
+.ic-float-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pj-muted);
+  cursor: pointer;
+  transition: background 150ms var(--pj-ease), color 150ms var(--pj-ease);
+}
+.ic-float-x:hover { background: var(--pj-input-bg); color: var(--pj-text); }
+.ic-float-x:active { transform: scale(0.97); transition-duration: 100ms; }
+
+/* N of M meter row under the floated header, with the quiet no show door */
+.ic-float-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--pj-surface);
+  border-bottom: 1px solid var(--pj-border);
+  flex-shrink: 0;
+}
+.ic-float-meter__bar {
+  display: inline-block;
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(20, 19, 31, 0.10);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ic-float-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ic-green);
+  transition: width 300ms var(--pj-ease);
+}
+.ic-float-meter__txt { font-size: 11px; font-weight: 700; color: var(--ic-green); }
+.ic-float-meter__noshow {
+  margin-left: auto;
+  border: 0;
+  padding: 4px 2px;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pj-muted);
+  cursor: pointer;
+  transition: color 150ms var(--pj-ease);
+}
+.ic-float-meter__noshow:hover { color: var(--ic-red); }
+
+/* In-app placeholder while the questions are away */
+.ic-away {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px 24px;
+  text-align: center;
+}
+.ic-away__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ic-green);
+  box-shadow: 0 0 0 4px var(--ic-green-soft);
+}
+.ic-away__line { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--pj-text-soft); }
+.ic-away__back {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: 9px;
+  background: var(--pj-surface);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pj-text);
+  cursor: pointer;
+  transition: background 150ms var(--pj-ease), border-color 150ms var(--pj-ease);
+}
+.ic-away__back:hover { background: var(--pj-input-bg); border-color: var(--pj-text); }
+.ic-away__back:active { transform: scale(0.97); transition-duration: 100ms; }
+
 @media (prefers-reduced-motion: reduce) {
   .ic-noshow-btn, .ic-peek__bar, .ic-q, .ic-asked, .ic-rate, .ic-score__save,
   .ic-pin__finish, .ic-pin__fill, .ic-sheet__opt, .ic-offer__go, .ic-done__back,
-  .ic-q__note, .ic-score__note { transition: none !important; }
+  .ic-q__note, .ic-score__note, .ic-float-btn, .ic-float-x, .ic-away__back,
+  .ic-float-meter__fill, .ic-float-meter__noshow { transition: none !important; }
   .ic-asked:active, .ic-rate:active, .ic-score__save:active:not(:disabled),
-  .ic-pin__finish:active, .ic-sheet__opt:active, .ic-offer__go:active { transform: none; }
+  .ic-pin__finish:active, .ic-sheet__opt:active, .ic-offer__go:active,
+  .ic-float-btn:active, .ic-float-x:active, .ic-away__back:active { transform: none; }
   .ic-gen__pulse, .ic-ghost { animation: none !important; }
+  .ic-root--float { animation: none !important; }
 }

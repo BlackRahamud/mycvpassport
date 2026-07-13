@@ -24,6 +24,9 @@ const ALLOWED = {
   // buildWaLink is synchronous string building; open runs inside onClick.
   "src/components/hr/BulkActions.jsx": 1,
   "src/components/hr/WhatsAppComposer.jsx": 1,
+  // Float fallback (no Document PiP): the sized popup opens directly in
+  // the Float button's onClick, before any await — reviewed.
+  "src/components/hr/InterviewCompanion.jsx": 1,
 };
 
 function walk(dir, out = []) {

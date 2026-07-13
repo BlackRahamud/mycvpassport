@@ -25,6 +25,10 @@ import "./interviewCompanion.css";
 export default function InterviewCompanionPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  // ?float=1: this page IS the float fallback popup (no Document PiP on
+  // this browser) — no back bar, full-bleed companion, no Float button.
+  const isFloatWindow = typeof window !== "undefined"
+    && new URLSearchParams(window.location.search).has("float");
   const [user, setUser] = useState(null);
   const [interview, setInterview] = useState(null);
   const [application, setApplication] = useState(null);
@@ -69,12 +73,14 @@ export default function InterviewCompanionPage() {
   }, [id]);
 
   return (
-    <div className="icp-root">
-      <div className="icp-top">
-        <button type="button" className="icp-back" onClick={() => navigate("/employer/jobs")}>
-          ← Today's board
-        </button>
-      </div>
+    <div className={`icp-root${isFloatWindow ? " icp-root--float" : ""}`}>
+      {!isFloatWindow && (
+        <div className="icp-top">
+          <button type="button" className="icp-back" onClick={() => navigate("/employer/jobs")}>
+            ← Today's board
+          </button>
+        </div>
+      )}
       <div className="icp-stage">
         {state === "loading" && (
           <div className="icp-note" role="status">Opening the interview…</div>
@@ -93,7 +99,8 @@ export default function InterviewCompanionPage() {
               job={job}
               hrId={user?.id}
               hrEmail={user?.email}
-              onExit={() => navigate("/employer/jobs")}
+              floatWindow={isFloatWindow}
+              onExit={() => (isFloatWindow ? window.close() : navigate("/employer/jobs"))}
             />
           </div>
         )}

@@ -83,6 +83,17 @@
 }
 .icp-note__link:hover { background: var(--pj-input-bg); }
 
+/* ?float=1 — the fallback float popup owns the whole 380px window:
+   no back bar, no stage padding, the companion runs edge to edge. */
+.icp-root--float { background: var(--surface-glass-solid, #FBFBFD); }
+.icp-root--float .icp-stage { padding: 0; }
+.icp-root--float .icp-frame {
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .icp-back, .icp-note__link { transition: none !important; }
 }

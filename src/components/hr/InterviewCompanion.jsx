@@ -27,6 +27,7 @@
 // =============================================================
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import givenName from "../../lib/hr/givenName";
@@ -35,9 +36,9 @@ import { setApplicationStage, personStageLabel } from "../../lib/hr/stageApi";
 import {
   KIT_CATEGORY_LABELS, normalizeKit, kitFromQuestions,
   toggleAsked as kitToggleAsked, setQuestionNote, askedCount,
-  saveKit, loadRoleSet, generateKitQuestions,
+  saveKit, loadRoleSet, generateKitQuestions, loadInterviewById,
 } from "../../lib/hr/interviewKit";
-import { formatTimeIn } from "../../lib/hr/interviewTz";
+import { formatTimeIn, dualTimeLine, hrTimeZone } from "../../lib/hr/interviewTz";
 import RejectModal from "./RejectModal";
 import ScheduleInterviewModal from "./ScheduleInterviewModal";
 import "./interviewCompanion.css";
@@ -52,6 +53,43 @@ const RATINGS = [
 ];
 
 const asText = (v) => (typeof v === "string" ? v.trim() : "");
+
+/* ── Float, Document Picture in Picture ──
+   The PiP document starts empty and inherits NOTHING from the opener:
+   clone every stylesheet (inline the rules; fall back to a link for
+   cross-origin sheets) and carry the theme attribute across so the
+   tokens and the glass surface resolve inside the float window. */
+function preparePipDocument(win) {
+  const doc = win.document;
+  doc.title = "Interview companion";
+  const theme = document.documentElement.getAttribute("data-theme");
+  if (theme) doc.documentElement.setAttribute("data-theme", theme);
+  Array.from(document.styleSheets).forEach((sheet) => {
+    try {
+      const css = Array.from(sheet.cssRules).map((r) => r.cssText).join("\n");
+      const style = doc.createElement("style");
+      style.textContent = css;
+      doc.head.appendChild(style);
+    } catch {
+      if (sheet.href) {
+        const link = doc.createElement("link");
+        link.rel = "stylesheet";
+        link.href = sheet.href;
+        doc.head.appendChild(link);
+      }
+    }
+  });
+  try {
+    if (document.adoptedStyleSheets && document.adoptedStyleSheets.length) {
+      doc.adoptedStyleSheets = [...document.adoptedStyleSheets];
+    }
+  } catch { /* engines that reject cross-document sheets: the clones above cover us */ }
+  doc.body.className = "ic-pip-body";
+}
+
+const FloatIc = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><rect x="13" y="11" width="8" height="10" rx="2" /><path d="M13 3h8v6" /><path d="M21 3l-7 7" /></svg>);
+const DockIc = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5" /><path d="M15 9l-6 6" /><path d="M15 15H9V9" /></svg>);
+const XIc = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>);
 
 function cvBits(application) {
   const cv = application?.cv_snapshot || application?.cv_data || {};
@@ -71,6 +109,7 @@ function cvBits(application) {
 
 export default function InterviewCompanion({
   interview, application, job, hrId, hrEmail, onExit, onChanged,
+  floatWindow = false,
 }) {
   const reduce = useReducedMotion();
   const [kit, setKit] = useState(() => {
@@ -92,17 +131,83 @@ export default function InterviewCompanion({
   const [rejectFromNoShow, setRejectFromNoShow] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [pipWindow, setPipWindow] = useState(null); // Document PiP window while floated
+  const [popupOpen, setPopupOpen] = useState(false); // fallback popup active (no Document PiP)
   const liveRef = useRef(true);
   const scrollRef = useRef(null);
   const askAnchor = useRef(null);
   const noteTimer = useRef(null);
   const rescheduledRef = useRef(false);
   const toastTimer = useRef(null);
+  const pipRef = useRef(null);
+  const popupRef = useRef(null);
   useEffect(() => () => {
     liveRef.current = false;
     clearTimeout(noteTimer.current);
     clearTimeout(toastTimer.current);
+    // The float window renders THIS component's subtree — it cannot
+    // outlive the component. The fallback popup is its own page and may.
+    try { pipRef.current?.close(); } catch { /* already gone */ }
   }, []);
+
+  const pipSupported = typeof window !== "undefined" && "documentPictureInPicture" in window;
+  const floated = Boolean(pipWindow);
+
+  /* One tap out. Document PiP where the browser has it; elsewhere a
+     compact popup of this same route. window.open stays inside the
+     gesture — a deferred open is eaten by popup blockers. */
+  const openFloat = () => {
+    if (floatWindow || floated || popupOpen) return;
+    if (pipSupported) {
+      window.documentPictureInPicture
+        .requestWindow({ width: 380, height: 660 })
+        .then((win) => {
+          if (!liveRef.current) { try { win.close(); } catch { /* noop */ } return; }
+          preparePipDocument(win);
+          win.addEventListener("pagehide", () => {
+            pipRef.current = null;
+            if (liveRef.current) setPipWindow(null);
+          });
+          pipRef.current = win;
+          setPipWindow(win);
+        })
+        .catch(() => { /* user or browser declined, the docked view is still here */ });
+    } else if (interview?.id) {
+      const w = window.open(
+        `/employer/interview/${interview.id}?float=1`,
+        "cvp-float-companion",
+        "popup=yes,width=380,height=660",
+      );
+      if (w) { popupRef.current = w; setPopupOpen(true); }
+    }
+  };
+
+  const dockNow = () => {
+    if (floatWindow) { window.close(); return; }
+    if (pipRef.current) { try { pipRef.current.close(); } catch { /* noop */ } }
+    if (popupRef.current && !popupRef.current.closed) { try { popupRef.current.close(); } catch { /* noop */ } }
+  };
+
+  /* Fallback popup is a second React app writing the same interview row:
+     watch for it closing, then reconcile once from the row so nothing
+     she did over there is lost here. */
+  useEffect(() => {
+    if (!popupOpen) return undefined;
+    const t = setInterval(() => {
+      if (popupRef.current && !popupRef.current.closed) return;
+      popupRef.current = null;
+      setPopupOpen(false);
+      (async () => {
+        const fresh = await loadInterviewById(interview?.id);
+        if (!liveRef.current || !fresh) return;
+        const stored = normalizeKit(fresh.kit);
+        if (stored && stored.questions.length) setKit(stored);
+        if (fresh.rating) setRating(fresh.rating);
+        if (typeof fresh.rating_note === "string" && fresh.rating_note) setScoreNote(fresh.rating_note);
+      })();
+    }, 600);
+    return () => clearInterval(t);
+  }, [popupOpen, interview?.id]);
 
   const first = givenName(application?.candidate_name, "the candidate");
   const isMobile = typeof window !== "undefined" && window.innerWidth < 720;
@@ -313,6 +418,16 @@ export default function InterviewCompanion({
   const headSub = [job?.title, timeLabel, interview?.duration_min ? `${interview.duration_min} min` : ""]
     .filter(Boolean).join(" · ");
 
+  /* Floated header speaks in both timezones, in words, never an offset. */
+  const floatedUi = floated || floatWindow;
+  const dualLine = useMemo(() => {
+    if (!interview?.scheduled_at) return "";
+    const when = new Date(interview.scheduled_at);
+    if (Number.isNaN(when.getTime())) return "";
+    const hrTz = hrTimeZone();
+    return dualTimeLine({ when, hrTz, candidateTz: interview.candidate_tz || hrTz, firstName: first });
+  }, [interview, first]);
+
   const DONE = {
     offer: {
       emoji: "\u{1F44D}\u{1F44D}", tone: "green",
@@ -341,20 +456,50 @@ export default function InterviewCompanion({
   };
   const done = DONE[outcome] || DONE.stay;
 
-  return (
-    <div className="ic-root">
+  const body = (
+    <div className={`ic-root${floatedUi ? " ic-root--float" : ""}`}>
       {/* ── Sticky header ── */}
       <div className="ic-head">
         <div className="ic-head__who">
           <div className="ic-head__name">{application?.candidate_name || "Candidate"}</div>
-          <div className="ic-head__sub">{headSub}</div>
+          <div className="ic-head__sub">{floatedUi && dualLine ? dualLine : headSub}</div>
         </div>
-        {phase === "live" && (
-          <button type="button" className="ic-noshow-btn" onClick={() => setNoShowOpen(true)}>
-            Candidate did not join
-          </button>
-        )}
+        {floatedUi ? (
+          <div className="ic-head__acts">
+            <button type="button" className="ic-float-btn" onClick={dockNow}><DockIc /> Dock</button>
+            <button type="button" className="ic-float-x" aria-label="Close the float window" onClick={dockNow}><XIc /></button>
+          </div>
+        ) : (phase === "live" && (
+          <div className="ic-head__acts">
+            <button
+              type="button"
+              className="ic-float-btn"
+              onClick={openFloat}
+              title={pipSupported ? undefined : "This window is not always on top on this browser"}
+            >
+              <FloatIc /> Float
+            </button>
+            <button type="button" className="ic-noshow-btn" onClick={() => setNoShowOpen(true)}>
+              Candidate did not join
+            </button>
+          </div>
+        ))}
       </div>
+
+      {/* ── Floated header meter: N of M plus the quiet no show door ── */}
+      {floatedUi && phase === "live" && (
+        <div className="ic-float-meter">
+          {questions.length > 0 && (
+            <>
+              <span className="ic-float-meter__bar" aria-hidden="true">
+                <span className="ic-float-meter__fill" style={{ width: `${Math.round((nAsked / questions.length) * 100)}%` }} />
+              </span>
+              <span className="ic-float-meter__txt">{nAsked} of {questions.length} asked</span>
+            </>
+          )}
+          <button type="button" className="ic-float-meter__noshow" onClick={() => setNoShowOpen(true)}>Did not join</button>
+        </div>
+      )}
 
       {/* ── CV peek (Layout B: expands in place, never leaves the column) ── */}
       {phase === "live" && (
@@ -679,4 +824,27 @@ export default function InterviewCompanion({
       </AnimatePresence>
     </div>
   );
+
+  /* While the questions are away (PiP portal or fallback popup), the
+     in-app page holds a calm placeholder so she knows where they went. */
+  const awayCard = (
+    <div className="ic-root ic-away">
+      <span className="ic-away__dot" aria-hidden="true" />
+      <p className="ic-away__line">Your questions are floating over your call</p>
+      <button type="button" className="ic-away__back" onClick={dockNow}>Bring back</button>
+    </div>
+  );
+
+  if (floated && pipWindow.document && pipWindow.document.body) {
+    // Same React subtree, portaled into the PiP document: every mark
+    // asked, note, and rating flows through the exact handlers above.
+    return (
+      <>
+        {createPortal(body, pipWindow.document.body)}
+        {awayCard}
+      </>
+    );
+  }
+  if (popupOpen && !floatWindow) return awayCard;
+  return body;
 }
