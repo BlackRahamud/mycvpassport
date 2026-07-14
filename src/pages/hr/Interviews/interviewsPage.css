@@ -1,0 +1,490 @@
+/* ────────────────────────────────────────────────────────────────
+   Interviews tab — the time based agenda (Interviews Tab Canvas 1a/1b).
+   One calm scroll: Today, Upcoming grouped by day, Past grouped by job.
+
+   Glass (surface-glass tokens from surfaceGlass.css) appears in exactly
+   two places here: the sticky page header and the live now banner.
+   Every ordinary card stays on the solid tokens below.
+
+   Mobile-first: base styles are the stacked 360 to 430 anatomy (canvas
+   1g), the ≥720px block restores the desktop grids. Light tokens on
+   .ivx-root, dark overrides (canvas 1b) under [data-theme="dark"].
+   ──────────────────────────────────────────────────────────────── */
+
+.ivx-root {
+  --ivx-bg: #F7F6F3;
+  --ivx-card: #FFFFFF;
+  --ivx-border: #E7E7EE;
+  --ivx-border-strong: #D5D5DE;
+  --ivx-hairline: #F0F0F4;
+  --ivx-ink: #14131F;
+  --ivx-ink-contrast: #FFFFFF;
+  --ivx-soft: #4B4A5E;
+  --ivx-muted: #8A8A9B;
+  --ivx-green: #1D9E75;
+  --ivx-green-soft: rgba(29, 158, 117, 0.12);
+  --ivx-purple-text: #7C3AED;
+  --ivx-purple-soft: rgba(124, 58, 237, 0.10);
+  --ivx-blue: #378ADD;
+  --ivx-blue-soft: rgba(55, 138, 221, 0.12);
+  --ivx-amber: #D97706;
+  --ivx-amber-soft: rgba(217, 119, 6, 0.12);
+  --ivx-red: #DC2626;
+  --ivx-red-soft: rgba(220, 38, 38, 0.10);
+  --ivx-gray-soft: #EFEFF4;
+  --ivx-dot: #C9C9D2;
+  --ivx-card-shadow: 0 4px 14px -8px rgba(20, 19, 31, 0.10);
+  --ivx-scrim: rgba(20, 19, 31, 0.35);
+
+  min-height: 100vh;
+  background: var(--ivx-bg);
+  color: var(--ivx-ink);
+  font-family: var(--pj-font, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-theme="dark"] .ivx-root {
+  --ivx-bg: #15141C;
+  --ivx-card: #201F2B;
+  --ivx-border: #2E2D3A;
+  --ivx-border-strong: #3A394A;
+  --ivx-hairline: #2A2936;
+  --ivx-ink: #F2F2F7;
+  --ivx-ink-contrast: #14131F;
+  --ivx-soft: #C9C8D6;
+  --ivx-muted: #9C9BAD;
+  --ivx-green: #34C08F;
+  --ivx-green-soft: rgba(52, 192, 143, 0.16);
+  --ivx-purple-text: #C4B5FD;
+  --ivx-purple-soft: rgba(124, 58, 237, 0.22);
+  --ivx-blue: #6FAAE8;
+  --ivx-blue-soft: rgba(55, 138, 221, 0.18);
+  --ivx-amber: #E8933C;
+  --ivx-amber-soft: rgba(217, 119, 6, 0.20);
+  --ivx-red: #EF6A6A;
+  --ivx-red-soft: rgba(220, 38, 38, 0.18);
+  --ivx-gray-soft: rgba(255, 255, 255, 0.08);
+  --ivx-dot: #4B4A5E;
+  --ivx-card-shadow: none;
+  --ivx-scrim: rgba(0, 0, 0, 0.5);
+}
+
+/* ── Sticky glass header ── */
+.ivx-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--surface-glass-solid);
+  border-bottom: 1px solid var(--surface-glass-border);
+}
+.ivx-head__title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.ivx-head__count { font-size: 12px; color: var(--ivx-muted); }
+.ivx-head__date { margin-left: auto; font-size: 11.5px; color: var(--ivx-muted); white-space: nowrap; }
+
+/* ── Live now banner, the second glass surface ── */
+.ivx-live {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-glass-solid);
+  border: 1px solid var(--surface-glass-border);
+  box-shadow: var(--surface-glass-shadow);
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .ivx-head,
+  .ivx-live {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
+}
+.ivx-live__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ivx-green);
+  box-shadow: 0 0 0 4px var(--ivx-green-soft);
+  flex-shrink: 0;
+}
+.ivx-live__who { font-size: 12.5px; font-weight: 700; min-width: 0; }
+.ivx-live__sub {
+  display: none;
+  font-size: 12.5px;
+  color: var(--ivx-soft);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Page body ── */
+.ivx-body {
+  padding: 14px 14px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1160px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ivx-sec__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.ivx-sec__title { font-size: 13px; font-weight: 800; letter-spacing: -0.01em; }
+.ivx-sec__sub { font-size: 12px; color: var(--ivx-muted); }
+
+.ivx-card {
+  background: var(--ivx-card);
+  border: 1px solid var(--ivx-border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--ivx-card-shadow);
+}
+
+/* ── Rows: mobile base = identity block + one action (canvas 1g) ── */
+.ivx-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--ivx-hairline);
+}
+.ivx-row:last-child { border-bottom: 0; }
+.ivx-row--done { opacity: 0.55; }
+
+.ivx-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ivx-avatar--green { background: var(--ivx-green-soft); color: var(--ivx-green); }
+.ivx-avatar--purple { background: var(--ivx-purple-soft); color: var(--ivx-purple-text); }
+.ivx-avatar--blue { background: var(--ivx-blue-soft); color: var(--ivx-blue); }
+.ivx-avatar--amber { background: var(--ivx-amber-soft); color: var(--ivx-amber); }
+.ivx-avatar--gray { background: var(--ivx-gray-soft); color: var(--ivx-soft); }
+
+.ivx-id {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+}
+.ivx-id__name { font-size: 13.5px; font-weight: 700; }
+.ivx-id__job {
+  font-size: 11.5px;
+  color: var(--ivx-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ivx-id__time { font-size: 11.5px; font-weight: 600; color: var(--ivx-soft); }
+
+/* Desktop-only cells, hidden on the stacked mobile anatomy */
+.ivx-cell { display: none; }
+
+.ivx-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ivx-status--live { color: var(--ivx-green); }
+.ivx-status--wait { color: var(--ivx-muted); }
+.ivx-status--done { color: var(--ivx-soft); }
+.ivx-status__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ivx-status--live .ivx-status__dot { background: var(--ivx-green); }
+.ivx-status--wait .ivx-status__dot { background: var(--ivx-dot); }
+
+/* ── Buttons ── */
+.ivx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  height: 44px;
+  padding: 0 18px;
+  flex-shrink: 0;
+  transition: transform 100ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ivx-btn:active { transform: scale(0.98); }
+.ivx-btn:focus-visible { outline: 2px solid var(--pj-primary); outline-offset: 2px; }
+
+/* Start — the only purple button on the page */
+.ivx-btn--start {
+  background: var(--pj-primary);
+  color: #FFFFFF;
+  box-shadow: 0 6px 14px -6px rgba(124, 58, 237, 0.45);
+}
+.ivx-btn--start:hover { background: var(--pj-primary-hover); }
+
+.ivx-btn--ink { background: var(--ivx-ink); color: var(--ivx-ink-contrast); }
+
+.ivx-btn--quiet {
+  background: transparent;
+  border: 1px solid var(--ivx-border-strong);
+  color: var(--ivx-soft);
+}
+.ivx-btn--quiet:hover { border-color: var(--ivx-ink); color: var(--ivx-ink); }
+
+.ivx-live .ivx-btn--ink { margin-left: auto; height: 34px; padding: 0 13px; font-size: 12px; }
+
+/* Upcoming rows: the two quiet actions drop to their own full row on
+   mobile, 44px targets each */
+.ivx-row--up { flex-wrap: wrap; }
+.ivx-acts {
+  flex-basis: 100%;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.ivx-acts .ivx-btn { flex: 1; }
+
+/* ── Group heads inside cards ── */
+.ivx-grouphead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ivx-muted);
+}
+.ivx-grouphead--bordered { border-top: 1px solid var(--ivx-hairline); }
+.ivx-grouphead .ivx-btn--quiet {
+  margin-left: auto;
+  height: 32px;
+  padding: 0 13px;
+  font-size: 12px;
+  flex: 0 0 auto;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ivx-ink);
+}
+
+/* ── Past rows ── */
+.ivx-when { font-size: 11.5px; color: var(--ivx-muted); }
+.ivx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ivx-pill--good { background: var(--ivx-green-soft); color: var(--ivx-green); }
+.ivx-pill--mixed { background: var(--ivx-amber-soft); color: var(--ivx-amber); }
+.ivx-pill--no { background: var(--ivx-red-soft); color: var(--ivx-red); }
+.ivx-pill--none { background: var(--ivx-gray-soft); color: var(--ivx-soft); }
+
+/* ── Empty states: one dashed card, one line, never a blank table ── */
+.ivx-empty {
+  background: var(--ivx-card);
+  border: 1px dashed var(--ivx-border-strong);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+}
+.ivx-empty__line { font-size: 13px; font-weight: 600; color: var(--ivx-soft); }
+.ivx-empty .ivx-btn--ink { margin-top: 10px; height: 38px; padding: 0 15px; font-size: 12.5px; }
+
+/* Zero interviews anywhere: the whole page as an invitation (canvas 1f) */
+.ivx-zero { padding: 60px 24px 70px; text-align: center; }
+.ivx-zero__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--ivx-purple-soft);
+  color: var(--ivx-purple-text);
+}
+.ivx-zero__title { font-size: 16px; font-weight: 700; margin: 14px 0 6px; }
+.ivx-zero__sub {
+  font-size: 13px;
+  color: var(--ivx-soft);
+  line-height: 1.6;
+  max-width: 360px;
+  margin: 0 auto 18px;
+}
+
+.ivx-loading {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ivx-muted);
+}
+
+/* ── Prep kit sheet (hosts the shipped InterviewKitCard) ── */
+.ivx-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 3400; /* kanban drawer scrim 3000 < this < CV viewer 3500 */
+  background: var(--ivx-scrim, rgba(20, 19, 31, 0.35));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: ivx-fade-in 200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.ivx-sheet {
+  width: 640px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--ivx-card, #FFFFFF);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px -28px rgba(15, 12, 30, 0.5);
+  padding: 16px 18px 18px;
+  box-sizing: border-box;
+}
+.ivx-sheet__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.ivx-sheet__title { font-size: 15px; font-weight: 700; }
+.ivx-sheet__x {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--ivx-muted, #8A8A9B);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ivx-sheet__x:hover { color: var(--ivx-ink, #14131F); }
+.ivx-sheet__x:focus-visible { outline: 2px solid var(--pj-primary); outline-offset: 2px; }
+.ivx-sheet__sub { font-size: 12px; color: var(--ivx-muted, #8A8A9B); margin: 0 0 12px; }
+
+/* ── Start veil: the row expands toward the companion (open from
+   origin). A fixed glass rectangle animates from the tapped row to the
+   viewport, then the route changes underneath it. ── */
+.ivx-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 3800;
+  background: var(--surface-glass-solid);
+  pointer-events: none;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .ivx-veil {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
+}
+
+@keyframes ivx-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Desktop ≥720px: the canvas 1a grids ── */
+@media (min-width: 720px) {
+  .ivx-head { padding: 15px 28px; }
+  .ivx-head__title { font-size: 20px; }
+  .ivx-head__count { font-size: 12.5px; }
+  .ivx-head__date { font-size: 12px; }
+
+  .ivx-body { padding: 20px 28px 40px; gap: 26px; }
+
+  .ivx-sec__head { margin-bottom: 10px; }
+  .ivx-sec__title { font-size: 14px; }
+
+  .ivx-live { gap: 14px; padding: 13px 18px; border-radius: 14px; }
+  .ivx-live__who { font-size: 13px; }
+  .ivx-live__sub { display: block; }
+
+  .ivx-row { display: grid; gap: 14px; align-items: center; padding: 14px 18px; }
+  .ivx-row--today { grid-template-columns: 44px 1.1fr 1fr 1.2fr 150px 96px; }
+  .ivx-row--up { grid-template-columns: 44px 1.1fr 1fr 1.2fr 176px; padding: 12px 18px; }
+  .ivx-row--past { grid-template-columns: 44px 1.1fr 1.2fr 1fr; padding: 11px 18px; }
+
+  .ivx-avatar { width: 38px; height: 38px; }
+
+  /* Identity block sheds its stacked lines; the grid cells take over */
+  .ivx-id__job, .ivx-id__time { display: none; }
+
+  .ivx-cell { display: block; min-width: 0; }
+  .ivx-cell--job {
+    font-size: 12.5px;
+    color: var(--ivx-soft);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ivx-cell--time { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ivx-cell--time .ivx-t2 { display: block; font-weight: 500; color: var(--ivx-muted); }
+  .ivx-cell--status { display: flex; }
+  .ivx-cell--when { font-size: 12px; color: var(--ivx-muted); }
+
+  .ivx-btn { height: 36px; padding: 0 14px; font-size: 12.5px; }
+  .ivx-row--today .ivx-btn { width: 100%; }
+
+  .ivx-acts { flex-basis: auto; justify-content: flex-end; }
+  .ivx-acts .ivx-btn { flex: 0 0 auto; height: 32px; padding: 0 13px; font-size: 12px; }
+
+  .ivx-grouphead { padding: 11px 18px 7px; font-size: 11px; }
+  .ivx-row--past .ivx-pill { justify-self: end; }
+  .ivx-pill { font-size: 11.5px; }
+
+  .ivx-sheet { padding: 18px 20px 20px; }
+  .ivx-sheet__title { font-size: 16px; }
+}
+
+/* Past rows keep the pill pinned right on mobile */
+.ivx-row--past .ivx-pill { margin-left: auto; }
+.ivx-row--today .ivx-btn,
+.ivx-live .ivx-btn { margin-left: auto; }
+@media (min-width: 720px) {
+  .ivx-row--today .ivx-btn { margin-left: 0; }
+}
+
+/* Reduced motion: entrances degrade to instant, presses stop moving */
+@media (prefers-reduced-motion: reduce) {
+  .ivx-scrim { animation: none; }
+  .ivx-btn { transition: none; }
+  .ivx-btn:active { transform: none; }
+}

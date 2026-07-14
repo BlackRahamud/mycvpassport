@@ -41,6 +41,7 @@ import {
 import { formatTimeIn, dualTimeLine, hrTimeZone } from "../../lib/hr/interviewTz";
 import RejectModal from "./RejectModal";
 import ScheduleInterviewModal from "./ScheduleInterviewModal";
+import "./surfaceGlass.css";
 import "./interviewCompanion.css";
 
 const EASE = [0.4, 0, 0.2, 1];

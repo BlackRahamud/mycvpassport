@@ -68,7 +68,39 @@
 .hrs-navitem--active { color: var(--pj-text); background: var(--pj-input-bg); }
 .hrs-navitem__icon { display: inline-flex; }
 
+/* Interviews count badge — how many are still to run today. On the
+   bottom bar it perches on the icon corner; the desktop rail block
+   below moves it inline at the row's right edge. */
+.hrs-navitem { position: relative; }
+.hrs-navitem__badge {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--pj-primary);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
 .hrs-rail__foot { display: flex; align-items: center; flex-shrink: 0; }
+
+/* Six tabs now ("Interviews" joined after Candidates) — below 420px the
+   bar tightens so all six still fit a 360px bottom bar without overflow.
+   Same anatomy, smaller paddings, never dropped labels. */
+@media (max-width: 419px) {
+  .hrs-rail { gap: 2px; padding-left: 6px; padding-right: 6px; }
+  .hrs-nav { gap: 0; }
+  .hrs-navitem { padding: 6px 3px; font-size: 10px; letter-spacing: -0.01em; }
+}
 
 /* UserMenu sits at the bottom of the rail (and in the bottom bar on
    mobile); it opens UPWARD + stays on-screen via placement="up" (see
@@ -153,6 +185,13 @@
     padding: 9px 12px;
     border-radius: 9px;
     font-size: 13.5px;
+  }
+  .hrs-navitem__badge {
+    position: static;
+    margin-left: auto;
+    min-width: 19px;
+    height: 19px;
+    font-size: 10.5px;
   }
 
   .hrs-rail__foot {

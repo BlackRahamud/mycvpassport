@@ -38,6 +38,19 @@ const NAV = [
     ),
   },
   {
+    key: "interviews",
+    label: "Interviews",
+    to: "/employer/interviews",
+    // /employer/interview/:id (the companion) lives outside the shell, so
+    // only the plural agenda route lights this item.
+    isActive: (p) => p === "/employer/interviews" || p.startsWith("/employer/interviews/"),
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+    ),
+  },
+  {
     key: "import",
     label: "Import",
     to: "/employer/import",
@@ -80,6 +93,7 @@ export default function HrShell() {
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [interviewsToday, setInterviewsToday] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -102,6 +116,29 @@ export default function HrShell() {
     })();
     return () => { live = false; };
   }, [user?.id]);
+
+  // Interviews nav badge: how many are still to run today. Hidden at
+  // zero. Re-checked on every route change (cheap HEAD count) so it
+  // falls as interviews complete. Best-effort — a count error just
+  // leaves the badge off, never a broken rail.
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let live = true;
+    (async () => {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start.getTime() + 24 * 3600 * 1000);
+      const { count, error } = await supabase
+        .from("interviews")
+        .select("id", { count: "exact", head: true })
+        .eq("hr_id", user.id)
+        .eq("status", "scheduled")
+        .gte("scheduled_at", start.toISOString())
+        .lt("scheduled_at", end.toISOString());
+      if (live && !error) setInterviewsToday(count || 0);
+    })();
+    return () => { live = false; };
+  }, [user?.id, path]);
 
   return (
     <div className="hrs-root">
@@ -127,6 +164,11 @@ export default function HrShell() {
               >
                 <span className="hrs-navitem__icon">{item.icon}</span>
                 <span className="hrs-navitem__label">{item.label}</span>
+                {item.key === "interviews" && interviewsToday > 0 && (
+                  <span className="hrs-navitem__badge" aria-label={`${interviewsToday} today`}>
+                    {interviewsToday}
+                  </span>
+                )}
               </button>
             );
           })}

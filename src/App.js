@@ -44,6 +44,7 @@ const JobPipelinePage      = lazy(() => import(/* webpackChunkName: "hr-pipeline
 const ReviewModePage       = lazy(() => import(/* webpackChunkName: "hr-review" */ "./pages/hr/Jobs/ReviewMode"));
 const InterviewCompanionPage = lazy(() => import(/* webpackChunkName: "hr-interview" */ "./pages/hr/Interview/InterviewCompanionPage"));
 const CandidatesPage       = lazy(() => import(/* webpackChunkName: "hr-candidates" */ "./pages/hr/Candidates/CandidatesPage"));
+const InterviewsPage       = lazy(() => import(/* webpackChunkName: "hr-interviews" */ "./pages/hr/Interviews/InterviewsPage"));
 const HrImportPage         = lazy(() => import(/* webpackChunkName: "hr-import" */     "./pages/hr/Import/ImportPage"));
 const HrPricing            = lazy(() => import(/* webpackChunkName: "hr-pricing" */    "./pages/hr/Pricing/HrPricing"));
 const JobPage              = lazy(() => import(/* webpackChunkName: "jobs" */        "./pages/JobPage"));
@@ -198,6 +199,7 @@ export default function App() {
         <Route path="/employer/jobs" element={<HRJobsListPage />} />
         <Route path="/employer/jobs/:id" element={<JobPipelinePage />} />
         <Route path="/employer/candidates" element={<CandidatesPage />} />
+        <Route path="/employer/interviews" element={<InterviewsPage />} />
         <Route path="/employer/import" element={<HrImportPage />} />
         <Route path="/employer/pricing" element={<HrPricing />} />
       </Route>
