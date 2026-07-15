@@ -5,6 +5,8 @@ import {
   knockoutSynthesis,
   parseMoney,
   parseNoticeDays,
+  missingGaps,
+  humanJoin,
 } from "./readiness";
 
 describe("parseMoney", () => {
@@ -24,6 +26,53 @@ describe("parseNoticeDays", () => {
     expect(parseNoticeDays("2 months")).toBe(60);
     expect(parseNoticeDays("6 weeks")).toBe(42);
     expect(parseNoticeDays("whenever")).toBeNull();
+  });
+});
+
+describe("humanJoin", () => {
+  it("handles none, one, two and many with no Oxford comma", () => {
+    expect(humanJoin([])).toBe("");
+    expect(humanJoin(["visa status"])).toBe("visa status");
+    expect(humanJoin(["visa status", "notice period"])).toBe("visa status and notice period");
+    expect(humanJoin(["current location", "visa status", "notice period"]))
+      .toBe("current location, visa status and notice period");
+  });
+  it("drops empty entries", () => {
+    expect(humanJoin(["visa status", "", null, "notice period"]))
+      .toBe("visa status and notice period");
+  });
+});
+
+describe("missingGaps", () => {
+  const job = { market: "gulf", salary_max: 7000, currency: "AED" };
+
+  it("returns plain phrases only for absent fields, in row order", () => {
+    const out = buildReadiness({
+      cv: { location: "Deira, Dubai", nationality: "Indian", summary: "ECNR" },
+      application: {},
+      job,
+    });
+    // location + nationality known; visa, notice, salary absent.
+    expect(missingGaps(out)).toEqual(["visa status", "notice period", "salary expectation"]);
+  });
+
+  it("is empty when the CV states everything", () => {
+    const out = buildReadiness({
+      cv: {
+        location: "Deira, Dubai", nationality: "Indian",
+        visa_status: "Visit visa", notice_period: "Immediate",
+        salary_expectation: "AED 5,500", summary: "ECNR",
+      },
+      application: {},
+      job,
+    });
+    expect(missingGaps(out)).toEqual([]);
+  });
+
+  it("uses a clean phrase for nationality, not the comma label", () => {
+    const out = buildReadiness({ cv: {}, application: {}, job });
+    expect(missingGaps(out)).toContain("nationality");
+    expect(missingGaps(out)).toContain("current location");
   });
 });
 

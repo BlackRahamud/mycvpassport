@@ -31,7 +31,7 @@ import { supabase } from "../../../appSupabaseClient";
 // Shared-component import order mirrors JobPipelinePage (WhatsAppComposer →
 // VerdictCard → NoteText → CvViewerOverlay → JobDescriptionPanel) so
 // mini-css-extract never sees conflicting css order between the two chunks.
-import WhatsAppComposer from "../../../components/hr/WhatsAppComposer";
+import WhatsAppComposer, { logWhatsappEvent } from "../../../components/hr/WhatsAppComposer";
 import VerdictCard from "../../../components/hr/VerdictCard";
 import NoteText from "../../../components/hr/NoteText";
 import CvViewerOverlay from "../../../components/hr/CvViewerOverlay";
@@ -42,7 +42,7 @@ import dedupeSkills from "../../../lib/hr/dedupeSkills";
 import { NEW_STATUSES } from "../../../lib/hr/stages";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
 import { trackHr } from "../../../lib/analytics/hrEvents";
-import { buildReadiness, evaluateScreening, knockoutSynthesis } from "../../../lib/hr/readiness";
+import { buildReadiness, evaluateScreening, knockoutSynthesis, missingGaps, humanJoin } from "../../../lib/hr/readiness";
 import { REJECT_REASONS } from "../../../lib/hr/rejectReasons";
 import { loadCvFile } from "../../../lib/hr/cvFile";
 import { isStaleAsset, openPdfFromBlob, docxToHtml } from "../../../lib/hr/cvDocEngine";
@@ -306,9 +306,36 @@ function OriginalCvPanel({ path, fileName, parseFailed, onOpenViewer, reduce }) 
   );
 }
 
-/* ── Deployment readiness card (frames 1a, 1b, 1c) ── */
-function ReadinessCard({ readiness, onRequestDetails, reduce }) {
-  const { rows, flagCount, hasMissing } = readiness;
+const WaGlyph = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+  </svg>
+);
+
+/* "today" · "yesterday" · "on 12 Jul" — for the quiet asked line. */
+function fmtAskedWhen(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = 86400000;
+  const at0 = (x) => { const y = new Date(x); y.setHours(0, 0, 0, 0); return y.getTime(); };
+  const diff = Math.round((at0(new Date()) - at0(d)) / day);
+  if (diff <= 0) return "today";
+  if (diff === 1) return "yesterday";
+  return `on ${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+}
+
+/* ── Deployment readiness card (frames 1a, 1b, 1c) ──
+   Rows scale with what we KNOW: a stated field earns a plain row. What the
+   CV does not mention earns ONE line and ONE action, however many things
+   are absent — not a chore per field. After she asks, the line goes quiet
+   and reports that she asked, and when. */
+function ReadinessCard({ readiness, onAsk, askedAt, firstName, reduce }) {
+  const { rows, flagCount } = readiness;
+  const known = rows.filter((r) => r.tone !== "missing");
+  const gaps = missingGaps(readiness);
+  const hasGaps = gaps.length > 0;
+  const who = firstName ? `${firstName}'s CV` : "This CV";
+  const askedWhen = askedAt ? fmtAskedWhen(askedAt) : null;
   return (
     <motion.section
       className={`rvm-card rvm-readiness${flagCount > 0 ? " rvm-readiness--flagged" : ""}`}
@@ -321,11 +348,9 @@ function ReadinessCard({ readiness, onRequestDetails, reduce }) {
         <span className={`rvm-card__eyebrow${flagCount > 0 ? " rvm-card__eyebrow--danger" : ""}`}>
           Deployment readiness{flagCount > 0 ? ` · ${flagCount} ${flagCount === 1 ? "flag" : "flags"}` : ""}
         </span>
-        {hasMissing && (
-          <button type="button" className="rvm-linkbtn" onClick={onRequestDetails}>Request details</button>
-        )}
       </div>
-      {rows.map((r) => (
+
+      {known.map((r) => (
         <div className="rvm-readiness__row" key={r.key}>
           <span className="rvm-readiness__label">{r.label}</span>
           <span className="rvm-readiness__val">
@@ -337,8 +362,24 @@ function ReadinessCard({ readiness, onRequestDetails, reduce }) {
           </span>
         </div>
       ))}
-      {hasMissing && (
-        <p className="rvm-readiness__foot">Not stated, confirm with the candidate before deployment planning.</p>
+
+      {hasGaps && !askedWhen && (
+        <div className="rvm-readiness__gaps">
+          <p className="rvm-readiness__gapline">{who} does not mention {humanJoin(gaps)}.</p>
+          <div className="rvm-readiness__gaprow">
+            <button type="button" className="rvm-gapbtn" onClick={onAsk}>
+              <WaGlyph /> Ask on WhatsApp
+            </button>
+            <span className="rvm-readiness__gaphint">The message is already written, asking for exactly these.</span>
+          </div>
+        </div>
+      )}
+
+      {hasGaps && askedWhen && (
+        <p className="rvm-readiness__asked">
+          You asked {firstName || "the candidate"} {askedWhen}.{" "}
+          <button type="button" className="rvm-linkbtn" onClick={onAsk}>Ask again</button>
+        </p>
       )}
     </motion.section>
   );
@@ -455,6 +496,7 @@ export default function ReviewModePage() {
   const [moveError, setMoveError] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerMessage, setComposerMessage] = useState(null);
+  const [askedAt, setAskedAt] = useState(null); // when the gaps were last asked for the current candidate
   const [mobile, setMobile] = useState(() =>
     typeof window !== "undefined" && typeof window.matchMedia === "function"
       ? !window.matchMedia("(min-width: 900px)").matches
@@ -564,6 +606,28 @@ export default function ReviewModePage() {
     [readiness, screening],
   );
   const knockoutActive = Boolean(synthesis);
+
+  /* Asked state: reconcile from candidate_events on each candidate so the
+     gap line goes quiet after she has asked, and survives a reload. Keyed
+     by candidate_id (imported apps without one stay session only). */
+  useEffect(() => {
+    const cid = current?.candidate_id;
+    if (!cid || !user?.id) { setAskedAt(null); return undefined; }
+    let live = true;
+    setAskedAt(null);
+    (async () => {
+      const { data } = await supabase
+        .from("candidate_events")
+        .select("created_at")
+        .eq("hr_id", user.id)
+        .eq("candidate_id", cid)
+        .eq("event_type", "readiness_asked")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (live && data && data[0]) setAskedAt(data[0].created_at);
+    })();
+    return () => { live = false; };
+  }, [current?.candidate_id, user?.id]);
 
   /* Default tab per candidate: Parsed CV, or Original CV when parsing
      failed and there is a document to show (frame 1j). */
@@ -717,18 +781,27 @@ export default function ReviewModePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [rejectOpen, cvOpen, done, current, decisions, decide, confirmReject]);
 
-  /* Request details → the existing WhatsApp composer, prefilled with the
-     missing readiness fields. */
+  /* Ask on WhatsApp → the EXISTING composer (region aware, regenerate),
+     prefilled with a message that asks for exactly the gaps, in one
+     message not five. Also records that she asked (candidate_events,
+     reused via logWhatsappEvent) so the line can go quiet next time — the
+     message body is never logged. */
   const requestDetails = useCallback(() => {
-    const missing = readiness.rows.filter((r) => r.tone === "missing").map((r) => r.label.toLowerCase());
-    const list = missing.length > 1
-      ? `${missing.slice(0, -1).join(", ")} and ${missing[missing.length - 1]}`
-      : (missing[0] || "a few details");
+    const gaps = missingGaps(readiness);
+    const list = humanJoin(gaps) || "a few details";
     setComposerMessage(
-      `Hi ${givenName(current?.candidate_name, "there")}, quick question about your application for ${job?.title || "the role"}: could you confirm your ${list}? It helps us plan deployment.`,
+      `Hi ${givenName(current?.candidate_name, "there")}, quick question about your application for ${job?.title || "the role"}, could you confirm your ${list}? It helps us plan next steps.`,
     );
     setComposerOpen(true);
-  }, [readiness, current, job]);
+    const cid = current?.candidate_id;
+    if (cid && user?.id) {
+      logWhatsappEvent({
+        candidateId: cid, jobId: job?.id, hrId: user.id,
+        eventType: "readiness_asked", metadata: { gaps },
+      }).catch(() => {});
+    }
+    setAskedAt(new Date().toISOString()); // optimistic; reconciled on reload
+  }, [readiness, current, job, user]);
 
   const patchVerdict = useCallback((appId, v) => {
     if (!appId || !v || typeof v.score !== "number") return;
@@ -929,7 +1002,13 @@ export default function ReviewModePage() {
                   </div>
                 </section>
 
-                <ReadinessCard readiness={readiness} onRequestDetails={requestDetails} reduce={reduce} />
+                <ReadinessCard
+                  readiness={readiness}
+                  onAsk={requestDetails}
+                  askedAt={askedAt}
+                  firstName={givenName(current?.candidate_name, "")}
+                  reduce={reduce}
+                />
 
                 {/* screening knockout surfaced next to the verdict (frame 1b) */}
                 {screening.failedMustHave && (

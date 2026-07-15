@@ -166,6 +166,35 @@ export function buildReadiness({ cv = {}, application = {}, job = {} } = {}) {
   return { rows, flagCount, missingCount, knockouts, hasMissing: missingCount > 0 };
 }
 
+/* Plain-language phrase per readiness field, for the one gap line and the
+   WhatsApp ask. A row label like "Nationality, passport" reads badly in a
+   comma list, so the gap phrasing is separate from the row label. */
+export const GAP_PHRASES = {
+  location: "current location",
+  passport: "nationality",
+  visa: "visa status",
+  notice: "notice period",
+  salary: "salary expectation",
+};
+
+/* The fields the CV does not mention, in row order, as plain phrases.
+   Absence earns one line however many are absent — this feeds it. */
+export function missingGaps(readiness) {
+  const rows = (readiness && readiness.rows) || [];
+  return rows
+    .filter((r) => r.tone === "missing")
+    .map((r) => GAP_PHRASES[r.key] || String(r.label || "").toLowerCase());
+}
+
+/* "a" · "a and b" · "a, b and c". No Oxford comma, no dashes. Handles the
+   singular case so one field never reads as a list. */
+export function humanJoin(items) {
+  const list = (items || []).filter(Boolean);
+  if (list.length === 0) return "";
+  if (list.length === 1) return list[0];
+  return `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
+}
+
 /**
  * evaluateScreening(questions, answers) — pair the job's screening
  * questions (jobs.screening_questions, flat or grouped) with the

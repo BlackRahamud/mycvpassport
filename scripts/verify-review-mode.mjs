@@ -7,7 +7,8 @@
      banner + toast + undo, knockout candidate (pill override, synthesis,
      screening knockout card, 5 flags), reject modal with required reason,
      all caught up card
-   - not stated candidate: dashed Not stated fields + Request details
+   - not stated candidate: absence is one gap line + one Ask on WhatsApp,
+     no warning row per field (see verify-readiness-gaps.mjs for all states)
    - mobile 360/393/430: stacked layout, JD one tap away, full-width
      decision bar, no keyboard hints, horizontal-overflow audit
    - empty queue: Nothing to review + working Import CVs / View pipeline
@@ -423,19 +424,24 @@ const REVIEW_URL = `http://localhost:4187/employer/jobs/${JOB_ID}/review`;
   check((await page.locator(".rvm-id__name").textContent()) === "Hammad Hassan", "desktop: undo returns to Hammad");
   check((await page.locator(".rvm-banner").count()) === 0, "desktop: banner cleared after undo");
 
-  /* decide again and land on Faisal: Not stated treatment */
-  await page.locator(".rvm-decide--shortlist").click();
+  /* decide again and land on Faisal: absence is one line, not a chore
+     per field (deployment readiness redesign). Faisal states location and
+     notice; nationality, visa and salary are absent → two known rows and
+     one gap line, not three warning rows. */
+  await page.keyboard.press("ArrowRight"); // shortlist (the feedback FAB overlaps the decision bar's right edge)
   await page.waitForTimeout(1500);
   check((await page.locator(".rvm-id__name").textContent()) === "Faisal Khan", "desktop: back on Faisal");
-  check((await page.locator(".rvm-readiness__value--missing").count()) === 3, "desktop: three Not stated fields");
-  check(await page.getByRole("button", { name: "Request details" }).isVisible(), "desktop: Request details action");
+  check((await page.locator(".rvm-readiness__value--missing").count()) === 0, "desktop: absence renders no warning rows");
+  const gapLine = await page.locator(".rvm-readiness__gapline").innerText();
+  check(/does not mention .*nationality.*visa status.*and salary expectation/.test(gapLine), `desktop: one gap line lists the absent fields (${gapLine})`);
+  check(await page.getByRole("button", { name: /Ask on WhatsApp/ }).isVisible(), "desktop: one Ask on WhatsApp action for the gaps");
   await page.getByRole("tab", { name: "Original CV" }).click();
   await page.waitForTimeout(400);
   check(await page.getByText("No uploaded CV file").isVisible(), "desktop: missing file state is honest");
   await shot(page, "desktop-not-stated");
 
   /* decide Faisal too; the queue auto loads the knockout candidate */
-  await page.locator(".rvm-decide--shortlist").click();
+  await page.keyboard.press("ArrowRight"); // shortlist via keyboard (FAB overlaps the bar)
   await page.waitForTimeout(1500);
   check((await page.locator(".rvm-id__name").textContent()) === "Rohan Mehta", "desktop: candidate 3 is Rohan");
   check((await page.locator(".vc-badge").textContent()) === "Skills fit, not deployable", "desktop: knockout pill overrides headline");
