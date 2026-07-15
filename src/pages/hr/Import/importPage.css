@@ -1,74 +1,380 @@
 /* ────────────────────────────────────────────────────────────────
-   ImportPage — /employer/import. One centred column, one question.
-   Light HR-portal theme; --pj-* tokens from postJob.css :root,
-   --hjl-* ink accents from .jpp-root (jobPipeline.css). Mobile-first;
-   HrShell's bottom bar clearance is handled by .hrs-content padding.
+   Import CVs — /employer/import (Import CVs Canvas 1a–1f).
+   Drop-first three-beat flow: drop → reading → pick → (scoring) → done.
+
+   Tokens: page-scoped --imp-* on .imp-root, dark overrides under
+   [data-theme="dark"] .imp-root (same shape as the Interviews tab).
+   Accent reuses --pj-primary (postJob.css). Glass comes from the
+   surface-glass tokens (surfaceGlass.css) on exactly three floating
+   surfaces — sticky header, drag-over overlay, progress toast — behind
+   an @supports guard with a solid fallback. Every card is solid.
+
+   Mobile-first: base styles are the 360–430 anatomy; the ≥720px block
+   widens padding and the desktop grids. HrShell handles bottom-bar
+   clearance via .hrs-content padding.
    ──────────────────────────────────────────────────────────────── */
 
 .imp-root {
-  background: #FAFAFB;
+  --imp-bg: #FBFBFD;
+  --imp-card: #FFFFFF;
+  --imp-elev: #F6F6F9;
+  --imp-text: #14131F;
+  --imp-soft: #4B4A5E;
+  --imp-muted: #8A8A9B;
+  --imp-border: #E7E7EE;
+  --imp-border-strong: #D5D5DE;
+  --imp-ring-track: #E7E7EE;
+  --imp-accent: var(--pj-primary, #7C3AED);
+  --imp-accent-hover: var(--pj-primary-hover, #6D28D9);
+  --imp-accent-soft: rgba(124, 58, 237, 0.10);
+  --imp-accent-ring: rgba(124, 58, 237, 0.18);
+  --imp-success: #059669;
+  --imp-danger: #DC2626;
+  --imp-shadow-card: 0 18px 40px -22px rgba(20, 19, 31, 0.18), 0 6px 14px -8px rgba(20, 19, 31, 0.08);
+  --imp-shadow-btn: 0 8px 18px -8px rgba(124, 58, 237, 0.45);
+  --imp-scrim: rgba(15, 12, 30, 0.42);
+  --imp-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --imp-font: var(--pj-font, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+
   min-height: 100vh;
-  font-family: var(--pj-font);
+  background: var(--imp-bg);
+  color: var(--imp-text);
+  font-family: var(--imp-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.imp-page {
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 28px 16px 48px;
+[data-theme="dark"] .imp-root {
+  --imp-bg: #141320;
+  --imp-card: #1B1A26;
+  --imp-elev: #201F2B;
+  --imp-text: #F2F2F7;
+  --imp-soft: #B9B9C6;
+  --imp-muted: #86858F;
+  --imp-border: rgba(255, 255, 255, 0.10);
+  --imp-border-strong: rgba(255, 255, 255, 0.17);
+  --imp-ring-track: #2A2936;
+  --imp-accent-soft: rgba(124, 58, 237, 0.22);
+  --imp-accent-ring: rgba(124, 58, 237, 0.32);
+  --imp-success: #34D399;
+  --imp-danger: #EF6A6A;
+  --imp-shadow-card: 0 24px 50px -24px rgba(0, 0, 0, 0.62), 0 8px 18px -10px rgba(0, 0, 0, 0.5);
+  --imp-shadow-btn: 0 8px 18px -8px rgba(124, 58, 237, 0.55);
+  --imp-scrim: rgba(0, 0, 0, 0.55);
 }
 
-.imp-head { margin-bottom: 18px; }
-.imp-head__title {
-  margin: 0 0 6px;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--pj-text);
+/* ── Sticky glass header (floating surface 1) ── */
+.imp-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 13px 16px;
+  background: var(--surface-glass-solid);
+  border-bottom: 1px solid var(--surface-glass-border);
 }
-.imp-head__sub {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: var(--pj-muted);
+.imp-head__row { display: flex; align-items: baseline; gap: 10px; }
+.imp-head__title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--imp-text); }
+.imp-head__count {
+  font-size: 11.5px; font-weight: 700; color: var(--imp-accent);
+  font-variant-numeric: tabular-nums;
+}
+.imp-head__sub { margin: 3px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--imp-muted); }
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .imp-head {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
 }
 
-.imp-card {
-  background: #FFFFFF;
-  border: 1px solid var(--pj-border);
-  border-radius: 14px;
-  padding: 16px;
+.imp-main { max-width: 720px; margin: 0 auto; padding: 22px 16px 40px; }
+.imp-file { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+
+/* ── Buttons ── */
+.imp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  height: 46px; padding: 0 22px; border-radius: 12px;
+  font-family: var(--imp-font); font-size: 14.5px; font-weight: 600;
+  border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+  transition: background 150ms var(--imp-ease), color 150ms var(--imp-ease),
+    box-shadow 150ms var(--imp-ease), transform 100ms var(--imp-ease), border-color 150ms var(--imp-ease);
 }
-.imp-card__q {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--pj-text);
+.imp-btn--wide { width: 100%; }
+.imp-btn--primary { background: var(--imp-accent); color: #fff; box-shadow: var(--imp-shadow-btn); }
+.imp-btn--primary:hover { background: var(--imp-accent-hover); transform: translateY(-1px); }
+.imp-btn--primary:active { transform: scale(0.98); }
+.imp-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+.imp-btn--ghost { background: transparent; color: var(--imp-text); border-color: var(--imp-border-strong); }
+.imp-btn--ghost:hover { background: var(--imp-elev); }
+.imp-btn--ghost:active { transform: scale(0.98); }
+.imp-btn:focus-visible { outline: 2px solid var(--imp-accent); outline-offset: 2px; }
+
+/* ── Beat 1 · Drop zone hero ── */
+.imp-locked {
+  margin: 0 0 12px; font-size: 13px; color: var(--imp-soft);
+  padding: 10px 14px; background: var(--imp-elev); border-radius: 10px;
+}
+.imp-locked strong { color: var(--imp-text); font-weight: 700; }
+
+.imp-drop {
+  position: relative;
+  border: 2px dashed var(--imp-border-strong);
+  border-radius: 22px;
+  background: var(--imp-card);
+  box-shadow: var(--imp-shadow-card);
+  min-height: 320px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 18px; padding: 40px 24px;
+  transition: border-color 150ms var(--imp-ease), background 150ms var(--imp-ease);
+}
+.imp-drop--over { border-color: var(--imp-accent); background: var(--imp-accent-soft); }
+.imp-drop__icon {
+  width: 76px; height: 76px; border-radius: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--imp-accent-soft); color: var(--imp-accent);
+}
+.imp-drop__title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--imp-text); }
+.imp-drop__hint { font-size: 14px; color: var(--imp-muted); margin-top: 6px; }
+.imp-drop__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 13px; }
+.imp-drop__or { font-size: 13px; color: var(--imp-muted); }
+
+.imp-drop__over {
+  position: absolute; inset: 0; border-radius: 22px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: var(--surface-glass-solid);
+  border: 2px dashed var(--imp-accent);
+  color: var(--surface-glass-ink);
+}
+.imp-drop__over-icon {
+  width: 60px; height: 60px; border-radius: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--imp-accent-soft); color: var(--imp-accent);
+}
+.imp-drop__over-title { font-size: 18px; font-weight: 700; }
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .imp-drop__over {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
 }
 
-.imp-status {
-  margin: 0;
-  font-size: 13px;
-  color: var(--pj-muted);
+/* ── Panels (reading + scoring) — solid ── */
+.imp-panel {
+  background: var(--imp-card);
+  border: 1px solid var(--imp-border);
+  border-radius: 20px;
+  box-shadow: var(--imp-shadow-card);
+  padding: 18px;
 }
-.imp-status--err { color: var(--pj-text); }
-.imp-retry {
-  border: 1px solid var(--pj-border);
-  border-radius: 7px;
-  background: #FFFFFF;
-  padding: 4px 10px;
-  margin-left: 6px;
-  font: inherit;
-  font-family: var(--pj-font);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--pj-text);
-  cursor: pointer;
+.imp-panel__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.imp-panel__lead { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.imp-panel__badge {
+  width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--imp-accent-soft); color: var(--imp-accent);
 }
+.imp-panel__title { font-size: 15.5px; font-weight: 700; color: var(--imp-text); }
+.imp-panel__sub { font-size: 12.5px; color: var(--imp-muted); margin-top: 1px; }
+.imp-panel__count { font-size: 13px; font-weight: 700; color: var(--imp-accent); font-variant-numeric: tabular-nums; }
+.imp-panel__note { margin: 14px 0 0; font-size: 12.5px; color: var(--imp-soft); }
+.imp-panel__foot { margin-top: 18px; display: flex; justify-content: flex-end; }
+.imp-panel__foot--split { justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.imp-bar { height: 5px; border-radius: 999px; background: var(--imp-elev); overflow: hidden; margin-bottom: 16px; }
+.imp-bar__fill { display: block; height: 100%; background: var(--imp-accent); border-radius: 999px; transition: width 300ms ease-out; }
+
+/* ── Candidate cards ── */
+.imp-cand-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.imp-cand {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 13px; background: var(--imp-elev);
+  border: 1px solid transparent;
+}
+.imp-cand--error { border-color: color-mix(in srgb, var(--imp-danger) 40%, transparent); }
+.imp-cand__slot { width: 40px; height: 40px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+.imp-cand__badge { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.imp-cand__badge--ok { background: color-mix(in srgb, var(--imp-success) 16%, transparent); color: var(--imp-success); }
+.imp-cand__badge--err { background: color-mix(in srgb, var(--imp-danger) 15%, transparent); color: var(--imp-danger); }
+.imp-cand__body { min-width: 0; flex: 1; }
+.imp-cand__name { display: block; font-size: 13.5px; font-weight: 700; color: var(--imp-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-cand__sub { display: block; font-size: 11.5px; color: var(--imp-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-cand__sub--err { color: var(--imp-danger); }
+.imp-cand__actions { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.imp-cand__retry {
+  background: transparent; border: 1px solid var(--imp-border-strong); border-radius: 8px;
+  font-family: var(--imp-font); font-size: 12px; font-weight: 600; color: var(--imp-text);
+  padding: 5px 10px; cursor: pointer; transition: background 150ms var(--imp-ease);
+}
+.imp-cand__retry:hover { background: var(--imp-card); }
+.imp-cand__remove {
+  width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent;
+  color: var(--imp-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: background 150ms var(--imp-ease), color 150ms var(--imp-ease);
+}
+.imp-cand__remove:hover { background: var(--imp-card); color: var(--imp-text); }
+
+.imp-cand__spin {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2.5px solid var(--imp-border); border-top-color: var(--imp-accent);
+  animation: imp-spin 0.7s linear infinite;
+}
+@keyframes imp-spin { to { transform: rotate(360deg); } }
+
+/* ── Beat 3 · Pick a destination ── */
+.imp-pick__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.imp-pick__title { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--imp-text); }
+.imp-pick__empty { margin: 0 0 14px; font-size: 13.5px; line-height: 1.5; color: var(--imp-muted); }
+
+.imp-search { position: relative; flex: 1 1 200px; max-width: 260px; }
+.imp-search__icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--imp-muted); pointer-events: none; display: inline-flex; }
+.imp-search__input {
+  width: 100%; height: 40px; padding: 0 12px 0 34px; border-radius: 10px;
+  background: var(--imp-elev); border: 1px solid transparent; color: var(--imp-text);
+  font-family: var(--imp-font); font-size: 13.5px; outline: none;
+  transition: border-color 150ms var(--imp-ease), box-shadow 150ms var(--imp-ease);
+}
+.imp-search__input::placeholder { color: var(--imp-muted); }
+.imp-search__input:focus { border-color: var(--imp-accent); box-shadow: 0 0 0 4px var(--imp-accent-ring); }
+
+.imp-jobs { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.imp-job {
+  text-align: left; display: flex; align-items: center; gap: 12px;
+  padding: 16px; border-radius: 15px; background: var(--imp-card);
+  border: 1px solid var(--imp-border); box-shadow: var(--imp-shadow-card);
+  cursor: pointer; font-family: var(--imp-font);
+  transition: border-color 150ms var(--imp-ease), transform 100ms var(--imp-ease), box-shadow 150ms var(--imp-ease);
+}
+.imp-job:hover { border-color: var(--imp-accent); transform: translateY(-1px); }
+.imp-job:active { transform: scale(0.98); }
+.imp-job:focus-visible { outline: 2px solid var(--imp-accent); outline-offset: 2px; }
+.imp-job__icon {
+  width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--imp-accent-soft); color: var(--imp-accent);
+}
+.imp-job__body { min-width: 0; }
+.imp-job__title { display: block; font-size: 15px; font-weight: 700; color: var(--imp-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-job__ctx { display: block; font-size: 12.5px; color: var(--imp-muted); margin-top: 2px; }
+
+.imp-pool {
+  margin-top: 14px; width: 100%; text-align: left;
+  display: flex; align-items: center; gap: 14px; padding: 16px;
+  border-radius: 15px; background: var(--imp-elev);
+  border: 1px dashed var(--imp-border-strong); cursor: pointer; font-family: var(--imp-font);
+  transition: border-color 150ms var(--imp-ease), transform 100ms var(--imp-ease);
+}
+.imp-pool:hover { border-color: var(--imp-accent); }
+.imp-pool:active { transform: scale(0.98); }
+.imp-pool:focus-visible { outline: 2px solid var(--imp-accent); outline-offset: 2px; }
+.imp-pool__icon {
+  width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--imp-accent-soft); color: var(--imp-accent);
+}
+.imp-pool__title { display: block; font-size: 14.5px; font-weight: 700; color: var(--imp-text); }
+.imp-pool__sub { display: block; font-size: 12.5px; color: var(--imp-muted); margin-top: 2px; }
+
+.imp-poolform {
+  margin-top: 14px; padding: 16px; border-radius: 15px;
+  background: var(--imp-elev); border: 1px solid var(--imp-border);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.imp-poolform__input {
+  width: 100%; height: 44px; padding: 0 14px; border-radius: 10px;
+  background: var(--imp-card); border: 1px solid var(--imp-border-strong); color: var(--imp-text);
+  font-family: var(--imp-font); font-size: 14px; outline: none;
+  transition: border-color 150ms var(--imp-ease), box-shadow 150ms var(--imp-ease);
+}
+.imp-poolform__input::placeholder { color: var(--imp-muted); }
+.imp-poolform__input:focus { border-color: var(--imp-accent); box-shadow: 0 0 0 4px var(--imp-accent-ring); }
+.imp-poolform__market { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.imp-poolform__marketlabel { font-size: 12.5px; font-weight: 600; color: var(--imp-soft); }
+.imp-toggle { display: inline-flex; background: var(--imp-card); border: 1px solid var(--imp-border); border-radius: 9px; padding: 3px; gap: 2px; }
+.imp-toggle__btn {
+  height: 30px; padding: 0 16px; border: 0; border-radius: 6px; background: transparent;
+  font-family: var(--imp-font); font-size: 12.5px; font-weight: 600; color: var(--imp-soft); cursor: pointer;
+  transition: background 150ms var(--imp-ease), color 150ms var(--imp-ease);
+}
+.imp-toggle__btn--on { background: var(--imp-accent); color: #fff; }
+.imp-poolform__row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.imp-poolform__row .imp-btn { height: 42px; }
+
+/* ── Notice strip ── */
+.imp-notice {
+  display: flex; align-items: center; gap: 8px; margin: 14px 0 0;
+  padding: 10px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 500;
+  color: var(--imp-danger); background: color-mix(in srgb, var(--imp-danger) 10%, transparent);
+}
+.imp-notice--inline { margin: 0; flex: 1 1 200px; }
+.imp-notice--float { position: fixed; left: 16px; right: 16px; bottom: 90px; z-index: 60; box-shadow: var(--imp-shadow-card); }
+.imp-notice svg { flex-shrink: 0; }
+
+/* ── Progress toast (floating surface 3) ── */
+.imp-toast {
+  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 120; display: inline-flex; align-items: center; gap: 10px;
+  padding: 12px 18px; border-radius: 12px; max-width: 90vw;
+  background: var(--surface-glass-solid); border: 1px solid var(--surface-glass-border);
+  box-shadow: var(--surface-glass-shadow); color: var(--surface-glass-ink);
+  font-family: var(--imp-font); font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.imp-toast__spin {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2.4px solid var(--surface-glass-border); border-top-color: var(--imp-accent);
+  animation: imp-spin 0.7s linear infinite;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .imp-toast {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
+}
+
+/* ── Finish — opens from origin ── */
+.imp-confirm-scrim {
+  position: fixed; inset: 0; z-index: 3600;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: var(--imp-scrim);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.imp-confirm {
+  width: 420px; max-width: 100%;
+  background: var(--imp-card); border: 1px solid var(--imp-border); border-radius: 20px;
+  box-shadow: 0 30px 80px -28px rgba(15, 12, 30, 0.5);
+  padding: 26px 24px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.imp-confirm__icon {
+  width: 56px; height: 56px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--imp-success) 16%, transparent); color: var(--imp-success);
+}
+.imp-confirm__title { margin: 4px 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--imp-text); text-wrap: balance; }
+.imp-confirm__sub { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--imp-soft); max-width: 34ch; }
+.imp-confirm__actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 8px; }
 
 /* ── Desktop ── */
 @media (min-width: 720px) {
-  .imp-page { padding: 48px 24px 64px; }
-  .imp-head { margin-bottom: 22px; }
-  .imp-head__title { font-size: 26px; }
-  .imp-card { padding: 20px; }
+  .imp-head { padding: 15px 28px; }
+  .imp-head__title { font-size: 21px; }
+  .imp-main { padding: 32px 28px 56px; }
+  .imp-drop { min-height: 380px; }
+  .imp-cand-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .imp-jobs { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+@media (min-width: 900px) {
+  .imp-toast { bottom: 28px; }
+  .imp-notice--float { left: auto; right: 28px; bottom: 28px; max-width: 360px; }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .imp-btn, .imp-drop, .imp-job, .imp-pool, .imp-search__input, .imp-cand__retry, .imp-cand__remove, .imp-bar__fill {
+    transition: none !important;
+  }
+  .imp-cand__spin, .imp-toast__spin { animation-duration: 1.4s; }
+  .imp-btn--primary:hover, .imp-job:hover { transform: none; }
 }
