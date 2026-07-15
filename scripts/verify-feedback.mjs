@@ -63,20 +63,41 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(4188, r));
 
-function pgrest(url) {
+const JOB = {
+  id: "33333333-3333-4333-8333-333333333333",
+  title: "IT Support Analyst L2", status: "active", hr_id: HR_ID,
+  location: "Dubai, UAE", market: "gulf", company: "Meridian Logistics",
+  skills: ["Desktop support", "Active Directory"], requirements: [],
+  description: "First line support for around 200 users.",
+};
+const APP = {
+  id: "44444444-4444-4444-8444-000000000001",
+  job_id: JOB.id, candidate_id: null,
+  candidate_name: "Divya Nair", candidate_email: "divya.nair@example.com", candidate_phone: "+919812345678",
+  cv_snapshot: { personal: { location: "Pune, India" }, skills: ["Desktop support", "Active Directory"], experience: [{ title: "Support Engineer", company: "Corridor Retail", start_date: "2022", end_date: "now" }] },
+  cv_file_path: null, ats_score: 88, match_keywords: ["Desktop support"], missing_keywords: [],
+  ai_verdict: { score: 88, verdict: "solid", two_second_why: ["Match: hands on support.", "Skills fit.", "Gap: notice period."] },
+  score_source: "sonnet_verdict", source: "import", status: "ready", recruiter_notes: [],
+  applied_at: "2026-07-01T08:00:00Z", viewed_at: null, updated_at: "2026-07-01T08:00:00Z", is_visible_to_hr: true,
+};
+
+function pgrest(url, pipeline) {
   const path = url.pathname;
-  const wantsObject = false;
   const t = (name) => path.includes(`/rest/v1/${name}`);
+  const wantsObject = false;
   let rows = [];
   if (t("profiles")) rows = [{ user_type: "recruiter", plan: "recruiter", full_name: "Meridian HR", company_name: "Meridian Logistics", work_email: "recruiter@meridianlogistics.example" }];
   else if (t("hr_profiles")) rows = [{ company_name: "Meridian Logistics", work_email: "recruiter@meridianlogistics.example", company_id: "55555555-5555-4555-8555-555555555555" }];
-  else if (t("jobs")) rows = [];
-  else if (t("applications")) rows = [];
+  else if (t("jobs")) rows = pipeline ? [JOB] : [];
+  else if (t("applications")) rows = pipeline ? [APP] : [];
+  else if (t("candidate_events")) rows = [];
+  else if (t("interviews")) rows = [];
   return JSON.stringify(wantsObject ? (rows[0] ?? null) : rows);
 }
 
 async function stubRoutes(context, captured, opts) {
   const failFeedback = !!opts.failFeedback;
+  const pipeline = !!opts.pipeline;
   await context.route("**/*", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
@@ -108,7 +129,7 @@ async function stubRoutes(context, captured, opts) {
         if (method === "PATCH" || method === "POST" || url.pathname.includes("/rpc/")) {
           return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
         }
-        return route.fulfill({ status: 200, contentType: "application/json", body: pgrest(url) });
+        return route.fulfill({ status: 200, contentType: "application/json", body: pgrest(url, pipeline) });
       }
       return route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
     }
@@ -116,16 +137,17 @@ async function stubRoutes(context, captured, opts) {
   });
 }
 
-async function newPage(browser, { width = 1280, theme = "light", failFeedback = false, failEmail = false } = {}) {
+async function newPage(browser, { width = 1280, theme = "light", failFeedback = false, failEmail = false, pipeline = false } = {}) {
   const captured = [];
   const context = await browser.newContext({ viewport: { width, height: 900 }, timezoneId: "Asia/Dubai" });
-  await stubRoutes(context, captured, { failFeedback, failEmail });
-  await context.addInitScript(([key, session, th]) => {
+  await stubRoutes(context, captured, { failFeedback, failEmail, pipeline });
+  await context.addInitScript(([key, session, th, hrId]) => {
     localStorage.setItem(key, JSON.stringify(session));
     localStorage.setItem("cvp_theme", th);
     localStorage.removeItem("cvp_feedback_draft");
+    localStorage.setItem(`cvp_pipeline_view_${hrId}`, "kanban"); // force the kanban drawer path
     sessionStorage.setItem("hr_welcome_ring_shown", "1");
-  }, [`sb-${REF}-auth-token`, SESSION, theme]);
+  }, [`sb-${REF}-auth-token`, SESSION, theme, HR_ID]);
   const page = await context.newPage();
   page.on("pageerror", (e) => { console.log("[pageerror]", e.message); failures += 1; });
   return { context, page, captured };
@@ -150,6 +172,18 @@ async function assertNoDashes(page, label) {
     return (root.innerText || "") + " " + (ta ? ta.getAttribute("placeholder") || "" : "");
   });
   check(!DASH.test(txt), `${label}: no dash characters in feedback copy`);
+}
+
+// Hit-test: is the affordance the topmost element at its own centre? This
+// proves it is clickable over a modal, not merely numerically above it.
+async function fabOnTop(page) {
+  return page.evaluate(() => {
+    const aff = document.querySelector(".pfb-aff");
+    if (!aff) return false;
+    const r = aff.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!(el && el.closest(".pfb-root"));
+  });
 }
 
 const browser = await chromium.launch();
@@ -292,6 +326,57 @@ for (const width of [360, 393, 430]) {
   const pw = await page.locator(".pfb-panel").evaluate((el) => el.getBoundingClientRect().width);
   check(pw <= width - 24, `mobile ${width}: the panel fits the viewport (${Math.round(pw)}px)`);
   await shot(page, `7-mobile-${width}`);
+  await context.close();
+}
+
+/* ── 8) RENDERED text is visible (the P0): read the computed ink ───── */
+for (const theme of ["light", "dark"]) {
+  const ink = theme === "dark" ? "rgb(242, 242, 247)" : "rgb(20, 19, 31)";
+  const { context, page } = await newPage(browser, { width: 1280, theme });
+  await openPortal(page);
+  await page.locator(".pfb-aff").click();
+  await page.waitForSelector(".pfb-ta");
+  await page.locator(".pfb-ta").fill("Typed text has to be readable");
+  await page.waitForTimeout(150);
+  const c = await page.locator(".pfb-ta").evaluate((el) => { const s = getComputedStyle(el); return { color: s.color, fill: s.webkitTextFillColor, caret: s.caretColor, bg: s.backgroundColor }; });
+  check(c.color === ink, `render ${theme}: typed text is the ink, not white/transparent (${c.color})`);
+  check(c.fill === ink, `render ${theme}: -webkit-text-fill-color is the ink (${c.fill})`);
+  check(c.caret === ink, `render ${theme}: the caret is visible (${c.caret})`);
+  check(c.bg !== "rgba(0, 0, 0, 0)", `render ${theme}: the focused field keeps its fill, not transparent (${c.bg})`);
+  await context.close();
+}
+
+/* ── 9) Clickable OVER the drawer and the schedule modal (observed) ── */
+{
+  const { context, page } = await newPage(browser, { width: 1280, pipeline: true });
+  await page.goto(`http://localhost:4188/employer/jobs/${JOB.id}`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".pfb-aff", { timeout: 8000 });
+  await page.waitForSelector(".jpp-kb-card", { timeout: 8000 });
+
+  // candidate drawer (role="dialog", slides over the board)
+  await page.locator(".jpp-kb-card").first().click();
+  await page.waitForSelector(".jpp-kb-drawer", { timeout: 4000 });
+  await page.waitForTimeout(400);
+  check(await page.locator(".pfb-aff").isVisible(), "over-drawer: the affordance is visible above the candidate drawer");
+  check(await fabOnTop(page), "over-drawer: it is the topmost element at its point (hit-test, not just numeric z)");
+  await shot(page, "8-over-drawer");
+  await page.locator(".pfb-aff").click();
+  await page.waitForSelector(".pfb-panel", { timeout: 4000 });
+  check(await page.locator(".pfb-panel").isVisible(), "over-drawer: clicking it actually opens the panel");
+  await page.keyboard.press("Escape");
+  await page.waitForSelector(".pfb-aff", { timeout: 4000 });
+  check(await page.locator(".jpp-kb-drawer").isVisible(), "over-drawer: Escape closed the panel only, the drawer stayed open");
+
+  // schedule modal (jpp-modal, z 4000, page level)
+  await page.locator(".jpp-action--ghost", { hasText: "Schedule interview" }).first().click();
+  await page.waitForSelector('.jpp-modal[aria-label="Schedule interview"]', { timeout: 4000 });
+  await page.waitForTimeout(400);
+  check(await page.locator(".pfb-aff").isVisible(), "over-schedule: the affordance is visible above the schedule modal");
+  check(await fabOnTop(page), "over-schedule: it is the topmost element at its point");
+  await shot(page, "9-over-schedule");
+  await page.locator(".pfb-aff").click();
+  await page.waitForSelector(".pfb-panel", { timeout: 4000 });
+  check(await page.locator(".pfb-panel").isVisible(), "over-schedule: clicking it actually opens the panel over the modal");
   await context.close();
 }
 

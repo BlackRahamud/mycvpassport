@@ -168,16 +168,30 @@
   font-weight: 600;
 }
 
-.pfb-ta {
+/* The panel carries role="dialog", so a builder-era global in index.css
+   (`[role="dialog"] textarea { color:#fff }`, meant for the dark CV
+   builder) repaints this field white on light glass — invisible text and
+   caret. That global also assumes a dark background. We pin the ink here
+   explicitly: color for the caret (caret-color defaults to currentColor),
+   -webkit-text-fill-color for the actual glyph fill, and the field
+   background. Selector `.pfb-panel .pfb-ta` (0,2,0) out-specifies the
+   `[role="dialog"] textarea` global (0,1,1) with no !important needed.
+   NOTE: the surface-glass ink token is correct (dark on light, light on
+   dark) — the token is not the bug; the builder global is. That global is
+   latent for every light dialog textarea (whatsappComposer and
+   scheduleInterview already work around it locally). See the report. */
+.pfb-panel .pfb-ta {
   width: 100%;
   margin-top: 11px;
   min-height: 116px;
   resize: none;
   padding: 12px 13px;
   border-radius: 12px;
-  background: var(--pj-input-bg);
+  background-color: var(--pj-input-bg);
   border: 1px solid transparent;
   color: var(--surface-glass-ink);
+  -webkit-text-fill-color: var(--surface-glass-ink);
+  caret-color: var(--surface-glass-ink);
   font-family: inherit;
   font-size: 14px;
   line-height: 1.5;
@@ -186,12 +200,19 @@
     border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-.pfb-ta::placeholder { color: var(--pj-muted); }
-/* Beat the global amber input:focus ring (index.css uses !important on a
-   bare textarea:focus). The portal accent is purple, not amber. */
-.pfb-ta:focus {
+.pfb-panel .pfb-ta::placeholder {
+  color: var(--pj-muted);
+  -webkit-text-fill-color: var(--pj-muted);
+  opacity: 1;
+}
+/* Beat the global input:focus rule (index.css) which forces an amber ring
+   AND `background-color: inherit !important` — the latter makes a focused
+   field transparent over the glass. The portal accent is purple, and the
+   field keeps its fill on focus. */
+.pfb-panel .pfb-ta:focus {
   border-color: var(--pj-primary) !important;
   box-shadow: 0 0 0 4px var(--pj-primary-ring) !important;
+  background-color: var(--pj-input-bg) !important;
 }
 
 .pfb-err {
