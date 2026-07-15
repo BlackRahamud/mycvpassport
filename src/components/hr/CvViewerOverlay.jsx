@@ -34,6 +34,7 @@ import { isStaleAsset, openPdfFromBlob, docxToHtml } from "../../lib/hr/cvDocEng
 import usePdfPageCanvas from "./usePdfPageCanvas";
 import ScoreRing from "./ScoreRing";
 import { scoreBand } from "../../lib/ats/scoreBand";
+import { trackHr } from "../../lib/analytics/hrEvents";
 import "./cvViewerOverlay.css";
 
 // Back-compat re-export: isStaleAsset used to live in this file.
@@ -239,6 +240,11 @@ export default function CvViewerOverlay({ open, onClose, path, fileName, intel, 
   const observerRef = useRef(null);
 
   const dlName = fileName || (path || "").split("/").pop() || "cv";
+
+  // This overlay always shows the ORIGINAL uploaded document (parsed data
+  // lives in the right rail / ReviewMode tabs). One event per open answers
+  // "does she trust our parse or go back to the original CV?".
+  useEffect(() => { if (open) trackHr("hr_cv_viewed", { variant: "original" }); }, [open]);
 
   /* Load bytes on open (the Part 1 verified path), then pick a renderer. */
   useEffect(() => {

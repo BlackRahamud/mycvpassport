@@ -28,6 +28,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
 import { extractCvText, CvExtractionError } from "../../services/cvExtraction";
+import { trackHr } from "../../lib/analytics/hrEvents";
 import { bandLabel } from "../../lib/ats/scoreBand";
 import "./bulkCvImport.css";
 
@@ -350,6 +351,10 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
     if (running) return;
     setRunning(true);
     setNotice(null);
+    // Import attempt from the picker-driven modal (Candidates / pipeline).
+    const t0 = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const importDurationMs = () => Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - t0);
+    trackHr("hr_import_started", { source: "picker" });
 
     // Phase 1 — parse, upload, structure, score every pending file. No DB writes.
     const queue = itemsRef.current.filter((it) => it.status === "queued" || it.status === "error");
@@ -366,6 +371,7 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
     const ready = latest.filter((it) => (it.status === "scored" || it.status === "unscored") && it.snapshot);
 
     if (failed.length > 0) {
+      trackHr("hr_import_failed", { reason: "unreadable_files" });
       setNoticeTone("warn");
       setNotice(`${failed.length} file${failed.length === 1 ? "" : "s"} couldn't be read. Remove ${failed.length === 1 ? "it" : "them"} and import again. Nothing was added yet.`);
       setRunning(false);
@@ -385,13 +391,16 @@ export default function BulkCvImport({ open, jobId, job, hrId, poolName = null, 
       ready.forEach((it, i) => update(it.id, { status: skipped.has(i) ? "duplicate" : "imported", stage: null }));
       const inserted = data?.inserted || 0;
       const dupes = data?.skipped || 0;
+      trackHr("hr_import_completed", { parsed_count: ready.length, failed_count: 0, duration_ms: importDurationMs() });
       const target = poolName ? `the "${poolName.trim()}" pool` : "this job";
       setNoticeTone(inserted > 0 ? "ok" : "warn");
       setNotice(`${inserted} candidate${inserted === 1 ? "" : "s"} added to ${target}${dupes > 0 ? ` · ${dupes} skipped as duplicate${dupes === 1 ? "" : "s"}` : ""}.`);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn("[bulk-import] batch failed:", e?.message || e);
-      const msg = /row-level security|policy|function .* does not exist/i.test(String(e?.message || ""))
+      const raw = String(e?.message || "");
+      trackHr("hr_import_failed", { reason: /row-level security|policy/i.test(raw) ? "rls_or_permissions" : /function .* does not exist/i.test(raw) ? "missing_migration" : "batch_rollback" });
+      const msg = /row-level security|policy|function .* does not exist/i.test(raw)
         ? "permissions or migrations missing, run 027 and 028"
         : (e?.message || "please try again");
       setNoticeTone("warn");

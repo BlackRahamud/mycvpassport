@@ -66,7 +66,17 @@ export function initPostHog() {
         ph.init(key, {
           api_host: getHost(),
           autocapture: false,
+          // Recording stays OFF by default (candidate site never records);
+          // the employer portal opts in per-session via startPortalRecording().
+          // When it does record, every input is masked AND all text is masked
+          // (maskTextSelector '*') so no candidate PII — names, emails, CV text
+          // — can ever land in a recording. CVs render as pdf.js <canvas>, which
+          // PostHog does not capture by default. See portalRecording() below.
           disable_session_recording: true,
+          session_recording: {
+            maskAllInputs: true,
+            maskTextSelector: "*",
+          },
           capture_pageview: true,
           capture_pageleave: true,
           person_profiles: "identified_only",
@@ -125,5 +135,49 @@ export function resetPostHog() {
     posthog.reset();
   } catch (e) {
     console.warn("[posthog] reset failed", e);
+  }
+}
+
+// Group analytics: attach subsequent events to a group (e.g. a company),
+// so one agency with three recruiters reads as one account.
+export function groupPostHog(groupType, groupKey, props) {
+  try {
+    if (!shouldRun()) return;
+    if (!groupType || !groupKey) return;
+    const p = props && typeof props === "object" ? props : undefined;
+    if (!posthog || !initialized) {
+      loadPosthog().then((ph) => { if (initialized) ph.group(String(groupType), String(groupKey), p); }).catch(() => {});
+      return;
+    }
+    posthog.group(String(groupType), String(groupKey), p);
+  } catch (e) {
+    console.warn("[posthog] group failed", e);
+  }
+}
+
+// Session replay is disabled at init (candidate site never records). The
+// employer portal opts in per-session with these. Masking (all inputs +
+// all text via maskTextSelector '*') is configured at init, so no CV or
+// candidate PII can enter a recording regardless of when it starts.
+export function startPortalRecording() {
+  try {
+    if (!shouldRun()) return;
+    if (!posthog || !initialized) {
+      loadPosthog().then((ph) => { if (initialized && ph.startSessionRecording) ph.startSessionRecording(); }).catch(() => {});
+      return;
+    }
+    if (posthog.startSessionRecording) posthog.startSessionRecording();
+  } catch (e) {
+    console.warn("[posthog] start recording failed", e);
+  }
+}
+
+export function stopPortalRecording() {
+  try {
+    if (!shouldRun()) return;
+    if (!posthog || !initialized) return;
+    if (posthog.stopSessionRecording) posthog.stopSessionRecording();
+  } catch (e) {
+    console.warn("[posthog] stop recording failed", e);
   }
 }

@@ -28,6 +28,7 @@ import { STAGES, STAGE_BY_DB, NEW_STATUSES, STAGE_DROP_STATUS } from "../../../l
 import { buildReadiness } from "../../../lib/hr/readiness";
 import { REJECT_REASONS } from "../../../lib/hr/rejectReasons";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
+import { trackHr } from "../../../lib/analytics/hrEvents";
 import { readViewPref, writeViewPref, effectiveView } from "../../../lib/hr/viewPref";
 import PipelineKanban, { KanbanSkeleton } from "./PipelineKanban";
 import PipelineAnalytics from "./PipelineAnalytics";
@@ -455,6 +456,8 @@ export default function JobPipelinePage() {
           (e) => console.warn("[pipeline] event insert failed:", e?.message || e), // eslint-disable-line no-console
         );
       }
+      // Kanban / list moves write directly (not via stageApi), so fire here.
+      trackHr("hr_candidate_stage_changed", { from_stage: prevApp.status || null, to_stage: newStatus });
       return true;
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -575,6 +578,7 @@ export default function JobPipelinePage() {
   }, [updateStatus]);
 
   const handleKanbanOpen = useCallback((appId, stageKey) => {
+    trackHr("hr_candidate_opened", { application_id: appId, from: "pipeline" });
     setActiveStage(stageKey);
     setSelectedAppId(appId);
     setDrawerOpen(true);
@@ -896,7 +900,7 @@ export default function JobPipelinePage() {
                       <button
                         type="button"
                         className={`jpp-card${isActive ? " jpp-card--active" : ""}${isNewStageList && bulkChecked.has(c.id) ? " jpp-card--bulked" : ""}`}
-                        onClick={() => setSelectedAppId(c.id)}
+                        onClick={() => { trackHr("hr_candidate_opened", { application_id: c.id, from: "pipeline" }); setSelectedAppId(c.id); }}
                       >
                         <div className="jpp-card__top">
                           <span

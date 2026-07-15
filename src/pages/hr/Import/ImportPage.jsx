@@ -31,6 +31,7 @@ import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import ScoreRing from "../../../components/hr/ScoreRing";
+import { trackHr } from "../../../lib/analytics/hrEvents";
 import { bandLabel } from "../../../lib/ats/scoreBand";
 import {
   MAX_BATCH, MAX_FILE_BYTES, ACCEPT,
@@ -139,6 +140,7 @@ export default function ImportPage() {
   const confirmElRef = useRef(null);
   const flowStarted = useRef(false);
   const userRef = useRef(null);
+  const importT0 = useRef(0);
 
   /* ── auth + jobs ── */
   useEffect(() => {
@@ -232,6 +234,10 @@ export default function ImportPage() {
     itemsRef.current = mapped;
     setItems(mapped);
     setStage("reading");
+    // Import attempt begins (drop-zone origin). duration_ms on completion is
+    // measured from here — the whole wait she sits through.
+    importT0.current = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    trackHr("hr_import_started", { source: "drop" });
     // read sequentially — gentle on the single OCR worker and rate limits.
     (async () => {
       for (const it of mapped) {
@@ -274,11 +280,18 @@ export default function ImportPage() {
         isPool: !!destObj.isPool,
         id: destObj.id,
       });
+      const end = (typeof performance !== "undefined" ? performance.now() : Date.now());
+      trackHr("hr_import_completed", {
+        parsed_count: ready.length,
+        failed_count: itemsRef.current.filter((it) => it.status === "error").length,
+        duration_ms: Math.round(end - (importT0.current || end)),
+      });
       setStage("done");
     } catch (e) {
       const msg = /row-level security|policy|function .* does not exist/i.test(String(e?.message || ""))
         ? "permissions or migrations are missing"
         : (e?.message || "please try again");
+      trackHr("hr_import_failed", { reason: /row-level security|policy/i.test(String(e?.message || "")) ? "rls_or_permissions" : /function .* does not exist/i.test(String(e?.message || "")) ? "missing_migration" : "batch_rollback" });
       setNotice(`Nothing was added, the whole batch rolled back (${msg}). Nothing was charged, you can try again.`);
     }
   }, [update]);

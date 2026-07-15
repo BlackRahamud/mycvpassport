@@ -15,6 +15,7 @@
 import { supabase } from "../../appSupabaseClient";
 import { STAGES, STAGE_DROP_STATUS } from "./stages";
 import { buildStageMoveWrites } from "./stageMove";
+import { trackHr } from "../analytics/hrEvents";
 
 /* The person-facing stage list on the Candidates tab: the six pipeline
    stages plus Passed. `db` is the canonical status written when the stage
@@ -75,5 +76,9 @@ export async function setApplicationStage({ applicationId, newStatus, app, hrId,
       (e) => console.warn("[stageApi] event insert failed:", e?.message || e), // eslint-disable-line no-console
     );
   }
+  // Raw db statuses are the fixed stage enum. Covers every people surface
+  // (Candidates, companion, schedule). The kanban writes its own path
+  // (JobPipelinePage.updateStatus) and fires there.
+  trackHr("hr_candidate_stage_changed", { from_stage: app?.status || null, to_stage: newStatus });
   return { ok: true, degraded, updatedAt: iso };
 }

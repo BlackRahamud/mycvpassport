@@ -33,6 +33,7 @@ import { supabase } from "../../appSupabaseClient";
 import givenName from "../../lib/hr/givenName";
 import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../lib/ats/scoreBand";
 import { setApplicationStage, personStageLabel } from "../../lib/hr/stageApi";
+import { trackHr } from "../../lib/analytics/hrEvents";
 import {
   KIT_CATEGORY_LABELS, normalizeKit, kitFromQuestions,
   toggleAsked as kitToggleAsked, setQuestionNote, askedCount,
@@ -171,6 +172,7 @@ export default function InterviewCompanion({
           });
           pipRef.current = win;
           setPipWindow(win);
+          trackHr("hr_companion_opened", { mode: "pip" });
         })
         .catch(() => { /* user or browser declined, the docked view is still here */ });
     } else if (interview?.id) {
@@ -179,7 +181,7 @@ export default function InterviewCompanion({
         "cvp-float-companion",
         "popup=yes,width=380,height=660",
       );
-      if (w) { popupRef.current = w; setPopupOpen(true); }
+      if (w) { popupRef.current = w; setPopupOpen(true); trackHr("hr_companion_opened", { mode: "popup_fallback" }); }
     }
   };
 
@@ -322,6 +324,8 @@ export default function InterviewCompanion({
         ({ error } = await supabase.from("interviews").update({ status: "completed" }).eq("id", interview.id));
       }
       if (error) throw error;
+      // Rating saved from the live companion marks the interview as held.
+      trackHr("hr_interview_marked", { outcome: "interviewed" });
       if (interview.candidate_id && hrId) {
         supabase.from("candidate_events").insert({
           candidate_id: interview.candidate_id,
@@ -347,7 +351,10 @@ export default function InterviewCompanion({
         setPhase("done");
         showToast("Rating saved");
       }
-    } catch {
+    } catch (e) {
+      // The one genuine inline field-save in the portal — how often the
+      // network drops mid-save in India / the Gulf.
+      trackHr("hr_save_failed", { surface: "interview_scorecard", reason: (e?.message || "unknown").slice(0, 80) });
       showToast("The rating could not be saved. Please try again.");
     } finally {
       if (liveRef.current) setSavingRating(false);
@@ -382,6 +389,7 @@ export default function InterviewCompanion({
     if (rejectFromNoShow) {
       // The interview itself was a no show; record that honestly.
       supabase.from("interviews").update({ status: "no_show" }).eq("id", interview.id).then(() => {}, () => {});
+      trackHr("hr_interview_marked", { outcome: "no_show" });
     }
     const r = await moveStage("rejected", rejectReason);
     if (r.ok) {

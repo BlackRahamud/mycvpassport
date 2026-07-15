@@ -42,6 +42,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import safeFetch from "../../lib/net/safeFetch";
 import Select from "../ui/Select";
+import { trackHr } from "../../lib/analytics/hrEvents";
 import { setApplicationStage, personStageLabel } from "../../lib/hr/stageApi";
 import {
   CORRIDOR_ZONES, zoneByKey, inferCandidateZone, hrTimeZone,
@@ -315,6 +316,14 @@ export default function ScheduleInterviewModal({
       const msg = `Hi ${first}, your interview for ${job?.title || "the role"} is on ${whenLine} (${duration} min).${link ? ` Join: ${link}` : ""} Looking forward to speaking with you.`;
       const wa = digits ? `https://wa.me/${digits}?text=${encodeURIComponent(msg)}` : null;
 
+      // The activation event — only a genuine NEW schedule (a reschedule is
+      // moving an existing one). lead_time_hours = how far out she books.
+      if (!reschedule) {
+        trackHr("hr_interview_scheduled", {
+          interview_id: interviewId,
+          lead_time_hours: Math.round((start.getTime() - Date.now()) / 3.6e6),
+        });
+      }
       if (onScheduled) onScheduled({ interviewId, rescheduled: reschedule });
       setSuccess({ wa, whenLine, stageMove });
     } catch (e) {
@@ -473,10 +482,15 @@ export const INTERVIEW_STATUS_LABEL = { scheduled: "Scheduled", completed: "Comp
 
 // UPDATE the HR's own interviews row (RLS enforces hr_id = auth.uid()),
 // then log a candidate_events row so the journey + Insights reflect it.
+// Code statuses map to the event's outcome enum. The portal has no
+// distinct 'did_not_join' status — no_show carries the "Did not join"
+// label — so that enum value is intentionally never emitted here.
+const INTERVIEW_OUTCOME = { completed: "interviewed", no_show: "no_show", cancelled: "cancelled" };
 export async function flipInterviewStatus({ interview, hrId, newStatus }) {
   if (!interview?.id || !STATUS_EVENT[newStatus]) return { ok: false };
   const { error } = await supabase.from("interviews").update({ status: newStatus }).eq("id", interview.id);
   if (error) return { ok: false, error };
+  trackHr("hr_interview_marked", { outcome: INTERVIEW_OUTCOME[newStatus] || newStatus });
   if (interview.candidate_id && hrId) {
     supabase.from("candidate_events").insert({
       candidate_id: interview.candidate_id,

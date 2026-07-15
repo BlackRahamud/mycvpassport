@@ -55,6 +55,7 @@ import {
   PERSON_STAGE_FILTER_OPTIONS,
 } from "../../../lib/hr/peopleRollup";
 import { setApplicationStage, PERSON_STAGE_OPTIONS, personStageLabel } from "../../../lib/hr/stageApi";
+import { trackHr } from "../../../lib/analytics/hrEvents";
 import { rejectReasonLabel } from "../../../lib/hr/rejectReasons";
 import "./candidates.css";
 
@@ -1249,6 +1250,7 @@ export default function CandidatesPage() {
         return;
       }
       setJobsList((prev) => [...prev, data]);
+      trackHr("hr_job_posted", { job_id: data.id, kind: "pool" });
       targetPoolId = data.id;
       poolName = data.title;
     }
@@ -1415,7 +1417,7 @@ export default function CandidatesPage() {
                         <motion.button
                           type="button"
                           className={`jpp-card cand-card${selectedKey === c.key ? " jpp-card--active" : ""}`}
-                          onClick={() => setSelectedKey(c.key)}
+                          onClick={() => { trackHr("hr_candidate_opened", { application_id: c.jobApps?.[0]?.app_id || null, from: "candidates" }); setSelectedKey(c.key); }}
                           initial={reduce ? false : { opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.26, ease: EASE, delay: Math.min(i * 0.02, 0.16) }}
@@ -1510,6 +1512,7 @@ export default function CandidatesPage() {
         open={compareOpen && selectedArr.length >= 2}
         onClose={() => setCompareOpen(false)}
         candidates={selectedArr.slice(0, 3)}
+        from="pipeline"
         onShortlist={shortlistOne}
         onVerdictPersisted={(cand, v) => patchVerdict(cand?.jobApps?.[0]?.app_id || cand?.record?.id, v)}
       />

@@ -43,6 +43,7 @@ import {
 import InterviewKitCard from "../../../components/hr/InterviewKitCard";
 import ScheduleInterviewModal from "../../../components/hr/ScheduleInterviewModal";
 import CompareCandidates from "../../../components/hr/CompareCandidates";
+import { trackHr } from "../../../lib/analytics/hrEvents";
 import "../../../components/hr/surfaceGlass.css";
 import "../PostJob/postJob.css";
 import "../Jobs/jobPipeline.css";
@@ -335,6 +336,7 @@ export default function InterviewsPage() {
   const openPrep = (iv) => (e) => {
     prepOriginRef.current = e?.currentTarget?.getBoundingClientRect?.() || null;
     prepClosingRef.current = false;
+    trackHr("hr_candidate_opened", { application_id: iv?.application_id || null, from: "interviews" });
     setPrepFor(iv);
   };
 
@@ -731,6 +733,7 @@ export default function InterviewsPage() {
         open={!!compareFor && (compareFor.cands || []).length >= 2}
         onClose={() => setCompareFor(null)}
         candidates={compareFor?.cands || []}
+        from="past_interviews"
       />
 
       {/* ── Start veil: the row expanding into the companion ── */}

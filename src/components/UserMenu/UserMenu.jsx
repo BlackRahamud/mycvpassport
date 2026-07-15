@@ -57,6 +57,7 @@ export default function UserMenu({
   roleLabel,            // optional — "Admin" / "Owner" line under the name in the trigger
   theme = "light",
   placement = "bottom-right", // "bottom-right" (default topbar) | "up" (rail: opens upward, viewport-safe)
+  onOpen,               // optional — fired once each time the chip opens (analytics; portal only)
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -112,7 +113,7 @@ export default function UserMenu({
         className="um-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((v) => { if (!v && onOpen) { try { onOpen(); } catch { /* analytics never blocks UI */ } } return !v; })}
       >
         <span className="um-avatar">{initials}</span>
         <span className="um-trigger__text">

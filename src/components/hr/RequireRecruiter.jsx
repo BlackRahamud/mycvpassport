@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "../../appSupabaseClient";
 import { fetchRecruiterStatus, completeEmployerOnboarding } from "../../lib/employer/recruiterStatus";
+import { trackHr, beginHrSession } from "../../lib/analytics/hrEvents";
 import "../../pages/hr/PostJob/postJob.css"; // --pj-* tokens
 import "../../pages/employer/employerLanding.css"; // emp- button/card styles
 
@@ -26,6 +27,16 @@ export default function RequireRecruiter({ children }) {
 
   const runCheck = useCallback(async () => {
     setPhase("checking");
+    // The "Checking your account…" screen: measure how long it actually
+    // shows. hr_auth_check_completed(duration_ms) settles the redesign
+    // argument — is there really a stare to warm up, or is it sub-second?
+    const t0 = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    trackHr("hr_auth_check_started");
+    const settle = (phase) => {
+      const end = (typeof performance !== "undefined" ? performance.now() : Date.now());
+      trackHr("hr_auth_check_completed", { duration_ms: Math.round(end - t0) });
+      setPhase(phase);
+    };
     if (!supabase) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
@@ -37,17 +48,17 @@ export default function RequireRecruiter({ children }) {
           locationRef.current.pathname + locationRef.current.search,
         );
       } catch { /* private mode */ }
-      setPhase("anon");
+      settle("anon");
       return;
     }
     try {
       const { isRecruiter, hrProfile } = await fetchRecruiterStatus(session.user.id);
       if (!isRecruiter) {
-        setPhase("blocked");
+        settle("blocked");
         return;
       }
       if (!hrProfile) {
-        setPhase("onboarding");
+        settle("onboarding");
         return;
       }
       if (!hrProfile.company_id && hrProfile.company_name) {
@@ -59,9 +70,18 @@ export default function RequireRecruiter({ children }) {
           workEmail: hrProfile.work_email,
         }).catch(() => { /* retried next entry; portal still works */ });
       }
-      setPhase("ok");
+      // Recruiter confirmed: identify, attach the company group, and fire
+      // hr_signed_in (once per session). hr_is_internal keeps founder +
+      // tester traffic out of every funnel.
+      beginHrSession({
+        userId: session.user.id,
+        email: session.user.email,
+        companyId: hrProfile.company_id,
+        companyName: hrProfile.company_name,
+      });
+      settle("ok");
     } catch {
-      setPhase("error");
+      settle("error");
     }
   }, []);
 

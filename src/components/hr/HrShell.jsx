@@ -3,6 +3,8 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import NoIndex from "../seo/NoIndex";
 import { supabase } from "../../appSupabaseClient";
+import { trackHr } from "../../lib/analytics/hrEvents";
+import { startPortalRecording, stopPortalRecording } from "../../lib/analytics/posthog";
 import UserMenu from "../UserMenu/UserMenu";
 import PortalLogo from "./PortalLogo";
 import HrWelcomeRing from "./HrWelcomeRing";
@@ -101,6 +103,14 @@ export default function HrShell() {
     return () => { live = false; };
   }, []);
 
+  // Session replay is on ONLY inside the employer portal (this shell wraps
+  // every /employer/* page; /hr/* redirects in here). All inputs and all
+  // text are masked at init, so no candidate PII enters a recording.
+  useEffect(() => {
+    startPortalRecording();
+    return () => { stopPortalRecording(); };
+  }, []);
+
   // profile.plan / full_name feed the UserMenu popover (mirrors the
   // best-effort fetch the pages already do).
   useEffect(() => {
@@ -160,7 +170,7 @@ export default function HrShell() {
                 type="button"
                 className={`hrs-navitem${active ? " hrs-navitem--active" : ""}`}
                 aria-current={active ? "page" : undefined}
-                onClick={() => navigate(item.to)}
+                onClick={() => { trackHr("hr_nav_item_clicked", { item: item.key }); navigate(item.to); }}
               >
                 <span className="hrs-navitem__icon">{item.icon}</span>
                 <span className="hrs-navitem__label">{item.label}</span>
@@ -184,6 +194,7 @@ export default function HrShell() {
             settingsPath="/account"
             theme="light"
             placement="up"
+            onOpen={() => trackHr("hr_account_chip_clicked")}
           />
         </div>
       </motion.aside>

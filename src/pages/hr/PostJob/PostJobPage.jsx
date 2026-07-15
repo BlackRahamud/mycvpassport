@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import { getGatekeeperData } from "../../../services/gatekeeper";
 import { submitJob } from "../../../services/postJob";
+import { trackHr } from "../../../lib/analytics/hrEvents";
 import { freeTierStatus } from "../../../utils/freeTier";
 import FreeTierBanner from "../../../components/FreeTierBanner/FreeTierBanner";
 import "./postJob.css";
@@ -93,6 +94,10 @@ export default function PostJobPage() {
     return () => { live = false; };
   }, []);
 
+  // She reached the post-a-job flow — the top of the "does she post at all"
+  // funnel. hr_job_posted (below) is the completion.
+  useEffect(() => { trackHr("hr_job_post_started"); }, []);
+
   // Salary period follows Job Type. When the type changes, snap the period
   // back to that type's default ("per month" for every type) so a Full-time
   // role can never carry a stale "per hour". Lives here so it survives step
@@ -148,6 +153,9 @@ export default function PostJobPage() {
     setSubmitting(true);
     try {
       const inserted = await submitJob({ user, job });
+      // Post-a-job always creates a live job (never a pool — pools are made
+      // from the Candidates page). kind normalised to the event enum.
+      trackHr("hr_job_posted", { job_id: inserted?.id, kind: inserted?.kind === "pool" ? "pool" : "job" });
       setPostedJobId(inserted?.id || null);
       setStep("success");
     } catch (err) {

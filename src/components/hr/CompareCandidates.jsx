@@ -27,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { scoreBand, BAND_COLORS, BAND_LABELS } from "../../lib/ats/scoreBand";
+import { trackHr } from "../../lib/analytics/hrEvents";
 import { resolveVerdict } from "./VerdictCard";
 import CvViewerOverlay from "./CvViewerOverlay";
 import "./compareCandidates.css";
@@ -122,10 +123,14 @@ function ShimmerLines({ note }) {
   );
 }
 
-export default function CompareCandidates({ open, onClose, candidates = [], onShortlist, onVerdictPersisted }) {
+export default function CompareCandidates({ open, onClose, candidates = [], from = null, onShortlist, onVerdictPersisted }) {
   const reduce = useReducedMotion();
   const cols = candidates.slice(0, 3);
   const n = cols.length;
+  // Did she act on Compare, or just look? actionTakenRef flips on View CV /
+  // Shortlist; on close with no action we record 'none' — the signal that
+  // Compare is a viewer missing its decision.
+  const actionTakenRef = useRef(false);
   const [verdicts, setVerdicts] = useState({}); // vKey -> { loading, data, error }
   const [shortlistBusy, setShortlistBusy] = useState({}); // key -> true
   const [shortlisted, setShortlisted] = useState({}); // key -> true (done this session)
@@ -169,12 +174,29 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, colKeys, loadVerdict]);
 
+  // Compare opened: how many, and from where (is it used after interviews?).
+  // Also count each candidate she's now looking at, tagged from=compare.
+  useEffect(() => {
+    if (!open) return;
+    actionTakenRef.current = false;
+    trackHr("hr_compare_opened", { candidate_count: n, from });
+    cols.forEach((c) => trackHr("hr_candidate_opened", { application_id: c.record?.id || null, from: "compare" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Every close control (scrim, Back, X, Escape) funnels through this so a
+  // no-action close reliably records 'none'.
+  const handleClose = useCallback(() => {
+    if (!actionTakenRef.current) trackHr("hr_compare_action_taken", { action: "none" });
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === "Escape" && !viewCvFor) onClose(); };
+    const onKey = (e) => { if (e.key === "Escape" && !viewCvFor) handleClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose, viewCvFor]);
+  }, [open, handleClose, viewCvFor]);
 
   /* Leader: only once every column has a score — never a premature winner.
      On an exact tie no one is crowned: no ribbon, no Top score, a "Tied"
@@ -214,6 +236,10 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
   const doShortlist = async (cand) => {
     const key = vKey(cand);
     if (shortlistBusy[key] || shortlisted[key] || !onShortlist) return;
+    // The Compare decision: advancing a candidate (the "Move to Offer" the
+    // brief was about — labeled Shortlist here).
+    actionTakenRef.current = true;
+    trackHr("hr_compare_action_taken", { action: "move_to_offer" });
     setShortlistBusy((s) => ({ ...s, [key]: true }));
     const ok = await onShortlist(cand);
     if (!liveRef.current) return;
@@ -247,7 +273,7 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2, ease: EASE }}
-        onClick={onClose}
+        onClick={handleClose}
       >
         <motion.div
           className="cc-panel"
@@ -262,8 +288,8 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
               <h2 className="cc-head__title">Compare candidates</h2>
               <span className="cc-head__sub">{subtitle}</span>
             </div>
-            <button type="button" className="cc-back" onClick={onClose}>Back to candidates</button>
-            <button type="button" className="cc-x" aria-label="Close compare" onClick={onClose}><CloseIc /></button>
+            <button type="button" className="cc-back" onClick={handleClose}>Back to candidates</button>
+            <button type="button" className="cc-x" aria-label="Close compare" onClick={handleClose}><CloseIc /></button>
           </header>
 
           <div className="cc-scroll">
@@ -514,7 +540,7 @@ export default function CompareCandidates({ open, onClose, candidates = [], onSh
                         {already ? <><CheckIc /> Shortlisted</> : shortlistBusy[key] ? "Saving…" : "Shortlist"}
                       </button>
                     )}
-                    <button type="button" className="cc-btn" onClick={() => setViewCvFor(c)}>View CV</button>
+                    <button type="button" className="cc-btn" onClick={() => { actionTakenRef.current = true; trackHr("hr_compare_action_taken", { action: "view_cv" }); setViewCvFor(c); }}>View CV</button>
                   </motion.div>
                 );
               })}

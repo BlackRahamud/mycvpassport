@@ -32,6 +32,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, useMotionValue, useTransform, animate } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
+import { trackHr } from "../../lib/analytics/hrEvents";
 import safeFetch from "../../lib/net/safeFetch";
 import { scoreBand, BAND_LABELS, BAND_TONES } from "../../lib/ats/scoreBand";
 import "./verdictCard.css";
@@ -381,6 +382,16 @@ function KeywordChips({ matched, missing }) {
 export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onVerdictPersisted, onReachOut, matchedKeywords = [], missingKeywords = [], knockout = null }) {
   const reduce = useReducedMotion();
   const { loading, data, error, retry } = useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onPersisted: onVerdictPersisted });
+
+  // The AI verdict is the core value claim — did she actually see a score?
+  // Fires once per mount when the number first resolves (cache or live).
+  const verdictSeenRef = useRef(false);
+  useEffect(() => {
+    if (typeof data?.score === "number" && !verdictSeenRef.current) {
+      verdictSeenRef.current = true;
+      trackHr("hr_verdict_viewed", { score: data.score });
+    }
+  }, [data?.score]);
 
   const name = header?.name || "Candidate";
   const role = header?.role || "";

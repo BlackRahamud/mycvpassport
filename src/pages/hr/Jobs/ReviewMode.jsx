@@ -41,6 +41,7 @@ import givenName from "../../../lib/hr/givenName";
 import dedupeSkills from "../../../lib/hr/dedupeSkills";
 import { NEW_STATUSES } from "../../../lib/hr/stages";
 import { buildStageMoveWrites } from "../../../lib/hr/stageMove";
+import { trackHr } from "../../../lib/analytics/hrEvents";
 import { buildReadiness, evaluateScreening, knockoutSynthesis } from "../../../lib/hr/readiness";
 import { REJECT_REASONS } from "../../../lib/hr/rejectReasons";
 import { loadCvFile } from "../../../lib/hr/cvFile";
@@ -645,6 +646,8 @@ export default function ReviewModePage() {
         (e) => console.warn("[review] event insert failed:", e?.message || e), // eslint-disable-line no-console
       );
     }
+    // Swipe-review writes its own path (not stageApi), so fire here too.
+    trackHr("hr_candidate_stage_changed", { from_stage: app.status || null, to_stage: newStatus });
   }, [decisions, user?.id, advance, showToast]);
 
   const undo = useCallback(async () => {
@@ -973,7 +976,7 @@ export default function ReviewModePage() {
                         role="tab"
                         aria-selected={tab === t.key}
                         className={`rvm-tab${tab === t.key ? " rvm-tab--active" : ""}`}
-                        onClick={() => setTab(t.key)}
+                        onClick={() => { if (t.key === "original" || t.key === "cv") trackHr("hr_cv_viewed", { variant: t.key === "original" ? "original" : "parsed" }); setTab(t.key); }}
                       >
                         {t.label}
                         {t.flag && <span className="rvm-tab__flag" aria-label="Contains a knockout" />}
