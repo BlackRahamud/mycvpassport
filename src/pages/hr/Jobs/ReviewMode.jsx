@@ -1262,8 +1262,9 @@ export default function ReviewModePage() {
 
       {/* Review mode is the one full-screen portal screen outside HrShell,
           so the feedback affordance is mounted here too — reachable from
-          every portal screen, not just the shell. */}
-      <PortalFeedback />
+          every portal screen, not just the shell. Lifted above the fixed
+          decision bar (only while it is up) so it never covers Shortlist. */}
+      <PortalFeedback bottomInset={showDecisionBar ? 76 : 0} />
     </div>
   );
 }

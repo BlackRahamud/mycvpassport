@@ -54,7 +54,7 @@
 .pfb-aff {
   position: absolute;
   right: var(--pfb-right);
-  bottom: var(--pfb-bottom);
+  bottom: calc(var(--pfb-bottom) + var(--pfb-extra-bottom, 0px));
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
@@ -91,7 +91,7 @@
 .pfb-panelwrap {
   position: absolute;
   right: var(--pfb-right);
-  bottom: var(--pfb-bottom);
+  bottom: calc(var(--pfb-bottom) + var(--pfb-extra-bottom, 0px));
   pointer-events: auto;
   width: min(366px, calc(100vw - 32px));
 }

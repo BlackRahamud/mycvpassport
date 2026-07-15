@@ -75,7 +75,10 @@ function flip(el, origin, dir /* "in" | "out" */, done) {
   a.onfinish = finish; a.oncancel = finish;
 }
 
-export default function PortalFeedback() {
+// bottomInset lifts the affordance above a bottom-fixed action bar on the
+// route that mounts it (ReviewMode's decision bar), so it never covers a
+// control. Shell pages pass nothing and keep the default corner.
+export default function PortalFeedback({ bottomInset = 0 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | failed
@@ -233,7 +236,10 @@ export default function PortalFeedback() {
   const sendLabel = isSending ? "Sending" : (isFailed ? "Try again" : "Send");
 
   return createPortal(
-    <div className="pfb-root">
+    <div
+      className="pfb-root"
+      style={bottomInset ? { "--pfb-extra-bottom": `${bottomInset}px` } : undefined}
+    >
       {!open && (
         <button
           ref={affRef}

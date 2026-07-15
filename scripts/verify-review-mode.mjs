@@ -428,7 +428,21 @@ const REVIEW_URL = `http://localhost:4187/employer/jobs/${JOB_ID}/review`;
      per field (deployment readiness redesign). Faisal states location and
      notice; nationality, visa and salary are absent → two known rows and
      one gap line, not three warning rows. */
-  await page.keyboard.press("ArrowRight"); // shortlist (the feedback FAB overlaps the decision bar's right edge)
+  // The feedback FAB is lifted above the decision bar, so Shortlist is the
+  // topmost element at its own centre and a real click lands (not the FAB).
+  const shortlistClear = await page.evaluate(() => {
+    const b = document.querySelector(".rvm-decide--shortlist");
+    if (!b) return false;
+    const r = b.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!(el && b.contains(el)) && !(el && el.closest(".pfb-root"));
+  });
+  check(shortlistClear, "desktop: the feedback FAB does not cover the Shortlist button");
+  {
+    const vp = page.viewportSize();
+    await page.screenshot({ path: join(OUT, "fab-above-decision-bar.png"), clip: { x: vp.width - 460, y: vp.height - 240, width: 460, height: 240 } });
+  }
+  await page.locator(".rvm-decide--shortlist").click();
   await page.waitForTimeout(1500);
   check((await page.locator(".rvm-id__name").textContent()) === "Faisal Khan", "desktop: back on Faisal");
   check((await page.locator(".rvm-readiness__value--missing").count()) === 0, "desktop: absence renders no warning rows");
@@ -441,7 +455,7 @@ const REVIEW_URL = `http://localhost:4187/employer/jobs/${JOB_ID}/review`;
   await shot(page, "desktop-not-stated");
 
   /* decide Faisal too; the queue auto loads the knockout candidate */
-  await page.keyboard.press("ArrowRight"); // shortlist via keyboard (FAB overlaps the bar)
+  await page.locator(".rvm-decide--shortlist").click();
   await page.waitForTimeout(1500);
   check((await page.locator(".rvm-id__name").textContent()) === "Rohan Mehta", "desktop: candidate 3 is Rohan");
   check((await page.locator(".vc-badge").textContent()) === "Skills fit, not deployable", "desktop: knockout pill overrides headline");
