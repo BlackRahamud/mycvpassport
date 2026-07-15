@@ -181,3 +181,20 @@ export function stopPortalRecording() {
     console.warn("[posthog] stop recording failed", e);
   }
 }
+
+// The current session replay id, so a feedback row can point the founder
+// at the 30 seconds before she gave up. Best-effort: null when PostHog is
+// disabled (dev), not yet loaded, or the method is unavailable.
+export function getReplaySessionId() {
+  try {
+    if (!shouldRun()) return null;
+    if (!posthog || !initialized) return null;
+    if (typeof posthog.get_session_id === "function") {
+      const id = posthog.get_session_id();
+      return id ? String(id) : null;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}

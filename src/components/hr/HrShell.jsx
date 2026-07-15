@@ -8,6 +8,7 @@ import { startPortalRecording, stopPortalRecording } from "../../lib/analytics/p
 import UserMenu from "../UserMenu/UserMenu";
 import PortalLogo from "./PortalLogo";
 import HrWelcomeRing from "./HrWelcomeRing";
+import PortalFeedback from "./PortalFeedback";
 import "../../pages/hr/PostJob/postJob.css"; // :root --pj-* tokens
 import "./hrShell.css";
 
@@ -204,6 +205,11 @@ export default function HrShell() {
       </div>
 
       <HrWelcomeRing />
+
+      {/* One tap, from anywhere in the shell, to say what is not working.
+          Portals to <body> above the modal layer, so it is reachable over
+          every screen and every modal these pages render. */}
+      <PortalFeedback />
     </div>
   );
 }

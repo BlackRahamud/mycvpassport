@@ -1,0 +1,287 @@
+/* ────────────────────────────────────────────────────────────────
+   PortalFeedback — the one-tap feedback affordance and its panel.
+   Portaled to <body>, so it floats above the modal layer (z 4000)
+   and is reachable over every screen and modal in the portal.
+
+   Tokens: the light --pj-* come from postJob.css :root; that file
+   carries no dark override, so (like the Interviews tab) the dark
+   values are declared here, scoped to .pfb-root. The glass tokens
+   (light + dark) come from surfaceGlass.css. Nothing is hardcoded
+   that isn't a token value copied from the design's dark palette.
+
+   Placement: convention (bottom-right), restraint in execution.
+   Mobile-first — the button clears the fixed bottom tab bar; ≥720px
+   it drops to the desktop 24px corner.
+   ──────────────────────────────────────────────────────────────── */
+
+.pfb-root {
+  position: fixed;
+  inset: 0;
+  z-index: 4200; /* above the portal modal layer (drawers 3000, overlays 3500, modals 4000) */
+  pointer-events: none; /* only the button and panel take pointer events */
+  font-family: var(--pj-font, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  /* Corner offsets — mobile clears the 60px bottom tab bar + safe area. */
+  --pfb-right: 16px;
+  --pfb-bottom: calc(60px + 18px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 720px) {
+  .pfb-root {
+    --pfb-right: 24px;
+    --pfb-bottom: 24px;
+  }
+}
+
+/* Dark palette, scoped — mirrors the Interviews tab approach and the
+   design's dark tokens. The accent stays purple in both themes. */
+[data-theme="dark"] .pfb-root {
+  --pj-surface: #1B1A26;
+  --pj-text: #F2F2F7;
+  --pj-text-soft: #B9B9C6;
+  --pj-muted: #86858F;
+  --pj-border: rgba(255, 255, 255, 0.10);
+  --pj-border-strong: rgba(255, 255, 255, 0.17);
+  --pj-input-bg: #201F2B;
+  --pj-primary: #7C3AED;
+  --pj-primary-soft: rgba(124, 58, 237, 0.16);
+  --pj-primary-ring: rgba(124, 58, 237, 0.24);
+  --pj-success: #34D399;
+  --pj-danger: #F87171;
+  --pj-shadow-button: 0 8px 18px -8px rgba(124, 58, 237, 0.55);
+}
+
+/* ── Resting affordance ── */
+.pfb-aff {
+  position: absolute;
+  right: var(--pfb-right);
+  bottom: var(--pfb-bottom);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 44px;
+  padding: 0 17px 0 15px;
+  border-radius: 999px;
+  background: var(--pj-surface);
+  color: var(--pj-text);
+  border: 1px solid var(--pj-border-strong);
+  box-shadow: var(--surface-glass-shadow);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 100ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pfb-aff:hover {
+  transform: translateY(-1px);
+  border-color: var(--pj-primary);
+}
+.pfb-aff:active { transform: scale(0.98); }
+.pfb-aff:focus-visible {
+  outline: none;
+  border-color: var(--pj-primary);
+  box-shadow: var(--surface-glass-shadow), 0 0 0 4px var(--pj-primary-ring);
+}
+.pfb-aff__icon { display: inline-flex; color: var(--pj-primary); }
+
+/* ── Panel wrap (anchors the panel to the same corner) ── */
+.pfb-panelwrap {
+  position: absolute;
+  right: var(--pfb-right);
+  bottom: var(--pfb-bottom);
+  pointer-events: auto;
+  width: min(366px, calc(100vw - 32px));
+}
+
+.pfb-panel {
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--surface-glass-solid);
+  border: 1px solid var(--surface-glass-border);
+  box-shadow: var(--surface-glass-shadow);
+  color: var(--surface-glass-ink);
+  transform-origin: bottom right;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .pfb-panel {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
+}
+
+/* ── Compose body ── */
+.pfb-compose { padding: 16px 18px 18px; }
+.pfb-compose__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 3px;
+}
+.pfb-compose__title {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--surface-glass-ink);
+}
+.pfb-compose__sub {
+  font-size: 12px;
+  color: var(--pj-text-soft);
+  margin-top: 2px;
+  line-height: 1.45;
+}
+.pfb-x {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--pj-muted);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pfb-x:hover { background: var(--pj-input-bg); color: var(--pj-text); }
+.pfb-x:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--pj-primary-ring); }
+
+.pfb-kept {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--pj-input-bg);
+  color: var(--pj-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pfb-ta {
+  width: 100%;
+  margin-top: 11px;
+  min-height: 116px;
+  resize: none;
+  padding: 12px 13px;
+  border-radius: 12px;
+  background: var(--pj-input-bg);
+  border: 1px solid transparent;
+  color: var(--surface-glass-ink);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+  transition:
+    border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pfb-ta::placeholder { color: var(--pj-muted); }
+/* Beat the global amber input:focus ring (index.css uses !important on a
+   bare textarea:focus). The portal accent is purple, not amber. */
+.pfb-ta:focus {
+  border-color: var(--pj-primary) !important;
+  box-shadow: 0 0 0 4px var(--pj-primary-ring) !important;
+}
+
+.pfb-err {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--pj-danger);
+  font-weight: 500;
+}
+.pfb-err svg { flex-shrink: 0; margin-top: 1px; }
+
+.pfb-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.pfb-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 11px;
+  white-space: nowrap;
+  background: var(--pj-primary);
+  color: #fff;
+  border: 1px solid transparent;
+  box-shadow: var(--pj-shadow-button);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 100ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.pfb-send:active { transform: scale(0.98); }
+.pfb-send:focus-visible { outline: none; box-shadow: var(--pj-shadow-button), 0 0 0 4px var(--pj-primary-ring); }
+.pfb-send--disabled {
+  background: var(--pj-input-bg);
+  color: var(--pj-muted);
+  box-shadow: none;
+  cursor: default;
+}
+.pfb-send--disabled:active { transform: none; }
+
+.pfb-spin { animation: pfb-spin 0.7s linear infinite; }
+@keyframes pfb-spin { to { transform: rotate(360deg); } }
+
+/* ── Sent confirmation (swaps the whole body) ── */
+.pfb-sent {
+  padding: 30px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+.pfb-sent__mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--pj-success) 16%, transparent);
+  color: var(--pj-success);
+}
+.pfb-sent__title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--surface-glass-ink);
+}
+.pfb-sent__sub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pj-text-soft);
+  max-width: 30ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pfb-aff,
+  .pfb-send,
+  .pfb-x,
+  .pfb-ta { transition-duration: 0ms; }
+  .pfb-spin { animation-duration: 1.4s; }
+}

@@ -47,6 +47,7 @@ import { REJECT_REASONS } from "../../../lib/hr/rejectReasons";
 import { loadCvFile } from "../../../lib/hr/cvFile";
 import { isStaleAsset, openPdfFromBlob, docxToHtml } from "../../../lib/hr/cvDocEngine";
 import usePdfPageCanvas from "../../../components/hr/usePdfPageCanvas";
+import PortalFeedback from "../../../components/hr/PortalFeedback";
 import "../PostJob/postJob.css"; // :root tokens (--pj-*)
 import "./reviewMode.css";
 
@@ -1179,6 +1180,11 @@ export default function ReviewModePage() {
         hrId={user?.id}
         onLogged={() => {}}
       />
+
+      {/* Review mode is the one full-screen portal screen outside HrShell,
+          so the feedback affordance is mounted here too — reachable from
+          every portal screen, not just the shell. */}
+      <PortalFeedback />
     </div>
   );
 }

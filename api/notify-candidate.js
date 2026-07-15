@@ -212,6 +212,93 @@ The CVPassport HR Team`;
   }
 }
 
+// ── Portal feedback notification (founder-facing) ───────────────────
+// The feedback ROW is already persisted by the client before this fires.
+// This is only the notification, so it never blocks the submission — the
+// client ignores the result. Carries her words, her identity, the route,
+// and a session replay link when present. No candidate PII: `body` is her
+// own words and the identity is her own (the feedback contract).
+async function sendFeedbackEmail(res, apiKey, body) {
+  const {
+    feedbackBody, route, sessionId, userEmail, userName, userId,
+  } = body;
+  const text = String(feedbackBody || '').trim();
+  if (!text) {
+    return res.status(400).json({ ok: false, error: 'Missing feedback body' });
+  }
+
+  const to = process.env.FEEDBACK_NOTIFY_EMAIL || 'connectingjunaidkhan@gmail.com';
+  const who = userName || userEmail || 'An HR';
+  const replayUrl = sessionId
+    ? `https://eu.posthog.com/project/166982/replay/${encodeURIComponent(sessionId)}`
+    : '';
+  const subject = `New feedback from ${who}`;
+
+  const metaLines = [
+    userName ? `From: ${userName}` : null,
+    userEmail ? `Email: ${userEmail}` : null,
+    userId ? `User id: ${userId}` : null,
+    route ? `Route: ${route}` : null,
+    replayUrl ? `Session replay: ${replayUrl}` : 'Session replay: not available',
+  ].filter(Boolean);
+
+  const plain = `${text}
+
+---
+${metaLines.join('\n')}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>New feedback</title></head>
+<body style="margin:0;padding:0;background:#F1F5F9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;padding:40px 0;"><tr><td align="center">
+    <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+      <tr><td style="background:#14131F;padding:26px 40px;">
+        <div style="font-size:13px;color:#B9B9C6;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;">CVPassport &middot; Portal feedback</div>
+        <div style="font-size:18px;font-weight:700;color:#ffffff;">${escapeHtml(who)} sent feedback</div>
+      </td></tr>
+      <tr><td style="padding:32px 40px 8px;">
+        <div style="font-size:16px;line-height:1.65;color:#14131F;white-space:pre-wrap;">${escapeHtml(text)}</div>
+      </td></tr>
+      <tr><td style="padding:24px 40px 8px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F6F6F9;border:1px solid #E7E7EE;border-radius:10px;">
+          <tr><td style="padding:16px 20px;font-size:13px;color:#4B4A5E;line-height:1.9;">
+            ${userName ? `<div><strong style="color:#14131F;">From</strong> ${escapeHtml(userName)}</div>` : ''}
+            ${userEmail ? `<div><strong style="color:#14131F;">Email</strong> <a href="mailto:${escapeHtml(userEmail)}" style="color:#7C3AED;text-decoration:none;">${escapeHtml(userEmail)}</a></div>` : ''}
+            ${userId ? `<div><strong style="color:#14131F;">User id</strong> ${escapeHtml(userId)}</div>` : ''}
+            ${route ? `<div><strong style="color:#14131F;">Route</strong> ${escapeHtml(route)}</div>` : ''}
+          </td></tr>
+        </table>
+      </td></tr>
+      ${replayUrl ? `<tr><td style="padding:12px 40px 36px;">
+        <a href="${escapeHtml(replayUrl)}" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:600;color:#ffffff;background:#7C3AED;border-radius:10px;text-decoration:none;">Watch the session replay &rarr;</a>
+      </td></tr>` : '<tr><td style="padding:0 40px 36px;"></td></tr>'}
+    </table>
+  </td></tr></table>
+</body></html>`;
+
+  try {
+    const resend = new Resend(apiKey);
+    const { data, error } = await resend.emails.send({
+      from: 'CVPassport Feedback <hr@mycvpassport.com>',
+      to: [to],
+      // Replies go straight back to the HR who wrote it (an unpromised
+      // reply that arrives is a delight).
+      ...(userEmail ? { replyTo: userEmail } : {}),
+      subject,
+      text: plain,
+      html,
+    });
+    if (error) {
+      console.error('[notify-candidate/feedback] Resend rejected:', error);
+      return res.status(502).json({ ok: false, error: error.message || 'Resend send failed' });
+    }
+    return res.status(200).json({ ok: true, id: data?.id });
+  } catch (e) {
+    console.error('[notify-candidate/feedback] threw:', e);
+    return res.status(500).json({ ok: false, error: e?.message || 'Send failed' });
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
@@ -223,12 +310,15 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: 'Email service not configured' });
   }
 
-  // Interview emails (schedule / reschedule / cancel, with .ics) are a
-  // distinct branch; the default/no-type path remains the original
-  // shortlist email verbatim.
+  // Interview emails (schedule / reschedule / cancel, with .ics) and the
+  // portal feedback notification are distinct branches; the default/no-type
+  // path remains the original shortlist email verbatim.
   const bodyType = (req.body || {}).type;
   if (bodyType === 'interview' || bodyType === 'interview_reschedule' || bodyType === 'interview_cancel') {
     return sendInterviewEmail(res, apiKey, req.body || {}, bodyType);
+  }
+  if (bodyType === 'feedback') {
+    return sendFeedbackEmail(res, apiKey, req.body || {});
   }
 
   const { candidateEmail, candidateName, jobTitle } = req.body || {};
