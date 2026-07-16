@@ -332,10 +332,10 @@ export default function JobsListPage() {
           <UserMenu
             email={user?.email || ""}
             name={profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || greetingName}
-            plan={profile?.plan}
+            showPlan={false}
             roleLabel="Admin"
             switchTo={{ label: "Switch to Candidate", path: "/dashboard" }}
-            settingsPath="/account"
+            settingsPath={null}
             theme="light"
           />
         </div>

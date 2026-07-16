@@ -51,8 +51,10 @@ export default function UserMenu({
   email,
   name,
   plan,
+  showPlan = true,      // the plan line reads the CANDIDATE plan (profiles.plan);
+                        // the HR portal has no such plan, so it passes false
   switchTo,             // { label, path } — optional
-  settingsPath = "/account",
+  settingsPath = "/account", // pass null to hide Settings (no HR settings destination)
   supportHref = "mailto:hello@mycvpassport.com",
   roleLabel,            // optional — "Admin" / "Owner" line under the name in the trigger
   theme = "light",
@@ -143,16 +145,22 @@ export default function UserMenu({
 
             <div className="um-divider" />
 
-            <div className="um-plan">
-              <span className={`um-plan-dot um-plan-dot--${planInfo.tone}`} />
-              {planInfo.label}
-            </div>
+            {showPlan && (
+              <>
+                <div className="um-plan">
+                  <span className={`um-plan-dot um-plan-dot--${planInfo.tone}`} />
+                  {planInfo.label}
+                </div>
 
-            <div className="um-divider" />
+                <div className="um-divider" />
+              </>
+            )}
 
-            <button type="button" role="menuitem" className="um-item" onClick={go(settingsPath)}>
-              <SettingsIcon /> Settings
-            </button>
+            {settingsPath && (
+              <button type="button" role="menuitem" className="um-item" onClick={go(settingsPath)}>
+                <SettingsIcon /> Settings
+              </button>
+            )}
 
             <a
               role="menuitem"

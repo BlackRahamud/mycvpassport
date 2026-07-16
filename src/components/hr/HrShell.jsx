@@ -189,10 +189,10 @@ export default function HrShell() {
           <UserMenu
             email={user?.email || ""}
             name={profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || ""}
-            plan={profile?.plan}
+            showPlan={false}
             roleLabel="Admin"
             switchTo={{ label: "Switch to Candidate", path: "/dashboard" }}
-            settingsPath="/account"
+            settingsPath={null}
             theme="light"
             placement="up"
             onOpen={() => trackHr("hr_account_chip_clicked")}
