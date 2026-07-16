@@ -22,6 +22,8 @@ export const PERIODS_BY_TYPE = {
   "full-time": ["per month", "per year"],
   "part-time": ["per hour", "per day", "per month"],
   "contract":  ["per hour", "per day", "per month"],
+  "freelance": ["per hour", "per day", "per month"],
+  "intern":    ["per month", "per day", "per hour"],
 };
 export const DEFAULT_SALARY_PERIOD = "per month";
 export const periodsFor = (jobType) => PERIODS_BY_TYPE[jobType] || PERIODS_BY_TYPE["full-time"];

@@ -67,6 +67,9 @@
   border-bottom: 1px solid var(--pj-border);
 }
 .jb-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -74,7 +77,17 @@
   text-decoration: none;
   flex-shrink: 0;
 }
-.jb-wordmark span {
+.jb-wordmark__mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: block;
+  flex-shrink: 0;
+}
+.jb-wordmark__text {
+  white-space: nowrap;
+}
+.jb-wordmark__text span {
   color: var(--pj-text);
   font-weight: 600;
 }

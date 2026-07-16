@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 // On-site first AND default — most UAE/GCC + India roles are on-site.
@@ -11,14 +12,49 @@ const JOB_TYPE_OPTIONS = [
   { value: "full-time", label: "Full-time" },
   { value: "part-time", label: "Part-time" },
   { value: "contract",  label: "Contract" },
+  { value: "freelance", label: "Freelance" },
+  { value: "intern",    label: "Intern" },
+];
+
+// Controlled Field / department vocabulary. This is the ONLY source that
+// populates job.department — it is never free text, so the board's Field
+// filter can never fill with a job title again. Tune this list freely;
+// each entry is stored verbatim and becomes a Field facet on /jobs.
+const FIELD_OPTIONS = [
+  "Healthcare & Nursing",
+  "Engineering",
+  "Construction & Trades",
+  "IT & Software",
+  "Sales & Business Development",
+  "Customer Service & Support",
+  "Hospitality & Tourism",
+  "Retail",
+  "Logistics & Supply Chain",
+  "Driving & Transport",
+  "Finance & Accounting",
+  "Admin & Office Support",
+  "Marketing & Communications",
+  "Human Resources",
+  "Education & Training",
+  "Operations & Management",
+  "Other",
 ];
 
 export default function StartStep({ value, onChange, onContinue }) {
   const reduce = useReducedMotion();
+  const [showErrors, setShowErrors] = useState(false);
 
   const setField = (field) => (e) => {
     const v = e?.target ? e.target.value : e;
     onChange({ ...value, [field]: v });
+  };
+
+  const companyMissing = !(value.companyName || "").trim();
+  const titleMissing = !(value.jobTitle || "").trim();
+
+  const handleContinue = () => {
+    if (companyMissing || titleMissing) { setShowErrors(true); return; }
+    onContinue();
   };
 
   const containerVariants = {
@@ -39,6 +75,23 @@ export default function StartStep({ value, onChange, onContinue }) {
       <motion.hr className="pj-divider" variants={itemVariants} />
 
       <motion.div className="pj-field" variants={itemVariants}>
+        <label className="pj-label" htmlFor="pj-company">Company name</label>
+        <input
+          id="pj-company"
+          className="pj-input"
+          type="text"
+          placeholder="The name candidates will see"
+          value={value.companyName || ""}
+          onChange={(e) => { setShowErrors(false); setField("companyName")(e); }}
+          aria-invalid={showErrors && companyMissing}
+          autoComplete="organization"
+        />
+        {showErrors && companyMissing && (
+          <div className="pj-field-error">Add your company name — it&rsquo;s the first thing candidates see on the board.</div>
+        )}
+      </motion.div>
+
+      <motion.div className="pj-field" variants={itemVariants}>
         <label className="pj-label" htmlFor="pj-job-title">Job Title</label>
         <input
           id="pj-job-title"
@@ -46,9 +99,28 @@ export default function StartStep({ value, onChange, onContinue }) {
           type="text"
           placeholder="Enter job title"
           value={value.jobTitle}
-          onChange={setField("jobTitle")}
+          onChange={(e) => { setShowErrors(false); setField("jobTitle")(e); }}
+          aria-invalid={showErrors && titleMissing}
           autoComplete="off"
         />
+        {showErrors && titleMissing && (
+          <div className="pj-field-error">Add a job title to continue.</div>
+        )}
+      </motion.div>
+
+      <motion.div className="pj-field" variants={itemVariants}>
+        <label className="pj-label" htmlFor="pj-field">Field <span className="pj-label-hint">(optional)</span></label>
+        <div className="pj-select-wrap">
+          <select
+            id="pj-field"
+            className={`pj-select${value.department ? "" : " pj-select--placeholder"}`}
+            value={value.department || ""}
+            onChange={setField("department")}
+          >
+            <option value="">Select a field</option>
+            {FIELD_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </div>
       </motion.div>
 
       <motion.div className="pj-field" variants={itemVariants}>
@@ -106,7 +178,7 @@ export default function StartStep({ value, onChange, onContinue }) {
         <motion.button
           type="button"
           className="pj-btn pj-btn--primary"
-          onClick={onContinue}
+          onClick={handleContinue}
           whileHover={reduce ? undefined : { y: -1 }}
           whileTap={reduce ? undefined : { scale: 0.985 }}
           transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}

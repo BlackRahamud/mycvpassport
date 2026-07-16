@@ -109,7 +109,16 @@ export function jobStatus(job) {
   return { label: "Open, fewer new applicants", tone: "muted" };
 }
 
-const JOB_TYPE_LABEL = { "full-time": "Full time", "part-time": "Part time", contract: "Contract" };
+// The five types the jobs.job_type CHECK constraint permits (widened in
+// migration 042). Kept in lockstep with the wizard StartStep radios and
+// PostJobPreview — a filter option here must be one a job can actually carry.
+const JOB_TYPE_LABEL = {
+  "full-time": "Full time",
+  "part-time": "Part time",
+  contract: "Contract",
+  freelance: "Freelance",
+  intern: "Intern",
+};
 export function jobTypeLabel(job) {
   return JOB_TYPE_LABEL[job.job_type] || (job.job_type ? String(job.job_type) : "");
 }
@@ -117,6 +126,8 @@ export const JOB_TYPE_OPTIONS = [
   { val: "full-time", label: "Full time" },
   { val: "part-time", label: "Part time" },
   { val: "contract", label: "Contract" },
+  { val: "freelance", label: "Freelance" },
+  { val: "intern", label: "Intern" },
 ];
 
 // Location filter maps to the real granularity we hold: market (gulf | india).

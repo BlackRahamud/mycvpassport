@@ -421,7 +421,10 @@ function Nav({ user, profile, navigate }) {
   const greetingName = profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.email ? user.email.split("@")[0] : "");
   return (
     <header className="jb-nav">
-      <a href="/" className="jb-wordmark">CV<span>Passport</span></a>
+      <a href="/" className="jb-wordmark" aria-label="CVPassport home">
+        <img className="jb-wordmark__mark" src="/assets/brand/logo512.png" alt="" aria-hidden="true" />
+        <span className="jb-wordmark__text">CV<span>Passport</span></span>
+      </a>
       <div className="jb-nav__center" />
       <div className="jb-nav__right">
         {user ? (

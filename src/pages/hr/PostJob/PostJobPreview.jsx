@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import PortalLogo from "../../../components/hr/PortalLogo";
 
 const POSITION_LABEL = { remote: "Remote", hybrid: "Hybrid", onsite: "On-site" };
-const JOB_TYPE_LABEL = { "full-time": "Fulltime", "part-time": "Part-time", contract: "Contract" };
+const JOB_TYPE_LABEL = { "full-time": "Fulltime", "part-time": "Part-time", contract: "Contract", freelance: "Freelance", intern: "Intern" };
 const CURRENCY_PREFIX = { AED: "AED", INR: "₹", USD: "$" };
 
 // "₹50,000 to ₹90,000 / month" / "AED 8,000 / month" / "$50 to $1000".

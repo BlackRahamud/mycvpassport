@@ -34,7 +34,9 @@ const DEFAULT_SALARY_BAND = {
 
 const INITIAL_JOB = {
   // Step 1 — Start
+  companyName: "",  // required at post time; prefilled from the HR profile below
   jobTitle: "",
+  department: "",   // controlled Field value (see StartStep FIELD_OPTIONS), optional
   location: "",
   position: "onsite",
   jobType: "full-time",
@@ -89,7 +91,28 @@ export default function PostJobPage() {
   useEffect(() => {
     let live = true;
     Promise.all([supabase.auth.getUser(), getGatekeeperData()])
-      .then(([{ data }, g]) => { if (!live) return; setUser(data?.user || null); setGate(g); })
+      .then(([{ data }, g]) => {
+        if (!live) return;
+        const u = data?.user || null;
+        setUser(u);
+        setGate(g);
+        // Prefill the company name from the HR's canonical profile so a
+        // returning recruiter never retypes it — but the field is still
+        // required and editable (no silent email-domain fallback). Only
+        // fills while the HR hasn't already typed one this session.
+        if (u?.id) {
+          supabase
+            .from("hr_profiles")
+            .select("company_name")
+            .eq("user_id", u.id)
+            .maybeSingle()
+            .then(({ data: hp }) => {
+              const name = hp?.company_name || u.user_metadata?.company_name || "";
+              if (live && name) setJob((j) => (j.companyName?.trim() ? j : { ...j, companyName: name }));
+            })
+            .catch(() => { /* leave the field empty — the HR fills it in */ });
+        }
+      })
       .catch(() => { if (!live) return; setGate({ isPaidUser: false }); });
     return () => { live = false; };
   }, []);
@@ -163,6 +186,9 @@ export default function PostJobPage() {
         ? "Sign in to post a job. We'll bring you back here."
         : err?.message || "Couldn't post the job. Try again.";
       setSubmitError(msg);
+      // The company name lives on the Start step — if it's missing, take her
+      // back there rather than stranding the error on the final screen.
+      if (err?.code === "no_company") setStep("start");
     } finally {
       setSubmitting(false);
     }

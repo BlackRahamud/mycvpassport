@@ -10,35 +10,41 @@
 
 import { supabase } from "../appSupabaseClient";
 import { isFounder } from "../utils/founder";
+import { marketFromCurrency } from "../pages/hr/PostJob/market";
 
 export const ACTIVE_LISTING_LIMIT = 10;
 
 /**
- * Look up the HR's company name. Order of preference:
- *   1. hr_profiles.company_name (the canonical source)
- *   2. user.user_metadata.company_name (set during HR onboarding)
- *   3. Email domain (capitalised first segment) as a last-resort
- *      placeholder — wizard works for HRs who haven't completed their
- *      profile yet, but the row is still recoverable later.
+ * Resolve the company name to stamp on the listing. Order of preference:
+ *   1. What the HR entered/confirmed in the wizard this session (required
+ *      field on the Start step — the one moment the name actually matters).
+ *   2. hr_profiles.company_name (a returning HR whose profile already has it).
+ *   3. user.user_metadata.company_name (set during HR onboarding).
+ *
+ * There is deliberately NO email-domain fallback. Deriving the name from the
+ * address ("gmail.com" → "Gmail") stamped a false credibility signal — and
+ * sometimes a third-party trademark — onto public Dubai job postings. When we
+ * genuinely have no name we return "" and submitJob refuses the post, rather
+ * than inventing one. Returns "" only when every source is empty.
  */
-async function resolveCompanyName(user) {
-  if (!user?.id) return "Your Company";
-  try {
-    const { data } = await supabase
-      .from("hr_profiles")
-      .select("company_name")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (data?.company_name) return data.company_name;
-  } catch {
-    // Table may not exist yet, or RLS may block — fall through.
+async function resolveCompanyName(user, job) {
+  const typed = (job?.companyName || "").trim();
+  if (typed) return typed;
+  if (user?.id) {
+    try {
+      const { data } = await supabase
+        .from("hr_profiles")
+        .select("company_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.company_name) return data.company_name;
+    } catch {
+      // Table may not exist yet, or RLS may block — fall through.
+    }
   }
-  const meta = user.user_metadata || {};
+  const meta = user?.user_metadata || {};
   if (meta.company_name) return meta.company_name;
-  const domain = String(user.email || "").split("@")[1] || "";
-  const first = domain.split(".")[0];
-  if (first) return first.charAt(0).toUpperCase() + first.slice(1);
-  return "Your Company";
+  return "";
 }
 
 /**
@@ -74,7 +80,15 @@ function buildPayload(job, { hrId, companyName }) {
     hr_id: hrId,
     title: (job.jobTitle || "").trim(),
     company: companyName,
+    // Field/department: a controlled value from the wizard select, or null.
+    // NEVER free text — a title in this column ("IT support technician")
+    // becomes a junk facet on the board's Field filter.
+    department: (job.department || "").trim() || null,
     location,
+    // Market drives the India/Gulf Location filter. It follows the chosen
+    // currency (INR → india, else gulf); before this it was never written,
+    // so every post defaulted to 'gulf' and India could never have a role.
+    market: marketFromCurrency(job.currency),
     position: job.position || "onsite",
     job_type: job.jobType || "full-time",
     currency: job.currency || "AED",
@@ -130,7 +144,12 @@ export async function submitJob({ user, job }) {
     }
   }
 
-  const companyName = await resolveCompanyName(user);
+  const companyName = await resolveCompanyName(user, job);
+  if (!companyName) {
+    const err = new Error("Add your company name before posting — it's the first thing candidates see.");
+    err.code = "no_company";
+    throw err;
+  }
   const payload = buildPayload(job, { hrId: user.id, companyName });
 
   const { data, error } = await supabase

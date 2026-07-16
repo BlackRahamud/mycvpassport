@@ -17,7 +17,6 @@ import "../../components/hr/surfaceGlass.css"; // glass tokens for the floating 
 import "./jobBoard.css";
 
 const RETURN_PATH_KEY = "cvp_return_path";
-const VOLUME_GATE = 12; // below this many roles, hide the deeper filter groups
 
 /* ───────── Inline icons ───────── */
 const IcSearch = (p) => (<svg width={p.s || 15} height={p.s || 15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" /></svg>);
@@ -195,7 +194,6 @@ export default function JobBoardPage() {
   const visaDisabled = markets.length === 1 && markets[0] === "india";
   const filterCount = markets.length + fields.length + types.length + exps.length + (visaOnly ? 1 : 0);
   const anyFilter = filterCount > 0 || !!search.trim();
-  const showDeepFilters = total >= VOLUME_GATE;
 
   const toggle = (setter, val) => setter((cur) => (cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val]));
   const clearAll = () => { setMarkets([]); setFields([]); setTypes([]); setExps([]); setVisaOnly(false); setSearch(""); };
@@ -302,22 +300,21 @@ export default function JobBoardPage() {
         </>
       )}
 
-      {showDeepFilters && (
-        <>
-          <div className="jb-grouplabel">Employee type</div>
-          <div className="jb-group">
-            {JOB_TYPE_OPTIONS.map((o) => (
-              <Checkbox key={o.val} on={types.includes(o.val)} label={o.label} count={countBy((j) => j.job_type === o.val)} onClick={() => toggle(setTypes, o.val)} />
-            ))}
-          </div>
-          <div className="jb-grouplabel">Experience</div>
-          <div className="jb-group">
-            {EXP_BANDS.map((o) => (
-              <Checkbox key={o.val} on={exps.includes(o.val)} label={o.label} count={countBy((j) => experienceBand(j) === o.val)} onClick={() => toggle(setExps, o.val)} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Employee type + Experience render at all times, regardless of role
+          volume (founder's call). Counts are shown only where they exist —
+          a zero-match option carries no badge rather than a bare "0". */}
+      <div className="jb-grouplabel">Employee type</div>
+      <div className="jb-group">
+        {JOB_TYPE_OPTIONS.map((o) => (
+          <Checkbox key={o.val} on={types.includes(o.val)} label={o.label} count={countBy((j) => j.job_type === o.val) || undefined} onClick={() => toggle(setTypes, o.val)} />
+        ))}
+      </div>
+      <div className="jb-grouplabel">Experience</div>
+      <div className="jb-group">
+        {EXP_BANDS.map((o) => (
+          <Checkbox key={o.val} on={exps.includes(o.val)} label={o.label} count={countBy((j) => experienceBand(j) === o.val) || undefined} onClick={() => toggle(setExps, o.val)} />
+        ))}
+      </div>
 
       <button
         type="button"
@@ -340,7 +337,10 @@ export default function JobBoardPage() {
       <TopLoadingBar active={barActive} />
 
       <header className="jb-nav">
-        <a href="/" className="jb-wordmark">CV<span>Passport</span></a>
+        <a href="/" className="jb-wordmark" aria-label="CVPassport home">
+          <img className="jb-wordmark__mark" src="/assets/brand/logo512.png" alt="" aria-hidden="true" />
+          <span className="jb-wordmark__text">CV<span>Passport</span></span>
+        </a>
         <div className="jb-nav__center">
           <span className="jb-here" aria-current="page">
             <IcSearch s={15} />
