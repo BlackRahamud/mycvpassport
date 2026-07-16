@@ -12,6 +12,7 @@
 // =============================================================
 
 import { scoreApplicationStopgap } from "../ats/stopgapScorer";
+import { builderCvToSnapshot } from "./cvSnapshot";
 
 export async function applyToJob(
   supabase,
@@ -42,7 +43,14 @@ export async function applyToJob(
       /* best-effort — score with no CV */
     }
 
-    const scored = scoreApplicationStopgap({ jobRequirements: job.requirements, candidateCv: cvBlob });
+    // Reconcile the builder's camelCase cv_data onto the cv_snapshot contract
+    // ONCE, here, before it is read by anything. Both the stopgap scorer and
+    // the persisted snapshot get the canonical shape, so a board applicant is
+    // scored on their real skills/experience/role, not near-blind. See
+    // lib/jobs/cvSnapshot.js for the field-by-field mapping.
+    const snapshot = cvBlob ? builderCvToSnapshot(cvBlob) : null;
+
+    const scored = scoreApplicationStopgap({ jobRequirements: job.requirements, candidateCv: snapshot });
 
     // Keep the uploaded file in the private applicant-cvs bucket; the row
     // stores only the path. A failed upload keeps the application (the HR
@@ -67,7 +75,7 @@ export async function applyToJob(
       candidate_id: user.id,
       job_id: job.id,
       hr_id: job.hr_id,
-      cv_snapshot: cvBlob || null,
+      cv_snapshot: snapshot,
       ats_score: scored.score,
       match_keywords: scored.match_keywords,
       missing_keywords: scored.missing_keywords,
