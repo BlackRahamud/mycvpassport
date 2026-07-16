@@ -1,0 +1,419 @@
+/* ════════════════════════════════════════════════════════════════
+   Job detail + apply (/jobs/:id). Shares the board's .jb-root tokens
+   (import jobBoard.css) and reuses .jb-nav / .jb-btn-* / .jb-mono /
+   .jb-pill-visa / .jb-verified / .jb-matchchip. Everything below is the
+   detail layout and the sticky apply panel (the money screen).
+   ════════════════════════════════════════════════════════════════ */
+
+.jp-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 18px 20px 60px;
+}
+
+.jp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px 0 8px;
+  background: transparent;
+  border: 1px solid var(--pj-border);
+  border-radius: 9px;
+  color: var(--pj-text-soft);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+.jp-back:hover { background: var(--jb-el); }
+
+/* Open from origin: the detail expands out of the tapped row's position. */
+.jp-enter {
+  animation: jp-open 350ms cubic-bezier(0.16, 0.84, 0.44, 1) both;
+}
+@keyframes jp-open {
+  from { opacity: 0; transform: scale(0.965); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jp-enter { animation: jp-fade 200ms ease-out both; }
+  @keyframes jp-fade { from { opacity: 0; } to { opacity: 1; } }
+}
+
+.jp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 372px;
+  gap: 22px;
+  align-items: start;
+}
+
+/* ── Company block ───────────────────────────────────────────── */
+.jp-company {
+  background: var(--pj-surface);
+  border: 1px solid var(--pj-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+.jp-company__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+.jp-company__mono {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.jp-company__name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
+}
+.jp-company__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pj-text);
+}
+.jp-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px 0 6px;
+  border-radius: 999px;
+  background: var(--jb-green-bg);
+  border: 1px solid var(--jb-green-bd);
+  color: var(--jb-green);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.jp-company__addr {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--pj-muted);
+}
+.jp-company__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--pj-border);
+}
+.jp-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pj-text-soft);
+}
+.jp-stat svg { color: var(--pj-muted); }
+.jp-stat b { color: var(--pj-text); font-weight: 600; }
+
+/* ── Title, answer chips, status ─────────────────────────────── */
+.jp-title {
+  margin: 0 0 16px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--pj-text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.jp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.jp-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 8px;
+  background: var(--jb-el);
+  color: var(--pj-text-soft);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.jp-chip--salary { color: var(--pj-text); font-weight: 700; }
+.jp-chip--visa {
+  gap: 6px;
+  background: var(--jb-green-bg);
+  border: 1px solid var(--jb-green-bd);
+  color: var(--jb-green);
+  font-weight: 600;
+}
+.jp-statusline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 24px;
+}
+.jp-statusline__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.jp-statusline__posted { font-size: 12.5px; color: var(--pj-muted); }
+
+.jp-divider { height: 1px; background: var(--pj-border); margin-bottom: 22px; }
+.jp-h3 { margin: 0 0 10px; font-size: 14.5px; font-weight: 700; color: var(--pj-text); }
+.jp-about {
+  margin: 0 0 22px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--pj-text-soft);
+  white-space: pre-wrap;
+}
+.jp-about :is(p, ul, ol) { margin: 0 0 10px; }
+.jp-reqs { margin: 0 0 22px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.jp-req { display: flex; gap: 9px; font-size: 13.5px; line-height: 1.5; color: var(--pj-text-soft); }
+.jp-req svg { flex-shrink: 0; margin-top: 1px; color: var(--pj-primary); }
+.jp-perks { display: flex; flex-wrap: wrap; gap: 8px; }
+.jp-perk {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--jb-el);
+  color: var(--pj-text-soft);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* ── Sticky apply panel ──────────────────────────────────────── */
+.jp-aside { position: sticky; top: 74px; }
+.jp-panel {
+  background: var(--pj-surface);
+  border: 1px solid var(--pj-border);
+  border-radius: 16px;
+  box-shadow: var(--pj-shadow-card);
+  overflow: hidden;
+}
+.jp-panel__inner { padding: 20px; }
+
+.jp-promise {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 13px;
+  background: var(--pj-primary-soft);
+  border: 1px solid var(--pj-primary-ring);
+  border-radius: 11px;
+  margin-bottom: 16px;
+}
+.jp-promise svg { flex-shrink: 0; margin-top: 1px; color: var(--pj-primary); }
+.jp-promise p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--pj-primary); font-weight: 500; }
+
+.jp-primary {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 11px;
+  background: var(--pj-primary);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 18px -8px var(--pj-primary-ring);
+  transition: background-color 150ms var(--pj-ease), transform 100ms var(--pj-ease);
+}
+.jp-primary:hover { background: var(--pj-primary-hover); }
+.jp-primary:active { transform: scale(0.99); }
+.jp-primary:disabled { opacity: 0.7; cursor: default; }
+.jp-hint { margin: 10px 0 0; font-size: 11.5px; color: var(--pj-muted); text-align: center; line-height: 1.5; }
+.jp-or { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+.jp-or::before, .jp-or::after { content: ""; flex: 1; height: 1px; background: var(--pj-border); }
+.jp-or span { font-size: 11px; color: var(--pj-muted); }
+.jp-secondary {
+  width: 100%;
+  height: 42px;
+  border: 1px solid var(--pj-border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pj-text);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.jp-secondary:hover { background: var(--jb-el); }
+
+.jp-panel__title { margin: 0 0 3px; font-size: 16px; font-weight: 700; color: var(--pj-text); }
+.jp-panel__lede { margin: 0 0 16px; font-size: 12.5px; color: var(--pj-muted); line-height: 1.5; }
+.jp-panel__lede b { color: var(--pj-text-soft); }
+
+.jp-idcard { border: 1px solid var(--pj-border); border-radius: 11px; overflow: hidden; margin-bottom: 14px; }
+.jp-idrow { display: flex; align-items: center; gap: 10px; padding: 12px 13px; }
+.jp-idrow + .jp-idrow { border-top: 1px solid var(--pj-border); }
+.jp-idrow--file { justify-content: space-between; }
+.jp-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--pj-primary), var(--pj-primary-hover));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.jp-idrow__name { font-size: 13px; font-weight: 600; color: var(--pj-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jp-idrow__sub { font-size: 11.5px; color: var(--pj-muted); }
+.jp-idrow__file { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.jp-idrow__file svg { flex-shrink: 0; color: var(--pj-muted); }
+
+.jp-fieldlabel { display: block; font-size: 11.5px; font-weight: 600; color: var(--pj-text-soft); margin-bottom: 7px; }
+.jp-field { margin-bottom: 16px; }
+.jp-novisa {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  background: var(--jb-el);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--pj-muted);
+  line-height: 1.45;
+}
+
+.jp-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 22px 16px;
+  border: 2px dashed var(--pj-border-strong);
+  border-radius: 11px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  text-align: center;
+  transition: border-color 150ms var(--pj-ease);
+}
+.jp-dropzone:hover { border-color: var(--pj-primary); }
+.jp-dropzone svg { color: var(--pj-muted); }
+.jp-dropzone__hint { font-size: 12.5px; color: var(--pj-muted); }
+.jp-dropzone__file { font-size: 13px; font-weight: 600; color: var(--jb-green); }
+.jp-dropzone--has { border-color: var(--jb-green-bd); }
+
+.jp-back-mini {
+  width: 100%;
+  height: 38px;
+  margin-top: 8px;
+  border: none;
+  background: transparent;
+  color: var(--pj-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.jp-err { margin: 0 0 12px; font-size: 12.5px; font-weight: 600; color: var(--pj-danger); }
+
+/* ── Sent ────────────────────────────────────────────────────── */
+.jp-sent { padding: 28px 22px; text-align: center; }
+.jp-sent__ic {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--jb-green-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--jb-green);
+}
+.jp-sent__title { margin: 0 0 7px; font-size: 18px; font-weight: 700; color: var(--pj-text); letter-spacing: -0.01em; }
+.jp-sent__line { margin: 0 0 6px; font-size: 13px; color: var(--pj-text-soft); line-height: 1.55; }
+.jp-sent__wa { margin: 0 0 18px; font-size: 12px; color: var(--pj-muted); }
+.jp-conv { padding: 14px; background: var(--pj-primary-soft); border: 1px solid var(--pj-primary-ring); border-radius: 11px; }
+.jp-conv p { margin: 0 0 11px; font-size: 12.5px; color: var(--pj-primary); font-weight: 500; line-height: 1.5; }
+.jp-conv button {
+  height: 38px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 9px;
+  background: var(--pj-primary);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ── Already applied ─────────────────────────────────────────── */
+.jp-applied { padding: 22px; text-align: center; }
+.jp-applied__ic {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--jb-green-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--jb-green);
+}
+.jp-applied__title { margin: 0 0 5px; font-size: 16px; font-weight: 700; color: var(--pj-text); }
+.jp-applied__line { margin: 0 0 14px; font-size: 12.5px; color: var(--pj-text-soft); line-height: 1.5; }
+.jp-applied__note { padding: 10px 12px; background: var(--jb-el); border-radius: 10px; font-size: 12px; color: var(--pj-muted); }
+.jp-applied__reapply {
+  margin-top: 12px;
+  border: none;
+  background: transparent;
+  color: var(--pj-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ── States: loading + not found ─────────────────────────────── */
+.jp-center {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 24px;
+}
+.jp-center p { margin: 0; font-size: 14px; color: var(--pj-text-soft); }
+
+/* ── Rich body (legacy HTML descriptions) ────────────────────── */
+.jp-about a { color: var(--pj-primary); }
+.jp-about ul, .jp-about ol { padding-left: 18px; }
+
+/* ── Mobile ──────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .jp-page { padding: 14px 16px 40px; }
+  .jp-grid { grid-template-columns: 1fr; }
+  .jp-aside { position: static; }
+  .jp-title { font-size: 22px; }
+}

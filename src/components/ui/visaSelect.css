@@ -1,0 +1,108 @@
+/* ────────────────────────────────────────────────────────────────
+   VisaSelect — glass listbox (desktop) + native select (mobile).
+   Tokens from postJob.css (--pj-*) and surfaceGlass.css.
+   ──────────────────────────────────────────────────────────────── */
+.vs-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.vs-trigger {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--pj-input-bg);
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  color: var(--pj-text);
+  font-size: 13.5px;
+  font-family: var(--pj-font);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 150ms var(--pj-ease), box-shadow 150ms var(--pj-ease);
+}
+.vs-trigger--sm { height: 40px; font-size: 13px; }
+.vs-trigger:hover { border-color: var(--pj-border-strong); }
+.vs-trigger--open,
+.vs-trigger:focus-visible {
+  border-color: var(--pj-primary);
+  box-shadow: 0 0 0 3px var(--pj-primary-ring);
+}
+
+.vs-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vs-value--placeholder { color: var(--pj-muted); }
+
+.vs-chev {
+  flex-shrink: 0;
+  color: var(--pj-muted);
+  transition: transform 150ms var(--pj-ease);
+}
+.vs-trigger--open .vs-chev { transform: rotate(180deg); }
+
+.vs-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 4400;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 12px;
+  background: var(--surface-glass-solid);
+  border: 1px solid var(--surface-glass-border);
+  box-shadow: var(--surface-glass-shadow);
+  animation: vs-menu-in 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vs-menu {
+    background: var(--surface-glass-bg);
+    -webkit-backdrop-filter: var(--surface-glass-blur);
+    backdrop-filter: var(--surface-glass-blur);
+  }
+}
+
+@keyframes vs-menu-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vs-menu { animation: none; }
+}
+
+.vs-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--pj-text);
+}
+.vs-opt--active { background: var(--pj-primary-soft); }
+.vs-opt[aria-selected="true"] { color: var(--pj-primary); font-weight: 600; }
+.vs-opt svg { color: var(--pj-primary); flex-shrink: 0; }
+
+/* Native (mobile) */
+.vs-native {
+  width: 100%;
+  height: 44px;
+  padding: 0 13px;
+  background: var(--pj-input-bg);
+  border: 1px solid var(--pj-border);
+  border-radius: 10px;
+  color: var(--pj-text);
+  font-size: 13.5px;
+  font-family: var(--pj-font);
+}
+.vs-native--sm { height: 40px; font-size: 13px; }

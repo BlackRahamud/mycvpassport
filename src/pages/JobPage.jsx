@@ -1,1061 +1,435 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { BadgeCheck, Check, ChevronDown, Upload, Zap } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../appSupabaseClient";
 import { saveApplyIntent, consumeApplyIntent } from "../lib/auth/applyIntent";
 import { scoreApplicationStopgap } from "../lib/ats/stopgapScorer";
+import { applyToJob } from "../lib/jobs/applyToJob";
 import UserMenu from "../components/UserMenu/UserMenu";
-import "./hr/PostJob/postJob.css"; // reuse the HR portal's --pj-* light tokens
+import TopLoadingBar from "../components/ui/TopLoadingBar";
+import VisaSelect from "../components/ui/VisaSelect";
+import {
+  monogram, monoIndex, salaryText, experienceText, postedText, jobStatus,
+  jobTypeLabel, roleNeedsVisa, matchTone,
+} from "../lib/jobs/jobFormat";
+import "./hr/PostJob/postJob.css"; // --pj-* light tokens
+import "./jobs/jobBoard.css"; // .jb-root tokens + dark + shared classes
+import "./jobs/jobPage.css";
 
 const RETURN_PATH_KEY = "cvp_return_path";
 
-// ─── DESIGN TOKENS (Public page) ─────────────────────────────────
-// Light theme mirroring the HR portal + the public job board, so the
-// candidate journey (board → detail → apply) reads as one product.
-// Values pull from the --pj-* tokens (postJob.css) — purple accent is
-// intentional, tying to the board's purple header.
-const T = {
-  bg: "#FAFAFB",                     // page background (matches the job board)
-  surface: "var(--pj-surface)",      // #FFFFFF cards
-  elevated: "var(--pj-input-bg)",    // chips / subtle fills
-  inputBg: "var(--pj-input-bg)",     // form field background
-  border: "var(--pj-border)",
-  borderStrong: "var(--pj-border-strong)",
-  accent: "var(--pj-primary)",       // purple — ties to the board's purple header
-  accentHover: "var(--pj-primary-hover)",
-  accentSoft: "var(--pj-primary-soft)",
-  accentRing: "var(--pj-primary-ring)",
-  text: "var(--pj-text)",            // ink
-  textSoft: "var(--pj-text-soft)",
-  muted: "var(--pj-muted)",
-  green: "#1D9E75",
-  amber: "#D97706",
-  font: "var(--pj-font)",
-};
+/* ───────── Inline icons ───────── */
+const IcBack = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>);
+const IcPin = () => (<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>);
+const IcBriefcase = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>);
+const IcCheck = (p) => (<svg width={p.s || 14} height={p.s || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={p.w || 2.3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>);
+const IcBolt = (p) => (<svg width={p.s || 17} height={p.s || 17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9z" /></svg>);
+const IcUpload = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M17 8l-5-5-5 5" /><path d="M12 3v12" /></svg>);
+const IcFile = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>);
+const IcVerified = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 1.8 3-.2 1.3 2.7 2.7 1.3-.2 3L23 12l-1.8 2.4.2 3-2.7 1.3-1.3 2.7-3-.2L12 23l-2.4-1.8-3 .2-1.3-2.7L2.6 17l.2-3L1 12l1.8-2.4-.2-3 2.7-1.3L6.6 2.6l3 .2z" /></svg>);
 
-function getHiringStatus(postedAt, hiringStatus) {
-  if (hiringStatus === "closed")
-    return { color: T.muted, label: "Applications closed" };
-  if (!postedAt) return { color: T.muted, label: "Unknown" };
-  const days = Math.floor(
-    (Date.now() - new Date(postedAt).getTime()) / 86400000
-  );
-  if (days <= 7) return { color: T.green, label: "Actively hiring" };
-  if (days <= 21) return { color: T.amber, label: "Few spots left" };
-  return { color: T.muted, label: "Applications closing soon" };
-}
-
-function daysAgo(date) {
+function daysAgoText(date) {
   if (!date) return "";
   const d = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
-  if (d === 0) return "Today";
+  if (d <= 0) return "today";
   if (d === 1) return "1 day ago";
-  return `${d} days ago`;
+  if (d < 7) return `${d} days ago`;
+  if (d < 14) return "1 week ago";
+  return `${Math.floor(d / 7)} weeks ago`;
 }
 
-function initialsAvatar(name, size = 40) {
-  const initials = (name || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 10,
-        background: "linear-gradient(135deg, var(--pj-primary) 0%, var(--pj-primary-hover) 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.36,
-        fontWeight: 700,
-        color: "#fff",
-        flexShrink: 0,
-        fontFamily: T.font,
-      }}
-    >
-      {initials}
-    </div>
-  );
-}
-
-// ─── VISA SELECT ─────────────────────────────────────────────────
-// Headless custom dropdown — replaces native <select> for full theme
-// control (dark surface, amber chevron, deep elevation shadow,
-// keyboard nav). Trigger occupies the full container width; popover
-// fades+slides in over 150ms.
-function VisaSelect({ value, onChange, options, placeholder = "Select…" }) {
-  const [open, setOpen] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(-1);
-  const [focused, setFocused] = useState(false);
-  const wrapRef = useRef(null);
-  const current = options.find((o) => o.value === value);
-
-  // Click-outside + keyboard handling.
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDoc = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
-    };
-    const onKey = (e) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setActiveIdx((i) => Math.min(i < 0 ? 0 : i + 1, options.length - 1));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setActiveIdx((i) => Math.max(i - 1, 0));
-      } else if (e.key === "Enter") {
-        if (activeIdx >= 0 && activeIdx < options.length) {
-          e.preventDefault();
-          onChange(options[activeIdx].value);
-          setOpen(false);
-        }
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open, activeIdx, options, onChange]);
-
-  // Reset hover when reopening.
-  useEffect(() => {
-    if (open) {
-      const idx = options.findIndex((o) => o.value === value);
-      setActiveIdx(idx);
-    }
-  }, [open, options, value]);
-
-  const triggerBorder = focused || open ? T.accent : T.border;
-
-  return (
-    <div ref={wrapRef} style={{ position: "relative", width: "100%" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        style={{
-          width: "100%",
-          padding: "10px 12px",
-          background: T.surface,
-          border: `1px solid ${triggerBorder}`,
-          borderRadius: 8,
-          color: current ? T.text : T.muted,
-          fontSize: 13,
-          fontFamily: T.font,
-          outline: "none",
-          cursor: "pointer",
-          textAlign: "left",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          boxSizing: "border-box",
-          transition: "border-color 150ms ease-in-out, box-shadow 150ms ease-in-out",
-          boxShadow: focused || open ? `0 0 0 3px ${T.accentRing}` : "none",
-        }}
-      >
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {current ? current.label : placeholder}
-        </span>
-        <ChevronDown
-          size={18}
-          strokeWidth={2}
-          color={T.accent}
-          style={{
-            flexShrink: 0,
-            transition: "transform 150ms ease-in-out",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-        />
-      </button>
-
-      <div
-        role="listbox"
-        aria-hidden={!open}
-        style={{
-          position: "absolute",
-          top: "calc(100% + 6px)",
-          left: 0,
-          right: 0,
-          background: T.surface,
-          border: `1px solid ${T.border}`,
-          borderRadius: 10,
-          padding: 6,
-          zIndex: 50,
-          opacity: open ? 1 : 0,
-          transform: open ? "translateY(0)" : "translateY(-4px)",
-          pointerEvents: open ? "auto" : "none",
-          transition: "opacity 150ms ease-in-out, transform 150ms ease-in-out",
-          boxShadow:
-            "0 18px 40px -22px rgba(20,19,31,0.18), 0 6px 14px -8px rgba(20,19,31,0.08)",
-        }}
-      >
-        {options.map((o, i) => {
-          const isSel = o.value === value;
-          const isActive = i === activeIdx;
-          return (
-            <div
-              role="option"
-              aria-selected={isSel}
-              key={o.value}
-              onMouseEnter={() => setActiveIdx(i)}
-              onMouseLeave={() => setActiveIdx(-1)}
-              onClick={() => { onChange(o.value); setOpen(false); }}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontSize: 13,
-                fontFamily: T.font,
-                background: isSel ? T.accent : isActive ? T.elevated : "transparent",
-                color: isSel ? "#fff" : T.text,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                transition: "background-color 120ms ease-in-out, color 120ms ease-in-out",
-              }}
-            >
-              <span>{o.label}</span>
-              {isSel && <Check size={14} strokeWidth={2.5} color="#fff" />}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── PROGRESS BAR ────────────────────────────────────────────────
-function StepProgress({ step }) {
-  return (
-    <div style={{ display: "flex", gap: 4, marginBottom: 24 }}>
-      {[1, 2, 3].map((s) => (
-        <div
-          key={s}
-          style={{
-            flex: 1,
-            height: 3,
-            borderRadius: 2,
-            background: s <= step ? T.accent : T.border,
-            transition: "background-color 200ms cubic-bezier(0.4,0,0.2,1)",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ─── APPLY FORM ──────────────────────────────────────────────────
-function ApplyForm({ job, user, replayIntent }) {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    first_name: replayIntent?.form?.first_name || "",
-    last_name:  replayIntent?.form?.last_name  || "",
-    email:      replayIntent?.form?.email      || user?.email || "",
-    phone:      replayIntent?.form?.phone      || "",
-    visa_status: replayIntent?.form?.visa_status || "",
-    cv_file: null,
-    cv_filename: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [existingApp, setExistingApp] = useState(null);
-  const [cooldownDays, setCooldownDays] = useState(null);
-  const replayedRef = useRef(false);
-
-  // Check if user already applied + cooldown
-  useEffect(() => {
-    if (!supabase || !user?.id || !job?.id) return;
-    (async () => {
-      const { data } = await supabase
-        .from("applications")
-        .select("id, cooldown_expires_at, applied_at")
-        .eq("candidate_id", user.id)
-        .eq("job_id", job.id)
-        .maybeSingle();
-      if (data) {
-        setExistingApp(data);
-        if (data.cooldown_expires_at && new Date(data.cooldown_expires_at) > new Date()) {
-          const remaining = Math.ceil(
-            (new Date(data.cooldown_expires_at).getTime() - Date.now()) / 86400000
-          );
-          setCooldownDays(remaining);
-        }
-      }
-    })();
-  }, [user?.id, job?.id]);
-
-  // Replay on auth return: when the user came back from /auth with an
-  // intent stash for this job, auto-submit the application using the
-  // form data they already entered. Single-shot — replayedRef gates
-  // re-runs across re-renders, the parent consumed the sessionStorage
-  // entry on mount so a fresh visit won't fire this branch.
-  useEffect(() => {
-    if (replayedRef.current) return;
-    if (!replayIntent || !user?.id || !job?.id) return;
-    if (cooldownDays) return; // already applied; respect cooldown
-    replayedRef.current = true;
-    // Defer one microtask so the form-state initializer (driven by the
-    // same replayIntent) has settled into the closure submit reads from.
-    Promise.resolve().then(() => submitApplication(false));
-    // submitApplication closes over form state and isn't memoised; the
-    // ref guard above plus the existence-check on replayIntent give us
-    // single-shot semantics, so depending on it would only thrash.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [replayIntent, user?.id, job?.id, cooldownDays]);
-
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
-  const fieldStyle = {
-    width: "100%",
-    padding: "10px 12px",
-    background: T.inputBg,
-    border: `1px solid ${T.border}`,
-    borderRadius: 8,
-    color: T.text,
-    fontSize: 13,
-    outline: "none",
-    boxSizing: "border-box",
-    fontFamily: T.font,
-  };
-
-  const labelStyle = {
-    display: "block",
-    fontSize: 11,
-    fontWeight: 600,
-    color: T.muted,
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    marginBottom: 6,
-    fontFamily: T.font,
-  };
-
-  const btnDisabled = step === 1
-    ? !form.first_name || !form.last_name || !form.email || !form.phone
-    : step === 2
-      ? !form.cv_file || !form.visa_status
-      : false;
-
-  const submitApplication = async (isEasyApply) => {
-    if (submitting) return;
-
-    // Logged-out submit: stash form + jobId in sessionStorage, mark
-    // /jobs/<id> as the post-auth return path, then route to /auth.
-    // Once auth completes useCvpAuth lands the user back here and the
-    // replay branch in JobPage's mount effect re-fires the submit with
-    // the same form data — no re-keying.
-    if (!user?.id) {
-      saveApplyIntent({ jobId: job.id, form });
-      try {
-        if (typeof window !== "undefined" && window.sessionStorage) {
-          window.sessionStorage.setItem(RETURN_PATH_KEY, `/jobs/${job.id}`);
-        }
-      } catch { /* private mode etc. */ }
-      navigate("/auth");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (!supabase) { setStep(3); return; }
-      const cooldownDate = new Date();
-      cooldownDate.setDate(cooldownDate.getDate() + 7);
-
-      const candidateName = isEasyApply
-        ? (user.user_metadata?.name || user.email?.split("@")[0] || "")
-        : `${form.first_name} ${form.last_name}`;
-
-      // Pre-Phase-1 stopgap scoring. Pull the user's most recent CV
-      // blob (cvs.cv_data) and overlap-match its skills/experience
-      // against job.requirements. Tagged score_source='stopgap_keyword'
-      // so the Phase 1 retro-rescan can overwrite these rows cleanly.
-      // Manual upload (non-easy-apply) has no parsed CV yet — leave
-      // ats_score=0 with score_source still tagged so the row is in
-      // the rescan pool.
-      let cvBlob = null;
-      try {
-        const { data: cvRow } = await supabase
-          .from("cvs")
-          .select("cv_data")
-          .eq("user_id", user.id)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        cvBlob = cvRow?.cv_data || null;
-      } catch (_e) { /* best-effort — fall through with no CV */ }
-
-      const scored = scoreApplicationStopgap({
-        jobRequirements: job.requirements,
-        candidateCv: cvBlob,
-      });
-
-      // Keep the original uploaded file. It goes to the private
-      // applicant-cvs bucket; the row keeps only the path. Best-effort:
-      // if the upload fails we still record the application (cv_file_path
-      // stays null and the HR just sees the parsed view). The File only
-      // exists on the logged-in submit — the logged-out → /auth → replay
-      // path can't carry a File through sessionStorage, so it uploads
-      // nothing, which is the expected limitation.
-      let cvFilePath = null;
-      if (form.cv_file) {
-        try {
-          const ext = (form.cv_filename.split(".").pop() || "pdf")
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, "") || "pdf";
-          const path = `${user.id}/${job.id}-${Date.now()}.${ext}`;
-          const { error: upErr } = await supabase.storage
-            .from("applicant-cvs")
-            .upload(path, form.cv_file, {
-              upsert: true,
-              contentType: form.cv_file.type || undefined,
-            });
-          if (upErr) throw upErr;
-          cvFilePath = path;
-        } catch (_e) { /* best-effort — keep the application without the file */ }
-      }
-
-      const appData = {
-        candidate_id: user.id,
-        job_id: job.id,
-        hr_id: job.hr_id,
-        cv_snapshot: cvBlob || null,
-        ats_score: scored.score,
-        match_keywords: scored.match_keywords,
-        missing_keywords: scored.missing_keywords,
-        score_source: scored.score_source,
-        is_visible_to_hr: true,
-        cooldown_expires_at: cooldownDate.toISOString(),
-        status: "new",
-        candidate_name: candidateName,
-        candidate_email: isEasyApply ? user.email : form.email,
-        candidate_phone: form.phone,
-        visa_status: form.visa_status || (isEasyApply ? "Own visa" : ""),
-        applied_at: new Date().toISOString(),
-      };
-
-      // Only write the pointer when we actually uploaded a file this time,
-      // so a re-apply that skips re-uploading keeps the prior file.
-      if (cvFilePath) appData.cv_file_path = cvFilePath;
-
-      // Upsert handles reapply after cooldown
-      if (existingApp && !cooldownDays) {
-        await supabase
-          .from("applications")
-          .update(appData)
-          .eq("id", existingApp.id);
-      } else if (!existingApp) {
-        await supabase.from("applications").insert(appData);
-      }
-
-      // Notify HR
-      await supabase.from("hr_notifications").insert({
-        hr_id: job.hr_id,
-        candidate_id: user?.id || null,
-        job_id: job.id,
-        title: `New applicant — ${candidateName}`,
-        body: `Applied for ${job.title}`,
-        type: "new_application",
-      });
-
-      // Insert candidate event
-      if (user?.id) {
-        await supabase.from("candidate_events").insert({
-          candidate_id: user.id,
-          job_id: job.id,
-          hr_id: job.hr_id,
-          event_type: existingApp ? "reapplied" : "applied",
-          metadata: {
-            source: isEasyApply ? "easy_apply" : "manual",
-            visa_status: form.visa_status,
-          },
-        });
-      }
-
-      setStep(3);
-    } catch (err) {
-      console.error("Apply error:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Show cooldown state
-  if (cooldownDays) {
-    return (
-      <div
-        style={{
-          background: T.surface,
-          border: `1px solid ${T.border}`,
-          borderRadius: 16,
-          padding: 24,
-          marginTop: 20,
-          textAlign: "center",
-        }}
-      >
-        <p style={{ fontSize: 14, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>
-          Applied {daysAgo(existingApp?.applied_at)}
-        </p>
-        <p style={{ fontSize: 12, color: T.muted, margin: 0, fontFamily: T.font }}>
-          You can reapply in {cooldownDays} day{cooldownDays !== 1 ? "s" : ""}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        background: T.surface,
-        border: `1px solid ${T.border}`,
-        borderRadius: 16,
-        padding: 24,
-        marginTop: 20,
-      }}
-    >
-      <style>{`
-        .jp-input:focus {
-          border-color: var(--pj-primary) !important;
-          box-shadow: 0 0 0 3px var(--pj-primary-ring) !important;
-        }
-        .jp-input::placeholder { color: var(--pj-muted); }
-      `}</style>
-      <h3 style={{ fontSize: 16, fontWeight: 600, color: T.text, margin: "0 0 16px", fontFamily: T.font }}>
-        {step === 3 ? "" : "Apply for this role"}
-      </h3>
-      <StepProgress step={step} />
-
-      {step === 1 && (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-            <div>
-              <label style={labelStyle}>First name</label>
-              <input className="jp-input" style={fieldStyle} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="First name" />
-            </div>
-            <div>
-              <label style={labelStyle}>Last name</label>
-              <input className="jp-input" style={fieldStyle} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Last name" />
-            </div>
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle}>Email</label>
-            <input className="jp-input" style={fieldStyle} type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="your@email.com" />
-          </div>
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Phone (WhatsApp)</label>
-            <input className="jp-input" style={fieldStyle} type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+971 50 123 4567" />
-          </div>
-          <button
-            type="button"
-            disabled={btnDisabled}
-            onClick={() => setStep(2)}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: 10,
-              border: "none",
-              background: btnDisabled ? T.border : T.accent,
-              color: btnDisabled ? T.muted : "#fff",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: btnDisabled ? "not-allowed" : "pointer",
-              fontFamily: T.font,
-              transition: "background-color 200ms cubic-bezier(0.4,0,0.2,1)",
-            }}
-          >
-            Continue
-          </button>
-        </>
-      )}
-
-      {step === 2 && (
-        <>
-          {/* Easy apply for logged-in CVPassport users */}
-          {user && (
-            <div style={{ marginBottom: 16 }}>
-              <button
-                type="button"
-                onClick={() => submitApplication(true)}
-                disabled={submitting}
-                style={{
-                  width: "100%",
-                  padding: "14px",
-                  borderRadius: 10,
-                  border: `2px solid ${T.accent}`,
-                  background: "var(--pj-primary-soft)",
-                  color: T.accent,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: submitting ? "not-allowed" : "pointer",
-                  fontFamily: T.font,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                <Zap size={16} strokeWidth={2} />
-                {submitting ? "Applying..." : "Easy Apply with my CVPassport CV"}
-              </button>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0" }}>
-                <div style={{ flex: 1, height: 1, background: T.border }} />
-                <span style={{ fontSize: 11, color: T.muted }}>or upload manually</span>
-                <div style={{ flex: 1, height: 1, background: T.border }} />
-              </div>
-            </div>
-          )}
-
-          <div
-            style={{
-              background: "var(--pj-primary-soft)",
-              border: "1px solid var(--pj-primary-ring)",
-              borderRadius: 10,
-              padding: "12px 16px",
-              marginBottom: 16,
-            }}
-          >
-            <p style={{ fontSize: 12, color: T.accent, margin: 0, fontFamily: T.font }}>
-              Upload your CV — we&apos;ll check your ATS match before the recruiter even opens your application
-            </p>
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "28px 16px",
-                border: `2px dashed ${T.border}`,
-                borderRadius: 10,
-                cursor: "pointer",
-                background: "transparent",
-                transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-              }}
-            >
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    set("cv_file", file);
-                    set("cv_filename", file.name);
-                  }
-                }}
-              />
-              {form.cv_filename ? (
-                <span style={{ fontSize: 13, color: T.green, fontWeight: 500, fontFamily: T.font }}>{form.cv_filename}</span>
-              ) : (
-                <>
-                  <Upload size={24} strokeWidth={1.75} color={T.muted} />
-                  <span style={{ fontSize: 12, color: T.muted, marginTop: 8, fontFamily: T.font }}>Click to upload CV (PDF, DOC)</span>
-                </>
-              )}
-            </label>
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Visa status</label>
-            <VisaSelect
-              value={form.visa_status}
-              onChange={(v) => set("visa_status", v)}
-              placeholder="Select visa status"
-              options={[
-                { value: "Sponsored",     label: "Need sponsorship" },
-                { value: "Own visa",      label: "Own visa / residency" },
-                { value: "Visit visa",    label: "Visit visa" },
-                { value: "Freelance",     label: "Freelance permit" },
-              ]}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              style={{
-                padding: "10px 20px",
-                borderRadius: 8,
-                border: `1px solid ${T.border}`,
-                background: "transparent",
-                color: T.muted,
-                fontSize: 13,
-                cursor: "pointer",
-                fontFamily: T.font,
-              }}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              disabled={btnDisabled || submitting}
-              onClick={() => submitApplication(false)}
-              style={{
-                flex: 1,
-                padding: "12px",
-                borderRadius: 10,
-                border: "none",
-                background: btnDisabled ? T.border : T.accent,
-                color: btnDisabled ? T.muted : "#fff",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: btnDisabled ? "not-allowed" : "pointer",
-                fontFamily: T.font,
-                transition: "background-color 200ms cubic-bezier(0.4,0,0.2,1)",
-              }}
-            >
-              {submitting ? "Submitting..." : "Submit application"}
-            </button>
-          </div>
-        </>
-      )}
-
-      {step === 3 && (
-        <div style={{ textAlign: "center", padding: "20px 0" }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: "50%",
-              background: "rgba(29,158,117,0.15)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
-            <Check size={28} strokeWidth={2.5} color={T.green} />
-          </div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>
-            You&apos;re in the pipeline
-          </h3>
-          <p style={{ fontSize: 13, color: T.muted, margin: "0 0 20px", fontFamily: T.font }}>
-            Hear back via WhatsApp or email within 3 business days
-          </p>
-
-          {/* Conversion card */}
-          <div
-            style={{
-              background: "var(--pj-primary-soft)",
-              border: "1px solid var(--pj-primary-ring)",
-              borderRadius: 12,
-              padding: "16px 20px",
-              marginBottom: 16,
-            }}
-          >
-            <p style={{ fontSize: 13, color: T.accent, margin: "0 0 12px", fontWeight: 500, fontFamily: T.font }}>
-              Your ATS match score is being calculated — build a stronger CV on CVPassport to rank higher
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate("/auth")}
-              style={{
-                background: T.accent,
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "10px 20px",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: T.font,
-              }}
-            >
-              View my ATS score
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── MAIN JOB PAGE ───────────────────────────────────────────────
 export default function JobPage() {
   const { jobId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const origin = location.state?.origin || "50% 40%";
+
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  // Read once on mount and pass down — single-shot. Stays the same
-  // across re-renders so the ApplyForm replay effect can latch onto a
-  // stable reference. consumeApplyIntent removes the stash on read so
-  // a refresh / second visit won't re-fire the application.
+  const [cvBlob, setCvBlob] = useState(null);
+  const [verified, setVerified] = useState(false);
+  const [companyName, setCompanyName] = useState(null);
+  const [openRoles, setOpenRoles] = useState(null);
+  const [existingApp, setExistingApp] = useState(null);
+  const [cooldownDays, setCooldownDays] = useState(0);
   const [replayIntent] = useState(() => consumeApplyIntent(jobId));
+
+  // apply: decide | easyConfirm | manual | sent
+  const [phase, setPhase] = useState("decide");
+  const [forceReapply, setForceReapply] = useState(false);
+  const [visaStatus, setVisaStatus] = useState("");
+  const [cvFile, setCvFile] = useState(null);
+  const [cvFilename, setCvFilename] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
+  const [sentScore, setSentScore] = useState(null);
+
+  const [isMobile, setIsMobile] = useState(false);
+  const replayedRef = useRef(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 860px)");
+    const on = () => setIsMobile(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(session.user);
-    });
+    supabase.auth.getSession().then(({ data }) => setUser(data?.session?.user || null));
   }, []);
 
-  // Plan + display name for the UserMenu popover. Best-effort: a
-  // missing profile row falls back to "Free plan" inside UserMenu.
   useEffect(() => {
-    if (!supabase || !user?.id) return;
+    if (!user?.id) return undefined;
     let live = true;
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("plan, full_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (live) setProfile(data || null);
+      // A PostgREST builder is a thenable, not a real Promise, so wrap it
+      // (Promise.resolve adopts it) before adding a rejection handler.
+      const safe = (q) => Promise.resolve(q).then((r) => r, () => ({ data: null }));
+      const [{ data: prof }, { data: cvRow }] = await Promise.all([
+        safe(supabase.from("profiles").select("plan, full_name, visa_status, phone").eq("id", user.id).maybeSingle()),
+        safe(supabase.from("cvs").select("cv_data").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(1).maybeSingle()),
+      ]);
+      if (!live) return;
+      setProfile(prof || null);
+      setCvBlob(cvRow?.cv_data || null);
+      if (prof?.visa_status) setVisaStatus(prof.visa_status);
     })();
     return () => { live = false; };
   }, [user?.id]);
 
+  // Job + the two computable, truthful employer signals.
   useEffect(() => {
-    if (!supabase || !jobId) return;
+    if (!supabase || !jobId) return undefined;
+    let live = true;
     (async () => {
-      const { data } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", jobId)
-        .eq("status", "published")
-        .single();
-      setJob(data || null);
-      setLoading(false);
-      // Increment view count
-      if (data) {
-        supabase.rpc("increment_job_views", { p_job_id: jobId }).catch(() => {});
+      try {
+        const { data: rows } = await supabase
+          .from("jobs").select("*").eq("id", jobId).in("status", ["active", "published"]).limit(1);
+        const data = Array.isArray(rows) ? rows[0] : rows;
+        if (!live) return;
+        if (!data) { setNotFound(true); setLoading(false); return; }
+        setJob(data);
+        setLoading(false);
+        // analytics only, never rendered — builder is a thenable, so guard with Promise.resolve
+        Promise.resolve(supabase.rpc("increment_job_views", { p_job_id: jobId })).then(() => {}, () => {});
+
+        // Verified + authoritative name from the public view (only exposes
+        // user_id/verified/company_name). "Roles open now" from the public
+        // jobs table. Both truthful; anything unreadable simply hides.
+        try {
+          const { data: hp } = await supabase.from("hr_public_profiles").select("verified, company_name").eq("user_id", data.hr_id).maybeSingle();
+          if (live && hp) { setVerified(!!hp.verified); setCompanyName(hp.company_name || null); }
+        } catch { /* pre-migration: no badge, safe default */ }
+        try {
+          const { count } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("hr_id", data.hr_id).eq("source", "hr_portal").in("status", ["active", "published"]);
+          if (live) setOpenRoles(count ?? null);
+        } catch { /* omit rather than fake */ }
+      } catch {
+        if (live) { setNotFound(true); setLoading(false); }
       }
     })();
+    return () => { live = false; };
   }, [jobId]);
 
+  // Already applied? (+ cooldown)
+  useEffect(() => {
+    if (!supabase || !user?.id || !job?.id) return undefined;
+    let live = true;
+    (async () => {
+      const { data } = await supabase.from("applications").select("id, cooldown_expires_at, applied_at").eq("candidate_id", user.id).eq("job_id", job.id).maybeSingle();
+      if (!live || !data) return;
+      setExistingApp(data);
+      if (data.cooldown_expires_at && new Date(data.cooldown_expires_at) > new Date()) {
+        setCooldownDays(Math.ceil((new Date(data.cooldown_expires_at).getTime() - Date.now()) / 86400000));
+      }
+    })();
+    return () => { live = false; };
+  }, [user?.id, job?.id]);
+
+  const hasCv = !!cvBlob;
+  const needsVisa = job ? roleNeedsVisa(job) : false;
+  const company = companyName || job?.company || "the employer";
+
+  const easyMatch = useMemo(() => {
+    if (!job || !cvBlob) return null;
+    try { return scoreApplicationStopgap({ jobRequirements: job.requirements, candidateCv: cvBlob })?.score ?? null; } catch { return null; }
+  }, [job, cvBlob]);
+
+  const send = async (isEasyApply) => {
+    if (sending) return;
+    setSending(true);
+    setSendError(null);
+    const res = await applyToJob(supabase, {
+      user, job,
+      visaStatus: needsVisa ? visaStatus : "",
+      cvFile: isEasyApply ? null : cvFile,
+      cvFilename: isEasyApply ? "" : cvFilename,
+      existingApp: existingApp && cooldownDays === 0 ? existingApp : null,
+      isEasyApply,
+    });
+    setSending(false);
+    // Honest failure, but never leak an internal error string onto a candidate screen. Keep the sheet + every value.
+    if (!res.ok) { setSendError("We could not send that just now. Please try again."); return; }
+    setSentScore(res.score ?? easyMatch);
+    setPhase("sent");
+  };
+
+  // Post-auth replay: came back from /auth with an intent for this job →
+  // send with the saved CV (Easy Apply). Single shot. The uploaded File
+  // cannot survive sessionStorage, so a replayed manual carries no file
+  // (known limitation) — Easy Apply covers the common case.
+  useEffect(() => {
+    if (replayedRef.current) return;
+    if (!replayIntent || !user?.id || !job?.id) return;
+    if (existingApp && cooldownDays > 0) return;
+    if (!hasCv) return; // nothing to auto-send; leave them on the no-CV path
+    replayedRef.current = true;
+    Promise.resolve().then(() => send(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayIntent, user?.id, job?.id, hasCv, existingApp, cooldownDays]);
+
+  const goBack = () => { navigate("/jobs"); };
+
+  const signInToApply = () => {
+    try {
+      saveApplyIntent({ jobId, form: {} });
+      window.sessionStorage?.setItem(RETURN_PATH_KEY, `/jobs/${jobId}`);
+    } catch { /* private mode */ }
+    navigate("/auth");
+  };
+
+  const onFile = (e) => {
+    const f = e.target.files?.[0];
+    if (f) { setCvFile(f); setCvFilename(f.name); }
+  };
+
+  /* ── Loading / not found ── */
   if (loading) {
     return (
-      <div style={{ background: T.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: T.muted, fontFamily: T.font }}>Loading...</p>
+      <div className="jb-root">
+        <TopLoadingBar active />
+        <Nav user={user} profile={profile} navigate={navigate} />
+        <div className="jp-center" aria-busy="true"><p>Loading the role…</p></div>
       </div>
     );
   }
-
-  if (!job) {
+  if (notFound || !job) {
     return (
-      <div style={{ background: T.bg, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: T.muted, fontFamily: T.font, marginBottom: 16 }}>Job not found</p>
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          style={{
-            background: T.accent,
-            color: "#fff",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 20px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: T.font,
-          }}
-        >
-          Go home
-        </button>
+      <div className="jb-root">
+        <Nav user={user} profile={profile} navigate={navigate} />
+        <div className="jp-center">
+          <p>We could not find this role. It may have been filled or taken down.</p>
+          <button type="button" className="jb-showall" onClick={goBack}>Back to all roles</button>
+        </div>
       </div>
     );
   }
 
-  const hiring = getHiringStatus(job.posted_at, job.hiring_status);
-  // requirements is jsonb array
+  const st = jobStatus(job);
+  const salary = salaryText(job);
+  const exp = experienceText(job);
   const requirements = Array.isArray(job.requirements) ? job.requirements : [];
   const perks = Array.isArray(job.perks) ? job.perks : [];
+  const applied = !!existingApp && !forceReapply;
+  const richDesc = job.description && /<[a-z][\s\S]*>/i.test(job.description);
+  const candName = profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.email ? user.email.split("@")[0] : "You");
+
+  const visaField = (
+    <div className="jp-field">
+      <span className="jp-fieldlabel">Your visa status</span>
+      <VisaSelect value={visaStatus} onChange={setVisaStatus} isMobile={isMobile} />
+    </div>
+  );
 
   return (
-    <div style={{ background: T.bg, minHeight: "100vh", fontFamily: T.font }}>
-      {/* Navbar */}
-      <nav
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "14px 24px",
-          background: T.surface,
-          borderBottom: `1px solid ${T.border}`,
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-          aria-label="CVPassport home"
-        >
-          <span style={{ fontFamily: T.font, fontSize: 19, fontWeight: 700, letterSpacing: "-0.02em", color: T.accent }}>
-            CV<span style={{ color: T.text, fontWeight: 600 }}>Passport</span>
-          </span>
-        </button>
-        {user ? (
-          <UserMenu
-            email={user.email || ""}
-            name={profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || ""}
-            plan={profile?.plan}
-            switchTo={{ label: "Switch to HR", path: "/employer/jobs" }}
-            settingsPath="/account"
-            theme="light"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => navigate("/auth")}
-            style={{
-              background: "none",
-              border: `1px solid ${T.border}`,
-              color: T.text,
-              fontSize: 13,
-              padding: "6px 16px",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontFamily: T.font,
-            }}
-          >
-            Sign in
-          </button>
-        )}
-      </nav>
+    <div className="jb-root">
+      <TopLoadingBar active={false} />
+      <Nav user={user} profile={profile} navigate={navigate} />
 
-      {/* Content */}
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "28px 20px 60px" }}>
-        {/* Job card */}
-        <div
-          style={{
-            background: T.surface,
-            border: `1px solid ${T.border}`,
-            borderRadius: 16,
-            padding: 24,
-          }}
-        >
-          {/* Header */}
-          <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
-            {initialsAvatar(job.company || job.title, 48)}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                <span style={{ fontSize: 13, color: T.muted }}>{job.company || "Company"}</span>
-                <BadgeCheck size={14} strokeWidth={2} color={T.green} fill="none" />
-              </div>
-              <h1 style={{ fontSize: 22, fontWeight: 500, color: T.text, margin: "0 0 10px", fontFamily: T.font }}>
-                {job.title}
-              </h1>
+      <div className="jp-page">
+        <button type="button" className="jp-back" onClick={goBack}><IcBack />All roles</button>
 
-              {/* Tags */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {job.location && (
-                  <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: T.elevated, color: T.muted, fontFamily: T.font }}>
-                    {job.location}
-                  </span>
-                )}
-                {job.job_type && (
-                  <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: T.elevated, color: T.muted, fontFamily: T.font }}>
-                    {job.job_type}
-                  </span>
-                )}
-                {(job.salary_min || job.salary_max) && (
-                  <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: T.elevated, color: T.muted, fontFamily: T.font }}>
-                    {job.salary_min && job.salary_max
-                      ? `${job.salary_min.toLocaleString()} – ${job.salary_max.toLocaleString()} ${job.currency || "AED"}`
-                      : job.salary_min
-                        ? `From ${job.salary_min.toLocaleString()} ${job.currency || "AED"}`
-                        : `Up to ${job.salary_max.toLocaleString()} ${job.currency || "AED"}`}
-                  </span>
-                )}
-                {job.visa_sponsored && (
-                  <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, background: "rgba(29,158,117,0.12)", color: T.green, fontFamily: T.font }}>
-                    Visa sponsored
-                  </span>
+        <div className="jp-enter" style={{ transformOrigin: origin }}>
+          <div className="jp-grid">
+            {/* LEFT: the role */}
+            <div>
+              <div className="jp-company">
+                <div className="jp-company__head">
+                  <span className={`jp-company__mono jb-mono--${monoIndex(company)}`}>{monogram(company)}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="jp-company__name-row">
+                      <span className="jp-company__name">{company}</span>
+                      {verified && <span className="jp-verified-badge"><IcVerified />Verified</span>}
+                    </div>
+                    {job.location && <div className="jp-company__addr"><IcPin />{job.location}</div>}
+                  </div>
+                </div>
+                {openRoles != null && openRoles > 0 && (
+                  <div className="jp-company__stats">
+                    <span className="jp-stat"><IcBriefcase />Hiring for <b>{openRoles} {openRoles === 1 ? "role" : "roles"}</b> now</span>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* Meta line */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: T.muted }}>{daysAgo(job.posted_at)}</span>
-            {job.view_count != null && (
-              <>
-                <span style={{ fontSize: 12, color: T.muted }}>·</span>
-                <span style={{ fontSize: 12, color: T.muted }}>{job.view_count} views</span>
-              </>
-            )}
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: hiring.color }} />
-              <span style={{ fontSize: 12, color: hiring.color, fontWeight: 500 }}>{hiring.label}</span>
-            </div>
-          </div>
+              <h1 className="jp-title">{job.title}</h1>
+              <div className="jp-chips">
+                {job.visa_sponsored && <span className="jp-chip jp-chip--visa"><IcCheck s={14} w={2.3} />Visa sponsored</span>}
+                {salary && <span className="jp-chip jp-chip--salary">{salary}</span>}
+                {exp && <span className="jp-chip">{exp}</span>}
+                {jobTypeLabel(job) && <span className="jp-chip">{jobTypeLabel(job)}</span>}
+              </div>
+              <div className="jp-statusline">
+                <span className={`jp-statusline__status jb-status--${st.tone}`}><span className={`jb-dot jb-dot--${st.tone}`} />{st.label}</span>
+                <span className="jp-statusline__posted">{postedText(job.posted_at || job.created_at)}</span>
+              </div>
 
-          {/* Body — About the role. New listings store rich HTML from the
-              Tiptap editor (schema-constrained safe tags); legacy listings are
-              plain text — render each appropriately. */}
-          {job.description && (
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>About the role</h3>
-              {/<[a-z][\s\S]*>/i.test(job.description) ? (
-                <div className="jobpage-rich" dangerouslySetInnerHTML={{ __html: job.description }} />
-              ) : (
-                <p style={{ fontSize: 13, color: T.textSoft, lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", fontFamily: T.font }}>
-                  {job.description}
-                </p>
+              <div className="jp-divider" />
+              {job.description && (
+                <>
+                  <h3 className="jp-h3">About the role</h3>
+                  {richDesc
+                    ? <div className="jp-about" dangerouslySetInnerHTML={{ __html: job.description }} />
+                    : <p className="jp-about">{job.description}</p>}
+                </>
+              )}
+              {requirements.length > 0 && (
+                <>
+                  <h3 className="jp-h3">What you will need</h3>
+                  <ul className="jp-reqs">
+                    {requirements.map((r, i) => (<li key={i} className="jp-req"><IcCheck s={16} w={2.2} />{r}</li>))}
+                  </ul>
+                </>
+              )}
+              {perks.length > 0 && (
+                <>
+                  <h3 className="jp-h3">What they offer</h3>
+                  <div className="jp-perks">{perks.map((p, i) => (<span key={i} className="jp-perk">{p}</span>))}</div>
+                </>
               )}
             </div>
-          )}
 
-          {/* Requirements */}
-          {requirements.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>What you&apos;ll need</h3>
-              <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none" }}>
-                {requirements.map((r, i) => (
-                  <li key={i} style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 13, color: T.textSoft, lineHeight: 1.5, fontFamily: T.font }}>
-                    <span style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}>•</span>
-                    {r}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Perks */}
-          {perks.length > 0 && (
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: T.text, margin: "0 0 8px", fontFamily: T.font }}>Perks</h3>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {perks.map((p, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      fontSize: 11,
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                      background: T.elevated,
-                      color: T.muted,
-                      fontFamily: T.font,
-                    }}
-                  >
-                    {p}
-                  </span>
-                ))}
+            {/* RIGHT: sticky apply */}
+            <aside className="jp-aside">
+              <div className="jp-panel">
+                {applied ? (
+                  <div className="jp-applied">
+                    <div className="jp-applied__ic"><IcCheck s={23} w={2.5} /></div>
+                    <h3 className="jp-applied__title">You already applied</h3>
+                    <p className="jp-applied__line">Applied {daysAgoText(existingApp.applied_at)}. {company} has your CV, there is nothing more to do.</p>
+                    <div className="jp-applied__note">
+                      {cooldownDays > 0 ? `You can reapply in ${cooldownDays} ${cooldownDays === 1 ? "day" : "days"} if your CV changes` : "You can reapply if your CV changes"}
+                    </div>
+                    {cooldownDays === 0 && <button type="button" className="jp-applied__reapply" onClick={() => { setForceReapply(true); setPhase("decide"); }}>Reapply now</button>}
+                  </div>
+                ) : phase === "sent" ? (
+                  <div className="jp-sent">
+                    <div className="jp-sent__ic"><IcCheck s={26} w={2.6} /></div>
+                    <h3 className="jp-sent__title">You are in the pipeline</h3>
+                    <p className="jp-sent__line">{company}&apos;s hiring team will see your application and reply by WhatsApp or email within 3 working days.</p>
+                    <p className="jp-sent__wa">We will WhatsApp you the moment they respond.</p>
+                    {sentScore != null && (
+                      <div className="jp-conv">
+                        <p>Your CV scored <b>{sentScore}%</b> against this role. See what to fix to rank higher.</p>
+                        <button type="button" onClick={() => navigate(user ? "/dashboard" : "/auth")}>View my ATS score</button>
+                      </div>
+                    )}
+                  </div>
+                ) : phase === "easyConfirm" ? (
+                  <div className="jp-panel__inner">
+                    <h3 className="jp-panel__title">Send to {company}</h3>
+                    <p className="jp-panel__lede">{needsVisa ? "Confirm and send. We already have everything except your visa status." : "Confirm and send. We already have everything we need."}</p>
+                    <div className="jp-idcard">
+                      <div className="jp-idrow">
+                        <span className="jp-avatar">{monogram(candName)}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="jp-idrow__name">{candName}</div>
+                          <div className="jp-idrow__sub">{user?.email}</div>
+                        </div>
+                      </div>
+                      <div className="jp-idrow jp-idrow--file">
+                        <div className="jp-idrow__file">
+                          <IcFile />
+                          <div style={{ minWidth: 0 }}>
+                            <div className="jp-idrow__name">Your CVPassport CV</div>
+                            <div className="jp-idrow__sub">Sends as is</div>
+                          </div>
+                        </div>
+                        {easyMatch != null && <span className={`jb-matchchip jb-matchchip--${matchTone(easyMatch)}`}>{easyMatch}% match</span>}
+                      </div>
+                    </div>
+                    {needsVisa ? visaField : <div className="jp-novisa">Nothing else needed for this role. Your details are ready to send.</div>}
+                    {sendError && <p className="jp-err">{sendError}</p>}
+                    <button type="button" className="jp-primary" disabled={sending || (needsVisa && !visaStatus)} onClick={() => send(true)}>{sending ? "Sending…" : sendError ? "Try again" : "Send application"}</button>
+                    <button type="button" className="jp-back-mini" onClick={() => { setPhase("decide"); setSendError(null); }}>Back</button>
+                  </div>
+                ) : phase === "manual" ? (
+                  <div className="jp-panel__inner">
+                    <h3 className="jp-panel__title">Apply to {company}</h3>
+                    <p className="jp-panel__lede">{user ? <>Applying as <b>{candName}</b>. {needsVisa ? "We only need your CV and visa status." : "We only need your CV."}</> : <>{needsVisa ? "We need your CV and visa status." : "We need your CV."}</>}</p>
+                    <label className={`jp-dropzone${cvFilename ? " jp-dropzone--has" : ""}`}>
+                      <input type="file" accept=".pdf,.doc,.docx" style={{ display: "none" }} onChange={onFile} />
+                      {cvFilename ? <span className="jp-dropzone__file">{cvFilename}</span> : (<><IcUpload /><span className="jp-dropzone__hint">Click to upload CV, PDF or DOC</span></>)}
+                    </label>
+                    {needsVisa ? visaField : <div className="jp-novisa">Nothing else needed for this role. Your details are ready to send.</div>}
+                    {sendError && <p className="jp-err">{sendError}</p>}
+                    <button type="button" className="jp-primary" disabled={sending || !cvFile || (needsVisa && !visaStatus)} onClick={() => send(false)}>{sending ? "Sending…" : sendError ? "Try again" : "Send application"}</button>
+                    <button type="button" className="jp-back-mini" onClick={() => { setPhase("decide"); setSendError(null); }}>Back</button>
+                  </div>
+                ) : (
+                  // decide
+                  <div className="jp-panel__inner">
+                    <div className="jp-promise">
+                      <IcBolt s={17} />
+                      <p>Upload your CV, we will check your ATS match before the recruiter even opens your application.</p>
+                    </div>
+                    {!user ? (
+                      <>
+                        <button type="button" className="jp-primary" onClick={signInToApply}>Sign in to apply in one tap</button>
+                        <p className="jp-hint">Sign in and your saved CV and details send automatically. We keep your place on this role.</p>
+                        <div className="jp-or"><span>or</span></div>
+                        <button type="button" className="jp-secondary" onClick={() => setPhase("manual")}>Apply with a CV upload</button>
+                      </>
+                    ) : hasCv ? (
+                      <>
+                        <button type="button" className="jp-primary" onClick={() => setPhase("easyConfirm")}><IcBolt s={17} />Apply with your CVPassport CV</button>
+                        <p className="jp-hint">One tap. Your saved CV, name and email are ready, nothing to retype.</p>
+                        <div className="jp-or"><span>or</span></div>
+                        <button type="button" className="jp-secondary" onClick={() => setPhase("manual")}>Upload a different CV</button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" className="jp-primary" onClick={() => setPhase("manual")}><IcUpload />Upload your CV to apply</button>
+                        <p className="jp-hint">No CV on file yet. Upload once and future roles are one tap.</p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            </aside>
+          </div>
         </div>
-
-        {/* Apply form */}
-        <ApplyForm job={job} user={user} replayIntent={replayIntent} />
       </div>
     </div>
+  );
+}
+
+function Nav({ user, profile, navigate }) {
+  const greetingName = profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.email ? user.email.split("@")[0] : "");
+  return (
+    <header className="jb-nav">
+      <a href="/" className="jb-wordmark">CV<span>Passport</span></a>
+      <div className="jb-nav__center" />
+      <div className="jb-nav__right">
+        {user ? (
+          <UserMenu email={user.email || ""} name={greetingName} plan={profile?.plan} switchTo={{ label: "Switch to HR", path: "/employer/jobs" }} settingsPath="/account" theme="light" />
+        ) : (
+          <button type="button" className="jb-signin" onClick={() => navigate("/auth")}>Sign in</button>
+        )}
+      </div>
+    </header>
   );
 }
