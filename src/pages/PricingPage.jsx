@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
 import { logEvent } from "../lib/analytics/logEvent";
 import safeFetch from "../lib/net/safeFetch";
-import { getTheme } from "../lib/theme";
+import { getTheme, setTheme } from "../lib/theme";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
 import RazorpayPayment from "../components/RazorpayPayment";
@@ -30,37 +30,6 @@ function LockIcon() {
   );
 }
 
-// Inline SVGs drawn for this page — no glyph fonts, no emoji.
-function StarIcon({ size = 12, color = "#FBBF24" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true">
-      <path d="M12 2l2.39 6.95H22l-6.18 4.49L18.18 22 12 17.27 5.82 22l2.36-8.56L2 8.95h7.61L12 2z" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon({ size = 14, open = false }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      style={{
-        transform: open ? "rotate(180deg)" : "none",
-        transition: "transform 200ms cubic-bezier(0.4,0,0.2,1)",
-      }}
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
 function ArrowRightIcon({ size = 14, color = "currentColor" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -74,6 +43,102 @@ function CheckIcon({ size = 12, color = "var(--success)" }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="20 6 9 17 4 12" />
     </svg>
+  );
+}
+
+function SunIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
+  );
+}
+
+function MoonIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+const THEME_TOGGLE_STYLE = {
+  width: 36, height: 36, borderRadius: 10,
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  background: "transparent", border: "1px solid var(--border)",
+  color: "var(--text-secondary)", cursor: "pointer",
+  transition: "border-color 160ms cubic-bezier(0.4,0,0.2,1), color 160ms cubic-bezier(0.4,0,0.2,1)",
+};
+
+// ── CTA system — every button on the amber ladder, never black. One accent
+// per view: the hero owns the gradient; the rest step down in weight.
+const CTA_BASE = {
+  width: "100%", height: 46, borderRadius: 12, fontSize: 14, fontWeight: 700,
+  cursor: "pointer", fontFamily: "inherit",
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+  transition: "filter 150ms cubic-bezier(0.4,0,0.2,1), background-color 150ms cubic-bezier(0.4,0,0.2,1)",
+};
+const ANCHOR_CTA = { ...CTA_BASE, background: "rgba(217,119,6,0.14)", color: "var(--accent-text)", border: "1px solid rgba(217,119,6,0.42)" };
+const ENTRY_CTA = { ...CTA_BASE, background: "transparent", color: "var(--accent-text)", border: "1px solid rgba(217,119,6,0.55)" };
+const FLOOR_CTA = { ...CTA_BASE, background: "transparent", color: "var(--text-primary)", border: "1px solid var(--border-strong)", fontWeight: 600 };
+const CURRENT_PLAN_BTN = { ...CTA_BASE, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)", cursor: "not-allowed", fontWeight: 600 };
+const HERO_BADGE = {
+  display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700,
+  color: "var(--accent-text)", padding: "4px 10px", borderRadius: 9999,
+  border: "1px solid rgba(217,119,6,0.42)", background: "rgba(217,119,6,0.10)",
+  letterSpacing: "0.06em", textTransform: "uppercase",
+};
+const ANCHOR_BADGE = {
+  display: "inline-flex", alignItems: "center", fontSize: 10, fontWeight: 700,
+  color: "var(--text-secondary)", padding: "4px 10px", borderRadius: 9999,
+  border: "1px solid var(--border-strong)", background: "transparent",
+  letterSpacing: "0.06em", textTransform: "uppercase",
+};
+
+// Hero CTA — resting amber glow, hover brightens + deepens the glow, press
+// scales to 0.98. Reduced motion collapses to a plain solid amber fill with a
+// focus ring: no gradient, no glow, no scale.
+function HeroCTA({ reduce, disabled, onClick, label }) {
+  const REST = "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30), 0 6px 18px rgba(217,119,6,0.24)";
+  const LIFT = "0 0 0 1px rgba(217,119,6,0.55), 0 0 32px rgba(217,119,6,0.55), 0 8px 22px rgba(217,119,6,0.34)";
+  if (reduce) {
+    return (
+      <button
+        type="button" disabled={disabled} onClick={onClick}
+        style={{
+          width: "100%", height: 48, borderRadius: 9999,
+          background: "#B25E03", color: "#FFFFFF", border: "none",
+          fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+        }}
+      >
+        <span>{label}</span>
+        <ArrowRightIcon size={14} color="#FFFFFF" />
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button" disabled={disabled} onClick={onClick}
+      style={{
+        width: "100%", height: 48, borderRadius: 9999,
+        background: "linear-gradient(180deg, #E08810 0%, #B25E03 100%)",
+        color: "#FFFFFF", border: "none",
+        fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+        letterSpacing: "-0.005em",
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+        boxShadow: REST,
+        transition: "filter 160ms cubic-bezier(0.4,0,0.2,1), transform 100ms cubic-bezier(0.4,0,0.2,1), box-shadow 160ms cubic-bezier(0.4,0,0.2,1)",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.06)"; e.currentTarget.style.boxShadow = LIFT; }}
+      onMouseLeave={(e) => { e.currentTarget.style.filter = "none"; e.currentTarget.style.boxShadow = REST; }}
+      onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
+      onMouseUp={(e) => { e.currentTarget.style.transform = "none"; }}
+    >
+      <span>{label}</span>
+      <ArrowRightIcon size={14} color="#FFFFFF" />
+    </button>
   );
 }
 
@@ -108,8 +173,17 @@ export default function PricingPage({ refreshProfile } = {}) {
   const [authReady, setAuthReady] = useState(false);
   const [checkoutSheet, setCheckoutSheet] = useState({ open: false, planId: null, priceLabel: "" });
   const [checkoutError, setCheckoutError] = useState(null);
-  const [allPlansOpen, setAllPlansOpen] = useState(false);
   const [razorpayCheckout, setRazorpayCheckout] = useState(null);
+  // Theme is REACTIVE — the page follows the global <html data-theme> and
+  // re-renders on toggle. The old snapshot (data-theme={getTheme()} read once)
+  // pinned a stale theme onto the page root, so a card could render its dark
+  // surface while price text used a light-surface token — the invisible-price
+  // bug. Observing the attribute keeps every token resolving against the card
+  // it actually sits on, day and night.
+  const [theme, setThemeState] = useState(() => getTheme());
+  const toggleTheme = useCallback(() => {
+    setThemeState((t) => setTheme(t === "dark" ? "light" : "dark"));
+  }, []);
   // Captured at handleRazorpaySuccess time so PostPaymentOverlay can render
   // the plan's display name. razorpayCheckout itself is cleared before the
   // overlay mounts; this preserves the tier slug across that transition.
@@ -218,6 +292,19 @@ export default function PricingPage({ refreshProfile } = {}) {
     const handler = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
+  }, []);
+
+  // Keep local theme in lock-step with the global <html data-theme> so a
+  // toggle anywhere (this page's switch, or the shared one on other pages)
+  // re-resolves every token here.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const el = document.documentElement;
+    const sync = () => setThemeState(getTheme());
+    sync();
+    const obs = new MutationObserver(sync);
+    obs.observe(el, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
   }, []);
 
   const plans = [
@@ -415,7 +502,6 @@ export default function PricingPage({ refreshProfile } = {}) {
   const isCurrentPlan = (plan) => userPlan && userPlan === PLAN_MAP[plan.id];
 
   const pad = isMobile ? "20px 16px" : "32px 48px";
-  const cardPad = isMobile ? "20px" : "28px";
 
   // ====== SUCCESS OVERLAY ======
   // PostPaymentOverlay polls the invoices table until the webhook chain
@@ -470,7 +556,7 @@ export default function PricingPage({ refreshProfile } = {}) {
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="en_AE" />
       </Helmet>
-    <div data-theme={getTheme()} style={{
+    <div data-theme={theme} style={{
       minHeight: "100vh", backgroundColor: "var(--bg)",
       fontFamily: "Inter, -apple-system, system-ui, sans-serif",
       color: "var(--text-primary)",
@@ -488,26 +574,39 @@ export default function PricingPage({ refreshProfile } = {}) {
         >
           CVPassport
         </div>
-        <div
-          style={{ fontSize: "13px", color: "var(--text-secondary)", cursor: "pointer" }}
-          onClick={() => navigate("/dashboard")}
-        >
-          ← Back to Dashboard
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 10 : 16 }}>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            style={THEME_TOGGLE_STYLE}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+          >
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
+          <button
+            type="button"
+            style={{ fontSize: "13px", color: "var(--text-secondary)", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit" }}
+            onClick={() => navigate("/dashboard")}
+          >
+            ← Back to Dashboard
+          </button>
         </div>
       </div>
 
       <div style={{ padding: pad, maxWidth: "1280px", margin: "0 auto" }}>
 
         {/* TITLE */}
-        <div style={{ textAlign: "center", marginBottom: isMobile ? "28px" : "40px" }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? "24px" : "36px" }}>
           <h1 style={{
-            fontSize: isMobile ? "24px" : "32px", fontWeight: "700",
-            color: "var(--text-primary)", margin: "0 0 10px",
+            fontSize: isMobile ? "26px" : "36px", fontWeight: "700",
+            color: "var(--text-primary)", margin: "0 0 12px", letterSpacing: "-0.02em",
           }}>
-            Simple, Transparent Pricing
+            Simple, transparent pricing
           </h1>
-          <p style={{ fontSize: isMobile ? "14px" : "16px", color: "var(--text-secondary)", margin: 0 }}>
-            Built for UAE and India job seekers. No surprises.
+          <p style={{ fontSize: isMobile ? "14px" : "16px", color: "var(--text-secondary)", margin: "0 auto", maxWidth: 640, lineHeight: 1.55 }}>
+            Built for the Gulf hiring market, ATS engineered for the systems Dubai recruiters use.
           </p>
         </div>
 
@@ -551,585 +650,244 @@ export default function PricingPage({ refreshProfile } = {}) {
           </div>
         ) : null}
 
-        {/* HERO — two-card anchor: Free (subdued) + Active Hunter (dominant) */}
-        <motion.div
-          initial={reduce ? false : "hidden"}
-          animate="show"
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1fr 1.05fr",
-            gap: isMobile ? 16 : 20,
-            marginBottom: 32,
-            alignItems: "stretch",
-          }}
-        >
-          {/* FREE — anchors the price */}
-          {(() => {
-            const explorerPlan = plans.find((p) => p.id === "explorer");
-            const isCurrent = !!explorerPlan && isCurrentPlan(explorerPlan);
-            return (
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, y: 8 },
-                  show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: EASE } },
-                }}
-                style={{
-                  backgroundColor: "var(--bg-surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 16,
-                  padding: isMobile ? "24px 20px" : "28px 24px",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "var(--text-secondary)",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    marginBottom: 14,
-                  }}
-                >
-                  Start free
-                </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
-                  <span style={{ fontSize: 36, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.02em" }}>
-                    {currency === "AED" ? "AED 0" : "₹0"}
-                  </span>
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 24 }}>
-                  No card. No catch.
-                </div>
-                <div style={{ flex: 1, marginBottom: 24, display: "flex", flexDirection: "column", gap: 10 }}>
-                  {[
-                    "Every template — build for free",
-                    "1 free PDF download",
-                    "Basic ATS score + 3 AI rewrites / month",
-                  ].map((line) => (
-                    <div
-                      key={line}
-                      style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-primary)" }}
-                    >
-                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 14, flexShrink: 0 }}>
-                        <CheckIcon size={12} color="var(--success)" />
+        {/* FOUR RANKED PLANS — all visible, ranked by surface + CTA weight,
+            never four equal. Desktop L→R Explorer, Single-CV Unlock, Active
+            Hunter (hero), Career Pro (anchor); mobile stacks hero first. */}
+        {(() => {
+          const currencyPrefix = currency === "AED" ? "AED " : "₹";
+          const priceOf = (slug) => getDisplayPrice(slug, currency);
+          const CARDS = {
+            explorer: {
+              role: "floor", id: "explorer", name: "Explorer",
+              price: "Free", suffix: "forever", tagline: "No card. No catch.",
+              highlights: [
+                "Every template, build for free",
+                "1 free PDF download",
+                "Basic ATS score, 3 AI rewrites a month",
+              ],
+              cta: "Build your first CV",
+            },
+            express: {
+              role: "entry", id: "express", name: "Single-CV Unlock",
+              price: `${currencyPrefix}${priceOf("express_pass")}`, suffix: "one time",
+              tagline: "Three premium downloads, yours to keep.",
+              highlights: [
+                "3 premium PDF downloads",
+                "Full ATS Checker",
+                "Premium templates and cover letter",
+                "Job Match keywords",
+                "1 CV import, 30 AI rewrites a month",
+              ],
+              cta: "Unlock my CV",
+            },
+            hunter: {
+              role: "hero", id: "hunter", name: "Active Hunter",
+              price: `${currencyPrefix}${priceOf("active_hunter")}`, suffix: "30 day pass",
+              tagline: "Less than a coffee. More than a recruiter.",
+              badge: "Most chosen, Gulf job seekers",
+              highlights: [
+                "Unlimited downloads, every CV",
+                "AI powered ATS scoring",
+                "60 AI rewrites a month",
+                "3 CV imports a week",
+                "Cover letter, Job Match, priority support",
+              ],
+              cta: "Start your hunt",
+              footnote: "One time payment, access for 30 days",
+            },
+            pro: {
+              role: "anchor", id: "pro", name: "Career Pro",
+              price: `${currencyPrefix}${priceOf("career_pro")}`, suffix: "1 year pass",
+              tagline: "Every tool, all year.",
+              badge: "Best value",
+              highlights: [
+                "Everything unlimited for a year",
+                "Unlimited AI rewrites",
+                "AI powered ATS scoring",
+                "All premium templates",
+                "Priority support",
+              ],
+              cta: "Get the 1 year pass",
+            },
+          };
+          const order = isMobile
+            ? [CARDS.hunter, CARDS.pro, CARDS.express, CARDS.explorer]
+            : [CARDS.explorer, CARDS.express, CARDS.hunter, CARDS.pro];
+          return (
+            <motion.div
+              initial={reduce ? false : "hidden"}
+              animate="show"
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1.16fr 1.06fr",
+                gap: isMobile ? 14 : 18,
+                alignItems: "stretch",
+                marginBottom: isMobile ? 40 : 52,
+              }}
+            >
+              {order.map((c) => {
+                const planForCta = plans.find((p) => p.id === c.id);
+                const current = !!planForCta && isCurrentPlan(planForCta);
+                const isHero = c.role === "hero";
+                const isAnchor = c.role === "anchor";
+                return (
+                  <motion.div
+                    key={c.id}
+                    variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.34, ease: EASE } } }}
+                    style={{
+                      position: "relative",
+                      background: isHero ? "var(--bg-elevated)" : "var(--bg-surface)",
+                      border: isHero ? "1px solid rgba(217,119,6,0.42)" : "1px solid var(--border)",
+                      borderRadius: isHero ? 18 : 16,
+                      padding: isMobile ? "24px 20px" : (isHero ? "30px 26px 26px" : "26px 22px"),
+                      display: "flex",
+                      flexDirection: "column",
+                      transform: (!isMobile && isHero) ? "translateY(-8px)" : "none",
+                      boxShadow: isHero
+                        ? "0 0 0 1px rgba(217,119,6,0.10), 0 24px 56px -14px rgba(20,19,16,0.28), 0 0 80px -30px rgba(217,119,6,0.34)"
+                        : (isAnchor ? "0 12px 32px -18px rgba(20,19,16,0.22)" : "none"),
+                      transition: "transform 150ms cubic-bezier(0.4,0,0.2,1), box-shadow 150ms cubic-bezier(0.4,0,0.2,1)",
+                    }}
+                    onMouseEnter={(e) => { if (!isMobile) e.currentTarget.style.transform = isHero ? "translateY(-12px)" : "translateY(-4px)"; }}
+                    onMouseLeave={(e) => { if (!isMobile) e.currentTarget.style.transform = isHero ? "translateY(-8px)" : "none"; }}
+                  >
+                    {c.badge ? (
+                      <div style={{ marginBottom: 14 }}>
+                        <span style={isHero ? HERO_BADGE : ANCHOR_BADGE}>{c.badge}</span>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
+                        {c.role === "floor" ? "Start free" : "One off"}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{c.name}</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: isHero ? 42 : 34, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+                        {c.price}
                       </span>
-                      {line}
+                      {c.suffix ? <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>· {c.suffix}</span> : null}
                     </div>
-                  ))}
-                </div>
-                {isCurrent ? (
-                  <button
-                    disabled
-                    style={{
-                      width: "100%", height: 44, borderRadius: 12,
-                      backgroundColor: "transparent", color: "var(--text-secondary)",
-                      border: "1px solid var(--border)", fontSize: 14,
-                      fontWeight: 600, cursor: "not-allowed",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    Current Plan
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={paymentLaunching.active}
-                    onClick={() => explorerPlan && handleCTA(explorerPlan)}
-                    style={{
-                      width: "100%", height: 44, borderRadius: 12,
-                      backgroundColor: "transparent", color: "var(--text-primary)",
-                      border: "1px solid var(--border-strong)",
-                      fontSize: 14, fontWeight: 600, cursor: "pointer",
-                      fontFamily: "inherit",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      transition: "border-color 160ms cubic-bezier(0.4,0,0.2,1), background-color 160ms cubic-bezier(0.4,0,0.2,1)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "var(--text-primary)";
-                      e.currentTarget.style.backgroundColor = "var(--hover-wash)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "var(--border-strong)";
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                  >
-                    <span>Build your first CV</span>
-                    <ArrowRightIcon size={14} color="var(--text-primary)" />
-                  </button>
-                )}
-              </motion.div>
-            );
-          })()}
+                    <div style={{ fontSize: 13, color: isHero ? "var(--accent-text)" : "var(--text-secondary)", fontWeight: isHero ? 500 : 400, marginBottom: 22, lineHeight: 1.45 }}>
+                      {c.tagline}
+                    </div>
+                    <div style={{ flex: 1, marginBottom: 24, display: "flex", flexDirection: "column", gap: 11 }}>
+                      {c.highlights.map((line) => (
+                        <div key={line} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13.5, color: "var(--text-primary)", lineHeight: 1.4 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 19, flexShrink: 0 }}>
+                            <CheckIcon size={12} color="var(--success)" />
+                          </span>
+                          <span>{line}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {current ? (
+                      <button disabled style={CURRENT_PLAN_BTN}>Current plan</button>
+                    ) : isHero ? (
+                      <HeroCTA reduce={reduce} disabled={paymentLaunching.active} onClick={() => planForCta && handleCTA(planForCta)} label={c.cta} />
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={paymentLaunching.active}
+                        onClick={() => planForCta && handleCTA(planForCta)}
+                        style={c.role === "anchor" ? ANCHOR_CTA : c.role === "entry" ? ENTRY_CTA : FLOOR_CTA}
+                        onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(0.97)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.filter = "none"; }}
+                      >
+                        {c.cta}
+                      </button>
+                    )}
+                    {isHero && c.footnote ? (
+                      <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center", marginTop: 12 }}>{c.footnote}</div>
+                    ) : null}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          );
+        })()}
 
-          {/* ACTIVE HUNTER — dominant, the inevitable choice */}
-          {(() => {
-            const hunterPlan = plans.find((p) => p.id === "hunter");
-            const isCurrent = !!hunterPlan && isCurrentPlan(hunterPlan);
-            const hunterPrice = getDisplayPrice("active_hunter", currency);
-            return (
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, y: 8 },
-                  show: { opacity: 1, y: 0, transition: { duration: 0.36, ease: EASE } },
-                }}
-                style={{
-                  position: "relative",
-                  background: "var(--bg-elevated)",
-                  border: "1px solid rgba(217,119,6,0.32)",
-                  borderRadius: 18,
-                  padding: isMobile ? "26px 20px 24px" : "32px 28px 28px",
-                  display: "flex",
-                  flexDirection: "column",
-                  // Faint amber glow edge + grounded drop + wide outward amber
-                  // spill — same depth language as the AtsGapsActionCard so the
-                  // two surfaces feel related. Amber alphas read on both themes.
-                  boxShadow: [
-                    "0 0 0 1px rgba(217,119,6,0.08)",
-                    "0 24px 56px -14px rgba(20,19,16,0.28)",
-                    "0 0 80px -28px rgba(217,119,6,0.30)",
-                  ].join(", "),
-                }}
-              >
-                <div style={{ marginBottom: 14 }}>
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: "var(--accent-text)",
-                      padding: "4px 10px",
-                      borderRadius: 9999,
-                      border: "1px solid rgba(217,119,6,0.32)",
-                      background: "rgba(217,119,6,0.08)",
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Most chosen · Gulf job seekers
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 6 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.005em" }}>
-                    {currency === "AED" ? "AED " : "₹"}
-                  </span>
-                  <span style={{ fontSize: 44, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
-                    {hunterPrice}
-                  </span>
-                  <span style={{ fontSize: 14, color: "var(--text-secondary)", marginLeft: 6 }}>· 30-day pass</span>
-                </div>
-
-                <div style={{ fontSize: 13, color: "var(--accent-text)", marginBottom: 24, fontWeight: 500 }}>
-                  Less than a coffee. More than a recruiter.
-                </div>
-
-                <div style={{ flex: 1, marginBottom: 28, display: "flex", flexDirection: "column", gap: 12 }}>
-                  {[
-                    "Unlimited downloads, every CV",
-                    "AI-powered ATS scoring",
-                    "60 AI rewrites a month",
-                    "3 CV imports a week",
-                    "Cover letter + Job Match, priority support",
-                  ].map((line) => (
-                    <div
-                      key={line}
+        {/* COMPARISON TABLE — the detail layer, always visible, scrolls on narrow */}
+        <div style={{ marginBottom: isMobile ? 36 : 48 }}>
+          <h2 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 700, color: "var(--text-primary)", textAlign: "center", margin: "0 0 20px", letterSpacing: "-0.01em" }}>
+            Compare every plan
+          </h2>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", borderRadius: 12, border: "1px solid var(--border)" }}>
+            <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse", backgroundColor: "var(--bg-surface)" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "16px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>
+                    Feature
+                  </th>
+                  {["Explorer", "Single-CV Unlock", "Active Hunter", "Career Pro"].map((col, i) => (
+                    <th
+                      key={col}
                       style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 10,
-                        fontSize: 14,
-                        color: "var(--text-primary)",
-                        lineHeight: 1.45,
+                        padding: "16px 16px",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: i === 2 ? "var(--accent-text)" : "var(--text-primary)",
+                        backgroundColor: i === 2 ? "rgba(217,119,6,0.10)" : "transparent",
+                        borderBottom: "1px solid var(--border)",
+                        textAlign: "center",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 20, flexShrink: 0 }}>
-                        <CheckIcon size={13} color="var(--success)" />
-                      </span>
-                      <span>{line}</span>
-                    </div>
+                      {col}
+                    </th>
                   ))}
-                </div>
-
-                {isCurrent ? (
-                  <button
-                    disabled
-                    style={{
-                      width: "100%", height: 48, borderRadius: 9999,
-                      backgroundColor: "transparent", color: "var(--text-secondary)",
-                      border: "1px solid var(--border)", fontSize: 14,
-                      fontWeight: 600, cursor: "not-allowed",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    Current Plan
-                  </button>
-                ) : (
-                  <motion.button
-                    type="button"
-                    disabled={paymentLaunching.active}
-                    onClick={() => hunterPlan && handleCTA(hunterPlan)}
-                    initial={reduce ? false : { boxShadow: "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30)" }}
-                    animate={reduce ? undefined : {
-                      boxShadow: [
-                        "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30), 0 0 48px -8px rgba(217,119,6,0.40), 0 6px 18px rgba(217,119,6,0.24)",
-                        "0 0 0 1px rgba(217,119,6,0.55), 0 0 32px rgba(217,119,6,0.55), 0 0 72px -8px rgba(217,119,6,0.65), 0 6px 22px rgba(217,119,6,0.34)",
-                        "0 0 0 1px rgba(217,119,6,0.45), 0 0 18px rgba(217,119,6,0.30), 0 0 48px -8px rgba(217,119,6,0.40), 0 6px 18px rgba(217,119,6,0.24)",
-                      ],
-                    }}
-                    transition={reduce ? undefined : { duration: 1.6, times: [0, 0.5, 1], delay: 0.5, ease: EASE }}
-                    style={{
-                      width: "100%", height: 48, borderRadius: 9999,
-                      background: "linear-gradient(180deg, #E08810 0%, #B25E03 100%)",
-                      /* Fixed white on the amber gradient — label sits on the
-                         fill, not the page, so it must NOT flip with theme. */
-                      color: "#FFFFFF", border: "none", // theme-fixed
-                      fontSize: 15, fontWeight: 700, cursor: "pointer",
-                      fontFamily: "inherit",
-                      letterSpacing: "-0.005em",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      transition: "filter 160ms cubic-bezier(0.4,0,0.2,1), transform 160ms cubic-bezier(0.4,0,0.2,1)",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.05)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.filter = "none"; }}
-                    onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.985)"; }}
-                    onMouseUp={(e) => { e.currentTarget.style.transform = "none"; }}
-                  >
-                    <span>Start your hunt</span>
-                    <ArrowRightIcon size={14} color={"#FFFFFF" /* theme-fixed */} />
-                  </motion.button>
-                )}
-
-                <div style={{ fontSize: 12, color: "var(--text-secondary)", textAlign: "center", marginTop: 12 }}>
-                  One-time payment · access for 30 days
-                </div>
-              </motion.div>
-            );
-          })()}
-        </motion.div>
-
-        {/* SOCIAL PROOF — directly under the cards, the decision moment */}
-        <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 44, padding: "0 16px" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              fontSize: 13,
-              color: "var(--text-secondary)",
-              marginBottom: 8,
-              flexWrap: "wrap",
-              justifyContent: "center",
-            }}
-          >
-            <span style={{ display: "inline-flex", gap: 2 }}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <StarIcon key={i} size={13} color="#FBBF24" />
-              ))}
-            </span>
-            <span>2,400+ job seekers across UAE and India</span>
-          </div>
-          <div style={{ fontSize: 13, color: "#666", maxWidth: 560, margin: "0 auto", lineHeight: 1.55 }}>
-            Built for the Gulf hiring market — ATS-engineered for systems Dubai recruiters use.
-          </div>
-        </div>
-
-        {/* DISCLOSURE — Express Pass + Career Pro + comparison table */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{ textAlign: "center" }}>
-            <button
-              type="button"
-              onClick={() => setAllPlansOpen((v) => !v)}
-              aria-expanded={allPlansOpen}
-              style={{
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 9999,
-                padding: "10px 18px",
-                color: "var(--text-primary)",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                transition: "color 160ms cubic-bezier(0.4,0,0.2,1), border-color 160ms cubic-bezier(0.4,0,0.2,1)",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.borderColor = "var(--text-secondary)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.borderColor = "var(--border)"; }}
-            >
-              <span>
-                {allPlansOpen
-                  ? "Hide other passes"
-                  : "See all passes — single-CV unlock and 1-year pass"}
-              </span>
-              <ChevronDownIcon size={14} open={allPlansOpen} />
-            </button>
-          </div>
-
-          <AnimatePresence initial={false}>
-            {allPlansOpen && (
-              <motion.div
-                key="all-plans-disclosure"
-                initial={reduce ? { opacity: 1, height: "auto" } : { opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={reduce ? { opacity: 0, height: 0 } : { opacity: 0, height: 0 }}
-                transition={reduce ? { duration: 0 } : { duration: 0.32, ease: EASE }}
-                style={{ overflow: "hidden" }}
-              >
-                <div style={{ paddingTop: 28 }}>
-                  {/* Express Pass + Career Pro — preserve existing card markup */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-                      gap: 20,
-                      marginBottom: 36,
-                    }}
-                  >
-                    {plans
-                      .filter((p) => p.id === "express" || p.id === "pro")
-                      .map((plan) => {
-                        const isCurrent = isCurrentPlan(plan);
-                        const price = currency === "AED" ? plan.priceAED : plan.priceINR;
-                        const priceLarge = String(price);
-                        // Pass duration drives the suffix — Express Pass is
-                        // permanent (single-CV unlock); Career Pro is the
-                        // 1-year pass.
-                        const priceSuffix = plan.id === "pro" ? "· 1-year pass" : "· one-time";
-                        return (
-                          <div
-                            key={plan.id}
-                            style={{
-                              backgroundColor: "var(--bg-surface)",
-                              border: "1px solid var(--border)",
-                              borderRadius: 16,
-                              padding: cardPad,
-                              display: "flex",
-                              flexDirection: "column",
-                              position: "relative",
-                            }}
-                          >
-                            {plan.badge ? (
-                              <div style={{ marginBottom: 12 }}>
-                                <span
-                                  style={{
-                                    border: "1px solid var(--text-primary)",
-                                    color: "var(--text-primary)",
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    padding: "3px 10px",
-                                    borderRadius: 100,
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                  }}
-                                >
-                                  {plan.badge}
-                                </span>
-                              </div>
-                            ) : (
-                              <div style={{ height: 26 }} />
-                            )}
-                            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>
-                              {plan.name}
-                            </div>
-                            <div style={{ marginBottom: 6, display: "flex", alignItems: "baseline", gap: 2 }}>
-                              <span style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
-                                {currency === "AED" ? "AED " : "₹"}
-                              </span>
-                              <span style={{ fontSize: 40, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
-                                {priceLarge}
-                              </span>
-                              <span style={{ fontSize: 13, color: "var(--text-secondary)", marginLeft: 6 }}>{priceSuffix}</span>
-                            </div>
-                            <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 24 }}>
-                              {plan.description}
-                            </div>
-                            <div style={{ flex: 1, marginBottom: 28 }}>
-                              {plan.features.map((f, i) => (
-                                <div
-                                  key={i}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    marginBottom: 10,
-                                    fontSize: 13,
-                                    color: f.included ? "var(--text-primary)" : "var(--text-muted)",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      color: f.included ? "var(--success-text)" : "var(--text-muted)",
-                                      fontWeight: 700,
-                                      fontSize: 14,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {f.included ? "✓" : "×"}
-                                  </span>
-                                  {f.text}
-                                </div>
-                              ))}
-                            </div>
-                            {isCurrent ? (
-                              <button
-                                disabled
-                                style={{
-                                  width: "100%",
-                                  height: 44,
-                                  borderRadius: 12,
-                                  backgroundColor: "transparent",
-                                  color: "var(--text-secondary)",
-                                  border: "1px solid var(--border)",
-                                  fontSize: 14,
-                                  fontWeight: 600,
-                                  cursor: "not-allowed",
-                                  fontFamily: "inherit",
-                                }}
-                              >
-                                Current Plan
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={paymentLaunching.active}
-                                onClick={() => handleCTA(plan)}
-                                style={{
-                                  width: "100%",
-                                  height: 44,
-                                  borderRadius: 12,
-                                  backgroundColor: "var(--text-primary)",
-                                  color: "var(--bg)",
-                                  border: "none",
-                                  fontSize: 14,
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  fontFamily: "inherit",
-                                }}
-                              >
-                                {plan.cta}
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-
-                  {/* Comparison table — desktop only, preserved verbatim */}
-                  {!isMobile && (
-                    <div style={{ marginBottom: 0 }}>
-                      <table
+                </tr>
+              </thead>
+              <tbody>
+                {compRows.map((row, ri) => (
+                  <tr key={row.feature} style={{ backgroundColor: ri % 2 === 0 ? "var(--bg-surface)" : "var(--bg-elevated)" }}>
+                    <td style={{ padding: "14px 20px", fontSize: 13, color: "var(--text-primary)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>
+                      {row.feature}
+                    </td>
+                    {row.vals.map((val, vi) => (
+                      <td
+                        key={vi}
                         style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                          backgroundColor: "var(--bg-surface)",
-                          border: "1px solid var(--border)",
-                          borderRadius: 12,
-                          overflow: "hidden",
+                          padding: "14px 16px",
+                          textAlign: "center",
+                          borderBottom: "1px solid var(--border)",
+                          backgroundColor: vi === 2 ? "rgba(217,119,6,0.06)" : "transparent",
                         }}
                       >
-                        <thead>
-                          <tr>
-                            <th
-                              style={{
-                                textAlign: "left",
-                                padding: "16px 20px",
-                                fontSize: 13,
-                                fontWeight: 600,
-                                color: "var(--text-secondary)",
-                                borderBottom: "1px solid var(--border)",
-                              }}
-                            >
-                              Feature
-                            </th>
-                            {["Explorer", "Single-CV Unlock", "Active Hunter", "Career Pro"].map((col, i) => (
-                              <th
-                                key={col}
-                                style={{
-                                  padding: "16px 20px",
-                                  fontSize: 13,
-                                  fontWeight: 600,
-                                  color: i === 2 ? "#D97706" : "var(--text-primary)",
-                                  backgroundColor: i === 2 ? "rgba(217,119,6,0.1)" : "transparent",
-                                  borderBottom: "1px solid var(--border)",
-                                  textAlign: "center",
-                                }}
-                              >
-                                {col}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {compRows.map((row, ri) => (
-                            <tr key={row.feature} style={{ backgroundColor: ri % 2 === 0 ? "var(--bg-surface)" : "var(--bg-elevated)" }}>
-                              <td
-                                style={{
-                                  padding: "14px 20px",
-                                  fontSize: 13,
-                                  color: "var(--text-primary)",
-                                  borderBottom: "1px solid var(--border)",
-                                }}
-                              >
-                                {row.feature}
-                              </td>
-                              {row.vals.map((val, vi) => (
-                                <td
-                                  key={vi}
-                                  style={{
-                                    padding: "14px 20px",
-                                    textAlign: "center",
-                                    borderBottom: "1px solid var(--border)",
-                                    backgroundColor: vi === 2 ? "rgba(217,119,6,0.05)" : "transparent",
-                                  }}
-                                >
-                                  {renderCell(val)}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                        {renderCell(val)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* TRUST SIGNALS */}
-        <div style={{
-          borderTop: "1px solid var(--border)",
-          borderBottom: "1px solid var(--border)",
-          padding: isMobile ? "24px 0" : "32px 0",
-          marginBottom: "40px",
-        }}>
+        {/* TRUST + PAYMENT STRIP */}
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: isMobile ? 28 : 36, marginBottom: 40 }}>
           <div style={{
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             justifyContent: "center",
             alignItems: "center",
-            gap: isMobile ? "16px" : "48px",
-            marginBottom: "20px",
+            gap: isMobile ? 12 : 40,
+            marginBottom: 24,
           }}>
-            <span style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
               Secured by {currency === "INR" ? "Razorpay" : "Ziina"} <LockIcon />
             </span>
-            <span style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center" }}>
-              One-time payment ✓
+            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              One time payment <CheckIcon size={12} color="var(--success)" />
             </span>
-            <span style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center" }}>
-              No Hidden Fees ✓
+            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              No hidden fees <CheckIcon size={12} color="var(--success)" />
             </span>
           </div>
-          <PaymentTrustBar style={{ marginTop: 20, marginBottom: 0 }} />
+          <PaymentTrustBar style={{ marginTop: 8 }} />
+          <p style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", maxWidth: 540, margin: "18px auto 0", lineHeight: 1.5 }}>
+            Brand names referenced are property of their respective owners. No affiliation or endorsement implied.
+          </p>
         </div>
 
       </div>

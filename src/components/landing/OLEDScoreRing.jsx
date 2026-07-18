@@ -56,6 +56,10 @@ export default function OLEDScoreRing({
   size = 220,
   showLabel = true,
   duration = 1500,
+  // Inner disc fill. Defaults to the OLED near-black it was born with, but a
+  // caller on a light surface (e.g. the cream template gallery) can pass a
+  // theme token so the ring never reads as a raw black circle on cream.
+  discColor = '#0A0A0A',
 }) {
   const [display, setDisplay] = useState(0);
 
@@ -103,7 +107,7 @@ export default function OLEDScoreRing({
       }} />
       <div style={{
         position: 'absolute', inset, borderRadius: '50%',
-        background: '#0A0A0A',
+        background: discColor,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       }}>
         <div style={{

@@ -597,8 +597,8 @@ export default function TemplatesSection() {
                   </span>
                 </div>
                 <div className="cvp-tpl-meta-pill cvp-tpl-meta-pill--score" title={`ATS ${tpl.ats} · ${scoreVerdict(tpl.ats)}`}>
-                  <OLEDScoreRing score={tpl.ats} revealed={inView} size={28} showLabel={false} duration={1400} />
-                  <span className="cvp-tpl-meta-score-num" style={{ color: scoreColor(tpl.ats) }}>{tpl.ats}</span>
+                  <OLEDScoreRing score={tpl.ats} revealed={inView} size={28} showLabel={false} duration={1400} discColor="var(--color-surface-00)" />
+                  <span className="cvp-tpl-meta-score-num" style={{ color: "var(--color-text-primary)" }}>{tpl.ats}</span>
                   <span className="cvp-tpl-meta-score-verdict">{scoreVerdict(tpl.ats)}</span>
                 </div>
               </div>
@@ -877,18 +877,21 @@ function TemplatesStyles() {
         display: flex; align-items: center; gap: 10px;
         flex-wrap: wrap;
       }
+      /* Tokens, not hardcoded white/black — these pills sit on the theme
+         surface (cream by day, OLED by night), so the old #fff / white-alpha
+         values vanished on the light landing. */
       .cvp-tpl-meta-pill {
         display: inline-flex; align-items: center; gap: 8px;
         padding: 7px 12px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.07);
+        background: var(--hover-wash, rgba(255,255,255,0.04));
+        border: 1px solid var(--border, rgba(255,255,255,0.07));
         border-radius: 999px;
         min-width: 0;
       }
       .cvp-tpl-meta-pill--name { flex: 1 1 auto; }
       .cvp-tpl-meta-name {
         font-size: 14.5px; font-weight: 600; letter-spacing: -0.012em;
-        margin: 0; color: #fff; line-height: 1.2;
+        margin: 0; color: var(--color-text-primary, #fff); line-height: 1.2;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
       .cvp-tpl-meta-tier {
@@ -897,9 +900,9 @@ function TemplatesStyles() {
         padding: 2px 7px; border-radius: 3px; font-weight: 700;
         font-family: 'JetBrains Mono', ui-monospace, monospace;
       }
-      .cvp-tpl-meta-tier--free    { background: rgba(29,158,117,0.16);  color: #6ee7b7; }
-      .cvp-tpl-meta-tier--premium { background: rgba(217,119,6,0.16);   color: #fde68a; }
-      .cvp-tpl-meta-tier--popular { background: rgba(217,119,6,0.16);   color: #fde68a; }
+      .cvp-tpl-meta-tier--free    { background: rgba(29,158,117,0.16);  color: var(--success-text, #6ee7b7); }
+      .cvp-tpl-meta-tier--premium { background: rgba(217,119,6,0.16);   color: var(--accent-text, #fde68a); }
+      .cvp-tpl-meta-tier--popular { background: rgba(217,119,6,0.16);   color: var(--accent-text, #fde68a); }
 
       .cvp-tpl-meta-pill--score { flex-shrink: 0; padding: 4px 12px 4px 4px; gap: 8px; }
       .cvp-tpl-meta-score-num {
@@ -908,7 +911,7 @@ function TemplatesStyles() {
       }
       .cvp-tpl-meta-score-verdict {
         font-size: 10.5px; font-weight: 500; letter-spacing: 0.04em;
-        color: rgba(255,255,255,0.55);
+        color: var(--color-text-secondary, rgba(255,255,255,0.55));
       }
 
       /* ── Move 2: 4 micro-detail badges (rendered inside the cream paper) ── */
@@ -961,17 +964,17 @@ function TemplatesStyles() {
 
       .cvp-tpl-foot { display: flex; justify-content: center; margin-top: 56px; }
       .cvp-tpl-seeall {
-        background: transparent; border: 0; padding: 0; color: rgba(255,255,255,0.5);
+        background: transparent; border: 0; padding: 0; color: var(--color-text-secondary, rgba(255,255,255,0.5));
         font-family: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer; letter-spacing: -0.005em;
         transition: color 200ms cubic-bezier(0.4,0,0.2,1);
       }
-      .cvp-tpl-seeall:hover { color: #fff; }
+      .cvp-tpl-seeall:hover { color: var(--color-text-primary, #fff); }
       .cvp-tpl-seeall:focus-visible { outline: 2px solid var(--color-accent, #D97706); outline-offset: 3px; border-radius: 4px; }
       .cvp-tpl-seeall-arrow { margin-left: 6px; color: var(--color-accent, #D97706); font-weight: 700; }
       .cvp-tpl-empty {
         flex: 1; padding: 56px 24px; text-align: center;
-        color: rgba(255,255,255,0.5); font-size: 14px;
-        border: 1px dashed rgba(255,255,255,0.10); border-radius: 16px;
+        color: var(--color-text-secondary, rgba(255,255,255,0.5)); font-size: 14px;
+        border: 1px dashed var(--border, rgba(255,255,255,0.10)); border-radius: 16px;
         list-style: none;
       }
     `}</style>
