@@ -88,8 +88,6 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
   const [inlineNameEdit, setInlineNameEdit] = useState(null);
   const [certSuggestionsDismissed, setCertSuggestionsDismissed] = useState(false);
   const [certYearError, setCertYearError] = useState(null);
-  const certYearCursorRef = useRef(null);
-  const certYearInputRef = useRef(null);
 
   useEffect(() => {
     if (certificationEditor) setInlineNameEdit(null);
@@ -98,17 +96,6 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
   useEffect(() => {
     if (!certificationEditor) setCertYearError(null);
   }, [certificationEditor]);
-
-  useLayoutEffect(() => {
-    if (!certificationEditor) return;
-    const pos = certYearCursorRef.current;
-    if (pos == null) return;
-    certYearCursorRef.current = null;
-    const el = certYearInputRef.current;
-    if (!el) return;
-    const p = Math.min(pos, el.value.length);
-    el.setSelectionRange(p, p);
-  }, [certificationEditor?.draft.year, certificationEditor]);
 
   const certNameTaken = (name) =>
     list.some((c) => String(c.name || "").trim().toLowerCase() === String(name).trim().toLowerCase());
@@ -309,20 +296,18 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
           </div>
           <div>
             <label style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Date issued (MM/YYYY)</label>
-            <input
-              ref={certYearInputRef}
-              className="cvp-input"
+            <BuilderDateField
+              id="cvp-cert-year"
+              name="cvp-cert-year"
               placeholder="08/2023 (optional)"
               value={certificationEditor.draft.year}
-              onChange={(e) => {
-                const next = processMmYyyyInput(e.target.value, { allowPresent: false });
-                certYearCursorRef.current = next.cursor;
+              invalid={!!certYearError}
+              onCommit={(next) => {
                 flushSync(() => {
                   setCertYearError(next.error);
                   setCertificationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, year: next.value } } : null));
                 });
               }}
-              aria-invalid={certYearError ? true : undefined}
             />
             {certYearError ? (
               <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--danger)", lineHeight: 1.35 }}>{certYearError}</p>
@@ -909,7 +894,7 @@ function mmYyyyErrorForDisplay(display) {
   return null;
 }
 
-function formatMmYyyyFromDigits(raw) {
+function formatMmYyyyFromDigits(raw, deleting = false) {
   const clean = String(raw ?? "").replace(/\D/g, "").slice(0, 6);
   if (clean.length === 0) return { value: "", error: null };
   const mm = clean.slice(0, 2);
@@ -920,7 +905,10 @@ function formatMmYyyyFromDigits(raw) {
   const mmn = parseInt(mm, 10);
   const error = mmn < 1 || mmn > 12 ? MM_YYYY_MONTH_ERR : null;
   if (yy.length === 0) {
-    return { value: `${mm}/`, error };
+    // While deleting, don't re-insert the auto-slash the user is trying to
+    // erase — otherwise a completed month sticks at "MM/" forever and the
+    // field can never be cleared back to empty. On insert, keep the slash.
+    return { value: deleting ? mm : `${mm}/`, error };
   }
   return { value: `${mm}/${yy}`, error };
 }
@@ -929,7 +917,7 @@ function formatMmYyyyFromDigits(raw) {
  * Smart MM/YYYY input: digits auto-slash; 3+ letter month names → MM/; "Present" passthrough when allowPresent.
  * Returns { value, error, cursor }.
  */
-function processMmYyyyInput(rawInput, { allowPresent }) {
+function processMmYyyyInput(rawInput, { allowPresent, deleting = false }) {
   const raw = String(rawInput ?? "");
   if (allowPresent && isPresentLiteralTyping(raw)) {
     return { value: raw, error: null, cursor: raw.length };
@@ -952,12 +940,85 @@ function processMmYyyyInput(rawInput, { allowPresent }) {
 
   const digitLed = raw.match(/^[\d/]/);
   if (digitLed || raw === "") {
-    const { value, error } = formatMmYyyyFromDigits(raw);
+    const { value, error } = formatMmYyyyFromDigits(raw, deleting);
     return { value, error, cursor: value.length };
   }
 
   return { value: raw, error: mmYyyyErrorForDisplay(raw), cursor: raw.length };
 }
+
+/* Autofill kill-switch for the MM/YYYY fields. Chrome's saved form-history
+   dropdown (the stray "10/2020, 10/25" in the bug report) keys off the
+   field looking like a normal text input inside a form — off + numeric mode
+   + a numeric pattern + the password-manager ignore hints suppress it. */
+const MM_YYYY_INPUT_ATTRS = {
+  inputMode: "numeric",
+  autoComplete: "off",
+  autoCorrect: "off",
+  autoCapitalize: "none",
+  spellCheck: false,
+  pattern: "[0-9/]*",
+  maxLength: 7,
+  "data-lpignore": "true",
+  "data-1p-ignore": "true",
+};
+
+/* Shared editor-sheet field label — the uppercase micro-label the
+   Experience sheet uses. Education adopts it so the two sheets read as one
+   component. */
+const EDITOR_FIELD_LABEL = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: "var(--text-secondary)",
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
+};
+
+/* The ONE date input for the whole builder — experience, education and
+   certifications all render this. It owns the three things every section
+   needs identically and got wrong when hand-rolled per-section:
+     1. delete-aware auto-slash, so the field can always be cleared to empty
+        (the old code re-inserted "/" on backspace and stuck at "MM/");
+     2. browser autofill fully disabled (no stray history dropdown);
+     3. caret restoration after the controlled reformat.
+   Callers own only their value + error state, committed via onCommit. */
+const BuilderDateField = forwardRef(function BuilderDateField(
+  { value, onCommit, allowPresent = false, invalid, style, ...rest },
+  externalRef,
+) {
+  const localRef = useRef(null);
+  const caretRef = useRef(null);
+  const setRef = useCallback((node) => {
+    localRef.current = node;
+    if (typeof externalRef === "function") externalRef(node);
+    else if (externalRef) externalRef.current = node;
+  }, [externalRef]);
+  useLayoutEffect(() => {
+    const el = localRef.current;
+    if (!el || caretRef.current == null) return;
+    const p = Math.min(caretRef.current, el.value.length);
+    caretRef.current = null;
+    try { el.setSelectionRange(p, p); } catch { /* detached node */ }
+  }, [value]);
+  const handleChange = useCallback((e) => {
+    const deleting = /^delete/i.test(e.nativeEvent?.inputType || "");
+    const next = processMmYyyyInput(e.target.value, { allowPresent, deleting });
+    caretRef.current = next.cursor;
+    onCommit(next);
+  }, [allowPresent, onCommit]);
+  return (
+    <input
+      ref={setRef}
+      className="cvp-input"
+      value={value}
+      onChange={handleChange}
+      aria-invalid={invalid ? true : undefined}
+      style={{ marginTop: 4, ...style }}
+      {...MM_YYYY_INPUT_ATTRS}
+      {...rest}
+    />
+  );
+});
 
 // Textarea that grows with its content. Mirrors the Summary field's
 // pattern (set height='auto' then to scrollHeight on every value change).
@@ -1396,8 +1457,30 @@ function ProfessionalSummaryField({
           <List size={11} strokeWidth={1.8} style={{ color: "var(--text-muted)" }} aria-hidden />
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Keep it to 2–3 sentences — recruiters scan this first</span>
         </div>
-        {aiEnabled && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0, marginLeft: "auto" }}>
+          {/* Clear lives in the toolbar, never over the copy — it only
+              appears when there is something to clear, and confirms inline
+              so a stray tap can't wipe the summary. */}
+          {String(summary || "").trim() ? (
+            clearAsk ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                <span style={{ color: "var(--text-secondary)" }}>Clear summary?</span>
+                <button type="button" onClick={() => { onChange(""); setClearAsk(false); }} style={{ background: "none", border: "none", padding: 0, color: "var(--danger)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Yes</button>
+                <button type="button" onClick={() => setClearAsk(false)} style={{ background: "none", border: "none", padding: 0, color: "var(--text-secondary)", fontSize: 12, cursor: "pointer" }}>Cancel</button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                aria-label="Clear summary"
+                onClick={() => setClearAsk(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", border: "1px solid var(--border)", borderRadius: 999, background: "transparent", color: "var(--text-secondary)", fontSize: 11.5, fontWeight: 500, cursor: "pointer", lineHeight: 1 }}
+              >
+                <X size={12} strokeWidth={2} aria-hidden /> Clear
+              </button>
+            )
+          ) : null}
+          {aiEnabled && (
+            <>
             {aiToast && (
               <span
                 style={{
@@ -1463,70 +1546,10 @@ function ProfessionalSummaryField({
                 : <Sparkles size={12} strokeWidth={2.4} />}
               <span>{aiButtonLabel}</span>
             </button>
-          </div>
-        )}
-      </div>
-      {clearAsk ? (
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            zIndex: 2,
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 8,
-            maxWidth: "calc(100% - 20px)",
-            justifyContent: "flex-end",
-          }}
-        >
-          <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>Clear summary?</span>
-          <button
-            type="button"
-            style={{ background: "none", border: "none", padding: 0, color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            onClick={() => {
-              onChange("");
-              setClearAsk(false);
-            }}
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            style={{ background: "none", border: "none", padding: 0, color: "var(--text-secondary)", fontSize: 12, cursor: "pointer" }}
-            onClick={() => setClearAsk(false)}
-          >
-            Cancel
-          </button>
+            </>
+          )}
         </div>
-      ) : (
-        <button
-          type="button"
-          aria-label="Clear summary"
-          onClick={() => setClearAsk(true)}
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            zIndex: 2,
-            width: 28,
-            height: 28,
-            padding: 0,
-            border: "none",
-            borderRadius: 6,
-            background: "rgba(28,28,28,0.92)",
-            color: "var(--text-primary)",
-            cursor: "pointer",
-            display: "grid",
-            placeItems: "center",
-            fontSize: 18,
-            lineHeight: 1,
-          }}
-        >
-          ×
-        </button>
-      )}
+      </div>
 
       <AIRewriteModal
         isOpen={!!ai.options}
@@ -2184,12 +2207,11 @@ function AddSectionChips({ resume, setResume, setOpenSection, onTechnicalSkills 
   );
 }
 
-function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {
+function BuilderEntryRow({ title, subtitle, tail, hint, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {
   /* Design entry row: grip, title + subtitle, an amber Edit pill, and a
      quiet overflow menu carrying move/delete (capabilities the mock's
      row omits but a candidate still needs — the menu is the design's
      own pattern for exactly this). No pencil-and-arrow cluster. */
-  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div
       role="button"
@@ -2212,6 +2234,8 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
         padding: "11px 8px 11px 12px",
         cursor: "pointer",
         minHeight: 44,
+        minWidth: 0,
+        maxWidth: "100%",
         boxSizing: "border-box",
         position: "relative",
         transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1)",
@@ -2223,12 +2247,28 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
         <GripVertical size={14} strokeWidth={1.8} />
       </span>
       <div style={{ flex: 1, minWidth: 0, pointerEvents: "none" }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {/* Title wraps to at most two lines — a clean clamp, never a raw
+            mid-word cut. */}
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word" }}>
           {title}
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {subtitle}
-        </div>
+        {/* Subtitle: company · location may ellipsize, but the date range
+            (tail) is the higher-signal fact and is never sliced — it holds
+            its width and location drops first. */}
+        {(subtitle || tail) ? (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0, marginTop: 1 }}>
+            {subtitle ? (
+              <span style={{ flex: "1 1 auto", minWidth: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {subtitle}
+              </span>
+            ) : null}
+            {tail ? (
+              <span style={{ flexShrink: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.35, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                {tail}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         {hint ? (
           <div style={{ marginTop: 5 }}>
             <span className="cvp-hint-chip">{hint}</span>
@@ -2260,33 +2300,36 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
       >
         <Pencil size={13} strokeWidth={2} aria-hidden /> Edit
       </button>
-      <div style={{ position: "relative", flexShrink: 0 }}>
-        <button
-          type="button"
-          aria-label={`${title} options`}
-          aria-expanded={menuOpen}
-          onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-          style={{ width: 28, height: 28, padding: 0, display: "grid", placeItems: "center", background: "transparent", border: "none", borderRadius: 7, color: "var(--text-muted)", cursor: "pointer" }}
-        >
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
-        </button>
-        {menuOpen ? (
-          <>
-            <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 39 }} onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
-            <div role="menu" style={{ position: "absolute", top: 32, right: 0, zIndex: 40, minWidth: 158, padding: 5, borderRadius: 12, background: "var(--builder-glass)", backdropFilter: "blur(20px) saturate(1.5)", WebkitBackdropFilter: "blur(20px) saturate(1.5)", border: "1px solid var(--builder-glass-border)", boxShadow: "var(--builder-glass-shadow)" }}>
-              <button role="menuitem" type="button" disabled={disableUp} onClick={(e) => { e.stopPropagation(); setMenuOpen(false); if (!disableUp) onMoveUp(); }} style={{ ...ACCORDION_MENU_ITEM, opacity: disableUp ? 0.4 : 1, cursor: disableUp ? "not-allowed" : "pointer" }}>
-                <ChevronUp size={14} strokeWidth={2} aria-hidden /> Move up
-              </button>
-              <button role="menuitem" type="button" disabled={disableDown} onClick={(e) => { e.stopPropagation(); setMenuOpen(false); if (!disableDown) onMoveDown(); }} style={{ ...ACCORDION_MENU_ITEM, opacity: disableDown ? 0.4 : 1, cursor: disableDown ? "not-allowed" : "pointer" }}>
-                <ChevronDown size={14} strokeWidth={2} aria-hidden /> Move down
-              </button>
-              <button role="menuitem" type="button" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }} style={{ ...ACCORDION_MENU_ITEM, color: "var(--danger)" }}>
-                <Trash2 size={14} strokeWidth={1.8} aria-hidden /> Delete
-              </button>
-            </div>
-          </>
-        ) : null}
-      </div>
+      <FloatingRowMenu
+        label={`${title} options`}
+        items={[
+          {
+            key: "up",
+            icon: <ChevronUp size={14} strokeWidth={2} aria-hidden />,
+            label: "Move up",
+            onClick: onMoveUp,
+            disabled: disableUp,
+            note: "Top",
+            disabledHint: "Already at the top",
+          },
+          {
+            key: "down",
+            icon: <ChevronDown size={14} strokeWidth={2} aria-hidden />,
+            label: "Move down",
+            onClick: onMoveDown,
+            disabled: disableDown,
+            note: "Bottom",
+            disabledHint: "Already at the bottom",
+          },
+          {
+            key: "delete",
+            icon: <Trash2 size={14} strokeWidth={1.8} aria-hidden />,
+            label: "Delete",
+            onClick: onDelete,
+            danger: true,
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -3120,7 +3163,6 @@ function ResumeBuilder({
   const [certificationEditor, setCertificationEditor] = useState(null);
   const [experienceDateErrors, setExperienceDateErrors] = useState({ start: null, end: null });
   const [educationDateErrors, setEducationDateErrors] = useState({ start: null, end: null });
-  const mmYyyyCursorRef = useRef(null);
   const experienceEditorSessionRef = useRef(null);
   const educationEditorSessionRef = useRef(null);
   const [skillInput, setSkillInput] = useState("");
@@ -3768,23 +3810,6 @@ function ResumeBuilder({
       setEducationDateErrors({ start: null, end: null });
     }
   }, [educationEditor]);
-
-  useLayoutEffect(() => {
-    const job = mmYyyyCursorRef.current;
-    if (!job) return;
-    mmYyyyCursorRef.current = null;
-    const el = document.getElementById(job.id);
-    if (!el) return;
-    const p = Math.min(job.cursor, el.value.length);
-    el.setSelectionRange(p, p);
-  }, [
-    experienceEditor?.draft?.startDate,
-    experienceEditor?.draft?.endDate,
-    educationEditor?.draft?.startDate,
-    educationEditor?.draft?.endDate,
-    experienceEditor,
-    educationEditor,
-  ]);
 
   useEffect(() => {
     if (openSection == null) {
@@ -4974,12 +4999,13 @@ function ResumeBuilder({
                   )}
                   {resume.experience.map((exp, i) => {
                     const period = buildExperiencePeriod(exp) || exp.period || "";
-                    const subtitle = [exp.company, exp.location, period].filter(Boolean).join(" · ") || "—";
+                    const subtitle = [exp.company, exp.location].filter(Boolean).join(" · ");
                     return (
                       <BuilderEntryRow
                         key={i}
                         title={exp.role || "Job title"}
-                        subtitle={subtitle}
+                        subtitle={subtitle || (period ? "" : "—")}
+                        tail={period}
                         hint={period ? undefined : "Add dates — recruiters check them"}
                         onRowClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
                         onMoveUp={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i - 1) }))}
@@ -5017,12 +5043,13 @@ function ResumeBuilder({
                   )}
                   {resume.education.map((edu, i) => {
                     const yearLine = buildEducationYearLine(edu) || edu.year || "";
-                    const subtitle = [edu.school, edu.fieldOfStudy, yearLine].filter(Boolean).join(" · ") || "—";
+                    const subtitle = [edu.school, edu.fieldOfStudy].filter(Boolean).join(" · ");
                     return (
                       <BuilderEntryRow
                         key={i}
                         title={edu.degree || "Degree"}
-                        subtitle={subtitle}
+                        subtitle={subtitle || (yearLine ? "" : "—")}
+                        tail={yearLine}
                         onRowClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })}
                         onMoveUp={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i - 1) }))}
                         onMoveDown={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i + 1) }))}
@@ -5441,12 +5468,13 @@ function ResumeBuilder({
                   )}
                   {resume.experience.map((exp, i) => {
                     const period = buildExperiencePeriod(exp) || exp.period || "";
-                    const subtitle = [exp.company, exp.location, period].filter(Boolean).join(" · ") || "—";
+                    const subtitle = [exp.company, exp.location].filter(Boolean).join(" · ");
                     return (
                       <BuilderEntryRow
                         key={i}
                         title={exp.role || "Job title"}
-                        subtitle={subtitle}
+                        subtitle={subtitle || (period ? "" : "—")}
+                        tail={period}
                         hint={period ? undefined : "Add dates — recruiters check them"}
                         onRowClick={() => setExperienceEditor({ mode: "edit", index: i, draft: { ...EMPTY_EXP, ...exp } })}
                         onMoveUp={() => setResume((r) => ({ ...r, experience: moveArrayItem(r.experience, i, i - 1) }))}
@@ -5485,12 +5513,13 @@ function ResumeBuilder({
                   )}
                   {resume.education.map((edu, i) => {
                     const yearLine = buildEducationYearLine(edu) || edu.year || "";
-                    const subtitle = [edu.school, edu.fieldOfStudy, yearLine].filter(Boolean).join(" · ") || "—";
+                    const subtitle = [edu.school, edu.fieldOfStudy].filter(Boolean).join(" · ");
                     return (
                       <BuilderEntryRow
                         key={i}
                         title={edu.degree || "Degree"}
-                        subtitle={subtitle}
+                        subtitle={subtitle || (yearLine ? "" : "—")}
+                        tail={yearLine}
                         onRowClick={() => setEducationEditor({ mode: "edit", index: i, draft: { ...EMPTY_EDU, ...edu } })}
                         onMoveUp={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i - 1) }))}
                         onMoveDown={() => setResume((r) => ({ ...r, education: moveArrayItem(r.education, i, i + 1) }))}
@@ -6307,21 +6336,18 @@ function ResumeBuilder({
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Start (MM/YYYY)</label>
-                    <input
+                    <BuilderDateField
                       id="cvp-exp-start-date"
-                      className="cvp-input"
-                      style={{ marginTop: 4 }}
+                      name="cvp-exp-start-date"
                       placeholder="01/2020"
                       value={experienceEditor.draft.startDate}
-                      onChange={(e) => {
-                        const next = processMmYyyyInput(e.target.value, { allowPresent: false });
-                        mmYyyyCursorRef.current = { id: "cvp-exp-start-date", cursor: next.cursor };
+                      invalid={!!experienceDateErrors.start}
+                      onCommit={(next) => {
                         flushSync(() => {
                           setExperienceDateErrors((er) => ({ ...er, start: next.error }));
                           setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: next.value } } : null));
                         });
                       }}
-                      aria-invalid={experienceDateErrors.start ? true : undefined}
                     />
                     {experienceDateErrors.start ? (
                       <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{experienceDateErrors.start}</p>
@@ -6329,22 +6355,20 @@ function ResumeBuilder({
                   </div>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>End (MM/YYYY)</label>
-                    <input
+                    <BuilderDateField
                       id="cvp-exp-end-date"
-                      className="cvp-input"
-                      style={{ marginTop: 4 }}
+                      name="cvp-exp-end-date"
                       placeholder="12/2023"
+                      allowPresent
                       disabled={experienceEditor.draft.present}
                       value={experienceEditor.draft.endDate}
-                      onChange={(e) => {
-                        const next = processMmYyyyInput(e.target.value, { allowPresent: true });
-                        mmYyyyCursorRef.current = { id: "cvp-exp-end-date", cursor: next.cursor };
+                      invalid={!!experienceDateErrors.end}
+                      onCommit={(next) => {
                         flushSync(() => {
                           setExperienceDateErrors((er) => ({ ...er, end: next.error }));
                           setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: next.value } } : null));
                         });
                       }}
-                      aria-invalid={experienceDateErrors.end ? true : undefined}
                     />
                     {experienceDateErrors.end ? (
                       <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{experienceDateErrors.end}</p>
@@ -6689,71 +6713,71 @@ function ResumeBuilder({
         >
           <div
             className="cvp-glass-modal cvp-entry-sheet"
-            style={{ padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
+            style={{ position: "relative", maxWidth: 520, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "var(--text-primary)" }}>{educationEditor.mode === "add" ? "Add education" : "Edit education"}</h3>
-            {/* Same reusable AIWorkingGlow that wraps the Experience and
-                Summary boxes. Education has only structured fields (no
-                free-text description) today, so there is nothing to rewrite
-                and the ring stays dormant (active=false) — but the wrapper
-                is mounted identically, ready to light up the instant a
-                description field is added. */}
-            <AIWorkingGlow active={false} radius={12}>
-            <div style={{ display: "grid", gap: 12 }}>
-              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Institution name</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Degree / qualification</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Field of study</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div>
-                  <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Start (MM/YYYY)</label>
-                  <input
-                    id="cvp-edu-start-date"
-                    className="cvp-input"
-                    style={{ marginTop: 4 }}
-                    placeholder="09/2018"
-                    value={educationEditor.draft.startDate || ""}
-                    onChange={(e) => {
-                      const next = processMmYyyyInput(e.target.value, { allowPresent: false });
-                      mmYyyyCursorRef.current = { id: "cvp-edu-start-date", cursor: next.cursor };
-                      flushSync(() => {
-                        setEducationDateErrors((er) => ({ ...er, start: next.error }));
-                        setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: next.value } } : null));
-                      });
-                    }}
-                    aria-invalid={educationDateErrors.start ? true : undefined}
-                  />
-                  {educationDateErrors.start ? (
-                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{educationDateErrors.start}</p>
-                  ) : null}
+            {/* Framed like the Experience sheet — fixed header, scrolling
+                body, pinned footer — so the two editors read as one
+                component and the sheet never trails off into dead space. */}
+            <h3 style={{ margin: 0, padding: "16px 20px 12px", fontSize: 17, fontWeight: 600, color: "var(--text-primary)", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+              {educationEditor.mode === "add" ? "Add education" : "Edit education"}
+            </h3>
+            <div style={{ overflowY: "auto", flex: 1, padding: "16px 20px", minHeight: 0 }}>
+              {/* Same reusable AIWorkingGlow that wraps the Experience and
+                  Summary boxes. Education has only structured fields (no
+                  free-text description) today, so the ring stays dormant
+                  (active=false) — but the wrapper is mounted identically,
+                  ready to light up the instant a description field is added. */}
+              <AIWorkingGlow active={false} radius={12}>
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div><label style={EDITOR_FIELD_LABEL}>Institution name</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
+                  <div><label style={EDITOR_FIELD_LABEL}>Degree / qualification</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
+                  <div><label style={EDITOR_FIELD_LABEL}>Field of study</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div>
+                      <label style={EDITOR_FIELD_LABEL}>Start (MM/YYYY)</label>
+                      <BuilderDateField
+                        id="cvp-edu-start-date"
+                        name="cvp-edu-start-date"
+                        placeholder="09/2018"
+                        value={educationEditor.draft.startDate || ""}
+                        invalid={!!educationDateErrors.start}
+                        onCommit={(next) => {
+                          flushSync(() => {
+                            setEducationDateErrors((er) => ({ ...er, start: next.error }));
+                            setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, startDate: next.value } } : null));
+                          });
+                        }}
+                      />
+                      {educationDateErrors.start ? (
+                        <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{educationDateErrors.start}</p>
+                      ) : null}
+                    </div>
+                    <div>
+                      <label style={EDITOR_FIELD_LABEL}>End (MM/YYYY)</label>
+                      <BuilderDateField
+                        id="cvp-edu-end-date"
+                        name="cvp-edu-end-date"
+                        placeholder="06/2022"
+                        value={educationEditor.draft.endDate || ""}
+                        invalid={!!educationDateErrors.end}
+                        onCommit={(next) => {
+                          flushSync(() => {
+                            setEducationDateErrors((er) => ({ ...er, end: next.error }));
+                            setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: next.value } } : null));
+                          });
+                        }}
+                      />
+                      {educationDateErrors.end ? (
+                        <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{educationDateErrors.end}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div><label style={EDITOR_FIELD_LABEL}>Location (optional)</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
                 </div>
-                <div>
-                  <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>End (MM/YYYY)</label>
-                  <input
-                    id="cvp-edu-end-date"
-                    className="cvp-input"
-                    style={{ marginTop: 4 }}
-                    placeholder="06/2022"
-                    value={educationEditor.draft.endDate || ""}
-                    onChange={(e) => {
-                      const next = processMmYyyyInput(e.target.value, { allowPresent: false });
-                      mmYyyyCursorRef.current = { id: "cvp-edu-end-date", cursor: next.cursor };
-                      flushSync(() => {
-                        setEducationDateErrors((er) => ({ ...er, end: next.error }));
-                        setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, endDate: next.value } } : null));
-                      });
-                    }}
-                    aria-invalid={educationDateErrors.end ? true : undefined}
-                  />
-                  {educationDateErrors.end ? (
-                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{educationDateErrors.end}</p>
-                  ) : null}
-                </div>
-              </div>
-              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Location (optional)</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
+              </AIWorkingGlow>
             </div>
-            </AIWorkingGlow>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "14px 20px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
               <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }} onClick={() => setEducationEditor(null)}>Cancel</button>
               <button
                 type="button"
@@ -7035,6 +7059,156 @@ const ACCORDION_MENU_ITEM = {
   textAlign: "left",
 };
 
+/* Disabled row: legible, not a 0.4-opacity ghost. Muted tone + a trailing
+   "Top"/"Bottom" note + tooltip so it reads "not available here", not
+   "broken". */
+const ACCORDION_MENU_ITEM_DISABLED = {
+  color: "var(--text-muted)",
+  cursor: "not-allowed",
+};
+const ACCORDION_MENU_ITEM_NOTE = {
+  marginLeft: "auto",
+  paddingLeft: 8,
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+  opacity: 0.7,
+};
+
+/* The floating surface for the ⋯ row menus. It is a genuinely floating
+   layer, so it earns real glass: strong backdrop-blur, hairline, deep
+   shadow. Rendered in a portal (see FloatingRowMenu) so it escapes the
+   `overflow: hidden` on .cvp-section-row that used to clip it onto the
+   section's own description. */
+const ACCORDION_MENU_SURFACE = {
+  minWidth: 178,
+  padding: 6,
+  borderRadius: 13,
+  background: "var(--builder-glass)",
+  backdropFilter: "blur(28px) saturate(1.8)",
+  WebkitBackdropFilter: "blur(28px) saturate(1.8)",
+  border: "1px solid var(--builder-glass-border)",
+  boxShadow: "var(--builder-glass-shadow), 0 1px 0 rgba(255,255,255,0.04) inset",
+};
+
+const ROW_MENU_TRIGGER = {
+  width: 28,
+  height: 28,
+  padding: 0,
+  display: "grid",
+  placeItems: "center",
+  background: "transparent",
+  border: "none",
+  borderRadius: 7,
+  color: "var(--text-muted)",
+  cursor: "pointer",
+};
+
+function RowMenuDots() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <circle cx="5" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="19" cy="12" r="1.6" />
+    </svg>
+  );
+}
+
+/* Shared ⋯ overflow menu for both the section headers and the entry rows.
+   The menu floats in a document.body portal, anchored under its trigger,
+   so `overflow: hidden` ancestors can never clip it and its backdrop-blur
+   samples the real page behind it. `items` is a list of
+   { key, icon, label, onClick, disabled, note, danger }. */
+function FloatingRowMenu({ label, items }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef(null);
+  const [coords, setCoords] = useState(null);
+
+  const place = useCallback(() => {
+    const el = btnRef.current;
+    if (!el || typeof window === "undefined") return;
+    const r = el.getBoundingClientRect();
+    const MENU_W = 178;
+    const left = Math.max(8, Math.min(r.right - MENU_W, window.innerWidth - MENU_W - 8));
+    setCoords({ top: Math.round(r.bottom + 6), left: Math.round(left) });
+  }, []);
+
+  const toggle = useCallback((e) => {
+    e.stopPropagation();
+    setOpen((v) => {
+      if (!v) place();
+      return !v;
+    });
+  }, [place]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = () => setOpen(false);
+    // Any scroll (capture, so nested scrollers count) or resize dismisses —
+    // simpler and steadier than chasing the anchor on every frame.
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        ref={btnRef}
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={toggle}
+        style={ROW_MENU_TRIGGER}
+      >
+        <RowMenuDots />
+      </button>
+      {open && coords
+        ? createPortal(
+            <>
+              <div
+                role="presentation"
+                style={{ position: "fixed", inset: 0, zIndex: 3400 }}
+                onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+              />
+              <div
+                role="menu"
+                style={{ position: "fixed", top: coords.top, left: coords.left, zIndex: 3401, ...ACCORDION_MENU_SURFACE }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {items.map((it) => (
+                  <button
+                    key={it.key}
+                    role="menuitem"
+                    type="button"
+                    disabled={it.disabled}
+                    title={it.disabled ? it.disabledHint : undefined}
+                    onClick={(e) => { e.stopPropagation(); setOpen(false); if (!it.disabled) it.onClick(); }}
+                    style={{
+                      ...ACCORDION_MENU_ITEM,
+                      ...(it.danger ? { color: "var(--danger)" } : null),
+                      ...(it.disabled ? ACCORDION_MENU_ITEM_DISABLED : null),
+                    }}
+                  >
+                    {it.icon}
+                    <span>{it.label}</span>
+                    {it.disabled && it.note ? <span style={ACCORDION_MENU_ITEM_NOTE}>{it.note}</span> : null}
+                  </button>
+                ))}
+              </div>
+            </>,
+            document.body,
+          )
+        : null}
+    </div>
+  );
+}
+
 // Accordion row inside .cvp-sections-list — unified list style
 function AccordionSection({
   id,
@@ -7080,7 +7254,6 @@ function AccordionSection({
   /* Design row anatomy: the old up/down arrow stack + pencil cluster is
      gone. Reordering lives in a ⋯ overflow menu (the design's own
      pattern); the chevron is the only other control. */
-  const [rowMenuOpen, setRowMenuOpen] = useState(false);
   const guideActive = activeGuideSection === `section-${id}`;
   const iconBoxStyle = {
     ...(id === "personalDetails" ? ACCORDION_ICON_BOX_ACCENT : ACCORDION_ICON_BOX),
@@ -7096,30 +7269,29 @@ function AccordionSection({
   );
 
   const sectionMenuEl = onSectionReorder ? (
-    <div style={{ position: "relative", flexShrink: 0 }}>
-      <button
-        type="button"
-        aria-label={`${title} options`}
-        aria-expanded={rowMenuOpen}
-        onClick={(e) => { e.stopPropagation(); setRowMenuOpen((v) => !v); }}
-        style={{ width: 28, height: 28, padding: 0, display: "grid", placeItems: "center", background: "transparent", border: "none", borderRadius: 7, color: "var(--text-muted)", cursor: "pointer" }}
-      >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
-      </button>
-      {rowMenuOpen ? (
-        <>
-          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 39 }} onClick={(e) => { e.stopPropagation(); setRowMenuOpen(false); }} />
-          <div role="menu" style={{ position: "absolute", top: 32, right: 0, zIndex: 40, minWidth: 158, padding: 5, borderRadius: 12, background: "var(--builder-glass)", backdropFilter: "blur(20px) saturate(1.5)", WebkitBackdropFilter: "blur(20px) saturate(1.5)", border: "1px solid var(--builder-glass-border)", boxShadow: "var(--builder-glass-shadow)" }}>
-            <button role="menuitem" type="button" disabled={!canMoveUp} onClick={(e) => { e.stopPropagation(); setRowMenuOpen(false); if (canMoveUp) onSectionReorder("up"); }} style={{ ...ACCORDION_MENU_ITEM, opacity: canMoveUp ? 1 : 0.4, cursor: canMoveUp ? "pointer" : "not-allowed" }}>
-              <ChevronUp size={14} strokeWidth={2} aria-hidden /> Move up
-            </button>
-            <button role="menuitem" type="button" disabled={!canMoveDown} onClick={(e) => { e.stopPropagation(); setRowMenuOpen(false); if (canMoveDown) onSectionReorder("down"); }} style={{ ...ACCORDION_MENU_ITEM, opacity: canMoveDown ? 1 : 0.4, cursor: canMoveDown ? "pointer" : "not-allowed" }}>
-              <ChevronDown size={14} strokeWidth={2} aria-hidden /> Move down
-            </button>
-          </div>
-        </>
-      ) : null}
-    </div>
+    <FloatingRowMenu
+      label={`${title} options`}
+      items={[
+        {
+          key: "up",
+          icon: <ChevronUp size={14} strokeWidth={2} aria-hidden />,
+          label: "Move up",
+          onClick: () => onSectionReorder("up"),
+          disabled: !canMoveUp,
+          note: "Top",
+          disabledHint: "Already at the top",
+        },
+        {
+          key: "down",
+          icon: <ChevronDown size={14} strokeWidth={2} aria-hidden />,
+          label: "Move down",
+          onClick: () => onSectionReorder("down"),
+          disabled: !canMoveDown,
+          note: "Bottom",
+          disabledHint: "Already at the bottom",
+        },
+      ]}
+    />
   ) : null;
 
   // Tier 3 — DnD wiring. Active only when all DnD props are present
@@ -7269,8 +7441,8 @@ function AccordionSection({
             <ChevronDown size={13} strokeWidth={2} aria-hidden />
           </button>
         </div>
-        <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: `grid-template-rows 300ms ${ease}` }}>
-          <div style={{ overflow: isOpen ? "visible" : "hidden" }}>
+        <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: `grid-template-rows 300ms ${ease}`, minWidth: 0 }}>
+          <div style={{ overflow: isOpen ? "visible" : "hidden", minWidth: 0 }}>
             <div
               style={{
                 opacity: isOpen ? 1 : 0,
@@ -7280,6 +7452,7 @@ function AccordionSection({
                 border: "0.5px solid var(--border)",
                 borderTop: "none",
                 borderRadius: "0 0 9px 9px",
+                minWidth: 0,
               }}
             >
               {children}
@@ -7400,9 +7573,14 @@ function AccordionSection({
           display: "grid",
           gridTemplateRows: isOpen ? "1fr" : "0fr",
           transition: `grid-template-rows 300ms ${ease}`,
+          minWidth: 0,
         }}
       >
-        <div style={{ overflow: isOpen ? "visible" : "hidden" }}>
+        {/* minWidth:0 all the way down — without it these open-state wrappers
+            keep min-width:auto and any long entry text forces the whole
+            accordion wider than its card, escaping the overflow:hidden and
+            defeating the row's own ellipsis. */}
+        <div style={{ overflow: isOpen ? "visible" : "hidden", minWidth: 0 }}>
           <div
             className="cvp-section-row-content"
             style={{
@@ -7411,6 +7589,7 @@ function AccordionSection({
               padding: 16,
               background: "var(--bg-surface)",
               borderTop: "1px solid var(--border)",
+              minWidth: 0,
             }}
           >
             {children}

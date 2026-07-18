@@ -3,6 +3,7 @@ import { Upload } from 'lucide-react';
 import { supabase } from '../../appSupabaseClient';
 import { extractCvText } from '../../services/cvExtraction';
 import safeFetch from '../../lib/net/safeFetch';
+import CvExtractionCeremony from './CvExtractionCeremony';
 
 const ACCEPT =
   '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -21,6 +22,7 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
   const [stage, setStage] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [errorHint, setErrorHint] = useState('');
+  const [fileName, setFileName] = useState('');
 
   const isBusy = stage === 'reading' || stage === 'uploading' || stage === 'parsing';
 
@@ -39,6 +41,7 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
       if (!file) return;
       setErrorMsg('');
       setErrorHint('');
+      setFileName(file.name || '');
 
       const lower = (file.name || '').toLowerCase();
       if (!lower.endsWith('.pdf') && !lower.endsWith('.docx')) {
@@ -143,26 +146,14 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
           aria-hidden
           tabIndex={-1}
         />
-        {isBusy ? (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--bg-surface)', padding: 22, boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-              <span style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--color-accent-soft)', color: 'var(--accent-text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Upload size={18} strokeWidth={1.8} aria-hidden />
-              </span>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Reading your CV</p>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--accent-text)', fontWeight: 600 }}>{stageLabel}</p>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gap: 11 }} aria-hidden>
-              <div style={{ height: 15, width: '52%', borderRadius: 6, background: 'var(--builder-fill)' }} />
-              <div style={{ height: 10, width: '38%', borderRadius: 5, background: 'var(--builder-fill)' }} />
-              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-              <div style={{ height: 10, width: '88%', borderRadius: 5, background: 'var(--builder-fill)' }} />
-              <div style={{ height: 10, width: '80%', borderRadius: 5, background: 'var(--builder-fill)' }} />
-              <div style={{ height: 10, width: '64%', borderRadius: 5, background: 'var(--builder-fill)' }} />
-            </div>
-          </div>
+        {isBusy || stage === 'error' ? (
+          <CvExtractionCeremony
+            stage={stage}
+            filename={fileName}
+            errorMsg={errorMsg}
+            errorHint={errorHint}
+            onRetry={stage === 'error' ? openPicker : undefined}
+          />
         ) : (
           <div
             role="button"
@@ -187,12 +178,6 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
               Upload your CV
             </span>
             <p style={{ margin: '16px 0 0', fontSize: 11.5, color: 'var(--text-muted)' }}>or drag a file here, PDF or DOCX, up to 10 MB</p>
-          </div>
-        )}
-        {stage === 'error' && (
-          <div role="alert" style={{ marginTop: 12, padding: 12, borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)' }}>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--danger)', fontWeight: 600 }}>{errorMsg}</p>
-            {errorHint ? <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>{errorHint}</p> : null}
           </div>
         )}
       </div>
