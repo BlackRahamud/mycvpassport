@@ -34,10 +34,10 @@
 @keyframes fabBorderFlicker {
   0%,
   100% {
-    border-color: #1d9e75;
+    border-color: var(--success);
   }
   50% {
-    border-color: #ef9f27;
+    border-color: var(--color-accent-bright);
   }
 }
 
@@ -217,8 +217,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #1c1c1c;
-  border: 0.5px solid #2a2a2a;
+  background: var(--bg-elevated);
+  border: 0.5px solid var(--border);
   box-sizing: border-box;
   display: grid;
   place-items: center;
@@ -231,17 +231,17 @@
 }
 
 .cvp-fab-menu-icon-btn--primary {
-  background: #fff;
-  border: 0.5px solid #2a2a2a;
+  background: var(--text-primary);
+  border: 0.5px solid var(--border);
 }
 
 .cvp-fab-menu-label {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 9px;
-  background: #1c1c1c;
+  background: var(--bg-elevated);
   padding: 3px 7px;
   border-radius: 8px;
-  border: 0.5px solid #2a2a2a;
+  border: 0.5px solid var(--border);
   white-space: nowrap;
   font-weight: 500;
   -webkit-font-smoothing: antialiased;
@@ -255,8 +255,8 @@
   max-width: 240px;
   margin-bottom: 4px;
   padding: 10px 12px;
-  background: #0a0a0a;
-  border: 0.5px solid #2a2a2a;
+  background: var(--bg);
+  border: 0.5px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   -webkit-transform: translateZ(0);
@@ -266,7 +266,7 @@
 }
 
 .cvp-fab-menu-tip-headline {
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.35;
@@ -278,7 +278,7 @@
 }
 
 .cvp-fab-menu-tip-body {
-  color: #a0a0a0;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 400;
   line-height: 1.45;
@@ -318,7 +318,7 @@
 .cvp-fab-sheet-drag-handle {
   width: 40px;
   height: 4px;
-  background: #3a3a3a;
+  background: var(--border-strong);
   border-radius: 99px;
   margin: 8px auto 16px auto;
   display: block;
@@ -445,8 +445,8 @@
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
-  background: #0a0a0a;
-  border: 1.5px solid #333;
+  background: var(--bg);
+  border: 1.5px solid var(--border-strong);
   padding: 0;
   cursor: pointer;
   display: grid;
@@ -464,9 +464,9 @@
   right: -2px;
   width: 10px;
   height: 10px;
-  background: #e24b4a;
+  background: var(--danger);
   border-radius: 50%;
-  border: 2px solid #0a0a0a;
+  border: 2px solid var(--bg);
   box-sizing: border-box;
 }
 
@@ -525,8 +525,8 @@
 }
 
 .cvp-fab-status-bubble {
-  background: #1c1c1c;
-  border: 1px solid #2a2a2a;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px 14px;
   min-width: 200px;
@@ -550,7 +550,7 @@
   font-family: "Inter", sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
   letter-spacing: 0.01em;
   line-height: 1.5;
@@ -560,7 +560,7 @@
   font-family: "Inter", sans-serif;
   font-size: 11px;
   font-weight: 400;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   margin: 0;
   letter-spacing: 0.02em;
   line-height: 1.5;
@@ -568,7 +568,7 @@
 
 .cvp-fab-bubble-divider {
   height: 0.5px;
-  background: #2a2a2a;
+  background: var(--border);
   margin: 8px 0;
 }
 
@@ -576,7 +576,7 @@
   font-family: "Inter", sans-serif;
   font-size: 10px;
   font-weight: 500;
-  color: #f59e0b;
+  color: var(--color-accent-bright);
   margin: 0;
   cursor: pointer;
   letter-spacing: 0.01em;
@@ -601,8 +601,8 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #1c1c1c;
-  border: 1px solid #3a3a3a;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -627,9 +627,9 @@
 }
 
 .cvp-fab-bulb--lit {
-  border-color: #f59e0b;
-  color: #f59e0b;
-  background: radial-gradient(circle at 50% 60%, rgba(245, 158, 11, 0.18) 0%, #1c1c1c 70%);
+  border-color: var(--color-accent-bright);
+  color: var(--color-accent-bright);
+  background: radial-gradient(circle at 50% 60%, rgba(245, 158, 11, 0.18) 0%, var(--bg-elevated) 70%);
   will-change: background, border-color, color;
 }
 
@@ -700,8 +700,8 @@
 }
 
 .cvp-fab-tip-bubble {
-  background: #1c1c1c;
-  border: 1px solid #f59e0b;
+  background: var(--bg-elevated);
+  border: 1px solid var(--color-accent-bright);
   border-radius: 12px;
   padding: 10px 14px;
   min-width: 180px;
@@ -718,7 +718,7 @@
   font-family: "Inter", sans-serif;
   font-size: 9px;
   font-weight: 700;
-  color: #f59e0b;
+  color: var(--color-accent-bright);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -727,7 +727,7 @@
   font-family: "Inter", sans-serif;
   font-size: 11px;
   font-weight: 400;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 6px 0 0 0;
   line-height: 1.6;
   letter-spacing: 0.01em;
@@ -808,11 +808,11 @@
 .cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn {
   position: relative;
   overflow: hidden;
-  background: #1c1c1c;
-  border: 1px solid #2a2a2a;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 11px;
   padding: 13px 16px;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 14px;
   display: flex;
   justify-content: space-between;
@@ -860,19 +860,19 @@
 .cvp-walkin-done-cta-host .cvp-ats-sheet-cta-arrow {
   position: relative;
   z-index: 1;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   transition: color 0.15s ease, transform 0.2s ease !important;
 }
 
 .cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover,
 .cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn:hover {
-  background: #242424 !important;
-  border-color: #D97706 !important;
+  background: var(--bg-elevated) !important;
+  border-color: var(--accent) !important;
 }
 
 .cvp-fab-sheet-panel .cvp-ats-sheet-cta-btn:hover .cvp-ats-sheet-cta-arrow,
 .cvp-walkin-done-cta-host .cvp-ats-sheet-cta-btn:hover .cvp-ats-sheet-cta-arrow {
-  color: #D97706 !important;
+  color: var(--accent) !important;
   transform: translateX(3px) !important;
 }
 
@@ -882,7 +882,7 @@
 }
 
 .cvp-fab-sheet-gotit-bar--ats-ghost {
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid var(--border);
   padding-top: 0;
   margin-top: 0;
 }
@@ -892,7 +892,7 @@
   width: 100% !important;
   background: transparent !important;
   border: none !important;
-  color: #505050 !important;
+  color: var(--text-muted) !important;
   font-size: 13px !important;
   padding: 14px !important;
   min-height: unset !important;
@@ -903,7 +903,7 @@
 }
 
 .cvp-fab-sheet-gotit-bar--ats-ghost .cvp-fab-sheet-gotit-btn--ats-ghost:hover {
-  color: #a0a0a0 !important;
+  color: var(--text-secondary) !important;
 }
 
 /* Milestone toast (Apple Watch style, fixed left of FAB) */
@@ -916,10 +916,10 @@
   max-width: 220px;
   padding: 10px 16px;
   box-sizing: border-box;
-  background: #141414;
-  border: 1px solid var(--border-default, #2a2a2a);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default, var(--border));
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 13px;
   will-change: transform;
   opacity: 0;
@@ -935,7 +935,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: var(--color-accent-bright);
   margin-bottom: 6px;
 }
 
@@ -999,10 +999,10 @@
     from var(--fab-guide-angle, 0deg),
     #fb923c,
     #fbbf24,
-    #f59e0b,
+    var(--color-accent-bright),
     #fb923c,
     #fbbf24,
-    #f59e0b,
+    var(--color-accent-bright),
     #fb923c
   );
   animation:

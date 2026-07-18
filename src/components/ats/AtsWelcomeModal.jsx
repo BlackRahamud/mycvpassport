@@ -12,15 +12,15 @@ import { Check, AlertTriangle, ArrowRight, X, Sparkles } from "lucide-react";
 // "Start editing" rather than inventing work.
 
 const T = {
-  bg: "#0A0A0A",
-  surface: "#141414",
-  elevated: "#1C1C1C",
-  border: "#2A2A2A",
-  text: "#FFFFFF",
-  muted: "#A0A0A0",
-  amber: "#D97706",
-  green: "#1D9E75",
-  greenBright: "#4ADE80",
+  bg: "var(--bg)",
+  surface: "var(--bg-surface)",
+  elevated: "var(--bg-elevated)",
+  border: "var(--border)",
+  text: "var(--text-primary)",
+  muted: "var(--text-secondary)",
+  amber: "var(--accent)",
+  green: "var(--success)",
+  greenBright: "var(--success)",
 };
 
 const MAX_FIXED_SHOWN = 8;
@@ -130,11 +130,11 @@ export default function AtsWelcomeModal({ open, fixed = [], todo = [], onReview,
                 </div>
                 <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 7 }}>
                   {shownFixed.map(({ gap, ev }) => (
-                    <li key={gap.id} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: "#C8C8C8", lineHeight: 1.4 }}>
+                    <li key={gap.id} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.4 }}>
                       <Check size={13} color={T.green} aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
                       <span>
                         {gap.label}
-                        {ev?.reason && <span style={{ display: "block", fontSize: 11, color: "#6B6B6B", marginTop: 1 }}>{ev.reason}</span>}
+                        {ev?.reason && <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{ev.reason}</span>}
                       </span>
                     </li>
                   ))}
@@ -157,7 +157,7 @@ export default function AtsWelcomeModal({ open, fixed = [], todo = [], onReview,
                 <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 7 }}>
                   {todo.map(({ gap, ev }) => (
                     <li key={gap.id} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13, color: T.text, lineHeight: 1.4 }}>
-                      <span aria-hidden style={{ flexShrink: 0, marginTop: 6, width: 5, height: 5, borderRadius: "50%", background: gap.weight === "high" ? "#F87171" : T.amber }} />
+                      <span aria-hidden style={{ flexShrink: 0, marginTop: 6, width: 5, height: 5, borderRadius: "50%", background: gap.weight === "high" ? "var(--danger)" : T.amber }} />
                       <span>
                         {ev?.reason || gap.label}
                       </span>
@@ -177,7 +177,7 @@ export default function AtsWelcomeModal({ open, fixed = [], todo = [], onReview,
                 justifyContent: "center",
                 gap: 8,
                 background: T.amber,
-                color: "#fff",
+                color: "var(--text-primary)",
                 border: "none",
                 borderRadius: 12,
                 padding: "14px 18px",

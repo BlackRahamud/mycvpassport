@@ -65,6 +65,18 @@ html {
   --input-bg: #FFFFFF;
   --input-bg-textarea: #FFFFFF;
   --input-border: #CFCFC9;
+  /* builder surfaces — candidate side only, never the portal families.
+     glass = real backdrop-blur floating surfaces (sheets, listboxes,
+     sticky bars). fill = inline form fields sitting flat in a panel:
+     translucent fill + hairline, NO backdrop-filter (GPU cost on the
+     phones most candidates use, and blur over a flat panel renders
+     identically to a plain fill). */
+  --builder-glass: rgba(255, 255, 255, 0.78);
+  --builder-glass-border: rgba(26, 25, 23, 0.08);
+  --builder-glass-shadow: 0 18px 40px -18px rgba(60, 50, 30, 0.24);
+  --builder-fill: rgba(30, 26, 18, 0.035);
+  --builder-fill-border: rgba(30, 26, 18, 0.11);
+  --info: #2563EB;              /* blue info accents — 4.7:1 on cream */
 
   /* shared (theme-agnostic) */
   --border-default: var(--border);
@@ -134,6 +146,12 @@ html {
   --input-bg: #1C1C1C;
   --input-bg-textarea: #141414;
   --input-border: #2A2A2A;
+  --builder-glass: rgba(18, 18, 18, 0.72);
+  --builder-glass-border: rgba(255, 255, 255, 0.08);
+  --builder-glass-shadow: 0 22px 50px -18px rgba(0, 0, 0, 0.75);
+  --builder-fill: rgba(255, 255, 255, 0.055);
+  --builder-fill-border: rgba(255, 255, 255, 0.12);
+  --info: #60A5FA;
 }
 
 /* Legacy alias families → semantic core. Re-declared at every
@@ -389,7 +407,7 @@ select:focus,
   gap: 6px;
   background: transparent;
   color: var(--text-secondary);
-  border: 1px dashed #333333;
+  border: 1px dashed var(--border-strong);
   border-radius: 12px;
   font-weight: 500;
   font-size: 14px;
@@ -401,7 +419,7 @@ select:focus,
 .cvp-add-row-ghost:hover:not(:disabled) {
   border-color: var(--text-primary);
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--hover-wash);
 }
 .cvp-add-row-ghost:disabled {
   opacity: 0.5;
@@ -416,14 +434,14 @@ select:focus,
   display: grid;
   gap: 10px;
   padding: 16px 18px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed #2A2A2A;
+  background: var(--hover-wash);
+  border: 1px dashed var(--border);
   border-radius: 12px;
 }
 .cvp-ghost-line {
   height: 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--builder-fill);
 }
 .cvp-ghost-line--w80 { width: 80%; }
 .cvp-ghost-line--w60 { width: 60%; }
@@ -453,7 +471,7 @@ select:focus,
 /* Personal Info card lift — inset top hairline cues "catches light"
    on OLED without drop-shadow. */
 .cvp-builder-personal-card {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-card);
 }
 
 /* Section row — left accent bar on the open section header. Replaces the
@@ -478,9 +496,11 @@ select:focus,
   left: 0;
   right: 0;
   z-index: 100;
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-default);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+  background: var(--builder-glass);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border-top: 1px solid var(--builder-glass-border);
+  box-shadow: none;
   padding: 12px 24px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
@@ -514,9 +534,9 @@ select:focus,
   transition: background-color 150ms var(--input-ease), color 150ms var(--input-ease), border-color 150ms var(--input-ease), opacity 150ms var(--input-ease);
 }
 .cvp-builder-action-bar-icon:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--hover-wash);
   color: var(--text-primary);
-  border-color: #3A3A3A;
+  border-color: var(--border-strong);
 }
 .cvp-builder-action-bar-icon:disabled {
   opacity: 0.35;
@@ -544,8 +564,8 @@ select:focus,
 }
 .cvp-builder-import-header-btn:hover:not(:disabled) {
   color: var(--text-primary);
-  border-color: #3A3A3A;
-  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-strong);
+  background: var(--hover-wash);
 }
 .cvp-builder-import-header-btn:disabled {
   opacity: 0.7;
@@ -575,22 +595,22 @@ select:focus,
   border: 1px solid var(--border-default);
 }
 .cvp-builder-action-bar-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: #3A3A3A;
+  background: var(--hover-wash);
+  border-color: var(--border-strong);
 }
 .cvp-builder-action-bar-secondary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 .cvp-builder-action-bar-primary {
-  background: var(--text-primary);
-  color: #000000;
-  border: 1px solid var(--text-primary);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: 1px solid var(--accent);
   padding: 0 22px;
 }
 .cvp-builder-action-bar-primary:hover:not(:disabled) {
-  background: #E5E5E7;
-  border-color: #E5E5E7;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 .cvp-builder-action-bar-primary:disabled {
   opacity: 0.55;
@@ -623,7 +643,7 @@ select:focus,
   position: relative;
   background: #fff;
   border-radius: var(--radius-md, 12px);
-  border: 1px solid #2A2A2A;
+  border: 1px solid var(--border);
 }
 
 .cvp-thumb-inner {
@@ -920,7 +940,7 @@ select:focus,
   align-items: start !important;
   min-height: calc(100vh - 56px);
   height: auto !important;
-  background-color: #0A0A0A;
+  background-color: var(--bg);
   overflow: visible !important;
 }
 
@@ -1027,7 +1047,7 @@ select:focus,
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   align-content: start;
-  background: #0a0a0a;
+  background: var(--bg);
 }
 
 /* Templates tab — grid (no clipping; scroll vertical only) */
@@ -1053,7 +1073,7 @@ select:focus,
   position: relative;
   width: 100%;
   aspect-ratio: 794 / 1123;
-  background: #1c1c1c;
+  background: var(--bg-elevated);
   overflow: hidden;
   isolation: isolate;
 }
@@ -1115,7 +1135,7 @@ select:focus,
 .cvp-templates-card-name {
   font-size: 11px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1158,8 +1178,8 @@ select:focus,
 
 /* Templates tab — ATS positioning banner (builder desktop/mobile + /templates browse) */
 .cvp-templates-ats-banner {
-  background: #141414;
-  border: 1px solid #2a2a2a;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px 24px;
   margin: 0 12px 28px;
@@ -1185,7 +1205,7 @@ select:focus,
 .cvp-templates-ats-banner-headline {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0;
   font-family: inherit;
 }
@@ -1220,7 +1240,7 @@ select:focus,
   font-size: 13px;
   font-weight: 400;
   line-height: 1.7;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   max-width: 640px;
   margin: 0;
   font-family: inherit;
@@ -1229,7 +1249,7 @@ select:focus,
 .cvp-templates-ats-banner-read-inline {
   font-size: 13px;
   font-weight: 500;
-  color: #14b8a6;
+  color: var(--success-text);
   cursor: pointer;
   flex: 0 0 auto;
   align-self: flex-start;
@@ -1244,7 +1264,7 @@ select:focus,
 }
 
 .cvp-templates-ats-banner-link {
-  color: #14b8a6;
+  color: var(--success-text);
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -1266,8 +1286,8 @@ select:focus,
   left: 0;
   right: 0;
   border-radius: 24px 24px 0 0;
-  background: #1c1c1c;
-  border-top: 1px solid #2a2a2a;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
   padding: 24px 20px;
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   z-index: 1101;
@@ -1279,8 +1299,8 @@ select:focus,
 .cvp-templates-confirm-primary {
   width: 100%;
   padding: 16px;
-  background: #ffffff;
-  color: #000000;
+  background: var(--text-primary);
+  color: var(--bg);
   border-radius: 12px;
   font-size: 16px;
   font-weight: 700;
@@ -1295,7 +1315,7 @@ select:focus,
   width: 100%;
   padding: 10px;
   background: transparent;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   font-size: 14px;
   border: none;
   cursor: pointer;
@@ -1354,8 +1374,8 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 .cvp-templates-preview-header {
   flex-shrink: 0;
   height: 52px;
-  background: #0a0a0a;
-  border-bottom: 1px solid #2a2a2a;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1367,7 +1387,7 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 .cvp-templates-preview-title {
   font-size: 15px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0;
   font-family: inherit;
   min-width: 0;
@@ -1381,8 +1401,8 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  background: #1c1c1c;
-  border: 1px solid #2a2a2a;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1421,8 +1441,8 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   flex-shrink: 0;
   position: sticky;
   bottom: 0;
-  background: #0a0a0a;
-  border-top: 1px solid #2a2a2a;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
   padding: 16px 20px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
@@ -1432,8 +1452,8 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 .cvp-templates-preview-use-btn {
   width: 100%;
   padding: 16px;
-  background: #ffffff;
-  color: #000000;
+  background: var(--text-primary);
+  color: var(--bg);
   border-radius: 12px;
   font-size: 16px;
   font-weight: 700;
@@ -1503,8 +1523,8 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   align-items: stretch;
   width: 100%;
   box-sizing: border-box;
-  background: #0A0A0A;
-  border-top: 1px solid #1E1E1E;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
   padding: 10px 16px 0;
 }
 
@@ -1513,8 +1533,8 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   position: relative;
   width: 100%;
   height: 48px;
-  background: #141414;
-  border: 1px solid #2A2A2A;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   display: flex;
   z-index: 100;
@@ -1531,15 +1551,15 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 }
 
 .cvp-builder-toggle-pill .cvp-toggle-active {
-  background: #FFFFFF;
-  color: #000000;
+  background: var(--text-primary);
+  color: var(--bg);
   border-radius: 10px;
   font-weight: 600;
 }
 
 .cvp-builder-toggle-pill .cvp-toggle-inactive {
   background: transparent;
-  color: #A0A0A0;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -1556,26 +1576,26 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
    open header (set in cvp-section-row-header rule above) is clipped
    to the card's rounded corners via overflow: hidden. */
 .cvp-section-row {
-  background: #141414;
-  border: 1px solid #2A2A2A;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: none;
   transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cvp-section-row:hover {
-  background: #181818;
-  border-color: #333333;
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
 }
 
 .cvp-section-row.is-open {
-  background: #1C1C1C;
-  border-color: #2A2A2A;
+  background: var(--bg-elevated);
+  border-color: var(--border);
 }
 
 .cvp-section-row.is-open:hover {
-  background: #1C1C1C;
+  background: var(--bg-elevated);
 }
 
 /* Tier 3 — drag-and-drop reorder. */
@@ -1629,7 +1649,7 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 }
 .cvp-builder-section-grip:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--hover-wash);
 }
 .cvp-builder-section-grip:active {
   cursor: grabbing;
@@ -1671,15 +1691,19 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
    writes their bullets is when the document feedback matters most. On
    desktop the editor docks LEFT over the form column (light scrim, the
    preview stays visible and live-updates from the draft); on phones it
-   is a bottom sheet. Solid surface (no glass translucency) so text
-   never shimmers over the scrolling form behind it. */
+   is a bottom sheet. Real backdrop blur (32px, saturated) — this is a
+   genuinely floating surface, so glass does real work here. */
 .cvp-entry-sheet-overlay {
   background: rgba(0, 0, 0, 0.28) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 .cvp-entry-sheet {
-  background: var(--bg-elevated, #1C1C1C) !important;
+  background: var(--builder-glass) !important;
+  backdrop-filter: blur(32px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(1.8) !important;
+  border: 1px solid var(--builder-glass-border) !important;
+  box-shadow: var(--builder-glass-shadow) !important;
 }
 @media (min-width: 768px) {
   .cvp-entry-sheet-overlay {
@@ -1833,8 +1857,8 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 }
 
 .cvp-builder-add-section:hover {
-  border-color: #FFFFFF;
-  color: #FFFFFF;
+  border-color: var(--text-primary);
+  color: var(--text-primary);
 }
 
 /* Full-width add buttons inside section bodies (Experience, Education, category-level actions) */
@@ -1860,9 +1884,9 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   flex-shrink: 0;
   margin-bottom: 0 !important;
   white-space: nowrap;
-  background: #fff;
+  background: var(--text-primary);
   border: none;
-  color: #000;
+  color: var(--bg);
   cursor: pointer;
   font-family: inherit;
   line-height: 1;
@@ -1936,9 +1960,9 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: var(--builder-fill);
+  border: 1px solid var(--builder-fill-border);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 500;
   padding: 4px 10px;
@@ -1951,7 +1975,7 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   background: none;
   border: none;
   cursor: pointer;
-  color: #ffffff;
+  color: var(--text-primary);
   padding: 0;
   margin: 0;
   line-height: 1;
@@ -2003,7 +2027,7 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 /* CV Builder mobile — A4 preview uses BuilderA4PreviewScaled + ResizeObserver in pages/BuilderPage.jsx */
@@ -2011,13 +2035,13 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 /* CV Builder mobile — Download below toggle pill (order: toggle, then download) */
 .cvp-builder-mobile-download {
   padding: 6px 16px 16px;
-  background: #0A0A0A;
+  background: var(--bg);
 }
 
 /* CV Builder template dropdown — option styling */
 .cvp-builder-topbar-template option {
-  background: #141414;
-  color: #ffffff;
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 /* CV Builder top bar — mobile: hide template, Save, and Download */
@@ -2277,7 +2301,7 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   }
   .cvp-builder-templates-tab-root {
     padding: 40px !important;
-    background: #0A0A0A !important;
+    background: var(--bg) !important;
     width: 100% !important;
   }
   .cvp-templates-pills {
@@ -2297,15 +2321,15 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   }
   .cvp-builder-desktop.cvp-jobmatch-active .cvp-builder-left {
     padding: 48px 40px !important;
-    background: #141414 !important;
-    border-right: 1px solid #1C1C1C !important;
+    background: var(--bg-surface) !important;
+    border-right: 1px solid var(--border) !important;
     overflow-y: auto !important;
     max-height: calc(100vh - 56px) !important;
     height: auto !important;
   }
   .cvp-builder-desktop.cvp-jobmatch-active .cvp-builder-preview {
     padding: 48px 40px !important;
-    background: #0A0A0A !important;
+    background: var(--bg) !important;
   }
   .cvp-builder-desktop.cvp-templates-active {
     display: block !important;
@@ -2602,3 +2626,165 @@ body.cvp-builder-full-preview .cvp-mobile-tabbar {
   }
 }
 
+
+/* ── Builder refinement pass (Jul 2026) — day/night + corridor block ──
+   Candidate-side tokens only. Inline fields inside the builder panels use
+   the translucent-fill treatment (fill + hairline, NO backdrop-filter —
+   see the builder token comment in the token block). Floating surfaces
+   (sheets, listboxes) use the real-glass treatment. */
+.cvp-builder-mode .cvp-input,
+.cvp-builder-mode .cvp-textarea {
+  background-color: var(--builder-fill);
+  border-color: var(--builder-fill-border);
+}
+.cvp-builder-mode .cvp-input:focus,
+.cvp-builder-mode .cvp-textarea:focus {
+  border-color: var(--color-accent-line);
+}
+
+/* Corridor select — bottom-sheet glass listbox with a free-text fallback */
+.cvp-corridor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  background: var(--scrim);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: cvpFadeIn 200ms ease-out;
+}
+.cvp-corridor-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 80dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--builder-glass);
+  backdrop-filter: blur(32px) saturate(1.8);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8);
+  border: 1px solid var(--builder-glass-border);
+  border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  box-shadow: var(--builder-glass-shadow);
+  animation: cvpSheetInUp 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 8px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+.cvp-corridor-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-corridor-option:hover {
+  background: var(--hover-wash);
+}
+.cvp-corridor-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px 0 13px;
+  border-radius: 10px;
+  border: 1px solid var(--builder-fill-border);
+  background: var(--builder-fill);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: border-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-corridor-trigger:hover {
+  border-color: var(--border-strong);
+}
+
+/* Availability — segmented control writing to the availability key */
+.cvp-avail-seg {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--builder-fill);
+  border: 1px solid var(--builder-fill-border);
+  border-radius: 11px;
+}
+.cvp-avail-seg button {
+  flex: 1;
+  min-height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cvp-avail-seg button[aria-pressed="true"] {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+}
+
+/* Only-you fields (salary, passport) — invitation, never a correction */
+.cvp-corridor-invite {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 8px 0 13px;
+  border-radius: 11px;
+  background: var(--color-accent-soft);
+  border: 1.5px dashed var(--color-accent-line);
+  box-sizing: border-box;
+}
+.cvp-corridor-invite input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.cvp-corridor-invite input::placeholder {
+  color: var(--text-secondary);
+}
+
+@keyframes cvpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cvp-corridor-overlay,
+  .cvp-corridor-sheet {
+    animation: none;
+  }
+}
+
+/* Skills add-chip field — reads as an input, dashed amber invitation */
+.cvp-builder-mode .cvp-skills-skill-input {
+  background-color: var(--color-accent-soft);
+  border: 1px dashed var(--color-accent-line);
+  border-radius: 10px;
+}
+.cvp-builder-mode .cvp-skills-skill-input::placeholder {
+  color: var(--accent-text);
+  font-style: normal;
+}

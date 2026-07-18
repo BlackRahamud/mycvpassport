@@ -18,14 +18,14 @@ import { partitionGapsByResolution } from "../../lib/ats/atsGaps";
 // type:'content' gaps (Phase B) are ignored here.
 
 const T = {
-  surface: "#141414",
-  elevated: "#1C1C1C",
-  border: "#2A2A2A",
-  text: "#FFFFFF",
-  muted: "#A0A0A0",
-  amber: "#D97706",
-  green: "#1D9E75",
-  greenBright: "#4ADE80",
+  surface: "var(--bg-surface)",
+  elevated: "var(--bg-elevated)",
+  border: "var(--border)",
+  text: "var(--text-primary)",
+  muted: "var(--text-secondary)",
+  amber: "var(--accent)",
+  green: "var(--success)",
+  greenBright: "var(--success)",
 };
 
 const SECTION_LABEL = {
@@ -101,7 +101,7 @@ export default function AtsFixesPanel({
 
   const ctaStyle = (kind) => {
     if (kind === "merge_skills") return { border: "rgba(29,158,117,0.45)", bg: "rgba(29,158,117,0.12)", fg: T.greenBright, Icon: Layers };
-    if (kind === "remove_element") return { border: "rgba(248,113,113,0.45)", bg: "rgba(248,113,113,0.12)", fg: "#F87171", Icon: Trash2 };
+    if (kind === "remove_element") return { border: "rgba(248,113,113,0.45)", bg: "rgba(248,113,113,0.12)", fg: "var(--danger)", Icon: Trash2 };
     return { border: "rgba(217,119,6,0.45)", bg: "rgba(217,119,6,0.12)", fg: T.amber, Icon: ArrowRight };
   };
 
@@ -138,7 +138,7 @@ export default function AtsFixesPanel({
           style={{
             background: "transparent",
             border: "none",
-            color: "#666",
+            color: "var(--text-muted)",
             padding: 4,
             cursor: "pointer",
             display: "inline-flex",
@@ -173,7 +173,7 @@ export default function AtsFixesPanel({
               >
                 <AlertTriangle
                   size={15}
-                  color={gap.weight === "high" ? "#F87171" : T.amber}
+                  color={gap.weight === "high" ? "var(--danger)" : T.amber}
                   aria-hidden
                   style={{ flexShrink: 0, marginTop: 1 }}
                 />
@@ -278,10 +278,10 @@ export default function AtsFixesPanel({
                   >
                     <Check size={13} color={T.green} aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
                     <span>
-                      <span style={{ color: "#C8C8C8", textDecoration: "line-through", textDecorationColor: "rgba(255,255,255,0.2)" }}>
+                      <span style={{ color: "var(--text-secondary)", textDecoration: "line-through", textDecorationColor: "rgba(255,255,255,0.2)" }}>
                         {gap.label}
                       </span>
-                      {ev.reason && <span style={{ display: "block", fontSize: 11, color: "#6B6B6B", marginTop: 1 }}>{ev.reason}</span>}
+                      {ev.reason && <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{ev.reason}</span>}
                     </span>
                   </li>
                 ))}

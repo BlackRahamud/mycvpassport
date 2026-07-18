@@ -18,11 +18,13 @@ import {
   Lightbulb,
   List,
   Loader2,
+  Moon,
   Pencil,
   Redo2,
   Save,
   Sparkles,
   Star,
+  Sun,
   Trash2,
   Undo2,
   User,
@@ -51,6 +53,7 @@ import TemplateSelect from "../components/TemplateSelect";
 import AtsFixesPanel from "../components/ats/AtsFixesPanel";
 import AtsWelcomeModal from "../components/ats/AtsWelcomeModal";
 import { getDraftStorageKey, readCvDraft, writeCvDraft, clearCvDraft } from "../lib/cvDraft";
+import { getTheme, setTheme } from "../lib/theme";
 import { normalizeAtsGaps, gapsFromLegacyParam, partitionGapsByResolution } from "../lib/ats/atsGaps";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
@@ -131,8 +134,8 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             }}
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
-              <span style={{ fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>Suggested certifications — not on your CV yet</span>
+              <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
+              <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>Suggested certifications — not on your CV yet</span>
             </span>
             <button
               type="button"
@@ -141,7 +144,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
               style={{
                 background: "none",
                 border: "none",
-                color: "#A0A0A0",
+                color: "var(--text-secondary)",
                 cursor: "pointer",
                 padding: 0,
                 display: "flex",
@@ -172,7 +175,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
                     gap: 4,
                     background: "transparent",
                     border: "1px dashed rgba(59,130,246,0.4)",
-                    color: "#60A5FA",
+                    color: "var(--info)",
                     borderRadius: 999,
                     padding: "4px 10px",
                     fontSize: 11,
@@ -201,8 +204,8 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
           <div
             key={i}
             style={{
-              background: "#1C1C1C",
-              border: "1px solid #2A2A2A",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
               borderRadius: 10,
               padding: "12px 16px",
               marginBottom: 8,
@@ -235,14 +238,14 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
                 </button>
                 <button
                   type="button"
-                  style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+                  style={{ ...CB_UI.btn, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
                   onClick={() => setInlineNameEdit(null)}
                 >
                   Cancel
                 </button>
               </div>
-              {c.issuer ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.issuer}</div> : null}
-              {c.year ? <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2 }}>{c.year}</div> : null}
+              {c.issuer ? <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{c.issuer}</div> : null}
+              {c.year ? <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{c.year}</div> : null}
             </div>
           </div>
         ) : (
@@ -286,7 +289,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
       {certificationEditor && (
         <div className="cvp-glass-modal" style={{ padding: 16, display: "grid", gap: 10 }}>
           <div>
-            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Name</label>
+            <label style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Name</label>
             <input
               className="cvp-input"
               placeholder="Certification name"
@@ -295,7 +298,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Issuer</label>
+            <label style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Issuer</label>
             <input
               className="cvp-input"
               placeholder="Issuing organisation (optional)"
@@ -304,7 +307,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>Date issued (MM/YYYY)</label>
+            <label style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Date issued (MM/YYYY)</label>
             <input
               ref={certYearInputRef}
               className="cvp-input"
@@ -321,11 +324,11 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
               aria-invalid={certYearError ? true : undefined}
             />
             {certYearError ? (
-              <p style={{ margin: "6px 0 0", fontSize: 12, color: "#EF4444", lineHeight: 1.35 }}>{certYearError}</p>
+              <p style={{ margin: "6px 0 0", fontSize: 12, color: "var(--danger)", lineHeight: 1.35 }}>{certYearError}</p>
             ) : null}
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-            <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setCertificationEditor(null)}>Cancel</button>
+            <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }} onClick={() => setCertificationEditor(null)}>Cancel</button>
             <button
               type="button"
               style={CB_UI.btn}
@@ -357,7 +360,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
       </button>
       <button
         type="button"
-        style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+        style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
         onClick={onRemoveSection}
       >
         Remove section
@@ -415,8 +418,8 @@ function CvImportBanner({ filename, count, total }) {
           height: 20,
           flexShrink: 0,
           borderRadius: 999,
-          background: "#1D9E75",
-          color: "#0A0A0A",
+          background: "var(--success)",
+          color: "var(--accent-contrast)",
           fontSize: 12,
           fontWeight: 700,
           lineHeight: 1,
@@ -425,10 +428,10 @@ function CvImportBanner({ filename, count, total }) {
         ✓
       </span>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <p style={{ margin: 0, fontSize: 13, color: "#FFFFFF", fontWeight: 600 }}>
-          Imported from <span style={{ color: "#A0A0A0", fontWeight: 500 }}>{filename}</span>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
+          Imported from <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{filename}</span>
         </p>
-        <p style={{ margin: "2px 0 0", fontSize: 11, color: "#A0A0A0" }}>
+        <p style={{ margin: "2px 0 0", fontSize: 11, color: "var(--text-secondary)" }}>
           {count} of {total} fields populated. Edit anything to dismiss.
         </p>
       </div>
@@ -533,7 +536,7 @@ function PersonalDetailsNudge({ onDismiss }) {
           flexShrink: 0,
           borderRadius: 999,
           background: "rgba(217, 119, 6, 0.16)",
-          color: "#D97706",
+          color: "var(--accent)",
           fontSize: 12,
           fontWeight: 700,
           lineHeight: 1,
@@ -541,8 +544,8 @@ function PersonalDetailsNudge({ onDismiss }) {
       >
         ✦
       </span>
-      <p style={{ margin: 0, flex: 1, fontSize: 13, color: "#FFFFFF", lineHeight: 1.4 }}>
-        Gulf employers often expect these details &mdash; we&apos;ve added the Personal Details section for you.
+      <p style={{ margin: 0, flex: 1, fontSize: 13, color: "var(--text-primary)", lineHeight: 1.4 }}>
+        Gulf employers often expect these details. Find them in Personal Details, right below your contact card.
       </p>
       <button
         type="button"
@@ -552,7 +555,7 @@ function PersonalDetailsNudge({ onDismiss }) {
           padding: "5px 12px",
           background: "transparent",
           border: "1px solid rgba(217, 119, 6, 0.45)",
-          color: "#D97706",
+          color: "var(--accent)",
           borderRadius: 8,
           fontSize: 12,
           fontWeight: 600,
@@ -577,35 +580,273 @@ const PERSONAL_DETAIL_FIELDS = [
   { key: "willingToRelocate", label: "Willing to relocate", placeholder: "Yes / No" },
 ];
 
-function PersonalDetailsBuilderSection({ resume, setResume, onRemoveSection }) {
-  const setField = (key, value) =>
-    setResume((r) => ({ ...r, [key]: value }));
+/* Corridor selects — fixed options where they help, and every one keeps a
+   free-text fallback so an upload string like "Employment visa, transferable"
+   is never dropped or coerced. */
+const VISA_STATUS_OPTIONS = [
+  "Employment visa (transferable)",
+  "Employment visa (non transferable)",
+  "Visit visa",
+  "Resident visa",
+  "Golden visa",
+  "Cancelled visa",
+  "No visa yet",
+];
+const GENDER_OPTIONS = ["Male", "Female", "Prefer not to say"];
+const MARITAL_STATUS_OPTIONS = ["Single", "Married", "Prefer not to say"];
+const RELOCATE_OPTIONS = ["Yes", "No"];
+
+const CORRIDOR_LABEL_STYLE = { fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 5 };
+
+function CorridorSelectField({ label, value, options, placeholder, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [customDraft, setCustomDraft] = useState("");
+
+  useEffect(() => {
+    if (!open) return undefined;
+    setCustomDraft("");
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const commitCustom = () => {
+    const v = customDraft.trim();
+    if (!v) return;
+    onChange(v);
+    setOpen(false);
+  };
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <p style={{ fontSize: 12, color: "#A0A0A0", margin: 0, lineHeight: 1.45 }}>
-        Optional fields commonly expected on Gulf-region CVs. Leave any blank if not relevant to your role.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-        {PERSONAL_DETAIL_FIELDS.map(({ key, label, placeholder }) => (
-          <div key={key}>
-            <label style={{ fontSize: 12, color: "#A0A0A0", display: "block", marginBottom: 4 }}>{label}</label>
-            <input
-              className="cvp-input"
-              placeholder={placeholder}
-              value={resume[key] || ""}
-              onChange={(e) => setField(key, e.target.value)}
-            />
-          </div>
-        ))}
-      </div>
+    <div>
+      <label style={CORRIDOR_LABEL_STYLE}>{label}</label>
       <button
         type="button"
-        style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
-        onClick={onRemoveSection}
+        className="cvp-corridor-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
       >
-        Remove section
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: value ? "var(--text-primary)" : "var(--text-muted)" }}>
+          {value || placeholder}
+        </span>
+        <ChevronDown size={15} strokeWidth={2} style={{ color: "var(--text-muted)", flexShrink: 0 }} aria-hidden />
       </button>
+      {open ? (
+        <div className="cvp-corridor-overlay" role="presentation" onClick={() => setOpen(false)}>
+          <div className="cvp-corridor-sheet" role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 6px" }} aria-hidden>
+              <span style={{ width: 38, height: 4, borderRadius: 999, background: "var(--border-strong)" }} />
+            </div>
+            <p style={{ margin: "2px 6px 10px", fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{label}</p>
+            <div style={{ overflowY: "auto", minHeight: 0 }} role="listbox" aria-label={`${label} options`}>
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  role="option"
+                  aria-selected={opt === value}
+                  className="cvp-corridor-option"
+                  onClick={() => {
+                    onChange(opt);
+                    setOpen(false);
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>{opt}</span>
+                  {opt === value ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--accent)", flexShrink: 0 }} aria-hidden><polyline points="20 6 9 17 4 12" /></svg>
+                  ) : null}
+                </button>
+              ))}
+              <div style={{ marginTop: 8, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+                <label style={{ ...CORRIDOR_LABEL_STYLE, margin: "0 6px 6px" }}>Not listed? Type it exactly as it reads</label>
+                <div style={{ display: "flex", gap: 8, padding: "0 4px 4px" }}>
+                  <input
+                    className="cvp-input"
+                    style={{ flex: 1, minWidth: 0, padding: "10px 13px" }}
+                    placeholder={placeholder}
+                    value={customDraft}
+                    onChange={(e) => setCustomDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitCustom();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={commitCustom}
+                    style={{ flexShrink: 0, padding: "0 18px", borderRadius: 10, background: "var(--accent)", border: "none", color: "var(--accent-contrast)", fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Use this
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* Availability — reads and writes the existing `availability` key (the
+   extractor and the applyToJob shim read it by name; notice period lives
+   here). "Available immediately" is deliberately NOT the legacy prefill
+   string "Immediately Available", which scrubLegacyDraftPrefills blanks. */
+function parseAvailabilityValue(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return { mode: "", notice: "" };
+  if (/immediat/i.test(s)) return { mode: "immediate", notice: "" };
+  const m = s.match(/^serving notice(?:[,:]?\s*(.*))?$/i);
+  if (m) return { mode: "notice", notice: (m[1] || "").trim() };
+  return { mode: "custom", notice: "" };
+}
+
+function AvailabilityField({ value, onChange }) {
+  const parsed = parseAvailabilityValue(value);
+  return (
+    <div>
+      <label style={CORRIDOR_LABEL_STYLE}>Availability</label>
+      <div className="cvp-avail-seg" role="group" aria-label="Availability">
+        <button
+          type="button"
+          aria-pressed={parsed.mode === "immediate"}
+          onClick={() => onChange("Available immediately")}
+        >
+          Available immediately
+        </button>
+        <button
+          type="button"
+          aria-pressed={parsed.mode === "notice"}
+          onClick={() => onChange("Serving notice")}
+        >
+          Serving notice
+        </button>
+      </div>
+      {parsed.mode === "notice" ? (
+        <input
+          className="cvp-input"
+          style={{ marginTop: 8, padding: "10px 13px" }}
+          placeholder="How long is your notice, for example 30 days"
+          value={parsed.notice}
+          onChange={(e) => {
+            const v = e.target.value;
+            onChange(v.trim() ? `Serving notice, ${v}` : "Serving notice");
+          }}
+        />
+      ) : null}
+      {parsed.mode === "custom" ? (
+        <input
+          className="cvp-input"
+          style={{ marginTop: 8, padding: "10px 13px" }}
+          aria-label="Availability, as written"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function PersonalDetailsBuilderSection({ resume, setResume }) {
+  const setField = (key, value) => setResume((r) => ({ ...r, [key]: value }));
+  /* TODO(product): salary expectation and passport have NO data source —
+     neither EMPTY_RESUME nor the transform extractor carries them, so no
+     upload can ever fill them. They are deliberately inert local state
+     (editable, persisted nowhere) until product decides whether they feed
+     the readiness score. Do not wire them to resume.* without also
+     updating the cv_snapshot contract and the extractor schema. */
+  const [salaryDraft, setSalaryDraft] = useState("");
+  const [passportDraft, setPassportDraft] = useState("");
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <p style={{ fontSize: 12.5, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
+        These are the answers a Gulf recruiter filters on before they open your CV. Most people leave them blank, so filling them is how you get called first.
+      </p>
+
+      <CorridorSelectField
+        label="Visa status"
+        value={resume.visaStatus || ""}
+        options={VISA_STATUS_OPTIONS}
+        placeholder="e.g. Resident Visa"
+        onChange={(v) => setField("visaStatus", v)}
+      />
+
+      <AvailabilityField value={resume.availability || ""} onChange={(v) => setField("availability", v)} />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+        <div>
+          <label style={CORRIDOR_LABEL_STYLE}>Nationality</label>
+          <input className="cvp-input" style={{ padding: "10px 13px" }} placeholder="e.g. Indian" value={resume.nationality || ""} onChange={(e) => setField("nationality", e.target.value)} />
+        </div>
+        <div>
+          <label style={CORRIDOR_LABEL_STYLE}>Date of birth</label>
+          <input className="cvp-input" style={{ padding: "10px 13px" }} placeholder="DD MMM YYYY" value={resume.dob || ""} onChange={(e) => setField("dob", e.target.value)} />
+        </div>
+        <CorridorSelectField
+          label="Gender"
+          value={resume.gender || ""}
+          options={GENDER_OPTIONS}
+          placeholder="Male / Female / Prefer not to say"
+          onChange={(v) => setField("gender", v)}
+        />
+        <CorridorSelectField
+          label="Marital status"
+          value={resume.maritalStatus || ""}
+          options={MARITAL_STATUS_OPTIONS}
+          placeholder="Single / Married"
+          onChange={(v) => setField("maritalStatus", v)}
+        />
+        <div>
+          <label style={CORRIDOR_LABEL_STYLE}>Driving license</label>
+          <input className="cvp-input" style={{ padding: "10px 13px" }} placeholder="e.g. UAE Driving License" value={resume.drivingLicense || ""} onChange={(e) => setField("drivingLicense", e.target.value)} />
+        </div>
+        <CorridorSelectField
+          label="Willing to relocate"
+          value={resume.willingToRelocate || ""}
+          options={RELOCATE_OPTIONS}
+          placeholder="Yes / No"
+          onChange={(v) => setField("willingToRelocate", v)}
+        />
+      </div>
+
+      <div style={{ marginTop: 4, paddingTop: 14, borderTop: "1px dashed var(--border)" }}>
+        <p style={{ margin: "0 0 4px", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--accent-text)" }}>Only you can add these</p>
+        <p style={{ margin: "0 0 11px", fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.45 }}>
+          No CV carries them, so they start empty. Adding them puts you ahead of everyone who left them off.
+        </p>
+        <div style={{ display: "grid", gap: 10 }}>
+          <div>
+            <label style={CORRIDOR_LABEL_STYLE}>Salary expectation</label>
+            {/* TODO(product): inert — see the note at the top of this component. */}
+            <div className="cvp-corridor-invite">
+              <input
+                placeholder="Add expected monthly pay"
+                value={salaryDraft}
+                onChange={(e) => setSalaryDraft(e.target.value)}
+                aria-label="Salary expectation"
+              />
+            </div>
+          </div>
+          <div>
+            <label style={CORRIDOR_LABEL_STYLE}>Passport</label>
+            {/* TODO(product): inert — see the note at the top of this component. */}
+            <div className="cvp-corridor-invite">
+              <input
+                placeholder="Add passport status"
+                value={passportDraft}
+                onChange={(e) => setPassportDraft(e.target.value)}
+                aria-label="Passport"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -809,13 +1050,9 @@ function OptionalBuilderAccordionSections({
         </div>
       ) : opt.id === "personalDetails" ? (
         <div data-cvp-highlight="personalDetails" style={{ borderRadius: 8, padding: 2, margin: -2 }}>
-          <PersonalDetailsBuilderSection
-            resume={resume}
-            setResume={setResume}
-            onRemoveSection={() =>
-              setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))
-            }
-          />
+          {/* Fixed high-value section now — no Remove. The corridor block
+              is the commercial heart of the builder; it stays findable. */}
+          <PersonalDetailsBuilderSection resume={resume} setResume={setResume} />
         </div>
       ) : (
         <div data-cvp-highlight={opt.id} style={{ display: "grid", gap: 8, borderRadius: 8, padding: 2, margin: -2 }}>
@@ -836,7 +1073,7 @@ function OptionalBuilderAccordionSections({
                     bottom: 10,
                     right: 12,
                     fontSize: 10,
-                    color: "#444",
+                    color: "var(--text-muted)",
                     pointerEvents: "none",
                   }}
                 >
@@ -844,8 +1081,8 @@ function OptionalBuilderAccordionSections({
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
-                <span style={{ fontSize: 11, color: "#555" }}>Each line = one bullet on your CV</span>
+                <List size={11} strokeWidth={1.8} style={{ color: "var(--text-muted)" }} aria-hidden />
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Each line = one bullet on your CV</span>
               </div>
             </>
           ) : (
@@ -857,7 +1094,7 @@ function OptionalBuilderAccordionSections({
           )}
           <button
             type="button"
-            style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+            style={{ ...CB_UI.btn, alignSelf: "flex-start", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
             onClick={() => setResume((r) => ({ ...r, builderExtraSectionIds: (r.builderExtraSectionIds || []).filter((x) => x !== opt.id) }))}
           >
             Remove section
@@ -874,9 +1111,9 @@ const PASTE_IMPORT_BTN = {
   gap: 6,
   padding: "8px 12px",
   borderRadius: 8,
-  border: "1px solid #2A2A2A",
-  background: "#1C1C1C",
-  color: "#FFFFFF",
+  border: "1px solid var(--border)",
+  background: "var(--bg-elevated)",
+  color: "var(--text-primary)",
   fontSize: 13,
   fontWeight: 500,
   cursor: "pointer",
@@ -884,18 +1121,18 @@ const PASTE_IMPORT_BTN = {
 };
 
 const BUILDER_SHEET_SURFACE = {
-  background: "#141414",
-  border: "1px solid #2A2A2A",
+  background: "var(--bg-surface)",
+  border: "1px solid var(--border)",
   borderRadius: 16,
 };
 
-const CVP_BUILDER_PH_CSS = ".cvp-builder-ph::placeholder{color:rgba(255,255,255,0.22);font-style:italic}";
+const CVP_BUILDER_PH_CSS = ".cvp-builder-ph::placeholder{color:var(--text-muted);font-style:italic}";
 
 /** Inline "+ Add" next to skill inputs — layout/size from `.cvp-builder-skill-add-btn` in index.css */
 const BUILDER_SKILL_ADD_BTN = {
-  background: "#fff",
+  background: "var(--text-primary)",
   border: "none",
-  color: "#000",
+  color: "var(--bg)",
   fontWeight: 700,
   cursor: "pointer",
   fontFamily: "inherit",
@@ -910,7 +1147,7 @@ const BUILDER_TECH_CHIP = {
   gap: 4,
   background: "rgba(59,130,246,0.12)",
   border: "1px solid rgba(59,130,246,0.3)",
-  color: "#93C5FD",
+  color: "var(--info)",
   fontSize: 11,
   fontWeight: 500,
   padding: "5px 11px",
@@ -922,7 +1159,7 @@ const BUILDER_TECH_CHIP_REMOVE = {
   cursor: "pointer",
   opacity: 0.45,
   fontSize: 14,
-  color: "#60A5FA",
+  color: "var(--info)",
   background: "none",
   border: "none",
   padding: 0,
@@ -932,7 +1169,7 @@ const BUILDER_TECH_CHIP_REMOVE = {
 
 const BUILDER_TECH_SKILL_COUNT_BADGE = {
   fontSize: 10,
-  color: "#60A5FA",
+  color: "var(--info)",
   background: "rgba(59,130,246,0.12)",
   border: "1px solid rgba(59,130,246,0.25)",
   borderRadius: 999,
@@ -955,7 +1192,7 @@ function BuilderCvPdfSpinner20() {
           cy="10"
           r="8"
           fill="none"
-          stroke="rgba(255,255,255,0.9)"
+          style={{ stroke: "var(--text-primary)" }}
           strokeWidth="2"
           strokeDasharray="12 40"
           strokeLinecap="round"
@@ -965,7 +1202,7 @@ function BuilderCvPdfSpinner20() {
   );
 }
 
-function ClipboardIconThin({ size = 16, color = "#FFFFFF" }) {
+function ClipboardIconThin({ size = 16, color = "var(--text-primary)" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <rect x="8" y="2" width="8" height="4" rx="1" />
@@ -1137,7 +1374,7 @@ function ProfessionalSummaryField({
             bottom: 10,
             right: 12,
             fontSize: 10,
-            color: "#444",
+            color: "var(--text-muted)",
             pointerEvents: "none",
           }}
         >
@@ -1155,8 +1392,8 @@ function ProfessionalSummaryField({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-          <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
-          <span style={{ fontSize: 11, color: "#555" }}>Keep it to 2–3 sentences — recruiters scan this first</span>
+          <List size={11} strokeWidth={1.8} style={{ color: "var(--text-muted)" }} aria-hidden />
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Keep it to 2–3 sentences — recruiters scan this first</span>
         </div>
         {aiEnabled && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
@@ -1169,9 +1406,9 @@ function ProfessionalSummaryField({
                   fontSize: 11,
                   fontWeight: 500,
                   color:
-                    aiToast.kind === "success" ? "#1D9E75"
-                      : aiToast.kind === "error" ? "#DC2626"
-                      : "#A0A0A0",
+                    aiToast.kind === "success" ? "var(--success)"
+                      : aiToast.kind === "error" ? "var(--danger)"
+                      : "var(--text-secondary)",
                 }}
                 role="status"
                 aria-live="polite"
@@ -1185,7 +1422,7 @@ function ProfessionalSummaryField({
                       background: "none",
                       border: "none",
                       padding: 0,
-                      color: "#EF9F27",
+                      color: "var(--color-accent-bright)",
                       fontSize: 11,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -1211,7 +1448,7 @@ function ProfessionalSummaryField({
                 border: "1px solid rgba(217,119,6,0.45)",
                 borderRadius: 999,
                 background: "rgba(217,119,6,0.12)",
-                color: "#D97706",
+                color: "var(--accent)",
                 fontSize: 11.5,
                 fontWeight: 600,
                 cursor: ai.isGenerating ? "default" : "pointer",
@@ -1243,10 +1480,10 @@ function ProfessionalSummaryField({
             justifyContent: "flex-end",
           }}
         >
-          <span style={{ fontSize: 12, color: "#FFFFFF", fontWeight: 500 }}>Clear summary?</span>
+          <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>Clear summary?</span>
           <button
             type="button"
-            style={{ background: "none", border: "none", padding: 0, color: "#FFFFFF", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            style={{ background: "none", border: "none", padding: 0, color: "var(--text-primary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
             onClick={() => {
               onChange("");
               setClearAsk(false);
@@ -1256,7 +1493,7 @@ function ProfessionalSummaryField({
           </button>
           <button
             type="button"
-            style={{ background: "none", border: "none", padding: 0, color: "#A0A0A0", fontSize: 12, cursor: "pointer" }}
+            style={{ background: "none", border: "none", padding: 0, color: "var(--text-secondary)", fontSize: 12, cursor: "pointer" }}
             onClick={() => setClearAsk(false)}
           >
             Cancel
@@ -1278,7 +1515,7 @@ function ProfessionalSummaryField({
             border: "none",
             borderRadius: 6,
             background: "rgba(28,28,28,0.92)",
-            color: "#FFFFFF",
+            color: "var(--text-primary)",
             cursor: "pointer",
             display: "grid",
             placeItems: "center",
@@ -1408,7 +1645,7 @@ function SkillsEditorSection({
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
               <button
                 type="button"
-                style={{ background: "none", border: "none", color: "#A0A0A0", fontSize: 14, cursor: "pointer", padding: "8px 4px" }}
+                style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 14, cursor: "pointer", padding: "8px 4px" }}
                 onClick={() => {
                   setSkillsPasteOpen(false);
                   setSkillsPasteDraft("");
@@ -1432,7 +1669,7 @@ function SkillsEditorSection({
         <div className="cvp-skills-add-row">
           <input
             className="cvp-input cvp-builder-ph cvp-skills-skill-input"
-            placeholder="Add a skill…"
+            placeholder="+ Add a skill"
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
             onKeyDown={(e) => {
@@ -1474,7 +1711,7 @@ function SkillsEditorSection({
           </button>
         </div>
         {duplicateInput ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6, fontSize: 11, color: "#60A5FA" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6, fontSize: 11, color: "var(--info)" }}>
             <AlertCircle size={11} strokeWidth={1.8} aria-hidden />
             This skill is already added
           </div>
@@ -1522,8 +1759,8 @@ function SkillsEditorSection({
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
-                <span style={{ fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>Suggestions — not on your CV yet</span>
+                <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
+                <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>Suggestions — not on your CV yet</span>
               </span>
               <button
                 type="button"
@@ -1532,7 +1769,7 @@ function SkillsEditorSection({
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#A0A0A0",
+                  color: "var(--text-secondary)",
                   cursor: "pointer",
                   padding: 0,
                   display: "flex",
@@ -1557,7 +1794,7 @@ function SkillsEditorSection({
                       gap: 4,
                       background: "transparent",
                       border: "1px dashed rgba(59,130,246,0.4)",
-                      color: "#60A5FA",
+                      color: "var(--info)",
                       borderRadius: 999,
                       padding: "4px 10px",
                       fontSize: 11,
@@ -1631,7 +1868,12 @@ function technicalSkillsHasAnyChip(resume) {
 }
 
 /** Default builder accordion order; optional sections appear when added to `builderExtraSectionIds`. */
+/* Personal Details rides SECOND (right after the personal info card, first
+   among the accordions) — it is the corridor block a Gulf recruiter filters
+   on, no longer buried under Add section. Saved builderSectionOrder still
+   wins for users who reordered. */
 const BUILDER_SECTION_DEFAULT_ORDER = [
+  "personalDetails",
   "summary",
   "experience",
   "education",
@@ -1639,7 +1881,6 @@ const BUILDER_SECTION_DEFAULT_ORDER = [
   "skills",
   "technicalSkills",
   "languages",
-  "personalDetails",
   "projects",
   "volunteer",
   "publications",
@@ -1647,13 +1888,14 @@ const BUILDER_SECTION_DEFAULT_ORDER = [
 
 function builderVisibleSectionIds(resume) {
   const extra = resume.builderExtraSectionIds || [];
-  const ids = ["summary", "experience", "education"];
+  /* personalDetails is always visible — a fixed section, not opt-in. */
+  const ids = ["personalDetails", "summary", "experience", "education"];
   if (extra.includes("certifications")) ids.push("certifications");
   ids.push("skills");
   if (technicalSkillsHasAnyChip(resume)) ids.push("technicalSkills");
   ids.push("languages");
   for (const opt of OPTIONAL_BUILDER_SECTIONS) {
-    if (opt.id !== "certifications" && extra.includes(opt.id)) ids.push(opt.id);
+    if (opt.id !== "certifications" && opt.id !== "personalDetails" && extra.includes(opt.id)) ids.push(opt.id);
   }
   return ids;
 }
@@ -1664,8 +1906,16 @@ function resolveOrderedBuilderSectionIds(resume) {
   const saved = Array.isArray(resume.builderSectionOrder) ? resume.builderSectionOrder : [];
   const ordered = [];
   const seen = new Set();
+  /* A saved order that predates the always-visible corridor block never
+     contains personalDetails — surface it FIRST rather than appending it
+     to the tail where it would stay buried. A saved order that DOES
+     contain it keeps the user's own placement. */
+  if (!saved.includes("personalDetails") && visibleSet.has("personalDetails")) {
+    ordered.push("personalDetails");
+    seen.add("personalDetails");
+  }
   for (const id of saved) {
-    if (visibleSet.has(id)) {
+    if (visibleSet.has(id) && !seen.has(id)) {
       ordered.push(id);
       seen.add(id);
     }
@@ -1820,7 +2070,7 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
   const iconBtn = {
     background: "none",
     border: "none",
-    color: "#A0A0A0",
+    color: "var(--text-secondary)",
     cursor: "pointer",
     padding: 4,
     borderRadius: 6,
@@ -1846,8 +2096,8 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
         display: "flex",
         alignItems: "center",
         gap: 10,
-        background: "#1C1C1C",
-        border: "1px solid #2A2A2A",
+        background: "var(--bg-elevated)",
+        border: "1px solid var(--border)",
         borderRadius: 10,
         padding: "10px 12px",
         cursor: "pointer",
@@ -1855,7 +2105,7 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
         boxSizing: "border-box",
       }}
     >
-      <span style={{ color: "#A0A0A0", flexShrink: 0, display: "flex", pointerEvents: "none" }} aria-hidden>
+      <span style={{ color: "var(--text-secondary)", flexShrink: 0, display: "flex", pointerEvents: "none" }} aria-hidden>
         <GripVertical size={14} strokeWidth={1.8} />
       </span>
       <div style={{ flex: 1, minWidth: 0, pointerEvents: "none" }}>
@@ -1863,7 +2113,7 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
           style={{
             fontSize: 12,
             fontWeight: 600,
-            color: "#FFFFFF",
+            color: "var(--text-primary)",
             whiteSpace: "normal",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -1874,7 +2124,7 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
         <div
           style={{
             fontSize: 11,
-            color: "#A0A0A0",
+            color: "var(--text-secondary)",
             whiteSpace: "normal",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -1949,10 +2199,10 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
           }}
           style={iconBtn}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#F87171";
+            e.currentTarget.style.color = "var(--danger)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#A0A0A0";
+            e.currentTarget.style.color = "var(--text-secondary)";
           }}
         >
           <Trash2 size={14} strokeWidth={1.8} aria-hidden />
@@ -2038,7 +2288,7 @@ function HighlightedSnippet({ text, query }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === q.toLowerCase() ? (
-          <strong key={i} style={{ color: "#FFFFFF", fontWeight: 700 }}>
+          <strong key={i} style={{ color: "var(--text-primary)", fontWeight: 700 }}>
             {part}
           </strong>
         ) : (
@@ -2054,10 +2304,10 @@ function pulseCvpHighlight(el) {
   const prevBg = el.style.backgroundColor;
   const prevTrans = el.style.transition;
   el.style.transition = "background-color 150ms cubic-bezier(0.4,0,0.2,1)";
-  el.style.backgroundColor = "#2A2A2A";
+  el.style.backgroundColor = "var(--border)";
   window.requestAnimationFrame(() => {
     window.requestAnimationFrame(() => {
-      el.style.backgroundColor = "#1C1C1C";
+      el.style.backgroundColor = "var(--bg-elevated)";
     });
   });
   window.setTimeout(() => {
@@ -2260,18 +2510,18 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               onChange={(e) => setPasteText(e.target.value)}
             />
             {pastePreview && pastePreview.warn ? (
-              <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>{pastePreview.warn}</p>
+              <p style={{ fontSize: 12, color: "var(--warn)", margin: 0 }}>{pastePreview.warn}</p>
             ) : null}
             {pastePreview && pastePreview.kind === "category" && (pastePreview.chips || []).length > 0 ? (
-              <div style={{ fontSize: 12, color: "#A0A0A0", lineHeight: 1.4 }}>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>
                 {(pastePreview.chips || []).join(" · ")}
               </div>
             ) : null}
             {pastePreview && pastePreview.kind === "global" && pastePreview.rows.length > 0 ? (
               <div style={{ overflowY: "auto", maxHeight: 200, display: "grid", gap: 8 }}>
                 {pastePreview.rows.map((row, ri) => (
-                  <div key={`${row.category}-${ri}`} style={{ fontSize: 12, color: "#A0A0A0", lineHeight: 1.4 }}>
-                    <span style={{ color: "#FFFFFF", fontWeight: 600 }}>{row.category}</span>
+                  <div key={`${row.category}-${ri}`} style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{row.category}</span>
                     {row.chips.length > 0 ? `: ${row.chips.join(", ")}` : ""}
                   </div>
                 ))}
@@ -2280,7 +2530,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
               <button
                 type="button"
-                style={{ background: "none", border: "none", color: "#A0A0A0", fontSize: 14, cursor: "pointer", padding: "8px 4px" }}
+                style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: 14, cursor: "pointer", padding: "8px 4px" }}
                 onClick={closePaste}
               >
                 Cancel
@@ -2324,7 +2574,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
             + Add Category
           </button>
         </div>
-        {groups.length >= 20 ? <p style={{ fontSize: 12, color: "#CA8A04", margin: 0 }}>Maximum 20 categories.</p> : null}
+        {groups.length >= 20 ? <p style={{ fontSize: 12, color: "var(--warn)", margin: 0 }}>Maximum 20 categories.</p> : null}
 
       {groups.map((g, i) => {
         const chipList = skillsArrayForChipRender(g.chips);
@@ -2332,8 +2582,8 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
         <div
           key={i}
           style={{
-            background: "#1C1C1C",
-            border: "1px solid #2A2A2A",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
             borderRadius: 12,
             padding: 12,
             marginBottom: 8,
@@ -2368,7 +2618,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                   moveGroup(i, i + 1);
                 }
               }}
-              style={{ color: "#A0A0A0", cursor: "grab", flexShrink: 0, display: "flex", touchAction: "none" }}
+              style={{ color: "var(--text-secondary)", cursor: "grab", flexShrink: 0, display: "flex", touchAction: "none" }}
             >
               <GripVertical size={13} strokeWidth={1.8} aria-hidden />
             </div>
@@ -2390,7 +2640,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                 background: "transparent",
                 border: "none",
                 borderBottom: "1px solid transparent",
-                color: "#FFFFFF",
+                color: "var(--text-primary)",
                 fontSize: 12,
                 fontWeight: 600,
                 outline: "none",
@@ -2411,19 +2661,19 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               type="button"
               aria-label="Remove category"
               onClick={() => updateGroups((arr) => arr.filter((_, j) => j !== i))}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 4, display: "flex" }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", padding: 4, display: "flex" }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#F87171";
+                e.currentTarget.style.color = "var(--danger)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#A0A0A0";
+                e.currentTarget.style.color = "var(--text-secondary)";
               }}
             >
               <Trash2 size={14} strokeWidth={1.8} aria-hidden />
             </button>
           </div>
           {chipList.length === 0 ? (
-            <p style={{ fontSize: 12, color: "#F87171", margin: "0 0 8px" }}>
+            <p style={{ fontSize: 12, color: "var(--danger)", margin: "0 0 8px" }}>
               Add at least one skill to this category, or remove it — empty categories cannot be saved.
             </p>
           ) : null}
@@ -2571,14 +2821,14 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <Lightbulb size={11} strokeWidth={1.8} color="#60A5FA" aria-hidden />
-                <span style={{ fontSize: 11, color: "#60A5FA", fontWeight: 600 }}>Suggested categories — not on your CV yet</span>
+                <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
+                <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>Suggested categories — not on your CV yet</span>
               </span>
               <button
                 type="button"
                 title="Dismiss suggestions"
                 onClick={() => setSuggestedCategoriesDismissed(true)}
-                style={{ background: "none", border: "none", color: "#A0A0A0", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
+                style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
               >
                 <X size={13} strokeWidth={2} aria-hidden />
               </button>
@@ -2588,15 +2838,15 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                 const added = isSuggestedCategoryAdded(cat);
                 return (
                   <div key={cat.category} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                    <span style={{ fontSize: 12, color: "#A0A0A0" }}>{cat.category}</span>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{cat.category}</span>
                     <button
                       type="button"
                       disabled={added || groups.length >= 20}
                       onClick={() => addSuggestedCategory(cat)}
                       style={{
-                        background: "#1C1C1C",
-                        border: added ? "1px solid #4ADE80" : "1px solid #2A2A2A",
-                        color: added ? "#4ADE80" : "#FFFFFF",
+                        background: "var(--bg-elevated)",
+                        border: added ? "1px solid var(--success)" : "1px solid var(--border)",
+                        color: added ? "var(--success)" : "var(--text-primary)",
                         fontFamily: "inherit",
                         fontSize: 11,
                         fontWeight: 500,
@@ -2615,7 +2865,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
           </div>
         ) : null}
 
-        {groups.length === 0 ? <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>Add a category, then add skills as chips.</p> : null}
+        {groups.length === 0 ? <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>Add a category, then add skills as chips.</p> : null}
       </div>
     </>
   );
@@ -2771,6 +3021,15 @@ function ResumeBuilder({
   const [activeSection, setActiveSection] = useState(null);
   const [menuDrawerOpen, setMenuDrawerOpen] = useState(false);
   const [fabSheet, setFabSheet] = useState(null);
+  /* Day/night — the builder follows the global candidate theme (cvp_theme,
+     light/day is the product default). The root stamps data-theme so the
+     token cascade re-resolves inside the App shell's dark pin; setTheme
+     also stamps <html> so body portals (SynthesisOverlay, CompletionScreen)
+     agree. No stored preference → day. */
+  const [builderTheme, setBuilderTheme] = useState(() => getTheme());
+  const toggleBuilderTheme = useCallback(() => {
+    setBuilderTheme((cur) => setTheme(cur === "dark" ? "light" : "dark"));
+  }, []);
   const [previewFadeOut, setPreviewFadeOut] = useState(false);
   const [contextualSection, setContextualSection] = useState(null);
   const [, setJobHasJd] = useState(false);
@@ -4103,10 +4362,13 @@ function ResumeBuilder({
   const addSectionPickerRows = useMemo(() => {
     const ids = resume.builderExtraSectionIds ?? [];
     const nav = (id, label) => ({ kind: "nav", id, label });
-    const optionalNotAdded = OPTIONAL_BUILDER_SECTIONS.filter((s) => !ids.includes(s.id));
+    /* personalDetails is a fixed always-visible section now — it appears
+       as a nav (jump) row, never an add row. */
+    const optionalNotAdded = OPTIONAL_BUILDER_SECTIONS.filter((s) => !ids.includes(s.id) && s.id !== "personalDetails");
     const certRow = optionalNotAdded.find((s) => s.id === "certifications");
     const restOpt = optionalNotAdded.filter((s) => s.id !== "certifications");
     const rows = [
+      nav("personalDetails", "Personal Details"),
       nav("summary", "Professional Summary"),
       nav("experience", "Professional Experience"),
       nav("education", "Education"),
@@ -4125,17 +4387,17 @@ function ResumeBuilder({
   const guideCoverLetterPreview = (
     <div style={{ padding: "24px 16px 200px", filter: "blur(8px)", pointerEvents: "none", userSelect: "none" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: "#FFFFFF" }}>Cover Letter</span>
-        <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#2A2A2A", color: "#A0A0A0" }}>Preview</span>
+        <span style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Cover Letter</span>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "var(--border)", color: "var(--text-secondary)" }}>Preview</span>
       </div>
-      <div style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 16, overflow: "hidden", position: "relative" }}>
-        <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5" }}>
+      <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16, overflow: "hidden", position: "relative" }}>
+        <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>
           {"Dear Hiring Manager,\n\nI am writing to express my strong interest in the position at your esteemed organisation. With my background in professional services and a proven track record of delivering results, I am confident in my ability to contribute meaningfully to your team."}
         </div>
-        <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "#E5E5E5", filter: "blur(5px)", marginTop: 12 }}>
+        <div style={{ fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap", color: "var(--text-secondary)", filter: "blur(5px)", marginTop: 12 }}>
           {"Throughout my career, I have consistently demonstrated the ability to manage complex projects and collaborate effectively with cross-functional teams. My experience in the Gulf region has equipped me with a deep understanding of regional business practices.\n\nI look forward to the opportunity to discuss how my qualifications align with your needs.\n\nSincerely,\nYour Name"}
         </div>
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "55%", background: "linear-gradient(to bottom, rgba(20,20,20,0), #141414 55%, #141414)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "55%", background: "linear-gradient(to bottom, rgba(20,20,20,0), var(--bg-surface) 55%, var(--bg-surface))", pointerEvents: "none" }} />
       </div>
     </div>
   );
@@ -4143,6 +4405,7 @@ function ResumeBuilder({
   return (
     <div
       ref={builderRootRef}
+      data-theme={builderTheme}
       style={{
         minHeight: "100vh",
         height: "100vh",
@@ -4166,8 +4429,8 @@ function ResumeBuilder({
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: "#0A0A0A",
-          borderBottom: "1px solid #2A2A2A",
+          background: "var(--bg)",
+          borderBottom: "1px solid var(--border)",
           display: "flex",
           flexDirection: "column",
           alignItems: "stretch",
@@ -4177,7 +4440,7 @@ function ResumeBuilder({
           transition: 'opacity 0.3s ease',
         }}
       >
-        <style dangerouslySetInnerHTML={{ __html: ".cvp-cv-finder-input::placeholder{color:rgba(255,255,255,.55)}" }} />
+        <style dangerouslySetInnerHTML={{ __html: ".cvp-cv-finder-input::placeholder{color:var(--text-secondary)}" }} />
         <style dangerouslySetInnerHTML={{ __html: "@property --ats-angle{syntax:'<angle>';initial-value:0deg;inherits:false}@keyframes ats-spin-border{to{--ats-angle:360deg}}" }} />
         <div
           style={{
@@ -4192,7 +4455,7 @@ function ResumeBuilder({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
-            <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>
+            <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
             </button>
             <div className="cvp-builder-tab-scroll" style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -4213,23 +4476,51 @@ function ResumeBuilder({
                     setBuilderTab(tab);
                   }}
                   style={{
-                    padding: "6px 12px",
-                    borderRadius: 8,
+                    padding: "0 14px",
+                    height: 44,
+                    borderRadius: 0,
                     border: "none",
-                    background: builderTab === tab ? "#1C1C1C" : "transparent",
-                    color: builderTab === tab ? "#FFFFFF" : "#A0A0A0",
+                    borderBottom: builderTab === tab ? "2px solid var(--accent)" : "2px solid transparent",
+                    background: "transparent",
+                    color: builderTab === tab ? "var(--accent-text)" : "var(--text-secondary)",
                     fontWeight: builderTab === tab ? 600 : 500,
                     fontSize: 14,
                     cursor: "pointer",
                     whiteSpace: "normal",
                     flex: "0 0 auto",
-                    transition: `background-color 150ms ${EASE}, color 150ms ${EASE}`,
+                    transition: `border-color 150ms ${EASE}, color 150ms ${EASE}`,
                   }}
                 >
                   {tab === "content" ? "Content" : tab === "templates" ? "Templates" : tab === "ats" ? "ATS Check" : "Job Match"}
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className="cvp-builder-theme-toggle"
+              aria-label={builderTheme === "dark" ? "Switch to day mode" : "Switch to night mode"}
+              title={builderTheme === "dark" ? "Switch to day mode" : "Switch to night mode"}
+              onClick={toggleBuilderTheme}
+              style={{
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                minHeight: 44,
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                color: "var(--text-secondary)",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+                transition: `color 150ms ${EASE}`,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}
+            >
+              {builderTheme === "dark" ? <Sun size={18} strokeWidth={1.8} aria-hidden /> : <Moon size={18} strokeWidth={1.8} aria-hidden />}
+            </button>
             <button
               ref={cvFinderToggleRef}
               type="button"
@@ -4247,7 +4538,7 @@ function ResumeBuilder({
                 padding: 0,
                 border: "none",
                 background: "transparent",
-                color: "#FFFFFF",
+                color: "var(--text-primary)",
                 cursor: "pointer",
                 display: "grid",
                 placeItems: "center",
@@ -4272,7 +4563,7 @@ function ResumeBuilder({
                 padding: 0,
                 border: "none",
                 background: "transparent",
-                color: "#A0A0A0",
+                color: "var(--text-secondary)",
                 cursor: "pointer",
                 display: "grid",
                 placeItems: "center",
@@ -4310,7 +4601,7 @@ function ResumeBuilder({
               flexWrap: "wrap",
               gap: 6,
               padding: "8px 16px 10px",
-              borderTop: "1px solid #1A1A1A",
+              borderTop: "1px solid var(--border)",
               boxSizing: "border-box",
             }}
             aria-label="CV completion steps"
@@ -4321,11 +4612,11 @@ function ResumeBuilder({
               return (
                 <Fragment key={label}>
                   {i > 0 ? (
-                    <span style={{ color: "#3A3A3A", fontSize: 10, userSelect: "none" }} aria-hidden>
+                    <span style={{ color: "var(--border-strong)", fontSize: 10, userSelect: "none" }} aria-hidden>
                       →
                     </span>
                   ) : null}
-                  <span style={{ fontSize: 10, fontWeight: on ? 700 : 500, color: on ? "#FFFFFF" : "#666666" }}>{label}</span>
+                  <span style={{ fontSize: 10, fontWeight: on ? 700 : 500, color: on ? "var(--text-primary)" : "var(--text-muted)" }}>{label}</span>
                 </Fragment>
               );
             })}
@@ -4355,16 +4646,16 @@ function ResumeBuilder({
                 boxSizing: "border-box",
                 padding: "10px 14px",
                 borderRadius: 10,
-                border: "1px solid #2A2A2A",
-                background: "#1C1C1C",
-                color: "#FFFFFF",
+                border: "1px solid var(--border)",
+                background: "var(--bg-elevated)",
+                color: "var(--text-primary)",
                 fontSize: 14,
                 outline: "none",
               }}
             />
             {cvFinderQuery.trim() ? (
               <>
-                <div style={{ fontSize: 11, color: "#888888" }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                   {cvFinderMatches.length} match{cvFinderMatches.length === 1 ? "" : "es"} found
                 </div>
                 <div
@@ -4385,13 +4676,13 @@ function ResumeBuilder({
                         textAlign: "left",
                         padding: "8px 10px",
                         borderRadius: 8,
-                        border: "1px solid #2A2A2A",
-                        background: "#141414",
+                        border: "1px solid var(--border)",
+                        background: "var(--bg-surface)",
                         cursor: "pointer",
                       }}
                     >
-                      <div style={{ fontSize: 10, color: "#888888", marginBottom: 4 }}>{m.sectionLabel}</div>
-                      <div style={{ fontSize: 13, color: "#A0A0A0", lineHeight: 1.35 }}>
+                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4 }}>{m.sectionLabel}</div>
+                      <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.35 }}>
                         <HighlightedSnippet text={m.text} query={cvFinderQuery} />
                       </div>
                     </button>
@@ -4444,15 +4735,15 @@ function ResumeBuilder({
                   gap: 10,
                   flexWrap: "wrap",
                   padding: "16px 0 12px",
-                  borderBottom: "1px solid #2A2A2A",
+                  borderBottom: "1px solid var(--border)",
                   marginBottom: 12,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "#FFF" }}>CVPassport</span>
+                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>CVPassport</span>
                   {savedBadgeLabel ? (
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#4ADE80", opacity: 0.85 }}>
-                      <span style={{ width: 6, height: 6, background: "#4ADE80", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--success)", opacity: 0.85 }}>
+                      <span style={{ width: 6, height: 6, background: "var(--success)", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
                       {savedBadgeLabel}
                     </span>
                   ) : null}
@@ -4487,10 +4778,10 @@ function ResumeBuilder({
               ) : null}
 
               {/* Personal info card — always visible */}
-              <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 18, padding: 16, position: "relative" }}>
-                <button type="button" aria-label="Edit" style={{ position: "absolute", top: 12, right: 12, width: 32, height: 32, borderRadius: 999, border: "1px solid #2A2A2A", background: "#1C1C1C", color: "#A0A0A0", cursor: "pointer", display: "grid", placeItems: "center" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                </button>
+              <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 16, position: "relative" }}>
+                {/* The decorative round Edit pencil was removed — it rendered
+                    with no onClick (a dead control). The fields below are
+                    directly editable; nothing needed a second entry point. */}
                 <div style={{ display: "grid", gap: 10 }}>
                   <div className="cvp-field">
                     <input id="cvp-pi-name" className="cvp-input" placeholder=" " value={resume.name} onChange={e=>set("name",e.target.value)} />
@@ -4520,8 +4811,8 @@ function ResumeBuilder({
               </div>
 
               {cvJourneyChrome && !cvJourney.templateChosen ? (
-                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
-                  <p style={{ margin: 0, fontSize: 14, color: "#E5E5E5", lineHeight: 1.45 }}>Your CV is ready. Now let&apos;s make it shine.</p>
+                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-surface)", display: "grid", gap: 10 }}>
+                  <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.45 }}>Your CV is ready. Now let&apos;s make it shine.</p>
                   <button
                     type="button"
                     onClick={() => setBuilderTab("templates")}
@@ -4529,8 +4820,8 @@ function ResumeBuilder({
                       padding: "10px 14px",
                       borderRadius: 8,
                       border: "none",
-                      background: "#FFFFFF",
-                      color: "#000000",
+                      background: "var(--text-primary)",
+                      color: "var(--bg)",
                       fontSize: 14,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -4551,7 +4842,7 @@ function ResumeBuilder({
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#666666",
+                      color: "var(--text-muted)",
                       fontSize: 11,
                       textDecoration: "underline",
                       cursor: "pointer",
@@ -4564,8 +4855,8 @@ function ResumeBuilder({
                 </div>
               ) : null}
               {cvJourneyChrome && cvJourney.coverLetterSeen ? (
-                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
-                  <p style={{ margin: 0, fontSize: 13, color: "#A0A0A0", lineHeight: 1.4 }}>Export your CV as PDF when you&apos;re ready.</p>
+                <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-surface)", display: "grid", gap: 10 }}>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.4 }}>Export your CV as PDF when you&apos;re ready.</p>
                   <button
                     type="button"
                     onClick={handleDownload}
@@ -4574,8 +4865,8 @@ function ResumeBuilder({
                       padding: "10px 14px",
                       borderRadius: 8,
                       border: "none",
-                      background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
-                      color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
+                      background: downloadState.status === 'generating' ? "var(--bg-elevated)" : "var(--text-primary)",
+                      color: downloadState.status === 'generating' ? "var(--text-primary)" : "var(--bg)",
                       fontSize: 14,
                       fontWeight: 600,
                       cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
@@ -4756,12 +5047,12 @@ function ResumeBuilder({
                       padding: "12px 14px",
                       marginTop: 10,
                       borderRadius: 12,
-                      border: "1px dashed #333333",
-                      background: "#0A0A0A",
+                      border: "1px dashed var(--border-strong)",
+                      background: "var(--bg)",
                       boxSizing: "border-box",
                     }}
                   >
-                    <p style={{ margin: 0, fontSize: 12, color: "#A0A0A0", lineHeight: 1.35, flex: 1, minWidth: 0 }}>Have technical or IT skills? Add a Technical Skills section</p>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.35, flex: 1, minWidth: 0 }}>Have technical or IT skills? Add a Technical Skills section</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -4772,9 +5063,9 @@ function ResumeBuilder({
                         flexShrink: 0,
                         padding: "6px 12px",
                         borderRadius: 8,
-                        border: "1px solid #2A2A2A",
-                        background: "#1C1C1C",
-                        color: "#FFFFFF",
+                        border: "1px solid var(--border)",
+                        background: "var(--bg-elevated)",
+                        color: "var(--text-primary)",
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -4828,7 +5119,7 @@ function ResumeBuilder({
                     {splitCommaItems(resume.languages).map((lg, li) => (
                       <span key={`${lg}-${li}`} style={CB_UI.chip}>
                         {lg}
-                        <button type="button" aria-label={`Remove ${lg}`} onClick={() => setResume(r => ({ ...r, languages: splitCommaItems(r.languages).filter((x) => x !== lg).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
+                        <button type="button" aria-label={`Remove ${lg}`} onClick={() => setResume(r => ({ ...r, languages: splitCommaItems(r.languages).filter((x) => x !== lg).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}>×</button>
                       </span>
                     ))}
                   </div>
@@ -4842,7 +5133,7 @@ function ResumeBuilder({
               <OptionalBuilderAccordionSections
                 resume={resume}
                 setResume={setResume}
-                filter={(opt) => opt.id !== "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id))}
+                filter={(opt) => opt.id === "personalDetails" || (opt.id !== "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id)))}
                 certificationEditor={certificationEditor}
                 setCertificationEditor={setCertificationEditor}
                 isOpen={isOpen}
@@ -4855,7 +5146,7 @@ function ResumeBuilder({
               </div>
 
               {builderTab === "content" && (
-                <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+                <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--text-primary)"; e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>+ Add section</button>
               )}
             </>
           )}
@@ -4935,15 +5226,15 @@ function ResumeBuilder({
                     gap: 10,
                     flexWrap: "wrap",
                     padding: "6px 12px 6px",
-                    borderBottom: "1px solid #2A2A2A",
+                    borderBottom: "1px solid var(--border)",
                     marginBottom: 8,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "#FFF" }}>CVPassport</span>
+                    <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>CVPassport</span>
                     {savedBadgeLabel ? (
-                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#4ADE80", opacity: 0.85 }}>
-                        <span style={{ width: 6, height: 6, background: "#4ADE80", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
+                      <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--success)", opacity: 0.85 }}>
+                        <span style={{ width: 6, height: 6, background: "var(--success)", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
                         {savedBadgeLabel}
                       </span>
                     ) : null}
@@ -4980,7 +5271,7 @@ function ResumeBuilder({
                 {personalDetailsNudgeOpen ? (
                   <PersonalDetailsNudge onDismiss={dismissPersonalDetailsNudge} />
                 ) : null}
-                <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 18, padding: 16, position: "relative" }}>
+                <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 16, position: "relative" }}>
                   <div style={{ display: "grid", gap: 10 }}>
                     <div className="cvp-field">
                       <input id="cvp-pi-name" className="cvp-input" placeholder=" " value={resume.name} onChange={e=>set("name",e.target.value)} />
@@ -5009,8 +5300,8 @@ function ResumeBuilder({
                   </div>
                 </div>
                 {cvJourneyChrome && !cvJourney.templateChosen ? (
-                  <div style={{ margin: "0 12px 12px", padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
-                    <p style={{ margin: 0, fontSize: 14, color: "#E5E5E5", lineHeight: 1.45 }}>Your CV is ready. Now let&apos;s make it shine.</p>
+                  <div style={{ margin: "0 12px 12px", padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-surface)", display: "grid", gap: 10 }}>
+                    <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.45 }}>Your CV is ready. Now let&apos;s make it shine.</p>
                     <button
                       type="button"
                       onClick={() => setBuilderTab("templates")}
@@ -5018,8 +5309,8 @@ function ResumeBuilder({
                         padding: "10px 14px",
                         borderRadius: 8,
                         border: "none",
-                        background: "#FFFFFF",
-                        color: "#000000",
+                        background: "var(--text-primary)",
+                        color: "var(--bg)",
                         fontSize: 14,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -5040,7 +5331,7 @@ function ResumeBuilder({
                       style={{
                         background: "none",
                         border: "none",
-                        color: "#666666",
+                        color: "var(--text-muted)",
                         fontSize: 11,
                         textDecoration: "underline",
                         cursor: "pointer",
@@ -5053,8 +5344,8 @@ function ResumeBuilder({
                   </div>
                 ) : null}
                 {cvJourneyChrome && cvJourney.coverLetterSeen ? (
-                  <div style={{ margin: "0 12px 12px", padding: 14, borderRadius: 12, border: "1px solid #2A2A2A", background: "#141414", display: "grid", gap: 10 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: "#A0A0A0", lineHeight: 1.4 }}>Export your CV as PDF when you&apos;re ready.</p>
+                  <div style={{ margin: "0 12px 12px", padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-surface)", display: "grid", gap: 10 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.4 }}>Export your CV as PDF when you&apos;re ready.</p>
                     <button
                       type="button"
                       onClick={handleDownload}
@@ -5063,8 +5354,8 @@ function ResumeBuilder({
                         padding: "10px 14px",
                         borderRadius: 8,
                         border: "none",
-                        background: downloadState.status === 'generating' ? "#1C1C1C" : "#FFFFFF",
-                        color: downloadState.status === 'generating' ? "#FFFFFF" : "#000000",
+                        background: downloadState.status === 'generating' ? "var(--bg-elevated)" : "var(--text-primary)",
+                        color: downloadState.status === 'generating' ? "var(--text-primary)" : "var(--bg)",
                         fontSize: 14,
                         fontWeight: 600,
                         cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
@@ -5249,12 +5540,12 @@ function ResumeBuilder({
                       padding: "12px 14px",
                       marginTop: 10,
                       borderRadius: 12,
-                      border: "1px dashed #333333",
-                      background: "#0A0A0A",
+                      border: "1px dashed var(--border-strong)",
+                      background: "var(--bg)",
                       boxSizing: "border-box",
                     }}
                   >
-                    <p style={{ margin: 0, fontSize: 12, color: "#A0A0A0", lineHeight: 1.35, flex: 1, minWidth: 0 }}>Have technical or IT skills? Add a Technical Skills section</p>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.35, flex: 1, minWidth: 0 }}>Have technical or IT skills? Add a Technical Skills section</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -5265,9 +5556,9 @@ function ResumeBuilder({
                         flexShrink: 0,
                         padding: "6px 12px",
                         borderRadius: 8,
-                        border: "1px solid #2A2A2A",
-                        background: "#1C1C1C",
-                        color: "#FFFFFF",
+                        border: "1px solid var(--border)",
+                        background: "var(--bg-elevated)",
+                        color: "var(--text-primary)",
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -5323,7 +5614,7 @@ function ResumeBuilder({
                     {splitCommaItems(resume.languages).map((lg, li) => (
                       <span key={`${lg}-${li}`} style={CB_UI.chip}>
                         {lg}
-                        <button type="button" aria-label={`Remove ${lg}`} onClick={() => setResume(r => ({ ...r, languages: splitCommaItems(r.languages).filter((x) => x !== lg).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "#A0A0A0", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "#A0A0A0"; }}>×</button>
+                        <button type="button" aria-label={`Remove ${lg}`} onClick={() => setResume(r => ({ ...r, languages: splitCommaItems(r.languages).filter((x) => x !== lg).join(", ") }))} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", padding: 0, lineHeight: 1 }} onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}>×</button>
                       </span>
                     ))}
                   </div>
@@ -5337,7 +5628,7 @@ function ResumeBuilder({
               <OptionalBuilderAccordionSections
                 resume={resume}
                 setResume={setResume}
-                filter={(opt) => opt.id !== "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id))}
+                filter={(opt) => opt.id === "personalDetails" || (opt.id !== "certifications" && Boolean(resume.builderExtraSectionIds?.includes(opt.id)))}
                 certificationEditor={certificationEditor}
                 setCertificationEditor={setCertificationEditor}
                 isOpen={isOpen}
@@ -5350,7 +5641,7 @@ function ResumeBuilder({
               />
                 </div>
                 {builderTab === "content" && (
-                  <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed #333333", background: "transparent", color: "#A0A0A0", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333333"; e.currentTarget.style.color = "#A0A0A0"; }}>+ Add section</button>
+                  <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--text-primary)"; e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>+ Add section</button>
                 )}
               </>
             )}
@@ -5402,10 +5693,10 @@ function ResumeBuilder({
                   alignItems: "center",
                   gap: 8,
                   padding: "8px 14px",
-                  background: "#0a0a0a",
-                  border: "0.5px solid #2a2a2a",
+                  background: "var(--bg)",
+                  border: "0.5px solid var(--border)",
                   borderRadius: 999,
-                  color: "#ffffff",
+                  color: "var(--text-primary)",
                   fontSize: 12,
                   fontWeight: 500,
                   letterSpacing: "0.01em",
@@ -5420,7 +5711,7 @@ function ResumeBuilder({
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M5 13l4 4L19 7" stroke="#1D9E75" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5 13l4 4L19 7" style={{ stroke: "var(--success)" }} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span>Progress Auto-Saved</span>
               </div>
@@ -5519,7 +5810,7 @@ function ResumeBuilder({
               width: "100%",
               height: "100dvh",
               maxHeight: "100dvh",
-              background: "#111111",
+              background: "var(--bg)",
               opacity: 1,
               transform: previewFadeOut ? "translateY(100%)" : "translateY(0%)",
               transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -5536,8 +5827,8 @@ function ResumeBuilder({
                 position: "fixed",
                 top: "calc(8px + env(safe-area-inset-top, 0px))",
                 right: 12,
-                background: "var(--bg-surface, #141414)",
-                border: "1px solid var(--border-default, #2A2A2A)",
+                background: "var(--bg-surface, var(--bg-surface))",
+                border: "1px solid var(--border-default, var(--border))",
                 borderRadius: "50%",
                 width: 44,
                 height: 44,
@@ -5545,7 +5836,7 @@ function ResumeBuilder({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--text-primary, #fff)",
+                color: "var(--text-primary, var(--text-primary))",
                 fontSize: 18,
                 zIndex: 101,
                 cursor: "pointer",
@@ -5577,7 +5868,7 @@ function ResumeBuilder({
                   zIndex: 102,
                   padding: "16px",
                   paddingBottom: "32px",
-                  background: "linear-gradient(to top, #111111 60%, transparent)",
+                  background: "linear-gradient(to top, var(--bg) 60%, transparent)",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -5586,8 +5877,8 @@ function ResumeBuilder({
               >
                 <div
                   style={{
-                    background: "#1C1C1C",
-                    border: "1px solid #2A2A2A",
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border)",
                     borderRadius: "16px",
                     padding: "16px 20px",
                     width: "100%",
@@ -5598,7 +5889,7 @@ function ResumeBuilder({
                   <p
                     style={{
                       fontSize: "13px",
-                      color: "#A0A0A0",
+                      color: "var(--text-secondary)",
                       marginBottom: "4px",
                     }}
                   >
@@ -5607,7 +5898,7 @@ function ResumeBuilder({
                   <p
                     style={{
                       fontSize: "15px",
-                      color: "#FFFFFF",
+                      color: "var(--text-primary)",
                       fontWeight: "500",
                       marginBottom: "14px",
                     }}
@@ -5622,9 +5913,9 @@ function ResumeBuilder({
                         flex: 1,
                         padding: "10px",
                         borderRadius: "12px",
-                        border: "1px solid #2A2A2A",
+                        border: "1px solid var(--border)",
                         background: "transparent",
-                        color: "#A0A0A0",
+                        color: "var(--text-secondary)",
                         fontSize: "14px",
                         cursor: "pointer",
                       }}
@@ -5639,8 +5930,8 @@ function ResumeBuilder({
                         padding: "10px",
                         borderRadius: "12px",
                         border: "none",
-                        background: "#D97706",
-                        color: "#000000",
+                        background: "var(--accent)",
+                        color: "var(--accent-contrast)",
                         fontSize: "14px",
                         fontWeight: "600",
                         cursor: "pointer",
@@ -5674,8 +5965,8 @@ function ResumeBuilder({
               style={{
                 width: 36,
                 height: 36,
-                border: "2px solid #2A2A2A",
-                borderTop: "2px solid #F59E0B",
+                border: "2px solid var(--border)",
+                borderTop: "2px solid var(--color-accent-bright)",
                 borderRadius: "50%",
                 animation: "cvpBuilderPdfSpin 0.7s linear infinite",
               }}
@@ -5683,7 +5974,7 @@ function ResumeBuilder({
             <p
               style={{
                 fontSize: 14,
-                color: "#F59E0B",
+                color: "var(--color-accent-bright)",
                 fontWeight: 500,
                 margin: 0,
                 letterSpacing: "0.02em",
@@ -5720,12 +6011,16 @@ function ResumeBuilder({
               width: "78%",
               height: "100%",
               maxWidth: "100%",
-              background: "#141414",
+              /* Floating surface — real glass, per the design pass. */
+              background: "var(--builder-glass)",
+              backdropFilter: "blur(32px) saturate(1.8)",
+              WebkitBackdropFilter: "blur(32px) saturate(1.8)",
+              borderLeft: "1px solid var(--builder-glass-border)",
               display: "flex",
               flexDirection: "column",
               boxSizing: "border-box",
               padding: "10px 10px 12px",
-              boxShadow: "-8px 0 32px rgba(0,0,0,0.35)",
+              boxShadow: "var(--builder-glass-shadow)",
               minHeight: 0,
             }}
           >
@@ -5739,7 +6034,7 @@ function ResumeBuilder({
                 style={{
                   border: "none",
                   background: "none",
-                  color: "#fff",
+                  color: "var(--text-primary)",
                   fontSize: 11,
                   cursor: "pointer",
                   padding: "8px 0",
@@ -5750,7 +6045,7 @@ function ResumeBuilder({
               >
                 ← Dashboard
               </button>
-              <button type="button" aria-label="Close" onClick={() => setMenuDrawerOpen(false)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "#fff", fontSize: 20, cursor: "pointer" }}>
+              <button type="button" aria-label="Close" onClick={() => setMenuDrawerOpen(false)} style={{ width: 44, height: 44, border: "none", background: "transparent", color: "var(--text-primary)", fontSize: 20, cursor: "pointer" }}>
                 ✕
               </button>
             </div>
@@ -5788,15 +6083,15 @@ function ResumeBuilder({
                     padding: "7px 9px",
                     borderRadius: 8,
                     border: "none",
-                    background: "#1C1C1C",
-                    color: act ? "#fff" : "#A0A0A0",
+                    background: "var(--bg-elevated)",
+                    color: act ? "var(--text-primary)" : "var(--text-secondary)",
                     fontSize: 12,
                     fontWeight: 500,
                     cursor: "pointer",
                     textAlign: "left",
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={act ? "#fff" : "#555"} strokeWidth="2" aria-hidden>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ stroke: act ? "var(--text-primary)" : "var(--text-muted)" }} strokeWidth="2" aria-hidden>
                     {row.id === "content" ? (
                       <>
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -5820,44 +6115,16 @@ function ResumeBuilder({
                 </button>
               );
             })}
-            <div style={{ height: 1, background: "#2A2A2A", margin: "10px 0 12px" }} />
-            <button
-              type="button"
-              onClick={() => {
-                setMenuDrawerOpen(false);
-                setFabSheet("preview");
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                width: "100%",
-                minHeight: 44,
-                marginBottom: 8,
-                padding: "10px 9px",
-                borderRadius: 8,
-                border: "0.5px solid #2A2A2A",
-                background: "#1C1C1C",
-                color: "#fff",
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" aria-hidden>
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              Preview CV
-            </button>
+            <div style={{ height: 1, background: "var(--border)", margin: "10px 0 12px" }} />
+            {/* Preview lives in ONE place: the FAB. The drawer duplicate
+                that used to sit here is removed on purpose. */}
             <div style={{
               position: 'relative',
               borderRadius: 10,
               width: '100%',
               marginBottom: 8,
               padding: '1.5px',
-              background: 'linear-gradient(90deg, #1C1C1C 0%, #1C1C1C 20%, rgba(255,255,255,0.55) 50%, #1C1C1C 80%, #1C1C1C 100%)',
+              background: 'linear-gradient(90deg, var(--bg-elevated) 0%, var(--bg-elevated) 20%, var(--text-secondary) 50%, var(--bg-elevated) 80%, var(--bg-elevated) 100%)',
               backgroundSize: '300% 100%',
               animation: downloadState.status !== 'idle' ? 'none' : 'cvp-dl-shimmer 2.5s linear infinite',
               boxSizing: 'border-box',
@@ -5879,8 +6146,8 @@ function ResumeBuilder({
                   padding: '10px 9px',
                   borderRadius: 9,
                   border: 'none',
-                  background: '#141414',
-                  color: (downloadLocked && fabMode !== 'guide' && downloadState.status !== 'generating') ? '#D97706' : '#fff',
+                  background: 'var(--bg-surface)',
+                  color: (downloadLocked && fabMode !== 'guide' && downloadState.status !== 'generating') ? 'var(--accent)' : 'var(--text-primary)',
                   fontSize: 12,
                   fontWeight: 500,
                   cursor: downloadState.status === 'generating' ? 'not-allowed' : 'pointer',
@@ -5908,9 +6175,9 @@ function ResumeBuilder({
             </div>
             <div style={{ flex: 1, minHeight: 8 }} aria-hidden />
             <div style={{ paddingTop: 4 }}>
-              <div style={{ background: "#1C1C1C", border: "0.5px solid #333", borderRadius: 8, padding: 8 }}>
-                <div style={{ color: "#ccc", fontSize: 8, fontWeight: 500, marginBottom: 4 }}>Remove watermark</div>
-                <div style={{ color: "#555", fontSize: 7, marginBottom: 8, lineHeight: 1.35 }}>Download HD PDF — upgrade to Pro</div>
+              <div style={{ background: "var(--bg-elevated)", border: "0.5px solid var(--border-strong)", borderRadius: 8, padding: 8 }}>
+                <div style={{ color: "var(--text-secondary)", fontSize: 8, fontWeight: 500, marginBottom: 4 }}>Remove watermark</div>
+                <div style={{ color: "var(--text-muted)", fontSize: 7, marginBottom: 8, lineHeight: 1.35 }}>Download HD PDF — upgrade to Pro</div>
                 <button
                   type="button"
                   onClick={() => {
@@ -5920,8 +6187,8 @@ function ResumeBuilder({
                   style={{
                     width: "100%",
                     minHeight: 36,
-                    background: "#fff",
-                    color: "#000",
+                    background: "var(--text-primary)",
+                    color: "var(--bg)",
                     fontSize: 7.5,
                     fontWeight: 600,
                     border: "none",
@@ -5975,7 +6242,7 @@ function ResumeBuilder({
               >
                 <div
                   style={{
-                    background: "#1C1C1C",
+                    background: "var(--bg-elevated)",
                     border: "1px solid rgba(59,130,246,0.35)",
                     borderRadius: 12,
                     padding: 20,
@@ -5985,11 +6252,11 @@ function ResumeBuilder({
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <p style={{ margin: "0 0 16px", fontSize: 14, color: "#fff", lineHeight: 1.45 }}>You have unsaved changes. Discard them?</p>
+                  <p style={{ margin: "0 0 16px", fontSize: 14, color: "var(--text-primary)", lineHeight: 1.45 }}>You have unsaved changes. Discard them?</p>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
                     <button
                       type="button"
-                      style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+                      style={{ ...CB_UI.btn, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
                       onClick={() => setExpCloseGuardOpen(false)}
                     >
                       Keep editing
@@ -6001,7 +6268,7 @@ function ResumeBuilder({
                 </div>
               </div>
             ) : null}
-            <h3 style={{ margin: 0, padding: "16px 20px 12px", fontSize: 17, fontWeight: 600, color: "#FFF", borderBottom: "1px solid #2A2A2A", flexShrink: 0 }}>
+            <h3 style={{ margin: 0, padding: "16px 20px 12px", fontSize: 17, fontWeight: 600, color: "var(--text-primary)", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
               {experienceEditor.mode === "add" ? "Add experience" : "Edit experience"}
             </h3>
             <div
@@ -6016,16 +6283,16 @@ function ResumeBuilder({
             >
               <div style={{ display: "grid", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Company name</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Company name</label>
                   <input className="cvp-input" style={{ marginTop: 4 }} value={experienceEditor.draft.company} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, company: e.target.value } } : null))} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job title</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Job title</label>
                   <input className="cvp-input" style={{ marginTop: 4 }} value={experienceEditor.draft.role} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, role: e.target.value } } : null))} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Start (MM/YYYY)</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Start (MM/YYYY)</label>
                     <input
                       id="cvp-exp-start-date"
                       className="cvp-input"
@@ -6043,11 +6310,11 @@ function ResumeBuilder({
                       aria-invalid={experienceDateErrors.start ? true : undefined}
                     />
                     {experienceDateErrors.start ? (
-                      <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.start}</p>
+                      <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{experienceDateErrors.start}</p>
                     ) : null}
                   </div>
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>End (MM/YYYY)</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>End (MM/YYYY)</label>
                     <input
                       id="cvp-exp-end-date"
                       className="cvp-input"
@@ -6066,7 +6333,7 @@ function ResumeBuilder({
                       aria-invalid={experienceDateErrors.end ? true : undefined}
                     />
                     {experienceDateErrors.end ? (
-                      <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{experienceDateErrors.end}</p>
+                      <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{experienceDateErrors.end}</p>
                     ) : null}
                   </div>
                 </div>
@@ -6075,21 +6342,21 @@ function ResumeBuilder({
                   experienceEditor.draft.endDate,
                   experienceEditor.draft.present
                 ) ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#F87171" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--danger)" }}>
                     <AlertCircle size={11} strokeWidth={1.8} aria-hidden />
                     End date cannot be before start date
                   </div>
                 ) : null}
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#A0A0A0", cursor: "pointer" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
                   <input type="checkbox" checked={experienceEditor.draft.present} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, present: e.target.checked, endDate: e.target.checked ? "" : ev.draft.endDate } } : null))} />
                   Currently working here
                 </label>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Location</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Location</label>
                   <input className="cvp-input" style={{ marginTop: 4 }} value={experienceEditor.draft.location} onChange={(e) => setExperienceEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: "#A0A0A0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Description</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Description</label>
                   <style dangerouslySetInnerHTML={{ __html: CVP_BUILDER_PH_CSS }} />
                   <div
                     style={{
@@ -6106,7 +6373,7 @@ function ResumeBuilder({
                         border: "none",
                         padding: "3px 6px",
                         fontSize: 11,
-                        color: "#A0A0A0",
+                        color: "var(--text-secondary)",
                         cursor: "pointer",
                         fontFamily: "inherit",
                         borderRadius: 4,
@@ -6185,7 +6452,7 @@ function ResumeBuilder({
                         bottom: 10,
                         right: 12,
                         fontSize: 10,
-                        color: "#444",
+                        color: "var(--text-muted)",
                         pointerEvents: "none",
                       }}
                     >
@@ -6203,8 +6470,8 @@ function ResumeBuilder({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-                      <List size={11} strokeWidth={1.8} color="#555" aria-hidden />
-                      <span style={{ fontSize: 11, color: "#555" }}>Each line = one bullet on your CV</span>
+                      <List size={11} strokeWidth={1.8} style={{ color: "var(--text-muted)" }} aria-hidden />
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Each line = one bullet on your CV</span>
                     </div>
                     {experienceHasText && (
                       <button
@@ -6235,7 +6502,7 @@ function ResumeBuilder({
                           border: "1px solid rgba(217,119,6,0.45)",
                           borderRadius: 999,
                           background: "rgba(217,119,6,0.12)",
-                          color: "#D97706",
+                          color: "var(--accent)",
                           fontSize: 11.5,
                           fontWeight: 600,
                           cursor: expAi.isGenerating ? "default" : "pointer",
@@ -6280,7 +6547,7 @@ function ResumeBuilder({
                         background: "rgba(59,130,246,0.1)",
                         border: "1px solid rgba(59,130,246,0.3)",
                         fontSize: 11,
-                        color: "#60A5FA",
+                        color: "var(--info)",
                       }}
                     >
                       <AlertTriangle size={11} strokeWidth={1.8} aria-hidden />
@@ -6290,8 +6557,8 @@ function ResumeBuilder({
                 </div>
               </div>
             </div>
-            <div style={{ flexShrink: 0, borderTop: "1px solid #2A2A2A", padding: "12px 20px 20px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={askCloseExperienceModal}>
+            <div style={{ flexShrink: 0, borderTop: "1px solid var(--border)", padding: "12px 20px 20px", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }} onClick={askCloseExperienceModal}>
                 Cancel
               </button>
               <button
@@ -6341,12 +6608,12 @@ function ResumeBuilder({
             display: "flex",
             alignItems: "center",
             gap: 12,
-            background: "#1C1C1C",
-            border: "1px solid #2A2A2A",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
             borderRadius: 999,
             padding: "10px 10px 10px 18px",
             fontSize: 13,
-            color: "#FFFFFF",
+            color: "var(--text-primary)",
             fontFamily: "'DM Sans', sans-serif",
             boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
           }}
@@ -6359,7 +6626,7 @@ function ResumeBuilder({
               style={{
                 background: "rgba(217,119,6,0.16)",
                 border: "1px solid rgba(217,119,6,0.4)",
-                color: "#F59E0B",
+                color: "var(--color-accent-bright)",
                 borderRadius: 999,
                 padding: "5px 12px",
                 fontSize: 12,
@@ -6411,7 +6678,7 @@ function ResumeBuilder({
             style={{ padding: 20, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>{educationEditor.mode === "add" ? "Add education" : "Edit education"}</h3>
+            <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 600, color: "var(--text-primary)" }}>{educationEditor.mode === "add" ? "Add education" : "Edit education"}</h3>
             {/* Same reusable AIWorkingGlow that wraps the Experience and
                 Summary boxes. Education has only structured fields (no
                 free-text description) today, so there is nothing to rewrite
@@ -6420,12 +6687,12 @@ function ResumeBuilder({
                 description field is added. */}
             <AIWorkingGlow active={false} radius={12}>
             <div style={{ display: "grid", gap: 12 }}>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Institution name</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Degree / qualification</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Field of study</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Institution name</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.school} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, school: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Degree / qualification</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.degree} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, degree: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Field of study</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.fieldOfStudy || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, fieldOfStudy: e.target.value } } : null))} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>Start (MM/YYYY)</label>
+                  <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Start (MM/YYYY)</label>
                   <input
                     id="cvp-edu-start-date"
                     className="cvp-input"
@@ -6443,11 +6710,11 @@ function ResumeBuilder({
                     aria-invalid={educationDateErrors.start ? true : undefined}
                   />
                   {educationDateErrors.start ? (
-                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{educationDateErrors.start}</p>
+                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{educationDateErrors.start}</p>
                   ) : null}
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: "#A0A0A0" }}>End (MM/YYYY)</label>
+                  <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>End (MM/YYYY)</label>
                   <input
                     id="cvp-edu-end-date"
                     className="cvp-input"
@@ -6465,15 +6732,15 @@ function ResumeBuilder({
                     aria-invalid={educationDateErrors.end ? true : undefined}
                   />
                   {educationDateErrors.end ? (
-                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "#EF4444", lineHeight: 1.35 }}>{educationDateErrors.end}</p>
+                    <p style={{ margin: "6px 0 0", fontSize: 11, color: "var(--danger)", lineHeight: 1.35 }}>{educationDateErrors.end}</p>
                   ) : null}
                 </div>
               </div>
-              <div><label style={{ fontSize: 12, color: "#A0A0A0" }}>Location (optional)</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
+              <div><label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Location (optional)</label><input className="cvp-input" style={{ marginTop: 4 }} value={educationEditor.draft.location || ""} onChange={(e) => setEducationEditor((ev) => (ev ? { ...ev, draft: { ...ev.draft, location: e.target.value } } : null))} /></div>
             </div>
             </AIWorkingGlow>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-              <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setEducationEditor(null)}>Cancel</button>
+              <button type="button" className="cvp-glass-modal-cancel" style={{ ...CB_UI.btn, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }} onClick={() => setEducationEditor(null)}>Cancel</button>
               <button
                 type="button"
                 style={CB_UI.btn}
@@ -6513,17 +6780,17 @@ function ResumeBuilder({
           onClick={() => setCvImportPending(null)}
         >
           <div
-            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 380, width: "100%" }}
+            style={{ background: "var(--builder-glass)", backdropFilter: "blur(32px) saturate(1.8)", WebkitBackdropFilter: "blur(32px) saturate(1.8)", border: "1px solid var(--builder-glass-border)", boxShadow: "var(--builder-glass-shadow)", borderRadius: 12, padding: 20, maxWidth: 380, width: "100%" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>Replace your draft?</h3>
-            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#A0A0A0", lineHeight: 1.5 }}>
-              Importing <strong style={{ color: "#FFF" }}>{cvImportPending.filename}</strong> will replace what's currently in your builder. This can't be undone.
+            <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 600, color: "var(--text-primary)" }}>Replace your draft?</h3>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              Importing <strong style={{ color: "var(--text-primary)" }}>{cvImportPending.filename}</strong> will replace what's currently in your builder. This can't be undone.
             </p>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
               <button
                 type="button"
-                style={{ ...CB_UI.btn, background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }}
+                style={{ ...CB_UI.btn, background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
                 onClick={() => setCvImportPending(null)}
               >
                 Cancel
@@ -6563,11 +6830,11 @@ function ResumeBuilder({
           onClick={() => setAddSectionPickerOpen(false)}
         >
           <div
-            style={{ background: "#141414", border: "1px solid #2A2A2A", borderRadius: 12, padding: 20, maxWidth: 400, width: "100%" }}
+            style={{ background: "var(--builder-glass)", backdropFilter: "blur(32px) saturate(1.8)", WebkitBackdropFilter: "blur(32px) saturate(1.8)", border: "1px solid var(--builder-glass-border)", boxShadow: "var(--builder-glass-shadow)", borderRadius: 12, padding: 20, maxWidth: 400, width: "100%" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 600, color: "#FFF" }}>Add optional section</h3>
-            <p style={{ fontSize: 13, color: "#A0A0A0", margin: "0 0 16px" }}>Choose a section to add to your CV.</p>
+            <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 600, color: "var(--text-primary)" }}>Add optional section</h3>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 16px" }}>Choose a section to add to your CV.</p>
             <div style={{ display: "grid", gap: 8, maxHeight: "55vh", overflowY: "auto" }}>
               {addSectionPickerRows.map((row) => (
                 <button
@@ -6592,12 +6859,12 @@ function ResumeBuilder({
                 </button>
               ))}
               {addSectionPickerRows.length === 0 ? (
-                <p style={{ fontSize: 13, color: "#A0A0A0", margin: 0 }}>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
                   {allOptionalSectionsAdded ? "All optional sections have been added." : "No sections available."}
                 </p>
               ) : null}
             </div>
-            <button type="button" style={{ ...CB_UI.btn, marginTop: 16, width: "100%", background: "transparent", color: "#A0A0A0", border: "1px solid #2A2A2A" }} onClick={() => setAddSectionPickerOpen(false)}>Close</button>
+            <button type="button" style={{ ...CB_UI.btn, marginTop: 16, width: "100%", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }} onClick={() => setAddSectionPickerOpen(false)}>Close</button>
           </div>
         </div>
       )}
@@ -6611,7 +6878,7 @@ function ResumeBuilder({
             left: 16,
             right: 16,
             zIndex: 250,
-            background: "#1C1C1C",
+            background: "var(--bg-elevated)",
             border: "1px solid rgba(59,130,246,0.35)",
             borderRadius: 12,
             padding: "12px 16px",
@@ -6625,13 +6892,13 @@ function ResumeBuilder({
             boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
           }}
         >
-          <AlertTriangle size={13} strokeWidth={1.8} color="#60A5FA" aria-hidden />
+          <AlertTriangle size={13} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
           <span
             style={{
               flex: "1 1 120px",
               minWidth: 0,
               fontSize: 12,
-              color: "#60A5FA",
+              color: "var(--info)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -6657,9 +6924,9 @@ function ResumeBuilder({
                 setUserHasEdited(false);
               }}
               style={{
-                background: "#3B82F6",
+                background: "var(--info)",
                 border: "none",
-                color: "#fff",
+                color: "var(--text-primary)",
                 fontSize: 11,
                 fontWeight: 700,
                 padding: "6px 12px",
@@ -6693,7 +6960,7 @@ function ResumeBuilder({
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                color: "#fff",
+                color: "var(--text-primary)",
                 opacity: 0.6,
                 flexShrink: 0,
               }}
@@ -6772,17 +7039,20 @@ const ACCORDION_ICON_BOX = {
 
 function AccordionSectionLucideIcon({ id, icon }) {
   const size = 16;
-  const stroke = "#60A5FA";
   const sw = 1.8;
-  if (id === "technicalSkills") return <Cpu size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  if (id === "certifications" || icon === "certifications") return <Award size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  if (id === "personalDetails" || icon === "personalDetails") return <User size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  if (icon === "summary" || id === "summary") return <FileText size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  if (icon === "experience" || id === "experience") return <Briefcase size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  if (icon === "education" || id === "education") return <GraduationCap size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  if (icon === "languages" || id === "languages") return <Globe size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  if (icon === "skills" || id === "skills") return <Star size={size} color={stroke} strokeWidth={sw} aria-hidden />;
-  return <FileText size={size} color={stroke} strokeWidth={sw} aria-hidden />;
+  /* color rides on a style (not the lucide color prop → SVG stroke attr,
+     where var() is invalid). Personal Details gets the amber accent — it
+     is the corridor block, the answers a Gulf recruiter filters on. */
+  const st = { color: id === "personalDetails" || icon === "personalDetails" ? "var(--accent)" : "var(--info)" };
+  if (id === "technicalSkills") return <Cpu size={size} style={st} strokeWidth={sw} aria-hidden />;
+  if (id === "certifications" || icon === "certifications") return <Award size={size} style={st} strokeWidth={sw} aria-hidden />;
+  if (id === "personalDetails" || icon === "personalDetails") return <User size={size} style={st} strokeWidth={sw} aria-hidden />;
+  if (icon === "summary" || id === "summary") return <FileText size={size} style={st} strokeWidth={sw} aria-hidden />;
+  if (icon === "experience" || id === "experience") return <Briefcase size={size} style={st} strokeWidth={sw} aria-hidden />;
+  if (icon === "education" || id === "education") return <GraduationCap size={size} style={st} strokeWidth={sw} aria-hidden />;
+  if (icon === "languages" || id === "languages") return <Globe size={size} style={st} strokeWidth={sw} aria-hidden />;
+  if (icon === "skills" || id === "skills") return <Star size={size} style={st} strokeWidth={sw} aria-hidden />;
+  return <FileText size={size} style={st} strokeWidth={sw} aria-hidden />;
 }
 
 const ACCORDION_REORDER_BTN = {
@@ -6815,6 +7085,28 @@ function AccordionSection({
   onSectionDrop = null,
 }) {
   const ease = "cubic-bezier(0.4,0,0.2,1)";
+  /* Corridor marker — Personal Details reads as the high-value block. */
+  const headerBadge = id === "personalDetails" ? "Get called first" : null;
+  const headerBadgeEl = headerBadge ? (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        flexShrink: 0,
+        height: 20,
+        padding: "0 8px",
+        borderRadius: 999,
+        background: "var(--color-accent-soft)",
+        border: "1px solid var(--color-accent-line)",
+        color: "var(--accent-text)",
+        fontSize: 10.5,
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {headerBadge}
+    </span>
+  ) : null;
   const idx = orderedSectionIds ? orderedSectionIds.indexOf(id) : -1;
   const flexOrder = idx >= 0 ? idx : undefined;
   const canMoveUp = Boolean(onSectionReorder && idx > 0);
@@ -6909,8 +7201,8 @@ function AccordionSection({
             alignItems: "center",
             minWidth: 0,
             gap: 10,
-            background: "#141414",
-            border: "0.5px solid #2A2A2A",
+            background: "var(--bg-surface)",
+            border: "0.5px solid var(--border)",
             borderRadius: 9,
             padding: "8px 12px",
             minHeight: 56,
@@ -6939,7 +7231,7 @@ function AccordionSection({
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
-                  color: "#FFFFFF",
+                  color: "var(--text-primary)",
                   fontSize: 15,
                   fontWeight: 600,
                   letterSpacing: "0.02em",
@@ -6948,10 +7240,11 @@ function AccordionSection({
                 {title}
               </div>
               {metaSubtitle ? (
-                <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 2, fontWeight: 400 }}>{metaSubtitle}</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, fontWeight: 400 }}>{metaSubtitle}</div>
               ) : null}
             </div>
           </button>
+          {headerBadgeEl}
           {onSectionReorder ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 0, flexShrink: 0 }}>
               <button
@@ -6961,7 +7254,7 @@ function AccordionSection({
                 onClick={reorderUp}
                 style={{
                   ...ACCORDION_REORDER_BTN,
-                  color: canMoveUp ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                  color: canMoveUp ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
                   opacity: canMoveUp ? 1 : 0.35,
                   cursor: canMoveUp ? "pointer" : "not-allowed",
                 }}
@@ -6975,7 +7268,7 @@ function AccordionSection({
                 onClick={reorderDown}
                 style={{
                   ...ACCORDION_REORDER_BTN,
-                  color: canMoveDown ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                  color: canMoveDown ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
                   opacity: canMoveDown ? 1 : 0.35,
                   cursor: canMoveDown ? "pointer" : "not-allowed",
                 }}
@@ -6999,8 +7292,8 @@ function AccordionSection({
               display: "grid",
               placeItems: "center",
               background: activeGuideSection === `section-${id}` ? "rgba(245,158,11,0.16)" : "transparent",
-              color: activeGuideSection === `section-${id}` ? "#D97706" : "#A0A0A0",
-              border: "1px solid #2A2A2A",
+              color: activeGuideSection === `section-${id}` ? "var(--accent)" : "var(--text-secondary)",
+              border: "1px solid var(--border)",
               borderRadius: 8,
               cursor: "pointer",
               transition: `background-color 150ms ${ease}, color 150ms ${ease}, border-color 150ms ${ease}`,
@@ -7013,15 +7306,15 @@ function AccordionSection({
             }}
             onMouseEnter={(e) => {
               if (activeGuideSection === `section-${id}`) return;
-              e.currentTarget.style.background = "#1C1C1C";
-              e.currentTarget.style.color = "#FFFFFF";
-              e.currentTarget.style.borderColor = "#3A3A3A";
+              e.currentTarget.style.background = "var(--bg-elevated)";
+              e.currentTarget.style.color = "var(--text-primary)";
+              e.currentTarget.style.borderColor = "var(--border-strong)";
             }}
             onMouseLeave={(e) => {
               if (activeGuideSection === `section-${id}`) return;
               e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#A0A0A0";
-              e.currentTarget.style.borderColor = "#2A2A2A";
+              e.currentTarget.style.color = "var(--text-secondary)";
+              e.currentTarget.style.borderColor = "var(--border)";
             }}
           >
             <Pencil size={14} strokeWidth={1.8} aria-hidden />
@@ -7040,7 +7333,7 @@ function AccordionSection({
               padding: 4,
               flexShrink: 0,
               cursor: "pointer",
-              color: "#A0A0A0",
+              color: "var(--text-secondary)",
               display: "grid",
               placeItems: "center",
               transition: `transform 300ms ${ease}`,
@@ -7057,8 +7350,8 @@ function AccordionSection({
                 opacity: isOpen ? 1 : 0,
                 transition: `opacity 300ms ${ease}`,
                 padding: 12,
-                background: "#0A0A0A",
-                border: "0.5px solid #2A2A2A",
+                background: "var(--bg)",
+                border: "0.5px solid var(--border)",
                 borderTop: "none",
                 borderRadius: "0 0 9px 9px",
               }}
@@ -7142,14 +7435,15 @@ function AccordionSection({
               whiteSpace: "nowrap",
               fontSize: 15,
               fontWeight: 500,
-              color: "#FFFFFF",
+              color: "var(--text-primary)",
               letterSpacing: "0.02em",
             }}
           >
             {title}
           </span>
-          {metaSubtitle ? <span style={{ fontSize: 12, color: "#A0A0A0", fontWeight: 400 }}>{metaSubtitle}</span> : null}
+          {metaSubtitle ? <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 400 }}>{metaSubtitle}</span> : null}
         </button>
+        {headerBadgeEl}
         {onSectionReorder ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 0, flexShrink: 0 }}>
             <button
@@ -7159,7 +7453,7 @@ function AccordionSection({
               onClick={reorderUp}
               style={{
                 ...ACCORDION_REORDER_BTN,
-                color: canMoveUp ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                color: canMoveUp ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
                 opacity: canMoveUp ? 1 : 0.35,
                 cursor: canMoveUp ? "pointer" : "not-allowed",
               }}
@@ -7173,7 +7467,7 @@ function AccordionSection({
               onClick={reorderDown}
               style={{
                 ...ACCORDION_REORDER_BTN,
-                color: canMoveDown ? "var(--text-secondary, #A0A0A0)" : "#444444",
+                color: canMoveDown ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
                 opacity: canMoveDown ? 1 : 0.35,
                 cursor: canMoveDown ? "pointer" : "not-allowed",
               }}
@@ -7197,8 +7491,8 @@ function AccordionSection({
             display: "grid",
             placeItems: "center",
             background: activeGuideSection === `section-${id}` ? "rgba(245,158,11,0.16)" : "transparent",
-            color: activeGuideSection === `section-${id}` ? "#D97706" : "#A0A0A0",
-            border: "1px solid #2A2A2A",
+            color: activeGuideSection === `section-${id}` ? "var(--accent)" : "var(--text-secondary)",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             cursor: "pointer",
             transition: `background-color 150ms ${ease}, color 150ms ${ease}, border-color 150ms ${ease}`,
@@ -7211,15 +7505,15 @@ function AccordionSection({
           }}
           onMouseEnter={(e) => {
             if (activeGuideSection === `section-${id}`) return;
-            e.currentTarget.style.background = "#1C1C1C";
-            e.currentTarget.style.color = "#FFFFFF";
-            e.currentTarget.style.borderColor = "#3A3A3A";
+            e.currentTarget.style.background = "var(--bg-elevated)";
+            e.currentTarget.style.color = "var(--text-primary)";
+            e.currentTarget.style.borderColor = "var(--border-strong)";
           }}
           onMouseLeave={(e) => {
             if (activeGuideSection === `section-${id}`) return;
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#A0A0A0";
-            e.currentTarget.style.borderColor = "#2A2A2A";
+            e.currentTarget.style.color = "var(--text-secondary)";
+            e.currentTarget.style.borderColor = "var(--border)";
           }}
         >
           <Pencil size={14} strokeWidth={1.8} aria-hidden />
@@ -7238,7 +7532,7 @@ function AccordionSection({
             padding: 4,
             flexShrink: 0,
             cursor: "pointer",
-            color: "#A0A0A0",
+            color: "var(--text-secondary)",
             display: "grid",
             placeItems: "center",
             transition: `transform 300ms ${ease}`,
@@ -7262,8 +7556,8 @@ function AccordionSection({
               opacity: isOpen ? 1 : 0,
               transition: `opacity 300ms ${ease}`,
               padding: 16,
-              background: "#141414",
-              borderTop: "1px solid #2A2A2A",
+              background: "var(--bg-surface)",
+              borderTop: "1px solid var(--border)",
             }}
           >
             {children}

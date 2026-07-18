@@ -24,18 +24,18 @@ import { validateAnswer, getHintForQuestion, getMaxRetriesForField } from "./FAB
  */
 
 const T = {
-  bg:      "#0A0A0A",
-  surface: "#141414",
-  raised:  "#1C1C1C",
-  border:  "#2A2A2A",
-  border2: "#3A3A3A",
-  text:    "#FFFFFF",
-  mid:     "#A0A0A0",
-  dim:     "#606060",
-  mute:    "#484848",
-  amber:   "#D97706",
-  green:   "#22C55E",
-  red:     "#EF4444",
+  bg:      "var(--bg)",
+  surface: "var(--bg-surface)",
+  raised:  "var(--bg-elevated)",
+  border:  "var(--border)",
+  border2: "var(--border-strong)",
+  text:    "var(--text-primary)",
+  mid:     "var(--text-secondary)",
+  dim:     "var(--text-muted)",
+  mute:    "var(--text-muted)",
+  amber:   "var(--accent)",
+  green:   "var(--success)",
+  red:     "var(--danger)",
 };
 
 /* ─── Ghost typing utility ──────────────────────────────────────────── */
@@ -147,7 +147,7 @@ function AmberTypingDots() {
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: "#D97706",
+              background: "var(--accent)",
               animation: `gfAmberDot 900ms ease-in-out infinite`,
               animationDelay: `${delay}ms`,
             }}
@@ -194,8 +194,8 @@ function BulletOptionsCards({ options, onSelectBullet }) {
             style={{
               display: "block",
               width: "100%",
-              background: "#141414",
-              border: "1px solid #2A2A2A",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
               borderRadius: 12,
               padding: 12,
               cursor: isAnyTyping ? "not-allowed" : "pointer",
@@ -210,7 +210,7 @@ function BulletOptionsCards({ options, onSelectBullet }) {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: "#D97706",
+                color: "var(--accent-text)",
                 marginBottom: 6,
                 textTransform: "uppercase",
                 letterSpacing: "0.04em",
@@ -224,7 +224,7 @@ function BulletOptionsCards({ options, onSelectBullet }) {
               <div
                 style={{
                   fontSize: 13,
-                  color: "#FFFFFF",
+                  color: "var(--text-primary)",
                   lineHeight: 1.5,
                   wordBreak: "break-word",
                   whiteSpace: "pre-wrap",
@@ -258,11 +258,11 @@ function NudgeButtonsGroup({ options, onNudgeSelect }) {
           onMouseEnter={() => setHoveredIdx(i)}
           onMouseLeave={() => setHoveredIdx(null)}
           style={{
-            background: "#1C1C1C",
-            border: `1px solid ${hoveredIdx === i ? "#D97706" : "#2A2A2A"}`,
+            background: "var(--bg-elevated)",
+            border: `1px solid ${hoveredIdx === i ? "var(--accent)" : "var(--border)"}`,
             borderRadius: 20,
             padding: "8px 16px",
-            color: "#FFFFFF",
+            color: "var(--text-primary)",
             fontSize: 13,
             cursor: "pointer",
             fontFamily: "inherit",
@@ -345,8 +345,8 @@ function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, 
                 style={{
                   display: "block",
                   width: "100%",
-                  background: "#1A1A1C",
-                  border: "1px solid #333",
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border-strong)",
                   borderRadius: "12px",
                   padding: "14px",
                   marginBottom: "10px",
@@ -354,7 +354,7 @@ function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, 
                   textAlign: "left",
                   fontSize: "14px",
                   lineHeight: "1.5",
-                  color: "#E0E0E0",
+                  color: "var(--text-secondary)",
                   WebkitTapHighlightColor: "transparent",
                 }}
               >
@@ -367,7 +367,7 @@ function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, 
               style={{
                 background: "none",
                 border: "none",
-                color: "#666",
+                color: "var(--text-muted)",
                 fontSize: "13px",
                 cursor: "pointer",
                 padding: "4px 0 12px",
@@ -391,7 +391,7 @@ function AssistantBubble({ message, onCtaClick, onSelectSummary, onSkipSummary, 
               cursor: "pointer", fontFamily: "inherit", lineHeight: 1.3,
               border: message.ctaStyle === "outline" ? `1px solid ${T.border2}` : "none",
               background: message.ctaStyle === "outline" ? "transparent" : T.text,
-              color: message.ctaStyle === "outline" ? T.text : "#000",
+              color: message.ctaStyle === "outline" ? T.text : "var(--accent-contrast)",
             }}
           >
             {message.ctaBtn}
@@ -416,7 +416,7 @@ function UserBubble({ text }) {
         background: T.text,
         borderRadius: "16px 16px 4px 16px",
         padding: "11px 14px",
-        fontSize: 14, color: "#000", lineHeight: 1.55,
+        fontSize: 14, color: "var(--accent-contrast)", lineHeight: 1.55,
         wordBreak: "break-word", whiteSpace: "pre-wrap",
         minWidth: 48,
       }}>
@@ -708,12 +708,12 @@ export default function GuidedFlow({
             <div style={{
               display: "flex", alignItems: "flex-end", gap: 8,
               paddingTop: 8,
-              borderTop: `1px solid #1A1A1A`,
+              borderTop: `1px solid var(--border)`,
             }}>
               <div style={{
                 flex: 1,
-                background: "#1C1C1C",
-                border: "1px solid #2A2A2A",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
                 borderRadius: 24,
                 padding: "10px 16px",
                 display: "flex",
@@ -750,8 +750,8 @@ export default function GuidedFlow({
                 style={{
                   flexShrink: 0, width: 34, height: 34,
                   borderRadius: "50%", border: "none",
-                  background: sendDisabled ? T.border : "#D97706",
-                  color:      sendDisabled ? T.mute  : "#000",
+                  background: sendDisabled ? T.border : "var(--accent)",
+                  color:      sendDisabled ? T.mute  : "var(--accent-contrast)",
                   cursor: sendDisabled ? "not-allowed" : "pointer",
                   display: "grid", placeItems: "center",
                   transition: "background 150ms, color 150ms",

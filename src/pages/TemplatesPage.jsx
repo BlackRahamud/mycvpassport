@@ -372,9 +372,9 @@ function templateTierMarketingLabel(t) {
 }
 
 function templateTierPillColors(label) {
-  if (label === "FREE") return { background: "#1D9E75", color: "#fff" };
+  if (label === "FREE") return { background: "var(--success)", color: "var(--accent-contrast)" };
   if (label === "POPULAR") return { background: "#EF9F27", color: "#412402" };
-  return { background: "#2A2A2A", color: "#FFFFFF" };
+  return { background: "var(--border)", color: "var(--text-primary)" };
 }
 
 function templateAtsBadgeText(t) {
@@ -448,7 +448,7 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
   const tierLabel = templateTierMarketingLabel(t);
   const tierPill = templateTierPillColors(tierLabel);
   const atsBadge = templateAtsBadgeText(t);
-  const borderStyle = sheetHighlight ? "2px solid rgba(255,255,255,0.8)" : isSelected ? "1px solid #FFFFFF" : "0.5px solid #2A2A2A";
+  const borderStyle = sheetHighlight ? "2px solid var(--text-primary)" : isSelected ? "1px solid var(--text-primary)" : "0.5px solid var(--border)";
   const amberGlow = AMBER_GLOW_IDS.has(t.id);
 
   return (
@@ -465,7 +465,7 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
         margin: 0,
         border: borderStyle,
         borderRadius: 12,
-        background: "#141414",
+        background: "var(--bg-surface)",
         cursor: "pointer",
         overflow: "hidden",
         display: "flex",
@@ -503,8 +503,8 @@ const BuilderTemplateGridCard = memo(function BuilderTemplateGridCard({ template
             display: "inline-flex",
             alignItems: "center",
             background: "transparent",
-            color: "rgba(255,255,255,0.9)",
-            border: "1px solid rgba(255,255,255,0.25)",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border-strong)",
             borderRadius: 6,
             padding: "2px 6px",
             fontSize: 10,
@@ -673,12 +673,12 @@ function BuilderTemplatesTab({
               {/* Section divider heading + descriptor */}
               <div style={{ padding: "24px 12px 8px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1, height: "0.5px", background: "rgba(255,255,255,0.08)" }} />
+                  <div style={{ flex: 1, height: "0.5px", background: "var(--border)" }} />
                   <span
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
-                      color: "rgba(255,255,255,0.5)",
+                      color: "var(--text-muted)",
                       letterSpacing: "0.14em",
                       textTransform: "uppercase",
                       whiteSpace: "nowrap",
@@ -686,7 +686,7 @@ function BuilderTemplatesTab({
                   >
                     {section.label}
                   </span>
-                  <div style={{ flex: 1, height: "0.5px", background: "rgba(255,255,255,0.08)" }} />
+                  <div style={{ flex: 1, height: "0.5px", background: "var(--border)" }} />
                 </div>
                 {section.desc ? (
                   <p
@@ -694,7 +694,7 @@ function BuilderTemplatesTab({
                       margin: "6px 0 0",
                       fontSize: 11,
                       fontWeight: 400,
-                      color: "rgba(255,255,255,0.38)",
+                      color: "var(--text-muted)",
                       textAlign: "center",
                       letterSpacing: "0.01em",
                       lineHeight: 1.45,
@@ -740,14 +740,14 @@ function BuilderTemplatesTab({
               marginRight: 10,
               padding: 14,
               borderRadius: 12,
-              border: "1px solid #2A2A2A",
-              background: "#141414",
+              border: "1px solid var(--border)",
+              background: "var(--bg-surface)",
               display: "grid",
               gap: 10,
               flexShrink: 0,
             }}
           >
-            <p style={{ margin: 0, fontSize: 13, color: "#E5E5E5", lineHeight: 1.4 }}>Template locked. Now check your ATS score.</p>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.4 }}>Template locked. Now check your ATS score.</p>
             <button
               type="button"
               onClick={() => onAtsJourneyNavigate?.()}
@@ -755,8 +755,8 @@ function BuilderTemplatesTab({
                 padding: "10px 14px",
                 borderRadius: 8,
                 border: "none",
-                background: "#FFFFFF",
-                color: "#000000",
+                background: "var(--text-primary)",
+                color: "var(--bg)",
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -773,7 +773,7 @@ function BuilderTemplatesTab({
               style={{
                 background: "none",
                 border: "none",
-                color: "#666666",
+                color: "var(--text-muted)",
                 fontSize: 11,
                 textDecoration: "underline",
                 cursor: "pointer",
@@ -793,7 +793,7 @@ function BuilderTemplatesTab({
             style={{
               background: "transparent",
               border: "none",
-              color: "#666",
+              color: "var(--text-muted)",
               fontSize: 10,
               textDecoration: "underline",
               cursor: "pointer",
@@ -821,7 +821,7 @@ function BuilderTemplatesTab({
                   </h2>
                   <button type="button" className="cvp-templates-preview-close" onClick={closePreviewModal} aria-label="Close">
                     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path d="M18 6L6 18M6 6l12 12" stroke="#FFF" strokeWidth={2} strokeLinecap="round" />
+                      <path d="M18 6L6 18M6 6l12 12" style={{ stroke: "var(--text-primary)" }} strokeWidth={2} strokeLinecap="round" />
                     </svg>
                   </button>
                 </div>

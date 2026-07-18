@@ -193,7 +193,7 @@ export default function CompletionStrip({
 
       {/* Percent (counts up/down) + label + autosave state */}
       <div style={{ display: "flex", flexDirection: "column", minWidth: 104, flexShrink: 0 }}>
-        <CountUpPercent value={percent} reduce={reduce} color={isComplete ? "#4ADE80" : "var(--text-primary, #FFFFFF)"} />
+        <CountUpPercent value={percent} reduce={reduce} color={isComplete ? "var(--success)" : "var(--text-primary, #FFFFFF)"} />
         <span
           style={{
             fontSize: 10.5,
@@ -229,7 +229,7 @@ export default function CompletionStrip({
                   width: 5,
                   height: 5,
                   borderRadius: "50%",
-                  background: saveState === "saving" ? "var(--color-accent, #D97706)" : "#4ADE80",
+                  background: saveState === "saving" ? "var(--color-accent, #D97706)" : "var(--success)",
                   flexShrink: 0,
                 }}
               />
@@ -276,7 +276,7 @@ export default function CompletionStrip({
           style={{
             background: "rgba(59,130,246,0.10)",
             border: "1px solid rgba(59,130,246,0.30)",
-            color: "#60A5FA",
+            color: "var(--info)",
             fontSize: 12,
             fontWeight: 600,
             padding: "7px 12px",
@@ -307,9 +307,9 @@ export default function CompletionStrip({
           type="button"
           onClick={onDownload}
           style={{
-            background: "#D97706",
+            background: "var(--accent)",
             border: "none",
-            color: "#0A0A0A",
+            color: "var(--bg)",
             fontSize: 12,
             fontWeight: 700,
             padding: "8px 14px",
@@ -340,7 +340,7 @@ export default function CompletionStrip({
         style={{
           background: "transparent",
           border: "none",
-          color: "#666",
+          color: "var(--text-muted)",
           cursor: "pointer",
           padding: 4,
           display: "inline-flex",
@@ -394,7 +394,7 @@ export default function CompletionStrip({
             style={{
               fontSize: 11,
               fontWeight: 600,
-              color: "#60A5FA",
+              color: "var(--info)",
               marginBottom: 8,
               letterSpacing: "0.02em",
             }}
@@ -420,7 +420,7 @@ export default function CompletionStrip({
                     alignItems: "center",
                     gap: 8,
                     fontSize: 11,
-                    color: "#A0A0A0",
+                    color: "var(--text-secondary)",
                     padding: "3px 0",
                   }}
                 >
@@ -435,7 +435,7 @@ export default function CompletionStrip({
                       fontSize: 8,
                       flexShrink: 0,
                       background: ok ? "rgba(74,222,128,0.15)" : "rgba(59,130,246,0.12)",
-                      color: ok ? "#4ADE80" : "#3B82F6",
+                      color: ok ? "var(--success)" : "var(--info)",
                     }}
                   >
                     {ok ? "✓" : warnContent}

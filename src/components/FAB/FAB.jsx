@@ -64,17 +64,17 @@ const MILESTONE_COPY = {
 
 function fabRingColor(p) {
   const n = p ?? 0;
-  if (n >= 100) return "#22C55E";
+  if (n >= 100) return "var(--success)";
   if (n >= 90) return "#16A34A";
-  if (n >= 80) return "#D97706";
+  if (n >= 80) return "var(--accent)";
   if (n >= 70) return "#F59E0B";
   if (n >= 60) return "#F59E0B";
   if (n >= 50) return "#FBBF24";
   if (n >= 40) return "#F97316";
-  if (n >= 30) return "#EF4444";
+  if (n >= 30) return "var(--danger)";
   if (n >= 20) return "#DC2626";
   if (n >= 10) return "#B91C1C";
-  return "#A0A0A0";
+  return "var(--text-secondary)";
 }
 
 function fabNormalizeSection(activeSection) {
@@ -200,9 +200,9 @@ function FabSummaryHelperBody({
   onEditFirst,
 }) {
   const chipStyle = {
-    border: "1px solid #3A3A3A",
+    border: "1px solid var(--border-strong)",
     background: "transparent",
-    color: "#FFF",
+    color: "var(--text-primary)",
     fontSize: 12,
     padding: "8px 12px",
     borderRadius: 99,
@@ -229,8 +229,8 @@ function FabSummaryHelperBody({
         type="button"
         onClick={onWriteForMe}
         style={{
-          background: "#fff",
-          color: "#000",
+          background: "var(--text-primary)",
+          color: "var(--bg)",
           borderRadius: 10,
           padding: 12,
           width: "100%",
@@ -251,7 +251,7 @@ function FabSummaryHelperBody({
       {previewText ? (
         <div
           style={{
-            background: "#1C1C1C",
+            background: "var(--bg-elevated)",
             border: "1px solid var(--border-default, #2A2A2A)",
             borderRadius: 12,
             padding: 12,
@@ -266,8 +266,8 @@ function FabSummaryHelperBody({
               type="button"
               onClick={onUseThis}
               style={{
-                background: "#fff",
-                color: "#000",
+                background: "var(--text-primary)",
+                color: "var(--bg)",
                 borderRadius: 10,
                 padding: 12,
                 width: "100%",
@@ -285,13 +285,13 @@ function FabSummaryHelperBody({
               onClick={onEditFirst}
               style={{
                 background: "transparent",
-                color: "#FFF",
+                color: "var(--text-primary)",
                 borderRadius: 10,
                 padding: 12,
                 width: "100%",
                 fontWeight: 600,
                 fontSize: 14,
-                border: "1px solid #2A2A2A",
+                border: "1px solid var(--border)",
                 cursor: "pointer",
                 minHeight: 44,
               }}
@@ -1246,7 +1246,7 @@ const FAB = forwardRef(function FAB(
       const nudge = idleNudgePayload;
       return (
         <div style={{ textAlign: "center", width: "100%" }}>
-          <FabSparkIcon size={28} stroke="#fff" />
+          <FabSparkIcon size={28} stroke="var(--text-primary)" />
           <p style={{ margin: "12px 0 16px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
             {nudge.message}
           </p>
@@ -1258,8 +1258,8 @@ const FAB = forwardRef(function FAB(
               else if (nudge.navKey) onNavigateToCvSection?.(nudge.navKey);
             }}
             style={{
-              background: "#fff",
-              color: "#000",
+              background: "var(--text-primary)",
+              color: "var(--bg)",
               borderRadius: 10,
               padding: 12,
               width: "100%",
@@ -1329,7 +1329,7 @@ const FAB = forwardRef(function FAB(
           width: 12,
           height: 12,
           borderRadius: "50%",
-          background: "#D97706",
+          background: "var(--accent)",
           position: "fixed",
           bottom: 24,
           right: 24,
@@ -1411,7 +1411,7 @@ const FAB = forwardRef(function FAB(
                 overflow: "visible",
               }}
             >
-              <circle cx="34" cy="34" r="30" fill="none" stroke="#2A2A2A" strokeWidth="2" />
+              <circle cx="34" cy="34" r="30" fill="none" style={{ stroke: "var(--border)" }} strokeWidth="2" />
               <g transform="rotate(-90 34 34)">
                 <circle
                   ref={progressRingRef}
@@ -1454,9 +1454,9 @@ const FAB = forwardRef(function FAB(
                 pointerEvents: "none",
                 fontSize: 11,
                 fontWeight: 700,
-                color: "#FFFFFF",
+                color: "var(--text-primary)",
                 lineHeight: 1,
-                textShadow: "0 0 3px #000000, 0 0 5px #000000",
+                textShadow: "0 0 3px var(--bg), 0 0 5px var(--bg)",
               }}
             >
               {Math.min(100, Math.max(0, Math.round(Number(progress) || 0)))}%

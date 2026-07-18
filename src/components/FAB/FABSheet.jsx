@@ -220,13 +220,13 @@ function applyGuidedFieldToResume(prev, field, processedValue) {
 }
 
 function FabGuideStarIcon({ active }) {
-  const fill = active ? "#FBBF24" : "#606060";
+  const fill = active ? "var(--color-accent-bright)" : "var(--text-muted)";
   return (
     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden style={{ display: "block", flexShrink: 0 }}>
       <path
         d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2L12 17.8l-6.3 3.2 2.3-7.2-6-4.6h7.6L12 2z"
         fill={fill}
-        stroke="#3A3A3A"
+        stroke="var(--border-strong)"
         strokeWidth={1}
         strokeLinejoin="round"
       />
@@ -237,27 +237,27 @@ function FabGuideStarIcon({ active }) {
 /** Progress coach ring + label colour by completion band — no blue, ever */
 export function getRingColour(percent) {
   const p = Math.max(0, Math.min(100, percent));
-  if (p <= 40) return "#EF4444";
-  if (p <= 70) return "#F59E0B";
-  if (p < 100) return "#D97706";
-  return "#22C55E";
+  if (p <= 40) return "var(--danger)";
+  if (p <= 70) return "var(--color-accent-bright)";
+  if (p < 100) return "var(--accent)";
+  return "var(--success)";
 }
 
 export function getAtsScoreStrokeColor(score) {
   const s = Math.round(Math.max(0, Math.min(100, Number(score) || 0)));
-  if (s <= 40) return "#EF4444";
-  if (s <= 70) return "#F59E0B";
-  if (s < 100) return "#D97706";
-  return "#22C55E";
+  if (s <= 40) return "var(--danger)";
+  if (s <= 70) return "var(--color-accent-bright)";
+  if (s < 100) return "var(--accent)";
+  return "var(--success)";
 }
 
-export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
+export function FabSparkIcon({ size = 24, stroke = "var(--text-primary)" }) {
   const s = size;
   return (
     <svg width={s} height={s} viewBox="0 0 24 24" fill="none" aria-hidden style={{ display: "block", margin: "0 auto" }}>
       <path
         d="M12 2 L13.5 9.5 L21 11 L13.5 12.5 L12 20 L10.5 12.5 L3 11 L10.5 9.5 Z"
-        stroke={stroke}
+        style={{ stroke }} /* style, not the stroke attr — var() is invalid in presentation attributes */
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
@@ -266,7 +266,7 @@ export function FabSparkIcon({ size = 24, stroke = "#fff" }) {
 }
 
 function FabFeatureBulletIcon({ name }) {
-  const stroke = "#A0A0A0";
+  const stroke = "var(--text-secondary)";
   const sw = 1.5;
   const inner = (() => {
     switch (name) {
@@ -318,7 +318,7 @@ export function FabFeatureBullets({ items }) {
           }}
         >
           <FabFeatureBulletIcon name={row.icon} />
-          <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 13, lineHeight: 1.4, flex: 1 }}>{row.text}</span>
+          <span style={{ color: "var(--text-secondary, var(--text-secondary))", fontSize: 13, lineHeight: 1.4, flex: 1 }}>{row.text}</span>
         </div>
       ))}
     </div>
@@ -355,8 +355,8 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
     width: 30,
     height: 30,
     borderRadius: "50%",
-    background: "#1C1C1C",
-    border: "1px solid #2A2A2A",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border)",
     boxSizing: "border-box",
     display: "grid",
     placeItems: "center",
@@ -377,7 +377,7 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
               cy={cy}
               r={r}
               fill="none"
-              stroke="#1A1A1A"
+              stroke="var(--border)"
               strokeWidth={strokeW}
             />
             <circle
@@ -401,15 +401,15 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
               placeItems: "center",
               fontSize: 13,
               fontWeight: 500,
-              color: "#fff",
+              color: "var(--text-primary)",
             }}
           >
             {p}
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-          <div style={{ fontSize: 16, fontWeight: 500, color: "#fff", lineHeight: 1.25 }}>{headline}</div>
-          <div style={{ fontSize: 12, color: "#A0A0A0", marginTop: 3, lineHeight: 1.35 }}>{sub}</div>
+          <div style={{ fontSize: 16, fontWeight: 500, color: "var(--text-primary)", lineHeight: 1.25 }}>{headline}</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 3, lineHeight: 1.35 }}>{sub}</div>
         </div>
       </div>
 
@@ -421,7 +421,7 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
             right: 0,
             top: 15,
             height: 1,
-            background: "#2A2A2A",
+            background: "var(--border)",
             zIndex: 0,
           }}
         />
@@ -433,7 +433,7 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
                 width: 30,
                 height: 30,
                 borderRadius: "50%",
-                background: "#D97706",
+                background: "var(--accent)",
                 display: "grid",
                 placeItems: "center",
                 zIndex: 1,
@@ -442,29 +442,29 @@ function AtsFabScoreSheetBlock({ score, onJobMatchCta, onCoverLetterCta }) {
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
                   d="M20 6L9 17l-5-5"
-                  stroke="#fff"
+                  style={{ stroke: "var(--text-primary)" }}
                   strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </svg>
             </div>
-            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#D97706" }}>ATS scan</div>
-            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>done</div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "var(--accent)" }}>ATS scan</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "var(--text-secondary)" }}>done</div>
           </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
             <div style={nextStepStyle}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#2A2A2A" }} />
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--border)" }} />
             </div>
-            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#A0A0A0" }}>Job match</div>
-            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>next</div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "var(--text-secondary)" }}>Job match</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "var(--text-secondary)" }}>next</div>
           </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", minWidth: 0 }}>
             <div style={nextStepStyle}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#2A2A2A" }} />
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--border)" }} />
             </div>
-            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "#A0A0A0" }}>Cover letter</div>
-            <div style={{ marginTop: 2, fontSize: 9, color: "#A0A0A0" }}>next</div>
+            <div style={{ marginTop: 8, fontSize: 10, fontWeight: 500, color: "var(--text-secondary)" }}>Cover letter</div>
+            <div style={{ marginTop: 2, fontSize: 9, color: "var(--text-secondary)" }}>next</div>
           </div>
         </div>
       </div>
@@ -491,50 +491,50 @@ function PointIcon({ type }) {
   const inner = (() => {
     switch (type) {
       case "edit":
-        return <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#fff" strokeWidth="1.2" fill="none" />;
+        return <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" fill="none" />;
       case "menu":
         return (
           <>
-            <circle cx="5" cy="12" r="1" fill="#fff" />
-            <circle cx="12" cy="12" r="1" fill="#fff" />
-            <circle cx="19" cy="12" r="1" fill="#fff" />
+            <circle cx="5" cy="12" r="1" style={{ fill: "var(--text-primary)" }} />
+            <circle cx="12" cy="12" r="1" style={{ fill: "var(--text-primary)" }} />
+            <circle cx="19" cy="12" r="1" style={{ fill: "var(--text-primary)" }} />
           </>
         );
       case "bolt":
-        return <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" stroke="#fff" strokeWidth="1.2" fill="none" strokeLinejoin="round" />;
+        return <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" fill="none" strokeLinejoin="round" />;
       case "plus":
         return (
           <>
-            <path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+            <path d="M12 5v14M5 12h14" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" strokeLinecap="round" />
           </>
         );
       case "filter":
-        return <path d="M4 6h16M7 12h10M10 18h4" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />;
+        return <path d="M4 6h16M7 12h10M10 18h4" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" strokeLinecap="round" />;
       case "target":
         return (
           <>
-            <circle cx="12" cy="12" r="8" stroke="#fff" strokeWidth="1.2" fill="none" />
-            <circle cx="12" cy="12" r="3" stroke="#fff" strokeWidth="1.2" fill="none" />
+            <circle cx="12" cy="12" r="8" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" fill="none" />
+            <circle cx="12" cy="12" r="3" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" fill="none" />
           </>
         );
       case "paste":
-        return <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v0z" stroke="#fff" strokeWidth="1" fill="none" />;
+        return <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v0z" style={{ stroke: "var(--text-primary)" }} strokeWidth="1" fill="none" />;
       case "letter":
         return (
           <>
-            <path d="M4 4h16v16H4z" stroke="#fff" strokeWidth="1" fill="none" />
-            <path d="M4 8l8 5 8-5" stroke="#fff" strokeWidth="1" fill="none" />
+            <path d="M4 4h16v16H4z" style={{ stroke: "var(--text-primary)" }} strokeWidth="1" fill="none" />
+            <path d="M4 8l8 5 8-5" style={{ stroke: "var(--text-primary)" }} strokeWidth="1" fill="none" />
           </>
         );
       case "user":
         return (
           <>
-            <path d="M20 21a8 8 0 0 0-16 0" stroke="#fff" strokeWidth="1.2" fill="none" />
-            <circle cx="12" cy="7" r="4" stroke="#fff" strokeWidth="1.2" fill="none" />
+            <path d="M20 21a8 8 0 0 0-16 0" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" fill="none" />
+            <circle cx="12" cy="7" r="4" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" fill="none" />
           </>
         );
       default:
-        return <circle cx="12" cy="12" r="3" stroke="#fff" strokeWidth="1.2" fill="none" />;
+        return <circle cx="12" cy="12" r="3" style={{ stroke: "var(--text-primary)" }} strokeWidth="1.2" fill="none" />;
     }
   })();
   return (
@@ -543,7 +543,7 @@ function PointIcon({ type }) {
         width: 20,
         height: 20,
         borderRadius: "50%",
-        background: "#1C1C1C",
+        background: "var(--bg-elevated)",
         display: "grid",
         placeItems: "center",
         flexShrink: 0,
@@ -565,7 +565,7 @@ function ProgressCoachRing({ percent }) {
   return (
     <div style={{ position: "relative", width: 88, height: 88, margin: "0 auto 12px" }}>
       <svg width={88} height={88} viewBox="0 0 88 88" aria-hidden style={{ display: "block" }}>
-        <circle cx={44} cy={44} r={r} fill="none" stroke="#2A2A2A" strokeWidth={8} />
+        <circle cx={44} cy={44} r={r} fill="none" stroke="var(--border)" strokeWidth={8} />
         <circle
           cx={44}
           cy={44}
@@ -597,12 +597,12 @@ function ProgressCoachRing({ percent }) {
 }
 
 const bannerBase = {
-  background: "#1C1C1C",
+  background: "var(--bg-elevated)",
   border: "1px solid var(--border-default, #2A2A2A)",
   borderRadius: 12,
   padding: "12px 16px",
   fontSize: 13,
-  color: "var(--text-secondary, #A0A0A0)",
+  color: "var(--text-secondary, var(--text-secondary))",
   marginBottom: 12,
   boxSizing: "border-box",
   width: "100%",
@@ -617,7 +617,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
         padding: 14,
         boxSizing: "border-box",
         borderRadius: 12,
-        background: "var(--bg-elevated, #1C1C1C)",
+        background: "var(--bg-elevated, var(--bg-elevated))",
         border: "1px solid var(--border-default, #2A2A2A)",
       }}
     >
@@ -625,7 +625,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
         style={{
           fontSize: 11,
           fontWeight: 400,
-          color: "var(--text-secondary, #A0A0A0)",
+          color: "var(--text-secondary, var(--text-secondary))",
           textTransform: "none",
           letterSpacing: "normal",
           marginBottom: 10,
@@ -635,7 +635,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
         Download Status
       </div>
       {downloadGatekeeper == null ? (
-        <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, var(--text-secondary))", textAlign: "center" }}>
           Checking download status…
         </p>
       ) : (
@@ -647,7 +647,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
                   display: "inline-block",
                   padding: "4px 10px",
                   borderRadius: 8,
-                  background: "var(--bg-surface, #141414)",
+                  background: "var(--bg-surface, var(--bg-surface))",
                   border: "1px solid var(--border-default, #2A2A2A)",
                   fontSize: 11,
                   fontWeight: 600,
@@ -663,7 +663,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
               <p style={{ margin: "0 0 8px", fontSize: 14, fontWeight: 500, color: "var(--text-primary, #FFF)", textAlign: "center" }}>
                 You&apos;re clear to download
               </p>
-              <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary, #A0A0A0)" }}>
+              <div style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary, var(--text-secondary))" }}>
                 {Number.isFinite(downloadGatekeeper.downloadsLimit) ? (
                   <span>
                     {downloadGatekeeper.downloadsUsed}/{downloadGatekeeper.downloadsLimit} downloads used
@@ -676,7 +676,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
           ) : null}
           {downloadGatekeeper.blockerReason === "limit_reached" ? (
             <div style={{ textAlign: "center" }}>
-              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45 }}>
                 You&apos;ve used your free downloads. Upgrade for unlimited PDFs.
               </p>
               <button
@@ -689,7 +689,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
                 }}
                 style={{
                   background: "var(--text-primary, #FFF)",
-                  color: "#000",
+                  color: "var(--accent-contrast)",
                   borderRadius: 10,
                   padding: "10px 14px",
                   width: "100%",
@@ -706,7 +706,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
           ) : null}
           {downloadGatekeeper.blockerReason === "not_signed_in" ? (
             <div style={{ textAlign: "center" }}>
-              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45 }}>
                 Sign in to continue downloading
               </p>
               <button
@@ -714,7 +714,7 @@ function DownloadGatekeeperPanel({ downloadGatekeeper, onNavigateAuth, onNavigat
                 onClick={() => onNavigateAuth?.()}
                 style={{
                   background: "var(--text-primary, #FFF)",
-                  color: "#000",
+                  color: "var(--accent-contrast)",
                   borderRadius: 10,
                   padding: "10px 14px",
                   width: "100%",
@@ -2012,8 +2012,8 @@ export default function FABSheet({
         <div
           key={guideStep}
           style={{
-            background: "#1C1C1C",
-            border: `1px solid ${step.upsell ? "#F59E0B" : "rgba(255,255,255,0.12)"}`,
+            background: "var(--bg-elevated)",
+            border: `1px solid ${step.upsell ? "var(--color-accent-bright)" : "rgba(255,255,255,0.12)"}`,
             borderRadius: "12px",
             padding: "12px 14px",
             maxWidth: (step.id === 8 && (step8Phase === "scored" || step8Phase === "pro-jd")) || (step.id === 9 && step9Phase === "result") ? "288px" : "220px",
@@ -2034,7 +2034,7 @@ export default function FABSheet({
             <div style={{
               fontSize: "9px",
               fontWeight: 700,
-              color: "#F59E0B",
+              color: "var(--color-accent-bright)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
             }}>
@@ -2044,14 +2044,14 @@ export default function FABSheet({
             <div style={{
               width: 36,
               height: 3,
-              background: "#2A2A2A",
+              background: "var(--border)",
               borderRadius: 99,
               overflow: "hidden",
             }}>
               <div style={{
                 width: `${(step.id / 11) * 100}%`,
                 height: "100%",
-                background: "#D97706",
+                background: "var(--accent)",
                 borderRadius: 99,
                 transition: "width 400ms cubic-bezier(0.4,0,0.2,1)",
               }} />
@@ -2060,7 +2060,7 @@ export default function FABSheet({
           <div
             style={{
               fontSize: "11px",
-              color: "#fff",
+              color: "var(--text-primary)",
               lineHeight: 1.55,
               ...(step.twoPhase === true && guideNinePhase === 2 ? { animation: "fabFadeIn 0.3s ease" } : {}),
             }}
@@ -2079,8 +2079,8 @@ export default function FABSheet({
                       type="button"
                       onClick={handleStep8FreeScan}
                       style={{
-                        background: "#D97706",
-                        color: "#000",
+                        background: "var(--accent)",
+                        color: "var(--accent-contrast)",
                         border: "none",
                         borderRadius: 8,
                         padding: "6px 14px",
@@ -2099,7 +2099,7 @@ export default function FABSheet({
                       onClick={() => setStep8Phase("pro-jd")}
                       style={{
                         background: "transparent",
-                        color: "#fff",
+                        color: "var(--text-primary)",
                         borderRadius: 8,
                         padding: "6px 14px",
                         fontSize: 11,
@@ -2118,7 +2118,7 @@ export default function FABSheet({
                           inset: 0,
                           borderRadius: 8,
                           padding: "1px",
-                          background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
+                          background: "linear-gradient(90deg,var(--border),var(--text-primary),var(--border))",
                           WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
                           WebkitMaskComposite: "xor",
                           backgroundSize: "200% 100%",
@@ -2132,7 +2132,7 @@ export default function FABSheet({
                     <button
                       type="button"
                       onClick={retreatGuideStep}
-                      style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0", marginTop: 4, display: "block" }}
+                      style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0", marginTop: 4, display: "block" }}
                     >
                       ← Back
                     </button>
@@ -2167,9 +2167,9 @@ export default function FABSheet({
                           flexShrink: 0,
                         }}
                       >
-                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#D97706" }} />
+                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)" }} />
                       </div>
-                      <span style={{ fontSize: 10, color: "#A0A0A0", lineHeight: 1.3 }}>{label}</span>
+                      <span style={{ fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.3 }}>{label}</span>
                     </div>
                   ))}
                 </div>
@@ -2181,7 +2181,7 @@ export default function FABSheet({
                 const r = 22;
                 const circ = 2 * Math.PI * r;
                 const offset = circ * (1 - score / 100);
-                const scoreColor = score >= 80 ? "#22C55E" : score >= 60 ? "#D97706" : "#EF4444";
+                const scoreColor = score >= 80 ? "var(--success)" : score >= 60 ? "var(--accent)" : "var(--danger)";
                 const headline = score >= 80 ? "Strong foundation." : score >= 60 ? "Getting there." : "Room to grow.";
                 return (
                   <div style={{ animation: "fabFadeIn 0.4s cubic-bezier(0.4,0,0.2,1)" }}>
@@ -2189,7 +2189,7 @@ export default function FABSheet({
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                       <div style={{ position: "relative", width: 52, height: 52, flexShrink: 0 }}>
                         <svg width={52} height={52} viewBox="0 0 52 52" aria-hidden style={{ display: "block" }}>
-                          <circle cx={26} cy={26} r={r} fill="none" stroke="#1A1A1A" strokeWidth={5} />
+                          <circle cx={26} cy={26} r={r} fill="none" stroke="var(--border)" strokeWidth={5} />
                           <circle
                             cx={26} cy={26} r={r} fill="none"
                             stroke={scoreColor} strokeWidth={5}
@@ -2205,8 +2205,8 @@ export default function FABSheet({
                         </div>
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", lineHeight: 1.3 }}>{headline}</div>
-                        <div style={{ fontSize: 10, color: "#A0A0A0", marginTop: 2 }}>{industry}</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3 }}>{headline}</div>
+                        <div style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 2 }}>{industry}</div>
                       </div>
                       {/* Download icon button */}
                       <button
@@ -2223,9 +2223,9 @@ export default function FABSheet({
                         aria-label="Download CV"
                       >
                         <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden>
-                          <line x1="8" y1="2" x2="8" y2="10.5" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" />
-                          <polyline points="4.5,8 8,11.5 11.5,8" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          <line x1="3" y1="14" x2="13" y2="14" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" />
+                          <line x1="8" y1="2" x2="8" y2="10.5" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
+                          <polyline points="4.5,8 8,11.5 11.5,8" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <line x1="3" y1="14" x2="13" y2="14" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                       </button>
                     </div>
@@ -2233,7 +2233,7 @@ export default function FABSheet({
                     {/* Visibility Boosters */}
                     {visibilityBoosters.length > 0 && (
                       <div style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: "#4ADE80", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 5 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "var(--success)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 5 }}>
                           ✦ Found in your CV
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -2242,7 +2242,7 @@ export default function FABSheet({
                               key={kw}
                               style={{
                                 fontSize: 10, padding: "3px 8px", borderRadius: 999,
-                                background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.3)", color: "#4ADE80",
+                                background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.3)", color: "var(--success)",
                                 opacity: 0,
                                 animation: `step8ChipIn 0.3s ease ${i * 80}ms forwards`,
                               }}
@@ -2255,7 +2255,7 @@ export default function FABSheet({
                     {/* Rank Triggers */}
                     {rankTriggers.length > 0 && (
                       <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: "#D97706", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 5 }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "var(--accent)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 5 }}>
                           ⊕ Add these to rank higher
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -2264,7 +2264,7 @@ export default function FABSheet({
                               key={kw}
                               style={{
                                 fontSize: 10, padding: "3px 8px", borderRadius: 999,
-                                background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.3)", color: "#D97706",
+                                background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.3)", color: "var(--accent)",
                                 opacity: 0,
                                 animation: `step8ChipIn 0.3s ease ${(visibilityBoosters.length + i) * 80}ms forwards`,
                               }}
@@ -2286,8 +2286,8 @@ export default function FABSheet({
                           }
                         }}
                         style={{
-                          background: "#D97706",
-                          color: "#000",
+                          background: "var(--accent)",
+                          color: "var(--accent-contrast)",
                           border: "none",
                           borderRadius: 8,
                           padding: "6px 14px",
@@ -2305,8 +2305,8 @@ export default function FABSheet({
                         onClick={advanceGuideStep}
                         style={{
                           background: "transparent",
-                          color: "#D97706",
-                          border: "1.5px solid #D97706",
+                          color: "var(--accent)",
+                          border: "1.5px solid var(--accent)",
                           borderRadius: 8,
                           padding: "6px 14px",
                           fontSize: 11,
@@ -2326,7 +2326,7 @@ export default function FABSheet({
               {/* Phase: pro-jd — job description input */}
               {step8Phase === "pro-jd" && (
                 <div style={{ animation: "fabFadeIn 0.3s cubic-bezier(0.4,0,0.2,1)" }}>
-                  <p style={{ margin: "0 0 8px", fontSize: 10, color: "#A0A0A0", lineHeight: 1.5 }}>
+                  <p style={{ margin: "0 0 8px", fontSize: 10, color: "var(--text-secondary)", lineHeight: 1.5 }}>
                     Paste the job description — I'll map every keyword against your CV.
                   </p>
                   <textarea
@@ -2338,19 +2338,19 @@ export default function FABSheet({
                       width: "100%",
                       fontSize: 16,
                       fontFamily: "inherit",
-                      background: "#141414",
-                      border: "1px solid #2A2A2A",
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border)",
                       borderRadius: 8,
-                      color: "#fff",
+                      color: "var(--text-primary)",
                       padding: "8px 10px",
                       resize: "none",
                       outline: "none",
                       boxSizing: "border-box",
                       lineHeight: 1.45,
-                      caretColor: "#D97706",
+                      caretColor: "var(--accent)",
                     }}
-                    onFocus={(e) => { e.target.style.borderColor = "#D97706"; }}
-                    onBlur={(e) => { e.target.style.borderColor = "#2A2A2A"; }}
+                    onFocus={(e) => { e.target.style.borderColor = "var(--accent)"; }}
+                    onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
                   />
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <button
@@ -2367,8 +2367,8 @@ export default function FABSheet({
                       }}
                       style={{
                         flex: 1,
-                        background: step8Jd.trim() ? "#D97706" : "#2A2A2A",
-                        color: step8Jd.trim() ? "#000" : "#606060",
+                        background: step8Jd.trim() ? "var(--accent)" : "var(--border)",
+                        color: step8Jd.trim() ? "var(--accent-contrast)" : "var(--text-muted)",
                         border: "none",
                         borderRadius: 8,
                         padding: "7px 14px",
@@ -2386,7 +2386,7 @@ export default function FABSheet({
                   <button
                     type="button"
                     onClick={() => setStep8Phase(step8Result ? "scored" : "idle")}
-                    style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0", marginTop: 4, display: "block" }}
+                    style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0", marginTop: 4, display: "block" }}
                   >
                     ← Back
                   </button>
@@ -2400,7 +2400,7 @@ export default function FABSheet({
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   {guideStep > 0 && (
                     <button type="button" onClick={retreatGuideStep}
-                      style={{ background: "none", border: "none", color: "#606060", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0" }}>
+                      style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 0" }}>
                       ← Back
                     </button>
                   )}
@@ -2417,7 +2417,7 @@ export default function FABSheet({
                       }
                     }}
                     style={{
-                      background: "#D97706", color: "#000", border: "none", borderRadius: 8,
+                      background: "var(--accent)", color: "var(--accent-contrast)", border: "none", borderRadius: 8,
                       padding: "6px 14px", fontSize: 11, fontWeight: 700,
                       cursor: "pointer", fontFamily: "inherit", minHeight: 32,
                     }}>
@@ -2425,8 +2425,8 @@ export default function FABSheet({
                   </button>
                   <button type="button" onClick={advanceGuideStep}
                     style={{
-                      background: "transparent", color: "#D97706",
-                      border: "1.5px solid #D97706", borderRadius: 8,
+                      background: "transparent", color: "var(--accent)",
+                      border: "1.5px solid var(--accent)", borderRadius: 8,
                       padding: "6px 14px", fontSize: 11, fontWeight: 600,
                       cursor: "pointer", fontFamily: "inherit", minHeight: 32,
                     }}>
@@ -2446,7 +2446,7 @@ export default function FABSheet({
               <button type="button"
                 onClick={async () => { const url = await getPaymentLink("coverLetter"); if (url) window.location.href = url; }}
                 style={{
-                  background: "#D97706", color: "#000", border: "none", borderRadius: 8,
+                  background: "var(--accent)", color: "var(--accent-contrast)", border: "none", borderRadius: 8,
                   padding: "6px 14px", fontSize: 11, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit", minHeight: 32,
                 }}>
@@ -2455,14 +2455,14 @@ export default function FABSheet({
               <button type="button"
                 onClick={async () => { const url = await getPaymentLink("activeHunter"); if (url) window.location.href = url; }}
                 style={{
-                  background: "transparent", color: "#fff", borderRadius: 8,
+                  background: "transparent", color: "var(--text-primary)", borderRadius: 8,
                   padding: "6px 14px", fontSize: 11, fontWeight: 600,
                   cursor: "pointer", fontFamily: "inherit",
                   position: "relative", overflow: "hidden", border: "none", minHeight: 32,
                 }}>
                 <span style={{
                   position: "absolute", inset: 0, borderRadius: 8, padding: "1px",
-                  background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
+                  background: "linear-gradient(90deg,var(--border),var(--text-primary),var(--border))",
                   WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
                   WebkitMaskComposite: "xor",
                   backgroundSize: "200% 100%",
@@ -2472,7 +2472,7 @@ export default function FABSheet({
               </button>
               <button type="button" onClick={advanceGuideStep}
                 style={{
-                  background: "none", border: "none", color: "#A0A0A0",
+                  background: "none", border: "none", color: "var(--text-secondary)",
                   fontSize: 10, cursor: "pointer", fontFamily: "inherit", padding: "4px 6px",
                 }}>
                 Skip → Download my CV
@@ -2488,7 +2488,7 @@ export default function FABSheet({
                   advanceGuideStep();
                 }}
                 style={{
-                  background: "#D97706", color: "#000", border: "none", borderRadius: 8,
+                  background: "var(--accent)", color: "var(--accent-contrast)", border: "none", borderRadius: 8,
                   padding: "6px 14px", fontSize: 11, fontWeight: 700,
                   cursor: "pointer", fontFamily: "inherit", minHeight: 32,
                 }}>
@@ -2516,7 +2516,7 @@ export default function FABSheet({
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#606060",
+                      color: "var(--text-muted)",
                       fontSize: "10px",
                       cursor: "pointer",
                       fontFamily: "inherit",
@@ -2532,7 +2532,7 @@ export default function FABSheet({
                     onClick={advanceGuideStep}
                     style={{
                       background: "transparent",
-                      color: "#fff",
+                      color: "var(--text-primary)",
                       borderRadius: "8px",
                       padding: "6px 14px",
                       fontSize: "11px",
@@ -2550,7 +2550,7 @@ export default function FABSheet({
                         inset: 0,
                         borderRadius: "8px",
                         padding: "1px",
-                        background: "linear-gradient(90deg,#2A2A2A,#fff,#2A2A2A)",
+                        background: "linear-gradient(90deg,var(--border),var(--text-primary),var(--border))",
                         WebkitMask: "linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0)",
                         WebkitMaskComposite: "xor",
                         backgroundSize: "200% 100%",
@@ -2566,8 +2566,8 @@ export default function FABSheet({
                     onClick={advanceGuideStep}
                     style={{
                       background: "transparent",
-                      color: "#D97706",
-                      border: "1.5px solid #D97706",
+                      color: "var(--accent)",
+                      border: "1.5px solid var(--accent)",
                       borderRadius: "8px",
                       padding: "6px 14px",
                       fontSize: "11px",
@@ -2584,8 +2584,8 @@ export default function FABSheet({
                     type="button"
                     onClick={advanceGuideStep}
                     style={{
-                      background: "#F59E0B",
-                      color: "#000",
+                      background: "var(--color-accent-bright)",
+                      color: "var(--accent-contrast)",
                       border: "none",
                       borderRadius: "8px",
                       padding: "6px 14px",
@@ -2606,7 +2606,7 @@ export default function FABSheet({
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#606060",
+                    color: "var(--text-muted)",
                     fontSize: "10px",
                     cursor: "pointer",
                     fontFamily: "inherit",
@@ -2684,9 +2684,9 @@ export default function FABSheet({
     Boolean(dedicatedRoute) && !(dedicatedRoute === "ats" && sheetAtsHigh) && !sheetBodySlot;
 
   const chipBase = {
-    border: "1px solid #3A3A3A",
+    border: "1px solid var(--border-strong)",
     background: "transparent",
-    color: "#FFF",
+    color: "var(--text-primary)",
     fontSize: 12,
     padding: "6px 14px",
     borderRadius: 99,
@@ -2722,7 +2722,7 @@ export default function FABSheet({
           );
         })}
         {more > 0 ? (
-          <span style={{ ...chipBase, border: "1px solid #2A2A2A", color: "var(--text-secondary, #A0A0A0)" }}>+{more} more</span>
+          <span style={{ ...chipBase, border: "1px solid var(--border)", color: "var(--text-secondary, var(--text-secondary))" }}>+{more} more</span>
         ) : null}
       </div>
     );
@@ -2733,7 +2733,7 @@ export default function FABSheet({
       const hasAccess = hasFeatureAccess({ is_pro: isPro, features }, 'coverLetter');
       return (
         <>
-          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
             AED 10 for a personalised cover letter that matches your CV. Most hiring managers expect one.
           </p>
           <button
@@ -2749,8 +2749,8 @@ export default function FABSheet({
             }}
             style={{
               width: "100%",
-              background: "#fff",
-              color: "#000",
+              background: "var(--text-primary)",
+              color: "var(--bg)",
               borderRadius: 12,
               padding: 14,
               fontWeight: 600,
@@ -2768,7 +2768,7 @@ export default function FABSheet({
     if (coverLetterState === "empty") {
       return (
         <>
-          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
             Fill in your target role and key strength — those two make the biggest difference.
           </p>
           <FabFeatureBullets
@@ -2787,12 +2787,12 @@ export default function FABSheet({
               width: "100%",
               marginTop: 8,
               background: "transparent",
-              color: "#FFF",
+              color: "var(--text-primary)",
               borderRadius: 12,
               padding: 14,
               fontWeight: 600,
               fontSize: 14,
-              border: "1px solid #2A2A2A",
+              border: "1px solid var(--border)",
               cursor: "pointer",
               minHeight: 44,
             }}
@@ -2805,7 +2805,7 @@ export default function FABSheet({
     if (coverLetterState === "partial") {
       return (
         <>
-          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
             Almost there — finish filling the fields to generate.
           </p>
           {coverLetterEmptyFieldLabels.length > 0 ? (
@@ -2815,11 +2815,11 @@ export default function FABSheet({
                   key={lab}
                   style={{
                     fontSize: 11,
-                    color: "var(--text-secondary, #A0A0A0)",
+                    color: "var(--text-secondary, var(--text-secondary))",
                     padding: "4px 10px",
                     borderRadius: 99,
-                    border: "1px solid #2A2A2A",
-                    background: "var(--bg-page, #0A0A0A)",
+                    border: "1px solid var(--border)",
+                    background: "var(--bg-page, var(--bg))",
                   }}
                 >
                   {lab}
@@ -2837,12 +2837,12 @@ export default function FABSheet({
               width: "100%",
               marginTop: 8,
               background: "transparent",
-              color: "#FFF",
+              color: "var(--text-primary)",
               borderRadius: 12,
               padding: 14,
               fontWeight: 600,
               fontSize: 14,
-              border: "1px solid #2A2A2A",
+              border: "1px solid var(--border)",
               cursor: "pointer",
               minHeight: 44,
             }}
@@ -2855,7 +2855,7 @@ export default function FABSheet({
     if (coverLetterState === "ready") {
       return (
         <>
-          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
             All fields complete. Generate your cover letter now.
           </p>
           <button
@@ -2867,8 +2867,8 @@ export default function FABSheet({
             style={{
               width: "100%",
               marginTop: 8,
-              background: "#fff",
-              color: "#000",
+              background: "var(--text-primary)",
+              color: "var(--bg)",
               borderRadius: 12,
               padding: 14,
               fontWeight: 600,
@@ -2886,7 +2886,7 @@ export default function FABSheet({
     if (coverLetterState === "generated") {
       return (
         <>
-          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
             Happy with it? Download before you leave.
           </p>
           <button
@@ -2898,8 +2898,8 @@ export default function FABSheet({
             style={{
               width: "100%",
               marginTop: 8,
-              background: "#fff",
-              color: "#000",
+              background: "var(--text-primary)",
+              color: "var(--bg)",
               borderRadius: 12,
               padding: 14,
               fontWeight: 600,
@@ -2922,7 +2922,7 @@ export default function FABSheet({
               width: "100%",
               background: "none",
               border: "none",
-              color: "var(--text-secondary, #A0A0A0)",
+              color: "var(--text-secondary, var(--text-secondary))",
               fontSize: 13,
               cursor: "pointer",
               padding: 8,
@@ -2949,7 +2949,7 @@ export default function FABSheet({
     if (walkInCvBuilt) {
       return (
         <>
-          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
             Your walk-in CV is built. Download and go.
           </p>
           <button
@@ -2961,8 +2961,8 @@ export default function FABSheet({
             style={{
               width: "100%",
               marginTop: 8,
-              background: "#fff",
-              color: "#000",
+              background: "var(--text-primary)",
+              color: "var(--bg)",
               borderRadius: 12,
               padding: 14,
               fontWeight: 600,
@@ -2979,7 +2979,7 @@ export default function FABSheet({
     }
     return (
       <>
-        <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+        <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
           Build your CV in 90 seconds — perfect for same-day interviews.
         </p>
         <FabFeatureBullets
@@ -2999,12 +2999,12 @@ export default function FABSheet({
             width: "100%",
             marginTop: 8,
             background: "transparent",
-            color: "#FFF",
+            color: "var(--text-primary)",
             borderRadius: 12,
             padding: 14,
             fontWeight: 600,
             fontSize: 14,
-            border: "1px solid #2A2A2A",
+            border: "1px solid var(--border)",
             cursor: "pointer",
             minHeight: 44,
           }}
@@ -3018,7 +3018,7 @@ export default function FABSheet({
   const renderDedicatedAccount = () => {
     const g = downloadGatekeeper;
     if (g == null) {
-      return <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>Loading plan…</p>;
+      return <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, var(--text-secondary))", textAlign: "center" }}>Loading plan…</p>;
     }
     if (g.isPaidUser) {
       return (
@@ -3038,10 +3038,10 @@ export default function FABSheet({
               {g.planName}
             </span>
           </div>
-          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
             Everything is unlocked. You&apos;re all set.
           </p>
-          <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.5, textAlign: "center" }}>
+          <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.5, textAlign: "center" }}>
             Unlimited downloads · All templates · Full ATS · Cover Letter
           </p>
         </>
@@ -3052,9 +3052,9 @@ export default function FABSheet({
     const currency = getCvpPricingCurrencyCode();
     const upgradePriceLine =
       currency === "IN" ? (
-        <span style={{ color: "#FFF", fontWeight: 600 }}>₹199/mo</span>
+        <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>₹199/mo</span>
       ) : (
-        <span style={{ color: "#FFF", fontWeight: 600 }}>AED 29/mo</span>
+        <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>AED 29/mo</span>
       );
     return (
       <>
@@ -3064,22 +3064,22 @@ export default function FABSheet({
               display: "inline-block",
               padding: "6px 14px",
               borderRadius: 99,
-              background: "#1C1C1C",
-              color: "var(--text-secondary, #A0A0A0)",
+              background: "var(--bg-elevated)",
+              color: "var(--text-secondary, var(--text-secondary))",
               fontSize: 12,
               fontWeight: 600,
-              border: "1px solid #2A2A2A",
+              border: "1px solid var(--border)",
             }}
           >
             Free
           </span>
         </div>
-        <p style={{ margin: "0 0 14px", fontSize: 14, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45, textAlign: "center" }}>
+        <p style={{ margin: "0 0 14px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>
           You&apos;ve used {used}/{lim} free downloads.
         </p>
         <div
           style={{
-            background: "#1C1C1C",
+            background: "var(--bg-elevated)",
             border: "1px solid var(--border-default, #2A2A2A)",
             borderRadius: 12,
             padding: 14,
@@ -3087,7 +3087,7 @@ export default function FABSheet({
             boxSizing: "border-box",
           }}
         >
-          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", lineHeight: 1.45 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45 }}>
             Upgrade to Active Hunter — unlimited downloads, all templates, ATS + Cover Letter.
           </p>
           <p style={{ margin: "10px 0 0", fontSize: 14 }}>{upgradePriceLine}</p>
@@ -3102,8 +3102,8 @@ export default function FABSheet({
           }}
           style={{
             width: "100%",
-            background: "#fff",
-            color: "#000",
+            background: "var(--text-primary)",
+            color: "var(--bg)",
             borderRadius: 12,
             padding: 14,
             fontWeight: 600,
@@ -3142,9 +3142,9 @@ export default function FABSheet({
     flex: 1,
     minHeight: 40,
     borderRadius: 10,
-    border: "1px solid #2A2A2A",
+    border: "1px solid var(--border)",
     background: "transparent",
-    color: "#A0A0A0",
+    color: "var(--text-secondary)",
     fontSize: 13,
     fontWeight: 500,
     cursor: "pointer",
@@ -3193,9 +3193,9 @@ export default function FABSheet({
                 onClick={() => setBuilderCoachTab("tips")}
                 style={{
                   ...builderCoachTabChip,
-                  background: builderCoachTab === "tips" ? "#1C1C1C" : "transparent",
-                  color: builderCoachTab === "tips" ? "#FFFFFF" : "#A0A0A0",
-                  borderColor: builderCoachTab === "tips" ? "#3A3A3A" : "#2A2A2A",
+                  background: builderCoachTab === "tips" ? "var(--bg-elevated)" : "transparent",
+                  color: builderCoachTab === "tips" ? "var(--text-primary)" : "var(--text-secondary)",
+                  borderColor: builderCoachTab === "tips" ? "var(--border-strong)" : "var(--border)",
                 }}
               >
                 Tips
@@ -3207,9 +3207,9 @@ export default function FABSheet({
                 onClick={() => setBuilderCoachTab("guide")}
                 style={{
                   ...builderCoachTabChip,
-                  background: builderCoachTab === "guide" ? "#1C1C1C" : "transparent",
-                  color: builderCoachTab === "guide" ? "#FFFFFF" : "#A0A0A0",
-                  borderColor: builderCoachTab === "guide" ? "#3A3A3A" : "#2A2A2A",
+                  background: builderCoachTab === "guide" ? "var(--bg-elevated)" : "transparent",
+                  color: builderCoachTab === "guide" ? "var(--text-primary)" : "var(--text-secondary)",
+                  borderColor: builderCoachTab === "guide" ? "var(--border-strong)" : "var(--border)",
                 }}
               >
                 <FabGuideStarIcon active={builderCoachTab === "guide"} />
@@ -3233,7 +3233,7 @@ export default function FABSheet({
                   style={{
                     height: "100%",
                     width: `${Math.min(100, Math.max(0, Number(cvCompletionProgress.percent) || 0))}%`,
-                    background: cvCompletionProgress.percent === 100 ? "#4CAF50" : "#FFFFFF",
+                    background: cvCompletionProgress.percent === 100 ? "var(--success)" : "var(--text-primary)",
                     borderRadius: 999,
                     transition: "width 400ms cubic-bezier(0.4,0,0.2,1)",
                   }}
@@ -3243,7 +3243,7 @@ export default function FABSheet({
                 style={{
                   margin: "8px 0 0",
                   fontSize: 12,
-                  color: "var(--text-secondary, #A0A0A0)",
+                  color: "var(--text-secondary, var(--text-secondary))",
                   textAlign: "center",
                   lineHeight: 1.35,
                 }}
@@ -3261,9 +3261,9 @@ export default function FABSheet({
                       display: "inline-block",
                       padding: "4px 12px",
                       borderRadius: 999,
-                      border: "1px solid #F59E0B",
+                      border: "1px solid var(--color-accent-bright)",
                       background: "transparent",
-                      color: "#F59E0B",
+                      color: "var(--color-accent-bright)",
                       fontSize: 12,
                       lineHeight: 1.35,
                       boxSizing: "border-box",
@@ -3281,7 +3281,7 @@ export default function FABSheet({
             <div
               style={{
                 fontSize: 13,
-                color: "var(--text-secondary, #A0A0A0)",
+                color: "var(--text-secondary, var(--text-secondary))",
                 paddingBottom: 8,
                 paddingTop: 4,
                 textAlign: "center",
@@ -3310,7 +3310,7 @@ export default function FABSheet({
             <div
               style={{
                 ...bannerBase,
-                border: "1px solid #22C55E",
+                border: "1px solid var(--success)",
               }}
             >
               {activeCelebration === 70 ? (
@@ -3341,7 +3341,7 @@ export default function FABSheet({
                   padding: 0,
                   border: "none",
                   background: "none",
-                  color: "#FFF",
+                  color: "var(--text-primary)",
                   fontSize: 12,
                   cursor: onProgressCoachNavigate ? "pointer" : "default",
                   textDecoration: "underline",
@@ -3361,8 +3361,8 @@ export default function FABSheet({
                 padding: 14,
                 boxSizing: "border-box",
                 borderRadius: 12,
-                background: "#1C1C1C",
-                border: "1px solid #F59E0B",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--color-accent-bright)",
                 textAlign: "center",
                 animation: "fabFadeIn 0.3s ease",
               }}
@@ -3372,7 +3372,7 @@ export default function FABSheet({
                   margin: 0,
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "#F59E0B",
+                  color: "var(--color-accent-bright)",
                   lineHeight: 1.45,
                   animation: "pulse 1.5s ease-in-out infinite",
                 }}
@@ -3390,8 +3390,8 @@ export default function FABSheet({
                 padding: 14,
                 boxSizing: "border-box",
                 borderRadius: 12,
-                background: "#1C1C1C",
-                border: "1px solid #F59E0B",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--color-accent-bright)",
                 textAlign: "center",
                 animation: "fabFadeIn 0.3s ease",
               }}
@@ -3401,7 +3401,7 @@ export default function FABSheet({
                   margin: 0,
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "#F59E0B",
+                  color: "var(--color-accent-bright)",
                   lineHeight: 1.45,
                   animation: "pulse 1.5s ease-in-out infinite",
                 }}
@@ -3419,8 +3419,8 @@ export default function FABSheet({
                 padding: 14,
                 boxSizing: "border-box",
                 borderRadius: 12,
-                background: "#1C1C1C",
-                border: "1px solid #F59E0B",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--color-accent-bright)",
                 textAlign: "center",
                 animation: "fabFadeIn 0.3s ease",
               }}
@@ -3430,7 +3430,7 @@ export default function FABSheet({
                   margin: 0,
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "#F59E0B",
+                  color: "var(--color-accent-bright)",
                   lineHeight: 1.45,
                   animation: "pulse 1.5s ease-in-out infinite",
                 }}
@@ -3448,8 +3448,8 @@ export default function FABSheet({
                 padding: 14,
                 boxSizing: "border-box",
                 borderRadius: 12,
-                background: "#1C1C1C",
-                border: "1px solid #F59E0B",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--color-accent-bright)",
                 textAlign: "center",
                 animation: "fabFadeIn 0.3s ease",
               }}
@@ -3459,7 +3459,7 @@ export default function FABSheet({
                   margin: 0,
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "#F59E0B",
+                  color: "var(--color-accent-bright)",
                   lineHeight: 1.45,
                   animation: "pulse 1.5s ease-in-out infinite",
                 }}
@@ -3480,7 +3480,7 @@ export default function FABSheet({
                     padding: 14,
                     boxSizing: "border-box",
                     borderRadius: 12,
-                    background: "var(--bg-elevated, #1C1C1C)",
+                    background: "var(--bg-elevated, var(--bg-elevated))",
                     border: "1px solid var(--border-default, #2A2A2A)",
                     marginBottom: 12,
                   }}
@@ -3493,11 +3493,11 @@ export default function FABSheet({
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "#141414",
-                      border: "1px solid #2A2A2A",
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border)",
                       borderRadius: 16,
                       padding: "12px 14px",
-                      color: "#fff",
+                      color: "var(--text-primary)",
                       fontSize: 14,
                       fontFamily: "inherit",
                       resize: "none",
@@ -3506,7 +3506,7 @@ export default function FABSheet({
                       display: "block",
                     }}
                     onFocus={(e) => { e.target.style.borderColor = "rgba(245,158,11,0.35)"; }}
-                    onBlur={(e) => { e.target.style.borderColor = "#2A2A2A"; }}
+                    onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
                   />
                   <div style={{ display: "flex", gap: 8 }}>
                     {onFabFreeScan ? (
@@ -3515,8 +3515,8 @@ export default function FABSheet({
                         onClick={() => { onFabFreeScan(fabAtsJd); onClose(); }}
                         style={{
                           flex: 1,
-                          background: "#D97706",
-                          color: "#000",
+                          background: "var(--accent)",
+                          color: "var(--accent-contrast)",
                           border: "none",
                           borderRadius: 10,
                           padding: "12px 8px",
@@ -3546,8 +3546,8 @@ export default function FABSheet({
                         style={{
                           flex: 1,
                           background: "transparent",
-                          color: isPro ? "#D97706" : "#A0A0A0",
-                          border: `1px solid ${isPro ? "#D97706" : "#2A2A2A"}`,
+                          color: isPro ? "var(--accent)" : "var(--text-secondary)",
+                          border: `1px solid ${isPro ? "var(--accent)" : "var(--border)"}`,
                           borderRadius: 10,
                           padding: "12px 8px",
                           fontSize: 13,
@@ -3573,7 +3573,7 @@ export default function FABSheet({
                     padding: 14,
                     boxSizing: "border-box",
                     borderRadius: 12,
-                    background: "var(--bg-elevated, #1C1C1C)",
+                    background: "var(--bg-elevated, var(--bg-elevated))",
                     border: "1px solid var(--border-default, #2A2A2A)",
                   }}
                 >
@@ -3590,7 +3590,7 @@ export default function FABSheet({
                     padding: 14,
                     boxSizing: "border-box",
                     borderRadius: 12,
-                    background: "var(--bg-elevated, #1C1C1C)",
+                    background: "var(--bg-elevated, var(--bg-elevated))",
                     border: "1px solid var(--border-default, #2A2A2A)",
                   }}
                 >
@@ -3613,7 +3613,7 @@ export default function FABSheet({
                 padding: 14,
                 boxSizing: "border-box",
                 borderRadius: 12,
-                background: "var(--bg-elevated, #1C1C1C)",
+                background: "var(--bg-elevated, var(--bg-elevated))",
                 border: "1px solid var(--border-default, #2A2A2A)",
               }}
             >
@@ -3621,7 +3621,7 @@ export default function FABSheet({
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: "var(--text-secondary, #A0A0A0)",
+                  color: "var(--text-secondary, var(--text-secondary))",
                   textTransform: "uppercase",
                   letterSpacing: "0.06em",
                   marginBottom: 10,
@@ -3631,14 +3631,14 @@ export default function FABSheet({
                 Progress coach
               </div>
               {progressCoach && !progressCoach.hasCV ? (
-                <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center", lineHeight: 1.45 }}>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, var(--text-secondary))", textAlign: "center", lineHeight: 1.45 }}>
                   Start your CV to see progress
                 </p>
               ) : progressCoach ? (
                 <>
                   <ProgressCoachRing percent={progressCoach.completionPercent} />
                   {progressCoach.completionPercent === 100 ? (
-                    <p style={{ margin: "0 0 10px", fontSize: 13, color: "#22C55E", textAlign: "center", fontWeight: 600 }}>
+                    <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--success)", textAlign: "center", fontWeight: 600 }}>
                       All sections complete ✓
                     </p>
                   ) : topNudge ? (
@@ -3650,10 +3650,10 @@ export default function FABSheet({
                       style={{
                         display: "block",
                         margin: "0 auto 10px",
-                        background: "#1C1C1C",
-                        border: "1px solid #2A2A2A",
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--border)",
                         fontSize: 12,
-                        color: "#FFF",
+                        color: "var(--text-primary)",
                         padding: "6px 12px",
                         borderRadius: 20,
                         cursor: onProgressCoachNavigate && nudgeNavKey ? "pointer" : "default",
@@ -3663,7 +3663,7 @@ export default function FABSheet({
                       → Add {topNudge} for the biggest ATS boost
                     </button>
                   ) : null}
-                  <div style={{ fontSize: 12, color: "var(--text-secondary, #A0A0A0)", textAlign: "center", marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary, var(--text-secondary))", textAlign: "center", marginBottom: 10 }}>
                     {progressCoach.completedSections}/{progressCoach.totalSections} sections complete
                   </div>
                   {progressCoach.completionPercent < 100 && progressCoach.missingSections.length > 0 ? (
@@ -3680,7 +3680,7 @@ export default function FABSheet({
                             padding: "6px 12px",
                             borderRadius: 999,
                             border: "1px solid var(--border-default, #2A2A2A)",
-                            background: "var(--bg-surface, #141414)",
+                            background: "var(--bg-surface, var(--bg-surface))",
                             color: "var(--text-primary, #FFF)",
                             fontSize: 12,
                             fontWeight: 500,
@@ -3692,7 +3692,7 @@ export default function FABSheet({
                       ))}
                     </div>
                   ) : progressCoach.completionPercent < 100 ? (
-                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #A0A0A0)", textAlign: "center" }}>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, var(--text-secondary))", textAlign: "center" }}>
                       All tracked sections look good.
                     </p>
                   ) : null}
@@ -3729,7 +3729,7 @@ export default function FABSheet({
                   padding: 0,
                   border: "none",
                   background: "none",
-                  color: "#FFF",
+                  color: "var(--text-primary)",
                   fontSize: 12,
                   cursor: onNavigateToCoverLetter ? "pointer" : "default",
                   textDecoration: "underline",
@@ -3803,7 +3803,7 @@ export default function FABSheet({
                   }}
                 >
                   <PointIcon type={row.icon} />
-                  <span style={{ color: "var(--text-secondary, #A0A0A0)", fontSize: 13, lineHeight: 1.45, flex: 1 }}>{row.text}</span>
+                  <span style={{ color: "var(--text-secondary, var(--text-secondary))", fontSize: 13, lineHeight: 1.45, flex: 1 }}>{row.text}</span>
                 </div>
               ))}
           </div>
@@ -3813,8 +3813,8 @@ export default function FABSheet({
               type="button"
               onClick={handlePro}
               style={{
-                background: "#fff",
-                color: "#000",
+                background: "var(--text-primary)",
+                color: "var(--bg)",
                 borderRadius: 10,
                 padding: 12,
                 width: "100%",
@@ -3841,7 +3841,7 @@ export default function FABSheet({
               style={
                 dedicatedRoute === "ats"
                   ? undefined
-                  : { background: "#fff", color: "#000", fontWeight: 500, fontSize: 14, border: "none", cursor: "pointer", minHeight: 44 }
+                  : { background: "var(--text-primary)", color: "var(--bg)", fontWeight: 500, fontSize: 14, border: "none", cursor: "pointer", minHeight: 44 }
               }
             >
               Got it

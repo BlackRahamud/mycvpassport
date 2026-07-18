@@ -13,13 +13,15 @@ const C = {
   danger: "#ef4444",
 };
 
+/* Candidate semantic tokens (index.css) — resolve per data-theme, so these
+   atoms follow the builder's day/night toggle. Never the portal families. */
 export const CB_UI = {
   btn: {
     padding: "8px 16px",
     borderRadius: 8,
     border: "none",
-    background: "#FFFFFF",
-    color: "#000000",
+    background: "var(--text-primary)",
+    color: "var(--bg)",
     fontWeight: 500,
     fontSize: 13,
     cursor: "pointer",
@@ -29,20 +31,19 @@ export const CB_UI = {
     padding: "14px 16px",
     fontSize: "16px",
     minHeight: "120px",
-    border: "1px solid #3A3A3A",
+    border: "1px solid var(--builder-fill-border)",
     borderRadius: "10px",
-    backgroundColor: "#1C1C1C",
-    color: "#FFFFFF",
+    backgroundColor: "var(--builder-fill)",
+    color: "var(--text-primary)",
     lineHeight: "1.6",
     transition: "border-color 200ms cubic-bezier(0.4,0,0.2,1)",
-    /* on focus border-color should shift to #666 */
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     outline: "none",
     boxSizing: "border-box",
   },
   card: {
-    background: "#1C1C1C",
-    border: "1px solid #2A2A2A",
+    background: "var(--bg-elevated)",
+    border: "1px solid var(--border)",
     borderRadius: 8,
     padding: "12px 16px",
     marginBottom: 8,
@@ -53,8 +54,9 @@ export const CB_UI = {
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
-    background: "#2A2A2A",
-    color: "#FFFFFF",
+    background: "var(--builder-fill)",
+    border: "1px solid var(--builder-fill-border)",
+    color: "var(--text-primary)",
     borderRadius: 20,
     padding: "4px 12px",
     fontSize: 13,

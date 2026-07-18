@@ -167,8 +167,8 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
   return (
     <div
       style={{
-        background: '#141414',
-        border: '1px solid #2A2A2A',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
         borderRadius: 16,
         padding: 16,
       }}
@@ -192,10 +192,10 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
         }}
       >
         <div style={{ minWidth: 0, flex: '1 1 220px' }}>
-          <p style={{ margin: 0, fontSize: 14, color: '#FFFFFF', fontWeight: 600 }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-primary)', fontWeight: 600 }}>
             Already have a CV?
           </p>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A0A0A0', lineHeight: 1.45 }}>
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
             Import your PDF or DOCX. We'll fill the builder for you in about 10 seconds.
           </p>
         </div>
@@ -205,9 +205,9 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
           disabled={isBusy}
           style={{
             padding: '10px 18px',
-            background: isBusy ? '#1C1C1C' : '#FFFFFF',
-            color: isBusy ? '#A0A0A0' : '#000000',
-            border: isBusy ? '1px solid #2A2A2A' : 'none',
+            background: isBusy ? 'var(--bg-elevated)' : 'var(--text-primary)',
+            color: isBusy ? 'var(--text-secondary)' : 'var(--bg)',
+            border: isBusy ? '1px solid var(--border)' : 'none',
             borderRadius: 10,
             fontWeight: 600,
             fontSize: 13,
@@ -230,11 +230,11 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
             border: '1px solid rgba(239,68,68,0.35)',
           }}
         >
-          <p style={{ margin: 0, fontSize: 13, color: '#F87171', fontWeight: 600 }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--danger)', fontWeight: 600 }}>
             {errorMsg}
           </p>
           {errorHint ? (
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#A0A0A0' }}>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>
               {errorHint}
             </p>
           ) : null}
