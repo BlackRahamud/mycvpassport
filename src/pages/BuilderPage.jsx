@@ -54,6 +54,7 @@ import AtsFixesPanel from "../components/ats/AtsFixesPanel";
 import AtsWelcomeModal from "../components/ats/AtsWelcomeModal";
 import { getDraftStorageKey, readCvDraft, writeCvDraft, clearCvDraft } from "../lib/cvDraft";
 import { getTheme, setTheme } from "../lib/theme";
+import BrandLockup from "../components/BrandLockup";
 import { normalizeAtsGaps, gapsFromLegacyParam, partitionGapsByResolution } from "../lib/ats/atsGaps";
 import { logEvent } from "../lib/analytics/logEvent";
 import { BuilderTemplatesTab } from "./TemplatesPage";
@@ -117,8 +118,8 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
       {certRolePack?.certifications?.length && !certSuggestionsDismissed ? (
         <div
           style={{
-            background: "rgba(59,130,246,0.06)",
-            border: "1px dashed rgba(59,130,246,0.45)",
+            background: "rgba(217,119,6,0.06)",
+            border: "1px dashed rgba(217,119,6,0.45)",
             borderRadius: 12,
             padding: 12,
             marginBottom: 10,
@@ -134,8 +135,8 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
             }}
           >
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
-              <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>Suggested certifications — not on your CV yet</span>
+              <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--accent-text)" }} aria-hidden />
+              <span style={{ fontSize: 11, color: "var(--accent-text)", fontWeight: 600 }}>Suggested certifications, not on your CV yet</span>
             </span>
             <button
               type="button"
@@ -174,8 +175,8 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
                     alignItems: "center",
                     gap: 4,
                     background: "transparent",
-                    border: "1px dashed rgba(59,130,246,0.4)",
-                    color: "var(--info)",
+                    border: "1px dashed rgba(217,119,6,0.45)",
+                    color: "var(--accent-text)",
                     borderRadius: 999,
                     padding: "4px 10px",
                     fontSize: 11,
@@ -356,7 +357,7 @@ function CertificationsBuilderSection({ resume, setResume, certificationEditor, 
         className="cvp-add-row-ghost cvp-builder-add-entry-btn"
         onClick={() => setCertificationEditor({ mode: "add", index: -1, draft: { ...EMPTY_CERT } })}
       >
-        + Add Certification
+        + Add a certification
       </button>
       <button
         type="button"
@@ -1130,9 +1131,9 @@ const CVP_BUILDER_PH_CSS = ".cvp-builder-ph::placeholder{color:var(--text-muted)
 
 /** Inline "+ Add" next to skill inputs — layout/size from `.cvp-builder-skill-add-btn` in index.css */
 const BUILDER_SKILL_ADD_BTN = {
-  background: "var(--text-primary)",
+  background: "var(--accent)",
   border: "none",
-  color: "var(--bg)",
+  color: "var(--accent-contrast)",
   fontWeight: 700,
   cursor: "pointer",
   fontFamily: "inherit",
@@ -1145,9 +1146,9 @@ const BUILDER_TECH_CHIP = {
   display: "inline-flex",
   alignItems: "center",
   gap: 4,
-  background: "rgba(59,130,246,0.12)",
-  border: "1px solid rgba(59,130,246,0.3)",
-  color: "var(--info)",
+  background: "rgba(217,119,6,0.12)",
+  border: "1px solid rgba(217,119,6,0.3)",
+  color: "var(--accent-text)",
   fontSize: 11,
   fontWeight: 500,
   padding: "5px 11px",
@@ -1159,7 +1160,7 @@ const BUILDER_TECH_CHIP_REMOVE = {
   cursor: "pointer",
   opacity: 0.45,
   fontSize: 14,
-  color: "var(--info)",
+  color: "var(--accent-text)",
   background: "none",
   border: "none",
   padding: 0,
@@ -1169,9 +1170,9 @@ const BUILDER_TECH_CHIP_REMOVE = {
 
 const BUILDER_TECH_SKILL_COUNT_BADGE = {
   fontSize: 10,
-  color: "var(--info)",
-  background: "rgba(59,130,246,0.12)",
-  border: "1px solid rgba(59,130,246,0.25)",
+  color: "var(--accent-text)",
+  background: "rgba(217,119,6,0.12)",
+  border: "1px solid rgba(217,119,6,0.25)",
   borderRadius: 999,
   padding: "2px 8px",
 };
@@ -1711,7 +1712,7 @@ function SkillsEditorSection({
           </button>
         </div>
         {duplicateInput ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6, fontSize: 11, color: "var(--info)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6, fontSize: 11, color: "var(--accent-text)" }}>
             <AlertCircle size={11} strokeWidth={1.8} aria-hidden />
             This skill is already added
           </div>
@@ -1742,8 +1743,8 @@ function SkillsEditorSection({
         {softSuggestions ? (
           <div
             style={{
-              background: "rgba(59,130,246,0.06)",
-              border: "1px dashed rgba(59,130,246,0.45)",
+              background: "rgba(217,119,6,0.06)",
+              border: "1px dashed rgba(217,119,6,0.45)",
               borderRadius: 12,
               padding: 12,
               marginBottom: 10,
@@ -1759,8 +1760,8 @@ function SkillsEditorSection({
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
-                <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>Suggestions — not on your CV yet</span>
+                <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--accent-text)" }} aria-hidden />
+                <span style={{ fontSize: 11, color: "var(--accent-text)", fontWeight: 600 }}>Suggestions, not on your CV yet</span>
               </span>
               <button
                 type="button"
@@ -1793,8 +1794,8 @@ function SkillsEditorSection({
                       alignItems: "center",
                       gap: 4,
                       background: "transparent",
-                      border: "1px dashed rgba(59,130,246,0.4)",
-                      color: "var(--info)",
+                      border: "1px dashed rgba(217,119,6,0.45)",
+                      color: "var(--accent-text)",
                       borderRadius: 999,
                       padding: "4px 10px",
                       fontSize: 11,
@@ -2066,20 +2067,129 @@ function snapshotResumeForDiscard(r) {
 // (cleared on explicit save or discard, else kept until TTL) recovers it.
 
 /** @param {{ title: string, subtitle: string, onRowClick: () => void, onMoveUp: () => void, onMoveDown: () => void, disableUp: boolean, disableDown: boolean, onEdit: () => void, onDelete: () => void }} props */
+function ContactDetailsCard({ resume, set }) {
+  /* Design row: Contact details as a collapsible section card. Opens by
+     default while empty (first thing to fill), collapses once named. */
+  const [open, setOpen] = useState(() => !String(resume.name || "").trim());
+  const meta = [resume.name, resume.location].filter(Boolean).join(", ") || "Your name, contact and location";
+  return (
+    <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 13, marginBottom: 9 }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", minHeight: 56, padding: "11px 12px", background: "transparent", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+      >
+        <span style={ACCORDION_ICON_BOX}>
+          <User size={16} strokeWidth={1.8} style={{ color: "var(--text-secondary)" }} aria-hidden />
+        </span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3 }}>Contact details</span>
+          <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{meta}</span>
+        </span>
+        <span style={{ flexShrink: 0, color: "var(--text-muted)", display: "inline-flex", transform: open ? "rotate(180deg)" : "none", transition: "transform 200ms cubic-bezier(0.4,0,0.2,1)" }}>
+          <ChevronDown size={17} strokeWidth={2} aria-hidden />
+        </span>
+      </button>
+      <div style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: "grid-template-rows 240ms cubic-bezier(0.4,0,0.2,1)" }}>
+        <div style={{ overflow: open ? "visible" : "hidden", minHeight: 0 }}>
+          <div style={{ display: "grid", gap: 10, padding: "2px 14px 15px", borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            <div className="cvp-field">
+              <input id="cvp-pi-name" className="cvp-input" placeholder=" " value={resume.name} onChange={(e) => set("name", e.target.value)} />
+              <label htmlFor="cvp-pi-name">Full name</label>
+            </div>
+            <div className="cvp-field">
+              <input id="cvp-pi-title" className="cvp-input" placeholder=" " value={resume.title} onChange={(e) => set("title", e.target.value)} />
+              <label htmlFor="cvp-pi-title">Job title</label>
+            </div>
+            <div className="cvp-field">
+              <input id="cvp-pi-email" className="cvp-input" placeholder=" " value={resume.email} onChange={(e) => set("email", e.target.value)} />
+              <label htmlFor="cvp-pi-email">Email</label>
+            </div>
+            <div className="cvp-field">
+              <input id="cvp-pi-phone" className="cvp-input" placeholder=" " value={resume.phone} onChange={(e) => set("phone", e.target.value)} />
+              <label htmlFor="cvp-pi-phone">Phone</label>
+            </div>
+            <div className="cvp-field">
+              <input id="cvp-pi-linkedin" className="cvp-input" placeholder=" " value={resume.linkedin || ""} onChange={(e) => set("linkedin", e.target.value)} />
+              <label htmlFor="cvp-pi-linkedin">LinkedIn URL</label>
+            </div>
+            <div className="cvp-field">
+              <input id="cvp-pi-location" className="cvp-input" placeholder=" " value={resume.location} onChange={(e) => set("location", e.target.value)} />
+              <label htmlFor="cvp-pi-location">Location</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BuilderArrivalHero({ onImported, onManual }) {
+  /* The design arrival: upload is the hero, hand-typing is the quiet
+     fallback. The import pipeline is BuilderCvImport (extract, upload
+     import-only, parse) — same mechanics as the header button. */
+  return (
+    <div style={{ maxWidth: 560, width: "100%", margin: "0 auto" }}>
+      <BuilderCvImport variant="hero" onImported={onImported} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 2px 0" }}>
+        <span style={{ flex: 1, height: 1, background: "var(--border)" }} aria-hidden />
+        <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>no CV yet</span>
+        <span style={{ flex: 1, height: 1, background: "var(--border)" }} aria-hidden />
+      </div>
+      <button
+        type="button"
+        onClick={onManual}
+        style={{ width: "100%", marginTop: 14, minHeight: 44, background: "transparent", border: "1px solid var(--border)", borderRadius: 11, color: "var(--text-primary)", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+      >
+        Fill it in by hand instead
+      </button>
+    </div>
+  );
+}
+
+function AddSectionChips({ resume, setResume, setOpenSection, onTechnicalSkills }) {
+  const extra = resume.builderExtraSectionIds || [];
+  const chips = [];
+  for (const opt of OPTIONAL_BUILDER_SECTIONS) {
+    if (opt.id === "personalDetails") continue; /* fixed section now */
+    if (extra.includes(opt.id)) continue;
+    chips.push({ key: opt.id, label: opt.label, onAdd: () => {
+      setResume((r) => ({ ...r, builderExtraSectionIds: [...new Set([...(r.builderExtraSectionIds || []), opt.id])] }));
+      setOpenSection(opt.id);
+    } });
+  }
+  if (!technicalSkillsHasAnyChip(resume)) {
+    chips.splice(1, 0, { key: "technicalSkills", label: "Technical Skills", onAdd: onTechnicalSkills });
+  }
+  if (chips.length === 0) return null;
+  return (
+    <div>
+      <p style={{ margin: "20px 2px 11px", fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)" }}>Add a section</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {chips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={c.onAdd}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 34, padding: "0 13px", borderRadius: 999, background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)", fontSize: 12.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: `border-color 150ms ${EASE}` }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--color-accent-line)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+          >
+            <span style={{ color: "var(--accent-text)", fontWeight: 700, fontSize: 15, lineHeight: 1 }} aria-hidden>+</span> {c.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDown, disableUp, disableDown, onEdit, onDelete }) {
-  const iconBtn = {
-    background: "none",
-    border: "none",
-    color: "var(--text-secondary)",
-    cursor: "pointer",
-    padding: 4,
-    borderRadius: 6,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 32,
-    minHeight: 32,
-  };
+  /* Design entry row: grip, title + subtitle, an amber Edit pill, and a
+     quiet overflow menu carrying move/delete (capabilities the mock's
+     row omits but a candidate still needs — the menu is the design's
+     own pattern for exactly this). No pencil-and-arrow cluster. */
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div
       role="button"
@@ -2098,38 +2208,25 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
         gap: 10,
         background: "var(--bg-elevated)",
         border: "1px solid var(--border)",
-        borderRadius: 10,
-        padding: "10px 12px",
+        borderRadius: 11,
+        padding: "11px 8px 11px 12px",
         cursor: "pointer",
         minHeight: 44,
         boxSizing: "border-box",
+        position: "relative",
+        transition: "border-color 150ms cubic-bezier(0.4,0,0.2,1)",
       }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--color-accent-line)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
     >
-      <span style={{ color: "var(--text-secondary)", flexShrink: 0, display: "flex", pointerEvents: "none" }} aria-hidden>
+      <span style={{ color: "var(--text-muted)", flexShrink: 0, display: "flex", pointerEvents: "none" }} aria-hidden>
         <GripVertical size={14} strokeWidth={1.8} />
       </span>
       <div style={{ flex: 1, minWidth: 0, pointerEvents: "none" }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: "var(--text-primary)",
-            whiteSpace: "normal",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {title}
         </div>
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--text-secondary)",
-            whiteSpace: "normal",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
+        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.35, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {subtitle}
         </div>
         {hint ? (
@@ -2138,80 +2235,61 @@ function BuilderEntryRow({ title, subtitle, hint, onRowClick, onMoveUp, onMoveDo
           </div>
         ) : null}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          <button
-            type="button"
-            title="Move up"
-            disabled={disableUp}
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveUp();
-            }}
-            style={{
-              ...iconBtn,
-              opacity: disableUp ? 0.35 : 1,
-              cursor: disableUp ? "not-allowed" : "pointer",
-              padding: "1px 3px",
-              minWidth: 24,
-              minHeight: 20,
-            }}
-          >
-            <ChevronUp size={10} strokeWidth={2.5} aria-hidden />
-          </button>
-          <button
-            type="button"
-            title="Move down"
-            disabled={disableDown}
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveDown();
-            }}
-            style={{
-              ...iconBtn,
-              opacity: disableDown ? 0.35 : 1,
-              cursor: disableDown ? "not-allowed" : "pointer",
-              padding: "1px 3px",
-              minWidth: 24,
-              minHeight: 20,
-            }}
-          >
-            <ChevronDown size={10} strokeWidth={2.5} aria-hidden />
-          </button>
-        </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit();
+        }}
+        style={{
+          flexShrink: 0,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          height: 32,
+          padding: "0 13px",
+          borderRadius: 8,
+          background: "var(--color-accent-soft)",
+          border: "1px solid var(--color-accent-line)",
+          color: "var(--accent-text)",
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        <Pencil size={13} strokeWidth={2} aria-hidden /> Edit
+      </button>
+      <div style={{ position: "relative", flexShrink: 0 }}>
         <button
           type="button"
-          title="Edit"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          style={iconBtn}
+          aria-label={`${title} options`}
+          aria-expanded={menuOpen}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+          style={{ width: 28, height: 28, padding: 0, display: "grid", placeItems: "center", background: "transparent", border: "none", borderRadius: 7, color: "var(--text-muted)", cursor: "pointer" }}
         >
-          <Pencil size={13} strokeWidth={1.8} aria-hidden />
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
         </button>
-        <button
-          type="button"
-          title="Delete"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          style={iconBtn}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "var(--danger)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
-        >
-          <Trash2 size={14} strokeWidth={1.8} aria-hidden />
-        </button>
+        {menuOpen ? (
+          <>
+            <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 39 }} onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
+            <div role="menu" style={{ position: "absolute", top: 32, right: 0, zIndex: 40, minWidth: 158, padding: 5, borderRadius: 12, background: "var(--builder-glass)", backdropFilter: "blur(20px) saturate(1.5)", WebkitBackdropFilter: "blur(20px) saturate(1.5)", border: "1px solid var(--builder-glass-border)", boxShadow: "var(--builder-glass-shadow)" }}>
+              <button role="menuitem" type="button" disabled={disableUp} onClick={(e) => { e.stopPropagation(); setMenuOpen(false); if (!disableUp) onMoveUp(); }} style={{ ...ACCORDION_MENU_ITEM, opacity: disableUp ? 0.4 : 1, cursor: disableUp ? "not-allowed" : "pointer" }}>
+                <ChevronUp size={14} strokeWidth={2} aria-hidden /> Move up
+              </button>
+              <button role="menuitem" type="button" disabled={disableDown} onClick={(e) => { e.stopPropagation(); setMenuOpen(false); if (!disableDown) onMoveDown(); }} style={{ ...ACCORDION_MENU_ITEM, opacity: disableDown ? 0.4 : 1, cursor: disableDown ? "not-allowed" : "pointer" }}>
+                <ChevronDown size={14} strokeWidth={2} aria-hidden /> Move down
+              </button>
+              <button role="menuitem" type="button" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }} style={{ ...ACCORDION_MENU_ITEM, color: "var(--danger)" }}>
+                <Trash2 size={14} strokeWidth={1.8} aria-hidden /> Delete
+              </button>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
 }
-
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -2648,7 +2726,7 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
                 fontFamily: "inherit",
               }}
               onFocus={(e) => {
-                e.target.style.borderBottomColor = "rgba(59,130,246,0.35)";
+                e.target.style.borderBottomColor = "rgba(217,119,6,0.35)";
               }}
               onBlur={(e) => {
                 e.target.style.borderBottomColor = "transparent";
@@ -2804,8 +2882,8 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
         {suggestRows ? (
           <div
             style={{
-              background: "rgba(59,130,246,0.06)",
-              border: "1px dashed rgba(59,130,246,0.45)",
+              background: "rgba(217,119,6,0.06)",
+              border: "1px dashed rgba(217,119,6,0.45)",
               borderRadius: 12,
               padding: 12,
               marginBottom: 10,
@@ -2821,8 +2899,8 @@ function TechnicalSkillsEditor({ resume, setResume, jobTitle }) {
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
-                <span style={{ fontSize: 11, color: "var(--info)", fontWeight: 600 }}>Suggested categories — not on your CV yet</span>
+                <Lightbulb size={11} strokeWidth={1.8} style={{ color: "var(--accent-text)" }} aria-hidden />
+                <span style={{ fontSize: 11, color: "var(--accent-text)", fontWeight: 600 }}>Suggested categories, not on your CV yet</span>
               </span>
               <button
                 type="button"
@@ -3027,6 +3105,10 @@ function ResumeBuilder({
      also stamps <html> so body portals (SynthesisOverlay, CompletionScreen)
      agree. No stored preference → day. */
   const [builderTheme, setBuilderTheme] = useState(() => getTheme());
+  /* Arrival: an empty CV opens on the upload hero (uploading a CV she
+     already has beats thumb-typing one). "Fill it in by hand instead" is
+     the quiet fallback. Guide mode bypasses the hero. */
+  const [manualStart, setManualStart] = useState(false);
   const toggleBuilderTheme = useCallback(() => {
     setBuilderTheme((cur) => setTheme(cur === "dark" ? "light" : "dark"));
   }, []);
@@ -3048,7 +3130,6 @@ function ResumeBuilder({
   const downloadUiTimerRef = useRef(null);
   const [cvFinderOpen, setCvFinderOpen] = useState(false);
   const [cvFinderQuery, setCvFinderQuery] = useState("");
-  const [addSectionPickerOpen, setAddSectionPickerOpen] = useState(false);
   const cvFinderPanelRef = useRef(null);
   const cvFinderToggleRef = useRef(null);
   const cvFinderInputRef = useRef(null);
@@ -4354,34 +4435,17 @@ function ResumeBuilder({
     runCoverLetterJourneyStep();
   }, [runCoverLetterJourneyStep]);
 
+  const resumeIsEmptyForArrival =
+    !String(resume.name || "").trim() &&
+    !String(resume.summary || "").trim() &&
+    (resume.experience || []).length === 0 &&
+    (resume.education || []).length === 0 &&
+    !String(resume.skills || "").trim();
+  const showArrivalHero = resumeIsEmptyForArrival && !manualStart && fabMode !== "guide";
+
   const isOpen = (id) => openSection === id;
   const toggleSection = (id) => setOpenSection(s => s === id ? null : id);
 
-  const builderExtraSectionIds = resume.builderExtraSectionIds || [];
-  const allOptionalSectionsAdded = OPTIONAL_BUILDER_SECTIONS.every((s) => builderExtraSectionIds.includes(s.id));
-  const addSectionPickerRows = useMemo(() => {
-    const ids = resume.builderExtraSectionIds ?? [];
-    const nav = (id, label) => ({ kind: "nav", id, label });
-    /* personalDetails is a fixed always-visible section now — it appears
-       as a nav (jump) row, never an add row. */
-    const optionalNotAdded = OPTIONAL_BUILDER_SECTIONS.filter((s) => !ids.includes(s.id) && s.id !== "personalDetails");
-    const certRow = optionalNotAdded.find((s) => s.id === "certifications");
-    const restOpt = optionalNotAdded.filter((s) => s.id !== "certifications");
-    const rows = [
-      nav("personalDetails", "Personal Details"),
-      nav("summary", "Professional Summary"),
-      nav("experience", "Professional Experience"),
-      nav("education", "Education"),
-    ];
-    if (certRow) rows.push({ kind: "optional", ...certRow });
-    rows.push(
-      nav("skills", "Skills"),
-      nav("languages", "Languages"),
-      nav("technicalSkills", "Technical Skills"),
-    );
-    restOpt.forEach((s) => rows.push({ kind: "optional", ...s }));
-    return rows;
-  }, [resume.builderExtraSectionIds]);
 
   /* ── Cover Letter locked preview for Guide step 10 ── */
   const guideCoverLetterPreview = (
@@ -4717,7 +4781,10 @@ function ResumeBuilder({
           className="cvp-builder-left"
           style={{ width: "100%", minWidth: 0, alignSelf: "start" }}
         >
-          {builderTab === "content" && (
+          {builderTab === "content" && showArrivalHero ? (
+            <BuilderArrivalHero onImported={handleCvImported} onManual={() => setManualStart(true)} />
+          ) : null}
+          {builderTab === "content" && !showArrivalHero && (
             <>
               <AtsFixesPanel
                 gaps={atsGaps}
@@ -4740,7 +4807,7 @@ function ResumeBuilder({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>CVPassport</span>
+                  <BrandLockup />
                   {savedBadgeLabel ? (
                     <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--success)", opacity: 0.85 }}>
                       <span style={{ width: 6, height: 6, background: "var(--success)", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
@@ -4777,38 +4844,7 @@ function ResumeBuilder({
                 <PersonalDetailsNudge onDismiss={dismissPersonalDetailsNudge} />
               ) : null}
 
-              {/* Personal info card — always visible */}
-              <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 16, position: "relative" }}>
-                {/* The decorative round Edit pencil was removed — it rendered
-                    with no onClick (a dead control). The fields below are
-                    directly editable; nothing needed a second entry point. */}
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div className="cvp-field">
-                    <input id="cvp-pi-name" className="cvp-input" placeholder=" " value={resume.name} onChange={e=>set("name",e.target.value)} />
-                    <label htmlFor="cvp-pi-name">Full name</label>
-                  </div>
-                  <div className="cvp-field">
-                    <input id="cvp-pi-title" className="cvp-input" placeholder=" " value={resume.title} onChange={e=>set("title",e.target.value)} />
-                    <label htmlFor="cvp-pi-title">Job title</label>
-                  </div>
-                  <div className="cvp-field">
-                    <input id="cvp-pi-email" className="cvp-input" placeholder=" " value={resume.email} onChange={e=>set("email",e.target.value)} />
-                    <label htmlFor="cvp-pi-email">Email</label>
-                  </div>
-                  <div className="cvp-field">
-                    <input id="cvp-pi-phone" className="cvp-input" placeholder=" " value={resume.phone} onChange={e=>set("phone",e.target.value)} />
-                    <label htmlFor="cvp-pi-phone">Phone</label>
-                  </div>
-                  <div className="cvp-field">
-                    <input id="cvp-pi-linkedin" className="cvp-input" placeholder=" " value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
-                    <label htmlFor="cvp-pi-linkedin">LinkedIn URL</label>
-                  </div>
-                  <div className="cvp-field">
-                    <input id="cvp-pi-location" className="cvp-input" placeholder=" " value={resume.location} onChange={e=>set("location",e.target.value)} />
-                    <label htmlFor="cvp-pi-location">Location</label>
-                  </div>
-                </div>
-              </div>
+              <ContactDetailsCard resume={resume} set={set} />
 
               {cvJourneyChrome && !cvJourney.templateChosen ? (
                 <div style={{ marginBottom: 16, padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-surface)", display: "grid", gap: 10 }}>
@@ -4820,8 +4856,8 @@ function ResumeBuilder({
                       padding: "10px 14px",
                       borderRadius: 8,
                       border: "none",
-                      background: "var(--text-primary)",
-                      color: "var(--bg)",
+                      background: "var(--accent)",
+                      color: "var(--accent-contrast)",
                       fontSize: 14,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -4865,8 +4901,8 @@ function ResumeBuilder({
                       padding: "10px 14px",
                       borderRadius: 8,
                       border: "none",
-                      background: downloadState.status === 'generating' ? "var(--bg-elevated)" : "var(--text-primary)",
-                      color: downloadState.status === 'generating' ? "var(--text-primary)" : "var(--bg)",
+                      background: downloadState.status === 'generating' ? "var(--bg-elevated)" : "var(--accent)",
+                      color: downloadState.status === 'generating' ? "var(--text-primary)" : "var(--accent-contrast)",
                       fontSize: 14,
                       fontWeight: 600,
                       cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
@@ -4878,6 +4914,7 @@ function ResumeBuilder({
                 </div>
               ) : null}
 
+              <p style={{ margin: "2px 2px 12px", fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)" }}>Your CV sections</p>
               <div className="cvp-sections-list" style={{ display: "flex", flexDirection: "column" }}>
               <AccordionSection
                 id="summary"
@@ -4954,7 +4991,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Experience</button>
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add a role</button>
                 </div>
               </AccordionSection>
 
@@ -4996,7 +5033,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Education</button>
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add a qualification</button>
                 </div>
               </AccordionSection>
 
@@ -5146,7 +5183,7 @@ function ResumeBuilder({
               </div>
 
               {builderTab === "content" && (
-                <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--text-primary)"; e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>+ Add section</button>
+                <AddSectionChips resume={resume} setResume={setResume} setOpenSection={setOpenSection} onTechnicalSkills={() => { setTechnicalSkillsFromPrompt(true); setOpenSection("technicalSkills"); }} />
               )}
             </>
           )}
@@ -5208,7 +5245,10 @@ function ResumeBuilder({
         }}
       >
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
-            {builderTab === "content" && (
+            {builderTab === "content" && showArrivalHero ? (
+              <BuilderArrivalHero onImported={handleCvImported} onManual={() => setManualStart(true)} />
+            ) : null}
+            {builderTab === "content" && !showArrivalHero && (
               <>
                 <AtsFixesPanel
                   gaps={atsGaps}
@@ -5231,7 +5271,7 @@ function ResumeBuilder({
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 18, fontWeight: 500, color: "var(--text-primary)" }}>CVPassport</span>
+                    <BrandLockup />
                     {savedBadgeLabel ? (
                       <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--success)", opacity: 0.85 }}>
                         <span style={{ width: 6, height: 6, background: "var(--success)", borderRadius: "50%", flexShrink: 0 }} aria-hidden />
@@ -5271,34 +5311,7 @@ function ResumeBuilder({
                 {personalDetailsNudgeOpen ? (
                   <PersonalDetailsNudge onDismiss={dismissPersonalDetailsNudge} />
                 ) : null}
-                <div id="section-personal" className="cvp-builder-personal-card" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 16, position: "relative" }}>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div className="cvp-field">
-                      <input id="cvp-pi-name" className="cvp-input" placeholder=" " value={resume.name} onChange={e=>set("name",e.target.value)} />
-                      <label htmlFor="cvp-pi-name">Full name</label>
-                    </div>
-                    <div className="cvp-field">
-                      <input id="cvp-pi-title" className="cvp-input" placeholder=" " value={resume.title} onChange={e=>set("title",e.target.value)} />
-                      <label htmlFor="cvp-pi-title">Job title</label>
-                    </div>
-                    <div className="cvp-field">
-                      <input id="cvp-pi-email" className="cvp-input" placeholder=" " value={resume.email} onChange={e=>set("email",e.target.value)} />
-                      <label htmlFor="cvp-pi-email">Email</label>
-                    </div>
-                    <div className="cvp-field">
-                      <input id="cvp-pi-phone" className="cvp-input" placeholder=" " value={resume.phone} onChange={e=>set("phone",e.target.value)} />
-                      <label htmlFor="cvp-pi-phone">Phone</label>
-                    </div>
-                    <div className="cvp-field">
-                      <input id="cvp-pi-linkedin" className="cvp-input" placeholder=" " value={resume.linkedin || ""} onChange={e=>set("linkedin",e.target.value)} />
-                      <label htmlFor="cvp-pi-linkedin">LinkedIn URL</label>
-                    </div>
-                    <div className="cvp-field">
-                      <input id="cvp-pi-location" className="cvp-input" placeholder=" " value={resume.location} onChange={e=>set("location",e.target.value)} />
-                      <label htmlFor="cvp-pi-location">Location</label>
-                    </div>
-                  </div>
-                </div>
+                <ContactDetailsCard resume={resume} set={set} />
                 {cvJourneyChrome && !cvJourney.templateChosen ? (
                   <div style={{ margin: "0 12px 12px", padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-surface)", display: "grid", gap: 10 }}>
                     <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.45 }}>Your CV is ready. Now let&apos;s make it shine.</p>
@@ -5309,8 +5322,8 @@ function ResumeBuilder({
                         padding: "10px 14px",
                         borderRadius: 8,
                         border: "none",
-                        background: "var(--text-primary)",
-                        color: "var(--bg)",
+                        background: "var(--accent)",
+                        color: "var(--accent-contrast)",
                         fontSize: 14,
                         fontWeight: 600,
                         cursor: "pointer",
@@ -5354,8 +5367,8 @@ function ResumeBuilder({
                         padding: "10px 14px",
                         borderRadius: 8,
                         border: "none",
-                        background: downloadState.status === 'generating' ? "var(--bg-elevated)" : "var(--text-primary)",
-                        color: downloadState.status === 'generating' ? "var(--text-primary)" : "var(--bg)",
+                        background: downloadState.status === 'generating' ? "var(--bg-elevated)" : "var(--accent)",
+                        color: downloadState.status === 'generating' ? "var(--text-primary)" : "var(--accent-contrast)",
                         fontSize: 14,
                         fontWeight: 600,
                         cursor: downloadState.status === 'generating' ? "not-allowed" : "pointer",
@@ -5366,6 +5379,7 @@ function ResumeBuilder({
                     </button>
                   </div>
                 ) : null}
+                <p style={{ margin: "2px 2px 10px", fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)" }}>Your CV sections</p>
                 <div className="cvp-mobile-section-rows" style={{ display: "flex", flexDirection: "column", maxWidth: "100%" }}>
               <AccordionSection
                 variant="mobileRow"
@@ -5444,7 +5458,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Experience</button>
+                  <button type="button" onClick={() => setExperienceEditor({ mode: "add", index: -1, draft: { ...EMPTY_EXP } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add a role</button>
                 </div>
               </AccordionSection>
 
@@ -5487,7 +5501,7 @@ function ResumeBuilder({
                       />
                     );
                   })}
-                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add Education</button>
+                  <button type="button" onClick={() => setEducationEditor({ mode: "add", index: -1, draft: { ...EMPTY_EDU } })} className="cvp-add-row-ghost cvp-builder-add-entry-btn">+ Add a qualification</button>
                 </div>
               </AccordionSection>
 
@@ -5641,7 +5655,7 @@ function ResumeBuilder({
               />
                 </div>
                 {builderTab === "content" && (
-                  <button type="button" onClick={() => setAddSectionPickerOpen(true)} className="cvp-builder-add-section" style={{ width: "100%", height: 44, padding: 0, borderRadius: 12, border: "1px dashed var(--border-strong)", background: "transparent", color: "var(--text-secondary)", fontWeight: 500, fontSize: 14, cursor: "pointer", transition: `border-color 150ms ${EASE}, color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--text-primary)"; e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>+ Add section</button>
+                  <AddSectionChips resume={resume} setResume={setResume} setOpenSection={setOpenSection} onTechnicalSkills={() => { setTechnicalSkillsFromPrompt(true); setOpenSection("technicalSkills"); }} />
                 )}
               </>
             )}
@@ -6187,8 +6201,8 @@ function ResumeBuilder({
                   style={{
                     width: "100%",
                     minHeight: 36,
-                    background: "var(--text-primary)",
-                    color: "var(--bg)",
+                    background: "var(--accent)",
+                    color: "var(--accent-contrast)",
                     fontSize: 7.5,
                     fontWeight: 600,
                     border: "none",
@@ -6243,7 +6257,7 @@ function ResumeBuilder({
                 <div
                   style={{
                     background: "var(--bg-elevated)",
-                    border: "1px solid rgba(59,130,246,0.35)",
+                    border: "1px solid rgba(217,119,6,0.35)",
                     borderRadius: 12,
                     padding: 20,
                     maxWidth: 360,
@@ -6544,10 +6558,10 @@ function ResumeBuilder({
                         marginTop: 8,
                         padding: "8px 10px",
                         borderRadius: 8,
-                        background: "rgba(59,130,246,0.1)",
-                        border: "1px solid rgba(59,130,246,0.3)",
+                        background: "rgba(217,119,6,0.1)",
+                        border: "1px solid rgba(217,119,6,0.3)",
                         fontSize: 11,
-                        color: "var(--info)",
+                        color: "var(--accent-text)",
                       }}
                     >
                       <AlertTriangle size={11} strokeWidth={1.8} aria-hidden />
@@ -6813,62 +6827,6 @@ function ResumeBuilder({
         </div>
       )}
 
-      {addSectionPickerOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 200,
-            background: "rgba(0,0,0,0.75)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 16,
-          }}
-          onClick={() => setAddSectionPickerOpen(false)}
-        >
-          <div
-            style={{ background: "var(--builder-glass)", backdropFilter: "blur(32px) saturate(1.8)", WebkitBackdropFilter: "blur(32px) saturate(1.8)", border: "1px solid var(--builder-glass-border)", boxShadow: "var(--builder-glass-shadow)", borderRadius: 12, padding: 20, maxWidth: 400, width: "100%" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 600, color: "var(--text-primary)" }}>Add optional section</h3>
-            <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 16px" }}>Choose a section to add to your CV.</p>
-            <div style={{ display: "grid", gap: 8, maxHeight: "55vh", overflowY: "auto" }}>
-              {addSectionPickerRows.map((row) => (
-                <button
-                  key={row.kind === "nav" ? `nav-${row.id}` : row.id}
-                  type="button"
-                  style={{ ...CB_UI.btn, width: "100%", textAlign: "left" }}
-                  onClick={() => {
-                    if (row.kind === "nav") {
-                      setOpenSection(row.id);
-                      setAddSectionPickerOpen(false);
-                      return;
-                    }
-                    setResume((r) => ({
-                      ...r,
-                      builderExtraSectionIds: [...new Set([...(r.builderExtraSectionIds || []), row.id])],
-                    }));
-                    setOpenSection(row.id);
-                    setAddSectionPickerOpen(false);
-                  }}
-                >
-                  {row.kind === "nav" ? row.label : `+ ${row.label}`}
-                </button>
-              ))}
-              {addSectionPickerRows.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
-                  {allOptionalSectionsAdded ? "All optional sections have been added." : "No sections available."}
-                </p>
-              ) : null}
-            </div>
-            <button type="button" style={{ ...CB_UI.btn, marginTop: 16, width: "100%", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border)" }} onClick={() => setAddSectionPickerOpen(false)}>Close</button>
-          </div>
-        </div>
-      )}
-
       {userHasEdited && !cvpBannerDismissedStored ? (
         <div
           className="cvp-builder-unsaved-banner"
@@ -6879,7 +6837,7 @@ function ResumeBuilder({
             right: 16,
             zIndex: 250,
             background: "var(--bg-elevated)",
-            border: "1px solid rgba(59,130,246,0.35)",
+            border: "1px solid rgba(217,119,6,0.35)",
             borderRadius: 12,
             padding: "12px 16px",
             display: "flex",
@@ -6892,13 +6850,13 @@ function ResumeBuilder({
             boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
           }}
         >
-          <AlertTriangle size={13} strokeWidth={1.8} style={{ color: "var(--info)" }} aria-hidden />
+          <AlertTriangle size={13} strokeWidth={1.8} style={{ color: "var(--accent-text)" }} aria-hidden />
           <span
             style={{
               flex: "1 1 120px",
               minWidth: 0,
               fontSize: 12,
-              color: "var(--info)",
+              color: "var(--accent-text)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -6924,7 +6882,7 @@ function ResumeBuilder({
                 setUserHasEdited(false);
               }}
               style={{
-                background: "var(--info)",
+                background: "var(--accent)",
                 border: "none",
                 color: "var(--text-primary)",
                 fontSize: 11,
@@ -7025,16 +6983,21 @@ function ResumeBuilder({
   );
 }
 
+/* Design row icon square: neutral fill, amber only for the corridor
+   block. No blue anywhere in the builder — design rule. */
 const ACCORDION_ICON_BOX = {
-  width: 32,
-  height: 32,
-  borderRadius: 8,
-  background: "rgba(59,130,246,0.08)",
-  border: "1px solid rgba(59,130,246,0.15)",
+  width: 34,
+  height: 34,
+  borderRadius: 9,
+  background: "var(--builder-fill)",
   display: "grid",
   placeItems: "center",
   flexShrink: 0,
   boxSizing: "border-box",
+};
+const ACCORDION_ICON_BOX_ACCENT = {
+  ...ACCORDION_ICON_BOX,
+  background: "var(--color-accent-soft)",
 };
 
 function AccordionSectionLucideIcon({ id, icon }) {
@@ -7043,7 +7006,7 @@ function AccordionSectionLucideIcon({ id, icon }) {
   /* color rides on a style (not the lucide color prop → SVG stroke attr,
      where var() is invalid). Personal Details gets the amber accent — it
      is the corridor block, the answers a Gulf recruiter filters on. */
-  const st = { color: id === "personalDetails" || icon === "personalDetails" ? "var(--accent)" : "var(--info)" };
+  const st = { color: id === "personalDetails" || icon === "personalDetails" ? "var(--accent)" : "var(--text-secondary)" };
   if (id === "technicalSkills") return <Cpu size={size} style={st} strokeWidth={sw} aria-hidden />;
   if (id === "certifications" || icon === "certifications") return <Award size={size} style={st} strokeWidth={sw} aria-hidden />;
   if (id === "personalDetails" || icon === "personalDetails") return <User size={size} style={st} strokeWidth={sw} aria-hidden />;
@@ -7055,14 +7018,21 @@ function AccordionSectionLucideIcon({ id, icon }) {
   return <FileText size={size} style={st} strokeWidth={sw} aria-hidden />;
 }
 
-const ACCORDION_REORDER_BTN = {
-  background: "none",
+const ACCORDION_MENU_ITEM = {
+  display: "flex",
+  alignItems: "center",
+  gap: 9,
+  width: "100%",
+  minHeight: 36,
+  padding: "0 10px",
+  borderRadius: 8,
+  background: "transparent",
   border: "none",
-  padding: 4,
-  display: "grid",
-  placeItems: "center",
-  flexShrink: 0,
-  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 500,
+  color: "var(--text-primary)",
+  fontFamily: "inherit",
+  textAlign: "left",
 };
 
 // Accordion row inside .cvp-sections-list — unified list style
@@ -7107,6 +7077,17 @@ function AccordionSection({
       {headerBadge}
     </span>
   ) : null;
+  /* Design row anatomy: the old up/down arrow stack + pencil cluster is
+     gone. Reordering lives in a ⋯ overflow menu (the design's own
+     pattern); the chevron is the only other control. */
+  const [rowMenuOpen, setRowMenuOpen] = useState(false);
+  const guideActive = activeGuideSection === `section-${id}`;
+  const iconBoxStyle = {
+    ...(id === "personalDetails" ? ACCORDION_ICON_BOX_ACCENT : ACCORDION_ICON_BOX),
+    ...(guideActive
+      ? { background: "rgba(245,158,11,0.16)", animation: "fabGuideEditPulse 1.2s ease-in-out infinite" }
+      : null),
+  };
   const idx = orderedSectionIds ? orderedSectionIds.indexOf(id) : -1;
   const flexOrder = idx >= 0 ? idx : undefined;
   const canMoveUp = Boolean(onSectionReorder && idx > 0);
@@ -7114,14 +7095,32 @@ function AccordionSection({
     onSectionReorder && orderedSectionIds && idx >= 0 && idx < orderedSectionIds.length - 1
   );
 
-  const reorderUp = (e) => {
-    e.stopPropagation();
-    if (canMoveUp) onSectionReorder("up");
-  };
-  const reorderDown = (e) => {
-    e.stopPropagation();
-    if (canMoveDown) onSectionReorder("down");
-  };
+  const sectionMenuEl = onSectionReorder ? (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        type="button"
+        aria-label={`${title} options`}
+        aria-expanded={rowMenuOpen}
+        onClick={(e) => { e.stopPropagation(); setRowMenuOpen((v) => !v); }}
+        style={{ width: 28, height: 28, padding: 0, display: "grid", placeItems: "center", background: "transparent", border: "none", borderRadius: 7, color: "var(--text-muted)", cursor: "pointer" }}
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
+      </button>
+      {rowMenuOpen ? (
+        <>
+          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 39 }} onClick={(e) => { e.stopPropagation(); setRowMenuOpen(false); }} />
+          <div role="menu" style={{ position: "absolute", top: 32, right: 0, zIndex: 40, minWidth: 158, padding: 5, borderRadius: 12, background: "var(--builder-glass)", backdropFilter: "blur(20px) saturate(1.5)", WebkitBackdropFilter: "blur(20px) saturate(1.5)", border: "1px solid var(--builder-glass-border)", boxShadow: "var(--builder-glass-shadow)" }}>
+            <button role="menuitem" type="button" disabled={!canMoveUp} onClick={(e) => { e.stopPropagation(); setRowMenuOpen(false); if (canMoveUp) onSectionReorder("up"); }} style={{ ...ACCORDION_MENU_ITEM, opacity: canMoveUp ? 1 : 0.4, cursor: canMoveUp ? "pointer" : "not-allowed" }}>
+              <ChevronUp size={14} strokeWidth={2} aria-hidden /> Move up
+            </button>
+            <button role="menuitem" type="button" disabled={!canMoveDown} onClick={(e) => { e.stopPropagation(); setRowMenuOpen(false); if (canMoveDown) onSectionReorder("down"); }} style={{ ...ACCORDION_MENU_ITEM, opacity: canMoveDown ? 1 : 0.4, cursor: canMoveDown ? "pointer" : "not-allowed" }}>
+              <ChevronDown size={14} strokeWidth={2} aria-hidden /> Move down
+            </button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  ) : null;
 
   // Tier 3 — DnD wiring. Active only when all DnD props are present
   // (parent passes them on desktop; mobileRow renders without DnD).
@@ -7209,7 +7208,7 @@ function AccordionSection({
             boxSizing: "border-box",
           }}
         >
-          <div style={ACCORDION_ICON_BOX}>
+          <div style={iconBoxStyle}>
             <AccordionSectionLucideIcon id={id} icon={icon} />
           </div>
           <button
@@ -7245,80 +7244,7 @@ function AccordionSection({
             </div>
           </button>
           {headerBadgeEl}
-          {onSectionReorder ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 0, flexShrink: 0 }}>
-              <button
-                type="button"
-                aria-label="Move section up"
-                disabled={!canMoveUp}
-                onClick={reorderUp}
-                style={{
-                  ...ACCORDION_REORDER_BTN,
-                  color: canMoveUp ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
-                  opacity: canMoveUp ? 1 : 0.35,
-                  cursor: canMoveUp ? "pointer" : "not-allowed",
-                }}
-              >
-                <ChevronUp size={10} strokeWidth={2} aria-hidden />
-              </button>
-              <button
-                type="button"
-                aria-label="Move section down"
-                disabled={!canMoveDown}
-                onClick={reorderDown}
-                style={{
-                  ...ACCORDION_REORDER_BTN,
-                  color: canMoveDown ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
-                  opacity: canMoveDown ? 1 : 0.35,
-                  cursor: canMoveDown ? "pointer" : "not-allowed",
-                }}
-              >
-                <ChevronDown size={10} strokeWidth={2} aria-hidden />
-              </button>
-            </div>
-          ) : null}
-          <button
-            type="button"
-            aria-label={isOpen ? "Close section editor" : "Edit section"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
-            style={{
-              flexShrink: 0,
-              width: 32,
-              height: 32,
-              padding: 0,
-              display: "grid",
-              placeItems: "center",
-              background: activeGuideSection === `section-${id}` ? "rgba(245,158,11,0.16)" : "transparent",
-              color: activeGuideSection === `section-${id}` ? "var(--accent)" : "var(--text-secondary)",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              cursor: "pointer",
-              transition: `background-color 150ms ${ease}, color 150ms ${ease}, border-color 150ms ${ease}`,
-              animation: activeGuideSection === `section-${id}`
-                ? "fabGuideEditPulse 1.2s ease-in-out infinite"
-                : "none",
-              boxShadow: activeGuideSection === `section-${id}`
-                ? "0 0 0 0 rgba(245,158,11,0.6)"
-                : "none",
-            }}
-            onMouseEnter={(e) => {
-              if (activeGuideSection === `section-${id}`) return;
-              e.currentTarget.style.background = "var(--bg-elevated)";
-              e.currentTarget.style.color = "var(--text-primary)";
-              e.currentTarget.style.borderColor = "var(--border-strong)";
-            }}
-            onMouseLeave={(e) => {
-              if (activeGuideSection === `section-${id}`) return;
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--text-secondary)";
-              e.currentTarget.style.borderColor = "var(--border)";
-            }}
-          >
-            <Pencil size={14} strokeWidth={1.8} aria-hidden />
-          </button>
+          {sectionMenuEl}
           <button
             type="button"
             aria-expanded={isOpen}
@@ -7405,7 +7331,7 @@ function AccordionSection({
             <GripVertical size={14} strokeWidth={1.8} aria-hidden />
           </button>
         ) : null}
-        <div style={ACCORDION_ICON_BOX}>
+        <div style={iconBoxStyle}>
           <AccordionSectionLucideIcon id={id} icon={icon} />
         </div>
         <button
@@ -7444,80 +7370,7 @@ function AccordionSection({
           {metaSubtitle ? <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 400 }}>{metaSubtitle}</span> : null}
         </button>
         {headerBadgeEl}
-        {onSectionReorder ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 0, flexShrink: 0 }}>
-            <button
-              type="button"
-              aria-label="Move section up"
-              disabled={!canMoveUp}
-              onClick={reorderUp}
-              style={{
-                ...ACCORDION_REORDER_BTN,
-                color: canMoveUp ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
-                opacity: canMoveUp ? 1 : 0.35,
-                cursor: canMoveUp ? "pointer" : "not-allowed",
-              }}
-            >
-              <ChevronUp size={10} strokeWidth={2} aria-hidden />
-            </button>
-            <button
-              type="button"
-              aria-label="Move section down"
-              disabled={!canMoveDown}
-              onClick={reorderDown}
-              style={{
-                ...ACCORDION_REORDER_BTN,
-                color: canMoveDown ? "var(--text-secondary, var(--text-secondary))" : "var(--text-muted)",
-                opacity: canMoveDown ? 1 : 0.35,
-                cursor: canMoveDown ? "pointer" : "not-allowed",
-              }}
-            >
-              <ChevronDown size={10} strokeWidth={2} aria-hidden />
-            </button>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          aria-label={isOpen ? "Close section editor" : "Edit section"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
-          style={{
-            flexShrink: 0,
-            width: 32,
-            height: 32,
-            padding: 0,
-            display: "grid",
-            placeItems: "center",
-            background: activeGuideSection === `section-${id}` ? "rgba(245,158,11,0.16)" : "transparent",
-            color: activeGuideSection === `section-${id}` ? "var(--accent)" : "var(--text-secondary)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            cursor: "pointer",
-            transition: `background-color 150ms ${ease}, color 150ms ${ease}, border-color 150ms ${ease}`,
-            animation: activeGuideSection === `section-${id}`
-              ? "fabGuideEditPulse 1.2s ease-in-out infinite"
-              : "none",
-            boxShadow: activeGuideSection === `section-${id}`
-              ? "0 0 0 0 rgba(245,158,11,0.6)"
-              : "none",
-          }}
-          onMouseEnter={(e) => {
-            if (activeGuideSection === `section-${id}`) return;
-            e.currentTarget.style.background = "var(--bg-elevated)";
-            e.currentTarget.style.color = "var(--text-primary)";
-            e.currentTarget.style.borderColor = "var(--border-strong)";
-          }}
-          onMouseLeave={(e) => {
-            if (activeGuideSection === `section-${id}`) return;
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-            e.currentTarget.style.borderColor = "var(--border)";
-          }}
-        >
-          <Pencil size={14} strokeWidth={1.8} aria-hidden />
-        </button>
+        {sectionMenuEl}
         <button
           type="button"
           aria-expanded={isOpen}

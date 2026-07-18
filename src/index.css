@@ -405,10 +405,10 @@ select:focus,
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px dashed var(--border-strong);
-  border-radius: 12px;
+  background: var(--color-accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--color-accent-line);
+  border-radius: 11px;
   font-weight: 500;
   font-size: 14px;
   font-family: inherit;
@@ -417,9 +417,9 @@ select:focus,
   transition: border-color 150ms var(--input-ease), color 150ms var(--input-ease), background-color 150ms var(--input-ease);
 }
 .cvp-add-row-ghost:hover:not(:disabled) {
-  border-color: var(--text-primary);
-  color: var(--text-primary);
-  background: var(--hover-wash);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--color-accent-soft);
 }
 .cvp-add-row-ghost:disabled {
   opacity: 0.5;
@@ -1677,12 +1677,9 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 }
 
 .cvp-glass-modal {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--builder-fill);
+  border: 1px solid var(--builder-fill-border);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
 }
 
@@ -1826,21 +1823,21 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
    beats the base .cvp-input rule. */
 .cvp-glass-modal .cvp-input,
 .cvp-glass-modal .cvp-textarea {
-  background-color: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--builder-fill);
+  border-color: var(--builder-fill-border);
 }
 .cvp-glass-modal .cvp-input:focus,
 .cvp-glass-modal .cvp-textarea:focus {
-  border-color: rgba(217, 119, 6, 0.6) !important;
+  border-color: var(--color-accent-line) !important;
   box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.16) !important;
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: var(--builder-fill) !important;
 }
 
 /* Labels inside the glass modal — uppercase muted spec. Targets bare
    <label> elements to override the inline label styles each modal
    currently uses. */
 .cvp-glass-modal label {
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: var(--text-secondary) !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   letter-spacing: 0.08em !important;
@@ -1849,11 +1846,11 @@ body.cvp-templates-preview-modal-open .cvp-templates-preview-backdrop {
 
 /* Cancel button override — ghost with a glass-tinted border. */
 .cvp-glass-modal-cancel {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--builder-fill-border) !important;
 }
 .cvp-glass-modal-cancel:hover {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--border-strong) !important;
+  background: var(--hover-wash) !important;
 }
 
 .cvp-builder-add-section:hover {

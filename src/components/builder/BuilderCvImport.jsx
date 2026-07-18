@@ -130,12 +130,81 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
         : stage === 'parsing' ? 'Extracting your details…'
           : null;
 
+  if (variant === "hero") {
+    /* Design arrival hero: dashed upload card, amber CTA. Click or drop. */
+    return (
+      <div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPT}
+          onChange={onPickerChange}
+          style={{ display: 'none' }}
+          aria-hidden
+          tabIndex={-1}
+        />
+        {isBusy ? (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--bg-surface)', padding: 22, boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 11, background: 'var(--color-accent-soft)', color: 'var(--accent-text)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Upload size={18} strokeWidth={1.8} aria-hidden />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Reading your CV</p>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--accent-text)', fontWeight: 600 }}>{stageLabel}</p>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gap: 11 }} aria-hidden>
+              <div style={{ height: 15, width: '52%', borderRadius: 6, background: 'var(--builder-fill)' }} />
+              <div style={{ height: 10, width: '38%', borderRadius: 5, background: 'var(--builder-fill)' }} />
+              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+              <div style={{ height: 10, width: '88%', borderRadius: 5, background: 'var(--builder-fill)' }} />
+              <div style={{ height: 10, width: '80%', borderRadius: 5, background: 'var(--builder-fill)' }} />
+              <div style={{ height: 10, width: '64%', borderRadius: 5, background: 'var(--builder-fill)' }} />
+            </div>
+          </div>
+        ) : (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={openPicker}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); } }}
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) handleFile(f); }}
+            style={{ cursor: 'pointer', border: '1.5px dashed var(--border-strong)', borderRadius: 16, background: 'var(--bg-surface)', padding: '34px 22px', textAlign: 'center', boxShadow: 'var(--shadow-card)' }}
+          >
+            <div style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: 15, background: 'var(--color-accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-text)' }}>
+              <Upload size={26} strokeWidth={1.9} aria-hidden />
+            </div>
+            <h1 style={{ margin: '0 0 8px', fontSize: 21, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              Start with the CV you already have
+            </h1>
+            <p style={{ margin: '0 auto 20px', fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.55, maxWidth: '30ch' }}>
+              Upload your PDF or Word file. We read it and fill in your whole builder, in about ten seconds.
+            </p>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 24px', borderRadius: 12, background: 'var(--accent)', color: 'var(--accent-contrast)', fontSize: 15, fontWeight: 700 }}>
+              <Upload size={17} strokeWidth={2.1} aria-hidden />
+              Upload your CV
+            </span>
+            <p style={{ margin: '16px 0 0', fontSize: 11.5, color: 'var(--text-muted)' }}>or drag a file here, PDF or DOCX, up to 10 MB</p>
+          </div>
+        )}
+        {stage === 'error' && (
+          <div role="alert" style={{ marginTop: 12, padding: 12, borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)' }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--danger)', fontWeight: 600 }}>{errorMsg}</p>
+            {errorHint ? <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>{errorHint}</p> : null}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (variant === "header-button") {
     const hasError = stage === "error";
     const compactLabel = stageLabel
       || (hasError ? "Try again" : "Import CV");
     const tooltip = hasError
-      ? `${errorMsg || "Import failed"}${errorHint ? " — " + errorHint : ""}`
+      ? `${errorMsg || "Import failed"}${errorHint ? ", " + errorHint : ""}`
       : "Upload your existing CV (PDF or DOCX)";
     return (
       <>
