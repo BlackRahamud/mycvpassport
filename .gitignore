@@ -50,3 +50,7 @@ public/pdf.worker.min.js
 # regenerate via scripts/capture-investor-video.mjs + npx remotion render)
 /video-assets/
 /output/*.mp4
+
+# Rendered interview emails from scripts/verify-interview-email.mjs —
+# local previews to open and to mail to a real inbox, regenerate on demand
+/output/interview-email/

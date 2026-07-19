@@ -48,6 +48,7 @@ import {
   CORRIDOR_ZONES, zoneByKey, inferCandidateZone, hrTimeZone,
   dualTimeLine, formatDayIn,
 } from "../../lib/hr/interviewTz";
+import { fetchHrIdentity } from "../../lib/hr/hrIdentity";
 import "./scheduleInterview.css";
 
 const EASE = [0.4, 0, 0.2, 1];
@@ -137,6 +138,16 @@ export default function ScheduleInterviewModal({
 
   const reschedule = Boolean(rescheduleOf?.id);
   const first = String(application?.candidate_name || "the candidate").split(" ")[0] || "the candidate";
+
+  /* The email signs as her, not as the product. No caller passes hrName,
+     so it is read here from her own profile; an explicit prop still wins. */
+  const [identity, setIdentity] = useState({ hrName: "", hrCompany: "" });
+  useEffect(() => {
+    if (!open || !hrId) return undefined;
+    let live = true;
+    fetchHrIdentity(hrId).then((id) => { if (live) setIdentity(id); });
+    return () => { live = false; };
+  }, [open, hrId]);
 
   useEffect(() => {
     if (!open) return;
@@ -303,10 +314,16 @@ export default function ScheduleInterviewModal({
             note: trimmedNote,
             whenLabel: dayLabel,
             dualTimeLine: dualLine,
+            // The server rebuilds the when-line from these rather than
+            // trusting the two strings above — a stale tab must never be
+            // able to put a raw IANA name in front of a candidate.
+            hrTz: hrTimeZone(),
+            candidateTz,
             interviewId,
             sequence,
             hrEmail: hrEmail || null,
-            hrName: hrName || null,
+            hrName: hrName || identity.hrName || null,
+            hrCompany: identity.hrCompany || null,
           }),
         }).catch(() => {});
       }
@@ -503,35 +520,68 @@ export async function flipInterviewStatus({ interview, hrId, newStatus }) {
   return { ok: true };
 }
 
-/** Cancel email + calendar removal (best-effort, mirrors the schedule send). */
-export function sendCancelEmail({ interview, application, jobTitle, hrEmail, hrName }) {
-  if (!application?.candidate_email || !interview?.scheduled_at) return;
-  const first = String(application.candidate_name || "").split(" ")[0] || "there";
+/**
+ * Cancel email + calendar removal (best-effort, mirrors the schedule send).
+ *
+ * Self-sufficient on purpose: the only cancel button in the portal sits
+ * in the timeline, which holds an interview row and nothing else, so the
+ * candidate and the job title are fetched here rather than threaded
+ * through every caller. RLS keeps both reads to her own rows.
+ */
+export async function sendCancelEmail({ interview, hrId, application = null, jobTitle = null, hrEmail = null, hrName = null }) {
+  if (!interview?.id || !interview?.scheduled_at) return;
+
+  let app = application;
+  if (!app?.candidate_email && interview.application_id) {
+    const { data } = await supabase
+      .from("applications")
+      .select("candidate_email, candidate_name")
+      .eq("id", interview.application_id)
+      .maybeSingle();
+    app = data || null;
+  }
+  if (!app?.candidate_email) return;
+
+  let title = jobTitle;
+  if (!title && interview.job_id) {
+    const { data } = await supabase.from("jobs").select("title").eq("id", interview.job_id).maybeSingle();
+    title = data?.title || "";
+  }
+
+  let email = hrEmail;
+  if (!email) {
+    const { data: auth } = await supabase.auth.getUser();
+    email = auth?.user?.email || null;
+  }
+  const identity = hrName ? { hrName, hrCompany: "" } : await fetchHrIdentity(hrId);
+
+  const first = String(app.candidate_name || "").split(" ")[0] || "there";
   const start = new Date(interview.scheduled_at);
-  const { dayLabel, dualLine } = (() => {
-    const hrTz = hrTimeZone();
-    return {
-      dayLabel: formatDayIn(start, hrTz),
-      dualLine: dualTimeLine({ when: start, hrTz, candidateTz: interview.candidate_tz || hrTz, firstName: first }),
-    };
-  })();
+  const hrTz = hrTimeZone();
+  const candidateTz = interview.candidate_tz || hrTz;
+  const dayLabel = formatDayIn(start, hrTz);
+  const dualLine = dualTimeLine({ when: start, hrTz, candidateTz, firstName: first });
+
   safeFetch("/api/notify-candidate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       type: "interview_cancel",
-      candidateEmail: application.candidate_email,
-      candidateName: application.candidate_name,
-      jobTitle: jobTitle || "",
+      candidateEmail: app.candidate_email,
+      candidateName: app.candidate_name,
+      jobTitle: title || "",
       scheduledAt: interview.scheduled_at,
       durationMin: interview.duration_min || 30,
       meetingLink: interview.meeting_link || "",
       whenLabel: dayLabel,
       dualTimeLine: dualLine,
+      hrTz,
+      candidateTz,
       interviewId: interview.id,
       sequence: (Number(interview.ics_sequence) || 0) + 1,
-      hrEmail: hrEmail || null,
-      hrName: hrName || null,
+      hrEmail: email,
+      hrName: identity.hrName || null,
+      hrCompany: identity.hrCompany || null,
     }),
   }).catch(() => {});
   // Bump the stored sequence so a later reschedule outruns the cancel.
@@ -550,7 +600,14 @@ export function InterviewStatusActions({ interview, hrId, onChanged }) {
     setBusy(true);
     const r = await flipInterviewStatus({ interview, hrId, newStatus: s });
     setBusy(false);
-    if (r.ok) { setStatus(s); if (onChanged) onChanged(interview.id, s); }
+    if (r.ok) {
+      setStatus(s);
+      // Cancelling silently was the old behaviour: the row flipped and
+      // the candidate was never told. They now get the cancellation and
+      // the calendar entry is removed.
+      if (s === "cancelled") sendCancelEmail({ interview, hrId });
+      if (onChanged) onChanged(interview.id, s);
+    }
   };
 
   if (status !== "scheduled") {
@@ -589,7 +646,9 @@ export function InterviewTimeline({ hrId, applicationId, refreshKey, onReschedul
     (async () => {
       const { data } = await supabase
         .from("interviews")
-        .select("id, job_id, candidate_id, application_id, scheduled_at, duration_min, meeting_link, status, rating, rating_note")
+        // candidate_tz + ics_sequence ride along so a cancel from this
+        // row can build the corridor line and bump the invite sequence.
+        .select("id, job_id, candidate_id, application_id, scheduled_at, duration_min, meeting_link, status, rating, rating_note, candidate_tz, ics_sequence")
         .eq("hr_id", hrId)
         .eq("application_id", applicationId)
         .order("scheduled_at", { ascending: false })
