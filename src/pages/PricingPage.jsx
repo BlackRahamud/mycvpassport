@@ -5,7 +5,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../supabaseClient";
 import { getPaymentLink } from "../utils/paywall";
 import { logEvent } from "../lib/analytics/logEvent";
-import safeFetch from "../lib/net/safeFetch";
 import { getTheme, setTheme } from "../lib/theme";
 import PaymentTrustBar from "../components/PaymentTrustBar";
 import CheckoutAuthSheet from "../components/CheckoutAuthSheet";
@@ -19,6 +18,7 @@ import {
   getServerAmount,
 } from "../config/tierConfig";
 import { PLAN_META, PLAN_ORDER } from "../config/planPreview";
+import { usePaymentGeo } from "../hooks/usePaymentGeo";
 
 const EASE = [0.4, 0, 0.2, 1];
 
@@ -161,12 +161,12 @@ function razorpayConfigFor(uiSlug) {
 export default function PricingPage({ refreshProfile } = {}) {
   const navigate = useNavigate();
 
-  // Default to INR — the cheaper currency. If the server's geo resolve
-  // (Vercel x-vercel-ip-country) identifies a GCC country, this flips
-  // to AED. Default-AED was the source of multiple India users being
-  // routed to Ziina at AED 45 instead of Razorpay at ₹349 when the
-  // pre-payment geo lookup failed or was slow.
-  const [currency, setCurrency] = useState("INR");
+  // Currency + processor come from the shared IP-geo hook (actual location via
+  // Vercel x-vercel-ip-country, NOT device timezone/locale) — the SAME source
+  // the homepage pricing preview uses, so the two can never disagree. Fallback
+  // is INR + Razorpay (cheaper currency, so a misdetect under-charges).
+  const geo = usePaymentGeo();
+  const currency = geo.currency;
   const [userPlan, setUserPlan] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -240,24 +240,11 @@ export default function PricingPage({ refreshProfile } = {}) {
     });
   }, []);
 
-  // Geo detection via Vercel's edge-injected country header. Same-origin
-  // call, no third-party rate limit, far more reliable than ipapi.co.
-  // On any failure we stay on INR (cheaper default).
+  // Fire pricing_viewed once the shared geo hook settles, so the logged
+  // currency reflects what the visitor was actually shown.
   useEffect(() => {
-    let cancelled = false;
-    safeFetch("/api/razorpay?action=geo")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (cancelled) return;
-        if (d?.currency === "AED") setCurrency("AED");
-        firePricingViewed(d?.currency === "AED" ? "AED" : "INR");
-      })
-      .catch(() => {
-        /* stay on INR — cheaper default */
-        if (!cancelled) firePricingViewed("INR");
-      });
-    return () => { cancelled = true; };
-  }, [firePricingViewed]);
+    if (geo.resolved) firePricingViewed(geo.currency);
+  }, [geo.resolved, geo.currency, firePricingViewed]);
 
   // Auth state + current plan detection
   useEffect(() => {
@@ -876,7 +863,7 @@ export default function PricingPage({ refreshProfile } = {}) {
             marginBottom: 24,
           }}>
             <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              Secured by {currency === "INR" ? "Razorpay" : "Ziina"} <LockIcon />
+              Secured by {geo.processor} <LockIcon />
             </span>
             <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: 6 }}>
               One time payment <CheckIcon size={12} color="var(--success)" />

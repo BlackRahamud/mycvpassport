@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPlanPreview } from '../../config/planPreview';
-import { useGeoContent } from '../../hooks/useGeoContent';
+import { usePaymentGeo } from '../../hooks/usePaymentGeo';
 
 /*
  * Homepage pricing PREVIEW. It is a shorter teaser than /pricing, but it reads
@@ -15,9 +15,9 @@ import { useGeoContent } from '../../hooks/useGeoContent';
  */
 export default function PricingAnchorSection() {
   const navigate = useNavigate();
-  const geo = useGeoContent();
-  const currency = geo.currency === '₹' ? 'INR' : 'AED';
-  const plans = getPlanPreview(currency);
+  // IP-based (actual location), shared with /pricing — never timezone/locale.
+  const geo = usePaymentGeo();
+  const plans = getPlanPreview(geo.currency);
   const onSeeAll = useCallback(() => { navigate('/pricing'); }, [navigate]);
 
   return (
@@ -136,7 +136,7 @@ export default function PricingAnchorSection() {
             See all plans →
           </button>
           <p className="cvp-pricing-anchor-foot-note">
-            Secured by Ziina. One-time and pass options, no hidden fees.
+            Secured by {geo.processor}. One-time and pass options, no hidden fees.
           </p>
         </div>
       </div>
