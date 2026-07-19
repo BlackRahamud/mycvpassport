@@ -15,9 +15,102 @@ describe("classifyStructuralGap", () => {
     ["Uses a decorative script font", "decorative_fonts"],
     ["Inconsistent date format across roles", "date_format"],
     ["KEY METRICS block with unsubstantiated figures", "irrelevant_block"],
+    // Class A additions
+    ["Employment start is future-dated beyond the current date", "future_date"],
+    ["Your most recent role has no end date", "no_end_date"],
+    ["Technical skills render as a raw [object Object]", "malformed_data"],
+    // Class B additions
+    ["Skills listed don't match the target role's keywords", "skills_mix"],
+    ["Bullet points are weak and lack any quantified result", "weak_bullet"],
+    ["Education section is thin and missing detail", "thin_education"],
+    ["Ambiguous tenure — an unexplained gap between roles", "tenure_gap"],
     ["Something totally unrecognised about the layout", "unknown"],
   ])("%s → %s", (claim, expected) => {
     expect(classifyStructuralGap(claim)).toBe(expected);
+  });
+});
+
+describe("Class A vs Class B split (cls flag on every verdict)", () => {
+  test("no_end_date: current role (Present) → resolved, false positive stops flagging", () => {
+    const cv = { experience: [{ role: "Lead", company: "Globex", startDate: "01/2023", endDate: "", present: true }] };
+    const r = evaluateStructuralGap({ category: "no_end_date" }, cv);
+    expect(r.status).toBe("resolved");
+    expect(r.cls).toBe("A");
+    expect(r.reason).toMatch(/present/i);
+  });
+
+  test("no_end_date: a PAST role missing its end date → action to add it", () => {
+    const cv = { experience: [{ role: "Analyst", company: "Initech", startDate: "01/2019", endDate: "" }] };
+    const r = evaluateStructuralGap({ category: "no_end_date" }, cv);
+    expect(r.status).toBe("action");
+    expect(r.cls).toBe("A");
+    expect(r.action).toMatchObject({ kind: "open_experience", expIndex: 0, focus: "dates" });
+    expect(r.cta).toBe("Add end date");
+  });
+
+  test("malformed_data: a field renders as [object Object] → action to re-enter", () => {
+    const cv = { summary: "[object Object]" };
+    const r = evaluateStructuralGap({ category: "malformed_data" }, cv);
+    expect(r.status).toBe("action");
+    expect(r.cls).toBe("A");
+    expect(r.action).toEqual({ kind: "focus_field", field: "summary" });
+  });
+
+  test("malformed_data: everything readable → resolved", () => {
+    const r = evaluateStructuralGap({ category: "malformed_data" }, { summary: "Cloud engineer." });
+    expect(r.status).toBe("resolved");
+    expect(r.cls).toBe("A");
+  });
+
+  test("skills_mix: subjective (Class B) → review, opens skills, USER clears", () => {
+    const r = evaluateStructuralGap({ category: "skills_mix" }, { skills: "A, B" });
+    expect(r.status).toBe("review");
+    expect(r.cls).toBe("B");
+    expect(r.action).toEqual({ kind: "focus_field", field: "skills" });
+  });
+
+  test("weak_bullet: located in a role → open THAT role, focus points (Class B)", () => {
+    const cv = { experience: [
+      { role: "X", company: "Y", points: "Generic duty" },
+      { role: "Manager", company: "Globex", points: "Owned the regional sales pipeline" },
+    ] };
+    const r = evaluateStructuralGap(
+      { category: "weak_bullet", label: "Weak bullet", evidence: "Owned the regional sales pipeline" },
+      cv,
+    );
+    expect(r.status).toBe("review");
+    expect(r.cls).toBe("B");
+    expect(r.action).toMatchObject({ kind: "open_experience", expIndex: 1, focus: "points" });
+  });
+
+  test("thin_education: no education → add; existing → open that entry (Class B)", () => {
+    const none = evaluateStructuralGap({ category: "thin_education" }, { education: [] });
+    expect(none.action).toEqual({ kind: "focus_field", field: "education" });
+    expect(none.cls).toBe("B");
+    const some = evaluateStructuralGap({ category: "thin_education" }, { education: [{ school: "X" }] });
+    expect(some.action).toEqual({ kind: "open_education", eduIndex: 0 });
+    expect(some.cls).toBe("B");
+  });
+
+  test("tenure_gap: routes to the dates of the located role (Class B)", () => {
+    const cv = { experience: [{ role: "Consultant", company: "Acme", startDate: "01/2020" }] };
+    const r = evaluateStructuralGap({ category: "tenure_gap", label: "Ambiguous tenure", evidence: "Consultant Acme" }, cv);
+    expect(r.status).toBe("review");
+    expect(r.cls).toBe("B");
+    expect(r.action).toMatchObject({ kind: "open_experience", focus: "dates" });
+  });
+
+  test("default (unclassified critique): repeats the SPECIFIC critique, never the generic placeholder", () => {
+    const cv = { experience: [{ role: "Manager", company: "Globex", points: "Led the pipeline" }] };
+    const r = evaluateStructuralGap(
+      { category: "unknown", label: "Summary is generic", evidence: "Led the pipeline" },
+      cv,
+    );
+    expect(r.status).toBe("review");
+    expect(r.cls).toBe("B");
+    // The old generic string is gone; the critique text is carried through.
+    expect(r.reason).not.toMatch(/confirm this reads cleanly/i);
+    expect(r.reason).toMatch(/Summary is generic/);
   });
 });
 

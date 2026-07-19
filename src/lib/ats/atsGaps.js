@@ -90,9 +90,16 @@ export function sortGapsByWeight(gaps) {
  */
 export function partitionGapsByResolution(gaps, resume, ctx = {}) {
   const structural = (Array.isArray(gaps) ? gaps : []).filter((g) => g && g.type === "structural");
+  // Class B (subjective) gaps that the user explicitly marked reviewed count as
+  // fixed: no code can verify a subjective critique, so the user's judgement is
+  // the only honest way to clear it. Class A still only clears on a real check.
+  const reviewed = ctx.reviewedIds instanceof Set
+    ? ctx.reviewedIds
+    : new Set(Array.isArray(ctx.reviewedIds) ? ctx.reviewedIds : []);
   const evaluated = structural.map((g) => ({ gap: g, ev: evaluateStructuralGap(g, resume, ctx) }));
-  const fixed = evaluated.filter((e) => e.ev.status === "resolved");
-  const todoEntries = evaluated.filter((e) => e.ev.status !== "resolved");
+  const isFixed = (e) => e.ev.status === "resolved" || (e.ev.cls === "B" && reviewed.has(e.gap.id));
+  const fixed = evaluated.filter(isFixed);
+  const todoEntries = evaluated.filter((e) => !isFixed(e));
   const todo = sortGapsByWeight(todoEntries.map((e) => e.gap)).map((g) =>
     todoEntries.find((e) => e.gap.id === g.id),
   );

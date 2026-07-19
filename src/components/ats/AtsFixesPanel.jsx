@@ -39,6 +39,20 @@ const SECTION_LABEL = {
 };
 
 const DISMISS_KEY = "cvp_ats_fixes_dismissed";
+// Class B (subjective) gaps the user has ticked off. Persisted across reloads so
+// a "Looks good" doesn't reappear next visit. Array of gap ids in localStorage.
+const REVIEWED_KEY = "cvp_ats_reviewed";
+
+function loadReviewed() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(REVIEWED_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 function actionLabel(act) {
   if (!act) return "Review";
@@ -72,10 +86,29 @@ export default function AtsFixesPanel({
     }
   });
   const [fixedOpen, setFixedOpen] = useState(false);
+  const [reviewedIds, setReviewedIds] = useState(loadReviewed);
+
+  const reviewedSet = useMemo(() => new Set(reviewedIds), [reviewedIds]);
+
+  const persistReviewed = (next) => {
+    setReviewedIds(next);
+    try {
+      window.localStorage.setItem(REVIEWED_KEY, JSON.stringify(next));
+    } catch {
+      /* private mode — hold in state for this session only */
+    }
+  };
+  const markReviewed = (id) => {
+    if (reviewedSet.has(id)) return;
+    persistReviewed([...reviewedIds, id]);
+  };
+  const undoReviewed = (id) => {
+    persistReviewed(reviewedIds.filter((x) => x !== id));
+  };
 
   const { fixed, todo } = useMemo(
-    () => partitionGapsByResolution(structural, resume, { templateIsAtsSafe, atsRecommendation }),
-    [structural, resume, templateIsAtsSafe, atsRecommendation],
+    () => partitionGapsByResolution(structural, resume, { templateIsAtsSafe, atsRecommendation, reviewedIds: reviewedSet }),
+    [structural, resume, templateIsAtsSafe, atsRecommendation, reviewedSet],
   );
 
   if (!structural.length || dismissed) return null;
@@ -152,14 +185,19 @@ export default function AtsFixesPanel({
       {/* Quick fixes — actionable */}
       {todo.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <AnimatePresence initial={false}>
-            {todo.map(({ gap, ev }) => (
+          {/* No AnimatePresence exit here, ON PURPOSE. When a Class-A fix
+              resolves mid-edit, the heavy resume re-render (modal close +
+              refocus) interrupts Framer's exit before it starts, leaving the
+              resolved row frozen on screen at full opacity — the count reads
+              "fixed" while the row still shows, the exact "fixes don't clear"
+              bug. Letting React unmount the row immediately guarantees it
+              disappears the instant it's resolved. Rows still animate IN via
+              motion's mount transition; only the (unreliable) exit is dropped. */}
+          {todo.map(({ gap, ev }) => (
               <motion.div
                 key={gap.id}
-                layout
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                 transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 style={{
                   display: "flex",
@@ -169,6 +207,7 @@ export default function AtsFixesPanel({
                   borderRadius: 10,
                   background: T.elevated,
                   border: "1px solid rgba(255,255,255,0.06)",
+                  overflow: "hidden",
                 }}
               >
                 <AlertTriangle
@@ -187,35 +226,64 @@ export default function AtsFixesPanel({
                 </div>
                 {(() => {
                   const s = ctaStyle(ev.action?.kind);
+                  // Class B is a subjective critique code can't verify — pair the
+                  // deep-link with an explicit "Looks good" so the USER clears it.
+                  const isReview = ev.cls === "B";
                   return (
-                    <button
-                      type="button"
-                      onClick={() => handleAction(ev)}
-                      style={{
-                        flexShrink: 0,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "6px 11px",
-                        borderRadius: 999,
-                        border: `1px solid ${s.border}`,
-                        background: s.bg,
-                        color: s.fg,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <s.Icon size={12} aria-hidden />
-                      {ev.cta || actionLabel(ev.action)}
-                    </button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignItems: "stretch" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAction(ev)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 5,
+                          padding: "6px 11px",
+                          borderRadius: 999,
+                          border: `1px solid ${s.border}`,
+                          background: s.bg,
+                          color: s.fg,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <s.Icon size={12} aria-hidden />
+                        {ev.cta || actionLabel(ev.action)}
+                      </button>
+                      {isReview && (
+                        <button
+                          type="button"
+                          onClick={() => markReviewed(gap.id)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 5,
+                            padding: "5px 11px",
+                            borderRadius: 999,
+                            border: "1px solid rgba(29,158,117,0.4)",
+                            background: "transparent",
+                            color: T.greenBright,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <Check size={12} aria-hidden />
+                          Looks good
+                        </button>
+                      )}
+                    </div>
                   );
                 })()}
               </motion.div>
             ))}
-          </AnimatePresence>
         </div>
       )}
 
@@ -263,28 +331,59 @@ export default function AtsFixesPanel({
                 transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 style={{ listStyle: "none", margin: "4px 0 0", padding: 0, overflow: "hidden" }}
               >
-                {fixed.map(({ gap, ev }) => (
-                  <li
-                    key={gap.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 9,
-                      padding: "6px 4px",
-                      fontSize: 12.5,
-                      color: T.muted,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    <Check size={13} color={T.green} aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
-                    <span>
-                      <span style={{ color: "var(--text-secondary)", textDecoration: "line-through", textDecorationColor: "rgba(255,255,255,0.2)" }}>
-                        {gap.label}
+                {fixed.map(({ gap, ev }) => {
+                  // Two ways to be "fixed": the template genuinely resolved it
+                  // (ev.status resolved) OR the user judged this subjective one
+                  // good (reviewed). Reviewed items show an honest note + Undo —
+                  // never the stale "open this and fix it" review reason.
+                  const isReviewed = ev.status !== "resolved" && reviewedSet.has(gap.id);
+                  return (
+                    <li
+                      key={gap.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 9,
+                        padding: "6px 4px",
+                        fontSize: 12.5,
+                        color: T.muted,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <Check size={13} color={T.green} aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ color: "var(--text-secondary)", textDecoration: "line-through", textDecorationColor: "rgba(255,255,255,0.2)" }}>
+                          {gap.label}
+                        </span>
+                        {isReviewed ? (
+                          <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>
+                            You marked this as reviewed ·{" "}
+                            <button
+                              type="button"
+                              onClick={() => undoReviewed(gap.id)}
+                              style={{
+                                background: "transparent",
+                                border: "none",
+                                padding: 0,
+                                margin: 0,
+                                color: T.amber,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                fontFamily: "inherit",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              Undo
+                            </button>
+                          </span>
+                        ) : (
+                          ev.reason && <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{ev.reason}</span>
+                        )}
                       </span>
-                      {ev.reason && <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{ev.reason}</span>}
-                    </span>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </motion.ul>
             )}
           </AnimatePresence>

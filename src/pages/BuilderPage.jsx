@@ -4041,6 +4041,19 @@ function ResumeBuilder({
       }, 380);
       return;
     }
+    if (action.kind === "open_education") {
+      setBuilderTab("content");
+      const list = Array.isArray(resume.education) ? resume.education : [];
+      const idx = typeof action.eduIndex === "number" ? action.eduIndex : 0;
+      const e = list[idx];
+      if (e) {
+        setEducationEditor({ mode: "edit", index: idx, draft: { ...EMPTY_EDU, ...e } });
+      } else {
+        // No qualification yet — scroll to the Education section so they can add one.
+        onCvFinderResultActivate("education");
+      }
+      return;
+    }
     if (action.kind === "focus_field") {
       setBuilderTab("content");
       if (action.field === "contact") {
@@ -4059,7 +4072,7 @@ function ResumeBuilder({
         wrap?.querySelector("input, textarea")?.focus();
       }, 380);
     }
-  }, [onCvFinderResultActivate, handleMergeSkills, removeAtsElement, resume, setExperienceEditor, selectedTemplate]);
+  }, [onCvFinderResultActivate, handleMergeSkills, removeAtsElement, resume, setExperienceEditor, setEducationEditor, selectedTemplate]);
 
   // ── ATS welcome popup: mark seen (persist immediately) + actions ──────────
   const markAtsWelcomeSeen = useCallback(() => {
