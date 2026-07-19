@@ -18,6 +18,7 @@ import {
   getDisplayPrice,
   getServerAmount,
 } from "../config/tierConfig";
+import { PLAN_META, PLAN_ORDER } from "../config/planPreview";
 
 const EASE = [0.4, 0, 0.2, 1];
 
@@ -658,8 +659,8 @@ export default function PricingPage({ refreshProfile } = {}) {
           const priceOf = (slug) => getDisplayPrice(slug, currency);
           const CARDS = {
             explorer: {
-              role: "floor", id: "explorer", name: "Explorer",
-              price: "Free", suffix: "forever", tagline: "No card. No catch.",
+              role: "floor", id: "explorer", name: PLAN_META.explorer.name,
+              price: "Free", suffix: PLAN_META.explorer.period, tagline: PLAN_META.explorer.tagline,
               highlights: [
                 "Every template, build for free",
                 "1 free PDF download",
@@ -668,9 +669,9 @@ export default function PricingPage({ refreshProfile } = {}) {
               cta: "Build your first CV",
             },
             express: {
-              role: "entry", id: "express", name: "Single-CV Unlock",
-              price: `${currencyPrefix}${priceOf("express_pass")}`, suffix: "one time",
-              tagline: "Three premium downloads, yours to keep.",
+              role: "entry", id: "express", name: PLAN_META.express_pass.name,
+              price: `${currencyPrefix}${priceOf("express_pass")}`, suffix: PLAN_META.express_pass.period,
+              tagline: PLAN_META.express_pass.tagline,
               highlights: [
                 "3 premium PDF downloads",
                 "Full ATS Checker",
@@ -681,9 +682,9 @@ export default function PricingPage({ refreshProfile } = {}) {
               cta: "Unlock my CV",
             },
             hunter: {
-              role: "hero", id: "hunter", name: "Active Hunter",
-              price: `${currencyPrefix}${priceOf("active_hunter")}`, suffix: "30 day pass",
-              tagline: "Less than a coffee. More than a recruiter.",
+              role: "hero", id: "hunter", name: PLAN_META.active_hunter.name,
+              price: `${currencyPrefix}${priceOf("active_hunter")}`, suffix: PLAN_META.active_hunter.period,
+              tagline: PLAN_META.active_hunter.tagline,
               badge: "Most chosen, Gulf job seekers",
               highlights: [
                 "Unlimited downloads, every CV",
@@ -696,9 +697,9 @@ export default function PricingPage({ refreshProfile } = {}) {
               footnote: "One time payment, access for 30 days",
             },
             pro: {
-              role: "anchor", id: "pro", name: "Career Pro",
-              price: `${currencyPrefix}${priceOf("career_pro")}`, suffix: "1 year pass",
-              tagline: "Every tool, all year.",
+              role: "anchor", id: "pro", name: PLAN_META.career_pro.name,
+              price: `${currencyPrefix}${priceOf("career_pro")}`, suffix: PLAN_META.career_pro.period,
+              tagline: PLAN_META.career_pro.tagline,
               badge: "Best value",
               highlights: [
                 "Everything unlimited for a year",
@@ -819,7 +820,7 @@ export default function PricingPage({ refreshProfile } = {}) {
                   <th style={{ textAlign: "left", padding: "16px 20px", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>
                     Feature
                   </th>
-                  {["Explorer", "Single-CV Unlock", "Active Hunter", "Career Pro"].map((col, i) => (
+                  {PLAN_ORDER.map((s) => PLAN_META[s].name).map((col, i) => (
                     <th
                       key={col}
                       style={{
