@@ -4032,9 +4032,11 @@ function ResumeBuilder({
       setBuilderTab("content");
       const e = resume.experience?.[action.expIndex];
       if (e) setExperienceEditor({ mode: "edit", index: action.expIndex, draft: { ...EMPTY_EXP, ...e } });
-      // Focus the exact field the gap is about.
+      // Focus the exact field the gap is about — the START date for a
+      // future-dated-start issue, the END date for a missing/format issue.
       window.setTimeout(() => {
-        if (action.focus === "dates") document.getElementById("cvp-exp-end-date")?.focus();
+        if (action.focus === "startDate") document.getElementById("cvp-exp-start-date")?.focus();
+        else if (action.focus === "dates") document.getElementById("cvp-exp-end-date")?.focus();
         else expDescriptionRef.current?.focus?.();
       }, 380);
       return;

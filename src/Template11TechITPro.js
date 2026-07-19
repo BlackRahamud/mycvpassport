@@ -104,7 +104,24 @@ function technicalSkillsGroupsForTemplate(cv) {
         .filter((g) => g.chips.length > 0);
     }
   }
-  const s = typeof ts === "string" ? ts.trim() : String(ts || "").trim();
+  // Fallback: legacy pipe/plain string, OR an off-shape array — serialize any
+  // array element to readable text so it can never render as "[object Object]".
+  let s = "";
+  if (typeof ts === "string") {
+    s = ts.trim();
+  } else if (Array.isArray(ts)) {
+    s = ts
+      .map((g) => {
+        if (g && typeof g === "object") {
+          const cat = String(g.category ?? "").trim();
+          const chips = Array.isArray(g.chips) ? g.chips.filter(Boolean).join(", ") : "";
+          return cat ? (chips ? `${cat}: ${chips}` : cat) : chips;
+        }
+        return String(g == null ? "" : g).trim();
+      })
+      .filter(Boolean)
+      .join(" | ");
+  }
   if (!s) return [];
   return [{ category: "Technical Skills", chips: s.split("|").map((x) => x.trim()).filter(Boolean) }];
 }

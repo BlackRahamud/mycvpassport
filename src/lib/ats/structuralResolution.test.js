@@ -118,14 +118,32 @@ describe("evaluateStructuralGap — honest resolution", () => {
       expect(r.cta).toBe("Open role");
     });
 
-    test("date evidence → open that entry, focus dates", () => {
-      const cv = { experience: [{ role: "Senior Analyst", company: "Globex", startDate: "Jan 2021", endDate: "Oct 2025", points: "x" }] };
+    test("future-dated role (verified vs today) → open THAT entry, focus the start date", () => {
+      const now = new Date("2026-07-15");
+      const cv = { experience: [
+        { role: "Analyst", company: "A", startDate: "01/2020", endDate: "12/2022" },
+        { role: "Senior Analyst", company: "Globex", startDate: "03/2027", endDate: "" },
+      ] };
       const r = evaluateStructuralGap(
-        { category: "unknown", label: "Future-dated role", evidence: "Senior Analyst Globex Oct 2025" },
+        { category: "unknown", label: "Future-dated role", evidence: "Senior Analyst Globex 03/2027" },
         cv,
+        { now },
       );
-      expect(r.action).toMatchObject({ kind: "open_experience", expIndex: 0, focus: "dates" });
+      expect(r.action).toMatchObject({ kind: "open_experience", expIndex: 1, focus: "startDate" });
       expect(r.cta).toBe("Fix date");
+    });
+
+    test("future-date flag CLEARS once the date is in the past (live re-validation, real current date)", () => {
+      const now = new Date("2026-07-15");
+      // 10/2025 is nine months in the PAST — must resolve, not stay flagged.
+      const cv = { experience: [{ role: "Senior Analyst", company: "Globex", startDate: "10/2025", endDate: "" }] };
+      const r = evaluateStructuralGap(
+        { category: "unknown", label: "Future-dated employment start", evidence: "current role starting 10/2025" },
+        cv,
+        { now },
+      );
+      expect(r.status).toBe("resolved");
+      expect(r.action).toBeNull();
     });
 
     test("unlocatable → falls back to section review (no false precision)", () => {

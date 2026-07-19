@@ -21,9 +21,15 @@ export const STRUCTURAL_CATEGORIES = [
   "missing_contact",
   "split_skills",
   "irrelevant_block",
+  "future_date",
   "date_format",
   "unknown",
 ];
+
+// A role dated in the future ("Future-dated employment start", "beyond the
+// current date", "starts in the future"). Distinct from date_format (which is
+// about formatting/order), because this one is VERIFIABLE against today's date.
+const FUTURE_DATE_RE = /(future[- ]?dated|future date|dated in the future|beyond (?:the )?(?:current|today'?s) date|start(?:s|ing)? in the future|future start)/i;
 
 // "C O N T A C T" — 3+ single letters separated by whitespace, then one more.
 const SPACED_LETTERS_RE = /(?:\b[A-Za-z]\s+){3,}\b[A-Za-z]\b/;
@@ -38,6 +44,7 @@ export function classifyStructuralGap(text) {
   const original = String(text || "");
   const s = original.toLowerCase();
   if (!s.trim()) return "unknown";
+  if (FUTURE_DATE_RE.test(original)) return "future_date";
   if (hasSpacedLetters(original)) return "letter_spacing";
   if (/(letter[- ]?spac|kerning|tracking|expanded text|spaced[- ]?out)/.test(s)) return "letter_spacing";
   if (/(key metrics|unsubstantiated|irrelevant|buzzword|filler|fluff|vanity metric|padding|inflated|off[- ]?topic)/.test(s)) return "irrelevant_block";
@@ -80,6 +87,30 @@ function sectionForField(fieldKey) {
 
 // Flatten every user-visible text value in cv_data, tagged with its field key,
 // so detectors can scan for leaked artifacts (spaced letters, page markers).
+// technicalSkills is polymorphic: "" or "Cat: a, b | Cat2: c" (string on disk)
+// or [{category, chips[]}] (in-memory). Serialize ANY shape to readable text so
+// the collector never sees a raw "[object Object]" — which was both a garbage
+// input to the detectors and, more importantly, exactly the kind of artifact a
+// scan then flags as "renders as a raw object literal".
+export function technicalSkillsToText(ts) {
+  if (!ts) return "";
+  if (typeof ts === "string") return ts.trim();
+  if (Array.isArray(ts)) {
+    return ts
+      .map((g) => {
+        if (g && typeof g === "object") {
+          const cat = String(g.category || "").trim();
+          const chips = Array.isArray(g.chips) ? g.chips.filter(Boolean).join(", ") : "";
+          return cat ? (chips ? `${cat}: ${chips}` : cat) : chips;
+        }
+        return String(g == null ? "" : g).trim();
+      })
+      .filter(Boolean)
+      .join(" | ");
+  }
+  return "";
+}
+
 function collectTextFields(cv) {
   const out = [];
   const push = (field, val) => {
@@ -99,7 +130,7 @@ function collectTextFields(cv) {
     push("education", e?.degree);
   });
   push("skills", cv?.skills);
-  push("technicalSkills", cv?.technicalSkills);
+  push("technicalSkills", technicalSkillsToText(cv?.technicalSkills));
   push("languages", cv?.languages);
   return out;
 }
@@ -135,6 +166,41 @@ function findPageMarker(cv) {
   return null;
 }
 
+// Parse "MM/YYYY" (tolerating "M/YYYY" and stray spaces) → { y, m } or null.
+function parseMonthYear(s) {
+  const m = String(s || "").trim().match(/^(\d{1,2})\s*\/\s*(\d{4})$/);
+  if (!m) return null;
+  const mm = parseInt(m[1], 10);
+  const yy = parseInt(m[2], 10);
+  if (mm < 1 || mm > 12) return null;
+  return { y: yy, m: mm };
+}
+
+// Strictly after the current month? Compared against the REAL current date, so
+// a date nine months in the past is never "future".
+function isFutureMonth(d, now) {
+  if (!d) return false;
+  const ny = now.getFullYear();
+  const nm = now.getMonth() + 1;
+  return d.y > ny || (d.y === ny && d.m > nm);
+}
+
+// Index of the first experience whose start (or a concrete, non-"Present" end)
+// is genuinely in the future, else -1. This is the live re-validation: fix the
+// date and the next call returns -1 → the gap resolves.
+function findFutureDatedExperience(cv, now) {
+  const exp = Array.isArray(cv?.experience) ? cv.experience : [];
+  for (let i = 0; i < exp.length; i++) {
+    const e = exp[i] || {};
+    if (isFutureMonth(parseMonthYear(e.startDate), now)) return i;
+    const endRaw = String(e.endDate || "").trim();
+    if (endRaw && !/present|current|now|ongoing/i.test(endRaw) && isFutureMonth(parseMonthYear(endRaw), now)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /**
  * @param {object} gap  typed structural gap { category, label, evidence, ... }
  * @param {object} cvData  the parsed resume (canonical builder shape)
@@ -147,6 +213,29 @@ export function evaluateStructuralGap(gap, cvData, ctx = {}) {
   const cv = cvData && typeof cvData === "object" ? cvData : {};
   const category = gap?.category || classifyStructuralGap(gap?.label);
   const fields = collectTextFields(cv);
+
+  // Future-dated role — the ONE structural gap that's verifiable against TODAY,
+  // so it must re-validate live off the current resume (the frozen scan text is
+  // never trusted for the verdict). Matched off the label too, so a scan stored
+  // before this rule existed still clears once the date is corrected. A start
+  // (or a concrete, non-"Present" end) after the current month is the problem;
+  // a date in the past or present is fine, whatever the scan claimed.
+  if (category === "future_date" || FUTURE_DATE_RE.test(`${gap?.label || ""} ${gap?.evidence || ""}`)) {
+    const exp = Array.isArray(cv.experience) ? cv.experience : [];
+    if (exp.length === 0) {
+      return resolved("No dated roles that could be in the future.");
+    }
+    const now = ctx.now instanceof Date ? ctx.now : new Date();
+    const idx = findFutureDatedExperience(cv, now);
+    if (idx === -1) {
+      return resolved("Every role starts in the past or present — no future dates.");
+    }
+    return action(
+      "A role starts in the future — set it to when you actually started.",
+      { kind: "open_experience", expIndex: idx, focus: "startDate" },
+      "Fix date",
+    );
+  }
 
   switch (category) {
     // Genuinely true of ANY builder output: cv_data is selectable text and no
@@ -203,7 +292,7 @@ export function evaluateStructuralGap(gap, cvData, ctx = {}) {
 
     case "split_skills": {
       const hasSkills = !!String(cv.skills || "").trim();
-      const hasTech = !!String(cv.technicalSkills || "").trim();
+      const hasTech = !!technicalSkillsToText(cv.technicalSkills);
       if (hasSkills && hasTech) {
         return action("Skills are split across two sections — merge them into one.", { kind: "merge_skills" }, "Merge skills");
       }
