@@ -1312,6 +1312,11 @@ const FAB = forwardRef(function FAB(
   }, [activeSection]);
 
   if (!mobile || hidden) return null;
+  // Templates tab: choosing a template IS the whole task here, and on a phone
+  // the floating FAB + its orbit/overlay sat over the cards. Hide it entirely
+  // on this tab so the gallery is fully visible and scrollable. Guide/Preview
+  // stay reachable from the FAB on the Content tab.
+  if (variant === "builder" && tabKey === "templates") return null;
   if (variant === "route" && tabKey === "mycvs" && cvsCount >= 1) return null;
   if (!config && fabMode !== "guide") return null;
 

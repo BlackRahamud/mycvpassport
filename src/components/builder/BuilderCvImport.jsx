@@ -17,11 +17,14 @@ const MAX_BYTES = 10 * 1024 * 1024;
  * Both share the same extract → upload (mode=import-only) → parse pipeline
  * and fire onImported(cv_data, filename) on success.
  */
-export default function BuilderCvImport({ onImported, variant = "card" }) {
+export default function BuilderCvImport({ onImported, onSignIn, variant = "card" }) {
   const inputRef = useRef(null);
   const [stage, setStage] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [errorHint, setErrorHint] = useState('');
+  // 'auth' when the block is a missing sign-in (a new file won't fix it —
+  // the fix is to sign in). Anything else is a real file/parse problem.
+  const [errorKind, setErrorKind] = useState('');
   const [fileName, setFileName] = useState('');
 
   const isBusy = stage === 'reading' || stage === 'uploading' || stage === 'parsing';
@@ -41,6 +44,7 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
       if (!file) return;
       setErrorMsg('');
       setErrorHint('');
+      setErrorKind('');
       setFileName(file.name || '');
 
       const lower = (file.name || '').toLowerCase();
@@ -65,8 +69,12 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
         const { data: { session } = {} } = await supabase.auth.getSession();
         const accessToken = session?.access_token;
         if (!accessToken) {
+          // Not a bad file — import needs an account (we read and save the CV
+          // server-side). Tell the truth and give a way in.
           setStage('error');
-          setErrorMsg('Please sign in again to import.');
+          setErrorKind('auth');
+          setErrorMsg('Sign in to import your CV');
+          setErrorHint('Importing needs an account so we can read your file and fill your builder. Sign in and we’ll bring you right back.');
           return;
         }
 
@@ -152,7 +160,11 @@ export default function BuilderCvImport({ onImported, variant = "card" }) {
             filename={fileName}
             errorMsg={errorMsg}
             errorHint={errorHint}
-            onRetry={stage === 'error' ? openPicker : undefined}
+            needsAuth={stage === 'error' && errorKind === 'auth'}
+            onSignIn={onSignIn}
+            /* A new file can't fix a missing login — only offer retry for
+               real file/parse errors. */
+            onRetry={stage === 'error' && errorKind !== 'auth' ? openPicker : undefined}
           />
         ) : (
           <div

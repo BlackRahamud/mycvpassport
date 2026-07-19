@@ -230,9 +230,13 @@
   backface-visibility: hidden;
 }
 
+/* Primary action (Preview CV) sits on the amber accent, not on
+   --text-primary. Using the text token as a FILL inverted with the theme
+   (raw white in night, raw black in day) — off palette. Amber + its contrast
+   token reads as the intentional primary in both themes. */
 .cvp-fab-menu-icon-btn--primary {
-  background: var(--text-primary);
-  border: 0.5px solid var(--border);
+  background: var(--accent);
+  border: 0.5px solid var(--color-accent-line);
 }
 
 .cvp-fab-menu-label {

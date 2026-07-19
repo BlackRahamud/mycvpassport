@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { FileText, Check, AlertCircle, Upload } from "lucide-react";
+import { FileText, Check, AlertCircle, Upload, LogIn } from "lucide-react";
 
 /*
  * The upload "magic" — the ~10 seconds the AI spends reading a CV is exactly
@@ -39,7 +39,7 @@ const STAGE_LABEL = {
   error: "Couldn't finish reading",
 };
 
-export default function CvExtractionCeremony({ stage, filename, errorMsg, errorHint, onRetry }) {
+export default function CvExtractionCeremony({ stage, filename, errorMsg, errorHint, onRetry, needsAuth, onSignIn }) {
   const reduce = useReducedMotion();
   const isError = stage === "error";
   const [pct, setPct] = useState(0);
@@ -100,18 +100,18 @@ export default function CvExtractionCeremony({ stage, filename, errorMsg, errorH
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            background: isError ? "rgba(239,68,68,0.12)" : "var(--color-accent-soft)",
-            color: isError ? "var(--danger)" : "var(--accent-text)",
+            background: (isError && !needsAuth) ? "rgba(239,68,68,0.12)" : "var(--color-accent-soft)",
+            color: (isError && !needsAuth) ? "var(--danger)" : "var(--accent-text)",
           }}
         >
-          {isError ? <AlertCircle size={19} strokeWidth={1.9} aria-hidden /> : <FileText size={18} strokeWidth={1.8} aria-hidden />}
+          {needsAuth ? <LogIn size={18} strokeWidth={1.9} aria-hidden /> : isError ? <AlertCircle size={19} strokeWidth={1.9} aria-hidden /> : <FileText size={18} strokeWidth={1.8} aria-hidden />}
         </span>
         <div style={{ minWidth: 0, flex: 1 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {filename || "Your CV"}
           </p>
-          <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 600, color: isError ? "var(--danger)" : "var(--accent-text)" }}>
-            {STAGE_LABEL[isError ? "error" : stage] || "Working"}
+          <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 600, color: (isError && !needsAuth) ? "var(--danger)" : "var(--accent-text)" }}>
+            {needsAuth ? "One step to import" : (STAGE_LABEL[isError ? "error" : stage] || "Working")}
             {!isError ? <span aria-hidden> · reading through the document</span> : null}
           </p>
         </div>
@@ -215,12 +215,37 @@ export default function CvExtractionCeremony({ stage, filename, errorMsg, errorH
         })}
       </div>
 
-      {/* Honest failure resolution. */}
+      {/* Honest resolution — a failure (red) or a sign-in prompt (amber). */}
       {isError ? (
-        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.35)" }}>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>{errorMsg || "We couldn't read that file."}</p>
-          {errorHint ? <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-secondary)" }}>{errorHint}</p> : null}
-          {onRetry ? (
+        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: needsAuth ? "var(--color-accent-soft)" : "rgba(239,68,68,0.08)", border: needsAuth ? "1px solid var(--color-accent-line)" : "1px solid rgba(239,68,68,0.35)" }}>
+          <p style={{ margin: 0, fontSize: 13, color: needsAuth ? "var(--text-primary)" : "var(--danger)", fontWeight: 600 }}>{errorMsg || "We couldn't read that file."}</p>
+          {errorHint ? <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{errorHint}</p> : null}
+          {needsAuth && onSignIn ? (
+            <button
+              type="button"
+              onClick={onSignIn}
+              style={{
+                marginTop: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                height: 44,
+                width: "100%",
+                padding: "0 18px",
+                borderRadius: 11,
+                border: "none",
+                background: "var(--accent)",
+                color: "var(--accent-contrast)",
+                fontSize: 14.5,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <LogIn size={16} strokeWidth={2.1} aria-hidden />
+              Sign in to import
+            </button>
+          ) : onRetry ? (
             <button
               type="button"
               onClick={onRetry}

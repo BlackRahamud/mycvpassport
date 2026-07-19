@@ -1407,7 +1407,15 @@ export default function DashboardPage({
             style={{
               position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
               zIndex: 401, width: "calc(100% - 32px)", maxWidth: 360,
-              background: t.surface, border: `1px solid ${t.border}`, borderRadius: 20, padding: 24,
+              // Fit the viewport and scroll if the cancel/downgrade flow makes
+              // the body taller than the screen — otherwise it was clipped top
+              // and bottom on a phone with no way to reach the FREE plan / CTAs.
+              maxHeight: "calc(100dvh - 32px)",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              background: t.surface, border: `1px solid ${t.border}`, borderRadius: 20,
+              padding: 24,
+              paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))",
               boxSizing: "border-box",
             }}
           >

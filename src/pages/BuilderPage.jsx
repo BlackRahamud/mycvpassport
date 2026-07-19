@@ -2148,13 +2148,13 @@ function ContactDetailsCard({ resume, set }) {
   );
 }
 
-function BuilderArrivalHero({ onImported, onManual }) {
+function BuilderArrivalHero({ onImported, onManual, onSignIn }) {
   /* The design arrival: upload is the hero, hand-typing is the quiet
      fallback. The import pipeline is BuilderCvImport (extract, upload
      import-only, parse) — same mechanics as the header button. */
   return (
     <div style={{ maxWidth: 560, width: "100%", margin: "0 auto" }}>
-      <BuilderCvImport variant="hero" onImported={onImported} />
+      <BuilderCvImport variant="hero" onImported={onImported} onSignIn={onSignIn} />
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 2px 0" }}>
         <span style={{ flex: 1, height: 1, background: "var(--border)" }} aria-hidden />
         <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>no CV yet</span>
@@ -3546,6 +3546,13 @@ function ResumeBuilder({
     },
     [resume, applyImportedCv],
   );
+  // Import needs an account. A signed-out uploader gets a real way in: stash
+  // the return path (useCvpAuth reads cvp_return_path post-login) so they land
+  // back on the builder, ready to re-upload, instead of a dead end.
+  const handleImportSignIn = useCallback(() => {
+    try { window.sessionStorage?.setItem("cvp_return_path", "/builder"); } catch { /* private mode */ }
+    navigate("/auth");
+  }, [navigate]);
   // Auto-surface Personal Details for Gulf-bound users on first builder
   // load. Uses setResumeRaw so the auto-add isn't treated as a user edit
   // (no dirty flag flip; no Discard target shift). Persists a localStorage
@@ -3581,9 +3588,8 @@ function ResumeBuilder({
   const dismissPersonalDetailsNudge = useCallback(() => {
     setPersonalDetailsNudgeOpen(false);
   }, []);
-  const [cvpBannerDismissedStored, setCvpBannerDismissedStored] = useState(
-    () => typeof window !== "undefined" && window.localStorage.getItem("cvp_banner_dismissed") === "true"
-  );
+  // Warn on leave, not while editing (replaces the old always-on unsaved bar).
+  const [leaveGuardOpen, setLeaveGuardOpen] = useState(false);
   const expModalBodyRef = useRef(null);
   const [expModalScrollShadow, setExpModalScrollShadow] = useState(false);
   const [expModalBulletWarn, setExpModalBulletWarn] = useState(false);
@@ -4100,37 +4106,13 @@ function ResumeBuilder({
       }
     };
 
-    const isIdleBlocked = () =>
-      fabSheetRef.current === "preview" || fabRef.current?.isGuideSheetOpen?.() === true;
-
-    const isTypingInTextField = () => {
-      if (typeof document === "undefined") return false;
-      const el = document.activeElement;
-      const tag = el?.tagName?.toUpperCase();
-      return tag === "INPUT" || tag === "TEXTAREA";
-    };
-
+    // Idle auto-pop DISABLED. The guide/coaching sheet used to open when the
+    // user simply paused to think — the exact worst moment — and the 70s timer
+    // re-armed itself, so it kept coming back no matter how often it was
+    // dismissed. Nothing opens on idle now. Guide mode stays fully available
+    // on demand from the FAB menu ("Guide"), which is the intended path.
     const scheduleBuilderIdleTimers = () => {
       clearBuilderIdleTimers();
-      builderIdleT15Ref.current = window.setTimeout(() => {
-        builderIdleT15Ref.current = null;
-        if (isIdleBlocked()) return;
-        if (isTypingInTextField()) {
-          scheduleBuilderIdleTimers();
-          return;
-        }
-        fabRef.current?.triggerBuilderIdlePulse?.();
-      }, 45000);
-      builderIdleT25Ref.current = window.setTimeout(() => {
-        builderIdleT25Ref.current = null;
-        if (isIdleBlocked()) return;
-        if (isTypingInTextField()) {
-          scheduleBuilderIdleTimers();
-          return;
-        }
-        fabRef.current?.openGuideForCurrentTab?.();
-        scheduleBuilderIdleTimers();
-      }, 70000);
     };
 
     scheduleBuilderIdleRef.current = scheduleBuilderIdleTimers;
@@ -4544,7 +4526,7 @@ function ResumeBuilder({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
-            <button type="button" onClick={onBack} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}>
+            <button type="button" onClick={() => { if (userHasEdited) setLeaveGuardOpen(true); else onBack?.(); }} aria-label="Back" className="cvp-builder-back" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, padding: 0, borderRadius: 8, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "grid", placeItems: "center", transition: `color 150ms ${EASE}` }} onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
             </button>
             <div className="cvp-builder-tab-scroll" style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -4807,7 +4789,7 @@ function ResumeBuilder({
           style={{ width: "100%", minWidth: 0, alignSelf: "start" }}
         >
           {builderTab === "content" && showArrivalHero ? (
-            <BuilderArrivalHero onImported={handleCvImported} onManual={() => setManualStart(true)} />
+            <BuilderArrivalHero onImported={handleCvImported} onManual={() => setManualStart(true)} onSignIn={handleImportSignIn} />
           ) : null}
           {builderTab === "content" && !showArrivalHero && (
             <>
@@ -5273,7 +5255,7 @@ function ResumeBuilder({
       >
           <div className={`cvp-builder-mobile-form${builderTab === "templates" ? " cvp-builder-mobile-form--templates" : ""}`}>
             {builderTab === "content" && showArrivalHero ? (
-              <BuilderArrivalHero onImported={handleCvImported} onManual={() => setManualStart(true)} />
+              <BuilderArrivalHero onImported={handleCvImported} onManual={() => setManualStart(true)} onSignIn={handleImportSignIn} />
             ) : null}
             {builderTab === "content" && !showArrivalHero && (
               <>
@@ -6851,117 +6833,73 @@ function ResumeBuilder({
         </div>
       )}
 
-      {userHasEdited && !cvpBannerDismissedStored ? (
+      {/* Leave guard — replaces the old always-on "unsaved changes / Discard"
+          banner. That banner popped the instant you edited and made Discard
+          (lose your work) the loud button. Saving is always available in the
+          action bar, and edits autosave to a local draft, so nothing warns
+          while you work now. This only appears on an actual attempt to leave
+          (the Back button), with Save primary and Discard a quiet, deliberate
+          choice. */}
+      {leaveGuardOpen ? (
         <div
-          className="cvp-builder-unsaved-banner"
-          style={{
-            position: "fixed",
-            bottom: 96,
-            left: 16,
-            right: 16,
-            zIndex: 250,
-            background: "var(--bg-elevated)",
-            border: "1px solid rgba(217,119,6,0.35)",
-            borderRadius: 12,
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flexWrap: "wrap",
-            rowGap: 10,
-            maxWidth: "100%",
-            boxSizing: "border-box",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Leave the builder"
+          onClick={() => setLeaveGuardOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box" }}
         >
-          <AlertTriangle size={13} strokeWidth={1.8} style={{ color: "var(--accent-text)" }} aria-hidden />
-          <span
-            style={{
-              flex: "1 1 120px",
-              minWidth: 0,
-              fontSize: 12,
-              color: "var(--accent-text)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: 360, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, boxSizing: "border-box", boxShadow: "0 24px 56px -14px rgba(0,0,0,0.5)" }}
           >
-            You have unsaved changes
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: "auto" }}>
-            <button
-              type="button"
-              onClick={() => {
-                const snap = lastSavedSnapshotRef.current;
-                if (snap) {
-                  // Discard is a revert, not a user edit — use the raw
-                  // setter so the dirty flag isn't flipped by the revert
-                  // itself. We then explicitly clear the flag below.
-                  setResumeRaw({
-                    ...snap,
-                    technicalSkills: normalizeTechnicalSkillsState(snap.technicalSkills),
-                  });
-                }
-                clearCvDraft(draftStorageKey);
-                setUserHasEdited(false);
-              }}
-              style={{
-                background: "var(--accent)",
-                border: "none",
-                color: "var(--text-primary)",
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "6px 12px",
-                borderRadius: 8,
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              Discard
-            </button>
-            <button
-              type="button"
-              aria-label="Dismiss unsaved changes notice"
-              onClick={() => {
-                try {
-                  window.localStorage.setItem("cvp_banner_dismissed", "true");
-                } catch {
-                  /* ignore quota / private mode */
-                }
-                setCvpBannerDismissedStored(true);
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxSizing: "border-box",
-                width: isMobile ? 44 : 20,
-                height: isMobile ? 44 : 20,
-                padding: 0,
-                margin: 0,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--text-primary)",
-                opacity: 0.6,
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = "1";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = "0.6";
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" style={{ display: "block" }}>
-                <path
-                  d="M5 5 L15 15 M15 5 L5 15"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Leave the builder?</div>
+            <p style={{ margin: "0 0 18px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              {user?.id
+                ? "You have changes that aren’t saved to your account yet."
+                : "Your changes are kept on this device. Sign in later to save them to your account."}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {user?.id ? (
+                <button
+                  type="button"
+                  onClick={async () => { setLeaveGuardOpen(false); try { await handleSave(); } catch { /* handleSave surfaces its own error */ } onBack?.(); }}
+                  style={{ width: "100%", height: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "var(--accent-contrast)", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  Save and leave
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setLeaveGuardOpen(false); onBack?.(); }}
+                  style={{ width: "100%", height: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "var(--accent-contrast)", fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  Leave, keep on this device
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setLeaveGuardOpen(false)}
+                style={{ width: "100%", height: 44, borderRadius: 12, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text-primary)", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const snap = lastSavedSnapshotRef.current;
+                  if (snap) {
+                    setResumeRaw({ ...snap, technicalSkills: normalizeTechnicalSkillsState(snap.technicalSkills) });
+                  }
+                  clearCvDraft(draftStorageKey);
+                  setUserHasEdited(false);
+                  setLeaveGuardOpen(false);
+                  onBack?.();
+                }}
+                style={{ width: "100%", height: 36, borderRadius: 10, border: "none", background: "transparent", color: "var(--danger)", fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginTop: 2 }}
+              >
+                Discard changes and leave
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

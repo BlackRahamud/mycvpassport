@@ -74,7 +74,11 @@ export default function FABMenu({ open, onClose, options, anchorRef, onSelect, t
         <div style={{ display: "flex", flexDirection: "column-reverse", alignItems: "flex-end", gap: 14, pointerEvents: "auto" }}>
           {options.map((opt, idx) => {
             const primary = !!opt.primary;
-            const stroke = primary ? "var(--bg)" : "var(--text-primary)";
+            // Primary icon sits on the amber fill → use its contrast token,
+            // not --bg (which paired with the old --text-primary fill to make
+            // the raw black/white circles). Secondary icon stays text-primary
+            // on its neutral surface.
+            const stroke = primary ? "var(--accent-contrast)" : "var(--text-primary)";
             const popClass = idx === 0 ? "cvp-fab-menu-popin-1" : "cvp-fab-menu-popin-2";
             return (
               <div key={opt.id} className={`cvp-fab-menu-row ${popClass}`}>
