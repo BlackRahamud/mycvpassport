@@ -180,7 +180,7 @@ export function useCvpAuth() {
       try {
         const { data: row } = await supabase
           .from("profiles")
-          .select("is_pro, plan, features, pro_access_expires_at, download_credits")
+          .select("is_pro, plan, features, pro_access_expires_at, download_credits, cover_letter_credits")
           .eq("id", userId)
           .single();
         if (!cancelled) {
@@ -195,6 +195,7 @@ export function useCvpAuth() {
             features: row?.features || {},
             pro_access_expires_at: row?.pro_access_expires_at || null,
             download_credits: row?.download_credits || 0,
+            cover_letter_credits: row?.cover_letter_credits || 0,
           });
           // Re-identify with plan trait now that we know it.
           const planTrait = derivedIsPro ? "pro" : "free";
@@ -210,6 +211,7 @@ export function useCvpAuth() {
             features: {},
             pro_access_expires_at: null,
             download_credits: 0,
+            cover_letter_credits: 0,
           });
         }
       }
@@ -257,6 +259,7 @@ export function useCvpAuth() {
             features: {},
             pro_access_expires_at: null,
             download_credits: 0,
+            cover_letter_credits: 0,
           };
         });
         if (lastIdentifiedIdRef.current != null) {
@@ -328,7 +331,7 @@ export function useCvpAuth() {
     try {
       const { data: row } = await supabase
         .from("profiles")
-        .select("is_pro, plan, features, pro_access_expires_at, download_credits")
+        .select("is_pro, plan, features, pro_access_expires_at, download_credits, cover_letter_credits")
         .eq("id", user.id)
         .single();
       const derivedIsPro = hasProAccess(row) || isFounder(user);
@@ -339,6 +342,7 @@ export function useCvpAuth() {
         features: row?.features || {},
         pro_access_expires_at: row?.pro_access_expires_at || null,
         download_credits: row?.download_credits || 0,
+        cover_letter_credits: row?.cover_letter_credits || 0,
       });
     } catch {
       /* leave current values on failure */
@@ -640,6 +644,7 @@ export function useCvpAuth() {
       features: {},
       pro_access_expires_at: null,
       download_credits: 0,
+      cover_letter_credits: 0,
     });
     navigate("/");
   };

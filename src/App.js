@@ -421,7 +421,13 @@ export default function App() {
               <Route path="/tools" element={<ToolsPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
-              <Route path="/cover-letter" element={user ? <CoverLetterPage user={user} profile={profile} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
+              {/* authReady guard matches every other private route (/scout,
+                  /dashboard/applications, /admin). Without it there is a
+                  window on first paint where user is still null and the
+                  Navigate fires, bouncing a signed-in buyer to the landing
+                  page on any direct load or refresh of /cover-letter,
+                  including the return from a payment redirect. */}
+              <Route path="/cover-letter" element={!authReady ? null : user ? <CoverLetterPage user={user} profile={profile} onBack={() => navigate("/dashboard")} /> : <Navigate to="/" replace />} />
               <Route path="/templates" element={<TemplatesBrowseLayout user={user} />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/india-to-uae" element={<IndiaToUaePage />} />

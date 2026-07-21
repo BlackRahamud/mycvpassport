@@ -1,4 +1,5 @@
 import { getPaymentLink } from "./utils/paywall";
+import { getDisplayPrice, A_LA_CARTE } from "./config/tierConfig";
 
 function FeatureItem({ text }) {
   return (
@@ -31,12 +32,10 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
   const isAts = feature === "ats";
   const isBuilderAi = feature === "builder_ai";
 
-  // builder_ai is a virtual feature key for the in-builder AI assist
-  // exhaustion path. It maps to activeHunter for payment - the AED 29/mo
-  // plan that lifts the credit cap. Done here (rather than at every
-  // caller) so the call sites can stay declarative about *why* the modal
-  // is open, not which Ziina link to hit.
-  const paymentFeature = isBuilderAi ? "activeHunter" : feature;
+  // Virtual feature keys (builder_ai, ats, jobMatch, templates) now
+  // resolve inside getPaymentLink itself, so this component passes the
+  // feature through untouched and there is one mapping, not two.
+  const paymentFeature = feature;
 
   const heading = isAts
     ? "Your free ATS scan is used up"
@@ -70,13 +69,18 @@ export default function UpgradeModal({ isOpen, onClose, feature }) {
           "All premium templates, unlimited CVs",
         ];
 
-  const ctaLabel = isAts
-    ? "Unlock Pro — AED 29/month"
-    : isBuilderAi
-      ? "Unlock unlimited — AED 29/month"
-      : feature === "coverLetter"
-        ? "Upgrade to Pro — AED 10"
-        : "Upgrade to Pro — AED 29/month";
+  // Prices are read from the config that the server actually charges
+  // from, never typed inline. The old labels said "AED 29/month" while
+  // the charge came from a different table, so the button could promise
+  // one number and take another. They also implied a recurring
+  // subscription; Active Hunter is a one time 30 day pass, so the copy
+  // now says what it is.
+  const hunterPrice = getDisplayPrice("active_hunter", "AED");
+  const coverLetterPrice = A_LA_CARTE.coverLetter?.prices?.AED;
+
+  const ctaLabel = feature === "coverLetter"
+    ? `Get one cover letter, AED ${coverLetterPrice}`
+    : `Unlock pro for 30 days, AED ${hunterPrice}`;
 
   return (
     <div

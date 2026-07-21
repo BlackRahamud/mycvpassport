@@ -17,7 +17,13 @@ import {
   TIER_TO_PROFILE_PLAN,
   currencyForCountry,
   getServerAmount,
+  getAlaCarteAmount,
+  getAlaCarteAmountByService,
+  alaCarteServiceFor,
+  VALID_ALACARTE_SERVICES,
 } from '../src/config/tierConfig.js';
+import { gatewayCurrencyError, assertCurrencyMatch } from '../src/lib/payments/paymentRef.js';
+import { grantAlaCarte } from '../src/lib/payments/alaCarteGrant.js';
 import { issueDocument } from '../src/invoices/issue.js';
 import { capturePostHogServer } from '../src/lib/analytics/posthogServer.js';
 
@@ -32,16 +38,19 @@ const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 const VALID_PLANS = new Set(PAID_TIER_SLUGS);
 
-// A-la-carte one-time unlocks on the India/Razorpay side. These route
-// through the `permissions` table (service='linkedin_optimizer', etc.)
-// exactly like the Ziina a-la-carte path — they do NOT touch
-// profiles.plan. Client passes the camelCase feature key; the server
-// resolves it to the permission-service string and the INR amount.
-// Amounts are in paise (14900 = INR 149) and are NEVER read from the
-// client. Keep in sync with api/create-ziina-payment.js A_LA_CARTE_FILS.
-const A_LA_CARTE_TO_SERVICE = { linkedinOptimizer: 'linkedin_optimizer' };
-const A_LA_CARTE_INR_PAISE = { linkedinOptimizer: 14900 };
-const VALID_ALACARTE_SERVICES = new Set(Object.values(A_LA_CARTE_TO_SERVICE));
+// Razorpay is the INR rail. Declared once and validated against the
+// gateway policy rather than inlined as a literal at each use site.
+const RAZORPAY_CURRENCY = 'INR';
+
+// Currency → invoice entity. A lookup rather than a literal so a new
+// currency forces a deliberate entity decision instead of inheriting IN.
+const ENTITY_FOR_CURRENCY = { INR: 'IN', AED: 'AE' };
+
+// A-la-carte prices now come from the single table in tierConfig
+// (A_LA_CARTE). The former local A_LA_CARTE_INR_PAISE map was a
+// hand-synced copy of the same numbers held in two other files; a drift
+// between copies was a silently mispriced sale. An item with no INR
+// price in the table is simply not sold on this rail and rejects.
 
 const supabase = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -108,7 +117,17 @@ function verifyWebhookSignature(rawBody, signature, secret) {
   return crypto.timingSafeEqual(expectedBuf, signatureBuf);
 }
 
+// `currency` is a REQUIRED field. The payments table no longer defaults
+// it (migration 043), so a caller that omits it fails loudly here rather
+// than silently recording the wrong currency.
 async function recordPayment(db, fields) {
+  if (!fields.currency) {
+    console.error('[razorpay] recordPayment called without currency', {
+      payment_intent_id: fields.payment_intent_id,
+      service: fields.service,
+    });
+    return;
+  }
   try {
     let email = null;
     if (fields.user_id) {
@@ -123,7 +142,7 @@ async function recordPayment(db, fields) {
       user_id: fields.user_id || null,
       email,
       amount: Number(fields.amount || 0) / 100,
-      currency: 'INR',
+      currency: fields.currency,
       status: 'succeeded',
       provider: 'razorpay',
       service: fields.service || null,
@@ -147,23 +166,29 @@ async function handleOrder(req, res, body) {
   const { plan, service } = body || {};
   // Razorpay path is INR-only by design — the gateway is only configured
   // for the India market. Currency and amount are NEVER read from the
-  // client; both are derived server-side (tierConfig for plans, the
-  // a-la-carte map for one-time unlocks).
-  const currency = 'INR';
+  // client; both are derived server-side from the single price table.
+  const currency = RAZORPAY_CURRENCY;
+  const policyError = gatewayCurrencyError('razorpay', currency);
+  if (policyError) {
+    console.error('[razorpay] gateway currency policy', { policyError });
+    return res.status(500).json({ error: 'Payment gateway misconfigured' });
+  }
 
   // Two shapes: a subscription/tier `plan`, or a one-time a-la-carte
-  // `service` (e.g. linkedinOptimizer). Exactly one is expected.
+  // `service` (e.g. linkedinOptimizer). Exactly one is expected. The
+  // currency is written into order notes alongside the product id so the
+  // webhook can verify the sale against what was actually quoted.
   let expectedAmount;
   let orderNotes;
   if (service) {
-    const permissionService = A_LA_CARTE_TO_SERVICE[service];
-    expectedAmount = A_LA_CARTE_INR_PAISE[service];
+    const permissionService = alaCarteServiceFor(service);
+    expectedAmount = getAlaCarteAmount(service, currency);
     if (!permissionService || !expectedAmount) {
       return res.status(400).json({ error: 'Invalid service' });
     }
     // Store the resolved permission-service string; the webhook keys the
     // permissions upsert off this.
-    orderNotes = { userId: user.id, service: permissionService };
+    orderNotes = { userId: user.id, service: permissionService, currency };
   } else {
     if (!plan || !VALID_PLANS.has(plan)) {
       return res.status(400).json({ error: 'Invalid plan' });
@@ -172,7 +197,7 @@ async function handleOrder(req, res, body) {
     if (!expectedAmount) {
       return res.status(400).json({ error: 'Invalid plan' });
     }
-    orderNotes = { userId: user.id, plan };
+    orderNotes = { userId: user.id, plan, currency };
   }
 
   try {
@@ -226,7 +251,7 @@ async function handleVerify(req, res, body) {
 
   // Accept either a tier `plan` or a one-time a-la-carte `service`.
   if (service) {
-    if (!A_LA_CARTE_TO_SERVICE[service]) {
+    if (!alaCarteServiceFor(service)) {
       return res.status(400).json({ error: 'Invalid service' });
     }
   } else if (!plan || !VALID_PLANS.has(plan)) {
@@ -286,6 +311,7 @@ async function handleWebhook(req, res, rawBody) {
   let userId = payment.notes?.userId;
   let plan = payment.notes?.plan;
   let service = payment.notes?.service;
+  let quotedCurrency = payment.notes?.currency;
 
   if ((!userId || (!plan && !service)) && payment.order_id && RAZORPAY_KEY_ID && RAZORPAY_SECRET) {
     try {
@@ -297,10 +323,39 @@ async function handleWebhook(req, res, rawBody) {
       userId = userId || order.notes?.userId;
       plan = plan || order.notes?.plan;
       service = service || order.notes?.service;
+      quotedCurrency = quotedCurrency || order.notes?.currency;
     } catch (fetchErr) {
       console.error('[razorpay] webhook order fetch failed', { error: fetchErr?.message });
     }
   }
+
+  // ── Currency validation, before any branch grants anything.
+  // payment.currency is what Razorpay actually charged. It is read here
+  // (it never used to be) and must satisfy the gateway policy, and must
+  // agree with the currency quoted in order notes when one is present.
+  // Orders created before this deploy carry no notes.currency, so an
+  // absent quote is tolerated while a conflicting one rejects.
+  const charged = String(payment.currency || '').toUpperCase();
+  if (!charged) {
+    console.error('[razorpay] webhook payment has no currency — granting nothing', {
+      payment_id: payment.id,
+    });
+    return res.status(400).json({ error: 'Payment has no currency' });
+  }
+  const policyError = gatewayCurrencyError('razorpay', charged);
+  const mismatchError = quotedCurrency
+    ? assertCurrencyMatch(String(quotedCurrency).toUpperCase(), charged)
+    : null;
+  if (policyError || mismatchError) {
+    console.error('[razorpay] currency rejected — granting nothing', {
+      payment_id: payment.id,
+      charged,
+      quotedCurrency: quotedCurrency || null,
+      reason: policyError || mismatchError,
+    });
+    return res.status(400).json({ error: policyError || mismatchError });
+  }
+  const currency = charged;
 
   // ── A-la-carte one-time unlocks (e.g. linkedin_optimizer). Mirrors the
   // Ziina webhook's permissions branch: upsert `permissions` instead of
@@ -311,6 +366,21 @@ async function handleWebhook(req, res, rawBody) {
     if (!userId) {
       console.warn('[razorpay] a-la-carte webhook missing userId', { payment_id: payment.id });
       return res.status(200).json({ received: true, ignored: true });
+    }
+
+    // Verify what was charged against the price table for this exact
+    // item and currency. Previously the amount was never re-checked at
+    // webhook time, so any captured amount granted the unlock.
+    const expectedAlc = getAlaCarteAmountByService(service, currency);
+    if (expectedAlc == null || Number(payment.amount) !== expectedAlc) {
+      console.error('[razorpay] a-la-carte amount mismatch — granting nothing', {
+        payment_id: payment.id,
+        service,
+        currency,
+        expected: expectedAlc,
+        received: Number(payment.amount),
+      });
+      return res.status(400).json({ error: 'Amount does not match the price for this item' });
     }
 
     // Idempotency — Razorpay retries deliveries. If we already audited this
@@ -324,25 +394,24 @@ async function handleWebhook(req, res, rawBody) {
       return res.status(200).json({ received: true, idempotent: true });
     }
 
-    const { error: permErr } = await supabase
-      .from('permissions')
-      .upsert(
-        { user_id: userId, service, status: 'unlocked', unlocked_at: new Date().toISOString() },
-        { onConflict: 'user_id,service' }
-      );
-    if (permErr) {
-      console.error('[razorpay] permissions upsert failed', {
-        error: permErr.message,
+    // Same shared grant map the Ziina rail uses, so a product is
+    // delivered identically whichever gateway sold it.
+    const granted = await grantAlaCarte(supabase, { service, userId });
+    if (!granted.ok) {
+      console.error('[razorpay] a-la-carte grant failed', {
         userId,
         service,
+        reason: granted.reason,
+        error: granted.error?.message,
       });
-      return res.status(500).json({ error: permErr.message });
+      return res.status(500).json({ error: granted.error?.message || 'Grant failed' });
     }
 
     await recordPayment(supabase, {
       user_id: userId,
       service,
       amount: payment.amount,
+      currency,
       external_ref: payment.order_id,
       payment_intent_id: payment.id,
     });
@@ -353,7 +422,7 @@ async function handleWebhook(req, res, rawBody) {
     await capturePostHogServer(userId, 'purchase_completed', {
       plan: service,
       amount: Number(payment.amount || 0) / 100,
-      currency: 'INR',
+      currency,
       transaction_id: payment.id,
       gateway: 'razorpay',
     });
@@ -368,6 +437,22 @@ async function handleWebhook(req, res, rawBody) {
       order_id: payment.order_id,
     });
     return res.status(200).json({ received: true, ignored: true });
+  }
+
+  // Verify the captured amount against the price table for the claimed
+  // plan and the charged currency. expectedAmount was computed at order
+  // creation but never re-checked here, so the grant used to depend
+  // entirely on notes.plan with no price agreement at all.
+  const expectedPlanAmount = getServerAmount(plan, currency);
+  if (expectedPlanAmount == null || Number(payment.amount) !== expectedPlanAmount) {
+    console.error('[razorpay] tier amount mismatch — granting nothing', {
+      payment_id: payment.id,
+      plan,
+      currency,
+      expected: expectedPlanAmount,
+      received: Number(payment.amount),
+    });
+    return res.status(400).json({ error: 'Amount does not match the price for this plan' });
   }
 
   const { data: existingAudit } = await supabase
@@ -394,11 +479,11 @@ async function handleWebhook(req, res, rawBody) {
         user_id: userId,
         payment_id: payment.id,
         gateway: 'razorpay',
-        entity: 'IN',
+        entity: ENTITY_FOR_CURRENCY[currency],
         kind: 'invoice',
         tier_slug: plan,
         amount_minor: payment.amount,
-        currency: 'INR',
+        currency,
       });
     }
     return res.status(200).json({ received: true, idempotent: true });
@@ -418,6 +503,7 @@ async function handleWebhook(req, res, rawBody) {
     user_id: userId,
     service: plan,
     amount: payment.amount,
+    currency,
     external_ref: payment.order_id,
     payment_intent_id: payment.id,
   });
@@ -425,7 +511,7 @@ async function handleWebhook(req, res, rawBody) {
   await capturePostHogServer(userId, 'purchase_completed', {
     plan,
     amount: Number(payment.amount || 0) / 100,
-    currency: 'INR',
+    currency,
     transaction_id: payment.id,
     gateway: 'razorpay',
   });
@@ -437,14 +523,14 @@ async function handleWebhook(req, res, rawBody) {
     user_id: userId,
     payment_id: payment.id,
     gateway: 'razorpay',
-    entity: 'IN',
+    entity: ENTITY_FOR_CURRENCY[currency],
     kind: 'invoice',
     tier_slug: plan,
     amount_minor: payment.amount,
-    currency: 'INR',
+    currency,
   });
 
-  console.log('[razorpay] webhook tier applied', { userId, plan, payment_id: payment.id });
+  console.log('[razorpay] webhook tier applied', { userId, plan, currency, payment_id: payment.id });
   return res.status(200).json({ success: true });
 }
 

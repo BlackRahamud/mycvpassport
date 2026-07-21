@@ -5221,7 +5221,8 @@ function ResumeBuilder({
               resume={resume}
               selectedTemplate={selectedTemplate}
               isPro={isPro}
-              features={profile?.features}
+              coverLetterCredits={profile?.cover_letter_credits}
+              plan={profile?.plan}
               onJobDescriptionChange={setJobHasJd}
               handleDownload={handleDownload}
               downloadState={downloadState}
@@ -5707,7 +5708,8 @@ function ResumeBuilder({
                   resume={resume}
                   selectedTemplate={selectedTemplate}
                   isPro={isPro}
-                  features={profile?.features}
+                  coverLetterCredits={profile?.cover_letter_credits}
+              plan={profile?.plan}
                   onJobDescriptionChange={setJobHasJd}
                   handleDownload={handleDownload}
                   downloadState={downloadState}
@@ -5829,7 +5831,8 @@ function ResumeBuilder({
                 activeGuideSection={GUIDE_STEPS[guideStep]?.sectionId ?? null}
                 advanceGuideStep={advanceGuideStep}
                 retreatGuideStep={retreatGuideStep}
-                features={profile?.features}
+                coverLetterCredits={profile?.cover_letter_credits}
+              plan={profile?.plan}
                 isPro={isPro}
                 onPostPaymentCoverLetter={onPostPaymentCoverLetter}
                 onNavigateToTab={onNavigateToTab}

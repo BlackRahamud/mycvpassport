@@ -15,7 +15,9 @@
  * parsing the body.
  *
  * Auth (per-branch — matches the legacy endpoints exactly):
- *   - cover_letter:       no server-side auth (UI gates upstream)
+ *   - cover_letter:       Bearer JWT required. Pro is unmetered; everyone
+ *                         else spends one cover_letter_credit per call
+ *                         (consume before the model, refund on failure)
  *   - linkedin_headline:  no server-side auth (free first pass)
  *   - parse_resume:       Bearer JWT + profiles.is_pro = true
  *   - tailor:             Bearer JWT + free-tier credit gate via
@@ -182,6 +184,79 @@ async function handleCoverLetter(req, res, body) {
     return res.status(500).json({ error: 'AI Engine is not configured. Please try again later.' });
   }
 
+  // ── Access gate. This endpoint previously had NO server-side auth at
+  // all (the header comment said "UI gates upstream"), so anyone could
+  // POST here and generate unlimited cover letters for free, paid or
+  // not. The client paywall was decorative.
+  //
+  // Model: pro users are unmetered. Everyone else spends one credit per
+  // generation, bought at AED 10 each. Deduct happens BEFORE the model
+  // call and is refunded if the call fails, mirroring candidate_match.
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Please sign in to generate a cover letter.' });
+
+  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: { user } = {}, error: userErr } = await authClient.auth.getUser(token);
+  if (userErr || !user) return res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
+
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: profile, error: profileErr } = await db
+    .from('profiles')
+    .select('is_pro, pro_access_expires_at, cover_letter_credits')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (profileErr) {
+    console.error('[ai/cover_letter] profile lookup failed:', profileErr.message);
+    return res.status(500).json({ error: 'Could not verify your account.' });
+  }
+
+  const notExpired =
+    profile?.pro_access_expires_at &&
+    new Date(profile.pro_access_expires_at).getTime() > Date.now();
+  const isPro = profile?.is_pro === true || !!notExpired;
+
+  // Non-pro users spend a credit. consume_cover_letter_credit returns
+  // NULL when the counter is already at zero (the `> 0` guard matches no
+  // rows), which is the refusal signal.
+  let spentCredit = false;
+  if (!isPro) {
+    const { data: remaining, error: consumeErr } = await db.rpc('consume_cover_letter_credit', {
+      p_user_id: user.id,
+    });
+    if (consumeErr) {
+      console.error('[ai/cover_letter] credit consume failed:', consumeErr.message);
+      return res.status(500).json({ error: 'Could not check your cover letter credits.' });
+    }
+    if (remaining === null || remaining === undefined) {
+      return res.status(402).json({
+        error: 'You have no cover letter credits left. Buy one to generate another.',
+        credits_remaining: 0,
+        action: 'upgrade',
+      });
+    }
+    spentCredit = true;
+  }
+
+  // Hand the credit back when the generation does not produce a letter.
+  // Best effort: a failed refund is logged, never masks the real error.
+  const refundIfSpent = async () => {
+    if (!spentCredit) return;
+    const { error: refundErr } = await db.rpc('grant_cover_letter_credits', {
+      p_user_id: user.id,
+      p_credits: 1,
+    });
+    if (refundErr) {
+      console.error('[ai/cover_letter] REFUND FAILED, credit lost', {
+        userId: user.id,
+        error: refundErr.message,
+      });
+    }
+  };
+
   const prompt = buildCoverLetterPrompt({ cvData, jobTitle, companyName, jobDescription, date, market });
 
   try {
@@ -202,6 +277,7 @@ async function handleCoverLetter(req, res, body) {
 
     const responseText = await response.text();
     if (!response.ok) {
+      await refundIfSpent();
       return res.status(502).json({ error: 'AI Engine is busy, please try again in a moment.' });
     }
 
@@ -209,6 +285,7 @@ async function handleCoverLetter(req, res, body) {
     try {
       data = JSON.parse(responseText);
     } catch {
+      await refundIfSpent();
       return res.status(502).json({ error: 'AI Engine is busy, please try again in a moment.' });
     }
 
@@ -218,13 +295,21 @@ async function handleCoverLetter(req, res, body) {
       '';
     const coverLetterBody = String(raw).trim();
     if (!coverLetterBody) {
+      await refundIfSpent();
       return res.status(502).json({ error: 'Could not generate cover letter. Please try again.' });
     }
 
+    // Report what is left so the UI can reflect server truth rather than
+    // guessing from a stale profile. null means pro, ie not metered.
+    const creditsRemaining = isPro
+      ? null
+      : Math.max(0, (Number(profile?.cover_letter_credits) || 0) - 1);
+
     res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.status(200).json({ coverLetterBody });
+    return res.status(200).json({ coverLetterBody, credits_remaining: creditsRemaining });
   } catch (err) {
     console.error('[ai/cover_letter]', err);
+    await refundIfSpent();
     return res.status(502).json({ error: 'AI Engine is busy, please try again in a moment.' });
   }
 }

@@ -1,6 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-import { PAID_TIER_SLUGS, TIERS, TIER_TO_PROFILE_PLAN, getServerAmount } from '../src/config/tierConfig.js';
+import {
+  PAID_TIER_SLUGS,
+  TIERS,
+  TIER_TO_PROFILE_PLAN,
+  getServerAmount,
+  getAlaCarteAmountByService,
+  VALID_ALACARTE_SERVICES,
+} from '../src/config/tierConfig.js';
+import {
+  decodePaymentRef,
+  gatewayCurrencyError,
+  assertCurrencyMatch,
+} from '../src/lib/payments/paymentRef.js';
+import { grantAlaCarte } from '../src/lib/payments/alaCarteGrant.js';
 import { issueDocument } from '../src/invoices/issue.js';
 import { capturePostHogServer } from '../src/lib/analytics/posthogServer.js';
 
@@ -11,24 +24,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Tier amounts in fils → tier slug. Built from tierConfig so prices are
-// never duplicated. Cover Letter and other a-la-carte unlocks stay
-// hardcoded here because they route through the permissions table, not
-// profiles.plan.
-const PLAN_MAP = PAID_TIER_SLUGS.reduce((acc, slug) => {
-  const fils = getServerAmount(slug, 'AED');
-  if (fils != null) acc[fils] = { plan: slug, is_pro: true };
-  return acc;
-}, {
-  1000: { plan: 'cover_letter', is_pro: false },
-});
+// Ziina is the AED rail. The webhook never assumes this — it reads the
+// currency stated in the signed reference and checks it against the
+// gateway policy, so an AED-only account can never record an INR sale.
+const ZIINA_GATEWAY = 'ziina';
 
-// Upload & Transform sessions encode their session id in the
-// external_reference as "transform:<uuid>". Used by the transform
-// branch below to route the webhook to transform_sessions instead of
-// the subscription / permissions paths.
-const TRANSFORM_PREFIX = 'transform:';
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Currency → invoice entity. Kept as a lookup so a new currency forces a
+// deliberate entity decision instead of inheriting a hardcoded 'AE'.
+const ENTITY_FOR_CURRENCY = { AED: 'AE', INR: 'IN' };
+
+// NOTE: the old PLAN_MAP (amount-in-fils → tier) is deliberately gone.
+// Identifying a product by its price is what allowed two same-priced
+// products to be confused, and what made an unrecognised amount fall
+// through to a free Active Hunter grant. Product identity now arrives
+// explicitly in external_reference; the amount is only ever used to
+// verify that stated identity against the price table.
 
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -80,12 +90,17 @@ export default async function handler(req, res) {
   }
 
   const { status, amount, external_reference, payment_intent_id } = payload;
+  // Ziina's own currency field, when it sends one. Treated as a
+  // cross-check against the reference, never as the source of truth,
+  // because we cannot guarantee the field is present on every event.
+  const reportedCurrency = payload.currency_code || payload.currency || null;
 
   console.log('Ziina webhook received', {
     payment_intent_id,
     status,
     amount,
-    userId: external_reference
+    reportedCurrency,
+    external_reference,
   });
 
   if (status !== 'completed') {
@@ -103,11 +118,31 @@ export default async function handler(req, res) {
     return res.status(200).json({ received: true, ignored: true });
   }
 
+  const ref = decodePaymentRef(external_reference);
+  if (!ref) {
+    console.error('[ziina-webhook] undecodable external_reference — granting nothing', {
+      payment_intent_id,
+      amount,
+      external_reference,
+    });
+    return res.status(400).json({ error: 'Invalid payment reference' });
+  }
+
   // Audit-log helper — inserts into the payments table if it exists.
   // Safe to call from either code path; failure is logged but never aborts
   // the webhook (the primary unlock flip must not be blocked by a missing
   // audit table on a fresh environment).
+  // `currency` is a REQUIRED field on every call. The payments table no
+  // longer defaults it (migration 043), so a caller that forgets it now
+  // fails loudly at insert instead of silently recording AED.
   async function recordPayment(fields) {
+    if (!fields.currency) {
+      console.error('[ziina-webhook] recordPayment called without currency', {
+        payment_intent_id,
+        service: fields.service,
+      });
+      return;
+    }
     try {
       let email = null;
       if (fields.user_id) {
@@ -123,7 +158,7 @@ export default async function handler(req, res) {
         email,
         // Ziina amounts come in fils — store the major-unit equivalent.
         amount: Number(amount || 0) / 100,
-        currency: 'AED',
+        currency: fields.currency,
         status: 'succeeded',
         provider: 'ziina',
         service: fields.service || null,
@@ -143,11 +178,21 @@ export default async function handler(req, res) {
   // also don't want to clobber a session that /api/transform-run has
   // already advanced to 'transforming' / 'transformed'). Audit row
   // goes to the same payments table the subscription branch uses.
-  if (external_reference.startsWith(TRANSFORM_PREFIX)) {
-    const sessionId = external_reference.slice(TRANSFORM_PREFIX.length);
-    if (!UUID_RE.test(sessionId)) {
-      console.error('[ziina-webhook] transform: invalid session id', { sessionId });
-      return res.status(400).json({ error: 'Invalid transform session id' });
+  if (ref.kind === 'transform') {
+    const sessionId = ref.sessionId;
+    // Transform references predate the currency-carrying format and are
+    // AED-only. State it explicitly and run it through the same gateway
+    // policy check rather than letting an untagged currency through.
+    const transformCurrency = 'AED';
+    const txPolicyError = gatewayCurrencyError(ZIINA_GATEWAY, transformCurrency);
+    const txMismatch = assertCurrencyMatch(transformCurrency, reportedCurrency);
+    if (txPolicyError || txMismatch) {
+      console.error('[ziina-webhook] transform: currency rejected', {
+        sessionId,
+        payment_intent_id,
+        reason: txPolicyError || txMismatch,
+      });
+      return res.status(400).json({ error: txPolicyError || txMismatch });
     }
 
     // Conditional UPDATE — the .in('status', ...) predicate is what
@@ -191,7 +236,7 @@ export default async function handler(req, res) {
         .eq('payment_intent_id', payment_intent_id)
         .maybeSingle();
       if (!existingAudit) {
-        await recordPayment({ user_id: null, service: 'transform_orphan' });
+        await recordPayment({ user_id: null, service: 'transform_orphan', currency: transformCurrency });
         console.warn('[ziina-webhook] transform: orphan payment recorded (session missing)', {
           sessionId,
           payment_intent_id,
@@ -204,7 +249,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, idempotent: true });
     }
 
-    await recordPayment({ user_id: updated.user_id, service: 'transform' });
+    await recordPayment({ user_id: updated.user_id, service: 'transform', currency: transformCurrency });
 
     // purchase_completed fires server-side (webhook = source of truth,
     // ad-blocker-proof) and only on fresh processing — idempotent retries
@@ -212,7 +257,7 @@ export default async function handler(req, res) {
     await capturePostHogServer(updated.user_id, 'purchase_completed', {
       plan: 'transform',
       amount: Number(amount || 0) / 100,
-      currency: 'AED',
+      currency: transformCurrency,
       transaction_id: payment_intent_id || null,
       gateway: 'ziina',
     });
@@ -225,45 +270,143 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
-  // A-la-carte unlocks encode service via "userId|service" in external_reference.
-  // These flip a row in `permissions` instead of profiles.is_pro so the user can
-  // keep a free plan while unlocking a single tool (e.g. linkedin_optimizer).
-  const pipeIdx = external_reference.indexOf('|');
-  if (pipeIdx !== -1) {
-    const userId = external_reference.slice(0, pipeIdx);
-    const service = external_reference.slice(pipeIdx + 1);
+  // A pre-migration reference (bare user id, or "userId|service"). The
+  // product is not stated and we refuse to infer it from the amount, so
+  // nothing is granted. This is reachable only by a payment that was
+  // already in flight when this code deployed; the founder reconciles it
+  // by hand from the Ziina dashboard using the payment_intent_id logged
+  // here. 400 so Ziina retries and the event stays visible rather than
+  // being silently acked away.
+  if (ref.kind === 'legacy') {
+    console.error('[ziina-webhook] LEGACY REFERENCE — manual reconciliation required', {
+      payment_intent_id,
+      amount,
+      external_reference,
+    });
+    return res.status(400).json({ error: 'Unidentifiable payment reference' });
+  }
 
-    const { error: permErr } = await supabase
-      .from('permissions')
-      .upsert(
-        { user_id: userId, service, status: 'unlocked', unlocked_at: new Date().toISOString() },
-        { onConflict: 'user_id,service' }
-      );
+  // Shared currency validation for both grant branches below. The
+  // reference states the currency; the gateway policy says whether this
+  // rail may charge it; the gateway's own field (when present) must
+  // agree. Any disagreement rejects before a single row is written.
+  const currency = ref.currency;
+  const policyError = gatewayCurrencyError(ZIINA_GATEWAY, currency);
+  const mismatchError = assertCurrencyMatch(currency, reportedCurrency);
+  if (policyError || mismatchError) {
+    console.error('[ziina-webhook] currency rejected — granting nothing', {
+      payment_intent_id,
+      external_reference,
+      reportedCurrency,
+      reason: policyError || mismatchError,
+    });
+    return res.status(400).json({ error: policyError || mismatchError });
+  }
 
-    if (permErr) {
-      console.error('Supabase permissions upsert failed', {
-        error: permErr.message,
-        userId,
+  const entity = ENTITY_FOR_CURRENCY[currency];
+  if (!entity) {
+    console.error('[ziina-webhook] no invoice entity for currency', { currency });
+    return res.status(400).json({ error: `No invoice entity for ${currency}` });
+  }
+
+  // ── A-la-carte unlocks. Flip a row in `permissions` instead of
+  // profiles.is_pro so the user can keep a free plan while unlocking a
+  // single tool. The amount is checked against the a-la-carte price
+  // table for the stated service before anything is granted.
+  if (ref.kind === 'svc') {
+    const { service, userId } = ref;
+
+    if (!VALID_ALACARTE_SERVICES.has(service)) {
+      console.error('[ziina-webhook] unknown a-la-carte service — granting nothing', {
+        payment_intent_id,
         service,
       });
-      return res.status(500).json({ error: permErr.message });
+      return res.status(400).json({ error: 'Unknown service' });
     }
 
-    await recordPayment({ user_id: userId, service });
+    const expected = getAlaCarteAmountByService(service, currency);
+    if (expected == null || Number(amount) !== expected) {
+      console.error('[ziina-webhook] a-la-carte amount mismatch — granting nothing', {
+        payment_intent_id,
+        service,
+        currency,
+        expected,
+        received: Number(amount),
+      });
+      return res.status(400).json({ error: 'Amount does not match the price for this item' });
+    }
+
+    // Idempotency — Ziina retries deliveries. The permissions upsert is
+    // naturally idempotent but recordPayment is not, so short-circuit on
+    // an existing audit row (mirrors the Razorpay a-la-carte branch).
+    if (payment_intent_id) {
+      const { data: existingAlc } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('payment_intent_id', payment_intent_id)
+        .maybeSingle();
+      if (existingAlc) {
+        return res.status(200).json({ received: true, idempotent: true });
+      }
+    }
+
+    // Deliver the product. grantAlaCarte decides HOW from one shared
+    // map: a permanent permissions row for linkedin_optimizer, a
+    // consumable credit for cover_letter. A service with no declared
+    // grant fails here rather than recording a payment that unlocks
+    // nothing.
+    const granted = await grantAlaCarte(supabase, { service, userId });
+    if (!granted.ok) {
+      console.error('[ziina-webhook] a-la-carte grant failed', {
+        userId,
+        service,
+        reason: granted.reason,
+        error: granted.error?.message,
+      });
+      return res.status(500).json({ error: granted.error?.message || 'Grant failed' });
+    }
+
+    await recordPayment({ user_id: userId, service, currency });
 
     await capturePostHogServer(userId, 'purchase_completed', {
       plan: service,
       amount: Number(amount || 0) / 100,
-      currency: 'AED',
+      currency,
       transaction_id: payment_intent_id || null,
       gateway: 'ziina',
     });
 
-    console.log('Service unlocked', { userId, service });
+    console.log('Service unlocked', { userId, service, currency });
     return res.status(200).json({ success: true });
   }
 
-  const upgrade = PLAN_MAP[amount] || { plan: 'active_hunter', is_pro: true };
+  // ── Paid tier. Identity is stated in the reference; the amount only
+  // verifies it. An unknown slug or a price that does not match the
+  // table rejects outright — there is no fallback plan.
+  const tierSlug = ref.slug;
+  const userId = ref.userId;
+
+  if (!PAID_TIER_SLUGS.includes(tierSlug)) {
+    console.error('[ziina-webhook] unknown tier slug — granting nothing', {
+      payment_intent_id,
+      tierSlug,
+    });
+    return res.status(400).json({ error: 'Unknown plan' });
+  }
+
+  const expectedAmount = getServerAmount(tierSlug, currency);
+  if (expectedAmount == null || Number(amount) !== expectedAmount) {
+    console.error('[ziina-webhook] tier amount mismatch — granting nothing', {
+      payment_intent_id,
+      tierSlug,
+      currency,
+      expected: expectedAmount,
+      received: Number(amount),
+    });
+    return res.status(400).json({ error: 'Amount does not match the price for this plan' });
+  }
+
+  const upgrade = { plan: tierSlug };
 
   // Idempotency — Ziina retries failed webhook deliveries. Stacking
   // expiry / incrementing download_credits must not double-apply on
@@ -290,55 +433,57 @@ export default async function handler(req, res) {
       if (!existingInvoice) {
         console.log('[ziina-webhook] retry — payment audited but no receipt; healing', { payment_id: payment_intent_id });
         await issueDocument(supabase, {
-          user_id: external_reference,
+          user_id: userId,
           payment_id: payment_intent_id,
           gateway: 'ziina',
-          entity: 'AE',
+          entity,
           kind: 'receipt',
           tier_slug: upgrade.plan,
           amount_minor: amount,
-          currency: 'AED',
+          currency,
         });
       }
       return res.status(200).json({ received: true, idempotent: true });
     }
   }
 
-  const accessError = await applyZiinaPaidTier(external_reference, upgrade.plan);
+  const accessError = await applyZiinaPaidTier(userId, upgrade.plan);
   if (accessError) {
     console.error('Supabase update failed', {
       error: accessError.message,
-      userId: external_reference,
+      userId,
     });
     return res.status(500).json({ error: accessError.message });
   }
 
-  await recordPayment({ user_id: external_reference, service: upgrade.plan });
+  await recordPayment({ user_id: userId, service: upgrade.plan, currency });
 
-  await capturePostHogServer(external_reference, 'purchase_completed', {
+  await capturePostHogServer(userId, 'purchase_completed', {
     plan: upgrade.plan,
     amount: Number(amount || 0) / 100,
-    currency: 'AED',
+    currency,
     transaction_id: payment_intent_id || null,
     gateway: 'ziina',
   });
 
-  // Issue receipt + email (AE entity, RCP-AE-2026-NNNN series). Idempotent
-  // on payment_id; email is best-effort and does not fail the webhook.
+  // Issue receipt + email (entity derived from the validated currency).
+  // Idempotent on payment_id; email is best-effort and does not fail the
+  // webhook.
   await issueDocument(supabase, {
-    user_id: external_reference,
+    user_id: userId,
     payment_id: payment_intent_id,
     gateway: 'ziina',
-    entity: 'AE',
+    entity,
     kind: 'receipt',
     tier_slug: upgrade.plan,
     amount_minor: amount,
-    currency: 'AED',
+    currency,
   });
 
   console.log('User upgraded successfully', {
-    userId: external_reference,
-    plan: upgrade.plan
+    userId,
+    plan: upgrade.plan,
+    currency,
   });
 
   return res.status(200).json({ success: true });

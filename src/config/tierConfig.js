@@ -29,7 +29,14 @@ export const TIERS = {
     displayName: 'Active Hunter',
     model: 'pass',
     duration_days: 30,
-    prices: { AED: 45, INR: 349 },
+    // AED 29 is the documented Active Hunter price (CLAUDE.md). The 45
+    // held here was the source of the button-versus-charge mismatch on
+    // the ats and jobMatch CTAs. Note this makes Active Hunter 2900 fils,
+    // the same amount as the linkedin_optimizer unlock — harmless now
+    // that webhooks identify a product from the signed reference rather
+    // than from its price, and impossible to get right under the old
+    // amount lookup.
+    prices: { AED: 29, INR: 349 },
     ai_tailor_quota: 10,
   },
   career_pro: {
@@ -43,6 +50,70 @@ export const TIERS = {
 };
 
 export const PAID_TIER_SLUGS = Object.keys(TIERS).filter((s) => s !== 'explorer');
+
+// A-la-carte one-time unlocks. These route through the `permissions`
+// table (service string below) and never touch profiles.plan.
+//
+// This is the ONE price table for a-la-carte items. It replaces the three
+// hand-synced copies that used to live in api/create-ziina-payment.js
+// (A_LA_CARTE_FILS), api/razorpay.js (A_LA_CARTE_INR_PAISE) and
+// src/utils/paywall.js (A_LA_CARTE_AED). A webhook validates the amount
+// it was paid against this table, so a drifted copy is now a rejected
+// payment rather than a silently wrong grant.
+//
+// `prices` lists ONLY the currencies an item is actually sold in. An
+// absent currency means "not for sale on that rail" and getAlaCarteAmount
+// returns null, which callers must treat as a hard reject. INR prices are
+// deliberately absent for everything except linkedinOptimizer because no
+// INR price has ever been set for those items — do not invent one here.
+// Only two genuine a-la-carte products exist. `ats`, `jobMatch` and
+// `templates` were REMOVED here after tracing their gates:
+//   - ats:       src/ATSChecker.jsx gates on a plain isPro boolean. Its
+//                CTA reads "Unlock pro" and sells a tier, not an unlock.
+//   - jobMatch:  src/JobMatch.jsx already calls
+//                hasFeatureAccess(..., "activeHunter") — the gate was
+//                always the TIER, never a jobMatch permission.
+//   - templates: no gate anywhere in the app, and no purchase CTA
+//                anywhere in src/. It was a phantom price with nothing
+//                on either end.
+// All three now resolve to the activeHunter tier at the paywall choke
+// point (VIRTUAL_FEATURE_TO_TIER in src/utils/paywall.js), which is what
+// their copy always promised. They previously "worked" only because the
+// unrecognised-amount webhook fallback granted Active Hunter by accident.
+export const A_LA_CARTE = {
+  coverLetter:       { service: 'cover_letter',       prices: { AED: 10 } },
+  linkedinOptimizer: { service: 'linkedin_optimizer', prices: { AED: 29, INR: 149 } },
+};
+
+// Reverse map: permission-service string → feature key. The webhook
+// receives the resolved service string and needs to price-check it.
+export const SERVICE_TO_ALACARTE = Object.entries(A_LA_CARTE).reduce(
+  (acc, [feature, def]) => { acc[def.service] = feature; return acc; },
+  {},
+);
+
+export const VALID_ALACARTE_SERVICES = new Set(Object.keys(SERVICE_TO_ALACARTE));
+
+export function alaCarteServiceFor(feature) {
+  return A_LA_CARTE[feature]?.service || null;
+}
+
+// Amount in the smallest unit (fils/paise) for an a-la-carte item.
+// Returns null for an unknown feature OR a currency it is not sold in.
+export function getAlaCarteAmount(feature, currency) {
+  const item = A_LA_CARTE[feature];
+  if (!item) return null;
+  const major = item.prices[currency];
+  if (major == null) return null;
+  return major * 100;
+}
+
+// Same lookup keyed by the permission-service string the webhook sees.
+export function getAlaCarteAmountByService(service, currency) {
+  const feature = SERVICE_TO_ALACARTE[service];
+  if (!feature) return null;
+  return getAlaCarteAmount(feature, currency);
+}
 
 // UI state historically uses short slugs (express/hunter/pro). Server uses
 // the canonical full slug. Ziina's wire format uses a camelCase "feature"
@@ -124,11 +195,12 @@ export function isPaidTier(slug) {
   return PAID_TIER_SLUGS.includes(slug);
 }
 
-// Reverse-lookup helpers for webhook handlers (which see amount-in-fils/paise
-// from the gateway and need to recover the tier slug).
-export function tierByServerAmount(amount, currency) {
-  for (const slug of PAID_TIER_SLUGS) {
-    if (getServerAmount(slug, currency) === amount) return slug;
-  }
-  return null;
-}
+// REMOVED: tierByServerAmount(amount, currency).
+//
+// It recovered a tier slug by matching an amount, which is precisely the
+// pattern that let two same-priced products be confused and let an
+// unrecognised amount fall through to a default grant. It had no callers
+// left once the webhooks moved to explicit product identity, and it is
+// deliberately not kept "just in case" — a webhook that needs to know
+// what was bought must read it from the signed reference or order notes,
+// never from the price. See src/lib/payments/paymentRef.js.

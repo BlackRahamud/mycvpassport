@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { generateCoverLetterFromTemplate } from "./coverLetterDataBank.generated";
 import UpgradeModal from "./UpgradeModal";
 import safeFetch from "./lib/net/safeFetch";
+import { authHeaders } from "./lib/net/authHeaders";
 
 function getTodayDateLabel() {
   return new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -88,7 +89,7 @@ export default function CoverLetterModal({ isOpen, onClose, resume }) {
     try {
       const response = await safeFetch("/api/ai?action=cover_letter", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({
           cvData: {
             name: importedSummary.name,

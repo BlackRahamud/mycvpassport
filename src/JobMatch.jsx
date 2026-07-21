@@ -387,8 +387,12 @@ export default function JobMatch({
   const keywordCount = useMemo(() => countKeywords(jobDescription), [jobDescription]);
 
   const hasAccess = useMemo(
-    () => hasFeatureAccess({ is_pro: isPro, features }, "activeHunter"),
-    [isPro, features]
+    // Job Match is a tier feature, not an a-la-carte unlock. The old
+    // `features` argument was always undefined (nothing writes
+    // profiles.features), so this only ever read is_pro. Stated plainly
+    // now rather than implied through a dead map.
+    () => hasFeatureAccess({ is_pro: isPro }, "activeHunter"),
+    [isPro]
   );
 
   const inFlightRef = useRef(false);

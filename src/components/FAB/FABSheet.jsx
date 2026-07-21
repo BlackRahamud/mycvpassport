@@ -813,7 +813,8 @@ export default function FABSheet({
   onNavigateToTab = null,
   navigationSource = null,
   scanStatus = "idle",
-  features = null,
+  coverLetterCredits = 0,
+  plan = null,
   isPro = false,
   onPostPaymentCoverLetter = null,
   /** ATS tab FAB: trigger free scan using existing resume data (builder context) */
@@ -834,42 +835,61 @@ export default function FABSheet({
   const [isCelebratingExpress, setIsCelebratingExpress] = useState(false);
   const [isCelebratingHunter, setIsCelebratingHunter] = useState(false);
   const [isCelebratingPro, setIsCelebratingPro] = useState(false);
-  const prevFeatures = usePrevious(features);
+  // Post-payment celebrations.
+  //
+  // These used to key off profile.features.* — a column nothing in the
+  // codebase has ever written — so all four were unreachable and
+  // onPostPaymentCoverLetter never fired from here. They now key off
+  // signals the payment webhooks actually write: cover_letter_credits
+  // (migration 044) and profiles.plan (TIER_TO_PROFILE_PLAN).
+  //
+  // usePrevious returns undefined on first render. Every effect below
+  // requires a DEFINED previous value before firing, so an existing paid
+  // user opening the sheet does not get a celebration for a purchase
+  // they made weeks ago. Only a genuine transition while mounted fires.
+  const prevCredits = usePrevious(coverLetterCredits);
+  const prevPlan = usePrevious(plan);
 
   useEffect(() => {
-    if (!prevFeatures?.coverLetter && features?.coverLetter) {
+    const before = Number(prevCredits);
+    const now = Number(coverLetterCredits);
+    if (Number.isFinite(before) && now > before) {
       setIsCelebrating(true);
       onPostPaymentCoverLetter?.();
       const timer = setTimeout(() => setIsCelebrating(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [features?.coverLetter, prevFeatures?.coverLetter, onPostPaymentCoverLetter]);
+    return undefined;
+  }, [coverLetterCredits, prevCredits, onPostPaymentCoverLetter]);
 
   useEffect(() => {
-    if (!prevFeatures?.expressPass && features?.expressPass) {
+    if (prevPlan && plan === 'EXPRESS_PASS' && prevPlan !== plan) {
       setIsCelebratingExpress(true);
       const timer = setTimeout(() => setIsCelebratingExpress(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [features?.expressPass, prevFeatures?.expressPass]);
+    return undefined;
+  }, [plan, prevPlan]);
 
   useEffect(() => {
-    if (!prevFeatures?.activeHunter && features?.activeHunter) {
+    if (prevPlan && plan === 'ACTIVE_HUNTER' && prevPlan !== plan) {
       setIsCelebratingHunter(true);
       onPostPaymentCoverLetter?.();
       const timer = setTimeout(() => setIsCelebratingHunter(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [features?.activeHunter, prevFeatures?.activeHunter, onPostPaymentCoverLetter]);
+    return undefined;
+  }, [plan, prevPlan, onPostPaymentCoverLetter]);
 
   useEffect(() => {
-    if (!prevFeatures?.careerPro && features?.careerPro) {
+    if (prevPlan && plan === 'CAREER_PRO' && prevPlan !== plan) {
       setIsCelebratingPro(true);
       onPostPaymentCoverLetter?.();
       const timer = setTimeout(() => setIsCelebratingPro(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [features?.careerPro, prevFeatures?.careerPro, onPostPaymentCoverLetter]);
+    return undefined;
+  }, [plan, prevPlan, onPostPaymentCoverLetter]);
 
   const [builderCoachTab, setBuilderCoachTab] = useState("tips");
   const [guidedMessages, setGuidedMessages] = useState([]);
@@ -2730,7 +2750,10 @@ export default function FABSheet({
 
   const renderDedicatedCoverLetter = () => {
     if (coverLetterState === "paywall") {
-      const hasAccess = hasFeatureAccess({ is_pro: isPro, features }, 'coverLetter');
+      const hasAccess = hasFeatureAccess(
+        { is_pro: isPro, cover_letter_credits: coverLetterCredits },
+        'coverLetter',
+      );
       return (
         <>
           <p style={{ margin: "0 0 12px", fontSize: 14, color: "var(--text-secondary, var(--text-secondary))", lineHeight: 1.45, textAlign: "center" }}>

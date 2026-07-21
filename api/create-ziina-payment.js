@@ -1,37 +1,75 @@
-import { ZIINA_FEATURE_TO_TIER, getServerAmount } from '../src/config/tierConfig.js';
+import {
+  ZIINA_FEATURE_TO_TIER,
+  getServerAmount,
+  getAlaCarteAmount,
+  alaCarteServiceFor,
+} from '../src/config/tierConfig.js';
+import { encodePaymentRef, gatewayCurrencyError, isUuid } from '../src/lib/payments/paymentRef.js';
 
-// A-la-carte (non-tier) unlock prices stay local — they route through
-// the permissions table, not the tier/profiles.plan path. Tier prices
-// live in tierConfig and are looked up below via getServerAmount.
-const A_LA_CARTE_FILS = {
-  coverLetter:       1000,
-  ats:               2900,
-  jobMatch:          2900,
-  templates:         2900,
-  linkedinOptimizer: 2900,
-};
-
-const DEFAULT_FILS = 2900;
+// Ziina is the AED rail. Declared as a constant and validated against the
+// gateway policy below rather than inlined at the request body, so that
+// adding a second currency to this endpoint is a deliberate edit in one
+// place and not a literal someone forgets to change in three.
+const ZIINA_CURRENCY = 'AED';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { feature, userId, userEmail } = req.body;
+  // userEmail is still accepted in the request body by existing callers
+  // (paywall.js sends it) but is not needed here — the webhook resolves
+  // the buyer's email from profiles at grant time.
+  const { feature, userId } = req.body || {};
   if (!feature || !userId) {
     return res.status(400).json({ error: 'Missing fields' });
   }
 
-  const tierSlug = ZIINA_FEATURE_TO_TIER[feature];
-  const amount = tierSlug
-    ? getServerAmount(tierSlug, 'AED')
-    : (A_LA_CARTE_FILS[feature] || DEFAULT_FILS);
+  // The reference we hand Ziina must carry a uuid, because the webhook
+  // uses it as the user id it grants against. Reject early rather than
+  // build a reference the webhook will later be unable to act on.
+  if (!isUuid(userId)) {
+    return res.status(400).json({ error: 'Invalid userId' });
+  }
 
-  // A-la-carte services (non-plan unlocks) route through the permissions table
-  // rather than flipping profiles.is_pro. The webhook keys off the suffix on
-  // external_reference to decide which path to take.
-  const PERMISSION_FEATURES = { linkedinOptimizer: 'linkedin_optimizer' };
-  const permissionService = PERMISSION_FEATURES[feature] || null;
-  const externalRef = permissionService ? `${userId}|${permissionService}` : userId;
+  const policyError = gatewayCurrencyError('ziina', ZIINA_CURRENCY);
+  if (policyError) {
+    console.error('[create-ziina-payment] gateway currency policy', { policyError });
+    return res.status(500).json({ error: 'Payment gateway misconfigured' });
+  }
+
+  // Resolve the feature to exactly one product, and price it from the
+  // single table. A feature that is neither a tier nor a known
+  // a-la-carte item is rejected — there is no default amount any more.
+  // The old `A_LA_CARTE_FILS[feature] || DEFAULT_FILS` fallback meant an
+  // unknown feature key silently charged 2900 fils and then produced a
+  // payment the webhook could not identify.
+  const tierSlug = ZIINA_FEATURE_TO_TIER[feature];
+  let amount;
+  let externalRef;
+
+  if (tierSlug) {
+    amount = getServerAmount(tierSlug, ZIINA_CURRENCY);
+    if (!amount) {
+      return res.status(400).json({ error: 'Plan not available in this currency' });
+    }
+    externalRef = encodePaymentRef({
+      kind: 'tier',
+      id: tierSlug,
+      currency: ZIINA_CURRENCY,
+      userId,
+    });
+  } else {
+    const service = alaCarteServiceFor(feature);
+    amount = getAlaCarteAmount(feature, ZIINA_CURRENCY);
+    if (!service || !amount) {
+      return res.status(400).json({ error: 'Unknown feature' });
+    }
+    externalRef = encodePaymentRef({
+      kind: 'svc',
+      id: service,
+      currency: ZIINA_CURRENCY,
+      userId,
+    });
+  }
 
   const successRedirect = feature === 'linkedinOptimizer'
     ? `https://mycvpassport.com/linkedin-optimizer?unlocked=1`
@@ -49,7 +87,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         amount,
-        currency_code: 'AED',
+        currency_code: ZIINA_CURRENCY,
         message: `CVPassport - ${feature}`,
         success_url: successRedirect,
         cancel_url: cancelRedirect,

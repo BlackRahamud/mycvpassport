@@ -4,11 +4,13 @@ import { FAB } from "../components/FAB";
 import { writeFabMemory } from "../components/FAB/FABLogic";
 import { loadUserResumes } from "../resumeDb";
 import { getPaymentLink, hasFeatureAccess } from "../utils/paywall";
+import { hasProAccess } from "../config/access";
 import { buildCoverLetterHtml } from "../serverLib/coverLetterHtml";
 import { CoverLetterTemplate } from "../CoverLetterTemplate";
 import skillSuggestions from "../data/skillSuggestions";
 import { detectRole } from "../utils/detectRole";
 import safeFetch from "../lib/net/safeFetch";
+import { authHeaders } from "../lib/net/authHeaders";
 import "../components/FAB/FAB.css";
 
 const CL_GREEN = "#6EE7B7";
@@ -196,7 +198,7 @@ function CoverLetterPage({ user, profile, onBack }) {
               const minWait = new Promise((r) => setTimeout(r, 5000));
               const apiCall = safeFetch("/api/ai?action=cover_letter", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...(await authHeaders()) },
                 body: JSON.stringify(payload),
               }).then(async (response) => {
                 const data = await response.json().catch(() => ({}));
@@ -637,7 +639,7 @@ function CoverLetterPage({ user, profile, onBack }) {
       const minWait = new Promise((r) => setTimeout(r, 5000));
       const apiCall = safeFetch("/api/ai?action=cover_letter", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify(requestPayload),
       }).then(async (response) => {
         const data = await response.json().catch(() => ({}));
@@ -682,7 +684,7 @@ function CoverLetterPage({ user, profile, onBack }) {
     try {
       const response = await safeFetch("/api/ai?action=cover_letter", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify(payload),
       });
       const data = await response.json().catch(() => ({}));
@@ -1038,7 +1040,7 @@ function CoverLetterPage({ user, profile, onBack }) {
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(217,119,6,0.12)", border: "1px solid rgba(217,119,6,0.25)", borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: "#D97706" }}>
                   <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden><rect x="2" y="5" width="7" height="5" rx="1" fill="none" stroke="#D97706" strokeWidth="1.2" /><path d="M3.5 5V3.5a2 2 0 0 1 4 0V5" fill="none" stroke="#D97706" strokeWidth="1.2" /></svg>
-                  {getCoverLetterPricingMarket() === "India" ? "Unlock full letter \u2014 \u20B949" : "Unlock full letter \u2014 AED 10"}
+                  {getCoverLetterPricingMarket() === "India" ? "Unlock full letter \u2014 \u20B949" : "Unlock full letter, AED 10"}
                 </span>
               </div>
               <div style={{ fontSize: 11, color: "#444", marginTop: 8 }}>One-time payment. No subscription.</div>
@@ -1407,7 +1409,7 @@ function CoverLetterPage({ user, profile, onBack }) {
                         ? "Unlocking…"
                         : getCoverLetterPricingMarket() === "India"
                           ? "Unlock full letter — ₹49"
-                          : "Unlock full letter — AED 10"}
+                          : "Unlock full letter, AED 10"}
                     </button>
                   </div>
                   <p style={{ fontSize: 11, color: "#444", textAlign: "center", margin: "10px 0 0" }}>One-time payment. No subscription.</p>
@@ -1686,6 +1688,9 @@ function CoverLetterPage({ user, profile, onBack }) {
       )}
       <FAB
         tabKey="cover-letter"
+        isPro={hasProAccess(profile)}
+        coverLetterCredits={profile?.cover_letter_credits}
+        plan={profile?.plan}
         coverLetterState={coverLetterFabState}
         coverLetterEmptyFieldLabels={coverLetterEmptyFieldLabels}
         coverLetterOnFocusFirstEmpty={focusFirstEmptyClField}
