@@ -67,7 +67,7 @@ await new Promise((r) => server.listen(4203, r));
 
 const browser = await chromium.launch();
 
-async function run(label, { plan, status, activeJobs, allowedLimit, baseline, jobCount, daysLeft = 12 }) {
+async function run(label, { plan, status, activeJobs, allowedLimit, baseline, jobCount, daysLeft = 12, unlimited = false }) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 1100 } });
   await context.route("**/*", async (route) => {
     const req = route.request();
@@ -95,7 +95,9 @@ async function run(label, { plan, status, activeJobs, allowedLimit, baseline, jo
           // whole day. Padding over it (+1h) rounds 5 up to 6 and fires
           // the wrong nudge, which is what failed here first time.
           period_end: status === "trial" ? new Date(Date.now() + daysLeft * 86400000 - 3600000).toISOString() : null,
-          limits: { active_jobs: allowedLimit, ai_evaluation: plan === "foundation", analytics: plan === "foundation" },
+          limits: unlimited
+            ? { active_jobs: null, ai_evaluation: true, analytics: true, unlimited: true }
+            : { active_jobs: allowedLimit, ai_evaluation: plan === "foundation", analytics: plan === "foundation" },
           baseline, active_jobs: activeJobs,
         }]),
       });
@@ -273,8 +275,29 @@ for (const m of MOMENTS) {
   await r.context.close();
 }
 
+/* ── 048: the founder account is uncapped ──────────────────────────
+   Sitting at 10 active jobs, well past every plan limit, with the
+   unlimited flag the migration returns. Nothing may gate or upsell. */
+{
+  const r = await run("11-founder-uncapped", {
+    plan: "foundation", status: "active", activeJobs: 10,
+    allowedLimit: null, baseline: 0, jobCount: 10, unlimited: true,
+  });
+  check(!r.hasBanner, "founder: no limit banner at 10 active jobs");
+  check(/10 active jobs/.test(r.chipText), "founder: the chip states the count with no ceiling", r.chipText);
+  check(!/of \d+ active|null/.test(r.chipText), "founder: no invented ceiling and no null leaks into the copy");
+
+  const body = await r.page.locator("body").innerText();
+  check(!/Upgrade to Foundation/.test(body), "founder: no upgrade prompt anywhere on the page");
+  check(!/reached your active job limit/i.test(body), "founder: no limit copy anywhere on the page");
+  check((await r.page.locator(".tn").count()) === 0, "founder: no trial nudge, there is no trial to count down");
+  check((await r.page.locator(".tn-chip").count()) === 0, "founder: no trial status chip");
+  check((await r.page.locator(".fus-sheet").count()) === 0, "founder: no upgrade sheet presents itself");
+  await r.context.close();
+}
+
 await browser.close();
 server.close();
-console.log(`\n${failures === 0 ? "Gates E1 and E2, and the trial nudges, render correctly." : `${failures} check(s) failed.`}`);
+console.log(`\n${failures === 0 ? "Gates E1 and E2, the trial nudges, and the founder exemption render correctly." : `${failures} check(s) failed.`}`);
 console.log(`Screenshots: ${OUT}`);
 process.exitCode = failures === 0 ? 0 : 1;

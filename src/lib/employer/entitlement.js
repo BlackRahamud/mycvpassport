@@ -27,6 +27,7 @@ const FREE_FALLBACK = Object.freeze({
   limits: Object.freeze({ active_jobs: 1, ai_evaluation: false, analytics: false }),
   baseline: 0,
   activeJobs: 0,
+  unlimited: false,
   activeJobsAllowed: 1,
   canPostJob: false,
   isTrial: false,
@@ -44,6 +45,12 @@ function shape(row) {
   const allowed = Math.max(planLimit, baseline);
   const activeJobs = Number(row?.active_jobs) || 0;
 
+  // Uncapped accounts (migration 048, currently the founder). The FLAG is
+  // authoritative, never a comparison against active_jobs, which is null
+  // for these rows. The same flag is what the jobs trigger checks, so the
+  // UI and the database reach the same verdict from one decision.
+  const unlimited = limits.unlimited === true;
+
   // period_end is a UTC instant. Days left is derived here, in the
   // browser, so it renders in device time. No timezone string is stored
   // or transported.
@@ -60,8 +67,9 @@ function shape(row) {
     limits,
     baseline,
     activeJobs,
-    activeJobsAllowed: allowed,
-    canPostJob: activeJobs < allowed,
+    unlimited,
+    activeJobsAllowed: unlimited ? null : allowed,
+    canPostJob: unlimited || activeJobs < allowed,
     isTrial: row?.status === "trial",
     daysLeft,
     loaded: true,
@@ -98,6 +106,7 @@ export { FREE_FALLBACK };
  */
 export function entitlementNotice(ent) {
   if (!ent?.loaded) return null;
+  if (ent.unlimited) return null;
   if (ent.status === "expired") {
     return "Your trial has ended. You are on the free plan with 1 active job.";
   }

@@ -27,6 +27,15 @@ const CaseIc = () => (
 /** "1 of 1 active on free" — the quiet counter that sits by the heading. */
 export function JobCountChip({ ent }) {
   if (!ent?.loaded) return null;
+  // Uncapped: state the count, never a ceiling. "10 of null" or a made up
+  // number would both be wrong, and there is nothing to count down to.
+  if (ent.unlimited) {
+    return (
+      <span className="jlb-count" title={`${ent.activeJobs} active jobs`}>
+        {ent.activeJobs} active {ent.activeJobs === 1 ? "job" : "jobs"}
+      </span>
+    );
+  }
   const planWord = ent.plan === "foundation" ? "Foundation" : "free";
   return (
     <span className="jlb-count" title={`${ent.activeJobs} active of ${ent.activeJobsAllowed} allowed`}>
@@ -37,7 +46,10 @@ export function JobCountChip({ ent }) {
 
 export default function JobLimitBanner({ ent, onUpgrade }) {
   const reduce = useReducedMotion();
-  if (!ent?.loaded || ent.canPostJob) return null;
+  // canPostJob is already true for an uncapped account, so this is
+  // belt and braces: the banner must never appear for one, even if a
+  // future change makes canPostJob briefly false while data loads.
+  if (!ent?.loaded || ent.unlimited || ent.canPostJob) return null;
 
   // A grandfathered employer sits above the plan limit because their
   // baseline was recorded at backfill. Saying "free allows 1" to someone
