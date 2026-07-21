@@ -267,6 +267,7 @@ Pricing:
 8. Globe animation on landing page hero (deferred — complex)
 9. Framework 7 — Scale System (trigger: Junaid says "hit")
 10. ~~Remotion install~~ — DONE Jul 7 2026. `remotion @remotion/cli @remotion/player` installed (devDeps); project at `src/remotion/` (investor walkthrough film, 16:9 + 9:16). Captures come from `scripts/capture-investor-video.mjs` (production build + stubbed backend + Playwright, fixture data only); music bed from `scripts/make-audio.mjs`; Remotion public dir = `video-assets/` (never app `public/`). Renders land in `output/` (gitignored). Re-render: `npx remotion render src/remotion/index.js InvestorFilm output/film.mp4`.
+11. Blog prerender hydration mismatch — every /blog/:slug page throws React #418 and #423 on load. Reproduced on OLD posts (uae-cv-format-2026) as well as new ones, so it predates the Jul 22 2026 articles and is not caused by them. The page renders and is indexable, so it is cosmetic, but it means React discards the prerendered markup and re-renders client side, which wastes the prerender on exactly the pages SEO cares about. Likely a Helmet or date formatting difference between the prerender pass and hydration. Investigate with a non-minified build to get the real error text.
 
 ---
 

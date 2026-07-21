@@ -144,7 +144,7 @@ export function BlogFooter() {
         <div className="blog-footer__brand">
           <Link className="blog-footer__logo" to="/">CVPassport</Link>
           <p className="blog-footer__tag">
-            ATS-engineered CVs for the India–Gulf hiring corridor.
+            ATS engineered CVs for the India to Gulf hiring corridor.
           </p>
         </div>
 

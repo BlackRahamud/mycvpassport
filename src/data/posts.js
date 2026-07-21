@@ -21,7 +21,7 @@ const rawPosts = [
     title: "How AI is changing the job hunt, and how to build a CV that wins in 2026",
     slug: "ai-cv-builder-win-jobs-2026",
     metaTitle: "AI CV builder for 2026, how to beat AI screening and win Gulf jobs",
-    metaDescription: "AI now reads your CV before any recruiter does. See how AI screening works in 2026 and how to build a CV that gets past it and lands interviews, including Gulf jobs from India.",
+    metaDescription: "AI reads your CV before any recruiter does. See how AI screening works in 2026 and how to build a CV that gets shortlisted, including Gulf jobs from India.",
     keywords: [
       "AI CV builder",
       "ATS friendly CV",
@@ -87,7 +87,7 @@ const rawPosts = [
     title: "How AI is changing hiring in 2026, and how to use it without losing the human touch",
     slug: "ai-in-recruitment-hiring-2026",
     metaTitle: "AI in recruitment for 2026, how AI is changing hiring and how to use it well",
-    metaDescription: "AI now screens most candidates before a recruiter sees them. See how AI is changing hiring in 2026, what still needs a human, and how the CVPassport HR portal helps you hire faster from India to the Gulf.",
+    metaDescription: "See how AI is changing hiring in 2026, what still needs a human, and how the CVPassport HR portal helps you hire faster from India to the Gulf.",
     keywords: [
       "AI in recruitment",
       "AI hiring",
