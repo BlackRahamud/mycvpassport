@@ -1408,6 +1408,7 @@ function CandidateDetail({
       <VerdictCard
         hideHeader
         cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
+        basicScore={candidate?.ats_score ?? null}
         cvSnapshot={cv}
         job={job}
         applicationId={candidate.id}
@@ -1466,6 +1467,7 @@ function CandidateDetail({
           <VerdictCard
             hideHeader
             cacheKey={`${candidate.candidate_id || candidate.id}:${job?.id || ""}`}
+        basicScore={candidate?.ats_score ?? null}
             cvSnapshot={cv}
             job={job}
             applicationId={candidate.id}

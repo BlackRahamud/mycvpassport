@@ -30,6 +30,9 @@
 // =============================================================
 
 import { useEffect, useRef, useState } from "react";
+import { fetchEntitlement } from "../../lib/employer/entitlement";
+import FoundationUpgradeSheet from "./FoundationUpgradeSheet";
+import ScoreRing from "./ScoreRing";
 import { motion, useReducedMotion, useMotionValue, useTransform, animate } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import { trackHr } from "../../lib/analytics/hrEvents";
@@ -379,9 +382,53 @@ function KeywordChips({ matched, missing }) {
    deployable" and a one line red synthesis sits under the verdict row.
    The score ring keeps its band color: the SKILL number stays visible,
    the headline carries the deployability decision. */
-export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onVerdictPersisted, onReachOut, matchedKeywords = [], missingKeywords = [], knockout = null }) {
+export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onVerdictPersisted, onReachOut, matchedKeywords = [], missingKeywords = [], knockout = null, basicScore = null }) {
   const reduce = useReducedMotion();
-  const { loading, data, error, retry } = useCandidateVerdict({ cacheKey, cvSnapshot, job, jobId, applicationId, storedVerdict, onPersisted: onVerdictPersisted });
+
+  /* ── Gate E3, full evaluation is a Foundation feature ──────────
+     Free keeps the basic keyword score, which was already computed at
+     apply time and costs nothing. The full evaluation is withheld.
+
+     `locked` nulls the cacheKey, which short-circuits the loader's
+     effect, so a free employer never reaches /api/ai?action=
+     candidate_verdict at all. That is deliberate and is not only a
+     paywall: that endpoint runs Sonnet with no credit deduct and no
+     rate limit, so an ungated free tier is also a margin hole.
+
+     The server is still the authority. This hides the value and stops
+     the spend; it is not the enforcement. */
+  const [ent, setEnt] = useState(null);
+  const [entSettled, setEntSettled] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  useEffect(() => {
+    let live = true;
+    fetchEntitlement()
+      .then((e) => { if (live) setEnt(e); })
+      .catch(() => {})
+      .finally(() => { if (live) setEntSettled(true); });
+    return () => { live = false; };
+  }, []);
+
+  /* Three states, not two, and the difference matters.
+       unsettled  the read is still in flight. HOLD, so a free employer
+                  cannot fire a Sonnet call in the window before we know.
+       settled + loaded      trust limits.ai_evaluation.
+       settled + NOT loaded  the read FAILED. Proceed as before rather
+                  than blanking the card or showing a paywall to a paying
+                  customer on a network blip. The server is the authority
+                  and a failed read must never invent an entitlement.
+     Collapsing the last two into one is what blanked this card and broke
+     verify-verdict-card.mjs. */
+  const locked = entSettled && ent?.loaded ? ent.limits?.ai_evaluation !== true : false;
+  const holdForGate = !entSettled;
+
+  const { loading: verdictLoading, data, error, retry } = useCandidateVerdict({
+    cacheKey: (holdForGate || locked) ? null : cacheKey,
+    cvSnapshot, job, jobId, applicationId, storedVerdict, onPersisted: onVerdictPersisted,
+  });
+  // While the gate is unknown the card is genuinely loading, so say so
+  // instead of rendering an empty shell.
+  const loading = verdictLoading || holdForGate;
 
   // The AI verdict is the core value claim — did she actually see a score?
   // Fires once per mount when the number first resolves (cache or live).
@@ -403,6 +450,64 @@ export default function VerdictCard({ header, hideHeader, cacheKey, cvSnapshot, 
 
   const band = data ? scoreBand(data.score, "ai_verdict") : "mid";
   const tone = BAND_TONES[band];
+
+  // Gate E3 rendering. Basic score stays visible, the evaluation is a
+  // tasteful preview behind a lock, never a scolding wall.
+  if (locked) {
+    const shown = typeof basicScore === "number" ? Math.max(0, Math.min(100, Math.round(basicScore))) : null;
+    return (
+      <motion.div
+        className="vc-card vc-card--locked"
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: EASE }}
+      >
+        {!hideHeader && (
+          <div className="vc-head">
+            <h3 className="vc-head__name">{name}</h3>
+            {role && <p className="vc-head__role">{role}</p>}
+          </div>
+        )}
+
+        <div className="vc-lock__top">
+          {shown !== null && (
+            <>
+              <ScoreRing score={shown} source="stopgap_keyword" size={54} />
+              <span className="vc-lock__basic">Basic score</span>
+            </>
+          )}
+        </div>
+
+        <div className="vc-lock__preview" aria-hidden="true">
+          <div className="vc-lock__line" />
+          <div className="vc-lock__line vc-lock__line--short" />
+          <div className="vc-lock__line" />
+        </div>
+
+        <div className="vc-lock__panel">
+          <span className="vc-lock__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </span>
+          <p className="vc-lock__title">Full candidate evaluation is a Foundation feature</p>
+          <p className="vc-lock__body">
+            See the verdict, the reasons behind it and the strengths and gaps for every applicant.
+          </p>
+          <button type="button" className="vc-lock__cta" onClick={() => setUpgradeOpen(true)}>
+            Unlock full evaluation
+          </button>
+        </div>
+
+        <FoundationUpgradeSheet
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          heading="Unlock full evaluation"
+          blurb="Foundation reads each CV against the role and returns a verdict with the reasons behind it."
+        />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

@@ -1,0 +1,111 @@
+/* Sections D and D2. The nudges FLOAT, so they get the portal's one
+   glass family from surfaceGlass.css. The status chip is SOLID, because
+   it sits on the page. */
+
+/* ── D, inline status chip, solid ─────────────────────────────── */
+.tn-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(124,58,237,.09);
+  color: #6D28D9; font-size: 12.5px; font-weight: 700;
+  white-space: nowrap;
+}
+.tn-chip__dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ── D2, the floating nudge ───────────────────────────────────── */
+.tn {
+  position: relative;
+  margin: 0 0 16px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  /* Solid fallback first, per the surfaceGlass contract. */
+  color: var(--surface-glass-ink, #14131F);
+  background: var(--surface-glass-solid, #FBFBFD);
+  border: 1px solid rgba(124,58,237,.20);
+  box-shadow: 0 18px 44px -26px rgba(20,19,31,.4);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tn {
+    background:
+      linear-gradient(rgba(124,58,237,.07), rgba(124,58,237,.07)),
+      var(--surface-glass-bg, rgba(255,255,255,.68));
+    -webkit-backdrop-filter: var(--surface-glass-blur, blur(18px) saturate(1.6));
+    backdrop-filter: var(--surface-glass-blur, blur(18px) saturate(1.6));
+  }
+}
+
+.tn__x {
+  position: absolute; top: 12px; right: 12px;
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border: none; border-radius: 8px; cursor: pointer;
+  background: transparent; color: #6B6880;
+  transition: background-color .2s cubic-bezier(.4,0,.2,1);
+}
+.tn__x:hover { background: rgba(20,19,31,.06); }
+
+.tn__kicker { color: #7C3AED; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.tn__h { margin: 7px 0 0; font-size: 18px; font-weight: 800; letter-spacing: -.01em; line-height: 1.25; }
+.tn__body { margin: 8px 0 0; color: #4A4760; font-size: 13.5px; line-height: 1.55; }
+.tn__foot { margin: 12px 0 0; color: #6B6880; font-size: 12.5px; }
+
+.tn__tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.tn__tile {
+  flex: 1 1 150px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(255,255,255,.72); border: 1px solid rgba(20,19,31,.07);
+}
+.tn__tile b { display: block; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.tn__tile span { display: block; margin-top: 2px; color: #6B6880; font-size: 12px; }
+
+.tn__row { display: flex; gap: 16px; align-items: flex-start; }
+.tn__rowbody { flex: 1 1 auto; min-width: 0; }
+
+.tn-ring { position: relative; width: 54px; height: 54px; flex: 0 0 54px; }
+.tn-ring__c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.tn-ring__n { display: block; font-size: 17px; font-weight: 800; line-height: 1; color: #14131F; }
+.tn-ring__l { display: block; font-size: 7.5px; color: #6B6880; letter-spacing: .02em; }
+
+.tn__cols { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 13px; }
+.tn__col {
+  flex: 1 1 160px; padding: 12px 14px; border-radius: 12px;
+  background: rgba(255,255,255,.7); border: 1px solid rgba(20,19,31,.07);
+  color: #4A4760; font-size: 13px; line-height: 1.7;
+}
+.tn__col--warm { background: rgba(124,58,237,.09); border-color: rgba(124,58,237,.16); }
+.tn__colhead { color: #6B6880; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+
+.tn__cta {
+  width: 100%; margin-top: 15px; min-height: 44px;
+  border: none; border-radius: 12px; cursor: pointer;
+  background: #7C3AED; color: #fff; font-size: 14px; font-weight: 700;
+  transition: background-color .22s cubic-bezier(.4,0,.2,1);
+}
+.tn__cta:hover { background: #6D28D9; }
+.tn__later {
+  width: 100%; margin-top: 8px; padding: 8px;
+  border: none; background: none; cursor: pointer;
+  color: #6B6880; font-size: 13px; font-weight: 600;
+}
+.tn__later:hover { color: #4A4760; }
+
+/* Dismissed state: a quiet chip that always reopens. */
+.tn-collapsed {
+  display: flex; align-items: center; gap: 11px;
+  margin: 0 0 16px; padding: 10px 14px;
+  border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(124,58,237,.16);
+  background: rgba(124,58,237,.05);
+  color: #4A4760; text-align: left;
+}
+.tn-collapsed:hover { background: rgba(124,58,237,.09); }
+.tn-collapsed__ic {
+  width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center;
+  border-radius: 50%; background: rgba(124,58,237,.13); color: #6D28D9;
+}
+.tn-collapsed__txt { flex: 1 1 auto; min-width: 0; }
+.tn-collapsed__t { display: block; font-size: 13px; font-weight: 700; color: #14131F; }
+.tn-collapsed__s { display: block; font-size: 11.5px; color: #6B6880; }
+
+@media (max-width: 620px) {
+  .tn__row { flex-direction: column; }
+  .tn__cols { flex-direction: column; }
+}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import JobLimitBanner, { JobCountChip } from "../../../components/hr/JobLimitBanner";
+import TrialNudge, { TrialStatusChip } from "../../../components/hr/TrialNudge";
 import FoundationUpgradeSheet from "../../../components/hr/FoundationUpgradeSheet";
 import { fetchEntitlement } from "../../../lib/employer/entitlement";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -148,6 +149,7 @@ export default function JobsListPage() {
   const [error, setError] = useState(null);
   const [ent, setEnt] = useState(null);
   const [upgrade, setUpgrade] = useState(false);
+  const [trialEnded, setTrialEnded] = useState(false);
   const [jobsTick, setJobsTick] = useState(0); // bump to refetch jobs (after a pool delete)
   const [deletePool, setDeletePool] = useState(null); // { id, title } pending delete
   const [deleteCount, setDeleteCount] = useState(null); // candidates in the pool (null = counting)
@@ -171,6 +173,21 @@ export default function JobsListPage() {
     fetchEntitlement().then((e) => { if (live) setEnt(e); }).catch(() => {});
     return () => { live = false; };
   }, [user?.id, jobsTick]);
+
+  // Gate E1. When the trial has lapsed, present the sheet once and then
+  // never again by itself. Expiry is not a wall: the employer is already
+  // on the free account with their work intact, so nagging on every load
+  // would be punishing them for a state they are allowed to stay in.
+  useEffect(() => {
+    if (!ent?.loaded || ent.status !== "expired" || !user?.id) return;
+    const key = `hr_trial_ended_seen:${user.id}`;
+    try {
+      if (localStorage.getItem(key)) return;
+      localStorage.setItem(key, "1");
+    } catch { /* private mode: show it, just do not remember */ }
+    setTrialEnded(true);
+    setUpgrade(true);
+  }, [ent, user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -363,11 +380,19 @@ export default function JobsListPage() {
           <h1 className="hjl-greet__title">{greeting.title}</h1>
           <p className="hjl-greet__sub">
             {greeting.sub}{ent?.loaded ? <> · <JobCountChip ent={ent} /></> : null}
+            {ent?.status === "trial" ? <> · <TrialStatusChip ent={ent} /></> : null}
           </p>
         </motion.div>
 
         {/* Gate E2. The cap is enforced by the 046 trigger; this is the
             designed state for it. Not blocking: the jobs below stay live. */}
+        {/* D2. Fires from the real days left, never a signup date. */}
+        <TrialNudge
+          ent={ent}
+          onUpgrade={() => setUpgrade(true)}
+          stats={{ jobs: Array.isArray(jobs) ? jobs.length : null, candidates: null }}
+        />
+
         <JobLimitBanner ent={ent} onUpgrade={() => setUpgrade(true)} />
 
         <div style={{ display: "flex", marginBottom: 18 }}>
@@ -603,10 +628,13 @@ export default function JobsListPage() {
       </AnimatePresence>
     <FoundationUpgradeSheet
         open={upgrade}
-        onClose={() => setUpgrade(false)}
+        onClose={() => { setUpgrade(false); setTrialEnded(false); }}
         user={user}
-        heading="Upgrade to Foundation"
-        blurb="Up to 3 active jobs, and the full evaluation on every applicant."
+        heading={trialEnded ? "Your trial has ended" : "Upgrade to Foundation"}
+        blurb={trialEnded
+          ? "You are on a free account, so your work is safe. Continue on Foundation to unlock full evaluation and up to 3 active jobs."
+          : "Up to 3 active jobs, and the full evaluation on every applicant."}
+        ctaLabel={trialEnded ? ((pr) => `Continue on Foundation, ${pr.amountLabel} per month`) : undefined}
       />
     </div>
   );

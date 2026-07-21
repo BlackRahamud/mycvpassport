@@ -1035,6 +1035,7 @@ export default function ReviewModePage() {
                 <VerdictCard
                   hideHeader
                   cacheKey={`${current.candidate_id || current.id}:${job?.id || ""}`}
+                  basicScore={current?.ats_score ?? null}
                   cvSnapshot={cv}
                   job={job}
                   applicationId={current.id}
@@ -1233,6 +1234,7 @@ export default function ReviewModePage() {
             <VerdictCard
               hideHeader
               cacheKey={`${current.candidate_id || current.id}:${job?.id || ""}`}
+                  basicScore={current?.ats_score ?? null}
               cvSnapshot={cv}
               job={job}
               applicationId={current.id}

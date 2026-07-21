@@ -544,6 +544,7 @@ function CandidateDetail({
           <VerdictCard
             hideHeader
             cacheKey={`${a.candidate_id || candidate.key}:${firstJob.job_id}`}
+            basicScore={a?.ats_score ?? null}
             cvSnapshot={cv}
             jobId={firstJob.job_id}
             applicationId={firstJob.app_id}

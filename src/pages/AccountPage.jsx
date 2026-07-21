@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { getCvpPricingCurrencyCode } from "../components/FAB/FABLogic";
 import { getGatekeeperData } from "../services/gatekeeper";
 import { supabase } from "../appSupabaseClient";
-import { FREE_TIER, freeTierStatus } from "../utils/freeTier";
+import { fetchEntitlement } from "../lib/employer/entitlement";
+import { fetchRecruiterStatus } from "../lib/employer/recruiterStatus";
 import "../components/FAB/FAB.css";
 
 function normTier(raw) {
@@ -54,7 +55,8 @@ export default function AccountPage() {
   const [gate, setGate] = useState(null);
   const [planTier, setPlanTier] = useState(null);
   const [profileIsPro, setProfileIsPro] = useState(false);
-  const [user, setUser] = useState(null);
+  const [ent, setEnt] = useState(null);
+  const [isRecruiter, setIsRecruiter] = useState(false);
 
   useEffect(() => {
     let cancel = false;
@@ -73,15 +75,24 @@ export default function AccountPage() {
       });
     supabase.auth.getUser().then(({ data }) => {
       if (cancel) return;
-      setUser(data?.user || null);
+      const u = data?.user || null;
+      if (!u?.id) return;
+      // The employer plan card is for EMPLOYERS. It used to render for
+      // any non-paying CANDIDATE, showing job listing limits to people
+      // who have no jobs at all, on top of numbers nothing enforced.
+      fetchRecruiterStatus(u.id)
+        .then((r) => { if (!cancel) setIsRecruiter(!!r?.isRecruiter); })
+        .catch(() => {});
+      fetchEntitlement()
+        .then((e) => { if (!cancel) setEnt(e); })
+        .catch(() => {});
     });
     return () => {
       cancel = true;
     };
   }, []);
 
-  const tier = user ? freeTierStatus(user) : null;
-  const showFreeTierCard = gate && !gate.isPaidUser;
+  const showFreeTierCard = isRecruiter && !!ent?.loaded;
 
   const currency = getCvpPricingCurrencyCode();
   const subs = useMemo(
@@ -363,7 +374,7 @@ export default function AccountPage() {
           )}
 
           {showFreeTierCard && (
-            <FreeTierStatusCard tier={tier} />
+            <FreeTierStatusCard ent={ent} />
           )}
         </>
       )}
@@ -372,26 +383,35 @@ export default function AccountPage() {
 }
 
 /**
- * Free-tier status card — only renders for users without a paid plan.
+ * Employer plan card. Renders only for recruiters, from real entitlement.
  * Shows a 90-day countdown plus the included limits, with an inline
  * upgrade CTA when ≤14 days remain.
  */
-function FreeTierStatusCard({ tier }) {
+function FreeTierStatusCard({ ent }) {
   const navigate = useNavigate();
-  const daysRemaining = tier?.daysRemaining ?? FREE_TIER.days;
-  const isWindowKnown = !!tier?.hasSignupDate;
-  const isExpired = !!tier?.isExpired;
-  const isUrgent = isWindowKnown && tier && tier.daysRemaining <= FREE_TIER.bannerThresholdDays;
+
+  /* Real employer entitlement from hr_my_entitlement (migration 046),
+     replacing a client-side 90 day clock off the signup date and three
+     numbers that were never enforced: "up to 10 active job listings",
+     "200 applicants per month" (nothing has ever counted applicants) and
+     a 90 day trial that is now 30. */
+  const onTrial = ent?.status === "trial";
+  const isExpired = ent?.status === "expired";
+  const daysRemaining = ent?.daysLeft ?? null;
+  const isWindowKnown = onTrial && daysRemaining != null;
+  const isUrgent = isWindowKnown && daysRemaining <= 5;
 
   const ringColor = isExpired ? "#DC2626" : isUrgent ? "#D97706" : "#378ADD";
   const subColor  = isExpired ? "#F87171" : isUrgent ? "#F59E0B" : "#A0A0A0";
   const noun = daysRemaining === 1 ? "day" : "days";
 
+  const jobLimit = ent?.activeJobsAllowed ?? 1;
+  const fullEval = ent?.limits?.ai_evaluation === true;
   const items = [
-    `Up to ${FREE_TIER.jobLimit} active job listings`,
-    `${FREE_TIER.applicantsPerMonth} applicants per month`,
-    "Full ATS access",
-    `${FREE_TIER.days} days from signup`,
+    `${jobLimit} active job${jobLimit === 1 ? "" : "s"}`,
+    fullEval ? "Full candidate evaluation on every applicant" : "A basic candidate score",
+    fullEval ? "Employer analytics" : "Employer analytics on Foundation",
+    onTrial ? "30 day trial, no card needed" : "Free account, no time limit",
   ];
 
   return (
@@ -409,17 +429,17 @@ function FreeTierStatusCard({ tier }) {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 11, color: "#A0A0A0", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>Free trial</div>
+          <div style={{ fontSize: 11, color: "#A0A0A0", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>Your employer plan</div>
           <div style={{ fontSize: 15, fontWeight: 600, color: "#FFFFFF", marginTop: 4 }}>
             {isExpired
-              ? "Trial ended"
+              ? "Trial ended, you are on the free account"
               : isWindowKnown
-                ? `${daysRemaining} ${noun} remaining`
-                : `${FREE_TIER.days}-day free trial`}
+                ? `${daysRemaining} ${noun} remaining on your Foundation trial`
+                : (ent?.plan === "foundation" ? "Foundation" : "Free account")}
           </div>
           {isWindowKnown && !isExpired && (
             <div style={{ fontSize: 11, color: subColor, marginTop: 2 }}>
-              Day {tier.daysSinceSignup} of {FREE_TIER.days}
+              Your work stays when it ends, on a free account
             </div>
           )}
         </div>
@@ -433,7 +453,7 @@ function FreeTierStatusCard({ tier }) {
             background: "#0F0F0F",
           }}
         >
-          {isExpired ? "0" : isWindowKnown ? daysRemaining : FREE_TIER.days}
+          {isExpired ? "0" : isWindowKnown ? daysRemaining : jobLimit}
         </div>
       </div>
 

@@ -1508,17 +1508,54 @@ async function handleCandidateVerdict(req, res, body) {
   if (!ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: 'AI Engine is not configured.' });
   }
-  // Light auth — any signed-in user (mirrors parse_resume / whatsapp_draft).
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Unauthorized. Please sign in.' });
+
+  let verdictUser = null;
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
     try {
       const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       const { data: { user } = {}, error } = await authClient.auth.getUser(token);
       if (error || !user) return res.status(401).json({ error: 'Invalid or expired session.' });
+      verdictUser = user;
     } catch {
       return res.status(401).json({ error: 'Could not verify session.' });
+    }
+  }
+
+  // ── Gate E3, server side ────────────────────────────────────────
+  // The full evaluation is a Foundation feature. VerdictCard hides it on
+  // free, but a gate that only exists in the browser is not a gate: this
+  // endpoint accepts any signed-in JWT and runs Sonnet with no credit
+  // deduct and no rate limit, so an unguarded free tier is a margin hole
+  // as much as a missing paywall.
+  //
+  // hr_effective_entitlement (migration 046) is service-role only and
+  // derives expiry at read time, so a lapsed trial resolves to free here
+  // without any scheduled job.
+  //
+  // FAIL OPEN on a lookup failure, deliberately. Refusing on a database
+  // blip would block a paying customer from the thing they bought, which
+  // is worse than the rare free verdict. Anything that resolves cleanly
+  // is enforced.
+  if (verdictUser && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data: entRows, error: entErr } = await db.rpc('hr_effective_entitlement', {
+        p_user_id: verdictUser.id,
+      });
+      const ent = Array.isArray(entRows) ? entRows[0] : entRows;
+      if (!entErr && ent && ent.limits && ent.limits.ai_evaluation !== true) {
+        return res.status(402).json({
+          error: 'The full candidate evaluation is a Foundation feature.',
+          action: 'upgrade',
+        });
+      }
+    } catch (e) {
+      console.error('[ai/candidate_verdict] entitlement check failed, allowing', e?.message || e);
     }
   }
 

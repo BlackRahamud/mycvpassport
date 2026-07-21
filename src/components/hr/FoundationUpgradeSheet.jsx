@@ -28,7 +28,7 @@ const CheckIc = () => (
   </svg>
 );
 
-export default function FoundationUpgradeSheet({ open, onClose, user, heading, blurb }) {
+export default function FoundationUpgradeSheet({ open, onClose, user, heading, blurb, ctaLabel }) {
   const reduce = useReducedMotion();
   const price = useFoundationPrice();
   const [busy, setBusy] = useState(false);
@@ -109,7 +109,11 @@ export default function FoundationUpgradeSheet({ open, onClose, user, heading, b
             </ul>
 
             <button type="button" className="fus-cta" onClick={commit} disabled={busy || !price.resolved}>
-              {busy ? "Opening checkout" : "Upgrade to Foundation and continue"}
+              {busy
+                ? "Opening checkout"
+                : (ctaLabel
+                    ? ctaLabel(price)          // gate E1 wants the price in the button
+                    : "Upgrade to Foundation and continue")}
             </button>
 
             {price.resolved && (
