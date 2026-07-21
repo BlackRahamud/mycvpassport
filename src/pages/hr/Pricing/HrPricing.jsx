@@ -29,6 +29,9 @@ import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
 import { HR_SALES } from "../../../utils/paywall";
+import { useFoundationPrice } from "../../../lib/employer/useFoundationPrice";
+import FoundationUpgradeSheet from "../../../components/hr/FoundationUpgradeSheet";
+import { supabase } from "../../../appSupabaseClient";
 import "../../../components/hr/surfaceGlass.css";
 import "../PostJob/postJob.css"; // --pj-* tokens + pj-btn
 import "./hrPricing.css";
@@ -320,6 +323,45 @@ export default function HrPricing() {
   const sheetElRef = useRef(null);
   const sheetClosingRef = useRef(false);
 
+  // One currency per visitor, by IP. Held until resolved so the price
+  // never renders in the wrong currency and then swaps.
+  const price = useFoundationPrice();
+  const [checkoutError, setCheckoutError] = useState(null);
+  const [upgrade, setUpgrade] = useState(false);
+  const [viewer, setViewer] = useState(null);
+
+  // Who is looking. A signed-in recruiter can buy; a prospect can only
+  // start a trial, because there is nothing to attach a purchase to yet.
+  useEffect(() => {
+    let live = true;
+    supabase.auth.getUser()
+      .then(({ data }) => { if (live) setViewer(data?.user || null); })
+      .catch(() => { if (live) setViewer(null); });
+    return () => { live = false; };
+  }, []);
+
+  /**
+   * Start 30 day free trial.
+   *
+   * The trial is NOT created here. Migration 046 seeds it server side
+   * from a trigger on hr_profiles insert, so signing up IS starting the
+   * trial and there is no way to end up signed up without one. A
+   * recruiter who already has an account goes straight to the portal.
+   */
+  const startTrial = async () => {
+    setCheckoutError(null);
+    try {
+      const { data } = await supabase.auth.getUser();
+      const uid = data?.user?.id;
+      if (!uid) { navigate("/employer/signup"); return; }
+      const { data: hp } = await supabase
+        .from("hr_profiles").select("user_id").eq("user_id", uid).maybeSingle();
+      navigate(hp ? "/employer/jobs" : "/employer/onboarding");
+    } catch {
+      navigate("/employer/signup");
+    }
+  };
+
   const openSheet = (e) => {
     sheetOriginRef.current = e?.currentTarget?.getBoundingClientRect?.() || null;
     sheetClosingRef.current = false;
@@ -429,8 +471,30 @@ export default function HrPricing() {
               <button type="button" className="pj-btn pj-btn--primary hpx-btn-lg" onClick={openSheet}>
                 Post your first job <ArrowIc />
               </button>
-              <span className="hpx-cta-note">Free to start, no card needed. Talk to us whenever you are ready.</span>
+              <span className="hpx-cta-note">Free to start, no card needed.</span>
             </motion.div>
+
+            {/* Price affordance. The showcase below does the selling, but a
+                visitor should not have to scroll the whole page to learn
+                what it costs. One currency, theirs, decided by IP. Held
+                until geo resolves so the number never flashes and swaps. */}
+            <motion.a
+              className="hpx-priceline"
+              href="#foundation"
+              onClick={(e) => { e.preventDefault(); document.getElementById("foundation")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" }); }}
+              {...reveal(0.16)}
+            >
+              {price.resolved ? (
+                <>
+                  <span className="hpx-priceline__from">From <b>{price.amountLabel}</b> per month</span>
+                  <span className="hpx-priceline__dot" aria-hidden="true" />
+                  <span className="hpx-priceline__free">start free for 30 days</span>
+                  <ChevronIc />
+                </>
+              ) : (
+                <span className="hpx-priceline__from">Pricing</span>
+              )}
+            </motion.a>
           </div>
           <motion.div style={{ flex: "1 1 400px", minWidth: 300 }} {...reveal(0.16)}>
             <AgendaGlimpse />
@@ -465,31 +529,115 @@ export default function HrPricing() {
           </section>
         ))}
 
-        {/* ── Plan and CTA anchor ── */}
-        <motion.section className="hpx-anchor" aria-label="One plan" {...reveal(0)}>
-          <span className="hpx-eyebrow" style={{ alignSelf: "center" }}>One plan</span>
-          <h2 className="hpx-anchor__h2">One plan, your whole pipeline.</h2>
+        {/* ── The close. The showcase above sells; this ends on a real
+             price and a trial instead of talk to us. Scale is still a
+             conversation, but it is now the column beside the price
+             rather than the whole ending. ── */}
+        <motion.section className="hpx-anchor" id="foundation" aria-label="Foundation plan" {...reveal(0)}>
+          <span className="hpx-eyebrow" style={{ alignSelf: "center" }}>Plans</span>
+          <h2 className="hpx-anchor__h2">One plan, priced for founding members.</h2>
           <p className="hpx-anchor__lede">
-            Pricing is tailored to your team and your market. We shape the plan with you,
-            no card required to talk.
+            Everything you need to hire well, at one honest price. Start free for 30 days,
+            then keep going on Foundation whenever you are ready.
           </p>
-          <div className="hpx-anchor__ctas">
-            <button type="button" className="pj-btn pj-btn--primary hpx-btn-lg" onClick={openSheet}>
-              Post your first job <ArrowIc />
-            </button>
-            <a className="hpx-btn-quiet" href={waHref} target="_blank" rel="noreferrer noopener">
-              <WaIc /> Talk to us on WhatsApp
-            </a>
+
+          <div className="hpx-fnd">
+            {/* Foundation card, focal */}
+            <div className="hpx-fnd__card">
+              <div className="hpx-fnd__top">
+                <div>
+                  <div className="hpx-fnd__name">Foundation</div>
+                  <div className="hpx-fnd__sub">Everything to run your hiring</div>
+                </div>
+                <span className="hpx-fnd__rate"><span className="hpx-fnd__rate-dot" aria-hidden="true" />Founding member rate</span>
+              </div>
+
+              <div className="hpx-fnd__pricerow">
+                {price.resolved ? (
+                  <>
+                    {price.anchorLabel && <s className="hpx-fnd__struck">{price.anchorLabel}</s>}
+                    <span className="hpx-fnd__amount">{price.amountLabel}</span>
+                  </>
+                ) : (
+                  <span className="hpx-fnd__amount hpx-fnd__amount--holding" aria-hidden="true">&nbsp;</span>
+                )}
+              </div>
+              <div className="hpx-fnd__per">per month</div>
+              <p className="hpx-fnd__region">
+                {price.resolved
+                  ? `Shown for ${price.regionName}, prices are set by your region and never converted.`
+                  : "Loading the price for your region."}
+              </p>
+
+              <ul className="hpx-fnd__list">
+                <li><span className="hpx-tick"><CheckIc /></span>Up to <b>3 active jobs</b></li>
+                <li><span className="hpx-tick"><CheckIc /></span><b>Full candidate evaluation</b> on every applicant</li>
+                <li><span className="hpx-tick"><CheckIc /></span>Employer analytics</li>
+                <li><span className="hpx-tick"><CheckIc /></span>One recruiter login</li>
+              </ul>
+
+              <button
+                type="button"
+                className="pj-btn pj-btn--primary hpx-btn-lg hpx-fnd__cta"
+                onClick={startTrial}
+              >
+                Start 30 day free trial <ArrowIc />
+              </button>
+              <p className="hpx-fnd__note">No card needed, and when your trial ends you keep a free account.</p>
+
+              {/* Buy now, for a recruiter who already has an account. A
+                  prospect sees only the trial; there is nothing to buy
+                  before you have somewhere to put it. */}
+              {viewer && (
+                <button type="button" className="hpx-fnd__buy" onClick={() => setUpgrade(true)}>
+                  Already have an account? Upgrade to Foundation
+                </button>
+              )}
+
+              {checkoutError && <p className="hpx-fnd__err" role="alert">{checkoutError}</p>}
+            </div>
+
+            {/* Right column: scale, then the free account */}
+            <div className="hpx-fnd__side">
+              <div className="hpx-fnd__panel">
+                <div className="hpx-fnd__panel-kicker">Hiring at scale</div>
+                <p className="hpx-fnd__panel-body">
+                  More recruiters, higher volume, or an agency running many roles.
+                  We shape a plan around your team.
+                </p>
+                <a className="hpx-fnd__talk" href={waHref} target="_blank" rel="noreferrer noopener">
+                  Talk to us <ArrowIc />
+                </a>
+                <p className="hpx-fnd__panel-mail">
+                  Prefer email? <a href={mailHref}>{HR_SALES.email}</a>
+                </p>
+              </div>
+
+              <div className="hpx-fnd__panel hpx-fnd__panel--quiet">
+                <div className="hpx-fnd__panel-kicker">The free account, always</div>
+                <p className="hpx-fnd__panel-body">
+                  If you do not upgrade, you keep a permanent free account. One active job
+                  and a basic candidate score, with no time limit. The trial simply shows
+                  you the full picture first.
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="hpx-anchor__mail">
-            Prefer email? <a href={mailHref}>{HR_SALES.email}</a>
-          </p>
+
           <p className="hpx-talent">
             Want hands on help? The CVPassport talent team can source and screen candidates
             for you. <a href={waTalentHref} target="_blank" rel="noreferrer noopener">Talk to us.</a>
           </p>
         </motion.section>
       </main>
+
+      <FoundationUpgradeSheet
+        open={upgrade}
+        onClose={() => setUpgrade(false)}
+        user={viewer}
+        heading="Upgrade to Foundation"
+        blurb="Keep the full evaluation and up to 3 active jobs."
+      />
 
       {/* ── The get started sheet, opens from origin ── */}
       {sheet && (

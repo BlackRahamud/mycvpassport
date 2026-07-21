@@ -201,7 +201,6 @@ export default function App() {
         <Route path="/employer/candidates" element={<CandidatesPage />} />
         <Route path="/employer/interviews" element={<InterviewsPage />} />
         <Route path="/employer/import" element={<HrImportPage />} />
-        <Route path="/employer/pricing" element={<HrPricing />} />
       </Route>
       {/* Review mode is a focused full-screen flow: it carries its own fixed
           bottom decision bar, which would collide with the shell's mobile
@@ -218,6 +217,14 @@ export default function App() {
       {/* Employer front door — light theme, so it lives OUTSIDE the dark
           S.app wrapper below (same placement rationale as /hr). */}
       <Route path="/employer" element={<EmployerLandingPage />} />
+      {/* PUBLIC on purpose. This page carries the Foundation price and the
+          trial CTA, so a prospect has to be able to read it before they
+          have an account. It previously sat inside RequireRecruiter, which
+          bounced every logged-out visitor to /employer/login, meaning the
+          price was unreachable to exactly the people it is written for.
+          It renders its own header (hpx-head) and does not need the shell.
+          Signed-in recruiters still reach it from the portal rail. */}
+      <Route path="/employer/pricing" element={<HrPricing />} />
       <Route path="/employer/onboarding" element={<EmployerOnboardingPage />} />
       <Route path="/jobs" element={<JobBoardPage />} />
       <Route path="/jobs/:jobId" element={<JobPage />} />

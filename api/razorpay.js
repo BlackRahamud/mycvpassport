@@ -15,6 +15,7 @@ import {
   PAID_TIER_SLUGS,
   TIERS,
   TIER_TO_PROFILE_PLAN,
+  isEmployerTier,
   currencyForCountry,
   getServerAmount,
   getAlaCarteAmount,
@@ -489,14 +490,40 @@ async function handleWebhook(req, res, rawBody) {
     return res.status(200).json({ received: true, idempotent: true });
   }
 
-  const accessError = await applyPaidTier(supabase, userId, plan);
-  if (accessError) {
-    console.error('[razorpay] webhook access update failed', {
-      error: accessError.message,
-      userId,
-      plan,
+  // Employer tiers activate HR entitlement and must never run the
+  // candidate grant path. applyPaidTier would call extend_pro_access and
+  // hand a paying employer a candidate pro pass.
+  if (isEmployerTier(plan)) {
+    const days = TIERS[plan]?.duration_days || 30;
+    // Idempotency comes from the payments payment_intent_id short-circuit
+    // above plus its unique index, so this is reached once per payment.
+    //
+    // NO AUTO RENEW. Auto renew plugs in at grant_hr_foundation by
+    // scheduling the next charge off current_period_end.
+    const { data: newEnd, error: entErr } = await supabase.rpc('grant_hr_foundation', {
+      p_user_id: userId,
+      p_days: days,
+      p_source: 'razorpay',
     });
-    return res.status(500).json({ error: accessError.message });
+    if (entErr) {
+      console.error('[razorpay] HR entitlement grant failed', {
+        userId, plan, error: entErr.message,
+      });
+      return res.status(500).json({ error: entErr.message });
+    }
+    console.log('[razorpay] HR entitlement activated', {
+      userId, plan, period_end: newEnd, currency,
+    });
+  } else {
+    const accessError = await applyPaidTier(supabase, userId, plan);
+    if (accessError) {
+      console.error('[razorpay] webhook access update failed', {
+        error: accessError.message,
+        userId,
+        plan,
+      });
+      return res.status(500).json({ error: accessError.message });
+    }
   }
 
   await recordPayment(supabase, {

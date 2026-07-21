@@ -1,18 +1,28 @@
 /**
  * Post-a-Job submission — wizard state → Supabase INSERT.
  *
- * Free tier rule: HRs are capped at 10 active+published listings on
- * the hr_portal source. The cap is enforced here BEFORE the INSERT
- * so the user gets a structured error rather than an RLS denial or
- * silent overwrite. (Schema-level enforcement could be added later
- * with a trigger; for now this is the only write path.)
+ * The active job cap is per plan and is ENFORCED IN THE DATABASE by the
+ * jobs insert trigger from migration 046 (hr_enforce_job_limit). That
+ * trigger fires for the service role too, so it also covers the direct
+ * client insert in CandidatesPage and the RPC inserts in 028 and 036 —
+ * paths this file never sees.
+ *
+ * The check below is a UX nicety, not the gate: it turns the expected
+ * case into a clean message instead of a raw database exception. The
+ * limit itself is read from server truth (hr_my_entitlement), never
+ * hardcoded here. The old flat ACTIVE_LISTING_LIMIT = 10 is gone; so is
+ * the founder bypass, which had no server-side counterpart and so was
+ * only ever bypassing the friendly message.
  */
 
 import { supabase } from "../appSupabaseClient";
-import { isFounder } from "../utils/founder";
 import { marketFromCurrency } from "../pages/hr/PostJob/market";
+import { fetchEntitlement } from "../lib/employer/entitlement";
 
-export const ACTIVE_LISTING_LIMIT = 10;
+// SQLSTATE raised by hr_enforce_job_limit when the cap is hit. Used to
+// recognise the database's own refusal and surface its message verbatim
+// rather than a generic failure.
+export const JOB_LIMIT_SQLSTATE = "HR001";
 
 /**
  * Resolve the company name to stamp on the listing. Order of preference:
@@ -57,6 +67,11 @@ export async function countActiveListings(userId) {
     .select("id", { count: "exact", head: true })
     .eq("hr_id", userId)
     .eq("source", "hr_portal")
+    // kind='pool' rows are containers created by the bulk-import and
+    // verdict RPCs, not listings. Without this filter they ate the
+    // posting budget, contradicting both their own migration comments
+    // and HrInsightsPanel, which has always filtered on kind.
+    .eq("kind", "active")
     .in("status", ["active", "published"]);
   if (error) throw error;
   return count || 0;
@@ -130,18 +145,17 @@ export async function submitJob({ user, job }) {
     throw err;
   }
 
-  // Founder skips the active-listing cap (client-side convenience, keyed
-  // off the authenticated session email only). RLS still governs the
-  // INSERT itself — this only removes the pre-INSERT UX guard.
-  if (!isFounder(user)) {
-    const count = await countActiveListings(user.id);
-    if (count >= ACTIVE_LISTING_LIMIT) {
-      const err = new Error(
-        `You're at the ${ACTIVE_LISTING_LIMIT}-listing limit on the free tier. Close an existing listing or upgrade to post more.`
-      );
-      err.code = "limit_reached";
-      throw err;
-    }
+  // Plan-aware pre-check. Server truth, read from hr_my_entitlement, so
+  // the number here is whatever the database will actually enforce a few
+  // lines below. This is the friendly path; the trigger is the gate, and
+  // it still fires if this check is skipped, stale, or tampered with.
+  const ent = await fetchEntitlement();
+  if (ent.loaded && !ent.canPostJob) {
+    const err = new Error(
+      `You have reached your plan limit of ${ent.activeJobsAllowed} active jobs. Close a listing or upgrade to post another.`
+    );
+    err.code = "limit_reached";
+    throw err;
   }
 
   const companyName = await resolveCompanyName(user, job);
@@ -159,6 +173,16 @@ export async function submitJob({ user, job }) {
     .single();
 
   if (error) {
+    // The database refused on the plan cap. Its message is already the
+    // user-facing one, so pass it through instead of burying it under a
+    // generic failure. Reached when the pre-check was skipped or stale,
+    // or when the insert came from a path that never ran it.
+    if (error.code === JOB_LIMIT_SQLSTATE) {
+      const e = new Error(error.message);
+      e.code = "limit_reached";
+      e.cause = error;
+      throw e;
+    }
     const e = new Error(error.message || "Couldn't save the job.");
     e.code = "db_error";
     e.cause = error;

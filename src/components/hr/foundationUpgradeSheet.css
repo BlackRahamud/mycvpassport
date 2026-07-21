@@ -1,0 +1,107 @@
+/* Foundation upgrade sheet, Section F.
+   Glass here is legitimate: this is a floating surface over portal
+   context. The pricing card on the page stays solid. */
+
+.fus-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;                 /* above the kanban drawer scrim (3000)
+                                    and the CV viewer overlay (3500) */
+  background: rgba(20, 19, 31, 0.46);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.fus-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  border-radius: 24px;
+  padding: 26px 26px 20px;
+  /* The portal's ONE glass family, from surfaceGlass.css. Solid fallback
+     first, per the token file's own contract, so a browser without
+     backdrop-filter gets an opaque readable sheet rather than a
+     washed-out one. */
+  color: var(--surface-glass-ink, #14131F);
+  background: var(--surface-glass-solid, #FBFBFD);
+  border: 1px solid var(--surface-glass-border, rgba(20, 19, 31, 0.08));
+  box-shadow: 0 30px 70px -30px rgba(20, 19, 31, 0.55);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .fus-sheet {
+    background: var(--surface-glass-bg, rgba(255, 255, 255, 0.68));
+    -webkit-backdrop-filter: var(--surface-glass-blur, blur(18px) saturate(1.6));
+    backdrop-filter: var(--surface-glass-blur, blur(18px) saturate(1.6));
+  }
+}
+
+.fus-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px; display: grid; place-items: center;
+  border: none; border-radius: 10px; cursor: pointer;
+  background: rgba(20,19,31,.05); color: #4A4760;
+  transition: background-color .2s cubic-bezier(.4,0,.2,1);
+}
+.fus-close:hover { background: rgba(20,19,31,.10); }
+
+.fus-top { display: flex; align-items: center; gap: 10px; }
+.fus-eyebrow { color: #7C3AED; font-size: 11.5px; font-weight: 800; letter-spacing: .10em; text-transform: uppercase; }
+.fus-rate {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(124,58,237,.12); color: #6D28D9;
+  font-size: 11px; font-weight: 700;
+}
+.fus-rate__dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.fus-h2 { margin: 10px 0 0; font-size: 25px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+.fus-blurb { margin: 8px 0 0; color: #4A4760; font-size: 14px; line-height: 1.55; }
+
+.fus-pricerow { display: flex; align-items: baseline; gap: 12px; margin-top: 18px; min-height: 46px; }
+.fus-struck { color: #A6A2B8; font-size: 18px; font-weight: 600; text-decoration-thickness: 2px; }
+.fus-amount { font-size: 42px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.fus-amount--holding { display: inline-block; min-width: 140px; }
+.fus-per { font-size: 14px; font-weight: 700; margin-top: 4px; }
+
+.fus-list {
+  list-style: none; margin: 18px 0 0; padding: 16px;
+  border-radius: 14px; background: rgba(124,58,237,.07);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.fus-list li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #2C2A3D; }
+.fus-tick {
+  width: 19px; height: 19px; flex: 0 0 19px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(124,58,237,.16); color: #6D28D9;
+}
+
+.fus-cta {
+  width: 100%; margin-top: 18px; min-height: 48px;
+  border: none; border-radius: 14px; cursor: pointer;
+  background: #7C3AED; color: #fff;
+  font-size: 15px; font-weight: 700;
+  transition: background-color .22s cubic-bezier(.4,0,.2,1),
+              box-shadow .22s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 10px 24px -12px rgba(124,58,237,.8);
+}
+.fus-cta:hover:not(:disabled) { background: #6D28D9; }
+.fus-cta:disabled { opacity: .62; cursor: default; }
+
+.fus-note { margin: 10px 0 0; color: #4A4760; font-size: 12.5px; text-align: center; line-height: 1.5; }
+.fus-gateway { margin: 4px 0 0; color: #6B6880; font-size: 11.5px; text-align: center; }
+.fus-err { margin: 10px 0 0; color: #B42318; font-size: 13px; text-align: center; }
+
+.fus-stay {
+  width: 100%; margin-top: 12px; padding: 10px;
+  border: none; background: none; cursor: pointer;
+  color: #6B6880; font-size: 13.5px; font-weight: 600;
+}
+.fus-stay:hover { color: #4A4760; }
+
+@media (max-width: 480px) {
+  .fus-sheet { padding: 22px 18px 16px; border-radius: 20px; }
+  .fus-amount { font-size: 36px; }
+}

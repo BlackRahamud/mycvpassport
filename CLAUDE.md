@@ -91,6 +91,7 @@ Blue: #378ADD (info, ATS check states)
 
 NEVER use purple anywhere in the app.
 Exception: the /blog content surface (BlogPage, BlogPostPage, posts.js badge tones) is exempt from the no-purple rule and may use any palette.
+Exception: the **employer portal (`/employer/*`) is the violet HR system** — accent `#7C3AED`, hover `#6D28D9`, tints `rgba(124,58,237,.06–.12)`. This is a deliberate founder decision (Jul 2026), not drift: the HR portal is a separate product surface from the candidate app and the Foundation pricing design is built on violet throughout. Do NOT "fix" violet out of `/employer/*` — that would revert the entire employer design system. The candidate-facing app remains purple-free.
 NEVER use transition:all — explicit properties only with cubic-bezier(0.4,0,0.2,1)
 NEVER hardcode hex colors in new code — pull from the tokens above. If a needed shade isn't listed, add it to the token block first, then use the named token.
 NEVER use drop-shadow for glow effects — use box-shadow with the accent color at low opacity, or a conic-gradient ring for OLED moments. Drop-shadow flattens to grey on dark surfaces.

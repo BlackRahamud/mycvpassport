@@ -1,0 +1,48 @@
+/* Gate E2, active job limit. Inline and solid: this sits IN the page,
+   so it does not get glass. Glass stays on floating surfaces only. */
+
+.jlb {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin: 0 0 16px;
+  border-radius: 16px;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+}
+
+.jlb__ic {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  background: rgba(124, 58, 237, 0.13);
+  color: #6D28D9;
+}
+
+.jlb__copy { flex: 1 1 auto; min-width: 0; }
+.jlb__title { color: #14131F; font-size: 14.5px; font-weight: 700; }
+.jlb__body { color: #4A4760; font-size: 13.5px; line-height: 1.5; margin: 3px 0 0; }
+
+.jlb__cta {
+  flex: 0 0 auto;
+  border: none; border-radius: 11px; cursor: pointer;
+  padding: 11px 16px;
+  background: #7C3AED; color: #fff;
+  font-size: 13.5px; font-weight: 700;
+  transition: background-color .22s cubic-bezier(.4,0,.2,1);
+}
+.jlb__cta:hover { background: #6D28D9; }
+
+/* The quiet counter beside the heading */
+.jlb-count {
+  color: #6B6880;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .jlb { flex-wrap: wrap; gap: 12px; }
+  .jlb__cta { width: 100%; }
+}

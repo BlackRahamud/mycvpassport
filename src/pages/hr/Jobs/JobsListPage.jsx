@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import JobLimitBanner, { JobCountChip } from "../../../components/hr/JobLimitBanner";
+import FoundationUpgradeSheet from "../../../components/hr/FoundationUpgradeSheet";
+import { fetchEntitlement } from "../../../lib/employer/entitlement";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
 import UserMenu from "../../../components/UserMenu/UserMenu";
@@ -143,6 +146,8 @@ export default function JobsListPage() {
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState(null); // null = loading
   const [error, setError] = useState(null);
+  const [ent, setEnt] = useState(null);
+  const [upgrade, setUpgrade] = useState(false);
   const [jobsTick, setJobsTick] = useState(0); // bump to refetch jobs (after a pool delete)
   const [deletePool, setDeletePool] = useState(null); // { id, title } pending delete
   const [deleteCount, setDeleteCount] = useState(null); // candidates in the pool (null = counting)
@@ -160,6 +165,13 @@ export default function JobsListPage() {
   // Pull profile.plan once we know the user — feeds the UserMenu
   // popover's plan badge. Best-effort: a missing row falls back to
   // "Free plan" inside UserMenu so the popover never breaks.
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let live = true;
+    fetchEntitlement().then((e) => { if (live) setEnt(e); }).catch(() => {});
+    return () => { live = false; };
+  }, [user?.id, jobsTick]);
+
   useEffect(() => {
     if (!user?.id) return;
     let live = true;
@@ -349,8 +361,14 @@ export default function JobsListPage() {
           transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
         >
           <h1 className="hjl-greet__title">{greeting.title}</h1>
-          <p className="hjl-greet__sub">{greeting.sub}</p>
+          <p className="hjl-greet__sub">
+            {greeting.sub}{ent?.loaded ? <> · <JobCountChip ent={ent} /></> : null}
+          </p>
         </motion.div>
+
+        {/* Gate E2. The cap is enforced by the 046 trigger; this is the
+            designed state for it. Not blocking: the jobs below stay live. */}
+        <JobLimitBanner ent={ent} onUpgrade={() => setUpgrade(true)} />
 
         <div style={{ display: "flex", marginBottom: 18 }}>
           <div className="hjl-toggle" role="tablist" aria-label="HR view" style={{ marginLeft: 0 }}>
@@ -583,6 +601,13 @@ export default function JobsListPage() {
           </motion.div>
         )}
       </AnimatePresence>
+    <FoundationUpgradeSheet
+        open={upgrade}
+        onClose={() => setUpgrade(false)}
+        user={user}
+        heading="Upgrade to Foundation"
+        blurb="Up to 3 active jobs, and the full evaluation on every applicant."
+      />
     </div>
   );
 }

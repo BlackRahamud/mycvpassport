@@ -3,15 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "../../../appSupabaseClient";
-import { getGatekeeperData } from "../../../services/gatekeeper";
 import { submitJob } from "../../../services/postJob";
 import { trackHr } from "../../../lib/analytics/hrEvents";
-import { freeTierStatus } from "../../../utils/freeTier";
+// Employer entitlement, server truth. Replaces two things that were
+// wrong here: getGatekeeperData(), which read the CANDIDATE profiles
+// table so a candidate Express Pass silently unlocked employer posting,
+// and freeTierStatus(), a client-side 90 day clock off the signup date.
+import { fetchEntitlement, entitlementNotice } from "../../../lib/employer/entitlement";
+import FoundationUpgradeSheet from "../../../components/hr/FoundationUpgradeSheet";
 import FreeTierBanner from "../../../components/FreeTierBanner/FreeTierBanner";
 import "./postJob.css";
 import PostJobShell from "./PostJobShell";
 import PostJobPreview from "./PostJobPreview";
-import PostJobExpiredPaywall from "./PostJobExpiredPaywall";
 import StartStep from "./steps/StartStep";
 import NewJobStep, { DEFAULT_SALARY_PERIOD } from "./steps/NewJobStep";
 import { marketFromCurrency } from "./market";
@@ -83,19 +86,21 @@ export default function PostJobPage() {
   const [screeningView, setScreeningView] = useState(null);
   const [drawerCategory, setDrawerCategory] = useState(null);
   const [user, setUser] = useState(null);
-  const [gate, setGate] = useState(null);
+  const [ent, setEnt] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [upgrade, setUpgrade] = useState(false);
+  const [limitHit, setLimitHit] = useState(null);
   const [postedJobId, setPostedJobId] = useState(null);
 
   useEffect(() => {
     let live = true;
-    Promise.all([supabase.auth.getUser(), getGatekeeperData()])
-      .then(([{ data }, g]) => {
+    Promise.all([supabase.auth.getUser(), fetchEntitlement()])
+      .then(([{ data }, e]) => {
         if (!live) return;
         const u = data?.user || null;
         setUser(u);
-        setGate(g);
+        setEnt(e);
         // Prefill the company name from the HR's canonical profile so a
         // returning recruiter never retypes it — but the field is still
         // required and editable (no silent email-domain fallback). Only
@@ -113,7 +118,10 @@ export default function PostJobPage() {
             .catch(() => { /* leave the field empty — the HR fills it in */ });
         }
       })
-      .catch(() => { if (!live) return; setGate({ isPaidUser: false }); });
+      // Resolve failure leaves entitlement null, so no status line shows.
+      // The database trigger is the gate either way, so failing to read
+      // the plan here can never grant anything it should not.
+      .catch(() => { if (!live) return; setEnt(null); });
     return () => { live = false; };
   }, []);
 
@@ -146,10 +154,11 @@ export default function PostJobPage() {
     });
   }, [job.currency]);
 
-  const tier = user ? freeTierStatus(user) : null;
-  const isFreeTier = gate ? !gate.isPaidUser : false;
-  const showPaywall = isFreeTier && tier?.isExpired;
-  const showBanner  = isFreeTier && tier?.showBanner && !tier?.isExpired;
+  // Trial expiry does NOT lock anyone out. An expired employer drops to
+  // the permanent free tier, keeps their existing jobs, and is limited
+  // only by the active job cap the database enforces. So there is no
+  // showPaywall any more, just an honest status line.
+  const notice = entitlementNotice(ent);
 
   // Every step change opens at the top of the page — the walkthrough kept
   // landing mid-step and had to scroll up to find the heading.
@@ -182,6 +191,17 @@ export default function PostJobPage() {
       setPostedJobId(inserted?.id || null);
       setStep("success");
     } catch (err) {
+      // Gate E2 at the moment of posting. The cap is enforced server side
+      // by the 046 trigger (SQLSTATE HR001), which postJob.js maps to
+      // limit_reached. Show the designed upgrade sheet rather than
+      // stranding the database's exception text on the review step.
+      if (err?.code === "limit_reached") {
+        setSubmitError(null);
+        setLimitHit(err?.message || null);
+        setUpgrade(true);
+        setSubmitting(false);
+        return;
+      }
       const msg = err?.code === "unauthenticated"
         ? "Sign in to post a job. We'll bring you back here."
         : err?.message || "Couldn't post the job. Try again.";
@@ -241,16 +261,12 @@ export default function PostJobPage() {
     return <PostJobSuccess onGoToJobList={() => navigate("/employer/jobs")} postedJobId={postedJobId} />;
   }
 
-  if (showPaywall) {
-    return <PostJobExpiredPaywall daysSinceSignup={tier?.daysSinceSignup} />;
-  }
-
   return (
     <>
       <Helmet><title>Post a Job · CVPassport</title></Helmet>
       <PostJobShell
         currentStep={step}
-        topSlot={showBanner ? <FreeTierBanner daysRemaining={tier.daysRemaining} /> : null}
+        topSlot={notice ? <FreeTierBanner message={notice} /> : null}
         leftSlot={left}
         rightSlot={<PostJobPreview step={step} job={job} />}
       />
@@ -264,6 +280,17 @@ export default function PostJobPage() {
           <ScreeningDrawer key="screen-drawer" open categoryKey={drawerCategory} onClose={closeScreening} onSave={saveScreeningGroup} market={marketFromCurrency(job.currency)} />
         )}
       </AnimatePresence>
+
+      {/* Gate E2 at post time. The 046 trigger already refused the insert,
+          so the work is safe and nothing was lost; this offers the way
+          forward instead of showing a database exception. */}
+      <FoundationUpgradeSheet
+        open={upgrade}
+        onClose={() => setUpgrade(false)}
+        user={user}
+        heading="You have reached your active job limit"
+        blurb={limitHit || "Foundation allows up to 3 active jobs, so you can hire for more roles at once."}
+      />
     </>
   );
 }

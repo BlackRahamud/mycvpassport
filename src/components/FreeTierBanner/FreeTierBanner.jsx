@@ -8,11 +8,21 @@ const ClockIcon = () => (
   </svg>
 );
 
-export default function FreeTierBanner({ daysRemaining, onUpgrade }) {
+/**
+ * Trial status strip for the employer portal.
+ *
+ * `message` comes from entitlementNotice() so the copy has one source.
+ * The old version hardcoded "you'll need to upgrade to keep posting
+ * jobs", which is no longer true: trial expiry drops an employer to the
+ * permanent free tier with 1 active job, it never locks them out. It
+ * also sent employers to /pricing, the CANDIDATE pricing page.
+ */
+export default function FreeTierBanner({ message, onUpgrade }) {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
-  const upgrade = () => (onUpgrade ? onUpgrade() : navigate("/pricing"));
-  const noun = daysRemaining === 1 ? "day" : "days";
+  const upgrade = () => (onUpgrade ? onUpgrade() : navigate("/employer/pricing"));
+
+  if (!message) return null;
 
   return (
     <motion.div
@@ -23,11 +33,9 @@ export default function FreeTierBanner({ daysRemaining, onUpgrade }) {
       transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
     >
       <span className="ftb__icon" aria-hidden><ClockIcon /></span>
-      <span className="ftb__text">
-        <b>{daysRemaining} {noun} left</b> on your free trial. After that, you&rsquo;ll need to upgrade to keep posting jobs.
-      </span>
+      <span className="ftb__text">{message}</span>
       <button type="button" className="ftb__cta" onClick={upgrade}>
-        Upgrade
+        See plans
       </button>
     </motion.div>
   );

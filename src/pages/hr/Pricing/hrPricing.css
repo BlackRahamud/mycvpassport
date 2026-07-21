@@ -794,3 +794,112 @@
   .hpx-opt, .hpx-btn-quiet, .hpx-chip-btn { transition: none; }
   .hpx-opt:active, .hpx-btn-quiet:active { transform: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Foundation close, added on top of the existing showcase.
+   The showcase sells, this closes on a real price and a trial.
+   Violet HR system. Glass stays on floating surfaces only, so the
+   card and panels here are solid on the page, deliberately.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Hero price affordance, so the number is visible without scrolling */
+.hpx-priceline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  background: rgba(124, 58, 237, 0.06);
+  color: #5B21B6;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color .22s cubic-bezier(.4,0,.2,1),
+              border-color .22s cubic-bezier(.4,0,.2,1);
+}
+.hpx-priceline:hover { background: rgba(124,58,237,.11); border-color: rgba(124,58,237,.34); }
+.hpx-priceline__from b { font-weight: 700; }
+.hpx-priceline__dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .5; }
+.hpx-priceline__free { opacity: .85; }
+.hpx-priceline svg { width: 14px; height: 14px; }
+
+/* Two column close: card + side panels */
+.hpx-fnd {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  align-items: flex-start;
+  justify-content: center;
+  margin-top: 26px;
+  text-align: left;
+}
+.hpx-fnd__card {
+  flex: 1 1 420px;
+  max-width: 560px;
+  background: #FFFFFF;
+  border: 1px solid rgba(20, 19, 31, 0.08);
+  border-radius: 22px;
+  padding: 26px 26px 22px;
+  box-shadow: 0 18px 44px -28px rgba(20, 19, 31, 0.35);
+}
+.hpx-fnd__side { flex: 1 1 300px; max-width: 380px; display: flex; flex-direction: column; gap: 14px; }
+
+.hpx-fnd__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.hpx-fnd__name {
+  color: #7C3AED; font-size: 12px; font-weight: 800;
+  letter-spacing: .10em; text-transform: uppercase;
+}
+.hpx-fnd__sub { color: #6B6880; font-size: 13.5px; margin-top: 3px; }
+.hpx-fnd__rate {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 11px; border-radius: 999px;
+  background: rgba(124,58,237,.10); color: #6D28D9;
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.hpx-fnd__rate-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.hpx-fnd__pricerow { display: flex; align-items: baseline; gap: 14px; margin-top: 20px; min-height: 58px; }
+.hpx-fnd__struck { color: #A6A2B8; font-size: 21px; font-weight: 600; text-decoration-thickness: 2px; }
+.hpx-fnd__amount { color: #14131F; font-size: clamp(38px, 5vw, 52px); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.hpx-fnd__amount--holding { display: inline-block; min-width: 160px; }
+.hpx-fnd__per { color: #14131F; font-size: 14.5px; font-weight: 700; margin-top: 6px; }
+.hpx-fnd__region { color: #6B6880; font-size: 12.5px; margin: 8px 0 0; }
+
+.hpx-fnd__list { list-style: none; margin: 18px 0 0; padding: 18px 0 0; border-top: 1px solid rgba(20,19,31,.08); display: flex; flex-direction: column; gap: 12px; }
+.hpx-fnd__list li { display: flex; align-items: flex-start; gap: 10px; color: #2C2A3D; font-size: 14.5px; }
+
+.hpx-fnd__cta { width: 100%; margin-top: 20px; justify-content: center; }
+.hpx-fnd__note { color: #6B6880; font-size: 12.5px; text-align: center; margin: 10px 0 0; }
+.hpx-fnd__err { color: #B42318; font-size: 13px; text-align: center; margin: 10px 0 0; }
+
+.hpx-fnd__panel {
+  background: #FFFFFF;
+  border: 1px solid rgba(20,19,31,.08);
+  border-radius: 18px;
+  padding: 20px;
+}
+.hpx-fnd__panel--quiet { background: rgba(20,19,31,.03); border-color: rgba(20,19,31,.06); }
+.hpx-fnd__panel-kicker { color: #6B6880; font-size: 11.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.hpx-fnd__panel-body { color: #2C2A3D; font-size: 14px; line-height: 1.55; margin: 10px 0 0; }
+.hpx-fnd__talk { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; color: #7C3AED; font-weight: 700; font-size: 14px; text-decoration: none; }
+.hpx-fnd__talk svg { width: 15px; height: 15px; }
+.hpx-fnd__panel-mail { color: #6B6880; font-size: 12.5px; margin: 12px 0 0; }
+
+@media (max-width: 720px) {
+  .hpx-fnd { gap: 16px; }
+  .hpx-fnd__card { padding: 22px 18px 18px; border-radius: 18px; }
+  .hpx-fnd__top { flex-direction: column; gap: 10px; }
+}
+
+.hpx-fnd__buy {
+  width: 100%; margin-top: 10px; padding: 11px;
+  border: 1px solid rgba(124,58,237,.24); border-radius: 12px;
+  background: rgba(124,58,237,.05); color: #6D28D9;
+  font-size: 13.5px; font-weight: 700; cursor: pointer;
+  transition: background-color .22s cubic-bezier(.4,0,.2,1),
+              border-color .22s cubic-bezier(.4,0,.2,1);
+}
+.hpx-fnd__buy:hover { background: rgba(124,58,237,.10); border-color: rgba(124,58,237,.36); }

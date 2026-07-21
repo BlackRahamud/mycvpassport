@@ -47,7 +47,42 @@ export const TIERS = {
     prices: { AED: 169, INR: 999 },
     ai_tailor_quota: null,
   },
+
+  // ── EMPLOYER TIER ──────────────────────────────────────────────
+  // Foundation is the HR portal plan. It lives here so the payment rail
+  // handles it natively: getServerAmount validates the charged amount
+  // against these numbers, and paymentRef encodes it as
+  // tier:foundation:<currency>:<uuid> like any other tier.
+  //
+  // `audience: 'employer'` is load bearing. Without it the webhook's tier
+  // branch would call applyZiinaPaidTier('foundation'), which runs
+  // extend_pro_access and would hand a paying EMPLOYER a CANDIDATE pro
+  // pass. The webhooks branch on this field before granting.
+  //
+  // Prices are per market and are two separate numbers, never converted.
+  // INR 999 is not a conversion of AED 99 and must not be treated as one.
+  //
+  // anchor_prices is the struck founding-rate anchor the pricing page
+  // shows beside the live price. Per market like the price itself: 1499
+  // INR and 149 AED are two decided numbers, not a conversion of each
+  // other, and neither is derived from the other at runtime.
+  foundation: {
+    slug: 'foundation',
+    displayName: 'Foundation',
+    audience: 'employer',
+    model: 'pass',
+    duration_days: 30,
+    prices: { AED: 99, INR: 999 },
+    anchor_prices: { AED: 149, INR: 1499 },
+    ai_tailor_quota: null,
+  },
 };
+
+// Employer tiers never touch candidate access, and candidate tiers never
+// touch employer entitlement. Both webhooks branch on this.
+export function isEmployerTier(slug) {
+  return TIERS[slug]?.audience === 'employer';
+}
 
 export const PAID_TIER_SLUGS = Object.keys(TIERS).filter((s) => s !== 'explorer');
 
@@ -136,6 +171,9 @@ export const ZIINA_FEATURE_TO_TIER = {
   expressPass: 'express_pass',
   activeHunter: 'active_hunter',
   careerPro: 'career_pro',
+  // Employer checkout. Routes through the same create-ziina-payment
+  // endpoint and the same signed reference format as every other tier.
+  hrFoundation: 'foundation',
 };
 
 export const TIER_TO_ZIINA_FEATURE = {

@@ -4,6 +4,7 @@ import {
   PAID_TIER_SLUGS,
   TIERS,
   TIER_TO_PROFILE_PLAN,
+  isEmployerTier,
   getServerAmount,
   getAlaCarteAmountByService,
   VALID_ALACARTE_SERVICES,
@@ -447,13 +448,46 @@ export default async function handler(req, res) {
     }
   }
 
-  const accessError = await applyZiinaPaidTier(userId, upgrade.plan);
-  if (accessError) {
-    console.error('Supabase update failed', {
-      error: accessError.message,
-      userId,
+  // Employer tiers activate HR entitlement and must never run the
+  // candidate grant path. applyZiinaPaidTier would call extend_pro_access
+  // and hand a paying employer a candidate pro pass, which is the exact
+  // cross-audience leak this branch exists to prevent.
+  if (isEmployerTier(upgrade.plan)) {
+    const days = TIERS[upgrade.plan]?.duration_days || 30;
+    // Idempotency is already guaranteed upstream by the payments
+    // payment_intent_id short-circuit plus its unique index, so this is a
+    // plain upsert reached once per intent.
+    //
+    // NO AUTO RENEW. Auto renew plugs in at grant_hr_foundation by
+    // scheduling the next charge off current_period_end.
+    const { data: newEnd, error: entErr } = await supabase.rpc('grant_hr_foundation', {
+      p_user_id: userId,
+      p_days: days,
+      p_source: 'ziina',
     });
-    return res.status(500).json({ error: accessError.message });
+    if (entErr) {
+      console.error('[ziina-webhook] HR entitlement grant failed', {
+        userId,
+        plan: upgrade.plan,
+        error: entErr.message,
+      });
+      return res.status(500).json({ error: entErr.message });
+    }
+    console.log('[ziina-webhook] HR entitlement activated', {
+      userId,
+      plan: upgrade.plan,
+      period_end: newEnd,
+      currency,
+    });
+  } else {
+    const accessError = await applyZiinaPaidTier(userId, upgrade.plan);
+    if (accessError) {
+      console.error('Supabase update failed', {
+        error: accessError.message,
+        userId,
+      });
+      return res.status(500).json({ error: accessError.message });
+    }
   }
 
   await recordPayment({ user_id: userId, service: upgrade.plan, currency });
