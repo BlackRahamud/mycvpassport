@@ -289,3 +289,29 @@
   .blog-post__pn { grid-template-columns: 1fr; }
   .blog-post__pn-link--next { text-align: left; align-items: flex-start; }
 }
+
+/* Inline supporting art inside an article body. Matches the hero's
+   rounded, hairline framed look, but keeps the artwork's own aspect
+   rather than cropping to 16 by 9, because these are designed panels
+   with text in them and a crop would cut the words. */
+.blog-post__figure {
+  margin: 30px 0;
+}
+.blog-post__figure-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+.blog-post__figure-cap {
+  margin: 10px 2px 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--taupe);
+}
+@media (max-width: 640px) {
+  .blog-post__figure { margin: 22px 0; }
+  .blog-post__figure-img { border-radius: 11px; }
+  .blog-post__figure-cap { font-size: 12.5px; }
+}

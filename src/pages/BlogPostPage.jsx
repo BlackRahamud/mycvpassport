@@ -71,6 +71,24 @@ function renderBlock(block, i) {
           <Link to={block.href} className="blog-post__cta-inline">{block.label}</Link>
         </p>
       );
+    // Inline supporting art. Lazy loaded because it sits below the fold,
+    // and width/height are set so the browser reserves the space and the
+    // text does not jump when it arrives.
+    case "image":
+      return (
+        <figure key={i} className="blog-post__figure">
+          <img
+            src={block.src}
+            alt={block.alt}
+            width={block.width || 1200}
+            height={block.height || 800}
+            loading="lazy"
+            decoding="async"
+            className="blog-post__figure-img"
+          />
+          {block.caption && <figcaption className="blog-post__figure-cap">{block.caption}</figcaption>}
+        </figure>
+      );
     case "hr":
       return <hr key={i} className="blog-post__hr" />;
     default:
@@ -157,6 +175,13 @@ export default function BlogPostPage() {
   const canonical = `https://www.mycvpassport.com/blog/${post.slug}`;
   const metaTitle = post.metaTitle || `${post.title} | CVPassport`;
   const metaDesc = post.metaDescription || post.excerpt;
+  // og:image and twitter:image must be ABSOLUTE. Posts that ship their
+  // art from public/ carry a root relative path, and a social crawler
+  // given "/assets/..." simply fails to fetch it, so the card renders
+  // with no image. Remote images (the older posts) already are absolute.
+  const ogImage = post.image
+    ? (post.image.startsWith("http") ? post.image : `https://www.mycvpassport.com${post.image}`)
+    : null;
   // A post without a body is a stub ("coming soon"). Stubs are noindexed
   // until written — thin placeholder pages in the index are an SEO and
   // trust liability — and they must not claim a read time they don't have.
@@ -171,7 +196,7 @@ export default function BlogPostPage() {
         "@type": "Article",
         headline: post.title,
         description: metaDesc,
-        ...(post.image ? { image: [post.image] } : {}),
+        ...(ogImage ? { image: [ogImage] } : {}),
         ...(isoDate ? { datePublished: isoDate, dateModified: isoDate } : {}),
         author: { "@type": "Organization", name: "CVPassport", url: "https://www.mycvpassport.com/about" },
         publisher: {
@@ -200,17 +225,18 @@ export default function BlogPostPage() {
       <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDesc} />
+        {post.keywords && <meta name="keywords" content={post.keywords.join(", ")} />}
         <link rel="canonical" href={canonical} />
         {isStub && <meta name="robots" content="noindex" />}
         <meta property="og:type" content="article" />
         <meta property="og:title" content={metaTitle} />
         <meta property="og:description" content={metaDesc} />
         <meta property="og:url" content={canonical} />
-        {post.image && <meta property="og:image" content={post.image} />}
+        {ogImage && <meta property="og:image" content={ogImage} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={metaTitle} />
         <meta name="twitter:description" content={metaDesc} />
-        {post.image && <meta name="twitter:image" content={post.image} />}
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
         {articleLd && (
           <script type="application/ld+json">{JSON.stringify(articleLd)}</script>
         )}

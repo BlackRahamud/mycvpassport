@@ -18,6 +18,145 @@ export function slugify(title) {
 
 const rawPosts = [
   {
+    title: "How AI is changing the job hunt, and how to build a CV that wins in 2026",
+    slug: "ai-cv-builder-win-jobs-2026",
+    metaTitle: "AI CV builder for 2026, how to beat AI screening and win Gulf jobs",
+    metaDescription: "AI now reads your CV before any recruiter does. See how AI screening works in 2026 and how to build a CV that gets past it and lands interviews, including Gulf jobs from India.",
+    keywords: [
+      "AI CV builder",
+      "ATS friendly CV",
+      "ATS resume checker",
+      "resume keywords 2026",
+      "jobs in Dubai for Indians",
+      "AI resume screening",
+      "how to get a job in the Gulf",
+    ],
+    author: "@CVPassportTeam",
+    date: "Wednesday, 22 Jul 2026",
+    readTime: "7 min read",
+    category: "AI CV Builder",
+    excerpt: "7 min read · July 2026. AI is the first reader of your CV now. Here is what it rewards, what it quietly rejects, and how to build a CV that reaches a human.",
+    badges: [{ label: "AI CV Builder", tone: "orange" }, { label: "ATS Tips", tone: "blue" }],
+    image: "/assets/blog/ai-cv-builder-2026-hero.jpg",
+    body: [
+      { type: "p", text: "The way people get hired has quietly changed, and most job seekers have not caught up. A few years ago your CV was read first by a person. Today, in most medium and large companies, the first reader is software. An applicant tracking system sorts you, and increasingly an AI model reads your experience, scores how well you fit the role, and decides whether a recruiter ever sees your name. If your CV is not built for that first machine reader, you can be a strong candidate and still never reach a human." },
+      { type: "p", text: "This is not a warning to scare you. It is the single most useful thing to understand about job hunting in 2026, because once you know how the first reader works, you can build a CV that sails through it. This guide explains what AI screening actually does now, what it means for your CV, and how to build one that wins, whether you are applying at home or chasing a role in Dubai and the wider Gulf." },
+
+      { type: "h2", text: "AI is now the first person to read your CV, except it is not a person" },
+      { type: "p", text: "The numbers make the shift clear. Around 87 percent of companies now use AI somewhere in their hiring process, and roughly 65 percent of recruiters have put AI tools to work. More than 86 percent of recruiters say AI makes hiring faster, which is exactly why they use it. For an employer with hundreds of applicants per role, an AI model that reads every CV and ranks the strongest first is not a luxury, it is the only way to keep up." },
+      { type: "p", text: "For you as a candidate, that changes the job. You are no longer only trying to impress a hiring manager. You are first trying to be understood correctly by a model that reads your CV in seconds, matches it against the job description, and forms a verdict. A brilliant career told in a messy or vague document will be read as a weak one. A clear career told in a structured, keyword aware document will be read as a strong one. The gap between those two outcomes is often just formatting and wording, not talent." },
+
+      {
+        type: "image",
+        src: "/assets/blog/ai-cv-builder-2026-checklist.jpg",
+        alt: "Three step diagram of AI CV screening. Step one, read, the model reads every line, not just the top of the page. Step two, score, it matches your skills to the role and gives a fit score. Step three, shortlist, strong matches move to a recruiter for review.",
+        width: 1200,
+        height: 800,
+        caption: "What happens to your CV before a recruiter ever opens it.",
+      },
+
+      { type: "h2", text: "What AI screening rewards, and what it quietly rejects" },
+      { type: "p", text: "Modern screening looks for a few things, and you can give it all of them without gaming anything." },
+      { type: "p", text: "It rewards clarity. The model needs to find your job titles, your skills, your tools, and your results quickly. A clean structure with obvious sections, standard headings, and a readable layout helps it map your experience correctly. Heavy design, columns, images, and unusual fonts often confuse the parser, so the safest premium look is a clean one." },
+      { type: "p", text: "It rewards the right words. Every job description carries the language of the role. If a posting asks for project scheduling, a CV that says project scheduling will match more strongly than one that says kept things on track. This is not stuffing keywords, it is describing your real work in the words the role actually uses. The best CVs mirror the vocabulary of the job without inventing anything." },
+      { type: "p", text: "It rewards evidence. Numbers, outcomes, and specifics read as strength to both a model and a manager. Led a team reads as fine. Led a team of nine and cut delivery time by a fifth reads as proof. Wherever you can attach a figure to a claim, do it." },
+      { type: "p", text: "It quietly rejects vagueness, clutter, and mismatch. A CV that never names a tool, never quantifies a result, and never uses the language of the role can still describe a great candidate, but the first reader has nothing concrete to grab, so it scores low and moves on." },
+
+      { type: "h2", text: "Why this matters even more for Gulf jobs from India" },
+      { type: "p", text: "If you are applying from India for roles in Dubai, Abu Dhabi, Qatar, or Saudi Arabia, the first reader problem is bigger, not smaller. Gulf employers in 2026 are actively hiring Indian professionals across construction and infrastructure, engineering, logistics, and hospitality, from civil and mechanical engineers and project managers to skilled trades and site supervisors. These roles draw very large applicant pools, often from several countries at once, so the screening is heavier and the competition is wider." },
+      { type: "p", text: "When you apply across a border, you also lose the informal advantages that help locally, a familiar name, a shared network, a recruiter who already knows your last employer. Your CV has to do all of the convincing on its own, and it has to do it first for a machine. A document that clearly shows Gulf relevant experience, the right certifications, and results in the language of the role gives you a real edge over an equally qualified candidate whose CV is harder to read. In a corridor as competitive as India to Gulf hiring, a well built CV is not a nicety, it is the thing that gets you shortlisted." },
+
+      { type: "h2", text: "How the CVPassport AI CV builder is built for exactly this moment" },
+      { type: "p", text: "CVPassport was built around a simple idea, that a candidate should not lose an opportunity to a formatting problem. The AI CV builder is made for the way hiring actually works now, not the way it worked a decade ago." },
+      { type: "p", text: "It writes with you, from your real experience. Instead of leaving you staring at a blank page, the builder turns what you did into clear, strong, results led lines in the language recruiters and their AI tools expect. You bring the truth of your career, it helps you say it well." },
+      { type: "p", text: "It checks your CV the way an employer will. The built in ATS checker reads your CV the way a screening system does and shows you a real score with the reasons behind it, so you can see what a machine sees and fix the gaps before you apply, not after you are rejected. This is the difference between guessing and knowing." },
+      { type: "p", text: "It keeps you readable to humans too. A CV has to pass the machine and then win the person. The builder produces documents that are clean and professional on the page, so once you clear the first reader, the second one sees a candidate who looks the part." },
+      { type: "p", text: "And it is built for the corridor you are working in. For India to Gulf applicants, that means help presenting Gulf relevant experience and certifications in a way that both the screening system and the recruiter recognise." },
+      { type: "cta", label: "Try the free CVPassport CV builder →", href: "/builder" },
+
+      { type: "h2", text: "A short, practical checklist before you apply" },
+      { type: "p", text: "Read the job description twice and note the exact words it uses for the skills and tools you have, then make sure those words appear naturally in your CV. Attach a number to your biggest achievements. Keep the layout clean and standard so the parser reads it correctly. Run it through an ATS checker and fix what the score flags. Tailor a fresh version for each serious application rather than sending one generic CV everywhere. None of this is gaming the system. It is simply telling the truth about your work in a form the first reader can understand." },
+
+      { type: "h2", text: "The takeaway" },
+      { type: "p", text: "AI has not made the job hunt colder, it has made it faster and, if you understand it, fairer. The candidates who win in 2026 are not always the most experienced, they are the ones whose CVs are clear enough that both a machine and a manager can see their strength in seconds. That is a skill you can learn, and it is one you can hand to a tool built for it." },
+      { type: "p", text: "If you want to see where your CV stands right now, build or check it free with the CVPassport AI CV builder, get your ATS score with the reasons behind it, and fix the gaps before your next application. Your next Gulf role could be one clean, well read CV away." },
+      { type: "cta", label: "Build my CV free →", href: "/builder" },
+    ],
+  },
+  {
+    title: "How AI is changing hiring in 2026, and how to use it without losing the human touch",
+    slug: "ai-in-recruitment-hiring-2026",
+    metaTitle: "AI in recruitment for 2026, how AI is changing hiring and how to use it well",
+    metaDescription: "AI now screens most candidates before a recruiter sees them. See how AI is changing hiring in 2026, what still needs a human, and how the CVPassport HR portal helps you hire faster from India to the Gulf.",
+    keywords: [
+      "AI in recruitment",
+      "AI hiring",
+      "AI candidate screening",
+      "AI recruitment software",
+      "reduce time to hire",
+      "hire from India for the Gulf",
+      "ATS software",
+    ],
+    author: "@CVPassportTeam",
+    date: "Wednesday, 22 Jul 2026",
+    readTime: "8 min read",
+    category: "AI in Recruitment",
+    excerpt: "8 min read · July 2026. AI reads and ranks every applicant now. Here is what it is genuinely good at, the one thing it should never do alone, and how to hire well with it.",
+    badges: [{ label: "AI in Recruitment", tone: "purple" }, { label: "For Employers", tone: "slate" }],
+    image: "/assets/blog/ai-in-recruitment-2026-hero.jpg",
+    body: [
+      { type: "p", text: "Hiring has changed more in the last two years than in the previous ten, and the change is not slowing down. Artificial intelligence has moved from a novelty in the recruiter toolkit to the layer that most hiring now runs on. If you hire people, and especially if you hire at volume across borders, understanding how AI is reshaping the process is no longer optional. It is the difference between a team that spends its days reading CVs and a team that spends its days talking to the right candidates." },
+      { type: "p", text: "This article looks at what AI is actually doing in recruitment today, what it is genuinely good at, the one thing it should never be trusted to do alone, and how a portal built for this moment helps you hire faster and fairer, particularly along the busy India to Gulf corridor." },
+
+      { type: "h2", text: "AI is no longer coming to hiring, it is already running most of it" },
+      { type: "p", text: "The adoption is not a forecast, it is the present. Around 87 percent of companies now use AI somewhere in their hiring process, and about 65 percent of recruiters have implemented AI tools directly. Among the people making hiring decisions, roughly 44 percent have started using AI for recruiting. The reason is not hype, it is time. More than 86 percent of recruiters say AI makes the hiring process faster, and around 67 percent name time savings as the single biggest advantage. On the cost side, AI can cut the cost of a hire by close to 30 percent." },
+
+      {
+        type: "image",
+        src: "/assets/blog/ai-in-recruitment-2026-split.jpg",
+        alt: "Statistic panel showing 87 percent of companies now use AI in hiring, with the note that AI screening has moved from experiment to standard practice across the market.",
+        width: 1200,
+        height: 800,
+        caption: "AI screening is now the default, not the experiment.",
+      },
+
+      { type: "p", text: "The market reflects the same story. AI recruitment tooling was worth around 704 million dollars in 2025 and is projected to pass 1.1 billion by 2032. That growth is being paid for by employers who have found that AI does the heavy, repetitive part of hiring, reading and ranking, faster and more consistently than a human working through a stack of CVs late in the day." },
+      { type: "p", text: "For a recruiter, the practical meaning is simple. The work is shifting away from screening and toward judgment. The machine reads everyone. You decide who matters." },
+
+      { type: "h2", text: "What AI is genuinely good at in recruitment" },
+      { type: "p", text: "AI earns its place in a few specific parts of the process, and it is worth being precise about them." },
+      { type: "p", text: "It reads every applicant, not just the first twenty. A human screening a large pool gets tired, and the last CVs of the day never get the attention the first ones did. A model reads the hundredth applicant with the same care as the first. For high volume roles, this alone changes the quality of who reaches the shortlist." },
+      { type: "p", text: "It scores fit against the actual role. Good AI screening does not just search for a word, it weighs a candidate's real experience against what the job needs and produces a ranked view, strong, possible, or weak, with reasons. That turns a pile of CVs into a prioritised list, so a recruiter starts with the people most worth their time." },
+      { type: "p", text: "It removes the dead work. Scheduling, first pass ranking, drafting outreach, tracking who is where in the pipeline. These are the tasks that eat a recruiter's week and add no judgment. Handing them to software is where the time savings actually come from." },
+      { type: "p", text: "It makes screening more consistent. A tired human applies different standards at nine in the morning and six in the evening. A model applies the same standard to everyone, which, used carefully, can make the first cut fairer rather than less fair." },
+
+      { type: "h2", text: "The one thing AI should never do alone" },
+      { type: "p", text: "Here is the nuance most vendors skip, and it matters. Candidates do not trust AI to decide their future, and they are right to be cautious. Around 66 percent of people say they would avoid applying for a job if AI made the hiring decisions, and about 71 percent oppose letting AI make the final call. Push AI too far, into rejecting or selecting people with no human involved, and you do not just risk unfair outcomes, you shrink your own applicant pool, because good people walk away." },
+      { type: "p", text: "The winning model in 2026 is not AI instead of recruiters. It is AI doing the reading and ranking, and a human making the decision. The machine hands you a clear, reasoned shortlist. You bring the judgment, the context, and the conversation that no model can have. Used this way, AI gives you back the hours you used to lose to screening and lets you spend them where hiring is actually won, with the people." },
+
+      { type: "h2", text: "Why this matters most in the India to Gulf corridor" },
+      { type: "p", text: "Nowhere is the screening burden heavier than in cross border hiring between India and the Gulf. In 2026, employers across Dubai, Abu Dhabi, Qatar, and Saudi Arabia are actively recruiting Indian professionals across construction and infrastructure, engineering, logistics, and hospitality, from engineers and project managers to skilled trades and supervisors. These roles pull enormous applicant pools, often from several countries at once." },
+      { type: "p", text: "That volume is exactly the situation where manual screening breaks down and where AI screening pays for itself fastest. A recruiter hiring for a Gulf project cannot read a thousand CVs well by hand, but a model can read all thousand, score each against the role, and surface the strongest so the recruiter starts with a shortlist instead of a mountain. The corridor that most needs speed is also the one where AI screening delivers the most." },
+
+      { type: "h2", text: "How the CVPassport HR portal is built for this" },
+      { type: "p", text: "CVPassport was designed around the model that actually works, AI does the reading, the recruiter does the deciding." },
+      { type: "p", text: "Every applicant is evaluated, not skimmed. The portal reads what each candidate actually wrote in their CV, weighs it against your specific role, and returns a verdict with the reasons behind it, so you know who fits before you read a single line. It is not a keyword match, it is a real reading of the person against the job." },
+      { type: "p", text: "Your strongest candidates rise to the top. Applicants are scored and ranked as strong, possible, or weak, so your screening time drops and you begin with the people most worth a conversation rather than working through the pile in the order they arrived." },
+      { type: "p", text: "The interview is handled too. The portal writes interview questions drawn from each candidate's own CV, with a sense of what a good answer sounds like, so any interviewer on your team can run a sharp, fair conversation. A visual pipeline moves candidates forward, and your outreach can go out on the channels people actually answer." },
+      { type: "p", text: "And it keeps you in the seat that matters. CVPassport scores and ranks, but you decide. That is the model candidates trust and the model that protects your applicant pool while still giving you the speed." },
+      { type: "p", text: "Built for the corridor, it handles India to Gulf hiring as a first class case rather than an afterthought, with scheduling that respects both time zones and candidate presentation that recruiters on both sides recognise." },
+      { type: "cta", label: "Start a 30 day free trial of the HR portal →", href: "/employer/pricing" },
+
+      { type: "h2", text: "What to look for in any AI hiring tool" },
+      { type: "p", text: "If you are weighing options, judge them on three things. Does it read the real CV and reason about it, or does it just match keywords. Does it keep a human in the final decision, or does it quietly automate people out with no oversight. And can it show you the reasons behind its verdict, so you can trust it and defend it. A tool that reads deeply, keeps you deciding, and explains itself is one you can build a hiring process on. One that fails any of the three is a risk dressed as a shortcut." },
+
+      { type: "h2", text: "The takeaway" },
+      { type: "p", text: "AI has already changed hiring, and the change is good for the recruiters who use it well. It takes the reading, the ranking, and the busywork off your plate and hands you back the hours to do the part only a person can do, judge, connect, and choose. The teams that win in 2026 are not the ones that hand hiring to a machine, they are the ones that let the machine clear the path so the human can walk it faster." },
+      { type: "p", text: "If you hire from India for the Gulf, or you simply want to stop losing your week to screening, start a 30 day free trial of the CVPassport HR portal. Post a role, watch every applicant get read and ranked, and see how much faster hiring feels when the reading is already done." },
+      { type: "cta", label: "See HR portal plans →", href: "/employer/pricing" },
+    ],
+  },
+  {
     title: "UAE CV Format 2026: The Complete Guide",
     slug: "uae-cv-format-2026",
     metaTitle: "UAE CV Format 2026: The Complete Guide for Gulf Job Seekers | CVPassport",
@@ -636,6 +775,7 @@ const rawPosts = [
       { type: "p", text: "CVPassport builds an ATS-ready resume for freshers in minutes — the right section order, keyword matching against the job you want, and a clean one-page export. Start free, no signup required for your first CV." },
     ],
   },
+
 ];
 
 const posts = rawPosts.map((p) => ({ ...p, slug: p.slug || slugify(p.title) }));
