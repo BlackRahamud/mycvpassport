@@ -14,7 +14,7 @@ import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
 // on-demand so visitors who only see the landing page never download
 // the builder, dashboard, admin, scout, transform, blog etc.
 const PricingPage          = lazy(() => import(/* webpackChunkName: "pricing" */     "./pages/PricingPage"));
-const AdminPanelV2         = lazy(() => import(/* webpackChunkName: "admin" */       "./AdminPanelV2"));
+const AdminPanelV3         = lazy(() => import(/* webpackChunkName: "admin" */       "./AdminPanelV3"));
 const AuthPage             = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/AuthPage"));
 const AuthCallback         = lazy(() => import(/* webpackChunkName: "auth" */        "./pages/AuthCallback"));
 const CoverLetterPage      = lazy(() => import(/* webpackChunkName: "cover-letter" */ "./pages/CoverLetterPage"));
@@ -366,7 +366,7 @@ export default function App() {
               <Route path="/walk-in-cv" element={<Navigate to="/walk-in" replace />} />
               <Route path="/ats-checker" element={<Navigate to="/ats" replace />} />
               <Route path="/indian-cv-uae" element={<Navigate to="/india-to-uae" replace />} />
-              <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanelV2 /> : <Navigate to="/" replace />} />
+              <Route path="/admin" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminPanelV3 /> : <Navigate to="/" replace />} />
               <Route path="/admin/cost" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminCostPage /> : <Navigate to="/" replace />} />
               <Route path="/admin/prospects" element={!authReady ? null : user?.email === "connectingjunaidkhan@gmail.com" ? <AdminProspectsPage /> : <Navigate to="/" replace />} />
               <Route

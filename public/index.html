@@ -37,6 +37,9 @@
          The CSS is fetched once; the font files load lazily only when a
          DM Sans element actually renders, so other routes pay nothing. -->
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+    <!-- Plus Jakarta Sans — the admin command center typeface. Lazy-loaded
+         like the above; only the /admin route renders it. -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <!-- SEO — title/description are neutral DEFAULTS only. Page-specific
          tags (canonical, og:*) live in each route's <Helmet>: react-helmet-
