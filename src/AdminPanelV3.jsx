@@ -197,6 +197,10 @@ export default function AdminPanelV3({ preview }) {
   const [sel, setSel] = useState(null); // drawer user
   const [selExtra, setSelExtra] = useState({});
   const [grant, setGrant] = useState(null); // { email, portal, plan, duration, custom, busy }
+  const [flags, setFlags] = useState({ flags: [], data_state: "needs_wiring" });
+  const [analytics, setAnalytics] = useState(null);
+  const [incidentMsg, setIncidentMsg] = useState("");
+  const [incidentPortal, setIncidentPortal] = useState("both");
 
   const showToast = useCallback((text, ok = true) => { setToast({ text, ok }); setTimeout(() => setToast(null), 2600); }, []);
 
@@ -219,6 +223,8 @@ export default function AdminPanelV3({ preview }) {
       setRevenue(preview.revenue || null);
       setPlans(preview.plans || { plans: [], data_state: "needs_wiring" });
       setAudit(preview.audit || { rows: [], data_state: "real" });
+      setFlags(preview.flags || { flags: [{ key: "candidate_checkout", enabled: true }, { key: "hr_checkout", enabled: true }, { key: "ai_evaluation", enabled: true }, { key: "ats_checker", enabled: true }, { key: "pdf_export", enabled: false }, { key: "hr_portal", enabled: true }], data_state: "real" });
+      setAnalytics(preview.analytics || { posthog: { data_state: "real", tiles: [{ label: "Weekly active users", value: "1,240" }] }, ga: { data_state: "ga" } });
       return;
     }
     const { data: profs } = await supabase.from("profiles")
@@ -251,6 +257,8 @@ export default function AdminPanelV3({ preview }) {
     setRevenue(await callAdmin("revenue", {}));
     setPlans(await callAdmin("plans_list", {}));
     setAudit(await callAdmin("audit_query", { limit: 20 }));
+    setFlags(await callAdmin("flags_list", {}));
+    setAnalytics(await callAdmin("analytics", {}));
   }, [preview]);
 
   useEffect(() => { if (authed) loadAll(); }, [authed, loadAll]);
@@ -491,24 +499,46 @@ export default function AdminPanelV3({ preview }) {
     </>
   );
 
-  /* ─────────── Section: Emergency (Phase 4 — honest) ─────────── */
+  /* ─────────── Section: Emergency (Phase 4 — LIVE) ─────────── */
+  const KILLS = [
+    { key: "candidate_checkout", label: "Candidate checkout" },
+    { key: "hr_checkout", label: "HR checkout" },
+    { key: "ai_evaluation", label: "AI evaluation" },
+    { key: "ats_checker", label: "ATS checker" },
+    { key: "pdf_export", label: "PDF export" },
+    { key: "hr_portal", label: "Whole HR portal" },
+  ];
+  const flagFor = (k) => (flags.flags || []).find((f) => f.key === k);
   const renderEmergency = () => (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 8 }}>
         <span style={{ width: 40, height: 40, borderRadius: 12, background: "#FDECEC", color: "#E15656", display: "grid", placeItems: "center" }}><Ico n="emergency" size={21} color="#E15656" /></span>
         <div><h1 style={h1}>Emergency</h1><p style={sub}>Serious controls, held to confirm and always logged</p></div>
       </div>
-      {infoBanner("Kill switches, maintenance mode, break-glass and incident banners need the Phase 4 feature-flags backend and live app gating. They are shown here as the target model, disabled until that ships — never a fake toggle.")}
-      <div style={{ border: "1px solid #F6D9D9", background: "#FEF7F7", borderRadius: 22, padding: 24 }}>
+      {flags.data_state !== "real" && infoBanner(flags.reason || "Apply migration 051_feature_flags to enable live kill switches.")}
+      <div style={{ border: "1px solid #F6D9D9", background: "#FEF7F7", borderRadius: 22, padding: 24, marginBottom: 16 }}>
         <h2 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 700, color: "#B84343" }}>Kill switches</h2>
-        <p style={{ margin: "0 0 18px", fontSize: 13, color: "#B58A8A" }}>Held to confirm, instant, no deploy — once the feature-flags table gates each feature live.</p>
+        <p style={{ margin: "0 0 18px", fontSize: 13, color: "#B58A8A" }}>Hold to flip. Takes effect live, no deploy. Every flip is audited. Off means the feature is disabled for everyone.</p>
         <div className="adv3-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-          {["Candidate checkout", "HR checkout", "AI evaluation", "ATS checker", "PDF export", "Whole HR portal"].map((label) => (
-            <div key={label} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, opacity: 0.7 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}><span style={{ fontSize: 13.5, fontWeight: 700 }}>{label}</span><span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: "#E6F7F0", borderRadius: 999, padding: "3px 9px" }}>On</span></div>
-              <button type="button" disabled style={{ width: "100%", height: 40, borderRadius: 11, border: "1px solid var(--border2)", background: "var(--surface2)", color: "var(--muted2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "not-allowed" }}>Phase 4</button>
+          {KILLS.map((k) => { const f = flagFor(k.key); const on = f ? f.enabled !== false : true; return (
+            <div key={k.key} style={{ background: "var(--card)", border: `1px solid ${on ? "var(--border)" : "#F3C7C7"}`, borderRadius: 16, padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}><span style={{ fontSize: 13.5, fontWeight: 700 }}>{k.label}</span><span style={{ fontSize: 11, fontWeight: 700, color: on ? GREEN : RED, background: on ? "#E6F7F0" : "#FDECEC", borderRadius: 999, padding: "3px 9px" }}>{on ? "On" : "Off"}</span></div>
+              <HoldButton onConfirm={() => act("flag_set", { key: k.key, enabled: !on, confirm: "CONFIRM" }, on ? `Turn off ${k.label}` : `Turn on ${k.label}`)} style={{ width: "100%", height: 40, borderRadius: 11, border: "1px solid #F3C7C7", background: "#FDF1F1", color: RED, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{on ? "hold to turn off" : "hold to turn on"}</HoldButton>
             </div>
-          ))}
+          ); })}
+        </div>
+      </div>
+      <div className="adv3-card" style={{ padding: 22 }}>
+        <h2 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700 }}>Incident banner</h2>
+        <p style={{ margin: "0 0 13px", fontSize: 13, color: "var(--muted)" }}>Show a calm status message to a portal. The app reads it live.</p>
+        <textarea value={incidentMsg} onChange={(e) => setIncidentMsg(e.target.value)} placeholder="We are looking into checkout issues and expect a fix shortly." style={{ width: "100%", height: 70, resize: "none", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border2)", color: "var(--text)", fontFamily: "inherit", fontSize: 13.5, padding: "12px 14px", outline: "none", boxSizing: "border-box" }} />
+        <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+          <select value={incidentPortal} onChange={(e) => setIncidentPortal(e.target.value)} style={{ borderRadius: 11, background: "var(--surface2)", border: "1px solid var(--border2)", color: "var(--text)", fontFamily: "inherit", fontSize: 13, padding: "11px 14px" }}>
+            <option value="both">Both portals</option><option value="candidate">Candidate</option><option value="hr">HR</option>
+          </select>
+          <button type="button" onClick={() => act("set_incident", { message: incidentMsg, portal: incidentPortal, active: true, confirm: "CONFIRM" }, "Incident pushed")} disabled={!incidentMsg.trim()} style={{ fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, color: "#fff", background: incidentMsg.trim() ? "#E15656" : "#C9CFDB", border: 0, borderRadius: 11, padding: "11px 18px", cursor: incidentMsg.trim() ? "pointer" : "not-allowed" }}>Push banner</button>
+          <button type="button" onClick={() => act("set_incident", { message: "", active: false, confirm: "CONFIRM" }, "Incident cleared")} style={{ fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, color: "var(--soft)", background: "var(--card)", border: "1px solid var(--border2)", borderRadius: 11, padding: "11px 18px", cursor: "pointer" }}>Clear</button>
+          {flagFor("incident_banner")?.enabled && <span style={{ alignSelf: "center", fontSize: 12, fontWeight: 700, color: "#E15656" }}>banner live</span>}
         </div>
       </div>
     </>
@@ -525,19 +555,33 @@ export default function AdminPanelV3({ preview }) {
       </div>
     </>
   );
-  const renderAnalytics = () => (
-    <>
-      {sectionTitle("Analytics", "Product analytics from PostHog, web analytics from Google")}
-      <div className="adv3-card" style={{ padding: 22, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>PostHog</h2><span style={{ fontSize: 11, fontWeight: 700, color: GREEN, background: "#E6F7F0", borderRadius: 999, padding: "3px 10px" }}>Connected</span></div>
-        <p style={{ fontSize: 13, color: "var(--muted)" }}>Events flow to PostHog (candidate + HR). A server read-back endpoint (needs a PostHog personal API key + project id) fills the WAU / activation / retention tiles.</p>
-      </div>
-      <div className="adv3-card" style={{ padding: 22 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Google Analytics</h2><Badge kind="ga" /></div>
-        <p style={{ fontSize: 13, color: "var(--muted2)" }}>Connect a GA4 property and add the measurement id + a service account (Data API) to fill Sessions / Traffic / Landing pages. No numbers are shown until then.</p>
-      </div>
-    </>
-  );
+  const renderAnalytics = () => {
+    const ph = analytics?.posthog || { data_state: "needs_wiring", tiles: [] };
+    const phTiles = ph.tiles && ph.tiles.length ? ph.tiles : [{ label: "Weekly active users", value: "—" }, { label: "Activation rate", value: "—" }, { label: "30 day retention", value: "—" }];
+    return (
+      <>
+        {sectionTitle("Analytics", "Product analytics from PostHog, web analytics from Google")}
+        <div className="adv3-card" style={{ padding: 22, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>PostHog</h2><Badge kind={ph.data_state === "real" ? "live" : "needs_wiring"} /></div>
+          <div className="adv3-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+            {phTiles.map((t) => (
+              <div key={t.label} style={{ border: "1px solid var(--border)", borderRadius: 16, padding: 16, background: "var(--surface3)" }}><p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)" }}>{t.label}</p><p style={{ margin: "10px 0 0", fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em" }}>{t.value}</p></div>
+            ))}
+          </div>
+          {ph.data_state !== "real" && <p style={{ margin: "14px 2px 0", fontSize: 12, color: "var(--muted2)" }}>{ph.reason || "Set POSTHOG_PERSONAL_API_KEY + POSTHOG_PROJECT_ID to fill these."}</p>}
+        </div>
+        <div className="adv3-card" style={{ padding: 22 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Google Analytics</h2><Badge kind="ga" /></div>
+          <div className="adv3-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+            {["Sessions", "Traffic sources", "Landing pages"].map((l) => (
+              <div key={l} style={{ border: "1px dashed #E6D9B8", borderRadius: 16, padding: 16, background: "#FEFBF3" }}><p style={{ margin: 0, fontSize: 12.5, color: "var(--muted)" }}>{l}</p><p style={{ margin: "10px 0 0", fontSize: 20, fontWeight: 800, color: AMBER }}>—</p></div>
+            ))}
+          </div>
+          <p style={{ margin: "14px 2px 0", fontSize: 12, color: "var(--muted2)" }}>{analytics?.ga?.reason || "Connect a GA4 property id + service account (Data API) to fill these."}</p>
+        </div>
+      </>
+    );
+  };
   const renderProspects = () => (
     <>
       {sectionTitle("Prospect radar", "A read only B2B outreach list for the HR side")}

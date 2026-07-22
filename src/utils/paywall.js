@@ -63,6 +63,16 @@ export async function getPaymentLink(rawFeature, userId, userEmail) {
   // Every call to this function IS an upgrade-CTA click (access-holders
   // never reach it — handlePaywallClick short-circuits them).
   logEvent('upgrade_clicked', eventProps);
+  // Live kill switch: if candidate checkout is turned off in the admin
+  // command center (feature_flags.candidate_checkout = false), no link is
+  // issued. Fail-open — a flag read error leaves checkout working.
+  try {
+    const { isFeatureOff } = await import('../lib/featureFlags');
+    if (await isFeatureOff('candidate_checkout')) {
+      logEvent('checkout_blocked', eventProps);
+      return null;
+    }
+  } catch { /* flag unavailable → checkout stays on */ }
   try {
     if (!userId) {
       const { supabase } = await import('../supabaseClient');

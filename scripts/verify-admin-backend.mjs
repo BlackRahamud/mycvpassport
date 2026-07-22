@@ -33,6 +33,7 @@ import {
   addCredits,
 } from '../src/lib/admin/lifecycle.js';
 import { plansList, planUpsert, planDelete } from '../src/lib/admin/plans.js';
+import { flagsList, flagSet, setIncident } from '../src/lib/admin/flags.js';
 
 const OWNER = 'connectingjunaidkhan@gmail.com';
 const ACTOR = { id: 'admin-1', email: OWNER };
@@ -396,6 +397,35 @@ async function run() {
     const delOk = new FakeDb({ plans: { single: { slug: 'promo_pass', immutable: false } } });
     const rdel = await planDelete(delOk, { actor: ACTOR, slug: 'promo_pass' });
     check('deletable plan removed + audited', rdel.ok && delOk.calls.some((c) => c.table === 'plans' && c.op === 'delete') && audits(delOk).some((a) => a.payload.action === 'plan_delete'));
+  }
+
+  // ── 22. Phase 4: feature flags (kill switches) + incident
+  console.log('\n22. feature flags — confirm-gated + audited');
+  {
+    const list = new FakeDb({ feature_flags: { list: [{ key: 'candidate_checkout', enabled: true }] } });
+    const rl = await flagsList(list);
+    check('flags_list real when populated', rl.ok && rl.data_state === 'real');
+
+    const noConfirm = await flagSet(new FakeDb({ feature_flags: { single: { key: 'ai_evaluation', enabled: true } } }), { actor: ACTOR, key: 'ai_evaluation', enabled: false });
+    check('flag flip without confirm refused', noConfirm.ok === false && noConfirm.reason === 'confirm_required');
+
+    const unknown = await flagSet(new FakeDb({}), { actor: ACTOR, key: 'made_up', enabled: false, confirm: 'CONFIRM' });
+    check('unknown flag refused', unknown.ok === false && unknown.reason === 'unknown_flag');
+
+    const off = new FakeDb({ feature_flags: { single: { key: 'ai_evaluation', enabled: true } } });
+    const ro = await flagSet(off, { actor: ACTOR, key: 'ai_evaluation', enabled: false, confirm: 'CONFIRM' });
+    const up = off.calls.find((c) => c.table === 'feature_flags' && c.op === 'upsert');
+    check('kill switch turns feature off', ro.ok && ro.enabled === false && up?.payload?.enabled === false);
+    check('flag flip audited', audits(off).some((a) => a.payload.action === 'feature_flag'));
+
+    const inc = new FakeDb({ feature_flags: { single: null } });
+    const ri = await setIncident(inc, { actor: ACTOR, message: 'Checkout is slow', portal: 'candidate', active: true, confirm: 'CONFIRM' });
+    const upi = inc.calls.find((c) => c.table === 'feature_flags' && c.op === 'upsert');
+    check('incident banner set (active + message)', ri.ok && upi?.payload?.enabled === true && upi?.payload?.value?.message === 'Checkout is slow');
+    check('incident audited', audits(inc).some((a) => a.payload.action === 'incident_banner'));
+
+    const noMsg = await setIncident(new FakeDb({ feature_flags: { single: null } }), { actor: ACTOR, message: '', active: true, confirm: 'CONFIRM' });
+    check('active incident with no message refused', noMsg.ok === false && noMsg.reason === 'message_required');
   }
 
   console.log(`\n${'='.repeat(48)}`);

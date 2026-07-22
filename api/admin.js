@@ -41,6 +41,7 @@ import {
   addCredits,
 } from '../src/lib/admin/lifecycle.js';
 import { plansList, planUpsert, planDelete } from '../src/lib/admin/plans.js';
+import { flagsList, flagSet, setIncident } from '../src/lib/admin/flags.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -131,6 +132,32 @@ async function gatewayRefund({ provider, paymentIntentId, amountMinor, test }) {
 }
 
 const gateways = { ziinaLink, razorpayLink, refund: gatewayRefund };
+
+// ── Analytics read-back (PostHog). Needs a PERSONAL API key + project id;
+// returns needs_setup honestly when they are absent, never fabricated numbers.
+async function analyticsSummary() {
+  const key = process.env.POSTHOG_PERSONAL_API_KEY;
+  const projectId = process.env.POSTHOG_PROJECT_ID;
+  const host = process.env.POSTHOG_HOST || process.env.REACT_APP_POSTHOG_HOST || 'https://eu.posthog.com';
+  const ga = { data_state: 'ga', reason: 'Add a GA4 property id + service account (Data API) to fill Sessions / Traffic / Landing pages.' };
+  if (!key || !projectId) {
+    return { ok: true, posthog: { data_state: 'needs_wiring', reason: 'Set POSTHOG_PERSONAL_API_KEY + POSTHOG_PROJECT_ID to fill the PostHog tiles.', tiles: [] }, ga };
+  }
+  try {
+    const q = { query: { kind: 'HogQLQuery', query: "select count(distinct person_id) as wau from events where timestamp > now() - interval 7 day" } };
+    const res = await fetch(`${host}/api/projects/${projectId}/query/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify(q),
+    });
+    const data = await res.json();
+    if (!res.ok) return { ok: true, posthog: { data_state: 'needs_wiring', reason: `PostHog query failed: ${JSON.stringify(data).slice(0, 200)}`, tiles: [] }, ga };
+    const wau = data?.results?.[0]?.[0] ?? null;
+    return { ok: true, posthog: { data_state: 'real', tiles: [{ label: 'Weekly active users', value: wau == null ? '—' : String(wau) }] }, ga };
+  } catch (e) {
+    return { ok: true, posthog: { data_state: 'needs_wiring', reason: `PostHog read failed: ${e.message}`, tiles: [] }, ga };
+  }
+}
 
 // ── Auth calls (Supabase auth-admin + anon) injected into lifecycle.js.
 // resetPassword/resendSignup use the anon client so Supabase sends the email
@@ -238,6 +265,15 @@ export default async function handler(req, res) {
         return res.status(200).json(await planUpsert(db, { ...body, actor }));
       case 'plan_delete':
         return res.status(200).json(await planDelete(db, { ...body, actor }));
+      // ── Phase 4: feature flags + analytics ──
+      case 'flags_list':
+        return res.status(200).json(await flagsList(db));
+      case 'flag_set':
+        return res.status(200).json(await flagSet(db, { ...body, actor }));
+      case 'set_incident':
+        return res.status(200).json(await setIncident(db, { ...body, actor }));
+      case 'analytics':
+        return res.status(200).json(await analyticsSummary());
       default:
         return res.status(400).json({ error: 'Invalid or missing action' });
     }
