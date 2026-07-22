@@ -33,6 +33,11 @@
     <link rel="preconnect" href="https://www.google-analytics.com" />
     <link rel="dns-prefetch" href="https://eu.i.posthog.com" />
 
+    <!-- DM Sans — used by the candidate dashboard (Candidate Dashboard v2).
+         The CSS is fetched once; the font files load lazily only when a
+         DM Sans element actually renders, so other routes pay nothing. -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet" />
+
     <!-- SEO — title/description are neutral DEFAULTS only. Page-specific
          tags (canonical, og:*) live in each route's <Helmet>: react-helmet-
          async ADDS tags but never removes static ones, so a static canonical

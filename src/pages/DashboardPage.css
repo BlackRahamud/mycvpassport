@@ -1,51 +1,137 @@
-/* Dashboard-scoped styles — all rules scoped to .dashboard-root to avoid
-   global leakage. Loaded via import in DashboardPage.jsx so styles are
-   parsed before first paint (prevents iOS Safari FOUC race). */
+/* ══════════════════════════════════════════════════════════════════
+   Candidate Dashboard v2 — warm cream + amber, emerald + gold accents.
+   Ported pixel-exact from the Claude Design "Candidate Dashboard v2"
+   file (mobile-primary at 390px, plus the desktop layout). Day is the
+   default; night is one tap and persists. Theme is driven by CSS custom
+   properties set on .dashv2-root, so children read var(--token) and the
+   whole surface repaints on toggle.
 
-.dashboard-root {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+   Layout: two faithful subtrees share one data/handler layer. The mobile
+   view (bottom nav) shows below 900px; the desktop view (left sidebar)
+   shows at/above 900px. All rules are scoped to .dashv2-root.
+   ══════════════════════════════════════════════════════════════════ */
+
+.dashv2-root {
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 350ms ease, color 350ms ease;
 }
 
-.dashboard-root .cvp2-sidebar { display: flex; }
-.dashboard-root .cvp2-mobile-topbar { display: none; }
-.dashboard-root .cvp2-main { max-width: 100%; }
-.dashboard-root .cvp2-two-col { grid-template-columns: 1fr 1fr; }
-.dashboard-root .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr); }
+.noscroll::-webkit-scrollbar { display: none; }
+.noscroll { scrollbar-width: none; }
 
-@media (max-width: 1023px) {
-  /* Kill the sidebar CSS variable on mobile so <main> marginLeft
-     resolves to 0 even if inline style wins a specificity race. */
-  .dashboard-root { --sb-width: 0 !important; }
+/* ── View toggles: mobile is the default (primary), desktop at ≥900px ── */
+.dashv2-desktop-view { display: none; }
+.dashv2-mobile-view { display: block; }
 
-  .dashboard-root .cvp2-mobile-topbar { display: flex !important; }
-  .dashboard-root .cvp2-two-col { grid-template-columns: 1fr !important; }
-  .dashboard-root .cvp2-tpl-row { grid-template-columns: repeat(3, 1fr) !important; }
-  .dashboard-root .cvp2-greeting { font-size: 22px !important; }
-  .dashboard-root .cvp2-stats-card { padding: 12px 14px !important; min-height: auto !important; }
-  .dashboard-root .cvp2-stats-val { font-size: 18px !important; }
-  .dashboard-root .cvp2-hero-heading { font-size: 26px !important; }
-  .dashboard-root .cvp2-hero-sub { font-size: 14px !important; }
-  .dashboard-root .cvp2-start-btn { padding: 16px 20px !important; }
-  .dashboard-root .cvp2-start-btn-label { font-size: 13px !important; }
-  .dashboard-root .cvp2-main { padding: 24px 16px !important; }
-  .dashboard-root .cvp2-card { padding: 16px !important; box-sizing: border-box; overflow: hidden; }
-  .dashboard-root .cvp2-cv-item { padding: 10px 0 !important; }
+@media (min-width: 900px) {
+  .dashv2-desktop-view { display: flex; }
+  .dashv2-mobile-view { display: none; }
 }
 
-/* Keyframes moved out of runtime DOM injection — parsed before first paint. */
-@keyframes cvp-pulse-new2 {
-  0%   { box-shadow: 0 0 0 0 rgba(255, 179, 0, 0.25); border-color: #FFB300; }
-  70%  { box-shadow: 0 0 0 6px rgba(255, 179, 0, 0); border-color: #1a1a1a; }
-  100% { box-shadow: 0 0 0 0 rgba(255, 179, 0, 0); border-color: #1a1a1a; }
+/* ── Mobile view ── */
+.dashv2-mv-scroll {
+  min-height: 100vh;
+  padding-top: env(safe-area-inset-top, 0px);
+  /* clear the fixed bottom nav (64px) + home indicator */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+.dashv2-mv-inner { padding: 8px 20px 24px; }
+
+.dashv2-bottomnav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding: 0 8px env(safe-area-inset-bottom, 0px);
+  background: var(--navbar);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  transition: background 350ms ease, border-color 350ms ease;
+}
+.dashv2-tab {
+  flex: 1;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 6px 2px;
+}
+.dashv2-tab__label { font-size: 10px; font-weight: 700; line-height: 1; }
+
+/* ── Desktop view ── */
+.dashv2-shell {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+}
+.dashv2-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  flex: 0 0 228px;
+  height: 100vh;
+  box-sizing: border-box;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  transition: background 350ms ease, border-color 350ms ease;
+}
+.dashv2-main {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 26px 30px 40px;
+  box-sizing: border-box;
+}
+.dashv2-side-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@property --ats-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+/* ── Templates horizontal scroller (mobile) ── */
+.dashv2-tpl-row {
+  display: flex;
+  gap: 13px;
+  overflow-x: auto;
+  margin: 0 -20px;
+  padding: 0 20px 4px;
 }
 
-@keyframes ats-spin-border {
-  to { --ats-angle: 360deg; }
+/* ── Reduced motion: no theme crossfade, no hover transforms ── */
+@media (prefers-reduced-motion: reduce) {
+  .dashv2-root,
+  .dashv2-sidebar,
+  .dashv2-bottomnav,
+  .dashv2-side-item { transition: none !important; }
 }

@@ -13,264 +13,114 @@ import "./DashboardPage.css";
 
 const EASE = "cubic-bezier(0.4,0,0.2,1)";
 
-/* ─── Theme palette ─── */
-const PALETTE = {
-  light: {
-    bg: "#F5F6F8", surface: "#FFFFFF", surfaceSoft: "#F6F7F9", sidebarBg: "#FFFFFF",
-    border: "#E6E8EC", borderStrong: "#D6D9DF",
-    textPrimary: "#0F1115", textSecondary: "#5B616E", textMuted: "#8A909C", textFaint: "#AEB4BE",
-    amber: "#D97706", amberSoft: "rgba(217,119,6,0.10)", amberTile: "rgba(217,119,6,0.14)", amberRing: "rgba(217,119,6,0.28)",
-    green: "#1D9E75", greenSoft: "rgba(29,158,117,0.12)", red: "#D85A30", blue: "#378ADD",
-    onAmber: "#FFFFFF", hover: "#EFF1F4", newCvBg: "#0F1115", newCvText: "#FFFFFF",
-    overlay: "rgba(15,17,21,0.45)", ringTrack: "#E6E8EC",
-  },
-  dark: {
-    bg: "#0A0A0A", surface: "#111111", surfaceSoft: "#141414", sidebarBg: "#060606",
-    border: "#1a1a1a", borderStrong: "#2a2a2a",
-    textPrimary: "#FFFFFF", textSecondary: "#A0A0A0", textMuted: "#666666", textFaint: "#3a3a3a",
-    amber: "#FFB300", amberSoft: "rgba(255,179,0,0.10)", amberTile: "rgba(255,179,0,0.16)", amberRing: "rgba(255,179,0,0.25)",
-    green: "#1D9E75", greenSoft: "rgba(29,158,117,0.12)", red: "#D85A30", blue: "#378ADD",
-    onAmber: "#0A0A0A", hover: "#0e0e0e", newCvBg: "#0A0A0A", newCvText: "#FFFFFF",
-    overlay: "rgba(0,0,0,0.7)", ringTrack: "#1a1a1a",
-  },
+/* ─── Theme palettes (Candidate Dashboard v2). Applied as CSS custom
+   properties on the root, so children read var(--token) and the whole
+   surface repaints on toggle. Day is default; night is one tap. ─── */
+const DAY = {
+  "--bg": "#F6F3EE", "--card": "#FFFFFF", "--card-2": "#FBF8F3", "--sidebar": "#FFFFFF", "--bezel": "#1A1622",
+  "--text": "#17151F", "--soft": "#57535F", "--muted": "#928C99", "--border": "#EAE4DA", "--border-strong": "#D8D2C6",
+  "--track": "#EFEAE1", "--skel": "#E7E1D6",
+  "--hero": "linear-gradient(155deg,#241E38,#141019)",
+  "--gold": "#C8892B", "--gold-strong": "#B0761E", "--gold-soft": "#F4E7D2", "--gold-card": "#F6EAD5", "--gold-border": "#EAD6B4", "--gold-ink": "#8A5A12",
+  "--emerald": "#17845A", "--emerald-soft": "#DDEFE7", "--emerald-card": "#E7F3EC", "--emerald-border": "#CFE7DA", "--emerald-ink": "#0F5C3F",
+  "--jobmatch": "linear-gradient(135deg,#B0761E,#C8892B)", "--navbar": "rgba(255,255,255,0.9)",
+  "--ink-btn": "#17151F", "--ink-btn-fg": "#FFFFFF",
+  "--card-shadow": "0 10px 24px -18px rgba(23,21,31,0.3)",
+  "--shadow": "0 2px 4px rgba(23,21,31,0.04), 0 14px 34px -20px rgba(23,21,31,0.18)",
+  "--danger": "#C2410C", "--overlay": "rgba(23,21,31,0.45)", "--hover": "#F1ECE4",
+};
+const NIGHT = {
+  "--bg": "#0C0B10", "--card": "#17141E", "--card-2": "#1C1826", "--sidebar": "#100E16", "--bezel": "#000000",
+  "--text": "#F4F2F7", "--soft": "#B9B4C2", "--muted": "#7C7686", "--border": "#241F2E", "--border-strong": "#322B3E",
+  "--track": "#241F2E", "--skel": "#2A2434",
+  "--hero": "linear-gradient(155deg,#2A2340,#151019)",
+  "--gold": "#E0A458", "--gold-strong": "#E0A458", "--gold-soft": "rgba(224,164,88,0.16)", "--gold-card": "rgba(224,164,88,0.10)", "--gold-border": "rgba(224,164,88,0.24)", "--gold-ink": "#E0A458",
+  "--emerald": "#2DBB86", "--emerald-soft": "rgba(45,187,134,0.16)", "--emerald-card": "rgba(45,187,134,0.10)", "--emerald-border": "rgba(45,187,134,0.24)", "--emerald-ink": "#2DBB86",
+  "--jobmatch": "linear-gradient(135deg,#B0761E,#E0A458)", "--navbar": "rgba(20,18,26,0.85)",
+  "--ink-btn": "#FFFFFF", "--ink-btn-fg": "#0C0B10",
+  "--card-shadow": "0 12px 28px -18px rgba(0,0,0,0.7)",
+  "--shadow": "0 2px 4px rgba(0,0,0,0.4), 0 16px 38px -22px rgba(0,0,0,0.7)",
+  "--danger": "#F97362", "--overlay": "rgba(0,0,0,0.6)", "--hover": "#211C2B",
 };
 
+/* Token references — constant strings that resolve against whichever theme
+   the root sets, so every surface (including the modals) stays in sync. */
+const t = {
+  bg: "var(--bg)", card: "var(--card)", card2: "var(--card-2)",
+  border: "var(--border)", borderStrong: "var(--border-strong)",
+  text: "var(--text)", soft: "var(--soft)", muted: "var(--muted)", track: "var(--track)",
+  gold: "var(--gold-strong)", goldSoft: "var(--gold-soft)", goldInk: "var(--gold-ink)", goldBorder: "var(--gold-border)",
+  emerald: "var(--emerald)", emeraldSoft: "var(--emerald-soft)", emeraldInk: "var(--emerald-ink)",
+  danger: "var(--danger)", overlay: "var(--overlay)", hover: "var(--hover)",
+  inkBtn: "var(--ink-btn)", inkBtnFg: "var(--ink-btn-fg)",
+  cardShadow: "var(--card-shadow)", shadow: "var(--shadow)",
+};
+
+/* CV row accent tints, cycled by index (matches the design's varied look). */
+const TINTS = ["var(--emerald)", "var(--gold-strong)", "#1A3A5C"];
+
 /* ─── Icons ─── */
-function IconArrowRight({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
-    </svg>
-  );
+function IconArrowRight({ size = 16 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>;
 }
 function IconX({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 6L6 18" /><path d="M6 6l12 12" />
-    </svg>
-  );
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18" /><path d="M6 6l12 12" /></svg>;
 }
-/* Sidebar icons */
-function IconGrid({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
-    </svg>
-  );
+function IconGrid({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>;
 }
-function IconTarget({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
-    </svg>
-  );
+function IconTarget({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></svg>;
 }
-function IconEnvelope({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M22 7l-10 7L2 7" />
-    </svg>
-  );
+function IconCompass({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><polygon points="16 8 10.5 10.5 8 16 13.5 13.5 16 8" /></svg>;
 }
-function IconBolt({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
-    </svg>
-  );
+function IconLinkedIn({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" /><line x1="7" y1="10" x2="7" y2="17" /><circle cx="7" cy="6.5" r="1.1" fill="currentColor" stroke="none" /><path d="M11 17v-4a2.5 2.5 0 0 1 5 0v4" /></svg>;
 }
-function IconTable({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M3 15h18" /><path d="M9 3v18" />
-    </svg>
-  );
+function IconEnvelope({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>;
 }
-function IconLinkedIn({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="3" />
-      <circle cx="8" cy="9" r="0.6" fill="currentColor" />
-      <path d="M8 11.5v5.5" />
-      <path d="M12 11.5v5.5" />
-      <path d="M12 14a2.5 2.5 0 0 1 5 0v3" />
-    </svg>
-  );
+function IconBolt({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L4.5 13H11l-1 9 8.5-11.5H12z" /></svg>;
 }
-function IconCompass({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-    </svg>
-  );
+function IconTable({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="9" x2="9" y2="20" /></svg>;
 }
-function IconMore({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="6" cy="12" r="1.2" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
-      <circle cx="18" cy="12" r="1.2" fill="currentColor" />
-    </svg>
-  );
+function IconUser({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0" /><circle cx="12" cy="7" r="4" /></svg>;
 }
-function IconHelp({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.5 9a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 4" />
-      <circle cx="12" cy="17" r="0.6" fill="currentColor" />
-    </svg>
-  );
+function IconSpark({ size = 17 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l1.9 5.1a3 3 0 0 0 1.8 1.8L20.8 11l-5.1 1.9a3 3 0 0 0-1.8 1.8L12 19.8l-1.9-5.1a3 3 0 0 0-1.8-1.8L3.2 11l5.1-1.9a3 3 0 0 0 1.8-1.8z" /></svg>;
 }
-function IconGear({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9 1.65 1.65 0 004.27 7.18l-.06-.06A2 2 0 117.04 4.29l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
-    </svg>
-  );
+function IconPlus({ size = 16 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
 }
-function IconSpark({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2l1.9 5.8L20 10l-6.1 2.2L12 18l-1.9-5.8L4 10l6.1-2.2L12 2z" />
-    </svg>
-  );
+function IconSun({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>;
 }
-function IconSignOut({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  );
+function IconMoon({ size = 18 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>;
 }
-function IconChat({ size = 13 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  );
+function IconGear({ size = 13 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>;
+}
+function IconSignOut({ size = 13 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
 }
 function IconSmile({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
-    </svg>
-  );
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>;
 }
 function IconMeh({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><line x1="8" y1="15" x2="16" y2="15" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
-    </svg>
-  );
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><line x1="8" y1="15" x2="16" y2="15" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>;
 }
 function IconFrown({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" /><path d="M16 16s-1.5-2-4-2-4 2-4 2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
-    </svg>
-  );
-}
-function IconSun({ size = 17 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="4" />
-      <line x1="12" y1="2" x2="12" y2="4" />
-      <line x1="12" y1="20" x2="12" y2="22" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="2" y1="12" x2="4" y2="12" />
-      <line x1="20" y1="12" x2="22" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>
-  );
-}
-function IconMoon({ size = 17 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  );
-}
-
-/* Theme toggle button — sun in light (click to dark), moon in dark (click to light) */
-function ThemeToggle({ theme, setTheme, t }) {
-  return (
-    <button
-      type="button"
-      aria-label="Switch theme"
-      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      style={{
-        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-        background: t.surface, border: `1px solid ${t.border}`,
-        color: t.textSecondary, display: "grid", placeItems: "center", cursor: "pointer",
-        transition: `background 150ms ${EASE}, color 150ms ${EASE}, border-color 150ms ${EASE}`,
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.color = t.textPrimary; e.currentTarget.style.borderColor = t.borderStrong; }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = t.textSecondary; e.currentTarget.style.borderColor = t.border; }}
-    >
-      {theme === "light" ? <IconSun size={17} /> : <IconMoon size={17} />}
-    </button>
-  );
-}
-
-/* ATS score ring gauge — the hero metric. Colour comes from the existing
-   scoreColor logic (green >= 80, amber >= 60, red below), passed in. */
-/* ATS score ring — self-contained, theme-aware, resolution-independent.
-   Rotation uses the native SVG transform attribute rotate(-90 cx cy) inside a
-   fixed viewBox, so it happens in the drawing's own coordinate space and can
-   never separate from the track the way a CSS transform on the <svg> did at
-   mobile widths. Track and subtext adapt to the theme (light track in day,
-   dark in night); the number and arc use the score band, green >= 80, amber
-   50 to 79, red below 50, grey if not scored. The arc fills from 0 to the
-   score on mount unless reduced motion is on. */
-function ringBand(v, notScored, subColor) {
-  if (notScored) return subColor;
-  if (v >= 80) return "#1D9E75";
-  if (v >= 50) return "#FFB300";
-  return "#D85A30";
-}
-function AtsRing({ score = 0, scored = true, trackColor, subColor }) {
-  const [anim, setAnim] = useState({ on: false, reduce: false });
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mq.matches) { setAnim({ on: true, reduce: true }); return undefined; }
-    const id = setTimeout(() => setAnim({ on: true, reduce: false }), 50);
-    return () => clearTimeout(id);
-  }, []);
-
-  const size = 200, center = size / 2, strokeWidth = 14, radius = center - strokeWidth;
-  const circ = 2 * Math.PI * radius;
-  const v = Math.max(0, Math.min(100, Number(score) || 0));
-  const off = circ - (v / 100) * circ;
-  const notScored = !scored || v <= 0;
-  const band = ringBand(v, notScored, subColor);
-
-  return (
-    <div style={{ width: "100%", maxWidth: 150, margin: "8px auto 0" }}>
-      <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`ATS score ${notScored ? "not yet scored" : v} out of 100`} style={{ width: "100%", height: "auto", display: "block" }}>
-        <circle cx={center} cy={center} r={radius} fill="transparent" stroke={trackColor} strokeWidth={strokeWidth} />
-        <circle
-          cx={center} cy={center} r={radius} fill="transparent" stroke={band} strokeWidth={strokeWidth}
-          strokeDasharray={circ} strokeDashoffset={anim.on ? off : circ} strokeLinecap="butt"
-          transform={`rotate(-90 ${center} ${center})`}
-          style={{ transition: anim.on && !anim.reduce ? "stroke-dashoffset 800ms cubic-bezier(0.4,0,0.2,1)" : "none" }}
-        />
-        <text x={center} y={center - 6} textAnchor="middle" dominantBaseline="central" style={{ fill: band, fontWeight: 800, fontSize: 50, letterSpacing: "-1px" }}>{notScored ? "—" : v}</text>
-        <text x={center} y={center + 30} textAnchor="middle" dominantBaseline="central" style={{ fill: subColor, fontSize: 14, letterSpacing: "0.08em" }}>out of 100</text>
-      </svg>
-    </div>
-  );
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M16 16s-1.5-2-4-2-4 2-4 2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>;
 }
 
 /* ─── Helpers ─── */
 function timeAgo(iso) {
-  if (!iso) return "edited —";
+  if (!iso) return "edited recently";
   const ms = Date.now() - new Date(iso).getTime();
   const m = Math.max(1, Math.floor(ms / 60000));
   if (m < 60) return `edited ${m}m ago`;
@@ -279,6 +129,7 @@ function timeAgo(iso) {
   const d = Math.floor(h / 24);
   return `edited ${d}d ago`;
 }
+/* Greeting derived from the device's local time only — no stored timezone. */
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -292,18 +143,90 @@ function getDisplayName(u) {
   let raw = u?.name;
   if (!raw && u?.email) raw = u.email.split("@")[0];
   raw = String(raw || "User").trim();
-  raw = raw.charAt(0).toUpperCase() + raw.slice(1);
-  if (raw.length > 16) return raw.slice(0, 16) + "…";
-  return raw;
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
-function scoreColor(s) {
-  if (s >= 80) return "#1D9E75";
-  if (s >= 60) return "#FFB300";
-  return "#D85A30";
+
+/* Small day/night toggle — sun in day (tap for night), moon in night. */
+function ThemeToggle({ mode, onToggle, size = 42 }) {
+  return (
+    <button
+      type="button"
+      aria-label={mode === "day" ? "Switch to night mode" : "Switch to day mode"}
+      onClick={onToggle}
+      style={{
+        width: size, height: size, flexShrink: 0, borderRadius: 13,
+        background: t.card, border: `1px solid ${t.border}`, color: t.soft,
+        display: "grid", placeItems: "center", cursor: "pointer",
+        transition: `background 350ms ease, border-color 350ms ease, color 150ms ${EASE}`,
+      }}
+    >
+      {mode === "day" ? <IconSun size={18} /> : <IconMoon size={18} />}
+    </button>
+  );
+}
+
+/* Dark ATS hero with the conic score ring. `big` = the mobile hero (ring
+   centered under the label); otherwise the compact desktop hero. */
+function AtsHero({ score, scored, big }) {
+  const v = Math.max(0, Math.min(100, Number(score) || 0));
+  const pct = scored ? v : 0;
+  const display = scored && v > 0 ? v : "—";
+  const ring = (outer, inner, num, sub) => (
+    <div style={{ position: "relative", width: outer, height: outer, flexShrink: 0, borderRadius: "50%", background: `conic-gradient(#2DBB86 0% ${pct}%, rgba(255,255,255,0.10) ${pct}% 100%)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: inner, height: inner, borderRadius: "50%", background: "#17131F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: num, fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", lineHeight: 1 }}>{display}</span>
+        <span style={{ marginTop: 3, fontSize: sub, color: "rgba(255,255,255,0.5)" }}>out of 100</span>
+      </div>
+    </div>
+  );
+  if (big) {
+    return (
+      <div style={{ position: "relative", borderRadius: 24, overflow: "hidden", background: "var(--hero)", padding: "24px 24px 26px", marginBottom: 14, boxShadow: "0 24px 44px -26px rgba(20,16,30,0.7)", transition: "background 350ms ease" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 100% 0%, rgba(224,164,88,0.28), transparent 58%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.62)" }}>ATS SCORE</p>
+            <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "rgba(255,255,255,0.4)" }}>{scored ? "Target 85+" : "Build a CV first"}</p>
+          </div>
+        </div>
+        <div style={{ position: "relative", display: "flex", justifyContent: "center", paddingTop: 16 }}>{ring(186, 142, 52, 12.5)}</div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ position: "relative", borderRadius: 20, overflow: "hidden", background: "var(--hero)", padding: "20px 22px", boxShadow: "0 24px 44px -28px rgba(20,16,30,0.7)", transition: "background 350ms ease" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 100% 0%, rgba(224,164,88,0.28), transparent 58%)", pointerEvents: "none" }} />
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 20 }}>
+        {ring(118, 90, 34, 10)}
+        <div>
+          <p style={{ margin: 0, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.6)" }}>ATS SCORE</p>
+          <p style={{ margin: "6px 0 0", fontSize: 12, color: "rgba(255,255,255,0.42)" }}>{scored ? "Target 85+" : "Build a CV first"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Job match banner (gold gradient) — shared, wired to the real job match. */
+function JobMatchBanner({ onClick, desktop }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: desktop ? 16 : 14, borderRadius: desktop ? 16 : 18, padding: desktop ? "16px 20px" : "16px 18px", marginBottom: desktop ? 22 : 24, background: "var(--jobmatch)", boxShadow: "0 16px 30px -18px rgba(176,118,30,0.7)", transition: "background 350ms ease" }}>
+      <span style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 12, background: "rgba(255,255,255,0.18)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><IconBolt size={20} /></span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: desktop ? 15 : 14.5, fontWeight: 700, color: "#fff" }}>{desktop ? "Run job match on my resume" : "Run job match"}</p>
+        <p style={{ margin: "3px 0 0", fontSize: desktop ? 12.5 : 12, color: "rgba(255,255,255,0.82)", lineHeight: 1.4 }}>{desktop ? "see how your CV matches specific job descriptions" : "see how your CV fits a role"}</p>
+      </div>
+      {desktop ? (
+        <button type="button" onClick={onClick} style={{ height: 42, padding: "0 20px", border: 0, borderRadius: 11, background: "#fff", color: t.gold, fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>Job Match <IconArrowRight size={16} /></button>
+      ) : (
+        <button type="button" onClick={onClick} aria-label="Run job match" style={{ width: 36, height: 36, flexShrink: 0, border: 0, borderRadius: "50%", background: "#fff", color: t.gold, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><IconArrowRight size={17} /></button>
+      )}
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   DASHBOARD PAGE — redesigned
+   DASHBOARD PAGE v2
    ═══════════════════════════════════════════════════════════════════ */
 export default function DashboardPage({
   user,
@@ -312,71 +235,53 @@ export default function DashboardPage({
   resumeList: resumeListProp = [],
   onBuildResume = () => {},
   onEditResume = () => {},
-  onDelete = null,
   onRunATS = () => {},
   onWalkIn = () => {},
   onTemplates = () => {},
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [resumeList, setResumeList] = useState(resumeListProp);
 
-  /* ─── Theme (defaults to light, persisted) ─── */
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem("cvp-dash-theme") || "light"; } catch { return "light"; }
+  /* Theme — day default, persisted. Migrates old light/dark values. */
+  const [mode, setMode] = useState(() => {
+    try { const v = localStorage.getItem("cvp-dash-theme"); return (v === "night" || v === "dark") ? "night" : "day"; } catch { return "day"; }
   });
-  useEffect(() => {
-    try { localStorage.setItem("cvp-dash-theme", theme); } catch { /* storage unavailable */ }
-  }, [theme]);
-  const t = PALETTE[theme] || PALETTE.light;
+  useEffect(() => { try { localStorage.setItem("cvp-dash-theme", mode); } catch { /* storage unavailable */ } }, [mode]);
+  const toggleTheme = () => setMode((m) => (m === "day" ? "night" : "day"));
+  const themeVars = mode === "night" ? NIGHT : DAY;
 
   useEffect(() => { setResumeList(resumeListProp); }, [resumeListProp]);
 
-  // user_type gates the "Switch to Employer" item in the account popover —
-  // shown only for accounts that actually hold the recruiter role.
+  // user_type gates the "Switch to Employer" item in the account popover.
   const [dashUserType, setDashUserType] = useState(null);
   useEffect(() => {
     if (!supabase || !user?.id) return undefined;
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", user.id)
-          .maybeSingle();
+        const { data } = await supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle();
         if (!cancelled) setDashUserType(data?.user_type || null);
-      } catch { /* switcher simply stays hidden */ }
+      } catch { /* switcher stays hidden */ }
     })();
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  // Keep the CV list fresh (initial load + on tab focus).
   useEffect(() => {
     if (!user?.id) return undefined;
     let cancelled = false;
     const refetch = async () => {
-      try {
-        const data = await loadUserResumes(user.id);
-        if (!cancelled) setResumeList(data || []);
-      } catch (err) {
-        console.error("[Dashboard] refetch failed", err);
-      }
+      try { const data = await loadUserResumes(user.id); if (!cancelled) setResumeList(data || []); }
+      catch (err) { console.error("[Dashboard] refetch failed", err); }
     };
     refetch();
     const onVis = () => { if (document.visibilityState === "visible") refetch(); };
     document.addEventListener("visibilitychange", onVis);
-    return () => {
-      cancelled = true;
-      document.removeEventListener("visibilitychange", onVis);
-    };
+    return () => { cancelled = true; document.removeEventListener("visibilitychange", onVis); };
   }, [user?.id]);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const fabRouteTab = location.state?.fabGuideTab === "account" ? "account" : "mycvs";
 
-  // Glovebox interceptor — if the user landed on /dashboard because the
-  // useCvpAuth allow-list defaulted here, but they actually had a pending
-  // journey (e.g. LinkedIn unlock), bounce them to the correct lane before
-  // the dashboard paints. Does not clear sessionStorage — the destination
-  // component owns consumption so its layout-effect can restore state.
+  // Glovebox interceptor — bounce to a pending journey (e.g. LinkedIn unlock).
   useEffect(() => {
     let saved;
     try { saved = sessionStorage.getItem("cvp_pending_journey"); } catch { saved = null; }
@@ -387,28 +292,30 @@ export default function DashboardPage({
         sessionStorage.removeItem("cvp_pending_journey");
         navigate("/linkedin-optimizer", { replace: true });
       }
-    } catch { /* corrupt payload — let the destination clean it up */ }
+    } catch { /* corrupt payload */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [active, setActive] = useState("mycvs");
+  const [mobileTab, setMobileTab] = useState("mycvs");
   const [lobbyOpen, setLobbyOpen] = useState(false);
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [cancelStep, setCancelStep] = useState(0);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackSentiment, setFeedbackSentiment] = useState(null); // 'positive' | 'neutral' | 'negative'
+  const [feedbackSentiment, setFeedbackSentiment] = useState(null);
   const [feedbackContext, setFeedbackContext] = useState("");
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [feedbackError, setFeedbackError] = useState(null);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
-  const [mobileTab, setMobileTab] = useState("mycvs");
-  const [moreOpen, setMoreOpen] = useState(false);
   const userCardRef = useRef(null);
   const userPopoverRef = useRef(null);
 
-  // Outside-click + Escape close for the user popover
+  useEffect(() => { writeFabMemory({ lastTabVisited: active }); }, [active]);
+  useEffect(() => { if (planModalOpen) setCancelStep(0); }, [planModalOpen]);
+
+  // Outside-click + Escape close for the desktop user popover.
   useEffect(() => {
     if (!userPopoverOpen) return undefined;
     function onDoc(e) {
@@ -419,13 +326,9 @@ export default function DashboardPage({
     function onKey(e) { if (e.key === "Escape") setUserPopoverOpen(false); }
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
   }, [userPopoverOpen]);
 
-  // Escape closes the feedback modal
   useEffect(() => {
     if (!feedbackOpen) return undefined;
     function onKey(e) { if (e.key === "Escape") setFeedbackOpen(false); }
@@ -433,50 +336,215 @@ export default function DashboardPage({
     return () => document.removeEventListener("keydown", onKey);
   }, [feedbackOpen]);
 
-  useEffect(() => { writeFabMemory({ lastTabVisited: active }); }, [active]);
-  useEffect(() => { if (planModalOpen) setCancelStep(0); }, [planModalOpen]);
-
-  // Honor ?tab=ats from post-auth redirects (e.g. ATSPreview CTA on landing)
+  // Honor ?tab=ats from post-auth redirects.
   const atsDeeplinkHandledRef = useRef(false);
   useEffect(() => {
     if (atsDeeplinkHandledRef.current) return;
     const params = new URLSearchParams(location.search);
-    if (params.get("tab") === "ats") {
-      atsDeeplinkHandledRef.current = true;
-      onRunATS();
-    }
+    if (params.get("tab") === "ats") { atsDeeplinkHandledRef.current = true; onRunATS(); }
   }, [location.search, onRunATS]);
 
-  /* + New CV click — first-CV users see the lobby; returning users jump straight to a blank builder */
+  /* + New CV — first-CV users see the lobby; returning users go to a blank builder. */
   const handleStartNewCv = () => {
-    if (resumeList.length === 0) {
-      setLobbyOpen(true);
-    } else {
-      onBuildResume();
-    }
+    if (resumeList.length === 0) setLobbyOpen(true);
+    else onBuildResume();
   };
+  const openAccount = () => setPlanModalOpen(true);
+  const runJobMatch = () => navigate("/builder?tab=jobmatch");
 
   const planLabel = isPro ? "Pro" : "Free";
   const isPaid = isPro;
-
   const initials = useMemo(() => {
     const parts = String(user?.name || "").trim().split(/\s+/).filter(Boolean);
-    const a = parts[0]?.[0] || "U";
-    const b = parts[1]?.[0] || "";
-    return (a + b).toUpperCase();
+    return ((parts[0]?.[0] || "U") + (parts[1]?.[0] || "")).toUpperCase();
   }, [user?.name]);
 
-  const resetFeedback = () => {
-    setFeedbackText("");
-    setFeedbackContext("");
-    setFeedbackSentiment(null);
-    setFeedbackError(null);
+  const lastResume = resumeList[0];
+  const lastTitle = lastResume?.title || lastResume?.cv_data?.personalInfo?.fullName || lastResume?.cv_data?.name || lastResume?.name || null;
+  const firstCv = lastResume?.cv_data || null;
+  const firstStrength = firstCv ? getStrength(firstCv) : 0;
+  const scored = resumeList.length > 0 && firstStrength > 0;
+
+  /* CV rows (real, clickable to open/edit). */
+  const cvRows = resumeList.slice(0, 3).map((r, idx) => {
+    const raw = r?.title || r?.cv_data?.personalInfo?.fullName || r?.cv_data?.name || r?.name || "My CV";
+    return { r, id: r?.id ?? idx, name: raw, edited: timeAgo(r?.updated_at), score: getStrength(r?.cv_data || r), tint: TINTS[idx % TINTS.length] };
+  });
+
+  /* CV health, derived from the active CV's fields + stored job match. */
+  const healthBars = useMemo(() => {
+    if (!firstCv) return null;
+    const cv = firstCv;
+    const kw = [cv.skills, cv.summary].filter(Boolean).length;
+    const fmt = [cv.name, cv.title, cv.email, cv.phone, cv.location].filter(Boolean).length;
+    const ach = [
+      Array.isArray(cv.experience) && cv.experience.some((e) => e?.company || e?.role),
+      Array.isArray(cv.education) && cv.education.some((e) => e?.school || e?.degree),
+    ].filter(Boolean).length;
+    return {
+      keywords: Math.min(100, Math.round((kw / 2) * 100)),
+      format: Math.min(100, Math.round((fmt / 5) * 100)),
+      achievements: Math.min(100, Math.round((ach / 2) * 100)),
+    };
+  }, [firstCv]);
+
+  const healthRows = healthBars ? [
+    { label: "Keywords", value: healthBars.keywords },
+    { label: "Format", value: healthBars.format },
+    { label: "Achievements", value: healthBars.achievements },
+    { label: "Job Match", value: lastResume?.job_match_score ?? null },
+  ] : [];
+
+  const tplItems = TEMPLATES.slice(0, 3);
+
+  const greeting = getGreeting();
+  const firstName = getFirstName(user?.name);
+  const displayName = getDisplayName(user);
+  const desktopSub = resumeList.length > 0
+    ? `${displayName.toUpperCase()}${lastTitle ? ` — ${lastTitle}` : ""} · ${timeAgo(lastResume?.updated_at)}`
+    : `${displayName.toUpperCase()} · welcome`;
+
+  /* Nav definitions. */
+  const sideNav = [
+    { id: "mycvs", label: "My CVs", Icon: IconGrid, go: () => setActive("mycvs") },
+    { id: "ats", label: "ATS Check", Icon: IconTarget, go: () => { setActive("ats"); onRunATS(); } },
+    { id: "scout", label: "Scout", Icon: IconCompass, go: () => { setActive("scout"); navigate("/scout"); } },
+    { id: "linkedin", label: "LinkedIn", Icon: IconLinkedIn, go: () => { setActive("linkedin"); navigate("/linkedin-optimizer"); } },
+    { id: "cover", label: "Cover Letter", Icon: IconEnvelope, go: () => { setActive("cover"); navigate("/cover-letter"); } },
+    { id: "walkin", label: "Walk-In Mode", Icon: IconBolt, go: () => { setActive("walkin"); onWalkIn(); } },
+    { id: "templates", label: "Templates", Icon: IconTable, go: () => { setActive("templates"); onTemplates(); } },
+  ];
+  const bottomNav = [
+    { id: "mycvs", label: "My CVs", Icon: IconGrid, go: () => { setMobileTab("mycvs"); window.scrollTo({ top: 0, behavior: "smooth" }); } },
+    { id: "ats", label: "ATS", Icon: IconTarget, go: () => { setMobileTab("ats"); onRunATS(); } },
+    { id: "scout", label: "Scout", Icon: IconCompass, go: () => { setMobileTab("scout"); navigate("/scout"); } },
+    { id: "cover", label: "Cover", Icon: IconEnvelope, go: () => { setMobileTab("cover"); navigate("/cover-letter"); } },
+    { id: "account", label: "Account", Icon: IconUser, go: () => { setMobileTab("account"); openAccount(); } },
+  ];
+
+  /* ── Shared card blocks ── */
+  const CvCard = ({ variant }) => {
+    const desktop = variant === "desktop";
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.01em", color: t.text }}>My CVs</h3>
+          <span role="button" tabIndex={0} onClick={handleStartNewCv} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleStartNewCv(); }} style={{ fontSize: 13, fontWeight: 700, color: t.gold, cursor: "pointer" }}>New</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: desktop ? 10 : 11 }}>
+          {cvRows.length === 0 ? (
+            <div style={{ fontSize: 13, color: t.muted, padding: "14px 0" }}>No CVs yet. Tap New to build your first.</div>
+          ) : cvRows.map((cv) => (
+            <div
+              key={cv.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onEditResume(cv.r)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEditResume(cv.r); }}
+              style={{ display: "flex", alignItems: "center", gap: 13, padding: desktop ? "13px 14px" : 14, borderRadius: desktop ? 14 : 16, background: t.card, border: `1px solid ${t.border}`, boxShadow: desktop ? "none" : t.cardShadow, cursor: "pointer" }}
+            >
+              <span style={{ width: desktop ? 34 : 40, height: desktop ? 42 : 48, flexShrink: 0, borderRadius: desktop ? 7 : 8, background: t.card2, border: `1px solid ${t.border}`, position: "relative", overflow: "hidden" }}>
+                <span style={{ position: "absolute", top: 0, left: 0, right: 0, height: desktop ? 10 : 11, background: cv.tint }} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cv.name}</p>
+                <p style={{ margin: `${desktop ? 3 : 4}px 0 0`, fontSize: 11.5, color: t.muted }}>{cv.edited}</p>
+              </div>
+              <span style={{ width: desktop ? 38 : 40, height: desktop ? 38 : 40, flexShrink: 0, borderRadius: desktop ? 10 : 11, background: t.emeraldSoft, color: t.emerald, fontSize: desktop ? 13.5 : 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{cv.score > 0 ? cv.score : "—"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
-  // Persists to the `candidate_feedback` table (pending sign-off — see PR note).
-  // Insert-own only under RLS; user_id defaults to auth.uid() server-side.
-  // Validates length client-side; the panel stays open with an honest error
-  // if the insert fails so nothing is silently lost.
+  const HealthCard = ({ variant }) => {
+    const desktop = variant === "desktop";
+    return (
+      <div style={{ borderRadius: 18, padding: desktop ? "18px 20px 6px" : "18px 18px 6px", background: t.card, border: `1px solid ${t.border}`, boxShadow: desktop ? "none" : t.cardShadow, alignSelf: "start" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em", color: t.text }}>CV Health</h3>
+          <span role="button" tabIndex={0} onClick={() => onRunATS()} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onRunATS(); }} style={{ fontSize: 12.5, fontWeight: 700, color: t.gold, cursor: "pointer" }}>Full report →</span>
+        </div>
+        {healthRows.length === 0 ? (
+          <div style={{ fontSize: 13, color: t.muted, padding: "16px 0" }}>Build a CV to see health data.</div>
+        ) : healthRows.map((h, i) => {
+          const present = h.value != null;
+          const pct = present ? `${Math.max(0, Math.min(100, h.value))}%` : "0%";
+          return (
+            <div key={h.label} style={{ display: "flex", alignItems: "center", gap: 12, padding: `${desktop ? 14 : 13}px 0`, borderBottom: i === healthRows.length - 1 ? "none" : `1px solid ${t.border}` }}>
+              <span style={{ flex: 1, fontSize: desktop ? 14 : 13.5, color: t.soft, fontWeight: 500 }}>{h.label}</span>
+              <div style={{ width: desktop ? 90 : 74, height: 6, borderRadius: 999, background: t.track, overflow: "hidden" }}>
+                <div style={{ width: pct, height: "100%", borderRadius: 999, background: present ? t.emerald : "transparent" }} />
+              </div>
+              <span style={{ minWidth: desktop ? 36 : 34, textAlign: "right", fontSize: desktop ? 15 : 14, fontWeight: 800, color: present ? t.text : t.muted }}>{present ? h.value : "—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const StatTile = ({ kind }) => {
+    if (kind === "cvs") {
+      return (
+        <div style={{ borderRadius: 20, padding: 18, background: "var(--emerald-card)", border: "1px solid var(--emerald-border)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <p style={{ margin: 0, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: t.emerald }}>CVS BUILT</p>
+            <IconGrid size={17} />
+          </div>
+          <p style={{ margin: "16px 0 0", fontSize: 40, fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 0.9, color: t.emeraldInk }}>{resumeList.length}</p>
+          <p style={{ margin: "9px 0 0", fontSize: 11.5, color: t.emerald, opacity: 0.85 }}>{lastResume ? timeAgo(lastResume?.updated_at) : "start below"}</p>
+        </div>
+      );
+    }
+    return (
+      <div style={{ borderRadius: 20, padding: 18, background: "var(--gold-card)", border: "1px solid var(--gold-border)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <p style={{ margin: 0, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: t.gold }}>PLAN</p>
+          <IconSpark size={17} />
+        </div>
+        <p style={{ margin: "12px 0 0", fontSize: 34, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1, color: t.goldInk }}>{planLabel}</p>
+        {isPaid ? (
+          <span style={{ display: "inline-flex", alignItems: "center", marginTop: 12, fontSize: 11, fontWeight: 700, color: t.emerald, background: t.emeraldSoft, borderRadius: 7, padding: "4px 10px" }}>Active</span>
+        ) : (
+          <span role="button" tabIndex={0} onClick={() => navigate("/pricing")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/pricing"); }} style={{ display: "inline-flex", alignItems: "center", marginTop: 12, fontSize: 12, fontWeight: 700, color: t.gold, cursor: "pointer" }}>Upgrade →</span>
+        )}
+      </div>
+    );
+  };
+
+  const TemplatesStrip = () => (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, letterSpacing: "-0.01em", color: t.text }}>Templates</h3>
+        <span role="button" tabIndex={0} onClick={() => navigate("/templates")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/templates"); }} style={{ fontSize: 13, fontWeight: 700, color: t.gold, cursor: "pointer" }}>View all →</span>
+      </div>
+      <div className="noscroll dashv2-tpl-row">
+        {tplItems.map((tpl, i) => (
+          <button
+            key={tpl.id}
+            type="button"
+            onClick={() => navigate("/builder", { state: { cvpInitialTemplateId: tpl.id } })}
+            style={{ flex: "0 0 148px", textAlign: "left", padding: 0, borderRadius: 16, overflow: "hidden", background: t.card, border: `1px solid ${t.border}`, boxShadow: t.cardShadow, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            <div style={{ height: 104, background: t.card2, padding: 16, borderBottom: `1px solid ${t.border}`, boxSizing: "border-box" }}>
+              <div style={{ height: 5, width: "56%", borderRadius: 3, background: TINTS[i % TINTS.length], marginBottom: 11 }} />
+              <div style={{ height: 3.5, width: "90%", borderRadius: 2, background: "var(--skel)", marginBottom: 7 }} />
+              <div style={{ height: 3.5, width: "74%", borderRadius: 2, background: "var(--skel)", marginBottom: 7 }} />
+              <div style={{ height: 3.5, width: "82%", borderRadius: 2, background: "var(--skel)" }} />
+            </div>
+            <div style={{ padding: "12px 14px 14px" }}>
+              <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tpl.name}</p>
+              <span style={{ display: "inline-flex", fontSize: 10.5, fontWeight: 700, color: t.emerald, background: t.emeraldSoft, borderRadius: 6, padding: "3px 8px" }}>ATS-ready</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const resetFeedback = () => { setFeedbackText(""); setFeedbackContext(""); setFeedbackSentiment(null); setFeedbackError(null); };
   const handleFeedbackSend = async () => {
     const message = feedbackText.trim();
     if (!message || feedbackSending) return;
@@ -485,906 +553,154 @@ export default function DashboardPage({
     try {
       if (!supabase) throw new Error("offline");
       const { error } = await supabase.from("candidate_feedback").insert({
-        message: message.slice(0, 4000),
-        sentiment: feedbackSentiment,
-        context: feedbackContext.trim().slice(0, 500) || null,
-        page: "/dashboard",
+        message: message.slice(0, 4000), sentiment: feedbackSentiment,
+        context: feedbackContext.trim().slice(0, 500) || null, page: "/dashboard",
       });
       if (error) throw error;
       setFeedbackSent(true);
-      setTimeout(() => {
-        setFeedbackSent(false);
-        setFeedbackOpen(false);
-        resetFeedback();
-      }, 1600);
-    } catch (e) {
-      setFeedbackError("Could not send just yet. Please try again in a moment.");
-    } finally {
-      setFeedbackSending(false);
-    }
+      setTimeout(() => { setFeedbackSent(false); setFeedbackOpen(false); resetFeedback(); }, 1600);
+    } catch { setFeedbackError("Could not send just yet. Please try again in a moment."); }
+    finally { setFeedbackSending(false); }
   };
-
-  const handleSignOut = async () => {
-    if (supabase) await supabase.auth.signOut();
-    navigate("/");
-  };
-
-  /* ─── Nav items ─── */
-  const navItems = [
-    { id: "mycvs", label: "My CVs", icon: IconGrid, iconColor: t.textPrimary, action: () => setActive("mycvs") },
-    { id: "ats", label: "ATS Check", icon: IconTarget, iconColor: t.green, action: () => { setActive("ats"); onRunATS(); } },
-    { id: "scout", label: "Scout", icon: IconCompass, iconColor: "#0A66C2", action: () => { setActive("scout"); navigate("/scout"); } },
-    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, iconColor: t.textPrimary, action: () => { setActive("linkedin"); navigate("/linkedin-optimizer"); } },
-    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: t.amber, action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
-    { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: t.red, action: () => { setActive("walkin"); onWalkIn(); } },
-    { id: "templates", label: "Templates", icon: IconTable, iconColor: t.blue, action: () => { setActive("templates"); onTemplates(); } },
-  ];
-
-  /* ─── Mobile tabs ─── */
-  /* LinkedIn lives at center (position 3). Templates moved into the More
-     overflow menu; tapping the More tab opens an upward popover. */
-  const mobileTabs = [
-    { id: "mycvs", label: "My CVs", icon: IconGrid, action: () => setMobileTab("mycvs") },
-    { id: "ats", label: "ATS Check", icon: IconTarget, action: () => { setMobileTab("ats"); onRunATS(); } },
-    { id: "linkedin", label: "LinkedIn", icon: IconLinkedIn, activeColor: t.textPrimary, action: () => { setMobileTab("linkedin"); navigate("/linkedin-optimizer"); } },
-    { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, action: () => { setMobileTab("coverletter"); navigate("/cover-letter"); } },
-    { id: "walkin", label: "Walk-In", icon: IconBolt, action: () => { setMobileTab("walkin"); onWalkIn(); } },
-    { id: "more", label: "More", icon: IconMore, isMore: true, action: () => setMoreOpen((v) => !v) },
-  ];
-
-  const moreItems = [
-    { id: "scout", label: "Scout", icon: IconCompass, action: () => { setMoreOpen(false); setMobileTab("scout"); navigate("/scout"); } },
-    { id: "templates", label: "Templates", icon: IconTable, action: () => { setMoreOpen(false); setMobileTab("templates"); onTemplates(); } },
-  ];
-
-  const lastResume = resumeList[0];
-  const lastTitle = lastResume?.title || lastResume?.cv_data?.name || lastResume?.name || null;
-  const subLine = lastTitle ? `${lastTitle} · ${timeAgo(lastResume?.updated_at)}` : "Welcome — let's build your first CV.";
-
-  /* ─── Strength data for first CV ─── */
-  const firstCv = lastResume?.cv_data || null;
-  const firstStrength = firstCv ? getStrength(firstCv) : 0;
-
-  /* Derive health breakdown from cv fields */
-  const healthBars = useMemo(() => {
-    if (!firstCv) return null;
-    const cv = firstCv;
-    // Keywords: skills + summary
-    const kw = [cv.skills, cv.summary].filter(Boolean).length;
-    const keywords = Math.min(100, Math.round((kw / 2) * 100));
-    // Format: name, title, email, phone, location
-    const fmt = [cv.name, cv.title, cv.email, cv.phone, cv.location].filter(Boolean).length;
-    const format = Math.min(100, Math.round((fmt / 5) * 100));
-    // Achievements: experience + education
-    const ach = [
-      Array.isArray(cv.experience) && cv.experience.some((e) => e?.company || e?.role),
-      Array.isArray(cv.education) && cv.education.some((e) => e?.school || e?.degree),
-    ].filter(Boolean).length;
-    const achievements = Math.min(100, Math.round((ach / 2) * 100));
-    return { keywords, format, achievements };
-  }, [firstCv]);
+  const handleSignOut = async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); };
 
   return (
-    <div className="dashboard-root" data-theme={theme} style={{ "--sb-width": "196px", background: t.bg, color: t.textPrimary, fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", minHeight: "100vh", overflowX: "hidden", transition: `background 200ms ${EASE}, color 200ms ${EASE}` }}>
+    <div className="dashv2-root" data-theme={mode} style={themeVars}>
       <NoIndex />
-        {/* ═══ SIDEBAR ═══ */}
-        <aside
-          className="cvp2-sidebar cvp-sidebar"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "var(--sb-width)",
-            height: "100vh",
-            background: t.sidebarBg,
-            borderRight: `1px solid ${t.border}`,
-            flexDirection: "column",
-            boxSizing: "border-box",
-            overflow: "hidden",
-            zIndex: 100,
-          }}
-        >
-          {/* Section 1 — Logo + Help */}
-          <div style={{ flexShrink: 0, padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <Link
-              to="/"
-              style={{ display: "flex", alignItems: "center", padding: "4px 0 0", color: t.textPrimary, textDecoration: "none" }}
-            >
+
+      {/* ═══════════════ DESKTOP VIEW ═══════════════ */}
+      <div className="dashv2-desktop-view">
+        <div className="dashv2-shell">
+          {/* Sidebar */}
+          <aside className="dashv2-sidebar">
+            <Link to="/" style={{ display: "flex", alignItems: "center", gap: 9, padding: "2px 8px 20px", color: t.text, textDecoration: "none" }}>
               <CVPassportLogo height={20} color="currentColor" />
             </Link>
-            <button
-              type="button"
-              onClick={() => setFeedbackOpen(true)}
-              aria-label="Help & feedback"
-              style={{
-                width: 24, height: 24, borderRadius: 6,
-                background: "transparent", border: "1px solid transparent",
-                color: t.textFaint, cursor: "pointer",
-                display: "grid", placeItems: "center",
-                transition: `background 150ms ${EASE}, color 150ms ${EASE}, border-color 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = t.hover;
-                e.currentTarget.style.borderColor = t.border;
-                e.currentTarget.style.color = t.textPrimary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.borderColor = "transparent";
-                e.currentTarget.style.color = t.textFaint;
-              }}
-            >
-              <IconHelp size={13} />
-            </button>
-          </div>
-
-          {/* Section 2 — Nav container */}
-          <nav style={{ flex: 1, overflowY: "auto", padding: 8 }}>
-            {/* Section label */}
-            <div style={{ fontSize: 9, color: t.textFaint, letterSpacing: "0.1em", textTransform: "uppercase", padding: "0 12px", marginBottom: 6 }}>MENU</div>
-
-            <div style={{ display: "grid", gap: 2 }}>
-              {navItems.map((it) => {
-                const isActive = active === it.id;
-                const Icon = it.icon;
+            <nav style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {sideNav.map((s) => {
+                const on = active === s.id;
                 return (
-                  <button
-                    key={it.id}
-                    type="button"
-                    onClick={it.action}
-                    style={{
-                      minHeight: 44, padding: "0 12px", borderRadius: 10,
-                      fontSize: 13, fontWeight: 500, border: "none",
-                      background: isActive ? t.surface : "transparent",
-                      color: isActive ? t.textPrimary : t.textFaint,
-                      display: "flex", alignItems: "center", gap: 10,
-                      cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                      boxSizing: "border-box",
-                      transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
-                    }}
-                    onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = t.hover; e.currentTarget.style.color = t.textSecondary; } }}
-                    onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = t.textFaint; } }}
+                  <button key={s.id} type="button" onClick={s.go} className="dashv2-side-item"
+                    style={{ background: on ? t.goldSoft : "transparent", color: on ? t.goldInk : t.muted, fontWeight: on ? 700 : 500 }}
+                    onMouseEnter={(e) => { if (!on) { e.currentTarget.style.background = t.hover; e.currentTarget.style.color = t.text; } }}
+                    onMouseLeave={(e) => { if (!on) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = t.muted; } }}
                   >
-                    <span style={{ display: "flex", color: it.iconColor, opacity: isActive ? 1 : 0.4, transition: `opacity 150ms ${EASE}` }}>
-                      <Icon size={13} />
-                    </span>
-                    <span>{it.label}</span>
+                    <span style={{ display: "flex", width: 18 }}><s.Icon size={17} /></span>
+                    <span>{s.label}</span>
                   </button>
                 );
               })}
-            </div>
-          </nav>
-
-          {/* Feedback — opens the sentiment panel */}
-          <div style={{ flexShrink: 0, padding: "0 8px 4px" }}>
-            <button
-              type="button"
-              onClick={() => setFeedbackOpen(true)}
-              style={{
-                width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 10,
-                fontSize: 13, fontWeight: 500, border: "none", background: "transparent",
-                color: t.textFaint, display: "flex", alignItems: "center", gap: 10,
-                cursor: "pointer", textAlign: "left", fontFamily: "inherit", boxSizing: "border-box",
-                transition: `background 150ms ${EASE}, color 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; e.currentTarget.style.color = t.textSecondary; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = t.textFaint; }}
-            >
-              <span style={{ display: "flex", color: t.amber, opacity: 0.5 }}><IconChat size={13} /></span>
-              <span>Feedback</span>
-            </button>
-          </div>
-
-          {/* Section 3 — Bottom (user card + popover) */}
-          <div style={{ flexShrink: 0, padding: 12, position: "relative" }}>
-            {/* Popover (above the card) */}
-            {userPopoverOpen && (
-              <div
-                ref={userPopoverRef}
-                role="menu"
-                style={{
-                  position: "absolute",
-                  left: 12, right: 12,
-                  bottom: "calc(100% - 4px)",
-                  background: t.surfaceSoft,
-                  border: `1px solid ${t.borderStrong}`,
-                  borderRadius: 10,
-                  padding: 6,
-                  boxShadow: "0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.12)",
-                  zIndex: 50,
-                }}
-              >
-                {/* Identity header */}
-                <div style={{
-                  padding: "10px 10px 12px",
-                  borderBottom: `1px solid ${t.border}`,
-                  marginBottom: 4,
-                  display: "flex", alignItems: "center", gap: 10,
-                }}>
-                  <div style={{
-                    width: 30, height: 30, borderRadius: 999, flexShrink: 0,
-                    background: t.surfaceSoft, border: `1px solid ${t.amberRing}`,
-                    display: "grid", placeItems: "center",
-                    fontSize: 10, fontWeight: 700, color: t.amber,
-                  }}>
-                    {initials}
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {getDisplayName(user)}
-                    </div>
-                    {user?.email && (
-                      <div style={{ fontSize: 10, color: t.textMuted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {user.email}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => { setUserPopoverOpen(false); setPlanModalOpen(true); }}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 10,
-                    padding: "8px 10px", background: "transparent",
-                    border: "none", borderRadius: 6,
-                    color: t.textPrimary, fontSize: 12, fontWeight: 500,
-                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                    transition: `background 120ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <span style={{ width: 18, display: "grid", placeItems: "center", color: t.amber }}>
-                    <IconSpark size={13} />
-                  </span>
-                  <span>Upgrade Plan</span>
-                </button>
-
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => { setUserPopoverOpen(false); navigate("/account"); }}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 10,
-                    padding: "8px 10px", background: "transparent",
-                    border: "none", borderRadius: 6,
-                    color: t.textPrimary, fontSize: 12, fontWeight: 500,
-                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                    transition: `background 120ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <span style={{ width: 18, display: "grid", placeItems: "center", color: t.textSecondary }}>
-                    <IconGear size={13} />
-                  </span>
-                  <span>Account Settings</span>
-                </button>
-
-                {(dashUserType === "both" || dashUserType === "recruiter") && (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => { setUserPopoverOpen(false); navigate("/employer/jobs"); }}
-                    style={{
-                      width: "100%", display: "flex", alignItems: "center", gap: 10,
-                      padding: "8px 10px", background: "transparent",
-                      border: "none", borderRadius: 6,
-                      color: t.textPrimary, fontSize: 12, fontWeight: 500,
-                      cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                      transition: `background 120ms ${EASE}`,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                  >
-                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.textSecondary }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                      </svg>
-                    </span>
-                    <span>Switch to Employer</span>
+            </nav>
+            {/* User card + popover */}
+            <div style={{ marginTop: "auto", position: "relative" }}>
+              {userPopoverOpen && (
+                <div ref={userPopoverRef} role="menu" style={{ position: "absolute", left: 0, right: 0, bottom: "calc(100% + 8px)", background: t.card, border: `1px solid ${t.borderStrong}`, borderRadius: 12, padding: 6, boxShadow: t.shadow, zIndex: 50 }}>
+                  <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); setPlanModalOpen(true); }} style={popItem()}>
+                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.gold }}><IconSpark size={13} /></span><span>Upgrade plan</span>
                   </button>
-                )}
-
-                <div style={{ height: 1, background: t.border, margin: "4px 6px" }} />
-
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => { setUserPopoverOpen(false); handleSignOut(); }}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 10,
-                    padding: "8px 10px", background: "transparent",
-                    border: "none", borderRadius: 6,
-                    color: t.red, fontSize: 12, fontWeight: 500,
-                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                    transition: `background 120ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(216,90,48,0.08)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                >
-                  <span style={{ width: 18, display: "grid", placeItems: "center", color: t.red }}>
-                    <IconSignOut size={13} />
-                  </span>
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            )}
-
-            {/* User card (clickable) */}
-            <button
-              ref={userCardRef}
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={userPopoverOpen}
-              onClick={() => setUserPopoverOpen((v) => !v)}
-              style={{
-                width: "100%",
-                display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
-                background: t.surface, borderRadius: 8,
-                border: "0.5px solid " + (userPopoverOpen ? t.borderStrong : t.border),
-                cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-                color: t.textPrimary,
-                transition: `border-color 150ms ${EASE}`,
-              }}
-            >
-              <div style={{
-                width: 28, height: 28, borderRadius: 999, flexShrink: 0,
-                background: t.surfaceSoft, border: `1px solid ${t.amberRing}`,
-                display: "grid", placeItems: "center",
-                fontSize: 10, fontWeight: 700, color: t.amber,
-              }}>
-                {initials}
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: t.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {getDisplayName(user)}
-                </div>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Open plan options"
-                  onClick={(e) => { e.stopPropagation(); setPlanModalOpen(true); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setPlanModalOpen(true);
-                    }
-                  }}
-                  style={{
-                    display: "inline-block", fontSize: 9, color: t.amber,
-                    background: t.amberSoft, border: `0.5px solid ${t.amberRing}`,
-                    borderRadius: 4, padding: "1px 5px", marginTop: 2, cursor: "pointer",
-                  }}
-                >
-                  {planLabel}
-                </span>
-              </div>
-            </button>
-          </div>
-        </aside>
-
-        {/* ═══ MAIN CONTENT ═══ */}
-        <main className="cvp2-main cvp-main" style={{ marginLeft: "var(--sb-width)", minHeight: "100vh", boxSizing: "border-box", padding: "24px 28px", background: t.bg, display: "flex", flexDirection: "column", transition: `background 200ms ${EASE}` }}>
-
-          {/* Mobile top bar */}
-          <div
-            className="cvp2-mobile-topbar"
-            style={{
-              justifyContent: "space-between", alignItems: "center",
-              height: 52, padding: "0 16px",
-              borderBottom: `1px solid ${t.border}`, margin: "0 0 16px",
-            }}
-          >
-            <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none", color: t.textPrimary }}>
-              <CVPassportLogo height={20} color="currentColor" />
-            </Link>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
-              <button
-                type="button"
-                onClick={() => setPlanModalOpen(true)}
-                style={{
-                  width: 28, height: 28, borderRadius: 999,
-                  background: t.surfaceSoft, border: `1px solid ${t.amberRing}`,
-                  color: t.amber, display: "grid", placeItems: "center",
-                  fontSize: 10, fontWeight: 700, cursor: "pointer",
-                }}
-              >
-                {initials}
-              </button>
-            </div>
-          </div>
-
-          {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, flexWrap: "wrap", gap: 12 }}>
-            <div>
-              <div className="cvp2-greeting" style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px" }}>
-                {getGreeting()}, {getFirstName(user?.name)}.
-              </div>
-              <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{subLine}</div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-              <ThemeToggle theme={theme} setTheme={setTheme} t={t} />
-              <div
-                style={{
-                  display: "inline-block",
-                  padding: "1.5px",
-                  borderRadius: 12,
-                  background: "conic-gradient(from var(--ats-angle, 0deg), transparent 70%, rgba(255,255,255,0.22) 85%, transparent 100%)",
-                  animation: "ats-spin-border 4s linear infinite",
-                  flexShrink: 0,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={handleStartNewCv}
-                  style={{
-                    background: t.newCvBg, color: t.newCvText, border: "none", borderRadius: 11,
-                    padding: "0 20px", height: 44, fontSize: 14, fontWeight: 600,
-                    display: "flex", alignItems: "center", gap: 8,
-                    cursor: "pointer", fontFamily: "inherit",
-                    transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.newCvText} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12 5v14" /><path d="M5 12h14" />
-                  </svg>
-                  New CV
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* ═══ STATS STRIP ═══ */}
-          <div className="cvp-stats-strip" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 12, marginBottom: 18, marginTop: 16 }}>
-            {/* Card 1 — ATS Score (ring gauge, real active-CV strength) */}
-            <div className="cvp2-stats-card" style={{
-              background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 14,
-              padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
-              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
-            }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontSize: 10.5, color: t.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>ATS score</div>
-                  <div style={{ fontSize: 11, color: t.textFaint, marginTop: 3 }}>{firstStrength > 0 ? "Target 85+" : "Build a CV first"}</div>
-                </div>
-                <span style={{ color: t.amber, opacity: 0.85, display: "flex" }}><IconTarget size={16} /></span>
-              </div>
-              <AtsRing score={firstStrength} scored={resumeList.length > 0} trackColor={t.ringTrack} subColor={t.textMuted} />
-            </div>
-            {/* Card 2 — CVs Built (real count) */}
-            <div className="cvp2-stats-card" style={{
-              background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 14,
-              padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
-              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
-            }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 10.5, color: t.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>CVs built</div>
-                <span style={{ color: t.textMuted, display: "flex" }}><IconGrid size={16} /></span>
-              </div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ fontSize: 46, fontWeight: 700, color: t.textPrimary, letterSpacing: "-1.5px", lineHeight: 1 }}>{resumeList.length}</div>
-                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 8 }}>{resumeList.length > 0 ? `Last edited ${timeAgo(lastResume?.updated_at).replace("edited ", "")}` : "Start below"}</div>
-              </div>
-            </div>
-            {/* Card 3 — Plan (real plan + active status) */}
-            <div className="cvp2-stats-card" style={{
-              background: t.surface, border: `0.5px solid ${t.border}`, borderRadius: 14,
-              padding: 20, minHeight: 210, display: "flex", flexDirection: "column",
-              WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale",
-            }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 10.5, color: t.textMuted, letterSpacing: "0.07em", textTransform: "uppercase", fontWeight: 600 }}>Plan</div>
-                <span style={{ color: t.textMuted, display: "flex" }}><IconSpark size={16} /></span>
-              </div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ fontSize: 40, fontWeight: 700, color: t.amber, letterSpacing: "-1px", lineHeight: 1 }}>{planLabel}</div>
-                <div style={{ marginTop: 12 }}>
-                  {isPaid ? (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: t.green, background: t.greenSoft, padding: "3px 10px", borderRadius: 999 }}>Active</span>
-                  ) : (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
-                      onClick={() => navigate("/pricing")}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/pricing"); }}
-                    >
-                      Upgrade →
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ═══ JOB MATCH BANNER — returning users ═══ */}
-          {resumeList.length > 0 && (
-            <div
-              className="cvp-jobmatch-banner"
-              style={{
-                background: t.amberSoft, border: `1px solid ${t.amberRing}`,
-                borderRadius: 14, padding: 18,
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                gap: 14, marginBottom: 18,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-                  background: t.amberTile, display: "grid", placeItems: "center", color: t.amber,
-                }}>
-                  <IconBolt size={20} />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: t.textPrimary, lineHeight: 1.3 }}>Run job match on my resume</div>
-                  <div style={{ fontSize: 13, color: t.textSecondary, marginTop: 2 }}>see how your CV matches specific job descriptions</div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate("/builder?tab=jobmatch")}
-                style={{
-                  flexShrink: 0,
-                  background: t.amber, color: t.onAmber, border: "none", borderRadius: 10,
-                  padding: "0 16px", height: 40, fontSize: 13.5, fontWeight: 600,
-                  display: "flex", alignItems: "center", gap: 6,
-                  cursor: "pointer", fontFamily: "inherit",
-                  transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-              >
-                Job Match
-                <IconArrowRight size={14} />
-              </button>
-            </div>
-          )}
-
-          {/* ═══ RETURNING USER — two-col + templates ═══ */}
-          {resumeList.length > 0 ? (
-            <>
-              <div className="cvp2-two-col cvp-two-col" style={{ display: "grid", gap: 10, marginBottom: 18 }}>
-
-                {/* LEFT — MY CVS */}
-                <div className="cvp2-card" style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>My CVs</div>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
-                      onClick={handleStartNewCv}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleStartNewCv(); }}
-                    >
-                      New
-                    </span>
-                  </div>
-                  {resumeList.slice(0, 3).map((r, idx) => {
-                    const rawTitle = r?.title || r?.cv_data?.personalInfo?.fullName || r?.cv_data?.name || r?.name || "My CV";
-                    const title = rawTitle.length > 20 ? `${rawTitle.slice(0, 20)}…` : rawTitle;
-                    const strength = getStrength(r?.cv_data || r);
-                    return (
-                      <div
-                        key={r?.id ?? idx}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => onEditResume(r)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEditResume(r); }}
-                        className="cvp2-cv-item"
-                        style={{
-                          display: "flex", alignItems: "center", gap: 12,
-                          background: t.surfaceSoft, border: `1px solid ${t.border}`,
-                          borderRadius: 10, padding: 12, marginBottom: 8,
-                          cursor: "pointer",
-                          transition: `border-color 150ms ${EASE}`,
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.borderStrong; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; }}
-                      >
-                        {/* Thumbnail */}
-                        <div style={{
-                          width: 40, height: 52, background: t.surface,
-                          border: `1px solid ${t.border}`, borderRadius: 6,
-                          padding: "7px 6px", boxSizing: "border-box", flexShrink: 0,
-                        }}>
-                          <div style={{ height: 2, background: t.border, borderRadius: 1, marginBottom: 5, width: "80%" }} />
-                          <div style={{ height: 2, background: t.border, borderRadius: 1, marginBottom: 5, width: "60%" }} />
-                          <div style={{ height: 2, background: t.amber, borderRadius: 1, marginBottom: 5, width: "55%" }} />
-                          <div style={{ height: 2, background: t.border, borderRadius: 1, width: "70%" }} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 600, color: t.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 160 }}>{title}</div>
-                          <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{timeAgo(r?.updated_at)}</div>
-                        </div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: scoreColor(strength), flexShrink: 0 }}>
-                          {strength > 0 ? strength : "—"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* RIGHT — CV HEALTH */}
-                <div className="cvp2-card" style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14, padding: 20 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>CV Health</div>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
-                      onClick={() => onRunATS()}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onRunATS(); }}
-                    >
-                      Full report →
-                    </span>
-                  </div>
-                  {healthBars ? (
-                    <div>
-                      {[
-                        { label: "Keywords", value: healthBars.keywords },
-                        { label: "Format", value: healthBars.format },
-                        { label: "Achievements", value: healthBars.achievements },
-                        { label: "Job Match", value: lastResume?.job_match_score ?? null },
-                      ].map((row, i, arr) => (
-                        <div
-                          key={row.label}
-                          style={{
-                            display: "flex", justifyContent: "space-between", alignItems: "center",
-                            padding: "13px 0",
-                            borderBottom: i === arr.length - 1 ? "none" : `1px solid ${t.border}`,
-                          }}
-                        >
-                          <span style={{ fontSize: 13, color: t.textSecondary }}>{row.label}</span>
-                          <span style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>{row.value != null ? row.value : "—"}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 12, color: t.textMuted, textAlign: "center", padding: "20px 0" }}>
-                      Build a CV to see health data
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ─── Templates strip ─── */}
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>Templates</div>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    style={{ fontSize: 12.5, color: t.amber, cursor: "pointer", fontWeight: 600 }}
-                    onClick={() => navigate("/templates")}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate("/templates"); }}
-                  >
-                    View all →
-                  </span>
-                </div>
-                <div className="cvp2-tpl-row" style={{ display: "grid", gap: 10 }}>
-                  {TEMPLATES.slice(0, 3).map((tpl) => (
-                    <button
-                      key={tpl.id}
-                      type="button"
-                      onClick={() => navigate("/builder", { state: { cvpInitialTemplateId: tpl.id } })}
-                      style={{
-                        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12,
-                        padding: 0, cursor: "pointer", overflow: "hidden",
-                        transition: `border-color 150ms ${EASE}, transform 150ms ${EASE}`,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = t.borderStrong; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "translateY(0)"; }}
-                    >
-                      <div style={{ height: 110, background: t.surfaceSoft, position: "relative", padding: 16, boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 7, justifyContent: "center" }}>
-                        <div style={{ height: 3, background: t.amber, borderRadius: 1, width: "40%" }} />
-                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "85%" }} />
-                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "65%" }} />
-                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "78%" }} />
-                        <div style={{ height: 3, background: t.border, borderRadius: 1, width: "55%" }} />
-                      </div>
-                      <div style={{ padding: "13px 14px", textAlign: "left" }}>
-                        <div style={{ fontSize: 13, color: t.textPrimary, fontWeight: 600 }}>{tpl.name}</div>
-                        <div style={{ display: "inline-block", marginTop: 8, fontSize: 10.5, fontWeight: 600, color: t.green, background: t.greenSoft, borderRadius: 999, padding: "3px 8px" }}>ATS-ready</div>
-                      </div>
+                  <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); navigate("/account"); }} style={popItem()}>
+                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.soft }}><IconGear size={13} /></span><span>Account settings</span>
+                  </button>
+                  {(dashUserType === "both" || dashUserType === "recruiter") && (
+                    <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); navigate("/employer/jobs"); }} style={popItem()}>
+                      <span style={{ width: 18, display: "grid", placeItems: "center", color: t.soft }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg></span><span>Switch to employer</span>
                     </button>
-                  ))}
+                  )}
+                  <div style={{ height: 1, background: t.border, margin: "4px 6px" }} />
+                  <button type="button" role="menuitem" onClick={() => { setUserPopoverOpen(false); handleSignOut(); }} style={popItem(t.danger)}>
+                    <span style={{ width: 18, display: "grid", placeItems: "center", color: t.danger }}><IconSignOut size={13} /></span><span>Sign out</span>
+                  </button>
                 </div>
+              )}
+              <button ref={userCardRef} type="button" aria-haspopup="menu" aria-expanded={userPopoverOpen} onClick={() => setUserPopoverOpen((v) => !v)}
+                style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "11px 12px", border: `1px solid ${t.border}`, borderRadius: 14, background: t.card, cursor: "pointer", fontFamily: "inherit", textAlign: "left", color: t.text }}>
+                <span style={{ width: 34, height: 34, borderRadius: "50%", background: t.goldSoft, color: t.gold, fontSize: 12.5, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials}</span>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</p>
+                  <span style={{ display: "inline-block", marginTop: 3, fontSize: 10, fontWeight: 700, color: t.gold, background: t.goldSoft, borderRadius: 6, padding: "1px 7px" }}>{planLabel}</span>
+                </div>
+              </button>
+            </div>
+          </aside>
+
+          {/* Main */}
+          <main className="dashv2-main noscroll">
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 22 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em", color: t.text }}>{greeting}, {firstName}.</h2>
+                <p style={{ margin: "6px 0 0", fontSize: 13, color: t.muted }}>{desktopSub}</p>
               </div>
-            </>
-          ) : (
-            /* ═══ NEW USER STATE ═══ */
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 60, textAlign: "center" }}>
-              <div style={{ maxWidth: 480, width: "100%" }}>
-                <div style={{ fontSize: 11, color: t.textFaint, marginBottom: 8 }}>Welcome to CVPassport</div>
-                <div className="cvp2-hero-heading cvp-welcome-heading" style={{ fontSize: 36, fontWeight: 800, letterSpacing: "-0.5px", marginBottom: 12 }}>
-                  Your Gulf CV starts here.
-                </div>
-                <div className="cvp2-hero-sub" style={{ fontSize: 15, color: t.textMuted, lineHeight: 1.7, marginBottom: 32, maxWidth: 440, marginLeft: "auto", marginRight: "auto" }}>
-                  The guide walks you through everything — no blank page, no confusion.
-                </div>
-                <button
-                  type="button"
-                  className="cvp2-start-btn cvp-start-btn"
-                  onClick={handleStartNewCv}
-                  style={{
-                    maxWidth: 480, width: "100%", background: t.newCvBg, color: t.newCvText, border: "none",
-                    borderRadius: 14, padding: "18px 24px",
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    cursor: "pointer", fontFamily: "inherit",
-                    transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                >
-                  <div style={{ textAlign: "left" }}>
-                    <div className="cvp2-start-btn-label" style={{ fontSize: 14, fontWeight: 700 }}>Start guided experience</div>
-                    <div style={{ fontSize: 11, color: t.textMuted, marginTop: 3 }}>Recommended · 5 minutes</div>
-                  </div>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 999,
-                    background: t.newCvText, color: t.newCvBg,
-                    display: "grid", placeItems: "center",
-                  }}>
-                    <IconArrowRight size={14} />
-                  </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                <ThemeToggle mode={mode} onToggle={toggleTheme} />
+                <button type="button" onClick={handleStartNewCv} style={{ height: 42, padding: "0 18px", border: 0, borderRadius: 12, background: t.inkBtn, color: t.inkBtnFg, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <IconPlus size={16} /> New CV
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/builder?tab=templates")}
-                  style={{
-                    maxWidth: 480, width: "100%", background: "transparent", color: t.textPrimary,
-                    border: `1px solid ${t.border}`, borderRadius: 14, padding: "14px 24px",
-                    fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                    marginTop: 10,
-                    transition: `background 150ms ${EASE}, transform 150ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                >
-                  Browse templates instead
-                </button>
-                <div style={{ marginTop: 32, display: "grid", gap: 10, textAlign: "left" }}>
-                  {[
-                    "Answer questions — your CV fills itself",
-                    "ATS scan — instant Gulf market score",
-                    "Download — PDF ready to send",
-                  ].map((text, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 22, height: 22, borderRadius: 999, background: t.surfaceSoft,
-                        display: "grid", placeItems: "center",
-                        fontSize: 10, fontWeight: 700, color: t.textMuted, flexShrink: 0,
-                      }}>
-                        {i + 1}
-                      </div>
-                      <span style={{ fontSize: 13, color: t.textMuted }}>{text}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
-          )}
 
-          {/* Mobile feedback */}
-          <div className="cvp2-mobile-topbar" style={{ display: "none", justifyContent: "center", fontSize: 11, color: t.textMuted, padding: 12, marginTop: 24 }}>
-            feedback ·{" "}
-            <a
-              href="mailto:support@mycvpassport.com"
-              style={{ color: t.textMuted, textDecoration: "underline", marginLeft: 4, padding: "4px 0" }}
-            >
-              support@mycvpassport.com
-            </a>
-          </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <AtsHero score={firstStrength} scored={scored} big={false} />
+              <StatTile kind="cvs" />
+              <StatTile kind="plan" />
+            </div>
 
-          <FAB tabKey={fabRouteTab} cvsCount={resumeList.length} />
-        </main>
+            <JobMatchBanner onClick={runJobMatch} desktop />
 
-      {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
-      <div
-        className="cvp-tab-bar"
-        style={{
-          position: "fixed", bottom: 0, left: 0, right: 0,
-          height: 58, background: t.surface,
-          borderTop: `0.5px solid ${t.border}`,
-          alignItems: "center", justifyContent: "space-around",
-          zIndex: 200, boxSizing: "border-box",
-        }}
-      >
-        {mobileTabs.map((tab) => {
-          const isAct = tab.isMore ? moreOpen : mobileTab === tab.id;
-          const Icon = tab.icon;
-          const activeColor = tab.activeColor || t.amber;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={tab.action}
-              aria-expanded={tab.isMore ? moreOpen : undefined}
-              aria-haspopup={tab.isMore ? "menu" : undefined}
-              style={{
-                background: "transparent", border: "none",
-                minHeight: 48, minWidth: 48,
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 3, cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              <span style={{ display: "flex", color: isAct ? activeColor : t.textMuted, width: 20, height: 20 }}>
-                <Icon size={20} />
-              </span>
-              <span style={{ fontSize: 10, color: isAct ? activeColor : t.textMuted, fontWeight: 600, lineHeight: 1 }}>{tab.label}</span>
-            </button>
-          );
-        })}
+            <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 18 }}>
+              <CvCard variant="desktop" />
+              <HealthCard variant="desktop" />
+            </div>
+          </main>
+        </div>
       </div>
 
-      {/* ═══ MOBILE MORE OVERFLOW ═══ */}
-      {moreOpen && (
-        <>
-          <div
-            role="presentation"
-            onClick={() => setMoreOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 199, background: "transparent" }}
-          />
-          <div
-            role="menu"
-            className="cvp-tab-bar"
-            style={{
-              position: "fixed", right: 8, bottom: 66,
-              zIndex: 201, minWidth: 176,
-              background: t.surfaceSoft, border: `1px solid ${t.borderStrong}`,
-              borderRadius: 14, padding: 6,
-              boxShadow: "0 12px 32px rgba(0,0,0,0.2)",
-              display: "flex", flexDirection: "column", gap: 2,
-            }}
-          >
-            {moreItems.map((m) => {
-              const Icon = m.icon;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={m.action}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    background: "transparent", border: "none",
-                    color: t.textPrimary, fontFamily: "inherit",
-                    fontSize: 13, fontWeight: 600,
-                    padding: "12px 14px", minHeight: 48,
-                    borderRadius: 10, cursor: "pointer",
-                    transition: `background-color 150ms ${EASE}`,
-                    textAlign: "left",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = t.hover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-                >
-                  <span style={{ display: "flex", width: 18, height: 18, color: t.textSecondary }}>
-                    <Icon size={18} />
-                  </span>
-                  <span>{m.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
+      {/* ═══════════════ MOBILE VIEW ═══════════════ */}
+      <div className="dashv2-mobile-view">
+        <div className="dashv2-mv-scroll">
+          <div className="dashv2-mv-inner">
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <button type="button" onClick={openAccount} aria-label="Account and plan" style={{ width: 44, height: 44, flexShrink: 0, borderRadius: "50%", background: t.goldSoft, color: t.gold, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: 0, cursor: "pointer", fontFamily: "inherit" }}>{initials}</button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 13, color: t.muted }}>{greeting}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 19, fontWeight: 800, letterSpacing: "-0.02em", color: t.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</p>
+              </div>
+              <ThemeToggle mode={mode} onToggle={toggleTheme} />
+            </div>
 
-      {/* ═══ NEW CV LOBBY — first-CV users only ═══ */}
+            <AtsHero score={firstStrength} scored={scored} big />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+              <StatTile kind="cvs" />
+              <StatTile kind="plan" />
+            </div>
+
+            <JobMatchBanner onClick={runJobMatch} />
+
+            <div style={{ marginBottom: 24 }}><CvCard variant="mobile" /></div>
+
+            <div style={{ marginBottom: 24 }}><HealthCard variant="mobile" /></div>
+
+            <TemplatesStrip />
+          </div>
+        </div>
+
+        {/* Bottom nav */}
+        <nav className="dashv2-bottomnav">
+          {bottomNav.map((b) => {
+            const on = mobileTab === b.id;
+            const color = on ? t.gold : t.muted;
+            return (
+              <button key={b.id} type="button" onClick={b.go} className="dashv2-tab" style={{ color }}>
+                <b.Icon size={21} />
+                <span className="dashv2-tab__label">{b.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* ═══ NEW CV LOBBY ═══ */}
       {lobbyOpen && (
         <NewCvLobby
           onGuided={() => { setLobbyOpen(false); onBuildResume({ openFabGuide: true }); }}
@@ -1393,198 +709,42 @@ export default function DashboardPage({
         />
       )}
 
-      {/* ═══ PLAN MANAGEMENT MODAL ═══ */}
+      {/* ═══ PLAN / ACCOUNT MODAL ═══ */}
       {planModalOpen && (
         <>
-          <div
-            role="presentation"
-            style={{ position: "fixed", inset: 0, zIndex: 400, background: t.overlay, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
-            onClick={() => setPlanModalOpen(false)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
-              zIndex: 401, width: "calc(100% - 32px)", maxWidth: 360,
-              // Fit the viewport and scroll if the cancel/downgrade flow makes
-              // the body taller than the screen — otherwise it was clipped top
-              // and bottom on a phone with no way to reach the FREE plan / CTAs.
-              maxHeight: "calc(100dvh - 32px)",
-              overflowY: "auto",
-              WebkitOverflowScrolling: "touch",
-              background: t.surface, border: `1px solid ${t.border}`, borderRadius: 20,
-              padding: 24,
-              paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))",
-              boxSizing: "border-box",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setPlanModalOpen(false)}
-              style={{
-                position: "absolute", top: 14, right: 14,
-                background: "none", border: "none", color: t.textMuted,
-                cursor: "pointer", padding: 4,
-                transition: `color 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = t.textPrimary; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
-              aria-label="Close"
-            >
-              <IconX />
-            </button>
-
-            <div style={{ fontSize: 16, fontWeight: 700, color: t.textPrimary }}>Your Plan</div>
-            <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 16 }}>Manage your CVPassport subscription.</div>
-
-            <div style={{
-              background: t.surfaceSoft,
-              border: `1px solid ${isPaid ? t.green : t.amberRing}`,
-              borderRadius: 10, padding: "12px 14px", marginBottom: 12,
-              ...(!isPaid ? { boxShadow: "0 0 12px rgba(217,119,6,0.08)" } : {}),
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: isPaid ? t.textPrimary : t.amber }}>{profile?.plan || "Explorer"}</div>
-              <div style={{ fontSize: 11, color: isPaid ? t.green : t.textMuted, marginTop: 4 }}>
-                {isPaid
-                  ? "Unlimited everything"
-                  : "Limited features · Upgrade to unlock all"
-                }
-              </div>
+          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 400, background: t.overlay, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => setPlanModalOpen(false)} />
+          <div role="dialog" aria-modal="true" style={{ position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 401, width: "calc(100% - 32px)", maxWidth: 360, maxHeight: "calc(100dvh - 32px)", overflowY: "auto", WebkitOverflowScrolling: "touch", background: t.card, border: `1px solid ${t.border}`, borderRadius: 20, padding: 24, paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))", boxSizing: "border-box" }}>
+            <button type="button" onClick={() => setPlanModalOpen(false)} aria-label="Close" style={{ position: "absolute", top: 14, right: 14, background: "none", border: "none", color: t.muted, cursor: "pointer", padding: 4 }}><IconX /></button>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Your plan</div>
+            <div style={{ fontSize: 12, color: t.muted, marginBottom: 16 }}>Manage your CVPassport subscription.</div>
+            <div style={{ background: t.card2, border: `1px solid ${isPaid ? t.emerald : t.goldBorder}`, borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: isPaid ? t.text : t.gold }}>{profile?.plan || "Explorer"}</div>
+              <div style={{ fontSize: 11, color: isPaid ? t.emerald : t.muted, marginTop: 4 }}>{isPaid ? "Unlimited everything" : "Limited features, upgrade to unlock all"}</div>
             </div>
-
             {cancelStep === 0 ? (
               <>
                 {!isPaid ? (
                   <>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const url = await getPaymentLink("activeHunter");
-                        if (url) window.location.href = url;
-                      }}
-                      style={{
-                        display: "block", width: "100%", background: t.newCvBg, color: t.newCvText,
-                        borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
-                        textAlign: "center", textDecoration: "none", marginBottom: 8,
-                        boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
-                        transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    >
-                      Upgrade to Active Hunter — AED 29/mo →
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setPlanModalOpen(false); navigate("/pricing"); }}
-                      style={{
-                        width: "100%", background: "transparent", color: t.textPrimary,
-                        border: `1px solid ${t.border}`, borderRadius: 10, padding: "10px 14px",
-                        fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                        transition: `background 150ms ${EASE}, transform 150ms ${EASE}`,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = t.hover; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                      onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                      onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                    >
-                      View all plans →
-                    </button>
+                    <button type="button" onClick={async () => { const url = await getPaymentLink("activeHunter"); if (url) window.location.href = url; }} style={ctaBtn()}>Upgrade to Active Hunter, AED 29/mo →</button>
+                    <button type="button" onClick={() => { setPlanModalOpen(false); navigate("/pricing"); }} style={ghostBtn()}>View all plans →</button>
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const url = await getPaymentLink("careerPro");
-                        if (url) window.location.href = url;
-                      }}
-                      style={{
-                        display: "block", width: "100%", background: t.newCvBg, color: t.newCvText,
-                        borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700,
-                        textAlign: "center", textDecoration: "none", marginBottom: 12,
-                        boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit",
-                        transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                    >
-                      Upgrade to Career Pro — AED 199/yr →
-                    </button>
-                    <div style={{ height: 1, background: t.border, margin: "4px 0 8px" }} />
-                    <button
-                      type="button"
-                      onClick={() => setCancelStep(1)}
-                      style={{
-                        background: "none", border: "none", color: t.textFaint,
-                        fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: 0,
-                        transition: `color 150ms ${EASE}`,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = t.textSecondary; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = t.textFaint; }}
-                    >
-                      Cancel subscription
-                    </button>
+                    <button type="button" onClick={async () => { const url = await getPaymentLink("careerPro"); if (url) window.location.href = url; }} style={ctaBtn()}>Upgrade to Career Pro, AED 199/yr →</button>
+                    <div style={{ height: 1, background: t.border, margin: "8px 0" }} />
+                    <button type="button" onClick={() => setCancelStep(1)} style={{ background: "none", border: "none", color: t.muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>Cancel subscription</button>
                   </>
                 )}
               </>
             ) : (
               <div>
-                <div style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5, marginBottom: 14 }}>
-                  Are you sure? Your plan continues until end of billing period. After that your account reverts to Free.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCancelStep(0)}
-                  style={{
-                    width: "100%", background: t.newCvBg, color: t.newCvText, border: "none",
-                    borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "inherit", marginBottom: 8,
-                    transition: `opacity 150ms ${EASE}, transform 150ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.98)"; }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                >
-                  Keep my plan
-                </button>
-                <a
-                  href="mailto:support@mycvpassport.com?subject=Cancel Subscription"
-                  style={{
-                    display: "block", textAlign: "center",
-                    fontSize: 12, color: t.textMuted, textDecoration: "none", padding: "8px 0",
-                    transition: `color 150ms ${EASE}`,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = t.textSecondary; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
-                >
-                  Yes, cancel
-                </a>
-                <div style={{ fontSize: 10, color: t.textFaint, marginTop: 8, lineHeight: 1.4 }}>
-                  Cancellation takes effect at end of billing period. Your CVs are kept for 30 days.
-                </div>
+                <div style={{ fontSize: 13, color: t.soft, lineHeight: 1.5, marginBottom: 14 }}>Are you sure? Your plan continues until the end of the billing period. After that your account reverts to Free.</div>
+                <button type="button" onClick={() => setCancelStep(0)} style={ctaBtn()}>Keep my plan</button>
+                <a href="mailto:support@mycvpassport.com?subject=Cancel Subscription" style={{ display: "block", textAlign: "center", fontSize: 12, color: t.muted, textDecoration: "none", padding: "8px 0" }}>Yes, cancel</a>
               </div>
             )}
-
-            {/* Sign out — bottom of modal */}
             <div style={{ height: 1, background: t.border, margin: "16px 0 4px" }} />
-            <button
-              type="button"
-              onClick={async () => { if (supabase) await supabase.auth.signOut(); navigate("/"); }}
-              style={{
-                width: "100%", background: "none", border: "none",
-                color: t.textMuted, fontSize: 13,
-                cursor: "pointer", fontFamily: "inherit",
-                padding: "8px 0", textAlign: "center",
-                transition: `color 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = t.textSecondary; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
-            >
-              Sign out
-            </button>
+            <button type="button" onClick={handleSignOut} style={{ width: "100%", background: "none", border: "none", color: t.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: "8px 0", textAlign: "center" }}>Sign out</button>
           </div>
         </>
       )}
@@ -1592,153 +752,63 @@ export default function DashboardPage({
       {/* ═══ FEEDBACK MODAL ═══ */}
       {feedbackOpen && (
         <>
-          <div
-            role="presentation"
-            style={{ position: "fixed", inset: 0, zIndex: 500, background: t.overlay, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
-            onClick={() => setFeedbackOpen(false)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Send feedback"
-            style={{
-              position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)",
-              zIndex: 501, width: "calc(100% - 32px)", maxWidth: 440,
-              maxHeight: "calc(100vh - 40px)", overflowY: "auto",
-              background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: 16, padding: 20,
-              boxSizing: "border-box",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setFeedbackOpen(false)}
-              aria-label="Close"
-              style={{
-                position: "absolute", top: 12, right: 12,
-                background: "none", border: "none", color: t.textMuted,
-                cursor: "pointer", padding: 4,
-                transition: `color 150ms ${EASE}`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = t.textPrimary; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = t.textMuted; }}
-            >
-              <IconX />
-            </button>
-
+          <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 500, background: t.overlay, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} onClick={() => setFeedbackOpen(false)} />
+          <div role="dialog" aria-modal="true" aria-label="Send feedback" style={{ position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: 501, width: "calc(100% - 32px)", maxWidth: 440, maxHeight: "calc(100vh - 40px)", overflowY: "auto", background: t.card, border: `1px solid ${t.borderStrong}`, borderRadius: 16, padding: 20, boxSizing: "border-box" }}>
+            <button type="button" onClick={() => setFeedbackOpen(false)} aria-label="Close" style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: t.muted, cursor: "pointer", padding: 4 }}><IconX /></button>
             {!feedbackSent ? (
               <>
-                <div style={{ fontSize: 17, fontWeight: 700, color: t.textPrimary }}>Your feedback shapes CVPassport</div>
-                <div style={{ fontSize: 12.5, color: t.textSecondary, marginTop: 6, lineHeight: 1.5 }}>
-                  Every bit helps us improve this for you. Tell us what is working and what is not.
-                </div>
-
-                {/* Sentiment */}
+                <div style={{ fontSize: 17, fontWeight: 700, color: t.text }}>Your feedback shapes CVPassport</div>
+                <div style={{ fontSize: 12.5, color: t.soft, marginTop: 6, lineHeight: 1.5 }}>Every bit helps us improve this for you. Tell us what is working and what is not.</div>
                 <div style={{ marginTop: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, marginBottom: 8 }}>How do you feel about CVPassport?</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.text, marginBottom: 8 }}>How do you feel about CVPassport?</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    {[
-                      { key: "positive", label: "Good", Icon: IconSmile, color: t.green },
-                      { key: "neutral", label: "Okay", Icon: IconMeh, color: t.amber },
-                      { key: "negative", label: "Not great", Icon: IconFrown, color: t.red },
-                    ].map(({ key, label, Icon, color }) => {
-                      const on = feedbackSentiment === key;
+                    {[{ key: "positive", label: "Good", Icon: IconSmile, color: t.emerald }, { key: "neutral", label: "Okay", Icon: IconMeh, color: t.gold }, { key: "negative", label: "Not great", Icon: IconFrown, color: t.danger }].map(({ key, label, Icon, color }) => {
+                      const sel = feedbackSentiment === key;
                       return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => setFeedbackSentiment(on ? null : key)}
-                          style={{
-                            flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                            padding: "12px 6px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
-                            background: on ? `${color}1a` : "transparent",
-                            border: `1.5px solid ${on ? color : t.borderStrong}`,
-                            color: on ? color : t.textSecondary,
-                            transition: `border-color 150ms ${EASE}, color 150ms ${EASE}, background 150ms ${EASE}`,
-                          }}
-                        >
-                          <Icon size={20} />
-                          <span style={{ fontSize: 12, fontWeight: 600 }}>{label}</span>
+                        <button key={key} type="button" onClick={() => setFeedbackSentiment(sel ? null : key)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 6px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", background: sel ? "var(--gold-soft)" : "transparent", border: `1.5px solid ${sel ? color : t.borderStrong}`, color: sel ? color : t.soft }}>
+                          <Icon size={20} /><span style={{ fontSize: 12, fontWeight: 600 }}>{label}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
-                {/* Message */}
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, marginBottom: 6 }}>What would make this better for you?</div>
-                  <textarea
-                    value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
-                    maxLength={4000}
-                    placeholder="Share your thoughts, ideas, or issues..."
-                    style={{
-                      width: "100%", minHeight: 100, resize: "vertical",
-                      background: t.bg, border: `1px solid ${t.borderStrong}`, borderRadius: 8,
-                      padding: "10px 12px", color: t.textPrimary, fontSize: 13, fontFamily: "inherit",
-                      lineHeight: 1.5, outline: "none", boxSizing: "border-box",
-                    }}
-                  />
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.text, marginBottom: 6 }}>What would make this better for you?</div>
+                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} maxLength={4000} placeholder="Share your thoughts, ideas, or issues" style={{ width: "100%", minHeight: 100, resize: "vertical", background: t.bg, border: `1px solid ${t.borderStrong}`, borderRadius: 8, padding: "10px 12px", color: t.text, fontSize: 13, fontFamily: "inherit", lineHeight: 1.5, outline: "none", boxSizing: "border-box" }} />
                 </div>
-
-                {/* Context */}
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t.textPrimary, marginBottom: 6 }}>What were you trying to do? (optional)</div>
-                  <input
-                    value={feedbackContext}
-                    onChange={(e) => setFeedbackContext(e.target.value)}
-                    maxLength={500}
-                    placeholder="E.g. create a new CV, check ATS score..."
-                    style={{
-                      width: "100%", height: 40, background: t.bg, border: `1px solid ${t.borderStrong}`,
-                      borderRadius: 8, padding: "0 12px", color: t.textPrimary, fontSize: 13,
-                      fontFamily: "inherit", outline: "none", boxSizing: "border-box",
-                    }}
-                  />
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t.text, marginBottom: 6 }}>What were you trying to do? (optional)</div>
+                  <input value={feedbackContext} onChange={(e) => setFeedbackContext(e.target.value)} maxLength={500} placeholder="E.g. create a new CV, check ATS score" style={{ width: "100%", height: 40, background: t.bg, border: `1px solid ${t.borderStrong}`, borderRadius: 8, padding: "0 12px", color: t.text, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                 </div>
-
-                {feedbackError && (
-                  <div role="status" style={{ fontSize: 12, color: t.red, marginTop: 10 }}>{feedbackError}</div>
-                )}
-
+                {feedbackError && <div role="status" style={{ fontSize: 12, color: t.danger, marginTop: 10 }}>{feedbackError}</div>}
                 <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: 18, gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => setFeedbackOpen(false)}
-                    style={{
-                      padding: "9px 16px", borderRadius: 8, background: "transparent",
-                      border: `1px solid ${t.borderStrong}`, color: t.textSecondary, fontSize: 12.5, fontWeight: 500,
-                      cursor: "pointer", fontFamily: "inherit",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleFeedbackSend}
-                    disabled={!feedbackText.trim() || feedbackSending}
-                    style={{
-                      padding: "9px 18px", borderRadius: 8, background: t.amber, border: "none",
-                      color: t.onAmber, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                      opacity: feedbackText.trim() && !feedbackSending ? 1 : 0.5,
-                    }}
-                  >
-                    {feedbackSending ? "Sending…" : "Send feedback"}
-                  </button>
+                  <button type="button" onClick={() => setFeedbackOpen(false)} style={{ padding: "9px 16px", borderRadius: 8, background: "transparent", border: `1px solid ${t.borderStrong}`, color: t.soft, fontSize: 12.5, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                  <button type="button" onClick={handleFeedbackSend} disabled={!feedbackText.trim() || feedbackSending} style={{ padding: "9px 18px", borderRadius: 8, background: t.gold, border: "none", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: feedbackText.trim() && !feedbackSending ? 1 : 0.5 }}>{feedbackSending ? "Sending…" : "Send feedback"}</button>
                 </div>
               </>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 8px" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 999, background: t.greenSoft, display: "grid", placeItems: "center", marginBottom: 14, color: t.green }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-                </div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: t.textPrimary, marginBottom: 6 }}>Thank you</div>
-                <div style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5, maxWidth: 280 }}>We read every message and use your feedback to make CVPassport better.</div>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: t.emeraldSoft, display: "grid", placeItems: "center", marginBottom: 14, color: t.emerald }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg></div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: t.text, marginBottom: 6 }}>Thank you</div>
+                <div style={{ fontSize: 13, color: t.soft, lineHeight: 1.5, maxWidth: 280 }}>We read every message and use your feedback to make CVPassport better.</div>
               </div>
             )}
           </div>
         </>
       )}
+
+      <FAB tabKey={active === "account" ? "account" : "mycvs"} cvsCount={resumeList.length} />
     </div>
   );
+
+  /* Shared style helpers for the plan modal / popover. */
+  function popItem(color) {
+    return { width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "transparent", border: "none", borderRadius: 8, color: color || t.text, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", textAlign: "left" };
+  }
+  function ctaBtn() {
+    return { display: "block", width: "100%", background: t.inkBtn, color: t.inkBtnFg, borderRadius: 10, padding: "12px 14px", fontSize: 13, fontWeight: 700, textAlign: "center", marginBottom: 8, boxSizing: "border-box", border: "none", cursor: "pointer", fontFamily: "inherit" };
+  }
+  function ghostBtn() {
+    return { width: "100%", background: "transparent", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: "10px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
+  }
 }
