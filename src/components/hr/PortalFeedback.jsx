@@ -78,8 +78,14 @@ function flip(el, origin, dir /* "in" | "out" */, done) {
 // bottomInset lifts the affordance above a bottom-fixed action bar on the
 // route that mounts it (ReviewMode's decision bar), so it never covers a
 // control. Shell pages pass nothing and keep the default corner.
-export default function PortalFeedback({ bottomInset = 0 }) {
-  const [open, setOpen] = useState(false);
+// Controlled mode (Fab): pass `hideAffordance` to drop the standalone
+// floating pill, and drive `controlledOpen` / `onControlledClose` from the
+// Fab panel's "Send feedback". All send logic below is unchanged — only the
+// entry point moves. Uncontrolled (ReviewMode) keeps its own affordance.
+export default function PortalFeedback({ bottomInset = 0, hideAffordance = false, controlledOpen, onControlledClose }) {
+  const isControlled = controlledOpen !== undefined;
+  const [openU, setOpenU] = useState(false);
+  const open = isControlled ? controlledOpen : openU;
   const [text, setText] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | failed
   const [reopened, setReopened] = useState(false);
@@ -112,7 +118,7 @@ export default function PortalFeedback({ bottomInset = 0 }) {
     closingRef.current = false;
     setReopened(status !== "sent" && text.trim().length > 0);
     if (status === "sent") setStatus("idle");
-    setOpen(true);
+    setOpenU(true);
   };
 
   // Close, keeping her words (both in state and in localStorage). Never a
@@ -124,15 +130,23 @@ export default function PortalFeedback({ bottomInset = 0 }) {
     if (el) el.style.pointerEvents = "none";
     persistDraft(text);
     flip(el, originRef.current, "out", () => {
-      setOpen(false);
+      if (isControlled) onControlledClose?.(); else setOpenU(false);
       setReopened(false);
       if (status === "sent") setStatus("idle");
     });
-  }, [text, status, persistDraft]);
+  }, [text, status, persistDraft, isControlled, onControlledClose]);
 
-  // Open-from-origin on mount of the panel.
+  // Open-from-origin on mount of the panel. In controlled mode (Fab) there
+  // is no affordance rect, so it fades in and the compose state is set up
+  // here instead of in openPanel.
   useEffect(() => {
     if (!open) return;
+    closingRef.current = false;
+    if (isControlled) {
+      originRef.current = null;
+      setReopened(status !== "sent" && text.trim().length > 0);
+      if (status === "sent") setStatus("idle");
+    }
     flip(panelRef.current, originRef.current, "in");
     const t = setTimeout(() => {
       if (status !== "sent" && taRef.current) taRef.current.focus();
@@ -169,12 +183,12 @@ export default function PortalFeedback({ bottomInset = 0 }) {
   const finishSent = useCallback(() => {
     const el = panelRef.current;
     flip(el, originRef.current, "out", () => {
-      setOpen(false);
+      if (isControlled) onControlledClose?.(); else setOpenU(false);
       setText("");
       setReopened(false);
       setStatus("idle");
     });
-  }, []);
+  }, [isControlled, onControlledClose]);
 
   const send = async () => {
     const body = text.trim();
@@ -240,7 +254,7 @@ export default function PortalFeedback({ bottomInset = 0 }) {
       className="pfb-root"
       style={bottomInset ? { "--pfb-extra-bottom": `${bottomInset}px` } : undefined}
     >
-      {!open && (
+      {!open && !hideAffordance && (
         <button
           ref={affRef}
           type="button"

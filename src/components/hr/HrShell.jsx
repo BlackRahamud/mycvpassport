@@ -8,7 +8,7 @@ import { startPortalRecording, stopPortalRecording } from "../../lib/analytics/p
 import UserMenu from "../UserMenu/UserMenu";
 import PortalLogo from "./PortalLogo";
 import HrWelcomeRing from "./HrWelcomeRing";
-import PortalFeedback from "./PortalFeedback";
+import FabAssistant from "./fab/FabAssistant";
 import "../../pages/hr/PostJob/postJob.css"; // :root --pj-* tokens
 import "./hrShell.css";
 
@@ -169,6 +169,7 @@ export default function HrShell() {
               <button
                 key={item.key}
                 type="button"
+                data-fab-key={item.key}
                 className={`hrs-navitem${active ? " hrs-navitem--active" : ""}`}
                 aria-current={active ? "page" : undefined}
                 onClick={() => { trackHr("hr_nav_item_clicked", { item: item.key }); navigate(item.to); }}
@@ -206,10 +207,12 @@ export default function HrShell() {
 
       <HrWelcomeRing />
 
-      {/* One tap, from anywhere in the shell, to say what is not working.
-          Portals to <body> above the modal layer, so it is reachable over
-          every screen and every modal these pages render. */}
-      <PortalFeedback />
+      {/* Fab — the guided assistant layer (orb + onboarding tour + contextual
+          help + command launcher + panel). Fab now owns "Send feedback", so
+          the standalone feedback pill is retired here and Fab's orb is the
+          only floating control in the corner. Portals to <body> above the
+          modal layer, reachable over every shell screen and modal. */}
+      <FabAssistant />
     </div>
   );
 }

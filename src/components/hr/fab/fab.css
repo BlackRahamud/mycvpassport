@@ -1,0 +1,221 @@
+/* ────────────────────────────────────────────────────────────────
+   Fab assistant layer — violet guide over the HR portal.
+   Ported from the Claude Design "Fab Assistant Layer" file. Glass on the
+   floating Fab surfaces only, via the real --surface-glass-* tokens;
+   violet from --pj-*. Portaled to <body>, above the modal + feedback
+   layers. Mobile-first: the orb clears the bottom tab bar.
+   ──────────────────────────────────────────────────────────────── */
+
+.fab-root {
+  position: fixed;
+  inset: 0;
+  z-index: 4300; /* above modals (4000) and the feedback layer (4200) */
+  pointer-events: none; /* only cards / orb / scrims take pointer events */
+  font-family: var(--pj-font, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  color: var(--surface-glass-ink);
+  --fab-right: 16px;
+  --fab-bottom: calc(60px + 18px + env(safe-area-inset-bottom, 0px));
+  --fab-glow-a: rgba(124, 58, 237, 0.35);
+}
+@media (min-width: 720px) {
+  .fab-root { --fab-right: 24px; --fab-bottom: 24px; }
+}
+
+@keyframes fbFloatIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes fbPop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes fbBreath { 0%, 100% { transform: scale(0.9); opacity: 0.55; } 50% { transform: scale(1.18); opacity: 0.9; } }
+@keyframes fbOrbBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes fbPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+/* ── Scrims + spotlight ── */
+.fab-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 4302;
+  background: rgba(15, 12, 30, 0.34);
+  pointer-events: auto;
+}
+.fab-spot {
+  position: fixed;
+  z-index: 4303;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 9999px rgba(15, 12, 30, 0.34),
+    0 0 0 2px var(--pj-primary),
+    0 0 0 7px var(--pj-primary-ring);
+}
+
+/* ── Shared card (glass) ── */
+.fab-card {
+  position: fixed;
+  z-index: 4320;
+  pointer-events: auto;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--surface-glass-solid);
+  border: 1px solid var(--surface-glass-border);
+  box-shadow: var(--surface-glass-shadow);
+  color: var(--surface-glass-ink);
+  animation: fbFloatIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .fab-card { background: var(--surface-glass-bg); -webkit-backdrop-filter: var(--surface-glass-blur); backdrop-filter: var(--surface-glass-blur); }
+}
+.fab-glow { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(120% 90% at 100% 0%, rgba(124, 58, 237, 0.16), transparent 62%); }
+
+/* ── Buttons ── */
+.fab-btn {
+  border: 0;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 160ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1)), box-shadow 200ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1));
+}
+.fab-btn--sm { padding: 9px 16px; font-size: 13px; border-radius: 9px; }
+.fab-btn--grow { flex: 1; }
+.fab-btn--primary { background: var(--pj-primary); color: #fff; }
+.fab-btn--primary:hover { background: var(--pj-primary-hover); }
+.fab-btn--ghost { background: rgba(255, 255, 255, 0.4); color: var(--pj-text-soft); border: 1px solid var(--surface-glass-border); }
+.fab-btn--ghost:hover { background: rgba(255, 255, 255, 0.7); }
+.fab-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--pj-primary-ring); }
+.fab-row { display: flex; gap: 10px; }
+.fab-row--tight { gap: 8px; }
+
+/* ── Welcome ── */
+.fab-welcome { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(420px, 92vw); border-radius: 22px; animation: fbPop 0.34s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+.fab-welcome__in { position: relative; padding: 28px 26px 24px; text-align: center; }
+.fab-badge { width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 50%; background: var(--pj-primary-soft); display: flex; align-items: center; justify-content: center; }
+.fab-welcome h3 { margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--pj-text); }
+.fab-welcome p { margin: 0 0 22px; font-size: 14px; line-height: 1.55; color: var(--pj-text-soft); }
+.fab-welcome .fab-btn--primary { flex: 1; }
+
+/* ── Tour coach ── */
+.fab-coach { width: min(318px, 92vw); }
+.fab-coach__in { position: relative; padding: 18px 20px 20px; }
+.fab-coach__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.fab-step { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pj-primary); }
+.fab-skip { border: 0; background: none; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--pj-muted); cursor: pointer; }
+.fab-skip:hover { color: var(--pj-text); }
+.fab-coach__title { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: var(--pj-text); letter-spacing: -0.01em; }
+.fab-coach__body { margin: 0 0 18px; font-size: 13.5px; line-height: 1.55; color: var(--pj-text-soft); }
+.fab-coach__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fab-dots { display: flex; gap: 6px; }
+.fab-dot { width: 7px; height: 7px; border-radius: 999px; background: rgba(124, 58, 237, 0.25); }
+.fab-dot--on { background: var(--pj-primary); }
+
+/* ── Help card ── */
+.fab-help { width: min(322px, 92vw); border-radius: 16px; }
+.fab-help__in { position: relative; padding: 16px 18px; }
+.fab-help__head { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.fab-mini { width: 26px; height: 26px; border-radius: 50%; background: var(--pj-primary-soft); display: flex; align-items: center; justify-content: center; }
+.fab-mini__name { font-size: 12.5px; font-weight: 700; color: var(--pj-text); }
+.fab-help__title { margin: 0 0 6px; font-size: 14px; font-weight: 700; color: var(--pj-text); }
+.fab-help__body { margin: 0 0 14px; font-size: 13.5px; line-height: 1.5; color: var(--pj-text-soft); }
+
+/* ── Command launcher ── */
+.fab-scrim--launcher { z-index: 4314; }
+.fab-launcher { top: 84px; left: 50%; transform: translateX(-50%); width: min(540px, 92vw); }
+.fab-launcher__in { position: relative; }
+.fab-launcher__search { display: flex; align-items: center; gap: 11px; padding: 15px 18px; border-bottom: 1px solid var(--surface-glass-border); }
+.fab-launcher__search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; font: inherit; font-size: 15px; color: var(--pj-text); }
+.fab-launcher__search input::placeholder { color: var(--pj-muted); }
+.fab-kbd { font-size: 10.5px; font-weight: 600; color: var(--pj-muted); border: 1px solid var(--pj-border-strong); border-radius: 6px; padding: 3px 7px; white-space: nowrap; }
+.fab-launcher__list { max-height: min(340px, 46vh); overflow-y: auto; padding: 10px 10px 14px; }
+.fab-grouplabel { margin: 8px 8px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pj-muted); }
+.fab-grouplabel--flush { margin: 18px 0 10px; }
+.fab-launcher__empty { margin: 14px 10px; font-size: 13px; color: var(--pj-muted); }
+.fab-launcher__foot { padding: 10px 16px; border-top: 1px solid var(--surface-glass-border); font-size: 11px; color: var(--pj-muted); }
+
+.fab-cmd { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 11px 12px; border: 0; border-radius: 10px; background: transparent; font-family: inherit; cursor: pointer; transition: background 140ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1)); }
+.fab-cmd:hover, .fab-cmd:focus-visible { background: rgba(124, 58, 237, 0.08); outline: none; }
+.fab-cmd__icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fab-cmd__icon--action { background: var(--pj-primary-soft); color: var(--pj-primary); }
+.fab-cmd__icon--help { background: var(--pj-input-bg); color: var(--pj-text-soft); }
+.fab-cmd__text { flex: 1; min-width: 0; }
+.fab-cmd__label { display: block; font-size: 13.5px; font-weight: 600; color: var(--pj-text); }
+.fab-cmd__hint { display: block; font-size: 11.5px; color: var(--pj-muted); }
+
+/* ── Panel ── */
+.fab-panel {
+  right: var(--fab-right);
+  bottom: calc(var(--fab-bottom) + 68px);
+  width: min(372px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 140px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  animation: fbFloatIn 0.34s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.fab-panel__head { position: relative; display: flex; align-items: center; gap: 11px; padding: 18px 20px 14px; border-bottom: 1px solid var(--surface-glass-border); }
+.fab-panel__id { flex: 1; min-width: 0; }
+.fab-panel__name { margin: 0; font-size: 14.5px; font-weight: 700; color: var(--pj-text); }
+.fab-panel__role { margin: 2px 0 0; font-size: 11.5px; color: var(--pj-primary); display: inline-flex; align-items: center; gap: 5px; }
+.fab-livedot { width: 6px; height: 6px; border-radius: 999px; background: var(--pj-primary); animation: fbPulse 1.8s ease-in-out infinite; }
+.fab-iconbtn { width: 30px; height: 30px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, 0.4); color: var(--pj-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.fab-iconbtn:hover { color: var(--pj-text); }
+.fab-panel__body { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 18px; }
+.fab-panel__ctx { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: var(--pj-text); }
+.fab-panel__sub { margin: 0 0 12px; font-size: 12.5px; color: var(--pj-text-soft); }
+.fab-suggests { display: flex; flex-direction: column; gap: 8px; }
+.fab-suggest { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; padding: 12px 14px; border: 1px solid var(--surface-glass-border); border-radius: 12px; background: rgba(255, 255, 255, 0.5); font-family: inherit; cursor: pointer; transition: background 160ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1)), transform 160ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1)); }
+.fab-suggest:hover { background: rgba(255, 255, 255, 0.85); transform: translateY(-1px); }
+.fab-suggest:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--pj-primary-ring); }
+.fab-suggest__dot { width: 7px; height: 7px; border-radius: 999px; background: var(--pj-primary); flex-shrink: 0; }
+.fab-suggest__label { flex: 1; font-size: 13px; font-weight: 600; color: var(--pj-text); }
+.fab-how { display: flex; flex-direction: column; gap: 9px; }
+.fab-how__row { margin: 0; font-size: 12.5px; color: var(--pj-text-soft); line-height: 1.4; }
+.fab-how__row b { color: var(--pj-text); }
+.fab-panel__foot { position: relative; padding: 12px 16px 16px; border-top: 1px solid var(--surface-glass-border); display: flex; flex-direction: column; gap: 8px; }
+.fab-footbtn { display: flex; align-items: center; gap: 10px; width: 100%; height: 42px; border-radius: 10px; background: rgba(255, 255, 255, 0.55); border: 1px solid var(--surface-glass-border); padding: 0 14px; cursor: pointer; font-family: inherit; color: var(--pj-muted); transition: background 180ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1)), border-color 180ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1)), box-shadow 250ms var(--pj-ease, cubic-bezier(0.4, 0, 0.2, 1)); }
+.fab-footbtn span { flex: 1; text-align: left; font-size: 12.5px; }
+.fab-footbtn .fab-kbd { flex: 0 0 auto; }
+.fab-footbtn:hover { background: var(--pj-primary-soft); border-color: var(--pj-primary); box-shadow: 0 0 0 4px var(--pj-primary-ring), 0 8px 22px -10px rgba(124, 58, 237, 0.55); }
+.fab-footbtn:focus-visible { outline: none; border-color: var(--pj-primary); box-shadow: 0 0 0 4px var(--pj-primary-ring); }
+
+/* ── Completion ── */
+.fab-complete { right: var(--fab-right); bottom: calc(var(--fab-bottom) + 68px); width: min(328px, calc(100vw - 32px)); }
+.fab-complete__in { position: relative; padding: 20px 22px; }
+.fab-complete__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.fab-check { width: 34px; height: 34px; border-radius: 50%; background: var(--pj-primary); display: flex; align-items: center; justify-content: center; }
+.fab-complete__title { margin: 0; font-size: 16px; font-weight: 800; color: var(--pj-text); }
+.fab-complete__body { margin: 0 0 16px; font-size: 13.5px; line-height: 1.5; color: var(--pj-text-soft); }
+
+/* ── Orb ── */
+.fab-orb {
+  position: fixed;
+  right: var(--fab-right);
+  bottom: var(--fab-bottom);
+  z-index: 4310;
+  pointer-events: auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--surface-glass-border);
+  background: var(--surface-glass-solid);
+  box-shadow: var(--surface-glass-shadow);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fbOrbBob 5s ease-in-out infinite;
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .fab-orb { background: var(--surface-glass-bg); -webkit-backdrop-filter: var(--surface-glass-blur); backdrop-filter: var(--surface-glass-blur); }
+}
+@media (min-width: 720px) { .fab-orb { width: 60px; height: 60px; } }
+.fab-orb:focus-visible { outline: none; box-shadow: var(--surface-glass-shadow), 0 0 0 4px var(--pj-primary-ring); }
+.fab-orb svg { position: relative; }
+.fab-orb__halo { position: absolute; inset: -6px; border-radius: 50%; background: radial-gradient(circle, var(--fab-glow-a), transparent 70%); animation: fbBreath 3.4s ease-in-out infinite; pointer-events: none; }
+.fab-orb__pulse { position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; border-radius: 50%; background: var(--pj-primary); border: 2px solid #fff; animation: fbPulse 1.8s ease-in-out infinite; }
+
+/* ── Reduced motion ── */
+.fab-root[data-rm="on"] .rm,
+.fab-root[data-rm="on"] .fab-card { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .fab-orb, .fab-orb__halo, .fab-orb__pulse, .fab-livedot, .fab-card { animation: none !important; }
+  .fab-btn, .fab-cmd, .fab-suggest, .fab-footbtn { transition: none !important; }
+}
