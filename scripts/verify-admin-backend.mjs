@@ -17,6 +17,13 @@ import {
   suspendAccount,
   unsuspendAccount,
 } from '../src/lib/admin/adminCore.js';
+import {
+  createPaymentLink,
+  refundPayment,
+  reconcilePayment,
+  revenueSummary,
+} from '../src/lib/admin/money.js';
+import { getServerAmount } from '../src/config/tierConfig.js';
 
 const OWNER = 'connectingjunaidkhan@gmail.com';
 const ACTOR = { id: 'admin-1', email: OWNER };
@@ -31,6 +38,9 @@ class FakeBuilder {
   }
   select() { this.op = 'select'; return this; }
   eq(c, v) { this.filters[c] = v; return this; }
+  gt() { return this; }
+  gte() { return this; }
+  lte() { return this; }
   order() { return this; }
   limit() { return this; }
   update(p) { this.op = 'update'; this.payload = p; return this; }
@@ -172,6 +182,114 @@ async function run() {
     const db = new FakeDb({ profiles: { single: null } });
     const r = await setPlan(db, { actor: ACTOR, email: 'ghost@x.com', portal: 'candidate', plan: 'CAREER_PRO', accessKind: 'permanent' });
     check('set_plan on unknown user rejected', r.ok === false && r.reason === 'user_not_found');
+  }
+
+  // ── 9. Phase 2 money: payment_link (Ziina AED)
+  console.log('\n9. payment_link — Ziina AED tier');
+  {
+    const captured = {};
+    const gw = {
+      ziinaLink: async (a) => { captured.ziina = a; return { url: 'https://pay.ziina.test/xyz', id: 'zi_1' }; },
+      razorpayLink: async (a) => { captured.rp = a; return { url: 'https://rzp.io/i/test', id: 'plink_1' }; },
+      refund: async () => ({ refundId: 'x', status: 'processed' }),
+    };
+    const db = new FakeDb({ profiles: { single: { id: '11111111-1111-1111-1111-111111111111', email: 'u@x.com' } } });
+    const r = await createPaymentLink(db, gw, { actor: ACTOR, email: 'u@x.com', portal: 'candidate', plan: 'CAREER_PRO', currency: 'AED', mode: 'test' });
+    check('link created (ziina, test)', r.ok && r.provider === 'ziina' && r.mode === 'test' && !!r.url);
+    check('amount derived from price table', r.amount_minor === getServerAmount('career_pro', 'AED'));
+    check('ziina got a signed tier ref', typeof captured.ziina?.ref === 'string' && captured.ziina.ref.startsWith('tier:career_pro:AED:'));
+    check('ziina called in test mode', captured.ziina?.test === true);
+    check('wrote an audit row (payment_link)', audits(db).some((a) => a.payload.action === 'payment_link'));
+  }
+
+  // ── 10. payment_link (Razorpay INR) carries webhook-decodable notes
+  console.log('\n10. payment_link — Razorpay INR tier');
+  {
+    const captured = {};
+    const gw = {
+      ziinaLink: async () => ({ url: 'x', id: 'x' }),
+      razorpayLink: async (a) => { captured.rp = a; return { url: 'https://rzp.io/i/test', id: 'plink_1' }; },
+      refund: async () => ({ refundId: 'x', status: 'processed' }),
+    };
+    const db = new FakeDb({ profiles: { single: { id: '22222222-2222-2222-2222-222222222222', email: 'i@x.com' } } });
+    const r = await createPaymentLink(db, gw, { actor: ACTOR, email: 'i@x.com', portal: 'candidate', plan: 'ACTIVE_HUNTER', currency: 'INR', mode: 'test' });
+    check('link created (razorpay, test)', r.ok && r.provider === 'razorpay');
+    check('notes carry userId + plan + currency for the webhook', captured.rp?.notes?.userId === '22222222-2222-2222-2222-222222222222' && captured.rp?.notes?.plan === 'active_hunter' && captured.rp?.notes?.currency === 'INR');
+  }
+
+  // ── 11. payment_link — live requires explicit confirm
+  console.log('\n11. payment_link — live requires confirm');
+  {
+    let called = false;
+    const gw = { ziinaLink: async () => { called = true; return { url: 'x' }; }, razorpayLink: async () => ({ url: 'x' }), refund: async () => ({}) };
+    const db = new FakeDb({ profiles: { single: { id: '11111111-1111-1111-1111-111111111111', email: 'u@x.com' } } });
+    const r = await createPaymentLink(db, gw, { actor: ACTOR, email: 'u@x.com', portal: 'candidate', plan: 'CAREER_PRO', currency: 'AED', mode: 'live' });
+    check('live link without confirm refused', r.ok === false && r.reason === 'live_requires_confirm');
+    check('no gateway call on refused live link', called === false);
+  }
+
+  // ── 12. payment_link — non-payable plan rejected
+  console.log('\n12. payment_link — FREE is not payable');
+  {
+    const gw = { ziinaLink: async () => ({ url: 'x' }), razorpayLink: async () => ({ url: 'x' }), refund: async () => ({}) };
+    const db = new FakeDb({ profiles: { single: { id: '11111111-1111-1111-1111-111111111111', email: 'u@x.com' } } });
+    const r = await createPaymentLink(db, gw, { actor: ACTOR, email: 'u@x.com', portal: 'candidate', plan: 'FREE', currency: 'AED', mode: 'test' });
+    check('FREE plan link rejected', r.ok === false && r.reason === 'invalid_product');
+  }
+
+  // ── 13. refund — success + double-refund guard
+  console.log('\n13. refund — success, then already-refunded');
+  {
+    const captured = {};
+    const gw = { ziinaLink: async () => ({ url: 'x' }), razorpayLink: async () => ({ url: 'x' }), refund: async (a) => { captured.refund = a; return { refundId: 'rfnd_1', status: 'processed' }; } };
+    const db = new FakeDb({ payments: { single: { id: 5, user_id: 'u', email: 'e@x.com', amount: 169, currency: 'AED', status: 'succeeded', provider: 'ziina', service: 'career_pro', payment_intent_id: 'pi_1' } } });
+    const r = await refundPayment(db, gw, { actor: ACTOR, paymentId: 5, mode: 'test' });
+    const ins = db.calls.find((c) => c.table === 'payments' && c.op === 'insert');
+    check('refund ok', r.ok === true && r.refund_id === 'rfnd_1');
+    check('gateway refund called (ziina, test, pi_1)', captured.refund?.provider === 'ziina' && captured.refund?.test === true && captured.refund?.paymentIntentId === 'pi_1');
+    check('negative refunded ledger row written', ins?.payload?.amount === -169 && ins?.payload?.status === 'refunded');
+    check('wrote an audit row (refund)', audits(db).some((a) => a.payload.action === 'refund'));
+
+    const db2 = new FakeDb({ payments: { single: { id: 5, amount: 169, currency: 'AED', status: 'refunded', provider: 'ziina', payment_intent_id: 'pi_1' } } });
+    const r2 = await refundPayment(db2, gw, { actor: ACTOR, paymentId: 5, mode: 'test' });
+    check('double refund refused', r2.ok === false && r2.reason === 'already_refunded');
+  }
+
+  // ── 14. reconcile — provision + record a missed candidate payment
+  console.log('\n14. reconcile — candidate tier');
+  {
+    const db = new FakeDb({ profiles: { single: { id: '33333333-3333-3333-3333-333333333333', email: 'r@x.com' } } });
+    const r = await reconcilePayment(db, { actor: ACTOR, email: 'r@x.com', portal: 'candidate', plan: 'CAREER_PRO', currency: 'AED', amountMinor: 16900, provider: 'ziina', paymentIntentId: 'pi_9' });
+    const rpc = db.rpcs.find((c) => c.name === 'extend_pro_access');
+    const ins = db.calls.find((c) => c.table === 'payments' && c.op === 'insert');
+    check('reconcile ok', r.ok === true && r.payment_row === 'ok');
+    check('access extended via RPC', rpc?.args?.p_user_id === '33333333-3333-3333-3333-333333333333');
+    check('positive payment row recorded', ins?.payload?.amount === 169 && ins?.payload?.status === 'succeeded' && ins?.payload?.provider === 'ziina');
+    check('wrote an audit row (reconcile)', audits(db).some((a) => a.payload.action === 'reconcile'));
+  }
+
+  // ── 15. revenue — real, dual-currency, net of refunds
+  console.log('\n15. revenue — real aggregation (AED/INR separate)');
+  {
+    const db = new FakeDb({ payments: { list: [
+      { amount: 169, currency: 'AED', status: 'succeeded' },
+      { amount: -169, currency: 'AED', status: 'refunded' },
+      { amount: 349, currency: 'INR', status: 'succeeded' },
+    ] } });
+    const r = await revenueSummary(db, {});
+    check('data_state real', r.data_state === 'real');
+    check('AED net = gross - refunds (169-169=0)', r.byCurrency.AED.gross === 169 && r.byCurrency.AED.refunds === 169 && r.byCurrency.AED.net === 0);
+    check('INR net = 349, count 1', r.byCurrency.INR.net === 349 && r.byCurrency.INR.count === 1);
+    check('AED and INR never summed', !('total' in r));
+  }
+
+  // ── 16. revenue — empty payments → flagged estimated
+  console.log('\n16. revenue — empty payments → estimated + reason');
+  {
+    const db = new FakeDb({ payments: { list: [] }, profiles: { list: [] } });
+    const r = await revenueSummary(db, {});
+    check('data_state estimated', r.data_state === 'estimated');
+    check('reason explains best-effort inserts / migration', typeof r.reason === 'string' && r.reason.includes('best-effort'));
   }
 
   console.log(`\n${'='.repeat(48)}`);

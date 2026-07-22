@@ -16,6 +16,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import Razorpay from 'razorpay';
 import {
   resolveAdminRole,
   grantAccess,
@@ -25,6 +26,12 @@ import {
   queryAudit,
   DEFAULT_OWNER_EMAIL,
 } from '../src/lib/admin/adminCore.js';
+import {
+  createPaymentLink,
+  refundPayment,
+  reconcilePayment,
+  revenueSummary,
+} from '../src/lib/admin/money.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -33,11 +40,88 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.REACT_APP
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const OWNER_EMAIL = process.env.ADMIN_OWNER_EMAIL || DEFAULT_OWNER_EMAIL;
 
+// Money-safety: TEST/sandbox unless explicitly flipped. No live-money
+// capability ships enabled — set ADMIN_PAYMENTS_MODE=live AND pass
+// confirm:'LIVE' per request to touch real money.
+const MONEY_MODE = process.env.ADMIN_PAYMENTS_MODE === 'live' ? 'live' : 'test';
+
 const db = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
   : null;
+
+// ── Gateway calls (need env + SDK, so they live here, not in money.js).
+// Injected into money.js so its orchestration stays gateway-agnostic and
+// testable. In test mode Ziina sets test:true and Razorpay uses TEST keys;
+// both FAIL CLOSED when the required credentials are absent.
+async function ziinaLink({ amountMinor, ref, message, test }) {
+  if (!process.env.ZIINA_API_TOKEN) throw new Error('ZIINA_API_TOKEN not set');
+  const resp = await fetch('https://api-v2.ziina.com/api/payment_intent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.ZIINA_API_TOKEN}` },
+    body: JSON.stringify({
+      amount: amountMinor,
+      currency_code: 'AED',
+      message: message || 'CVPassport',
+      success_url: 'https://www.mycvpassport.com/payment-success',
+      cancel_url: 'https://www.mycvpassport.com/pricing',
+      external_reference: ref,
+      test: !!test,
+    }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(`ziina: ${JSON.stringify(data)}`);
+  return { url: data.redirect_url, id: data.id || null };
+}
+
+function razorpayClient(test) {
+  const keyId = test ? process.env.RAZORPAY_TEST_KEY_ID : process.env.RAZORPAY_KEY_ID;
+  const secret = test ? process.env.RAZORPAY_TEST_SECRET : process.env.RAZORPAY_SECRET;
+  if (!keyId || !secret) {
+    throw new Error(test
+      ? 'Razorpay TEST keys not set (RAZORPAY_TEST_KEY_ID / RAZORPAY_TEST_SECRET)'
+      : 'Razorpay live keys not set (RAZORPAY_KEY_ID / RAZORPAY_SECRET)');
+  }
+  return new Razorpay({ key_id: keyId, key_secret: secret });
+}
+
+async function razorpayLink({ amountMinor, notes, description, email, test }) {
+  const rp = razorpayClient(test);
+  const link = await rp.paymentLink.create({
+    amount: amountMinor,
+    currency: 'INR',
+    description: description || 'CVPassport',
+    customer: email ? { email } : undefined,
+    notify: { email: false, sms: false },
+    notes,
+  });
+  return { url: link.short_url, id: link.id };
+}
+
+async function gatewayRefund({ provider, paymentIntentId, amountMinor, test }) {
+  if (provider === 'razorpay') {
+    const rp = razorpayClient(test);
+    const r = await rp.payments.refund(paymentIntentId, amountMinor ? { amount: amountMinor } : {});
+    return { refundId: r.id, status: r.status };
+  }
+  if (provider === 'ziina') {
+    if (!process.env.ZIINA_API_TOKEN) throw new Error('ZIINA_API_TOKEN not set');
+    // NOTE: Ziina refund endpoint shape is best-effort here — confirm against
+    // Ziina's current API docs before relying on live refunds.
+    const resp = await fetch(`https://api-v2.ziina.com/api/payment_intent/${paymentIntentId}/refund`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.ZIINA_API_TOKEN}` },
+      body: JSON.stringify(amountMinor ? { amount: amountMinor } : {}),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(`ziina refund: ${JSON.stringify(data)}`);
+    return { refundId: data.id || null, status: data.status || 'refunded' };
+  }
+  throw new Error(`unknown provider "${provider}"`);
+}
+
+const gateways = { ziinaLink, razorpayLink, refund: gatewayRefund };
 
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -104,6 +188,15 @@ export default async function handler(req, res) {
         return res.status(200).json(await unsuspendAccount(db, { ...body, actor }));
       case 'audit_query':
         return res.status(200).json(await queryAudit(db, body));
+      // ── Phase 2: money (test-mode by default) ──
+      case 'payment_link':
+        return res.status(200).json(await createPaymentLink(db, gateways, { ...body, actor, mode: MONEY_MODE }));
+      case 'refund':
+        return res.status(200).json(await refundPayment(db, gateways, { ...body, actor, mode: MONEY_MODE }));
+      case 'reconcile':
+        return res.status(200).json(await reconcilePayment(db, { ...body, actor }));
+      case 'revenue':
+        return res.status(200).json(await revenueSummary(db, body));
       default:
         return res.status(400).json({ error: 'Invalid or missing action' });
     }
