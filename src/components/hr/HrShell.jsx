@@ -3,6 +3,8 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import NoIndex from "../seo/NoIndex";
 import { supabase } from "../../appSupabaseClient";
+import { loadFlags, featureOff } from "../../lib/featureFlags";
+import { isFounderEmail } from "../../utils/founder";
 import { trackHr } from "../../lib/analytics/hrEvents";
 import { startPortalRecording, stopPortalRecording } from "../../lib/analytics/posthog";
 import UserMenu from "../UserMenu/UserMenu";
@@ -97,6 +99,16 @@ export default function HrShell() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [interviewsToday, setInterviewsToday] = useState(0);
+  const [portalOff, setPortalOff] = useState(false);
+
+  // Live kill switch: the whole HR portal can be turned off from the admin
+  // command center (feature_flags.hr_portal = false). Re-checked on route
+  // change; the founder is exempt so they can still reach it to flip it back.
+  useEffect(() => {
+    let live = true;
+    loadFlags().then((f) => { if (live) setPortalOff(featureOff(f, "hr_portal")); }).catch(() => {});
+    return () => { live = false; };
+  }, [path]);
 
   useEffect(() => {
     let live = true;
@@ -150,6 +162,21 @@ export default function HrShell() {
     })();
     return () => { live = false; };
   }, [user?.id, path]);
+
+  // Portal off (and caller is not the founder) → a calm maintenance screen
+  // instead of the shell. Only blocks once we know who the user is, so a
+  // slow auth load never flashes maintenance at a legitimate recruiter.
+  if (portalOff && user && !isFounderEmail(user.email)) {
+    return (
+      <div className="hrs-root" style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, textAlign: "center" }}>
+        <NoIndex />
+        <div style={{ maxWidth: 420 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "var(--pj-text, #14131F)", marginBottom: 8 }}>The hiring portal is briefly unavailable</div>
+          <div style={{ fontSize: 14, color: "var(--pj-text-soft, #4B4A5E)", lineHeight: 1.6 }}>We are doing some quick maintenance and will be back shortly. Your data is safe.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="hrs-root">

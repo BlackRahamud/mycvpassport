@@ -134,6 +134,27 @@ Deno.serve(async (req: Request) => {
         })
       : null;
 
+  // Live kill switch — the ATS checker (this AI scan) can be turned off in the
+  // admin command center (feature_flags.ats_checker = false). FAIL-OPEN: a
+  // read error or missing flag leaves the scan working.
+  if (supabase) {
+    try {
+      const { data: flag } = await supabase
+        .from("feature_flags")
+        .select("enabled")
+        .eq("key", "ats_checker")
+        .maybeSingle();
+      if (flag && flag.enabled === false) {
+        return json(
+          { error: "ats_disabled", message: "The ATS checker is temporarily unavailable. Please try again shortly." },
+          503,
+        );
+      }
+    } catch {
+      /* flag unavailable → scan stays on */
+    }
+  }
+
   const callerIp = getCallerIp(req);
   const ipHash = await hashIp(callerIp);
   const identityArgs = { userId, ipHash, tier };

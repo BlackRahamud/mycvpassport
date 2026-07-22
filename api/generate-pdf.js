@@ -68,6 +68,21 @@ module.exports = async (req, res) => {
 
   const { html, templateId, cv, atsMode, maxPages, consumeCredit } = body;
 
+  // Live kill switch — PDF export can be turned off in the admin command
+  // center (feature_flags.pdf_export = false). Public-read flag, so the anon
+  // key is enough. FAIL-OPEN: a read error or a missing flag leaves export
+  // working, so a flag outage never blocks downloads.
+  try {
+    const flagKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+    if (SUPABASE_URL && flagKey) {
+      const flagClient = createClient(SUPABASE_URL, flagKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: flag } = await flagClient.from("feature_flags").select("enabled").eq("key", "pdf_export").maybeSingle();
+      if (flag && flag.enabled === false) {
+        return res.status(503).json({ error: "pdf_export_disabled", message: "PDF export is temporarily unavailable. Please try again shortly." });
+      }
+    }
+  } catch { /* flag unavailable → export stays on */ }
+
   // Credit gate — opt-in via `consumeCredit: true` from the builder's main
   // download path (src/downloadResumeFromPreview.js). Other callers (Walk-In
   // Mode, Cover Letter, Transform success, Scout) don't send this flag and
