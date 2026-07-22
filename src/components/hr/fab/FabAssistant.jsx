@@ -111,6 +111,7 @@ const ACTIONS = [
   { label: "Review new applicants", hint: "Open your pipeline", to: "candidates" },
   { label: "Open the interview kit", hint: "Today's interviews", to: "interviews" },
   { label: "See plans and Foundation", hint: "Pricing and tiers", to: "plans" },
+  { label: "Take the tour", hint: "A quick guided walkthrough", action: "tour" },
   { label: "Send feedback", hint: "Share an idea or a bug", action: "feedback" },
 ];
 const HELP_TOPICS = [
@@ -201,6 +202,7 @@ export default function FabAssistant() {
   const go = useCallback((target) => {
     if (!target) return;
     if (target.action === "feedback") { openFeedback(); return; }
+    if (target.action === "tour") { setTourStep(0); setHasHint(false); setMode("tour"); return; }
     const key = target.to || target;
     const route = ROUTES[key] || key;
     setMode("idle");
@@ -442,6 +444,11 @@ export default function FabAssistant() {
           <div className="fab-panel__body">
             <p className="fab-panel__ctx">On this screen: {SECTION_TITLE[section]}</p>
             <p className="fab-panel__sub">Jump to what you need next.</p>
+            <button type="button" className="fab-tourlink" onClick={startTour}>
+              <SparkIcon size={14} />
+              <span>Take a quick tour</span>
+              <ChevronIcon />
+            </button>
             <div className="fab-suggests">
               {SECTION[section].sug.map((s) => (
                 <button key={s.label} type="button" className="fab-suggest" onClick={() => go(s)}>
