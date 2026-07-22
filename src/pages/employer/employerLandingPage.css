@@ -496,6 +496,16 @@
   flex-direction: column;
   gap: 14px;
 }
+.empl-jmap-shot {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto; /* override the intrinsic height attr so aspect-ratio drives the box */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--empl-r-lg);
+  box-shadow: 0 16px 30px -18px rgba(0, 0, 0, 0.6);
+}
 .empl-jmap-badge {
   align-self: flex-start;
   display: inline-flex;

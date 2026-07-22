@@ -169,6 +169,15 @@ export default function EmployerJourneyMap() {
   return (
     <div className="empl-jmap-card" ref={rootRef} data-rm={reduce ? "on" : "off"}>
       <div className="empl-jmap-aside">
+        <img
+          className="empl-jmap-shot"
+          src={`${process.env.PUBLIC_URL}/images/hiring-before.jpg`}
+          alt="a recruiter buried under a pile of paper CVs"
+          width="1080"
+          height="608"
+          loading="lazy"
+          decoding="async"
+        />
         <span className="empl-jmap-badge">the hiring journey</span>
         <h2>From posted to hired, without the pile</h2>
         <p>Post or import, let the scoring rank them, run one board to hire, and reach people on WhatsApp.</p>
