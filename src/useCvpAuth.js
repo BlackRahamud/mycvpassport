@@ -177,6 +177,35 @@ export function useCvpAuth() {
     if (!supabase) return;
     let cancelled = false;
     const fetchProStatus = async (userId, traits = {}, founder = false) => {
+      // Soft-suspend gate (admin action). Queried SEPARATELY and best-effort
+      // on purpose: account_status / suspended_message come from migration
+      // 049, so until that is applied a missing-column error must simply skip
+      // this check and NEVER break the pro-status load below. The founder is
+      // never suspended server-side (owner-guard in adminCore) and is skipped
+      // here too as defence in depth. Reversible via admin unsuspend.
+      if (!founder) {
+        try {
+          const { data: susp, error: suspErr } = await supabase
+            .from("profiles")
+            .select("account_status, suspended_message")
+            .eq("id", userId)
+            .single();
+          if (!suspErr && susp?.account_status === "suspended") {
+            try {
+              window.localStorage?.setItem(
+                "cvp_suspended_msg",
+                susp.suspended_message || "Your account has been suspended. Please contact support.",
+              );
+            } catch { /* storage unavailable */ }
+            await supabase.auth.signOut();
+            if (!cancelled) {
+              setIsPro(false);
+              setProfile({ is_pro: false, plan: "FREE", features: {}, pro_access_expires_at: null, download_credits: 0, cover_letter_credits: 0 });
+            }
+            return;
+          }
+        } catch { /* pre-migration or transient — fall through to normal load */ }
+      }
       try {
         const { data: row } = await supabase
           .from("profiles")
