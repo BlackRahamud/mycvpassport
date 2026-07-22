@@ -32,6 +32,15 @@ import {
   reconcilePayment,
   revenueSummary,
 } from '../src/lib/admin/money.js';
+import {
+  resetPassword,
+  resendVerification,
+  viewAsUser,
+  deleteOrAnonymize,
+  manualUnlock,
+  addCredits,
+} from '../src/lib/admin/lifecycle.js';
+import { plansList, planUpsert, planDelete } from '../src/lib/admin/plans.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -123,6 +132,19 @@ async function gatewayRefund({ provider, paymentIntentId, amountMinor, test }) {
 
 const gateways = { ziinaLink, razorpayLink, refund: gatewayRefund };
 
+// ── Auth calls (Supabase auth-admin + anon) injected into lifecycle.js.
+// resetPassword/resendSignup use the anon client so Supabase sends the email
+// via its configured SMTP; generateMagicLink/deleteUser/updateUser use the
+// service-role admin API.
+const anonClient = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const auth = {
+  resetPassword: (email) => anonClient.auth.resetPasswordForEmail(email, { redirectTo: 'https://www.mycvpassport.com/reset-password' }),
+  resendSignup: (email) => anonClient.auth.resend({ type: 'signup', email }),
+  generateMagicLink: (email) => db.auth.admin.generateLink({ type: 'magiclink', email }),
+  deleteUser: (userId) => db.auth.admin.deleteUser(userId),
+  updateUser: (userId, attrs) => db.auth.admin.updateUserById(userId, attrs),
+};
+
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -197,6 +219,25 @@ export default async function handler(req, res) {
         return res.status(200).json(await reconcilePayment(db, { ...body, actor }));
       case 'revenue':
         return res.status(200).json(await revenueSummary(db, body));
+      // ── Phase 3: account lifecycle + plan builder ──
+      case 'reset_password':
+        return res.status(200).json(await resetPassword(db, auth, { ...body, actor }));
+      case 'resend_verification':
+        return res.status(200).json(await resendVerification(db, auth, { ...body, actor }));
+      case 'view_as':
+        return res.status(200).json(await viewAsUser(db, auth, { ...body, actor }));
+      case 'delete_or_anonymize':
+        return res.status(200).json(await deleteOrAnonymize(db, auth, { ...body, actor, ownerEmail: OWNER_EMAIL }));
+      case 'manual_unlock':
+        return res.status(200).json(await manualUnlock(db, { ...body, actor }));
+      case 'add_credits':
+        return res.status(200).json(await addCredits(db, { ...body, actor }));
+      case 'plans_list':
+        return res.status(200).json(await plansList(db));
+      case 'plan_upsert':
+        return res.status(200).json(await planUpsert(db, { ...body, actor }));
+      case 'plan_delete':
+        return res.status(200).json(await planDelete(db, { ...body, actor }));
       default:
         return res.status(400).json({ error: 'Invalid or missing action' });
     }

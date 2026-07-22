@@ -24,6 +24,15 @@ import {
   revenueSummary,
 } from '../src/lib/admin/money.js';
 import { getServerAmount } from '../src/config/tierConfig.js';
+import {
+  resetPassword,
+  resendVerification,
+  viewAsUser,
+  deleteOrAnonymize,
+  manualUnlock,
+  addCredits,
+} from '../src/lib/admin/lifecycle.js';
+import { plansList, planUpsert, planDelete } from '../src/lib/admin/plans.js';
 
 const OWNER = 'connectingjunaidkhan@gmail.com';
 const ACTOR = { id: 'admin-1', email: OWNER };
@@ -44,6 +53,7 @@ class FakeBuilder {
   order() { return this; }
   limit() { return this; }
   update(p) { this.op = 'update'; this.payload = p; return this; }
+  delete() { this.op = 'delete'; this.db.calls.push({ table: this.table, op: 'delete' }); return this; }
   insert(p) {
     this.db.calls.push({ table: this.table, op: 'insert', payload: p });
     return Promise.resolve({ data: p, error: this.db.res(this.table)?.insertError ?? null });
@@ -62,6 +72,9 @@ class FakeBuilder {
     if (this.op === 'update') {
       this.db.calls.push({ table: this.table, op: 'update', payload: this.payload, filters: this.filters });
       return Promise.resolve({ data: null, error: this.db.res(this.table)?.updateError ?? null }).then(resolve, reject);
+    }
+    if (this.op === 'delete') {
+      return Promise.resolve({ data: null, error: this.db.res(this.table)?.deleteError ?? null }).then(resolve, reject);
     }
     return Promise.resolve({ data: this.db.res(this.table)?.list ?? [], error: null }).then(resolve, reject);
   }
@@ -290,6 +303,99 @@ async function run() {
     const r = await revenueSummary(db, {});
     check('data_state estimated', r.data_state === 'estimated');
     check('reason explains best-effort inserts / migration', typeof r.reason === 'string' && r.reason.includes('best-effort'));
+  }
+
+  // ── 17. Phase 3 lifecycle: reset password + resend verification
+  console.log('\n17. reset_password / resend_verification');
+  {
+    const sent = {};
+    const auth = {
+      resetPassword: async (e) => { sent.reset = e; return { error: null }; },
+      resendSignup: async (e) => { sent.resend = e; return { error: null }; },
+    };
+    const db = new FakeDb({ profiles: { single: { id: 'u1', email: 'user@x.com', account_status: 'active' } } });
+    const r = await resetPassword(db, auth, { actor: ACTOR, email: 'user@x.com' });
+    check('reset email sent to resolved address', r.ok && sent.reset === 'user@x.com');
+    check('reset audited', audits(db).some((a) => a.payload.action === 'reset_password'));
+    const db2 = new FakeDb({ profiles: { single: { id: 'u1', email: 'user@x.com' } } });
+    const r2 = await resendVerification(db2, auth, { actor: ACTOR, email: 'user@x.com' });
+    check('resend verification sent + audited', r2.ok && sent.resend === 'user@x.com' && audits(db2).some((a) => a.payload.action === 'resend_verification'));
+  }
+
+  // ── 18. view_as — time-boxed magic link
+  console.log('\n18. view_as — impersonation link');
+  {
+    const auth = { generateMagicLink: async () => ({ data: { properties: { action_link: 'https://magic.link/abc' } }, error: null }) };
+    const db = new FakeDb({ profiles: { single: { id: 'u1', email: 'user@x.com' } } });
+    const r = await viewAsUser(db, auth, { actor: ACTOR, email: 'user@x.com' });
+    check('returns a magic action_link', r.ok && r.action_link === 'https://magic.link/abc');
+    check('view_as audited', audits(db).some((a) => a.payload.action === 'view_as'));
+  }
+
+  // ── 19. delete_or_anonymize — owner protected, confirm-gated delete
+  console.log('\n19. delete_or_anonymize');
+  {
+    const auth = { deleteUser: async () => ({ error: null }), updateUser: async () => ({ error: null }) };
+    // owner protected
+    const dbo = new FakeDb({ profiles: { single: { id: 'o1', email: OWNER, account_status: 'active' } } });
+    const ro = await deleteOrAnonymize(dbo, auth, { actor: ACTOR, email: OWNER, mode: 'delete', confirm: 'DELETE' });
+    check('owner delete refused', ro.ok === false && ro.reason === 'cannot_delete_owner');
+    // hard delete needs confirm
+    const dbc = new FakeDb({ profiles: { single: { id: 'u9', email: 'bad@x.com', account_status: 'active' } } });
+    const rc = await deleteOrAnonymize(dbc, auth, { actor: ACTOR, email: 'bad@x.com', mode: 'delete' });
+    check('hard delete without confirm refused', rc.ok === false && rc.reason === 'delete_requires_confirm');
+    // anonymize (default)
+    const dba = new FakeDb({ profiles: { single: { id: 'u9', email: 'bad@x.com', account_status: 'active' } } });
+    const ra = await deleteOrAnonymize(dba, auth, { actor: ACTOR, email: 'bad@x.com', mode: 'anonymize' });
+    const up = updates(dba, 'profiles')[0];
+    check('anonymize scrubs email + suspends', ra.ok && up?.payload?.email?.startsWith('anon+') && up?.payload?.account_status === 'suspended');
+    check('anonymize audited', audits(dba).some((a) => a.payload.action === 'anonymize'));
+  }
+
+  // ── 20. manual_unlock + add_credits
+  console.log('\n20. manual_unlock / add_credits');
+  {
+    const db = new FakeDb({ profiles: { single: { id: 'u1', email: 'user@x.com' } } });
+    const r = await manualUnlock(db, { actor: ACTOR, email: 'user@x.com', service: 'linkedin_optimizer' });
+    const perm = db.calls.find((c) => c.table === 'permissions' && c.op === 'upsert');
+    check('linkedin unlock upserts a permission', r.ok && !!perm && perm.payload.service === 'linkedin_optimizer');
+    check('manual_unlock audited', audits(db).some((a) => a.payload.action === 'manual_unlock'));
+
+    const db2 = new FakeDb({ profiles: { single: { id: 'u1', email: 'user@x.com' } } });
+    const c = await addCredits(db2, { actor: ACTOR, email: 'user@x.com', kind: 'cover', amount: 3 });
+    const rpc = db2.rpcs.find((x) => x.name === 'grant_cover_letter_credits');
+    check('add cover credits via RPC', c.ok && rpc?.args?.p_credits === 3);
+    check('add_credits audited', audits(db2).some((a) => a.payload.action === 'add_credits'));
+    const zero = await addCredits(new FakeDb({ profiles: { single: { id: 'u1', email: 'x' } } }), { actor: ACTOR, email: 'x', kind: 'download', amount: 0 });
+    check('zero credits rejected', zero.ok === false && zero.reason === 'invalid_amount');
+  }
+
+  // ── 21. Plan builder CRUD — immutable protection
+  console.log('\n21. plans CRUD — immutable protected');
+  {
+    const list = new FakeDb({ plans: { list: [{ slug: 'active_hunter', name: 'Active Hunter' }] } });
+    const rl = await plansList(list);
+    check('plans_list returns real when populated', rl.ok && rl.data_state === 'real' && rl.plans.length === 1);
+
+    const empty = new FakeDb({ plans: { list: [] } });
+    const re = await plansList(empty);
+    check('empty plans → estimated + apply-050 reason', re.data_state === 'estimated' && re.reason.includes('050'));
+
+    const upDb = new FakeDb({ plans: { single: null } });
+    const up = await planUpsert(upDb, { actor: ACTOR, slug: 'promo_pass', name: 'Promo Pass', portal: 'candidate', aedMinor: 900, model: 'permanent' });
+    const ins = upDb.calls.find((c) => c.table === 'plans' && c.op === 'upsert');
+    check('new plan upserted + audited (plan_create)', up.ok && !!ins && audits(upDb).some((a) => a.payload.action === 'plan_create'));
+
+    const immDb = new FakeDb({ plans: { single: { slug: 'foundation', immutable: true } } });
+    const imm = await planUpsert(immDb, { actor: ACTOR, slug: 'foundation', name: 'x', portal: 'hr' });
+    check('foundation edit refused (immutable)', imm.ok === false && imm.reason === 'plan_immutable');
+
+    const del = await planDelete(new FakeDb({ plans: { single: { slug: 'explorer', immutable: true } } }), { actor: ACTOR, slug: 'explorer' });
+    check('explorer delete refused (immutable)', del.ok === false && del.reason === 'plan_immutable');
+
+    const delOk = new FakeDb({ plans: { single: { slug: 'promo_pass', immutable: false } } });
+    const rdel = await planDelete(delOk, { actor: ACTOR, slug: 'promo_pass' });
+    check('deletable plan removed + audited', rdel.ok && delOk.calls.some((c) => c.table === 'plans' && c.op === 'delete') && audits(delOk).some((a) => a.payload.action === 'plan_delete'));
   }
 
   console.log(`\n${'='.repeat(48)}`);
