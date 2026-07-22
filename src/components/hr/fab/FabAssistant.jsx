@@ -280,20 +280,23 @@ export default function FabAssistant() {
     };
   }, [spotKey, tourStep, mode]);
 
-  // Orb shows in idle/panel/help/complete — but never while the feedback
-  // panel is open (they share the bottom-right corner and would overlap).
-  const showOrb = !fbOpen && (mode === "idle" || mode === "panel" || mode === "help" || mode === "complete");
   const isDesktop = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(min-width: 720px)").matches;
 
+  // Orb shows in idle/panel/help/complete — but never while the feedback
+  // panel is open (they share the bottom-right corner and would overlap).
+  // On mobile the main panel is a full bottom sheet, so the orb hides behind
+  // it (the header X is the close control) rather than poking over its corner.
+  const showOrb = !fbOpen && (mode === "idle" || mode === "help" || mode === "complete" || (mode === "panel" && isDesktop));
+
   // Place a corner/anchored card near the live rail item. Desktop: to the
-  // right of the left rail. Mobile: above the bottom tab bar.
+  // right of the left rail, tracking the live element. Mobile: return no
+  // inline position so the safe-area sheet geometry in fab.css owns it (the
+  // tour is a bottom sheet, help a top sheet — never a fixed desktop width).
   const anchoredStyle = () => {
+    if (!isDesktop) return undefined;
     if (!anchor) return { left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
-    if (isDesktop) {
-      const top = Math.min(Math.max(anchor.top - 6, 12), (typeof window !== "undefined" ? window.innerHeight : 800) - 220);
-      return { left: `${anchor.right + 16}px`, top: `${top}px` };
-    }
-    return { left: "50%", bottom: `${(typeof window !== "undefined" ? window.innerHeight : 800) - anchor.top + 12}px`, transform: "translateX(-50%)" };
+    const top = Math.min(Math.max(anchor.top - 6, 12), (typeof window !== "undefined" ? window.innerHeight : 800) - 220);
+    return { left: `${anchor.right + 16}px`, top: `${top}px` };
   };
 
   const q = query.toLowerCase().trim();
