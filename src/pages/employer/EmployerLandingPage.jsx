@@ -5,7 +5,9 @@ import { motion, useReducedMotion } from "framer-motion";
 import { supabase } from "../../appSupabaseClient";
 import { HR_SALES } from "../../utils/paywall";
 import logoIcon from "../../assets/logo512.png";
+import EmployerJourneyMap from "./EmployerJourneyMap";
 import "../hr/PostJob/postJob.css"; // --pj-* tokens (font stack fallback)
+import "../../components/hr/surfaceGlass.css"; // --surface-glass-* (journey card)
 import "./employerLandingPage.css";
 
 /**
@@ -54,13 +56,6 @@ const VALUE_CARDS = [
     title: "Pipeline Board",
     body: "Move candidates from applied to hired on one visual board. Schedule interviews and share profiles for team feedback.",
   },
-];
-
-const STEPS = [
-  { title: "Post Your Role", body: "Use the guided wizard. Describe what you need in plain language." },
-  { title: "Get Scored Applicants", body: "Candidates arrive ranked by fit. The strongest matches surface first." },
-  { title: "Run Your Pipeline", body: "Shortlist, schedule interviews, and share profiles for team feedback." },
-  { title: "Connect on WhatsApp", body: "Reach shortlisted candidates instantly on the app they already check." },
 ];
 
 export default function EmployerLandingPage() {
@@ -210,21 +205,12 @@ export default function EmployerLandingPage() {
         </div>
       </section>
 
-      {/* ── How it works ── */}
+      {/* ── How it works — animated hiring journey map (marketing mode) ── */}
       <section id="how-it-works" className="empl-section empl-section--soft">
         <div className="empl-container">
-          <motion.div className="empl-section-head" {...reveal(0)}>
-            <h2>From job post to hire in four steps.</h2>
+          <motion.div {...reveal(0)}>
+            <EmployerJourneyMap />
           </motion.div>
-          <div className="empl-steps-grid">
-            {STEPS.map((step, i) => (
-              <motion.div key={step.title} className="empl-step" {...reveal(i * 0.08)}>
-                <div className="empl-step-num">{i + 1}</div>
-                <h4>{step.title}</h4>
-                <p>{step.body}</p>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </section>
 
