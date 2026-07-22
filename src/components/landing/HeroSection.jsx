@@ -1,12 +1,11 @@
 import React, { useCallback } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-// Hero billboard — animated 4-state iPhone on the left + static iPad
-// with the 94 score ring on the right. Both ported from the Claude
-// Design bundle. They overlap (phone z-index 2, tablet z-index 1) to
-// recreate the bundle's hardware-stack layout.
-import HeroAnimatedPhone from './HeroAnimatedPhone';
-import HeroBillboardTablet from './HeroBillboardTablet';
+// Hero billboard — the "CV Device Ad" animation ported verbatim from the
+// Claude Design project (phone cycles CV pop-out -> iCloud Mail -> HR chat
+// -> booked Apple Calendar, beside the dark CVPassport score device that
+// counts to 94). One self-contained 16s-loop component.
+import HeroDeviceAd from './HeroDeviceAd';
 import { logEvent } from '../../lib/analytics/logEvent';
 
 // W18 copy rewrite v2 — Founder-locked 2026-04-22 in
@@ -486,10 +485,6 @@ export default function HeroSection({ user }) {
 
       <motion.div
         className="cvp-hero-visual"
-        /* The phone + tablet are dark hardware mockups by design — pin the
-           token cascade dark so their internal token-driven text (inbox
-           subjects, the 94 score) stays light-on-dark on the light page. */
-        data-theme="dark"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={reduce
@@ -497,11 +492,10 @@ export default function HeroSection({ user }) {
           : { duration: 0.48, delay: 0.24, ease: [0.25, 0.46, 0.45, 0.94] }}
         aria-hidden="true"
       >
-        {/* Hero billboard — animated phone (CV → Inbox → WhatsApp →
-            Calendar, 3.2s loop) overlapping the static iPad with the
-            94 score ring. Both ported from the Claude Design bundle. */}
-        <HeroAnimatedPhone />
-        <HeroBillboardTablet />
+        {/* CV Device Ad — the phone journey (CV pop-out → iCloud Mail →
+            HR chat → booked Apple Calendar) beside the dark score device
+            counting to 94. Ported verbatim from the Claude Design file. */}
+        <HeroDeviceAd />
       </motion.div>
     </section>
   );
