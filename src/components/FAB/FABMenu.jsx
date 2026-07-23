@@ -74,11 +74,12 @@ export default function FABMenu({ open, onClose, options, anchorRef, onSelect, t
         <div style={{ display: "flex", flexDirection: "column-reverse", alignItems: "flex-end", gap: 14, pointerEvents: "auto" }}>
           {options.map((opt, idx) => {
             const primary = !!opt.primary;
-            // Primary icon sits on the amber fill → use its contrast token,
-            // not --bg (which paired with the old --text-primary fill to make
-            // the raw black/white circles). Secondary icon stays text-primary
-            // on its neutral surface.
-            const stroke = primary ? "var(--accent-contrast)" : "var(--text-primary)";
+            // Both circles carry a solid brand fill now — accent orange for the
+            // primary action, emerald --success for the secondary. --accent-contrast
+            // (near-black) is the high-contrast icon colour on BOTH fills in light
+            // and dark themes; white would drop below contrast on the orange and on
+            // the light-mode emerald.
+            const stroke = "var(--accent-contrast)";
             const popClass = idx === 0 ? "cvp-fab-menu-popin-1" : "cvp-fab-menu-popin-2";
             return (
               <div key={opt.id} className={`cvp-fab-menu-row ${popClass}`}>
@@ -92,7 +93,7 @@ export default function FABMenu({ open, onClose, options, anchorRef, onSelect, t
                       onClose();
                     }}
                   >
-                    <MenuIcon kind={opt.icon} style={{ stroke }} />
+                    <MenuIcon kind={opt.icon} stroke={stroke} />
                   </button>
                 </div>
                 <span className="cvp-fab-menu-label">{opt.label}</span>

@@ -196,7 +196,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .cvp-fab-menu-popin-1 {
@@ -213,41 +213,45 @@
   will-change: transform, opacity;
 }
 
+/* Secondary action (Guide) carries a solid emerald --success fill. The old
+   --bg-elevated fill rendered a white circle that vanished on the light-mode
+   background. A brand fill + elevation shadow reads as an intentional FAB in
+   both themes. */
 .cvp-fab-menu-icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--bg-elevated);
-  border: 0.5px solid var(--border);
+  background: var(--success);
+  border: none;
   box-sizing: border-box;
   display: grid;
   place-items: center;
   padding: 0;
   cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.30), 0 1px 2px rgba(0, 0, 0, 0.20);
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
-/* Primary action (Preview CV) sits on the amber accent, not on
-   --text-primary. Using the text token as a FILL inverted with the theme
-   (raw white in night, raw black in day) — off palette. Amber + its contrast
-   token reads as the intentional primary in both themes. */
+/* Primary action (Preview CV) sits on the amber accent. Same size, shape and
+   elevation as the secondary — only the fill differs, so the pair reads as one
+   family. Icon colour is --accent-contrast (set in FABMenu.jsx). */
 .cvp-fab-menu-icon-btn--primary {
   background: var(--accent);
-  border: 0.5px solid var(--color-accent-line);
 }
 
 .cvp-fab-menu-label {
   color: var(--text-primary);
-  font-size: 9px;
+  font-size: 10px;
   background: var(--bg-elevated);
-  padding: 3px 7px;
+  padding: 4px 9px;
   border-radius: 8px;
   border: 0.5px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 600;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
