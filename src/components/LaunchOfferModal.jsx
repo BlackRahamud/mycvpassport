@@ -38,6 +38,11 @@ const EXCLUDED_PREFIXES = [
 ];
 
 function isPrerender() {
+  // Primary, reliable signal: the build-time prerenderer sets this flag on the
+  // window before loading each route (see scripts/prerender.mjs). Without this,
+  // the modal auto-opens during the prerender pass and freezes a dead copy into
+  // the static HTML. The ReactSnap UA check is a legacy fallback.
+  if (typeof window !== 'undefined' && window.__CVP_PRERENDER__ === true) return true;
   return typeof navigator !== 'undefined' && navigator.userAgent.includes('ReactSnap');
 }
 

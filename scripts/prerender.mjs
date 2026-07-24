@@ -116,6 +116,19 @@ console.log(`prerender: ${routes.length} routes from sitemap.xml`);
 const server = await startServer(shell);
 const { browser, page, idle } = await launchPage();
 
+// Mark the prerender pass so client code can skip prerender-only behaviour.
+// Critical for the launch-offer modal: it auto-opens ~1s after load, and this
+// prerenderer waits idle + 1.5s — without this flag the modal renders into the
+// snapshot as dead, handler-less HTML that can never be closed. Set before any
+// page script runs, on every navigation. puppeteer and Playwright name this
+// differently, so support both.
+const markPrerender = () => { window.__CVP_PRERENDER__ = true; };
+if (typeof page.evaluateOnNewDocument === "function") {
+  await page.evaluateOnNewDocument(markPrerender); // puppeteer-core
+} else if (typeof page.addInitScript === "function") {
+  await page.addInitScript(markPrerender); // Playwright
+}
+
 const failures = [];
 for (const route of routes) {
   await page.goto(`http://localhost:${PORT}${route}`, { waitUntil: idle, timeout: 60000 });
