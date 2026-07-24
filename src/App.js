@@ -9,6 +9,7 @@ import { setLastPortal } from "./lib/employer/portalMemory";
 import LandingPage from "./LandingPage";
 import { C } from "./builderStyles";
 import { EMPTY_RESUME, TEMPLATES } from "./cvShared";
+import LaunchOfferMount from "./components/launch/LaunchOfferMount";
 
 // Route-level code splitting. Every page below the homepage is loaded
 // on-demand so visitors who only see the landing page never download
@@ -238,6 +239,11 @@ export default function App() {
              global light default can't half-break them. Migrated surfaces
              inside (LandingPage, auth) re-stamp data-theme themselves. */
           <div style={S.app} data-theme="dark">
+            {/* Site-wide launch-offer UI (strip + once-per-visitor modal).
+                Self-gates on offerActive → renders nothing when the switch is
+                off or the date has passed. Candidate app only (not the HR
+                portal, which sits on its own routes above). */}
+            <LaunchOfferMount user={user} />
             <Routes>
               <Route
                 path="/"

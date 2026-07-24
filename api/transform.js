@@ -55,6 +55,7 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { hasProAccess } from '../src/config/access.js';
+import { FREE_IMPORT_LIMIT } from '../src/config/launchOffer.js';
 
 export const config = { maxDuration: 60 };
 
@@ -205,6 +206,40 @@ async function handleUpload(req, res, body) {
     return res.status(500).json({ ok: false, error: 'Could not load profile' });
   }
   const userPlan = classifyUserPlan(profile);
+
+  // ── Import cap (server-authoritative anti-abuse) ─────────────────────────
+  // Free accounts get FREE_IMPORT_LIMIT (3) CV imports per account — our main
+  // activation step. This allowance holds whether or not the launch offer is
+  // on; the offer's extra value is downloads + templates, not more imports.
+  // Pro / Express import without limit. Count = existing transform_sessions
+  // import rows (the source of truth — no separate counter). On the cap we
+  // return a friendly 402 with an upgrade code so the client shows a CTA
+  // rather than crashing; imports cost us an AI call, so we gate BEFORE the
+  // (cheap) session insert and well before the parse step spends tokens.
+  if (importMode && userPlan === 'free') {
+    const { count: importCount, error: importCntErr } = await db
+      .from('transform_sessions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('intake->>import_mode', 'true');
+    if (importCntErr) {
+      console.error('[transform/upload] import-count failed:', JSON.stringify(importCntErr));
+      return res.status(500).json({ ok: false, error: 'Could not verify import allowance' });
+    }
+    if ((importCount || 0) >= FREE_IMPORT_LIMIT) {
+      console.log('[transform/upload] import cap hit', JSON.stringify({
+        user_id: user.id, used: importCount, limit: FREE_IMPORT_LIMIT,
+      }));
+      return res.status(402).json({
+        ok: false,
+        error: `You've used all ${FREE_IMPORT_LIMIT} free CV imports. Upgrade to import more.`,
+        code: 'import_limit_reached',
+        paywall: true,
+        limit: FREE_IMPORT_LIMIT,
+      });
+    }
+  }
+
   // Import mode bypasses payment unconditionally — Haiku is cheap, the
   // paywall on transform/run still gates the regional rewrite product.
   const skipPayment = importMode || userPlan === 'pro' || userPlan === 'express';

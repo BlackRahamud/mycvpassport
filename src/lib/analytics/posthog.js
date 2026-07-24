@@ -155,6 +155,50 @@ export function groupPostHog(groupType, groupKey, props) {
   }
 }
 
+// Read a boolean feature flag synchronously. Returns `undefined` when
+// PostHog is disabled (dev / no key), not yet loaded, or the flag has not
+// been evaluated yet — callers treat undefined as "fall back to env". Used by
+// the launch-offer switch (flag name "launch_offer").
+export function getFeatureFlag(name) {
+  try {
+    if (!shouldRun()) return undefined;
+    if (!name) return undefined;
+    if (!posthog || !initialized) return undefined;
+    if (typeof posthog.isFeatureEnabled === 'function') {
+      const v = posthog.isFeatureEnabled(String(name));
+      return typeof v === 'boolean' ? v : undefined;
+    }
+    return undefined;
+  } catch (e) {
+    return undefined;
+  }
+}
+
+// Subscribe to feature-flag readiness. Fires the callback once flags load
+// (and on subsequent refreshes). Returns an unsubscribe fn (no-op when
+// PostHog is unavailable) so React effects can clean up. Best-effort: if
+// PostHog isn't ready yet, we wait for it to load then attach.
+export function onFeatureFlags(cb) {
+  let unsub = () => {};
+  try {
+    if (!shouldRun() || typeof cb !== 'function') return unsub;
+    const attach = (ph) => {
+      try {
+        if (ph && typeof ph.onFeatureFlags === 'function') {
+          const off = ph.onFeatureFlags(() => { try { cb(); } catch (e) { /* never throw */ } });
+          if (typeof off === 'function') unsub = off;
+        }
+      } catch (e) { /* ignore */ }
+    };
+    if (posthog && initialized) {
+      attach(posthog);
+    } else {
+      loadPosthog().then((ph) => { if (initialized) attach(ph); }).catch(() => {});
+    }
+  } catch (e) { /* ignore */ }
+  return () => { try { unsub(); } catch (e) { /* ignore */ } };
+}
+
 // Session replay is disabled at init (candidate site never records). The
 // employer portal opts in per-session with these. Masking (all inputs +
 // all text via maskTextSelector '*') is configured at init, so no CV or

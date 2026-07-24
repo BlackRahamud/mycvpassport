@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { FileText, Check, AlertCircle, Upload, LogIn } from "lucide-react";
+import { FileText, Check, AlertCircle, Upload, LogIn, Sparkles } from "lucide-react";
 
 /*
  * The upload "magic" — the ~10 seconds the AI spends reading a CV is exactly
@@ -39,9 +39,12 @@ const STAGE_LABEL = {
   error: "Couldn't finish reading",
 };
 
-export default function CvExtractionCeremony({ stage, filename, errorMsg, errorHint, onRetry, needsAuth, onSignIn }) {
+export default function CvExtractionCeremony({ stage, filename, errorMsg, errorHint, onRetry, needsAuth, onSignIn, needsUpgrade, onUpgrade }) {
   const reduce = useReducedMotion();
   const isError = stage === "error";
+  // "Soft" errors (sign-in needed, or import allowance used) are not file
+  // failures — they render amber like a prompt, not red like a broken file.
+  const softError = needsAuth || needsUpgrade;
   const [pct, setPct] = useState(0);
   const pctRef = useRef(0);
   const rafRef = useRef(0);
@@ -100,18 +103,18 @@ export default function CvExtractionCeremony({ stage, filename, errorMsg, errorH
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            background: (isError && !needsAuth) ? "rgba(239,68,68,0.12)" : "var(--color-accent-soft)",
-            color: (isError && !needsAuth) ? "var(--danger)" : "var(--accent-text)",
+            background: (isError && !softError) ? "rgba(239,68,68,0.12)" : "var(--color-accent-soft)",
+            color: (isError && !softError) ? "var(--danger)" : "var(--accent-text)",
           }}
         >
-          {needsAuth ? <LogIn size={18} strokeWidth={1.9} aria-hidden /> : isError ? <AlertCircle size={19} strokeWidth={1.9} aria-hidden /> : <FileText size={18} strokeWidth={1.8} aria-hidden />}
+          {needsAuth ? <LogIn size={18} strokeWidth={1.9} aria-hidden /> : needsUpgrade ? <Sparkles size={18} strokeWidth={1.9} aria-hidden /> : isError ? <AlertCircle size={19} strokeWidth={1.9} aria-hidden /> : <FileText size={18} strokeWidth={1.8} aria-hidden />}
         </span>
         <div style={{ minWidth: 0, flex: 1 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {filename || "Your CV"}
           </p>
-          <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 600, color: (isError && !needsAuth) ? "var(--danger)" : "var(--accent-text)" }}>
-            {needsAuth ? "One step to import" : (STAGE_LABEL[isError ? "error" : stage] || "Working")}
+          <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 600, color: (isError && !softError) ? "var(--danger)" : "var(--accent-text)" }}>
+            {needsAuth ? "One step to import" : needsUpgrade ? "Import limit reached" : (STAGE_LABEL[isError ? "error" : stage] || "Working")}
             {!isError ? <span aria-hidden> · reading through the document</span> : null}
           </p>
         </div>
@@ -217,10 +220,35 @@ export default function CvExtractionCeremony({ stage, filename, errorMsg, errorH
 
       {/* Honest resolution — a failure (red) or a sign-in prompt (amber). */}
       {isError ? (
-        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: needsAuth ? "var(--color-accent-soft)" : "rgba(239,68,68,0.08)", border: needsAuth ? "1px solid var(--color-accent-line)" : "1px solid rgba(239,68,68,0.35)" }}>
-          <p style={{ margin: 0, fontSize: 13, color: needsAuth ? "var(--text-primary)" : "var(--danger)", fontWeight: 600 }}>{errorMsg || "We couldn't read that file."}</p>
+        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: softError ? "var(--color-accent-soft)" : "rgba(239,68,68,0.08)", border: softError ? "1px solid var(--color-accent-line)" : "1px solid rgba(239,68,68,0.35)" }}>
+          <p style={{ margin: 0, fontSize: 13, color: softError ? "var(--text-primary)" : "var(--danger)", fontWeight: 600 }}>{errorMsg || "We couldn't read that file."}</p>
           {errorHint ? <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{errorHint}</p> : null}
-          {needsAuth && onSignIn ? (
+          {needsUpgrade && onUpgrade ? (
+            <button
+              type="button"
+              onClick={onUpgrade}
+              style={{
+                marginTop: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                height: 44,
+                width: "100%",
+                padding: "0 18px",
+                borderRadius: 11,
+                border: "none",
+                background: "var(--accent)",
+                color: "var(--accent-contrast)",
+                fontSize: 14.5,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <Sparkles size={16} strokeWidth={2.1} aria-hidden />
+              Upgrade to import more
+            </button>
+          ) : needsAuth && onSignIn ? (
             <button
               type="button"
               onClick={onSignIn}

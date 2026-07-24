@@ -4319,6 +4319,10 @@ function ResumeBuilder({
     // download call. Guide mode keeps its own flow and is exempt.
     if (downloadLocked && fabMode !== "guide") {
       logEvent("download_paywall_hit", { surface: "builder_download" });
+      // Launch-offer funnel events (additive; download_clicked above is
+      // unchanged). Fire on the real block so we can measure the ceiling.
+      logEvent("download_blocked", { reason: "limit_reached" });
+      logEvent("launch_offer_limit_hit", { type: "download" });
       navigate("/pricing");
       return;
     }

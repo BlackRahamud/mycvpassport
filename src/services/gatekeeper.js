@@ -6,11 +6,18 @@
 
 import { supabase } from "../supabaseClient";
 import { isFounder } from "../utils/founder";
+import { isOfferActive, freeDownloadLimit, ORIGINAL_FREE_DOWNLOAD_LIMIT } from "../config/launchOffer";
 
-// Free tier = ONE PDF download. After that, the download button locks and
-// routes to upgrade (Single-CV Unlock / Active Hunter / Career Pro). Kept in
-// sync with the pricing page + the builder download-lock UI.
-const FREE_DOWNLOAD_LIMIT = 1;
+// Free tier = ONE PDF download (original plan), or THREE while the launch
+// offer is live. The signed-in limit is resolved per-call via
+// freeDownloadLimit(isOfferActive()) so it tracks the same env-derived switch
+// the server enforces (api/generate-pdf.js). After the allowance the download
+// button locks and routes to upgrade (Single-CV Unlock / Active Hunter /
+// Career Pro).
+//
+// Anonymous visitors always get the ORIGINAL single free download — the
+// offer's extra downloads are per-ACCOUNT and therefore require sign-in.
+const FREE_DOWNLOAD_LIMIT = ORIGINAL_FREE_DOWNLOAD_LIMIT;
 
 const ANON_DOWNLOADS_KEY = "cvp_anon_downloads";
 
@@ -190,12 +197,15 @@ export async function getGatekeeperData() {
     if (countErr) throw countErr;
 
     const downloadsUsed = typeof count === "number" ? count : 0;
-    const canDownload = downloadsUsed < FREE_DOWNLOAD_LIMIT;
+    // Signed-in free tier: 1 download (original) or 3 while the offer is live.
+    // Env-derived offer state → this UI gate matches the server enforcement.
+    const signedInFreeLimit = freeDownloadLimit(isOfferActive());
+    const canDownload = downloadsUsed < signedInFreeLimit;
 
     const result = {
       canDownload,
       downloadsUsed,
-      downloadsLimit: FREE_DOWNLOAD_LIMIT,
+      downloadsLimit: signedInFreeLimit,
       isPaidUser: false,
       planName: "Free",
       isSignedIn: true,

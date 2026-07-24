@@ -11,6 +11,15 @@ async function loadAccess() {
   return _accessModule;
 }
 
+// Launch-offer entitlements (ESM, isomorphic). Dynamic-imported like the
+// access helper. On the server, isOfferActive() reads the LAUNCH_OFFER_ENABLED
+// env var + the end date — the authoritative switch for server enforcement.
+let _launchOfferModule;
+async function loadLaunchOffer() {
+  if (!_launchOfferModule) _launchOfferModule = await import("../src/config/launchOffer.js");
+  return _launchOfferModule;
+}
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -122,10 +131,12 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: "Could not verify entitlement" });
     }
     const { hasProAccess } = await loadAccess();
-    // Free tier gets ONE builder download, tracked by the client inserting a
-    // row into `downloads` after a successful render. Kept in sync with
-    // src/services/gatekeeper.js FREE_DOWNLOAD_LIMIT.
-    const FREE_BUILDER_DOWNLOADS = 1;
+    const { isOfferActive, freeDownloadLimit } = await loadLaunchOffer();
+    // Free tier gets ONE builder download normally, or THREE while the launch
+    // offer is live (server-authoritative: reads LAUNCH_OFFER_ENABLED env +
+    // end date). Tracked by the client inserting a row into `downloads` after
+    // a successful render. Kept in sync with src/services/gatekeeper.js.
+    const FREE_BUILDER_DOWNLOADS = freeDownloadLimit(isOfferActive());
     if (hasProAccess(profile)) {
       // Pro / Career Pro / grandfathered: unlimited downloads, no decrement.
     } else if ((profile?.download_credits || 0) > 0) {

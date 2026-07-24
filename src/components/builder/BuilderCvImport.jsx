@@ -4,6 +4,19 @@ import { supabase } from '../../appSupabaseClient';
 import { extractCvText } from '../../services/cvExtraction';
 import safeFetch from '../../lib/net/safeFetch';
 import CvExtractionCeremony from './CvExtractionCeremony';
+import { countAccountImports } from '../../services/entitlements';
+import {
+  trackUploadStarted,
+  trackUploadBlocked,
+  trackUploadSucceeded,
+  trackLaunchOfferLimitHit,
+} from '../../lib/analytics/launchOfferEvents';
+
+// Where a free account goes to lift the import cap. Callers can override with
+// onUpgrade (BuilderPage passes navigate('/pricing')).
+function defaultUpgrade() {
+  if (typeof window !== 'undefined') window.location.assign('/pricing');
+}
 
 const ACCEPT =
   '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -17,7 +30,7 @@ const MAX_BYTES = 10 * 1024 * 1024;
  * Both share the same extract → upload (mode=import-only) → parse pipeline
  * and fire onImported(cv_data, filename) on success.
  */
-export default function BuilderCvImport({ onImported, onSignIn, variant = "card" }) {
+export default function BuilderCvImport({ onImported, onSignIn, onUpgrade, variant = "card" }) {
   const inputRef = useRef(null);
   const [stage, setStage] = useState('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -71,12 +84,19 @@ export default function BuilderCvImport({ onImported, onSignIn, variant = "card"
         if (!accessToken) {
           // Not a bad file — import needs an account (we read and save the CV
           // server-side). Tell the truth and give a way in.
+          trackUploadBlocked('not_signed_in');
           setStage('error');
           setErrorKind('auth');
           setErrorMsg('Sign in to import your CV');
           setErrorHint('Importing needs an account so we can read your file and fill your builder. Sign in and we’ll bring you right back.');
           return;
         }
+
+        // Which import this is for the account (1..N). Best-effort — the
+        // server is the real gate; this only labels the analytics event.
+        let uploadNumber = 1;
+        try { uploadNumber = (await countAccountImports()) + 1; } catch (e) { /* ignore */ }
+        trackUploadStarted(uploadNumber);
 
         const uploadRes = await safeFetch('/api/transform?action=upload', {
           method: 'POST',
@@ -93,6 +113,17 @@ export default function BuilderCvImport({ onImported, onSignIn, variant = "card"
         });
         const uploadJson = await uploadRes.json().catch(() => ({}));
         if (!uploadRes.ok || !uploadJson.ok || !uploadJson.session_id) {
+          // Import allowance used up (server 402) → friendly upgrade prompt,
+          // never a hard error. Distinct from a bad-file failure.
+          if (uploadRes.status === 402 || uploadJson.code === 'import_limit_reached') {
+            trackUploadBlocked('limit_reached');
+            trackLaunchOfferLimitHit('upload');
+            setStage('error');
+            setErrorKind('limit');
+            setErrorMsg(uploadJson.error || "You've used all your free CV imports.");
+            setErrorHint('Upgrade to import more CVs — your finished CV downloads stay available.');
+            return;
+          }
           setStage('error');
           setErrorMsg(uploadJson.error || 'Could not start import.');
           setErrorHint('Please try again in a moment.');
@@ -116,6 +147,7 @@ export default function BuilderCvImport({ onImported, onSignIn, variant = "card"
           return;
         }
 
+        trackUploadSucceeded();
         setStage('idle');
         onImported(parseJson.cv_data, file.name);
       } catch (e) {
@@ -162,9 +194,11 @@ export default function BuilderCvImport({ onImported, onSignIn, variant = "card"
             errorHint={errorHint}
             needsAuth={stage === 'error' && errorKind === 'auth'}
             onSignIn={onSignIn}
-            /* A new file can't fix a missing login — only offer retry for
-               real file/parse errors. */
-            onRetry={stage === 'error' && errorKind !== 'auth' ? openPicker : undefined}
+            needsUpgrade={stage === 'error' && errorKind === 'limit'}
+            onUpgrade={onUpgrade || defaultUpgrade}
+            /* A new file can't fix a missing login or a used-up allowance —
+               only offer retry for real file/parse errors. */
+            onRetry={stage === 'error' && errorKind !== 'auth' && errorKind !== 'limit' ? openPicker : undefined}
           />
         ) : (
           <div
@@ -292,17 +326,36 @@ export default function BuilderCvImport({ onImported, onSignIn, variant = "card"
             marginTop: 12,
             padding: 12,
             borderRadius: 10,
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.35)',
+            background: errorKind === 'limit' ? 'var(--color-accent-soft)' : 'rgba(239,68,68,0.08)',
+            border: errorKind === 'limit' ? '1px solid var(--color-accent-line)' : '1px solid rgba(239,68,68,0.35)',
           }}
         >
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--danger)', fontWeight: 600 }}>
+          <p style={{ margin: 0, fontSize: 13, color: errorKind === 'limit' ? 'var(--text-primary)' : 'var(--danger)', fontWeight: 600 }}>
             {errorMsg}
           </p>
           {errorHint ? (
             <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>
               {errorHint}
             </p>
+          ) : null}
+          {errorKind === 'limit' ? (
+            <button
+              type="button"
+              onClick={onUpgrade || defaultUpgrade}
+              style={{
+                marginTop: 12,
+                padding: '9px 16px',
+                background: 'var(--accent)',
+                color: 'var(--accent-contrast)',
+                border: 'none',
+                borderRadius: 9,
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Upgrade to import more
+            </button>
           ) : null}
         </div>
       )}

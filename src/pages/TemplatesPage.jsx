@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { TEMPLATES, isCvDataEmptyForTemplateApply, EMPTY_RESUME, EMPTY_EXP } from "../cvShared";
 import { ResumePreview, A4_PREVIEW_WIDTH_PX } from "../ResumePreview";
 import { logEvent } from "../lib/analytics/logEvent";
+import { isOfferActive } from "../config/launchOffer";
 
 /*──────────────────────────────────────────────────────────────────────────────
  * Per-template dummy profiles — each person's data density is tuned to fill
@@ -786,22 +787,27 @@ function BuilderTemplatesTab({
           </div>
         ) : null}
 
-        <div style={{ padding: "16px 10px 24px", textAlign: "center" }}>
-          <button
-            type="button"
-            onClick={() => navigate("/pricing")}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "var(--text-muted)",
-              fontSize: 10,
-              textDecoration: "underline",
-              cursor: "pointer",
-            }}
-          >
-            Remove watermark — upgrade to Pro
-          </button>
-        </div>
+        {/* Upgrade nudge — hidden while the launch offer is live, when every
+            template is unlocked and there is nothing to upgrade for. Reverts
+            automatically when the offer switch is off / expired. */}
+        {!isOfferActive() ? (
+          <div style={{ padding: "16px 10px 24px", textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={() => navigate("/pricing")}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: 10,
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              Remove watermark — upgrade to Pro
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Preview modal portal */}
