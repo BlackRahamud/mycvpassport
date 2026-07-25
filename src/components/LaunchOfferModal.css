@@ -1,28 +1,349 @@
-/* LaunchOfferModal — styles that cannot live inline: keyframes, hover/active
-   states, and the reduced-motion override. Everything else stays as inline
-   styles ported verbatim from the Claude Design export so the visuals are
-   preserved pixel-for-pixel. All rules are scoped under .lom-root so nothing
-   here can leak into the rest of the app. Keyframe names match the design. */
+/* LaunchOfferModal — the launch-offer poster.
+   Everything here is scoped under .lom-root so nothing leaks into the app.
 
-@keyframes cvpRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes cvpPop { 0% { opacity: 0; transform: translateY(10px) scale(.92); } 62% { opacity: 1; transform: translateY(0) scale(1.03); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes cvpZoom { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
-@keyframes cvpAurora { 0% { transform: translate3d(-7%, 0, 0) scale(1); } 50% { transform: translate3d(9%, -5%, 0) scale(1.18); } 100% { transform: translate3d(-7%, 0, 0) scale(1); } }
-@keyframes cvpSweep { 0% { transform: translateX(-130%) skewX(-16deg); } 60%, 100% { transform: translateX(260%) skewX(-16deg); } }
-@keyframes cvpBreathe { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+   Colour comes from the semantic theme tokens ONLY (src/index.css): the modal
+   is light on the light default and flips with [data-theme="dark"] like the
+   rest of the site. Amber is the single accent; the small ticks are the only
+   green. No emerald/teal anywhere. Type is DM Sans (site body font). */
 
-/* Hover / active — ported from the design's style-hover / style-active. */
-.lom-close { transition: color 160ms ease, background 160ms ease, border-color 160ms ease; }
-.lom-close:hover { color: #fff; background: rgba(40,46,47,.85); border-color: rgba(255,255,255,.34); }
+/* ── shell ───────────────────────────────────────────────────────────────── */
+.lom-root {
+  /* sheen that travels across the amber CTA fill — deliberately theme-fixed
+     (it sits ON amber in both themes, never on a themed surface). */
+  --lom-sweep: rgba(255, 255, 255, 0.42);
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  opacity: 0;
+  transition: opacity 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lom-root[data-shown='true'] { opacity: 1; }
 
-.lom-cta { transition: transform 200ms cubic-bezier(.16,1,.3,1), box-shadow 200ms ease; }
-.lom-cta:hover { transform: translateY(-2px); box-shadow: 0 24px 42px -16px rgba(232,135,30,.9), inset 0 1px 0 rgba(255,255,255,.36); }
-.lom-cta:active { transform: translateY(1px) scale(.995); box-shadow: 0 8px 16px -10px rgba(232,135,30,.85); }
+.lom-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+}
 
-.lom-maybe { transition: color 160ms ease; }
-.lom-maybe:hover { color: #F6F7F5; }
+/* max-height: 100% (never vh — iOS Safari rule) resolves against the padded
+   flex box, so the card can never grow past the visible viewport. */
+.lom-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0;
+  transform: scale(0.94) translateY(18px);
+  transition:
+    transform 420ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lom-root[data-shown='true'] .lom-wrap { opacity: 1; transform: scale(1) translateY(0); }
+.lom-root[data-closing='true'] .lom-wrap { opacity: 0; transform: scale(0.98) translateY(6px); }
 
-/* Respect reduced motion — mirrors the design's global override, scoped here. */
+/* ── card ────────────────────────────────────────────────────────────────── */
+.lom-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card), 0 48px 90px -40px rgba(20, 19, 16, 0.55);
+}
+
+.lom-body { position: relative; padding: clamp(20px, 5.5vw, 28px); }
+
+/* ── mascot band ─────────────────────────────────────────────────────────
+   The greeter sits in a full-bleed band at the top of the card, framed on
+   his face (object-position keeps the desk and the frame edges out), with
+   the image fading into the card surface so the join is invisible in both
+   themes. */
+.lom-band {
+  position: relative;
+  height: clamp(96px, 26vw, 140px);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.lom-band img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 18%;
+  display: block;
+  animation: lomZoom 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.lom-band-aurora {
+  position: absolute;
+  inset: -30% -14% auto -14%;
+  height: 96%;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, var(--color-accent-glow), transparent 72%);
+  filter: blur(30px);
+  animation: lomAurora 18s ease-in-out infinite;
+}
+.lom-band-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0%, transparent 34%, var(--bg-surface) 100%);
+}
+.lom-bubble {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  z-index: 3;
+  width: min(48%, 178px);
+  box-sizing: border-box;
+  padding: 8px 11px;
+  border-radius: 12px 12px 12px 4px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.4;
+  animation: lomPop 620ms cubic-bezier(0.2, 0.85, 0.3, 1.08) 380ms both;
+}
+
+/* Warm aurora behind the headline — amber, low opacity, never a drop-shadow. */
+.lom-glow {
+  position: absolute;
+  inset: -55% -25% auto -25%;
+  height: 90%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, var(--color-accent-glow), transparent 72%);
+  filter: blur(28px);
+  animation: lomAurora 18s ease-in-out infinite;
+}
+
+.lom-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 160ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 160ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lom-close:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--hover-wash); }
+
+/* ── head ────────────────────────────────────────────────────────────────── */
+.lom-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px 4px 8px;
+  border: 1px solid var(--color-accent-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--accent-text);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  animation: lomRise 480ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.lom-chip i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: lomBreathe 2.4s ease-in-out infinite;
+}
+
+.lom-title {
+  margin: 12px 0 0;
+  font-size: clamp(28px, 8vw, 34px);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.6px;
+  animation: lomRise 500ms cubic-bezier(0.4, 0, 0.2, 1) 50ms both;
+}
+.lom-title em { font-style: italic; font-weight: 600; color: var(--accent-text); }
+
+.lom-sub {
+  margin: 8px 0 0;
+  max-width: 32ch;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  animation: lomRise 500ms cubic-bezier(0.4, 0, 0.2, 1) 90ms both;
+}
+
+/* ── perks ───────────────────────────────────────────────────────────────── */
+.lom-perks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--border);
+  animation: lomRise 500ms cubic-bezier(0.4, 0, 0.2, 1) 130ms both;
+}
+.lom-perk {
+  min-width: 0;
+  padding: 10px clamp(6px, 2.2vw, 10px);
+  background: var(--bg-surface);
+}
+.lom-perk-top { display: flex; align-items: center; gap: 5px; }
+.lom-perk-top svg { flex-shrink: 0; color: var(--success-text); }
+.lom-perk-val { font-size: 17px; font-weight: 700; letter-spacing: -0.4px; }
+.lom-perk-key { margin-top: 2px; font-size: 12px; font-weight: 600; }
+.lom-perk-sub { margin-top: 1px; font-size: 10.5px; line-height: 1.25; color: var(--text-muted); }
+
+/* ── countdown ───────────────────────────────────────────────────────────── */
+.lom-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--hover-wash);
+  white-space: nowrap;
+  overflow: hidden;
+  animation: lomRise 500ms cubic-bezier(0.4, 0, 0.2, 1) 170ms both;
+}
+.lom-count-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.lom-count-dot { color: var(--border-strong); }
+.lom-count-nums {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
+}
+.lom-count-nums b { font-size: 14px; font-weight: 700; }
+.lom-count-nums span { font-size: 9.5px; margin-right: 4px; color: var(--text-secondary); }
+.lom-count-nums span:last-child { margin-right: 0; }
+
+/* ── CTA ─────────────────────────────────────────────────────────────────── */
+.lom-cta {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 12px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--color-accent-bright), var(--accent));
+  color: var(--accent-contrast);
+  font-family: inherit;
+  font-size: clamp(15px, 4.2vw, 16px);
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  cursor: pointer;
+  box-shadow: 0 14px 30px -14px rgba(217, 119, 6, 0.75);
+  animation: lomRise 500ms cubic-bezier(0.4, 0, 0.2, 1) 210ms both;
+  transition:
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lom-cta:hover { transform: translateY(-1px); box-shadow: 0 20px 38px -14px rgba(217, 119, 6, 0.85); }
+.lom-cta:active { transform: translateY(1px) scale(0.995); box-shadow: 0 8px 16px -10px rgba(217, 119, 6, 0.8); }
+.lom-cta > b { position: relative; z-index: 1; font-weight: 600; }
+.lom-cta > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--lom-sweep), transparent);
+  animation: lomSweep 4.6s ease-in-out 1.8s infinite;
+}
+
+/* ── foot ────────────────────────────────────────────────────────────────── */
+.lom-reassure {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+.lom-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.lom-foot i { width: 4px; height: 4px; border-radius: 50%; background: var(--success); }
+.lom-maybe {
+  padding: 4px 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11.5px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lom-maybe:hover { color: var(--text-primary); }
+
+/* ── keyframes ───────────────────────────────────────────────────────────── */
+@keyframes lomRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes lomZoom { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
+@keyframes lomPop {
+  0% { opacity: 0; transform: translateY(10px) scale(0.92); }
+  62% { opacity: 1; transform: translateY(0) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes lomAurora { 0% { transform: translate3d(-6%, 0, 0) scale(1); } 50% { transform: translate3d(8%, -4%, 0) scale(1.16); } 100% { transform: translate3d(-6%, 0, 0) scale(1); } }
+@keyframes lomSweep { 0% { transform: translateX(-130%) skewX(-16deg); } 60%, 100% { transform: translateX(260%) skewX(-16deg); } }
+@keyframes lomBreathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .lom-root, .lom-root *, .lom-root *::before, .lom-root *::after {
     animation: none !important;

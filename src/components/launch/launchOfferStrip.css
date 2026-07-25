@@ -1,0 +1,124 @@
+/* LaunchOfferStrip — ported from "Passport Header.dc.html".
+   Amber paper, token-driven, flips with data-theme. Mobile shows the short
+   line; the swap is pure CSS so the strip is always exactly one line. */
+
+.lst-root {
+  position: relative;
+  overflow: hidden;
+  background: var(--amber-wash);
+  border-bottom: 1px solid var(--amber-line);
+  color: var(--amber-deep);
+  font-family: 'DM Sans', sans-serif;
+}
+.lst-hatch {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(-58deg, var(--hover-wash) 0 1px, transparent 1px 10px);
+}
+.lst-sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 22%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--glass), transparent);
+  animation: lstTravel 7s linear 1.5s infinite;
+}
+
+.lst-inner {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+@media (min-width: 640px) { .lst-inner { padding: 9px 16px; gap: 12px; } }
+
+.lst-badge {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  height: 21px;
+  padding: 0 8px;
+  border: 1px solid var(--amber-deep);
+  border-radius: 5px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  transform: rotate(-2deg);
+}
+@media (min-width: 860px) { .lst-badge { display: inline-flex; } }
+
+.lst-copy {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 860px) { .lst-copy { font-size: 13px; } }
+
+.lst-copy-full { display: none; }
+.lst-copy-short { display: inline; }
+@media (min-width: 860px) {
+  .lst-copy-full { display: inline; }
+  .lst-copy-short { display: none; }
+}
+
+.lst-cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--amber-deep);
+  color: var(--bg-surface);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 160ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lst-cta:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.lst-cta:active { transform: translateY(0); }
+
+.lst-x {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--amber-deep);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.lst-x:hover { background: var(--amber-line); }
+
+@keyframes lstTravel { 0% { transform: translateX(-40%); } 100% { transform: translateX(340%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lst-root, .lst-root *, .lst-root *::before, .lst-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

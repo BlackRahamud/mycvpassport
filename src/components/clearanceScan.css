@@ -1,0 +1,357 @@
+/* Clearance Scan — ported from "Clearance Scan.dc.html".
+   Every colour resolves from the semantic theme tokens (src/index.css), so
+   the document reads as warm paper on the light default and flips with
+   data-theme="dark". Amber is the accent; green appears only on the
+   cleared ticks. Scoped under .csc-root. */
+
+.csc-root {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text-primary);
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--paper) 0%, var(--bg) 55%, var(--bg) 100%);
+}
+.csc-exiting { animation: cscFadeOut 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+.csc-card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card), 0 24px 60px -28px rgba(20, 19, 16, 0.28);
+}
+
+/* Guilloché — the fine cross-hatch a real travel document is printed on. */
+.csc-guilloche {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    repeating-linear-gradient(58deg, var(--color-accent-soft) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-58deg, var(--hover-wash) 0 1px, transparent 1px 11px);
+}
+
+/* ── header ───────────────────────────────────────────────────────────── */
+.csc-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--paper);
+}
+.csc-brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.csc-brand b { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+.csc-rule { width: 1px; height: 14px; background: var(--border); }
+.csc-eyebrow {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.csc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-accent-line);
+  background: var(--amber-wash);
+  transition:
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-chip--flag { border-color: var(--danger); background: var(--hover-wash); }
+.csc-chip i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.csc-chip--live i { animation: cscBreathe 1.1s ease-in-out infinite; }
+.csc-chip--ok i { background: var(--success-text); }
+.csc-chip--flag i { background: var(--danger); }
+.csc-chip span {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-text);
+  transition: color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-chip--flag span { color: var(--danger); }
+
+/* ── holder line ──────────────────────────────────────────────────────── */
+.csc-idrow {
+  position: relative;
+  padding: 14px 18px 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.csc-label {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.csc-holder {
+  margin: 2px 0 0;
+  font-size: clamp(17px, 4.4vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+.csc-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.csc-docno { margin: 2px 0 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+
+/* ── gauge ────────────────────────────────────────────────────────────── */
+.csc-gauge {
+  position: relative;
+  margin: 12px 18px 0;
+  padding: 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--paper), var(--bg-surface));
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 3vw, 24px);
+}
+.csc-dial { position: relative; width: clamp(102px, 25vw, 128px); aspect-ratio: 1 / 1; flex-shrink: 0; }
+.csc-dial svg { display: block; }
+.csc-dial-mid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.csc-score {
+  font-size: clamp(32px, 8vw, 40px);
+  font-weight: 700;
+  letter-spacing: -1.6px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-score-cap {
+  margin-top: 3px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+}
+.csc-verdict { flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.csc-verdict-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+}
+.csc-verdict-title {
+  margin: 0;
+  font-size: clamp(14px, 3.6vw, 15px);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+  transition: color 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-verdict-note { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-secondary); }
+
+.csc-stamp {
+  flex-shrink: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 9px 4px;
+  border: 2px solid currentColor;
+  border-radius: 5px;
+  animation: cscStamp 520ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.csc-stamp b { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; line-height: 1.15; }
+.csc-stamp span { font-size: 7px; font-weight: 700; letter-spacing: 0.12em; opacity: 0.8; }
+
+/* ── ledger ───────────────────────────────────────────────────────────── */
+.csc-ledger { position: relative; margin: 14px 18px 0; overflow: hidden; }
+.csc-sweep {
+  position: absolute;
+  left: -18px;
+  right: -18px;
+  top: 0;
+  height: 26px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, var(--color-accent-soft) 78%, var(--color-accent-line) 100%);
+}
+.csc-sweep--on { animation: cscSweep 1.5s linear infinite; }
+.csc-ledger-cap {
+  margin: 0 0 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.csc-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 0 8px;
+  border-bottom: 1px solid var(--border);
+  transition:
+    opacity 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.csc-row-idx {
+  flex-shrink: 0;
+  width: 17px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  transition: color 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-glyph {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transition:
+    border-color 260ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-glyph--ok { border-color: var(--success-text); background: var(--hover-wash); }
+.csc-glyph--add { border-color: var(--warn); background: var(--amber-wash); }
+.csc-glyph--add b { font-size: 13px; font-weight: 700; line-height: 1; color: var(--warn); }
+.csc-glyph i { width: 4px; height: 4px; border-radius: 50%; background: var(--border-strong); }
+.csc-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.csc-row-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  transition: color 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-row-sub,
+.csc-row-status {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.csc-row-status { flex-shrink: 0; }
+
+/* ── footer + MRZ ─────────────────────────────────────────────────────── */
+.csc-foot {
+  position: relative;
+  margin-top: 14px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.csc-foot-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.csc-foot-left i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: cscBreathe 1.3s ease-in-out infinite;
+}
+.csc-foot-left p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.csc-counter {
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.csc-mrz {
+  position: relative;
+  overflow: hidden;
+  padding: 9px 18px 11px;
+  background: var(--bg);
+  border-top: 1px dashed var(--border-strong);
+}
+.csc-mrz p {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.csc-mrz-beam {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--color-accent-soft), transparent);
+  animation: cscMrz 1.5s linear infinite;
+}
+
+@keyframes cscFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes cscSweep {
+  0% { transform: translateY(-10px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(var(--sweep-h, 320px)); opacity: 0; }
+}
+@keyframes cscBreathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes cscStamp {
+  0% { opacity: 0; transform: rotate(-14deg) scale(1.9); }
+  55% { opacity: 1; transform: rotate(-7deg) scale(0.96); }
+  78% { transform: rotate(-7deg) scale(1.03); }
+  100% { opacity: 1; transform: rotate(-7deg) scale(1); }
+}
+@keyframes cscMrz { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .csc-root, .csc-root *, .csc-root *::before, .csc-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

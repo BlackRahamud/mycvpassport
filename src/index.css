@@ -113,6 +113,14 @@ html {
   --color-accent-line: rgba(217,119,6,0.45);
   --color-accent-bright: #F59E0B;
   --color-accent-tint:   #FFD79A;
+  --color-accent-glow:   rgba(217,119,6,0.30); /* soft amber aurora behind conversion moments */
+  /* Passport system (clearance scan, boarding pass, launch strip): warm
+     paper surface + the amber tint family those documents are printed on.
+     Declared here, re-declared under [data-theme="dark"] below. */
+  --paper:      #FFFDF8;
+  --amber-wash: #FFF7ED;
+  --amber-line: #FED7AA;
+  --amber-deep: #9A3412;
   --radius-pill: 9999px;
   --radius-lg: 18px;
 }
@@ -152,6 +160,11 @@ html {
   --builder-fill: rgba(255, 255, 255, 0.055);
   --builder-fill-border: rgba(255, 255, 255, 0.12);
   --info: #60A5FA;
+  /* passport system — dark counterparts */
+  --paper:      #121212;
+  --amber-wash: rgba(217, 119, 6, 0.12);
+  --amber-line: rgba(217, 119, 6, 0.34);
+  --amber-deep: #F59E0B;
 }
 
 /* Legacy alias families → semantic core. Re-declared at every

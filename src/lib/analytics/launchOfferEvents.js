@@ -46,3 +46,25 @@ export function trackDownloadBlocked(reason) {
 export function trackLaunchOfferLimitHit(type) {
   logEvent('launch_offer_limit_hit', { type });
 }
+
+// ── Boarding pass (post-download clearance screen) ───────────────────────
+//   waitlist_joined      { market: "india" | "gulf" | "both" }
+//   boost_score_clicked  {}
+//   share_clicked        { channel: "whatsapp" | "linkedin" | "copy" }
+//   support_clicked      {}
+
+export function trackWaitlistJoined(market) {
+  logEvent('waitlist_joined', { market });
+}
+
+export function trackBoostScoreClicked() {
+  logEvent('boost_score_clicked', {});
+}
+
+export function trackShareClicked(channel) {
+  logEvent('share_clicked', { channel });
+}
+
+export function trackSupportClicked() {
+  logEvent('support_clicked', {});
+}

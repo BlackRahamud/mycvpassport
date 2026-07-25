@@ -6943,9 +6943,17 @@ function ResumeBuilder({
         <CompletionScreen
           atsScore={score}
           userName={resume?.name}
+          templateName={selectedTemplate?.name}
+          user={user}
           onDashboard={() => {
             dispatch({ type: 'RESET' });
             onBack?.();
+          }}
+          onBoost={() => {
+            // In-tool: close the pass and land on the ATS Check tab so the
+            // next thing they see is how to lift the score.
+            dispatch({ type: 'RESET' });
+            setBuilderTab('ats');
           }}
         />,
         document.body
