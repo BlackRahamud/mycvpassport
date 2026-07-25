@@ -53,8 +53,13 @@ export function trackLaunchOfferLimitHit(type) {
 //   share_clicked        { channel: "whatsapp" | "linkedin" | "copy" }
 //   support_clicked      {}
 
-export function trackWaitlistJoined(market) {
-  logEvent('waitlist_joined', { market });
+export function trackWaitlistJoined(market, source) {
+  logEvent('waitlist_joined', { market, source });
+}
+
+// Fired when the Boarding Soon popup opens in place of the jobs board.
+export function trackBrowseJobsPopupViewed() {
+  logEvent('browse_jobs_popup_viewed', {});
 }
 
 export function trackBoostScoreClicked() {

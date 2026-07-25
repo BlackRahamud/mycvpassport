@@ -180,6 +180,14 @@ for (const [label, width] of [["mobile", 393], ["desktop", 1440]]) {
   check(box && cta && cta.x >= box.x + box.width - 1, `strip ${label}: CTA does not overlap the copy`);
   const docW = await page.evaluate(() => document.documentElement.scrollWidth);
   check(docW <= width + 1, `strip ${label}: no horizontal overflow (${docW} <= ${width})`);
+  // The strip must follow the PAGE theme. It renders inside App's legacy
+  // dark island, so a regression here paints a black bar over a light page.
+  const paint = await strip.evaluate((el) => {
+    const bg = getComputedStyle(el).backgroundColor;
+    const [r, g, b] = bg.match(/\d+/g).map(Number);
+    return { bg, lum: (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 };
+  });
+  check(paint.lum > 0.6, `strip ${label}: light-theme strip is light, not a dark bar (${paint.bg})`);
   await shot(page, `strip-${label}`);
   await context.close();
 }

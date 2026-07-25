@@ -171,7 +171,7 @@ export default function CompletionScreen({
       userId: (user && user.id) || null,
     });
     if (res.ok) {
-      trackWaitlistJoined(chosen);
+      trackWaitlistJoined(chosen, 'boarding_pass');
       setSeatState("saved");
       return;
     }

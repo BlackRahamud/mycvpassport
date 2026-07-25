@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NAV_SECTIONS, FREEBIE_BANNER_COPY } from '../../config/navItems';
+import { isGatedJobPath } from '../../config/jobsBoard';
+import { useBrowseJobs } from '../jobs/useBrowseJobs';
 import NavBadge from './NavBadge';
 import NavIcon from './NavIcon';
 
@@ -32,6 +34,7 @@ function ChevronDownIcon({ open }) {
 export default function DesktopNav({ user, isPro }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const browseJobs = useBrowseJobs(user);
   const reduceMotion = useReducedMotion();
   const [openPanelId, setOpenPanelId] = useState(null);
   const rootRef = useRef(null);
@@ -64,11 +67,26 @@ export default function DesktopNav({ user, isPro }) {
       setOpenPanelId(null);
       return;
     }
+    // Jobs board is not live yet — open the Boarding Soon gate instead of
+    // landing the visitor on a board with nothing in it.
+    if (isGatedJobPath(item.href)) {
+      browseJobs.go(item.href);
+      setOpenPanelId(null);
+      return;
+    }
     navigate(item.href);
     setOpenPanelId(null);
   };
 
-  const goSeeAll = (href) => { navigate(href); setOpenPanelId(null); };
+  const goSeeAll = (href) => {
+    if (isGatedJobPath(href)) {
+      browseJobs.go(href);
+      setOpenPanelId(null);
+      return;
+    }
+    navigate(href);
+    setOpenPanelId(null);
+  };
 
   return (
     <nav
@@ -303,6 +321,7 @@ export default function DesktopNav({ user, isPro }) {
           </div>
         );
       })}
+      {browseJobs.gate}
     </nav>
   );
 }

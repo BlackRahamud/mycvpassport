@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NAV_SECTIONS, FREEBIE_BANNER_COPY } from '../../config/navItems';
+import { isGatedJobPath } from '../../config/jobsBoard';
+import { useBrowseJobs } from '../jobs/useBrowseJobs';
 import NavBadge from './NavBadge';
 import NavIcon from './NavIcon';
 
@@ -72,6 +74,7 @@ export default function MobileNav({
   const navigate = useNavigate();
   const location = useLocation();
   const reduceMotion = useReducedMotion();
+  const browseJobs = useBrowseJobs(user);
   const drawerRef = useRef(null);
   // Single-open accordion — first section (Free Tools) open by default.
   const [openSectionId, setOpenSectionId] = useState(NAV_SECTIONS[0]?.id || null);
@@ -135,11 +138,25 @@ export default function MobileNav({
       onClose();
       return;
     }
+    // Jobs board is not live yet — close the drawer and open the gate.
+    if (isGatedJobPath(item.href)) {
+      browseJobs.go(item.href);
+      onClose();
+      return;
+    }
     navigate(item.href);
     onClose();
   };
 
-  const goSeeAll = (href) => { navigate(href); onClose(); };
+  const goSeeAll = (href) => {
+    if (isGatedJobPath(href)) {
+      browseJobs.go(href);
+      onClose();
+      return;
+    }
+    navigate(href);
+    onClose();
+  };
 
   const isActiveRoute = (href) => {
     if (href === location.pathname) return true;
@@ -152,6 +169,7 @@ export default function MobileNav({
   const accT = reduceMotion ? { duration: 0 } : { duration: 0.22, ease: SNAP };
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <>
@@ -524,5 +542,9 @@ export default function MobileNav({
         </>
       )}
     </AnimatePresence>
+    {/* Outside AnimatePresence on purpose: the drawer closes as the gate
+        opens, and the gate must survive that unmount. */}
+    {browseJobs.gate}
+    </>
   );
 }

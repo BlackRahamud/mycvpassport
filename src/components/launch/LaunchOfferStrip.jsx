@@ -11,9 +11,10 @@
 // offer reverts there is nothing left behind. The prerender guard keeps it
 // out of the static snapshots.
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isPrerender } from '../../lib/prerender';
+import { getTheme } from '../../lib/theme';
 import { trackLaunchOfferViewed, trackLaunchOfferCtaClicked } from '../../lib/analytics/launchOfferEvents';
 import { launchCtaNavigate } from './launchCta';
 import './launchOfferStrip.css';
@@ -22,6 +23,21 @@ export default function LaunchOfferStrip({ active, user, onDismiss }) {
   const navigate = useNavigate();
   const viewedRef = useRef(false);
   const visible = active && !isPrerender();
+
+  // The strip renders in normal flow INSIDE App's legacy data-theme="dark"
+  // island, so without this it resolves dark tokens and paints a black bar
+  // above a light page. Re-stamp the real theme (the one on <html>) on our
+  // own root, and follow the toggle.
+  const [theme, setTheme] = useState(() => getTheme());
+  useEffect(() => {
+    if (typeof MutationObserver !== 'function' || typeof document === 'undefined') return undefined;
+    const root = document.documentElement;
+    const sync = () => setTheme(root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => mo.disconnect();
+  }, []);
 
   useEffect(() => {
     if (visible && !viewedRef.current) {
@@ -38,7 +54,7 @@ export default function LaunchOfferStrip({ active, user, onDismiss }) {
   };
 
   return (
-    <div role="region" aria-label="Launch offer" className="lst-root">
+    <div role="region" aria-label="Launch offer" className="lst-root" data-theme={theme}>
       <div className="lst-hatch" aria-hidden="true" />
       <div className="lst-sheen" aria-hidden="true" />
 

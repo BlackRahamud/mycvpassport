@@ -25,6 +25,7 @@ import FoundersNoteSection from './components/landing/FoundersNoteSection';
 import PricingAnchorSection from './components/landing/PricingAnchorSection';
 import AtsScoreLiftBanner from './components/landing/AtsScoreLiftBanner';
 import TestimonialsRow from './components/marketing/TestimonialsRow';
+import { useBrowseJobs } from './components/jobs/useBrowseJobs';
 
 // ── SVG Icons ──────────────────────────────────────────────────────
 function SunIcon() {
@@ -114,6 +115,8 @@ const FAQ_ITEMS = [
 export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup, onWalkIn }) {
   const navigate = useNavigate();
   const location = useLocation();
+  // Footer "Browse Jobs" is gated until the board is live.
+  const browseJobs = useBrowseJobs(user);
   const [theme, setTheme] = useState(() => getTheme());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [faqOpenIndex, setFaqOpenIndex] = useState(null);
@@ -993,7 +996,15 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
               <nav className="lp-site-footer-cols" aria-label="Footer">
                 <div>
                   <p className="lp-site-footer-col-h">Product</p>
-                  <Link className="lp-site-footer-link" to="/jobs">Browse Jobs</Link>
+                  {/* Gated: opens Boarding Soon until JOBS_BOARD_LIVE flips. */}
+                  <button
+                    type="button"
+                    className="lp-site-footer-link"
+                    onClick={() => browseJobs.go('/jobs')}
+                    style={{ border: 'none', background: 'none', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    Browse Jobs
+                  </button>
                   <Link className="lp-site-footer-link" to="/builder?tab=templates">Templates</Link>
                   <Link className="lp-site-footer-link" to="/ats">ATS Score</Link>
                   <Link className="lp-site-footer-link" to="/cover-letter">Cover Letter</Link>
@@ -1097,6 +1108,7 @@ export default function LandingPage({ user, isPro, onSignOut, onLogin, onSignup,
             {toastMessage}
           </div>
         )}
+        {browseJobs.gate}
       </div>
     </>
   );

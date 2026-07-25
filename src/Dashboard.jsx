@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FAB } from "./components/FAB";
 import { writeFabMemory } from "./components/FAB/FABLogic";
 import { getPaymentLink } from "./utils/paywall";
+import { useBrowseJobs } from "./components/jobs/useBrowseJobs";
 import CVPassportLogo from "./components/CVPassportLogo";
 import { supabase } from "./appSupabaseClient";
 
@@ -253,6 +254,8 @@ export default function Dashboard({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  // Browse Jobs opens the Boarding Soon gate until the board is live.
+  const browseJobs = useBrowseJobs(user);
   const fabRouteTab = location.state?.fabGuideTab === "account" ? "account" : "mycvs";
   const [active, setActive] = useState("mycvs");
   const [menuOpenId, setMenuOpenId] = useState(null);
@@ -301,7 +304,7 @@ export default function Dashboard({
     { id: "coverletter", label: "Cover Letter", icon: IconEnvelope, iconColor: "#D97706", action: () => { setActive("coverletter"); navigate("/cover-letter"); } },
     { id: "walkin", label: "Walk-In Mode", icon: IconBolt, iconColor: "#D85A30", action: () => { setActive("walkin"); onWalkIn(); } },
     { id: "templates", label: "Templates", icon: IconTable, iconColor: "#378ADD", action: () => { setActive("templates"); onTemplates(); } },
-    { id: "jobs", label: "Browse Jobs", icon: IconBriefcase, iconColor: "#635bff", action: () => navigate("/jobs") },
+    { id: "jobs", label: "Browse Jobs", icon: IconBriefcase, iconColor: "#635bff", action: () => browseJobs.go("/jobs") },
   ];
 
   /* ─── Mobile tabs ─── */
@@ -1122,6 +1125,7 @@ export default function Dashboard({
           </div>
         </>
       )}
+      {browseJobs.gate}
     </div>
   );
 }
