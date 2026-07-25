@@ -1,4 +1,12 @@
-const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
+  splitExperiencePointsForPreview,
+  technicalSkillsGroups,
+} = require("./pdfCommon");
+
+const joinComma = (...parts) =>
+  parts.map((p) => (p == null ? "" : String(p).trim())).filter(Boolean).join(", ");
 
 function pdfMinimalistPurple(cv) {
   const DEEP_PURPLE = "#3730A3";
@@ -16,6 +24,16 @@ function pdfMinimalistPurple(cv) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean) : [];
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
+
+  const bulletList = (lines) =>
+    lines.map((line) => `<div class="bullet"><span>•</span><span>${line}</span></div>`).join("");
 
   const contactParts = [cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean);
 
@@ -124,15 +142,7 @@ function pdfMinimalistPurple(cv) {
                   <span class="exp-period">${exp.period || ""}</span>
                 </div>
                 <div class="exp-loc">${exp.location || ""}</div>
-                ${(exp.points || "")
-                  .split("\\n")
-                  .filter(Boolean)
-                  .map(
-                    (p) => `
-                  <div class="bullet"><span>•</span><span>${String(p).replace(/^•\\s*/, "")}</span></div>
-                `,
-                  )
-                  .join("")}
+                ${bulletList(splitExperiencePointsForPreview(exp.points))}
               </div>
             `,
               )
@@ -148,6 +158,23 @@ function pdfMinimalistPurple(cv) {
           <section style="page-break-inside: avoid;">
             <div class="sect-title"><h2>Skills</h2></div>
             <div class="skills">${skills.join("  •  ")}</div>
+          </section>
+        `
+            : ""
+        }
+
+        ${
+          techGroups.length > 0
+            ? `
+          <section style="page-break-inside: avoid;">
+            <div class="sect-title"><h2>Technical Skills</h2></div>
+            <div style="font-size: 10pt; color: ${textColor}; line-height: 1.8;">
+              ${techGroups
+                .map(
+                  (g) => `<p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>`,
+                )
+                .join("")}
+            </div>
           </section>
         `
             : ""
@@ -183,14 +210,58 @@ function pdfMinimalistPurple(cv) {
                 (edu) => `
               <div class="edu-item">
                 <div class="edu-head">
-                  <span class="edu-degree">${edu.degree || ""}</span>
+                  <span class="edu-degree">${joinComma(edu.degree, edu.fieldOfStudy)}</span>
                   <span class="edu-year">${edu.year || ""}</span>
                 </div>
-                <div class="edu-school">${edu.school || ""}</div>
+                <div class="edu-school">${joinComma(edu.school, edu.location)}</div>
               </div>
             `,
               )
               .join("")}
+          </section>
+        `
+            : ""
+        }
+
+        ${
+          certList.length > 0
+            ? `
+          <section style="page-break-inside: avoid;">
+            <div class="sect-title"><h2>Certifications</h2></div>
+            ${bulletList(certList)}
+          </section>
+        `
+            : ""
+        }
+
+        ${
+          projectLines.length > 0
+            ? `
+          <section style="page-break-inside: avoid;">
+            <div class="sect-title"><h2>Projects</h2></div>
+            ${bulletList(projectLines)}
+          </section>
+        `
+            : ""
+        }
+
+        ${
+          publicationLines.length > 0
+            ? `
+          <section style="page-break-inside: avoid;">
+            <div class="sect-title"><h2>Publications</h2></div>
+            ${bulletList(publicationLines)}
+          </section>
+        `
+            : ""
+        }
+
+        ${
+          volunteerLines.length > 0
+            ? `
+          <section style="page-break-inside: avoid;">
+            <div class="sect-title"><h2>Volunteer Work</h2></div>
+            ${bulletList(volunteerLines)}
           </section>
         `
             : ""

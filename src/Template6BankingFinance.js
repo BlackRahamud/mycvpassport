@@ -12,6 +12,38 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+function certificationLines(cv) {
+  const raw = cv.certifications;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return "";
+        if (typeof c === "string") return c.trim();
+        const name = String(c.name || "").trim();
+        if (!name) return "";
+        const bits = [name];
+        if (c.issuer) bits.push(String(c.issuer).trim());
+        if (c.year) bits.push(`(${String(c.year).trim()})`);
+        return bits.join(" — ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const FREE_TEXT_BULLET = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
+function freeTextLines(raw) {
+  if (!raw) return [];
+  return String(raw)
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(FREE_TEXT_BULLET, "").trim())
+    .filter(Boolean);
+}
+
+const joinComma = (...parts) =>
+  parts.map((p) => (p == null ? "" : String(p).trim())).filter(Boolean).join(", ");
+
 const ACCENT = "#0369A1"; // Rich Teal-Blue
 const TEXT_DARK = "#1a1a2e";
 const GREY = "#6b7280";
@@ -33,6 +65,10 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
+  const certList = certificationLines(cv);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   const SectionTitle = ({ children }) => (
     <div style={{ marginTop: "8mm", marginBottom: "5mm", pageBreakAfter: "avoid" }}>
@@ -87,7 +123,7 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
           {cv.email && <span>{cv.email}</span>}
           {cv.phone && <span>• {cv.phone}</span>}
           {cv.location && <span>• {cv.location}</span>}
-          {(cv.linkedin || cv.linkedIn) && <span>• LinkedIn</span>}
+          {(cv.linkedin || cv.linkedIn) && <span>• {cv.linkedin || cv.linkedIn}</span>}
           {isPlaceholder && <span style={{ color: "#D1D5DB" }}>email@address.com • +00 000 000 • Location</span>}
         </div>
         {personalDetails.length > 0 && (
@@ -249,12 +285,64 @@ function PreviewBankingFinanceInner({ cv, mobileMode = false }) {
                   <div style={{ fontWeight: "bold" }}>{edu.year}</div>
                 </div>
                 <div style={{ flexGrow: 1 }}>
-                  <div style={{ fontSize: pt(11), fontWeight: "bold" }}>{edu.school}</div>
-                  <div style={{ fontSize: pt(10) }}>{edu.degree}</div>
+                  <div style={{ fontSize: pt(11), fontWeight: "bold" }}>{joinComma(edu.school, edu.location)}</div>
+                  <div style={{ fontSize: pt(10) }}>{joinComma(edu.degree, edu.fieldOfStudy)}</div>
                 </div>
               </div>
             ))
           )}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {certList.length > 0 && (
+        <section data-section="certifications" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Certifications</SectionTitle>
+          {certList.map((line, i) => (
+            <div key={i} style={{ fontSize: pt(10), display: "flex", gap: "6px", marginBottom: "1mm", color: "#333" }}>
+              <span>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {projectLines.length > 0 && (
+        <section data-section="projects" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Projects</SectionTitle>
+          {projectLines.map((line, i) => (
+            <div key={i} style={{ fontSize: pt(10), display: "flex", gap: "6px", marginBottom: "1mm", color: "#333" }}>
+              <span>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Publications */}
+      {publicationLines.length > 0 && (
+        <section data-section="publications" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Publications</SectionTitle>
+          {publicationLines.map((line, i) => (
+            <div key={i} style={{ fontSize: pt(10), display: "flex", gap: "6px", marginBottom: "1mm", color: "#333" }}>
+              <span>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Volunteer Work */}
+      {volunteerLines.length > 0 && (
+        <section data-section="volunteer" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Volunteer Work</SectionTitle>
+          {volunteerLines.map((line, i) => (
+            <div key={i} style={{ fontSize: pt(10), display: "flex", gap: "6px", marginBottom: "1mm", color: "#333" }}>
+              <span>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
         </section>
       )}
 

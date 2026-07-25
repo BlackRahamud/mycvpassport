@@ -1,4 +1,12 @@
-const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
+  splitExperiencePointsForPreview,
+  technicalSkillsGroups,
+} = require("./pdfCommon");
+
+const joinComma = (...parts) =>
+  parts.map((p) => (p == null ? "" : String(p).trim())).filter(Boolean).join(", ");
 
 function pdfCompactPro(cv) {
   const NAVY = "#1E3A5F";
@@ -16,12 +24,22 @@ function pdfCompactPro(cv) {
   const education = Array.isArray(cv.education) ? cv.education : [];
   const skills = cv.skills ? String(cv.skills).split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languages = cv.languages ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean) : [];
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
+
+  const bulletList = (lines) =>
+    lines.map((line) => `<div class="bullet"><span class="dot">•</span><span>${line}</span></div>`).join("");
 
   const contactGrid = [
     cv.email ? `<div>${cv.email}</div>` : "<div></div>",
     cv.phone ? `<div>${cv.phone}</div>` : "<div></div>",
     cv.location ? `<div>${cv.location}</div>` : "<div></div>",
-    cv.linkedin || cv.linkedIn ? `<div>LinkedIn Profile</div>` : "<div></div>",
+    cv.linkedin || cv.linkedIn ? `<div>${cv.linkedin || cv.linkedIn}</div>` : "<div></div>",
   ].join("");
 
   const personalDetails = buildPersonalDetailsEntries(cv);
@@ -122,9 +140,7 @@ function pdfCompactPro(cv) {
                     <span class="exp-period">${exp.period || ""}</span>
                   </div>
                   <div class="exp-loc">${exp.location || ""}</div>
-                  ${(exp.points || "").split("\\n").filter(Boolean).map((p) => `
-                    <div class="bullet"><span class="dot">•</span><span>${String(p).replace(/^•\\s*/, "")}</span></div>
-                  `).join("")}
+                  ${bulletList(splitExperiencePointsForPreview(exp.points))}
                 </div>
               `).join("")}
             `
@@ -139,6 +155,22 @@ function pdfCompactPro(cv) {
                   <div class="sect"><span class="sq">■</span><h2>Skills</h2></div>
                   <div class="list">
                     ${skills.map((s) => `<div>• ${s}</div>`).join("")}
+                  </div>
+                </div>
+              `
+                  : ""
+              }
+              ${
+                techGroups.length > 0
+                  ? `
+                <div class="col">
+                  <div class="sect"><span class="sq">■</span><h2>Technical Skills</h2></div>
+                  <div class="list">
+                    ${techGroups
+                      .map(
+                        (g) => `<p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>`,
+                      )
+                      .join("")}
                   </div>
                 </div>
               `
@@ -165,12 +197,48 @@ function pdfCompactPro(cv) {
               ${education.map((edu) => `
                 <div class="edu-item">
                   <div class="edu-head">
-                    <span class="edu-degree">${edu.degree || ""}</span>
+                    <span class="edu-degree">${joinComma(edu.degree, edu.fieldOfStudy)}</span>
                     <span class="edu-year">${edu.year || ""}</span>
                   </div>
-                  <div class="edu-school">${edu.school || ""}</div>
+                  <div class="edu-school">${joinComma(edu.school, edu.location)}</div>
                 </div>
               `).join("")}
+            `
+                : ""
+            }
+
+            ${
+              certList.length > 0
+                ? `
+              <div class="sect"><span class="sq">■</span><h2>Certifications</h2></div>
+              ${bulletList(certList)}
+            `
+                : ""
+            }
+
+            ${
+              projectLines.length > 0
+                ? `
+              <div class="sect"><span class="sq">■</span><h2>Projects</h2></div>
+              ${bulletList(projectLines)}
+            `
+                : ""
+            }
+
+            ${
+              publicationLines.length > 0
+                ? `
+              <div class="sect"><span class="sq">■</span><h2>Publications</h2></div>
+              ${bulletList(publicationLines)}
+            `
+                : ""
+            }
+
+            ${
+              volunteerLines.length > 0
+                ? `
+              <div class="sect"><span class="sq">■</span><h2>Volunteer Work</h2></div>
+              ${bulletList(volunteerLines)}
             `
                 : ""
             }

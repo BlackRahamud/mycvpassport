@@ -8,6 +8,7 @@ const {
   stripEmojiPictographs,
   splitExperiencePointsForPreview,
   cvWithTemplateCertifications,
+  technicalSkillsGroups,
 } = require("./pdfCommon");
 
 const ACCENT = "#4A90D9";
@@ -28,13 +29,33 @@ function mainTitle(text) {
   return `<div class="t11-main-title">${escapeHtml(text)}</div>`;
 }
 
+/** Multiline free-text field → trimmed lines, leading bullet markers stripped. */
+function multilineLines(raw) {
+  return String(raw || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^[-*•]\s+/, ""))
+    .filter(Boolean);
+}
+
+/** Main-column section for a multiline free-text field (Projects etc.). */
+function multilineSection(title, lines) {
+  if (lines.length === 0) return "";
+  const body = lines
+    .map((l) => `<p class="t11-line">${escapeHtml(l)}</p>`)
+    .join("");
+  return `<section class="section" data-block="section">
+      <h2 class="section-title">${mainTitle(title)}</h2>
+      <div class="section-body" data-block="text">${body}</div>
+    </section>`;
+}
+
 function buildTechITProTemplate11Html(rawCv) {
   const cv = cvWithTemplateCertifications(rawCv || {});
 
   const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const techList = cv.technicalSkills
-    ? cv.technicalSkills.split(",").map((s) => s.trim()).filter(Boolean)
-    : [];
+  // Structured [{category, chips[]}] (or legacy pipe-string) — never split(",")
+  // here: the builder writes the array shape, and comma-splitting loses labels.
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
   const certList = cv.certifications ? cv.certifications.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
@@ -72,7 +93,7 @@ function buildTechITProTemplate11Html(rawCv) {
     sidebar += `${sideLabel("Personal Info")}<div class="t11-side-text">${pers}</div>`;
   }
 
-  if (skillList.length > 0 || techList.length > 0) {
+  if (skillList.length > 0 || techGroups.length > 0) {
     sidebar += `<div class="t11-skill-sections" data-block="skills">`;
     if (skillList.length > 0) {
       let sk = "";
@@ -85,12 +106,13 @@ function buildTechITProTemplate11Html(rawCv) {
       sidebar += `${sideLabel("Core Skills")}${sk}`;
     }
 
-    if (techList.length > 0) {
+    if (techGroups.length > 0) {
+      // Grouped like the client preview: bold category label + joined chips.
       let tx = "";
-      techList.forEach((s) => {
+      techGroups.forEach((g) => {
         tx += `<div class="t11-tech-row">
         <span class="t11-tech-dash">—</span>
-        <span class="t11-tech-txt">${escapeHtml(s)}</span>
+        <span class="t11-tech-txt"><strong>${escapeHtml(g.category || "Technical Skills")}:</strong> ${escapeHtml(g.chips.join(", "))}</span>
       </div>`;
       });
       sidebar += `${sideLabel("Tech Stack")}${tx}`;
@@ -176,6 +198,9 @@ function buildTechITProTemplate11Html(rawCv) {
     main += exp;
   }
 
+  // Projects — mirrors the client preview section (between Experience and Education)
+  main += multilineSection("Projects", multilineLines(cv.projects));
+
   if (education.some((e) => e && e.school)) {
     let edu = "";
     education
@@ -183,14 +208,18 @@ function buildTechITProTemplate11Html(rawCv) {
       .forEach((e) => {
         edu += `<div class="break-guard"><div class="t11-edu-row" data-block="edu">
           <div>
-            <div class="t11-edu-deg">${escapeHtml(e.degree || "")}</div>
-            <div class="t11-edu-sch">${escapeHtml(e.school || "")}</div>
+            <div class="t11-edu-deg">${escapeHtml([e.degree, e.fieldOfStudy].filter(Boolean).join(", "))}</div>
+            <div class="t11-edu-sch">${escapeHtml([e.school, e.location].filter(Boolean).join(", "))}</div>
           </div>
           <span class="t11-edu-year">${escapeHtml(e.year || "")}</span>
         </div></div>`;
       });
     main += `<section class="section" data-block="education"><h2 class="section-title">${mainTitle("Education")}</h2><div class="section-body">${edu}</div></section>`;
   }
+
+  // Publications + Volunteer Work — mirror the client preview sections
+  main += multilineSection("Publications", multilineLines(cv.publications));
+  main += multilineSection("Volunteer Work", multilineLines(cv.volunteerWork));
 
   if (cv.references) {
     main += `<p class="t11-refs">${escapeHtml(cv.references)}</p>`;
@@ -358,6 +387,12 @@ function buildTechITProTemplate11Html(rawCv) {
       line-height: 1.8;
       color: ${MID};
       margin: 8px 0 0;
+    }
+    .t11-line {
+      font-size: 10px;
+      line-height: 1.6;
+      color: ${MID};
+      margin: 4px 0 0;
     }
     .section { margin-top: 12px; }
     .section-title { display: block; }

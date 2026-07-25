@@ -12,6 +12,38 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+function certificationLines(cv) {
+  const raw = cv.certifications;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return "";
+        if (typeof c === "string") return c.trim();
+        const name = String(c.name || "").trim();
+        if (!name) return "";
+        const bits = [name];
+        if (c.issuer) bits.push(String(c.issuer).trim());
+        if (c.year) bits.push(`(${String(c.year).trim()})`);
+        return bits.join(" — ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const FREE_TEXT_BULLET = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
+function freeTextLines(raw) {
+  if (!raw) return [];
+  return String(raw)
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(FREE_TEXT_BULLET, "").trim())
+    .filter(Boolean);
+}
+
+const joinComma = (...parts) =>
+  parts.map((p) => (p == null ? "" : String(p).trim())).filter(Boolean).join(", ");
+
 const PURPLE_BAR = "#EEF2FF";
 const DEEP_PURPLE = "#3730A3";
 const MAIN_TEXT = "#111827";
@@ -35,6 +67,10 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
   const languages = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
   const personalDetails = buildPersonalDetailsEntries(cv);
+  const certList = certificationLines(cv);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   const SectionTitle = ({ children }) => (
     <div
@@ -249,10 +285,74 @@ export function PreviewMinimalistPurple({ cv, mobileMode = false }) {
           {education.map((edu, i) => (
             <div key={i} style={{ marginBottom: "4mm", pageBreakInside: "avoid" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span style={{ fontSize: pt(11), fontWeight: "bold" }}>{edu.degree}</span>
+                <span style={{ fontSize: pt(11), fontWeight: "bold" }}>{joinComma(edu.degree, edu.fieldOfStudy)}</span>
                 <span style={{ fontSize: pt(9.5), fontWeight: "bold" }}>{edu.year}</span>
               </div>
-              <div style={{ fontSize: pt(10), fontStyle: "italic", color: greyColor }}>{edu.school}</div>
+              <div style={{ fontSize: pt(10), fontStyle: "italic", color: greyColor }}>{joinComma(edu.school, edu.location)}</div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {certList.length > 0 && (
+        <section data-section="certifications" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Certifications</SectionTitle>
+          {certList.map((line, i) => (
+            <div
+              key={i}
+              style={{ fontSize: pt(10), display: "flex", gap: "10px", paddingLeft: "5mm", marginBottom: "1mm", color: textColor }}
+            >
+              <span>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {projectLines.length > 0 && (
+        <section data-section="projects" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Projects</SectionTitle>
+          {projectLines.map((line, i) => (
+            <div
+              key={i}
+              style={{ fontSize: pt(10), display: "flex", gap: "10px", paddingLeft: "5mm", marginBottom: "1mm", color: textColor }}
+            >
+              <span>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Publications */}
+      {publicationLines.length > 0 && (
+        <section data-section="publications" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Publications</SectionTitle>
+          {publicationLines.map((line, i) => (
+            <div
+              key={i}
+              style={{ fontSize: pt(10), display: "flex", gap: "10px", paddingLeft: "5mm", marginBottom: "1mm", color: textColor }}
+            >
+              <span>•</span>
+              <span>{line}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Volunteer Work */}
+      {volunteerLines.length > 0 && (
+        <section data-section="volunteer" style={{ pageBreakInside: "avoid" }}>
+          <SectionTitle>Volunteer Work</SectionTitle>
+          {volunteerLines.map((line, i) => (
+            <div
+              key={i}
+              style={{ fontSize: pt(10), display: "flex", gap: "10px", paddingLeft: "5mm", marginBottom: "1mm", color: textColor }}
+            >
+              <span>•</span>
+              <span>{line}</span>
             </div>
           ))}
         </section>

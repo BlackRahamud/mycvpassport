@@ -13,6 +13,13 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+function multilineLines(raw) {
+  return String(raw || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^[-*•]\s+/, "").trim())
+    .filter(Boolean);
+}
+
 /**
  * TEMPLATE 13 — Finance & Corporate
  * Design: Single-sheet continuous surface, Finance-grade, No Cards.
@@ -37,6 +44,9 @@ export function PreviewFinance({ cv, mobileMode = false }) {
   const certifications = cv.certifications ? cv.certifications.split(",").map((c) => c.trim()).filter(Boolean) : [];
   const hasTechnicalSkills = technicalSkillsGroupsForTemplate(cv.technicalSkills).length > 0;
   const personalDetails = buildPersonalDetailsEntries(cv);
+  const projectLines = multilineLines(cv.projects);
+  const publicationLines = multilineLines(cv.publications);
+  const volunteerLines = multilineLines(cv.volunteerWork);
 
   const SectionHeading = ({ children }) => (
     <div style={{ marginBottom: "12px", breakAfter: "avoid" }}>
@@ -161,7 +171,7 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                     <GhostChip>{`${exp.role} ${exp.company}`}</GhostChip>
                     <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "14px" }}>{exp.role}</div>
                     <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px", marginBottom: "6px" }}>
-                      {exp.company} • {exp.period}
+                      {[exp.company, exp.period, exp.location].filter(Boolean).join(" • ")}
                     </div>
                     {exp.points && (() => {
                       const { bullets, format } = parseExperiencePoints(exp.points);
@@ -191,9 +201,13 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                 )}
                 {education.map((edu, i) => (
                   <div key={i} style={{ marginBottom: "16px", pageBreakInside: "avoid" }}>
-                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "13px" }}>{edu.degree}</div>
+                    <div style={{ fontWeight: "bold", color: COLORS.TEXT_PRIMARY, fontSize: "13px" }}>
+                      {[edu.degree, edu.fieldOfStudy].filter(Boolean).join(", ")}
+                    </div>
                     <div style={{ color: COLORS.TEXT_SECONDARY, fontSize: "12px" }}>
-                      {edu.school} • {edu.year}
+                      {[[edu.school, edu.location].filter(Boolean).join(", "), edu.year]
+                        .filter(Boolean)
+                        .join(" • ")}
                     </div>
                   </div>
                 ))}
@@ -233,6 +247,28 @@ export function PreviewFinance({ cv, mobileMode = false }) {
                   })()}
                 </div>
               </div>
+            )}
+
+            {[
+              ["Projects", "projects", projectLines],
+              ["Publications", "publications", publicationLines],
+              ["Volunteer Work", "volunteerWork", volunteerLines],
+            ].map(([label, section, lines]) =>
+              lines.length > 0 ? (
+                <div key={section} data-section={section} style={{ marginTop: "20px" }}>
+                  <SectionHeading>{label}</SectionHeading>
+                  <div style={{ marginBottom: "20px" }}>
+                    {lines.map((line, i) => (
+                      <div
+                        key={i}
+                        style={{ fontSize: "12.5px", color: COLORS.TEXT_PRIMARY, marginBottom: "4px", lineHeight: "1.5" }}
+                      >
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null,
             )}
           </div>
 

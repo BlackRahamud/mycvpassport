@@ -2,7 +2,18 @@
  * Generates the HTML string for Template 12 — Flat Split
  * Designed for Puppeteer on Vercel with strict flat aesthetics.
  */
-const { buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  buildPersonalDetailsEntries,
+  splitExperiencePointsForPreview,
+  cvWithTemplateCertifications,
+} = require("./pdfCommon");
+
+function multilineLines(raw) {
+  return String(raw || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^[-*•]\s+/, "").trim())
+    .filter(Boolean);
+}
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -24,33 +35,55 @@ function buildTemplate12Html(cv) {
         .map((l) => l.trim())
         .filter(Boolean)
     : [];
+  const experienceRows = (Array.isArray(safeCv.experience) ? safeCv.experience : []).filter(
+    (e) => e && (e.company || e.role),
+  );
+  const certifications = String(cvWithTemplateCertifications(safeCv).certifications || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const projects = multilineLines(safeCv.projects);
+  const publications = multilineLines(safeCv.publications);
+  const volunteerWork = multilineLines(safeCv.volunteerWork);
 
-  const experienceHtml = (safeCv.experience || [])
+  const experienceHtml = experienceRows
     .map((exp) => {
-      const points = exp.points
-        ? String(exp.points)
-            .split("\n")
-            .filter((p) => p.trim())
-            .map(
-              (p) => `
+      const points = splitExperiencePointsForPreview(exp.points)
+        .map(
+          (p) => `
               <div data-block="list" style="display: flex; margin-bottom: 4px; font-size: 10pt; line-height: 1.5;">
                 <span style="margin-right: 10px;">•</span>
-                <span>${String(p).replace(/^•\s*/, "")}</span>
+                <span>${p}</span>
               </div>`,
-            )
-            .join("")
-        : "";
+        )
+        .join("");
 
       return `
       <div data-block="job" style="margin-bottom: 25px; page-break-inside: avoid;">
         <div style="display: flex; justify-content: space-between; align-items: baseline;">
           <span style="font-family: Georgia, serif; font-size: 14pt; font-weight: bold;">${exp.company || ""}</span>
-          <span style="font-size: 9pt; font-weight: bold;">${exp.period || ""}</span>
+          <span style="font-size: 9pt; font-weight: bold;">${[exp.period, exp.location].filter(Boolean).join(" · ")}</span>
         </div>
         <div style="font-style: italic; font-size: 11pt; color: #4B5563; margin: 4px 0 10px 0;">${exp.role || ""}</div>
         ${points}
       </div>`;
     })
+    .join("");
+
+  const multilineSectionsHtml = [
+    ["Projects", "projects", projects],
+    ["Publications", "publications", publications],
+    ["Volunteer Work", "volunteerWork", volunteerWork],
+  ]
+    .map(([label, section, lines]) =>
+      lines.length
+        ? `
+          <div data-section="${section}" style="margin-bottom: 25px;">
+            <div class="section-label" data-block="section">${label}</div>
+            ${lines.map((l) => `<p data-block="text" style="font-size: 10pt; line-height: 1.5; margin: 0 0 6px 0;">${l}</p>`).join("")}
+          </div>`
+        : "",
+    )
     .join("");
 
   return `
@@ -140,14 +173,19 @@ function buildTemplate12Html(cv) {
 
       <div class="body-split">
         <div class="sidebar">
+          ${
+            safeCv.summary
+              ? `
           <div class="section-label sidebar-label" data-block="section">Summary</div>
-          <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${safeCv.summary || ""}</div>
-          
+          <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${safeCv.summary}</div>
+          `
+              : ""
+          }
           ${
             safeCv.skills
               ? `
             <div class="section-label sidebar-label" style="margin-top: 40px;" data-block="section">Skills</div>
-            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${safeCv.skills}</div>
+            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">${Array.isArray(safeCv.skills) ? safeCv.skills.join(", ") : safeCv.skills}</div>
           `
               : ""
           }
@@ -184,9 +222,19 @@ function buildTemplate12Html(cv) {
                 .filter((e) => e && (e.school || e.degree))
                 .map(
                   (edu) =>
-                    `<p style="margin: 0 0 10px 0;"><strong>${edu.degree || ""}</strong><br/>${edu.school || ""}${edu.year ? ` · ${edu.year}` : ""}</p>`,
+                    `<p style="margin: 0 0 10px 0;"><strong>${[edu.degree, edu.fieldOfStudy].filter(Boolean).join(", ")}</strong><br/>${[[edu.school, edu.location].filter(Boolean).join(", "), edu.year].filter(Boolean).join(" · ")}</p>`,
                 )
                 .join("")}
+            </div>
+          `
+              : ""
+          }
+          ${
+            certifications.length
+              ? `
+            <div class="section-label sidebar-label" style="margin-top: 40px;" data-block="section">Certifications</div>
+            <div style="font-size: 10pt; line-height: 1.6;" data-block="text">
+              ${certifications.map((c) => `<p style="margin: 0 0 6px 0;">${c}</p>`).join("")}
             </div>
           `
               : ""
@@ -194,8 +242,9 @@ function buildTemplate12Html(cv) {
         </div>
 
         <div class="main-content">
-          <div class="section-label" data-block="section">Experience</div>
+          ${experienceRows.length ? `<div class="section-label" data-block="section">Experience</div>` : ""}
           ${experienceHtml}
+          ${multilineSectionsHtml}
         </div>
       </div>
     </div>

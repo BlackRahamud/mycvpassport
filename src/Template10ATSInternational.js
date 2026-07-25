@@ -170,14 +170,34 @@ function Header({ cv }) {
   const marital = readCustomField(cv, ["marital_status"], "maritalStatus");
   const license = readCustomField(cv, ["driving_license"], "drivingLicense");
   const gender = readCustomField(cv, ["gender"], "gender");
+  const availability = readCustomField(cv, ["availability"], "availability");
+  const relocate = readCustomField(cv, ["willing_to_relocate"], "willingToRelocate");
   const statusItems = [];
   if (nationality) statusItems.push(`Nationality: ${nationality}`);
   if (visa) statusItems.push(`Visa: ${visa}`);
   if (notice) statusItems.push(`Notice: ${notice}`);
+  if (availability && availability !== notice) statusItems.push(`Availability: ${availability}`);
   if (dob) statusItems.push(`DOB: ${dob}`);
   if (marital) statusItems.push(`Marital Status: ${marital}`);
   if (license) statusItems.push(`License: ${license}`);
   if (gender) statusItems.push(`Gender: ${gender}`);
+  if (relocate) statusItems.push(`Relocate: ${relocate}`);
+  // Any custom fields beyond the whitelisted regional ids — render name+value
+  // so imported corridor fields are never silently dropped from the CV.
+  const CONSUMED_CUSTOM_IDS = [
+    "nationality", "visa_status", "notice_period", "date_of_birth", "dob",
+    "marital_status", "driving_license", "gender", "availability", "willing_to_relocate",
+  ];
+  if (Array.isArray(cv.customFields)) {
+    for (const f of cv.customFields) {
+      if (!f || typeof f !== "object") continue;
+      const id = String(f.id || "").trim();
+      const name = String(f.name || "").trim();
+      const value = String(f.value || "").trim();
+      if (!value || !name || CONSUMED_CUSTOM_IDS.includes(id)) continue;
+      statusItems.push(`${name}: ${value}`);
+    }
+  }
 
   return (
     <header

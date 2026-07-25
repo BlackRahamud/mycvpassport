@@ -176,8 +176,14 @@ module.exports = async (req, res) => {
   // Determine which HTML to render
   let finalHtml = html;
   if (!finalHtml && templateId && cv) {
-    const builder = BUILDERS[templateId];
+    // Templates 15-18 export via captured preview HTML only and have no
+    // server builder. Server-side callers (Scout) that request one of
+    // them fall back to the ATS International builder instead of 400ing.
+    const builder = BUILDERS[templateId] || BUILDERS[10];
     if (builder) {
+      if (!BUILDERS[templateId]) {
+        console.warn(`[generate-pdf] no server builder for template ${templateId}; falling back to template 10`);
+      }
       finalHtml = builder(normalizeCvForPdf(cv));
     }
   }

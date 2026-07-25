@@ -87,14 +87,35 @@ function buildStatusItems(cv) {
   const marital = readCustomField(cv, ["marital_status"], "maritalStatus");
   const license = readCustomField(cv, ["driving_license"], "drivingLicense");
   const gender = readCustomField(cv, ["gender"], "gender");
+  const availability = readCustomField(cv, ["availability"], "availability");
+  const relocate = readCustomField(cv, ["willing_to_relocate"], "willingToRelocate");
   const items = [];
   if (nationality) items.push({ label: "Nationality", value: nationality });
   if (visa) items.push({ label: "Visa", value: visa });
   if (notice) items.push({ label: "Notice", value: notice });
+  if (availability && availability !== notice) items.push({ label: "Availability", value: availability });
   if (dob) items.push({ label: "DOB", value: dob });
   if (marital) items.push({ label: "Marital Status", value: marital });
   if (license) items.push({ label: "License", value: license });
   if (gender) items.push({ label: "Gender", value: gender });
+  if (relocate) items.push({ label: "Relocate", value: relocate });
+  // Any custom fields beyond the whitelisted regional ids — render name+value
+  // so imported corridor fields are never silently dropped from the CV.
+  // TWIN: keep in sync with the same block in src/Template10ATSInternational.js.
+  const CONSUMED_CUSTOM_IDS = [
+    "nationality", "visa_status", "notice_period", "date_of_birth", "dob",
+    "marital_status", "driving_license", "gender", "availability", "willing_to_relocate",
+  ];
+  if (Array.isArray(cv.customFields)) {
+    for (const f of cv.customFields) {
+      if (!f || typeof f !== "object") continue;
+      const id = String(f.id || "").trim();
+      const name = String(f.name || "").trim();
+      const value = String(f.value || "").trim();
+      if (!value || !name || CONSUMED_CUSTOM_IDS.includes(id)) continue;
+      items.push({ label: name, value });
+    }
+  }
   return items;
 }
 

@@ -13,6 +13,35 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+function certificationLines(cv) {
+  const raw = cv.certifications;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return "";
+        if (typeof c === "string") return c.trim();
+        const name = String(c.name || "").trim();
+        if (!name) return "";
+        const bits = [name];
+        if (c.issuer) bits.push(String(c.issuer).trim());
+        if (c.year) bits.push(`(${String(c.year).trim()})`);
+        return bits.join(" — ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const FREETEXT_BULLET = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
+function freeTextLines(text) {
+  if (!text) return [];
+  return String(text)
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(FREETEXT_BULLET, "").trim())
+    .filter(Boolean);
+}
+
 const BAND_BG = "#F3F4F6"; // Light grey for header and section bars
 const TEXT_PRIMARY = "#1F2937"; // Dark charcoal
 const TEXT_SECONDARY = "#4B5563"; // Subtle accent/body
@@ -34,6 +63,13 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
     .split(",")
     .map((l) => l.trim())
     .filter(Boolean);
+  const educationRows = (Array.isArray(cv.education) ? cv.education : []).filter(
+    (e) => e && (e.school || e.degree)
+  );
+  const certList = certificationLines(cv);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   const SectionBand = ({ children }) => (
     <div
@@ -127,7 +163,7 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
               {cv.email && <span>{cv.email}</span>}
               {cv.phone && <span>{cv.phone}</span>}
               {cv.location && <span>{cv.location}</span>}
-              {cv.linkedin && <span>LINKEDIN</span>}
+              {cv.linkedin && <span>{cv.linkedin}</span>}
             </>
           )}
         </div>
@@ -295,6 +331,95 @@ export function PreviewSlateMinimalist({ cv, mobileMode = false }) {
                 })()
               )}
             </div>
+          </section>
+        )}
+
+        {/* Education */}
+        {educationRows.length > 0 && (
+          <section data-section="education">
+            <SectionBand>Education</SectionBand>
+            {educationRows.map((edu, i) => (
+              <div
+                key={i}
+                style={{ marginBottom: "5mm", breakInside: "avoid", pageBreakInside: "avoid" }}
+              >
+                <div style={{ display: "flex" }}>
+                  {/* Left side: Year/School */}
+                  <div style={{ width: "30%", fontSize: pt(9), fontWeight: "700", color: TEXT_SECONDARY }}>
+                    {edu.year} <br />
+                    <span style={{ fontWeight: "400", fontSize: pt(8.5) }}>
+                      {[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
+                    </span>
+                  </div>
+                  {/* Right side: Degree */}
+                  <div style={{ width: "70%", textAlign: "right" }}>
+                    <div style={{ fontWeight: "800", fontSize: pt(11), color: TEXT_PRIMARY }}>
+                      {[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Certifications */}
+        {certList.length > 0 && (
+          <section data-section="certifications">
+            <SectionBand>Certifications</SectionBand>
+            {certList.map((c, i) => (
+              <p key={i} style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: "0 0 1.5mm", lineHeight: 1.5 }}>
+                {c}
+              </p>
+            ))}
+          </section>
+        )}
+
+        {/* Projects */}
+        {projectLines.length > 0 && (
+          <section data-section="projects">
+            <SectionBand>Projects</SectionBand>
+            {projectLines.map((p, i) => (
+              <p
+                key={i}
+                style={{ fontSize: pt(9.5), margin: "0 0 1.5mm", lineHeight: 1.5, display: "flex", gap: "10px" }}
+              >
+                <span style={{ color: SKELETON }}>•</span>
+                <span>{p}</span>
+              </p>
+            ))}
+          </section>
+        )}
+
+        {/* Publications */}
+        {publicationLines.length > 0 && (
+          <section data-section="publications">
+            <SectionBand>Publications</SectionBand>
+            {publicationLines.map((p, i) => (
+              <p
+                key={i}
+                style={{ fontSize: pt(9.5), margin: "0 0 1.5mm", lineHeight: 1.5, display: "flex", gap: "10px" }}
+              >
+                <span style={{ color: SKELETON }}>•</span>
+                <span>{p}</span>
+              </p>
+            ))}
+          </section>
+        )}
+
+        {/* Volunteer Work */}
+        {volunteerLines.length > 0 && (
+          <section data-section="volunteer">
+            <SectionBand>Volunteer Work</SectionBand>
+            {volunteerLines.map((p, i) => (
+              <p
+                key={i}
+                style={{ fontSize: pt(9.5), margin: "0 0 1.5mm", lineHeight: 1.5, display: "flex", gap: "10px" }}
+              >
+                <span style={{ color: SKELETON }}>•</span>
+                <span>{p}</span>
+              </p>
+            ))}
           </section>
         )}
 

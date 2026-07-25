@@ -45,6 +45,23 @@ function certificationLines(cv) {
   return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+function technicalSkillsGroups(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = String(raw).split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: "Technical Skills", chips }];
+}
+
+function freeTextLines(raw) {
+  if (!raw) return [];
+  return String(raw)
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^(?:[•\-–*]|\d+\.)\s*/, "").trim())
+    .filter(Boolean);
+}
+
 export function PreviewForestPro({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
@@ -57,6 +74,10 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
     ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean)
     : [];
   const linkedIn = cv.linkedin || cv.linkedIn || cv.linkedInUrl || cv.linkedinUrl || "";
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   const EntryWrap = ({ children }) => (
     <div style={{ display: "block" }}>
@@ -93,6 +114,31 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
       }}
     >
       {children}
+    </div>
+  );
+
+  const LineList = ({ lines }) => (
+    <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
+      <EntryWrap>
+        <div>
+          {lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                display: "block",
+                marginBottom: "4px",
+                paddingLeft: 12,
+                textIndent: -12,
+                lineHeight: 1.5,
+                fontSize: pt(10),
+                color: BODY_COLOR,
+              }}
+            >
+              {`• ${line}`}
+            </div>
+          ))}
+        </div>
+      </EntryWrap>
     </div>
   );
 
@@ -335,7 +381,10 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
                           color: SECTION_TITLE,
                         }}
                       >
-                        {e.degree}
+                        {[e.degree, e.fieldOfStudy]
+                          .map((v) => String(v || "").trim())
+                          .filter(Boolean)
+                          .join(", ")}
                       </div>
                       <div
                         style={{
@@ -344,7 +393,10 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
                           color: COMPANY_COLOR,
                         }}
                       >
-                        {e.school}
+                        {[e.school, e.location]
+                          .map((v) => String(v || "").trim())
+                          .filter(Boolean)
+                          .join(", ")}
                       </div>
                     </div>
                     <span
@@ -388,6 +440,60 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
         </section>
       )}
 
+      {/* Projects */}
+      {projectLines.length > 0 && (
+        <section data-section="projects">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              certList.length === 0
+            }
+          >
+            Projects
+          </SectionTitle>
+          <LineList lines={projectLines} />
+        </section>
+      )}
+
+      {/* Publications */}
+      {publicationLines.length > 0 && (
+        <section data-section="publications">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              certList.length === 0 &&
+              projectLines.length === 0
+            }
+          >
+            Publications
+          </SectionTitle>
+          <LineList lines={publicationLines} />
+        </section>
+      )}
+
+      {/* Volunteer Work */}
+      {volunteerLines.length > 0 && (
+        <section data-section="volunteer">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              certList.length === 0 &&
+              projectLines.length === 0 &&
+              publicationLines.length === 0
+            }
+          >
+            Volunteer Work
+          </SectionTitle>
+          <LineList lines={volunteerLines} />
+        </section>
+      )}
+
       {/* Skills — inline bullet list with green dot */}
       {skillCore.length > 0 && (
         <section data-section="competencies">
@@ -396,7 +502,10 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
               !cv.summary &&
               !experience.some((e) => e.company) &&
               !education.some((e) => e.school) &&
-              certList.length === 0
+              certList.length === 0 &&
+              projectLines.length === 0 &&
+              publicationLines.length === 0 &&
+              volunteerLines.length === 0
             }
           >
             Skills
@@ -420,6 +529,56 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
         </section>
       )}
 
+      {/* Technical Skills — inline bullet list with green dot */}
+      {techGroups.length > 0 && (
+        <section data-section="technical-skills">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              certList.length === 0 &&
+              projectLines.length === 0 &&
+              publicationLines.length === 0 &&
+              volunteerLines.length === 0 &&
+              skillCore.length === 0
+            }
+          >
+            Technical Skills
+          </SectionTitle>
+          <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
+            <EntryWrap>
+              <div>
+                {techGroups.map((g, i) => (
+                  <p
+                    key={i}
+                    style={{
+                      fontSize: pt(10),
+                      lineHeight: 1.8,
+                      margin: i === 0 ? 0 : "4px 0 0",
+                      color: BODY_COLOR,
+                    }}
+                  >
+                    {g.category && (
+                      <span style={{ fontWeight: 700, color: SECTION_TITLE }}>
+                        {g.category}:{" "}
+                      </span>
+                    )}
+                    {g.chips.map((chip, j) => (
+                      <span key={j}>
+                        {j > 0 && "  "}
+                        <span style={{ color: ACCENT }}>&#9679;</span>{" "}
+                        {chip}
+                      </span>
+                    ))}
+                  </p>
+                ))}
+              </div>
+            </EntryWrap>
+          </div>
+        </section>
+      )}
+
       {/* Languages */}
       {langList.length > 0 && (
         <section data-section="languages">
@@ -429,7 +588,11 @@ export function PreviewForestPro({ cv, mobileMode = false }) {
               !experience.some((e) => e.company) &&
               !education.some((e) => e.school) &&
               certList.length === 0 &&
-              skillCore.length === 0
+              projectLines.length === 0 &&
+              publicationLines.length === 0 &&
+              volunteerLines.length === 0 &&
+              skillCore.length === 0 &&
+              techGroups.length === 0
             }
           >
             Languages

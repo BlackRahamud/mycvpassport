@@ -1,4 +1,9 @@
-const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
+  technicalSkillsGroups,
+  splitExperiencePointsForPreview,
+} = require("./pdfCommon");
 
 function pdfSlateMinimalist(cv) {
   const BAND_BG = "#F3F4F6";
@@ -6,6 +11,18 @@ function pdfSlateMinimalist(cv) {
   const TEXT_SECONDARY = "#4B5563";
   const BORDER = "#D1D5DB";
   const education = Array.isArray(cv.education) ? cv.education : [];
+  const expRows = (Array.isArray(cv.experience) ? cv.experience : []).filter((e) => e && e.company);
+  const skillsCells = (cv.skills || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
   const languages = cv.languages
     ? String(cv.languages)
         .split(",")
@@ -55,8 +72,8 @@ function pdfSlateMinimalist(cv) {
       </head>
       <body>
         <header>
-          <div class="header-name">${cv.name}</div>
-          <div class="header-title">${cv.title}</div>
+          <div class="header-name">${cv.name || ""}</div>
+          <div class="header-title">${cv.title || ""}</div>
           <div class="contact-line">
             ${[cv.email, cv.phone, cv.linkedin, cv.location].filter(Boolean).join(" &nbsp; | &nbsp; ")}
           </div>
@@ -64,38 +81,53 @@ function pdfSlateMinimalist(cv) {
         </header>
 
         <div class="content-pad">
+          ${cv.summary ? `
           <div class="section-band">Professional Profile</div>
           <p style="text-align: center; font-size: 10pt; line-height: 1.6; margin: 0;">${cv.summary}</p>
-          
+          ` : ""}
+
+          ${expRows.length > 0 ? `
           <div class="section-band">Work History</div>
-          ${(cv.experience || []).map((e) => `
+          ${expRows.map((e) => `
             <div class="exp-item">
               <div class="exp-grid">
-                <div class="exp-left">${e.period}<br><span style="font-weight:400; font-size:8.5pt;">${e.location}</span></div>
+                <div class="exp-left">${e.period || ""}<br><span style="font-weight:400; font-size:8.5pt;">${e.location || ""}</span></div>
                 <div class="exp-right">
-                  <div class="role">${e.role}</div>
-                  <div class="company">${e.company}</div>
+                  <div class="role">${e.role || ""}</div>
+                  <div class="company">${e.company || ""}</div>
                 </div>
               </div>
               <div style="margin-top: 8px;">
-                ${(e.points || "").split('\\n').filter(Boolean).map((p) => `
+                ${splitExperiencePointsForPreview(e.points).map((p) => `
                   <div class="bullet">
                     <span class="bullet-point">•</span>
-                    <span>${p.replace(/^•\\s*/, "")}</span>
+                    <span>${p}</span>
                   </div>
                 `).join("")}
               </div>
             </div>
           `).join("")}
+          ` : ""}
 
+          ${skillsCells.length > 0 ? `
           <div class="section-band">Core Competencies</div>
           <div class="skills-grid">
-            ${(cv.skills || "").split(",").map((s) => `
+            ${skillsCells.map((s) => `
               <div style="display:flex; align-items:center;">
-                <span style="color:${BORDER}; margin-right:8px;">•</span> ${s.trim()}
+                <span style="color:${BORDER}; margin-right:8px;">•</span> ${s}
               </div>
             `).join("")}
           </div>
+          ` : ""}
+
+          ${techGroups.length > 0 ? `
+          <div class="section-band">Technical Skills</div>
+          <div style="font-size: 9.5pt; color: ${TEXT_PRIMARY}; margin: 0; line-height: 1.6;">
+            ${techGroups.map((g) => `
+              <p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>
+            `).join("")}
+          </div>
+          ` : ""}
 
           ${
             education.some((e) => e && (e.school || e.degree))
@@ -107,9 +139,9 @@ function pdfSlateMinimalist(cv) {
               (edu) => `
             <div class="exp-item">
               <div class="exp-grid">
-                <div class="exp-left">${edu.year || ""}<br><span style="font-weight:400; font-size:8.5pt;">${edu.school || ""}</span></div>
+                <div class="exp-left">${edu.year || ""}<br><span style="font-weight:400; font-size:8.5pt;">${[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</span></div>
                 <div class="exp-right">
-                  <div class="role">${edu.degree || ""}</div>
+                  <div class="role">${[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</div>
                 </div>
               </div>
             </div>
@@ -119,6 +151,43 @@ function pdfSlateMinimalist(cv) {
           `
               : ""
           }
+
+          ${certList.length > 0 ? `
+          <div class="section-band">Certifications</div>
+          ${certList.map((c) => `
+            <p style="font-size: 9.5pt; color: ${TEXT_PRIMARY}; line-height: 1.5; margin: 0 0 1.5mm 0;">${c}</p>
+          `).join("")}
+          ` : ""}
+
+          ${projectLines.length > 0 ? `
+          <div class="section-band">Projects</div>
+          ${projectLines.map((p) => `
+            <div class="bullet">
+              <span class="bullet-point">•</span>
+              <span>${p}</span>
+            </div>
+          `).join("")}
+          ` : ""}
+
+          ${publicationLines.length > 0 ? `
+          <div class="section-band">Publications</div>
+          ${publicationLines.map((p) => `
+            <div class="bullet">
+              <span class="bullet-point">•</span>
+              <span>${p}</span>
+            </div>
+          `).join("")}
+          ` : ""}
+
+          ${volunteerLines.length > 0 ? `
+          <div class="section-band">Volunteer Work</div>
+          ${volunteerLines.map((p) => `
+            <div class="bullet">
+              <span class="bullet-point">•</span>
+              <span>${p}</span>
+            </div>
+          `).join("")}
+          ` : ""}
 
           ${
             languages.length

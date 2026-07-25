@@ -1,4 +1,9 @@
-const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
+  technicalSkillsGroups,
+  splitExperiencePointsForPreview,
+} = require("./pdfCommon");
 
 function pdfEditorialDark(cv) {
   const NAVY_DARK = "#0F172A";
@@ -6,6 +11,19 @@ function pdfEditorialDark(cv) {
   const TEXT_SECONDARY = "#4B5563";
   const ACCENT = "#334155";
   const BORDER = "#D1D5DB";
+  const expRows = (Array.isArray(cv.experience) ? cv.experience : []).filter((e) => e && e.company);
+  const eduRows = (Array.isArray(cv.education) ? cv.education : []).filter((edu) => edu && edu.school);
+  const skillsCells = (cv.skills || "")
+    .split(",")
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
   const personalDetails = buildPersonalDetailsEntries(cv);
   const personalDetailsHtml = personalDetails.length
     ? `<div class="contact-row" style="margin-top: 6px;">${personalDetails
@@ -70,7 +88,7 @@ function pdfEditorialDark(cv) {
           <div class="contact-row">
             ${cv.email ? `<span>${cv.email}</span>` : ""}
             ${cv.phone ? `<span>${cv.phone}</span>` : ""}
-            ${cv.linkedin ? `<span>${cv.linkedin}</span>` : ""}
+            ${(cv.linkedin || cv.linkedIn) ? `<span>${cv.linkedin || cv.linkedIn}</span>` : ""}
             ${cv.location ? `<span>${cv.location}</span>` : ""}
           </div>
           ${personalDetailsHtml}
@@ -87,10 +105,10 @@ function pdfEditorialDark(cv) {
               : ""
           }
           
+          ${expRows.length > 0 ? `
           <div class="section-title">Experience</div>
           <div class="section-underline"></div>
-          ${(cv.experience || [])
-            .filter((e) => e && e.company)
+          ${expRows
             .map(
               (e) => `
             <div class="exp-item">
@@ -98,58 +116,66 @@ function pdfEditorialDark(cv) {
                 <div class="company">${e.company}</div>
                 <div class="period">${e.period || ""}</div>
               </div>
-              <div class="role">${e.role || ""}</div>
+              <div class="exp-header" style="margin-top: 1px;">
+                <div class="role" style="margin-top: 0;">${e.role || ""}</div>
+                ${e.location ? `<div style="font-size: 9pt; color: ${TEXT_SECONDARY};">${e.location}</div>` : ""}
+              </div>
               <div style="margin-top: 8px;">
-                ${
-                  e.points
-                    ? String(e.points)
-                        .split("\\n")
-                        .filter(Boolean)
-                        .map(
-                          (p) => `
+                ${splitExperiencePointsForPreview(e.points)
+                  .map(
+                    (p) => `
                   <div class="bullet">
                     <span class="bullet-point">•</span>
-                    <span>${String(p).replace(/^•\\s*/, "")}</span>
+                    <span>${p}</span>
                   </div>
                 `,
-                        )
-                        .join("")
-                    : ""
-                }
+                  )
+                  .join("")}
               </div>
             </div>
           `,
             )
             .join("")}
+          ` : ""}
 
+          ${skillsCells.length > 0 ? `
           <div class="section-title">Expertise</div>
           <div class="section-underline"></div>
           <div class="skills-container">
-            ${(cv.skills || "")
-              .split(",")
+            ${skillsCells
               .map(
                 (s) => `
-              <div class="skill-pill">${String(s).trim()}</div>
+              <div class="skill-pill">${s}</div>
             `,
               )
               .join("")}
           </div>
+          ` : ""}
+
+          ${techGroups.length > 0 ? `
+          <div class="section-title">Technical Skills</div>
+          <div class="section-underline"></div>
+          <div style="font-size: 9.5pt; color: ${TEXT_PRIMARY}; margin: 0; line-height: 1.6;">
+            ${techGroups.map((g) => `
+              <p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>
+            `).join("")}
+          </div>
+          ` : ""}
 
           ${
-            cv.education && cv.education.length > 0
+            eduRows.length > 0
               ? `
             <div class="section-title">Education</div>
             <div class="section-underline"></div>
-            ${(cv.education || [])
-              .filter((edu) => edu && edu.school)
+            ${eduRows
               .map(
                 (edu) => `
               <div class="edu-item">
                 <div class="exp-header">
-                  <div style="font-weight: 700; color: ${NAVY_DARK}; font-size: 10pt;">${edu.school}</div>
+                  <div style="font-weight: 700; color: ${NAVY_DARK}; font-size: 10pt;">${[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</div>
                   <div style="font-size: 9pt;">${edu.year || ""}</div>
                 </div>
-                <div style="font-size: 9.5pt;">${edu.degree || ""}</div>
+                <div style="font-size: 9.5pt;">${[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</div>
               </div>
             `,
               )
@@ -157,6 +183,47 @@ function pdfEditorialDark(cv) {
           `
               : ""
           }
+
+          ${certList.length > 0 ? `
+            <div class="section-title">Certifications</div>
+            <div class="section-underline"></div>
+            ${certList.map((c) => `
+              <p style="font-size: 9.5pt; color: ${TEXT_PRIMARY}; line-height: 1.5; margin: 0 0 1.5mm 0;">${c}</p>
+            `).join("")}
+          ` : ""}
+
+          ${projectLines.length > 0 ? `
+            <div class="section-title">Projects</div>
+            <div class="section-underline"></div>
+            ${projectLines.map((p) => `
+              <div class="bullet">
+                <span class="bullet-point">•</span>
+                <span>${p}</span>
+              </div>
+            `).join("")}
+          ` : ""}
+
+          ${publicationLines.length > 0 ? `
+            <div class="section-title">Publications</div>
+            <div class="section-underline"></div>
+            ${publicationLines.map((p) => `
+              <div class="bullet">
+                <span class="bullet-point">•</span>
+                <span>${p}</span>
+              </div>
+            `).join("")}
+          ` : ""}
+
+          ${volunteerLines.length > 0 ? `
+            <div class="section-title">Volunteer Work</div>
+            <div class="section-underline"></div>
+            ${volunteerLines.map((p) => `
+              <div class="bullet">
+                <span class="bullet-point">•</span>
+                <span>${p}</span>
+              </div>
+            `).join("")}
+          ` : ""}
           ${
             cv.languages && String(cv.languages).trim()
               ? `

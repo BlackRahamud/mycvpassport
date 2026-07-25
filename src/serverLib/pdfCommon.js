@@ -89,6 +89,42 @@ function cvWithTemplateCertifications(cv) {
   };
 }
 
+// CJS TWIN of the per-template `technicalSkillsGroupsForTemplate` helpers in
+// the client components (e.g. src/Template1ModernEmerald.js). Normalizes
+// `cv.technicalSkills` — either the structured [{category, chips[]}] array
+// the builder writes, or the legacy pipe-string "A | B | C" — into
+// [{category, chips[]}]. Returns [] when empty so callers can gate sections.
+function technicalSkillsGroups(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((g) => {
+        if (!g || typeof g !== "object") return null;
+        const chips = Array.isArray(g.chips)
+          ? g.chips.map((c) => String(c == null ? "" : c).trim()).filter(Boolean)
+          : [];
+        if (!chips.length) return null;
+        return { category: String(g.category || "").trim() || "Technical Skills", chips };
+      })
+      .filter(Boolean);
+  }
+  // Pipe-separated category format the builder writes:
+  //   "Frontend: React, Vue | Backend: Node, Python"
+  return String(raw)
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx === -1) return { category: "", chips: [line] };
+      return {
+        category: line.slice(0, colonIdx).trim(),
+        chips: line.slice(colonIdx + 1).split(",").map((c) => c.trim()).filter(Boolean),
+      };
+    })
+    .filter((g) => g.category || g.chips.length > 0);
+}
+
 /**
  * Ensures education and languages match preview/React shape for Puppeteer HTML builders.
  * - education: always an array of objects (never null/undefined)
@@ -138,6 +174,8 @@ function buildPersonalDetailsEntries(resume) {
     ["Marital Status", "maritalStatus"],
     ["Driving License", "drivingLicense"],
     ["Gender", "gender"],
+    ["Availability", "availability"],
+    ["Willing to Relocate", "willingToRelocate"],
   ];
   const entries = [];
   for (const [label, key] of defs) {
@@ -153,6 +191,7 @@ module.exports = {
   stripEmojiPictographs,
   splitExperiencePointsForPreview,
   cvWithTemplateCertifications,
+  technicalSkillsGroups,
   normalizeCvForPdf,
   buildPersonalDetailsEntries,
 };

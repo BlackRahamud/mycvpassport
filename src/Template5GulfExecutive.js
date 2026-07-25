@@ -13,6 +13,35 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+function certificationLines(cv) {
+  const raw = cv.certifications;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return "";
+        if (typeof c === "string") return c.trim();
+        const name = String(c.name || "").trim();
+        if (!name) return "";
+        const bits = [name];
+        if (c.issuer) bits.push(String(c.issuer).trim());
+        if (c.year) bits.push(`(${String(c.year).trim()})`);
+        return bits.join(" — ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const FREETEXT_BULLET = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
+function freeTextLines(text) {
+  if (!text) return [];
+  return String(text)
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(FREETEXT_BULLET, "").trim())
+    .filter(Boolean);
+}
+
 const NAVY_DARK = "#0F172A"; // Deep navy/black
 const TEXT_PRIMARY = "#1F2937"; // Charcoal
 const TEXT_SECONDARY = "#4B5563"; // Slate/Grey
@@ -56,6 +85,11 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
     .split(",")
     .map((l) => l.trim())
     .filter(Boolean);
+  const educationRows = (Array.isArray(cv.education) ? cv.education : []).filter((edu) => edu && edu.school);
+  const certList = certificationLines(cv);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   return (
     <div
@@ -123,7 +157,7 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
               {cv.email && <span>{cv.email}</span>}
               {cv.phone && <span>{cv.phone}</span>}
               {cv.location && <span>{cv.location}</span>}
-              {(cv.linkedin || cv.linkedIn) && <span>LINKEDIN</span>}
+              {(cv.linkedin || cv.linkedIn) && <span>{cv.linkedin || cv.linkedIn}</span>}
             </>
           )}
         </div>
@@ -183,7 +217,12 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
                   <div style={{ fontWeight: "800", fontSize: pt(11), color: NAVY_DARK }}>{e.company}</div>
                   <div style={{ fontSize: pt(9), fontWeight: "600", color: TEXT_SECONDARY }}>{e.period}</div>
                 </div>
-                <div style={{ fontStyle: "italic", fontSize: pt(10), color: ACCENT, marginTop: "1px" }}>{e.role}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: "1px" }}>
+                  <div style={{ fontStyle: "italic", fontSize: pt(10), color: ACCENT }}>{e.role}</div>
+                  {e.location && (
+                    <div style={{ fontSize: pt(9), color: TEXT_SECONDARY }}>{e.location}</div>
+                  )}
+                </div>
 
                 <div style={{ marginTop: "3mm" }}>
                   {e.points && (() => {
@@ -266,20 +305,103 @@ export function PreviewEditorialDark({ cv, mobileMode = false }) {
         )}
 
         {/* Education */}
-        {cv.education && cv.education.length > 0 && (
+        {educationRows.length > 0 && (
           <section data-section="education">
             <SectionTitle>Education</SectionTitle>
-            {cv.education
-              .filter((edu) => edu.school)
-              .map((edu, i) => (
-                <div key={i} style={{ marginBottom: "4mm", breakInside: "avoid" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <div style={{ fontWeight: "700", color: NAVY_DARK, fontSize: pt(10) }}>{edu.school}</div>
-                    <div style={{ fontSize: pt(9), color: TEXT_SECONDARY }}>{edu.year}</div>
+            {educationRows.map((edu, i) => (
+              <div key={i} style={{ marginBottom: "4mm", breakInside: "avoid" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <div style={{ fontWeight: "700", color: NAVY_DARK, fontSize: pt(10) }}>
+                    {[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
                   </div>
-                  <div style={{ fontSize: pt(9.5), color: TEXT_SECONDARY }}>{edu.degree}</div>
+                  <div style={{ fontSize: pt(9), color: TEXT_SECONDARY }}>{edu.year}</div>
                 </div>
-              ))}
+                <div style={{ fontSize: pt(9.5), color: TEXT_SECONDARY }}>
+                  {[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Certifications */}
+        {certList.length > 0 && (
+          <section data-section="certifications">
+            <SectionTitle>Certifications</SectionTitle>
+            {certList.map((c, i) => (
+              <p key={i} style={{ fontSize: pt(9.5), color: TEXT_PRIMARY, margin: "0 0 1.5mm", lineHeight: 1.5 }}>
+                {c}
+              </p>
+            ))}
+          </section>
+        )}
+
+        {/* Projects */}
+        {projectLines.length > 0 && (
+          <section data-section="projects">
+            <SectionTitle>Projects</SectionTitle>
+            {projectLines.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: pt(9.5),
+                  margin: "0 0 1.5mm",
+                  lineHeight: 1.5,
+                  display: "flex",
+                  gap: "8px",
+                  color: TEXT_PRIMARY,
+                }}
+              >
+                <span style={{ color: SKELETON }}>•</span>
+                <span>{p}</span>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Publications */}
+        {publicationLines.length > 0 && (
+          <section data-section="publications">
+            <SectionTitle>Publications</SectionTitle>
+            {publicationLines.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: pt(9.5),
+                  margin: "0 0 1.5mm",
+                  lineHeight: 1.5,
+                  display: "flex",
+                  gap: "8px",
+                  color: TEXT_PRIMARY,
+                }}
+              >
+                <span style={{ color: SKELETON }}>•</span>
+                <span>{p}</span>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Volunteer Work */}
+        {volunteerLines.length > 0 && (
+          <section data-section="volunteer">
+            <SectionTitle>Volunteer Work</SectionTitle>
+            {volunteerLines.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: pt(9.5),
+                  margin: "0 0 1.5mm",
+                  lineHeight: 1.5,
+                  display: "flex",
+                  gap: "8px",
+                  color: TEXT_PRIMARY,
+                }}
+              >
+                <span style={{ color: SKELETON }}>•</span>
+                <span>{p}</span>
+              </div>
+            ))}
           </section>
         )}
 

@@ -45,6 +45,23 @@ function certificationLines(cv) {
   return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+function technicalSkillsGroups(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter((g) => g.chips?.length > 0);
+  // Legacy string: pipe-separated
+  const chips = String(raw).split("|").map((s) => s.trim()).filter(Boolean);
+  if (!chips.length) return [];
+  return [{ category: "Technical Skills", chips }];
+}
+
+function freeTextLines(raw) {
+  if (!raw) return [];
+  return String(raw)
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^(?:[•\-–*]|\d+\.)\s*/, "").trim())
+    .filter(Boolean);
+}
+
 export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
   const s = mobileMode ? 0.8 : 1;
   const pt = (n) => `${n * s}pt`;
@@ -57,6 +74,10 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
     ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean)
     : [];
   const linkedIn = cv.linkedin || cv.linkedIn || cv.linkedInUrl || cv.linkedinUrl || "";
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   const EntryWrap = ({ children }) => (
     <div style={{ display: "block" }}>
@@ -107,6 +128,31 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
           background: ACCENT,
         }}
       />
+    </div>
+  );
+
+  const LineList = ({ lines }) => (
+    <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
+      <EntryWrap>
+        <div>
+          {lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                display: "block",
+                marginBottom: "4px",
+                paddingLeft: 12,
+                textIndent: -12,
+                lineHeight: 1.5,
+                fontSize: pt(10),
+                color: BODY_COLOR,
+              }}
+            >
+              {`• ${line}`}
+            </div>
+          ))}
+        </div>
+      </EntryWrap>
     </div>
   );
 
@@ -361,7 +407,10 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
                           color: SECTION_TITLE,
                         }}
                       >
-                        {e.degree}
+                        {[e.degree, e.fieldOfStudy]
+                          .map((v) => String(v || "").trim())
+                          .filter(Boolean)
+                          .join(", ")}
                       </div>
                       <div
                         style={{
@@ -370,7 +419,10 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
                           color: COMPANY_COLOR,
                         }}
                       >
-                        {e.school}
+                        {[e.school, e.location]
+                          .map((v) => String(v || "").trim())
+                          .filter(Boolean)
+                          .join(", ")}
                       </div>
                     </div>
                     <span
@@ -428,6 +480,62 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
         </section>
       )}
 
+      {/* Technical Skills — Chip style */}
+      {techGroups.length > 0 && (
+        <section data-section="technical-skills">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              skillCore.length === 0
+            }
+          >
+            Technical Skills
+          </SectionTitle>
+          <div style={{ marginTop: "-4mm", breakInside: "auto", pageBreakInside: "auto" }}>
+            <EntryWrap>
+              <div>
+                {techGroups.map((g, i) => (
+                  <div key={i} style={{ marginTop: i === 0 ? 0 : "6px" }}>
+                    {g.category && (
+                      <div
+                        style={{
+                          fontSize: pt(9),
+                          fontWeight: 700,
+                          color: SECTION_TITLE,
+                          fontFamily: SANS,
+                          marginBottom: "4px",
+                        }}
+                      >
+                        {g.category}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                      {g.chips.map((chip, j) => (
+                        <span
+                          key={j}
+                          style={{
+                            background: "#111",
+                            color: "#D1D5DB",
+                            borderRadius: "2px",
+                            padding: "2px 6px",
+                            fontSize: pt(9),
+                            fontFamily: SANS,
+                          }}
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </EntryWrap>
+          </div>
+        </section>
+      )}
+
       {/* Certifications */}
       {certList.length > 0 && (
         <section data-section="certifications">
@@ -436,7 +544,8 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
               !cv.summary &&
               !experience.some((e) => e.company) &&
               !education.some((e) => e.school) &&
-              skillCore.length === 0
+              skillCore.length === 0 &&
+              techGroups.length === 0
             }
           >
             Certifications
@@ -454,6 +563,66 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
         </section>
       )}
 
+      {/* Projects */}
+      {projectLines.length > 0 && (
+        <section data-section="projects">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              skillCore.length === 0 &&
+              techGroups.length === 0 &&
+              certList.length === 0
+            }
+          >
+            Projects
+          </SectionTitle>
+          <LineList lines={projectLines} />
+        </section>
+      )}
+
+      {/* Publications */}
+      {publicationLines.length > 0 && (
+        <section data-section="publications">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              skillCore.length === 0 &&
+              techGroups.length === 0 &&
+              certList.length === 0 &&
+              projectLines.length === 0
+            }
+          >
+            Publications
+          </SectionTitle>
+          <LineList lines={publicationLines} />
+        </section>
+      )}
+
+      {/* Volunteer Work */}
+      {volunteerLines.length > 0 && (
+        <section data-section="volunteer">
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !experience.some((e) => e.company) &&
+              !education.some((e) => e.school) &&
+              skillCore.length === 0 &&
+              techGroups.length === 0 &&
+              certList.length === 0 &&
+              projectLines.length === 0 &&
+              publicationLines.length === 0
+            }
+          >
+            Volunteer Work
+          </SectionTitle>
+          <LineList lines={volunteerLines} />
+        </section>
+      )}
+
       {/* Languages */}
       {langList.length > 0 && (
         <section data-section="languages">
@@ -463,7 +632,11 @@ export function PreviewCrimsonEdge({ cv, mobileMode = false }) {
               !experience.some((e) => e.company) &&
               !education.some((e) => e.school) &&
               skillCore.length === 0 &&
-              certList.length === 0
+              techGroups.length === 0 &&
+              certList.length === 0 &&
+              projectLines.length === 0 &&
+              publicationLines.length === 0 &&
+              volunteerLines.length === 0
             }
           >
             Languages

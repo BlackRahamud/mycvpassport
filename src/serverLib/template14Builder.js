@@ -1,4 +1,15 @@
-const { buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  buildPersonalDetailsEntries,
+  splitExperiencePointsForPreview,
+  cvWithTemplateCertifications,
+} = require("./pdfCommon");
+
+function multilineLines(raw) {
+  return String(raw || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^[-*•]\s+/, "").trim())
+    .filter(Boolean);
+}
 
 function technicalSkillsGroupsForTemplate(raw) {
   if (!raw) return [];
@@ -25,9 +36,7 @@ function buildTemplate14Html(cv) {
       </div>
       <div style="font-size: 12pt; font-weight: bold;">${exp.role || ""}</div>
       <div style="font-size: 11pt; font-weight: bold; color: ${ACCENT_ORANGE}; margin: 2px 0 8px 0;">${exp.company || ""}</div>
-      ${(exp.points || "")
-        .split("\n")
-        .filter((p) => p.trim())
+      ${splitExperiencePointsForPreview(exp.points)
         .map(
           (p) => `
         <div data-block="list" style="font-size: 10pt; display: flex; gap: 8px; margin-bottom: 4px; line-height: 1.5;">
@@ -61,6 +70,55 @@ function buildTemplate14Html(cv) {
     .map(
       (g) =>
         `<p data-block="text" style="font-size: 10pt; line-height: 1.4; margin: 2px 0;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>`,
+    )
+    .join("");
+
+  const hasExperience = Array.isArray(safeCv.experience) && safeCv.experience.length > 0;
+  const education = Array.isArray(safeCv.education) ? safeCv.education : [];
+  const certifications = String(cvWithTemplateCertifications(safeCv).certifications || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const contactParts = [safeCv.phone, safeCv.email, safeCv.linkedin, safeCv.location].filter(Boolean);
+
+  const eduColHtml = `${
+    education.length
+      ? `<div class="section-label" data-block="section">Education</div>
+             ${education
+               .map(
+                 (edu) => `<div data-block="edu" style="margin-bottom: 10px;">
+                <div style="font-size: 10pt; font-weight: bold;">${[edu.degree, edu.fieldOfStudy].filter(Boolean).join(", ")}</div>
+                <div style="font-size: 9pt; color: ${ACCENT_ORANGE};">${[edu.school, edu.location].filter(Boolean).join(", ")}</div>
+                ${edu.year ? `<div style="font-size: 8.5pt; color: #6B7280;">${edu.year}</div>` : ""}
+             </div>`,
+               )
+               .join("")}`
+      : ""
+  }${
+    certifications.length
+      ? `<div class="section-label" data-block="section" style="margin-top: ${education.length ? "24px" : "0"};">Certifications</div>
+             ${certifications
+               .map(
+                 (c) =>
+                   `<div data-block="text" style="font-size: 10pt; line-height: 1.6; margin-bottom: 4px;">${c}</div>`,
+               )
+               .join("")}`
+      : ""
+  }`;
+
+  const multilineSectionsHtml = [
+    ["Projects", "projects", multilineLines(safeCv.projects)],
+    ["Publications", "publications", multilineLines(safeCv.publications)],
+    ["Volunteer Work", "volunteerWork", multilineLines(safeCv.volunteerWork)],
+  ]
+    .map(([label, section, lines]) =>
+      lines.length
+        ? `
+        <div data-section="${section}" style="margin-top: 30px;">
+          <div class="section-label" data-block="section">${label}</div>
+          ${lines.map((l) => `<p data-block="text" style="font-size: 10pt; line-height: 1.6; margin: 0 0 6px 0;">${l}</p>`).join("")}
+        </div>`
+        : "",
     )
     .join("");
 
@@ -107,9 +165,13 @@ function buildTemplate14Html(cv) {
       <header>
         <h1 style="font-size: 32pt; color: ${ACCENT_BLUE}; text-transform: uppercase;">${safeCv.name || ""}</h1>
         <div style="font-size: 14pt; font-weight: bold; margin-top: 5px;">${safeCv.title || ""}</div>
-        <div style="font-size: 10pt; color: #6B7280; margin-top: 10px;">
-          ${safeCv.phone || ""} | ${safeCv.email || ""}${safeCv.linkedin ? ` | ${safeCv.linkedin}` : ""} | ${safeCv.location || ""}
-        </div>
+        ${
+          contactParts.length
+            ? `<div style="font-size: 10pt; color: #6B7280; margin-top: 10px;">
+          ${contactParts.join(" | ")}
+        </div>`
+            : ""
+        }
         ${
           (() => {
             const personal = buildPersonalDetailsEntries(safeCv);
@@ -121,26 +183,27 @@ function buildTemplate14Html(cv) {
         }
       </header>
       <div style="padding: 40px 50px;">
-        <div class="section-label" data-block="section">Summary</div>
-        <p data-block="text" style="font-size: 10.5pt; line-height: 1.6; margin-bottom: 30px;">${safeCv.summary || ""}</p>
-        <div class="section-label" data-block="section">Experience</div>
-        <div class="timeline-box">${expHtml}</div>
+        ${
+          safeCv.summary
+            ? `<div class="section-label" data-block="section">Summary</div>
+        <p data-block="text" style="font-size: 10.5pt; line-height: 1.6; margin-bottom: 30px;">${safeCv.summary}</p>`
+            : ""
+        }
+        ${
+          hasExperience
+            ? `<div class="section-label" data-block="section">Experience</div>
+        <div class="timeline-box">${expHtml}</div>`
+            : ""
+        }
         <div class="grid">
           <div class="col">
-             <div class="section-label" data-block="section">Education</div>
-             ${(safeCv.education || [])
-               .map(
-                 (edu) => `<div data-block="edu" style="margin-bottom: 10px;">
-                <div style="font-size: 10pt; font-weight: bold;">${edu.degree || ""}</div>
-                <div style="font-size: 9pt; color: ${ACCENT_ORANGE};">${edu.school || ""}</div>
-             </div>`,
-               )
-               .join("")}
+             ${eduColHtml}
           </div>
           <div class="col">
              ${skillsColHtml}
           </div>
         </div>
+        ${multilineSectionsHtml}
       </div>
     </div>
   </body>

@@ -13,6 +13,35 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+function certificationLines(cv) {
+  const raw = cv.certifications;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return "";
+        if (typeof c === "string") return c.trim();
+        const name = String(c.name || "").trim();
+        if (!name) return "";
+        const bits = [name];
+        if (c.issuer) bits.push(String(c.issuer).trim());
+        if (c.year) bits.push(`(${String(c.year).trim()})`);
+        return bits.join(" — ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const FREETEXT_BULLET = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
+function freeTextLines(text) {
+  if (!text) return [];
+  return String(text)
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(FREETEXT_BULLET, "").trim())
+    .filter(Boolean);
+}
+
 const PRIMARY = "#1E3A5F"; // Deep Navy
 const ACCENT = "#C8A96E"; // Warm Gold
 const TEXT_MAIN = "#374151"; // Gray 700
@@ -33,6 +62,10 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
   // Data parsing
   const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const languageList = cv.languages ? cv.languages.split(",").map((l) => l.trim()).filter(Boolean) : [];
+  const certList = certificationLines(cv);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   const SectionTitle = ({ children, first }) => (
     <div
@@ -247,13 +280,59 @@ export function PreviewModernEmerald({ cv, mobileMode = false }) {
             cv.education.map((edu, i) => (
               <EntryWrap key={i}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontWeight: "bold", fontSize: pt(10.5), color: PRIMARY }}>{edu.degree}</span>
+                  <span style={{ fontWeight: "bold", fontSize: pt(10.5), color: PRIMARY }}>
+                    {[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
+                  </span>
                   <span style={{ color: TEXT_MUTED, fontSize: pt(10) }}>{edu.year}</span>
                 </div>
-                <div style={{ fontSize: pt(10), color: TEXT_MUTED }}>{edu.school}</div>
+                <div style={{ fontSize: pt(10), color: TEXT_MUTED }}>
+                  {[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
+                </div>
               </EntryWrap>
             ))
           )}
+        </section>
+      )}
+
+      {/* Certifications */}
+      {certList.length > 0 && (
+        <section data-section="certifications">
+          <SectionTitle>Certifications</SectionTitle>
+          {certList.map((c, i) => (
+            <p key={i} style={{ fontSize: pt(10.5), margin: "0 0 1.5mm", lineHeight: 1.5 }}>
+              {c}
+            </p>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {projectLines.length > 0 && (
+        <section data-section="projects">
+          <SectionTitle>Projects</SectionTitle>
+          {projectLines.map((p, i) => (
+            <p key={i} style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>• {p}</p>
+          ))}
+        </section>
+      )}
+
+      {/* Publications */}
+      {publicationLines.length > 0 && (
+        <section data-section="publications">
+          <SectionTitle>Publications</SectionTitle>
+          {publicationLines.map((p, i) => (
+            <p key={i} style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>• {p}</p>
+          ))}
+        </section>
+      )}
+
+      {/* Volunteer Work */}
+      {volunteerLines.length > 0 && (
+        <section data-section="volunteer">
+          <SectionTitle>Volunteer Work</SectionTitle>
+          {volunteerLines.map((p, i) => (
+            <p key={i} style={{ fontSize: pt(10), margin: "0 0 1.5mm", lineHeight: 1.45 }}>• {p}</p>
+          ))}
         </section>
       )}
 

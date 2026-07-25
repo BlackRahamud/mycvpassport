@@ -1,8 +1,21 @@
-const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
+  technicalSkillsGroups,
+  splitExperiencePointsForPreview,
+} = require("./pdfCommon");
 
 function pdfSandstoneExecutive(cv) {
   const isEmpty = !cv.name || cv.name.trim() === "";
   const skills = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
+  const eduRows = (Array.isArray(cv.education) ? cv.education : []).filter((edu) => edu && edu.school);
   const personalDetails = buildPersonalDetailsEntries(cv);
   const personalDetailsHtml = personalDetails.length
     ? `<div class="contact" style="margin-top: 4px;">${personalDetails
@@ -70,12 +83,14 @@ function pdfSandstoneExecutive(cv) {
           ${personalDetailsHtml}
         </header>
 
+        ${(cv.summary || isEmpty) ? `
         <div class="section-title-row">
           <span class="section-label">Executive Summary</span><div class="gold-line"></div>
         </div>
         <div style="font-size: 10pt; line-height: 1.5; color: ${isEmpty ? "#D1D5DB" : "inherit"}">
           ${cv.summary || "Summary placeholder..."}
         </div>
+        ` : ""}
 
         <div class="section-title-row">
           <span class="section-label">Work History</span><div class="gold-line"></div>
@@ -93,8 +108,8 @@ function pdfSandstoneExecutive(cv) {
               <span class="period">${e.period}</span>
             </div>
             <div class="company">${e.company} ${e.location ? `| ${e.location}` : ""}</div>
-            ${(e.points || "").split("\n").filter(Boolean).map((p) => `
-              <div class="bullet">• ${p.trim().replace(/^•\\s*/, "")}</div>
+            ${splitExperiencePointsForPreview(e.points).map((p) => `
+              <div class="bullet">• ${p}</div>
             `).join("")}
           </div>
         `,
@@ -102,30 +117,80 @@ function pdfSandstoneExecutive(cv) {
                 .join("")
         }
 
+        ${(skills.length > 0 || isEmpty) ? `
         <div class="section-title-row">
-          <span class="section-label">Expertise</span><div class="gold-line"></div>
+          <span class="section-label">Skills</span><div class="gold-line"></div>
         </div>
-        <div style="font-size: 10pt; font-weight: bold; color: ${isEmpty ? "#D1D5DB" : "inherit"}">
-          Core Competencies: ${skills.length > 0 ? skills.join(" • ") : "..."}
+        <div style="font-size: 10pt; line-height: 1.8; font-weight: bold; color: ${isEmpty ? "#D1D5DB" : "inherit"}">
+          ${isEmpty ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")}
         </div>
+        ` : ""}
 
+        ${techGroups.length > 0 ? `
+        <div class="section-title-row">
+          <span class="section-label">Technical Skills</span><div class="gold-line"></div>
+        </div>
+        <div style="font-size: 10pt; line-height: 1.8; margin: 0;">
+          ${techGroups.map((g) => `
+            <p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>
+          `).join("")}
+        </div>
+        ` : ""}
+
+        ${eduRows.length > 0 ? `
         <div class="section-title-row">
           <span class="section-label">Academic Background</span><div class="gold-line"></div>
         </div>
-        ${(cv.education || [])
-          .filter((edu) => edu.school)
+        ${eduRows
           .map(
             (edu) => `
           <div class="entry">
             <div class="entry-top">
-              <span class="role">${edu.degree}</span>
+              <span class="role">${[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</span>
               <span class="period">${edu.year}</span>
             </div>
-            <div style="font-size: 10pt;">${edu.school}</div>
+            <div style="font-size: 10pt;">${[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</div>
           </div>
         `,
           )
           .join("")}
+        ` : ""}
+
+        ${certList.length > 0 ? `
+        <div class="section-title-row">
+          <span class="section-label">Certifications</span><div class="gold-line"></div>
+        </div>
+        ${certList.map((c) => `
+          <p style="font-size: 10pt; line-height: 1.5; margin: 0 0 1.5mm 0;">${c}</p>
+        `).join("")}
+        ` : ""}
+
+        ${projectLines.length > 0 ? `
+        <div class="section-title-row">
+          <span class="section-label">Projects</span><div class="gold-line"></div>
+        </div>
+        ${projectLines.map((p) => `
+          <div class="bullet">• ${p}</div>
+        `).join("")}
+        ` : ""}
+
+        ${publicationLines.length > 0 ? `
+        <div class="section-title-row">
+          <span class="section-label">Publications</span><div class="gold-line"></div>
+        </div>
+        ${publicationLines.map((p) => `
+          <div class="bullet">• ${p}</div>
+        `).join("")}
+        ` : ""}
+
+        ${volunteerLines.length > 0 ? `
+        <div class="section-title-row">
+          <span class="section-label">Volunteer Work</span><div class="gold-line"></div>
+        </div>
+        ${volunteerLines.map((p) => `
+          <div class="bullet">• ${p}</div>
+        `).join("")}
+        ` : ""}
 
         ${
           cv.languages && String(cv.languages).trim()

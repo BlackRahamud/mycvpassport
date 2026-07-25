@@ -1,10 +1,28 @@
-const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
+  technicalSkillsGroups,
+  splitExperiencePointsForPreview,
+} = require("./pdfCommon");
 
 function pdfExecutiveModern(cv) {
   const isEmpty = !cv.name || cv.name.trim() === "";
   const PRIMARY = "#1F2937";
   const ACCENT = "#475569";
   const BORDER = "#E5E7EB";
+  const expRows = (Array.isArray(cv.experience) ? cv.experience : []).filter((e) => e && e.company);
+  const eduRows = (Array.isArray(cv.education) ? cv.education : []).filter((edu) => edu && edu.school);
+  const skillsCells = (cv.skills || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
   const personalDetails = buildPersonalDetailsEntries(cv);
   const personalDetailsHtml = personalDetails.length
     ? `<div class="contact" style="margin-top: 4px;">${personalDetails
@@ -66,17 +84,19 @@ function pdfExecutiveModern(cv) {
           ${personalDetailsHtml}
         </header>
 
+        ${(cv.summary || isEmpty) ? `
         <div class="section-head">Professional Profile</div>
         <p style="text-align: center; font-size: 10pt; line-height: 1.6; margin: 0; color: ${isEmpty ? "#D1D5DB" : "inherit"};">${
           cv.summary || "Strategically-minded professional with an MBA and extensive experience in strategy and relationship building..."
         }</p>
+        ` : ""}
 
+        ${(expRows.length > 0 || isEmpty) ? `
         <div class="section-head">Work Experience</div>
         ${
           isEmpty
             ? '<div class="skeleton-box" style="height:40px; width:100%"></div>'
-            : (cv.experience || [])
-                .filter((e) => e && e.company)
+            : expRows
                 .map(
                   (e) => `
           <div class="exp-item">
@@ -89,14 +109,12 @@ function pdfExecutiveModern(cv) {
               <span class="location">${e.location}</span>
             </div>
             <div style="margin-top: 5px;">
-              ${(e.points || "")
-                .split("\\n")
-                .filter(Boolean)
+              ${splitExperiencePointsForPreview(e.points)
                 .map(
                   (p) => `
                 <div class="bullet">
                   <span class="bullet-point">•</span>
-                  <span>${p.replace(/^•\\s*/, "")}</span>
+                  <span>${p}</span>
                 </div>
               `,
                 )
@@ -107,22 +125,62 @@ function pdfExecutiveModern(cv) {
                 )
                 .join("")
         }
+        ` : ""}
 
+        ${eduRows.length > 0 ? `
         <div class="section-head">Education</div>
-        ${(cv.education || [])
-          .filter((edu) => edu && edu.school)
+        ${eduRows
           .map((edu) => `
           <div class="exp-item">
             <div class="exp-header">
-              <span class="company" style="font-size: 10.5pt;">${edu.degree}</span>
+              <span class="company" style="font-size: 10.5pt;">${[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</span>
               <span class="period">${edu.year}</span>
             </div>
-            <div style="font-size: 10pt;">${edu.school}</div>
+            <div style="font-size: 10pt;">${[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</div>
           </div>
         `,
           )
           .join("")}
+        ` : ""}
 
+        ${certList.length > 0 ? `
+        <div class="section-head">Certifications</div>
+        ${certList.map((c) => `
+          <p style="font-size: 10pt; line-height: 1.5; margin: 0 0 1.5mm 0;">${c}</p>
+        `).join("")}
+        ` : ""}
+
+        ${projectLines.length > 0 ? `
+        <div class="section-head">Projects</div>
+        ${projectLines.map((p) => `
+          <div class="bullet">
+            <span class="bullet-point">•</span>
+            <span>${p}</span>
+          </div>
+        `).join("")}
+        ` : ""}
+
+        ${publicationLines.length > 0 ? `
+        <div class="section-head">Publications</div>
+        ${publicationLines.map((p) => `
+          <div class="bullet">
+            <span class="bullet-point">•</span>
+            <span>${p}</span>
+          </div>
+        `).join("")}
+        ` : ""}
+
+        ${volunteerLines.length > 0 ? `
+        <div class="section-head">Volunteer Work</div>
+        ${volunteerLines.map((p) => `
+          <div class="bullet">
+            <span class="bullet-point">•</span>
+            <span>${p}</span>
+          </div>
+        `).join("")}
+        ` : ""}
+
+        ${(skillsCells.length > 0 || isEmpty) ? `
         <div class="section-head">Core Competencies</div>
         <div class="skills-grid">
           ${
@@ -130,16 +188,25 @@ function pdfExecutiveModern(cv) {
               ? Array.from({ length: 6 })
                   .map(() => `<div class="skeleton-box" style="height:12px; border-radius:2px;"></div>`)
                   .join("")
-              : (cv.skills || "")
-                  .split(",")
+              : skillsCells
                   .map(
                     (s) => `
-            <div class="skill-item">${s.trim()}</div>
+            <div class="skill-item">${s}</div>
           `,
                   )
                   .join("")
           }
         </div>
+        ` : ""}
+
+        ${techGroups.length > 0 ? `
+        <div class="section-head">Technical Skills</div>
+        <div style="font-size: 9.5pt; text-align: center; margin: 0; line-height: 1.6;">
+          ${techGroups.map((g) => `
+            <p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>
+          `).join("")}
+        </div>
+        ` : ""}
 
         ${
           cv.languages && String(cv.languages).trim()

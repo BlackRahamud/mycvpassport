@@ -11,7 +11,7 @@
 // section 13. CSS variable design tokens per section 17.
 // =============================================================
 
-const { escapeHtml, splitExperiencePointsForPreview, buildPersonalDetailsEntries } = require("./pdfCommon");
+const { escapeHtml, splitExperiencePointsForPreview, buildPersonalDetailsEntries, technicalSkillsGroups } = require("./pdfCommon");
 
 const SECTION_TITLES = {
   summary: "Summary",
@@ -42,24 +42,33 @@ function buildContactRow(cv) {
   return [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.linkedin), trimStr(cv.location)].filter(Boolean);
 }
 
+// Merge customFields[] entries with the flat personal-detail fields.
+// Previously either/or: any customFields entry silently dropped ALL flat
+// fields (nationality, visa, DOB, availability…). Custom entries lead and
+// win label collisions; flat fields fill the rest.
+// TWIN: keep in sync with buildStatusEntries in
+// src/components/templates/UAEATSTemplate.jsx.
 function buildStatusEntries(cv) {
   const entries = [];
-  if (Array.isArray(cv.customFields) && cv.customFields.length > 0) {
+  const seen = new Set();
+  const push = (name, value) => {
+    const n = trimStr(name);
+    const v = trimStr(value);
+    if (!n || !v) return;
+    const key = n.toLowerCase().replace(/[^a-z]/g, "");
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push({ name: n, value: v });
+  };
+  if (Array.isArray(cv.customFields)) {
     for (const f of cv.customFields) {
       if (!f || typeof f !== "object") continue;
-      const value = trimStr(f.value);
-      if (!value) continue;
       const id = trimStr(f.id);
-      const name = trimStr(f.name) || REGIONAL_LABEL_FALLBACK[id] || "";
-      if (!name) continue;
-      entries.push({ name, value });
+      push(trimStr(f.name) || REGIONAL_LABEL_FALLBACK[id] || "", f.value);
     }
   }
-  if (entries.length === 0) {
-    for (const e of buildPersonalDetailsEntries(cv)) {
-      entries.push({ name: e.label, value: e.value });
-    }
-    if (cv.availability) entries.push({ name: "Availability", value: trimStr(cv.availability) });
+  for (const e of buildPersonalDetailsEntries(cv)) {
+    push(e.label, e.value);
   }
   return entries;
 }
@@ -195,8 +204,13 @@ function renderCertifications(certifications) {
   `;
 }
 
+// Accepts the structured [{category, chips[]}] array the builder persists
+// as well as the legacy pipe string. TWIN of technicalSkillsLines in
+// src/components/templates/UAEATSTemplate.jsx.
 function renderTechnicalSkills(raw) {
-  const lines = String(raw || "").split("|").map((s) => s.trim()).filter(Boolean);
+  const lines = technicalSkillsGroups(raw).map((g) =>
+    g.category ? `${g.category}: ${g.chips.join(", ")}` : g.chips.join(", "),
+  ).filter(Boolean);
   if (lines.length === 0) return "";
   return `
     <div class="uae-ats-section-item">
@@ -234,7 +248,9 @@ function buildUaeAtsTemplate19Html(rawCv) {
   const experience = normalizeExperienceArray(cv.experience);
   const education = normalizeEducationArray(cv.education);
   const skills = trimStr(cv.skills);
-  const technicalSkills = trimStr(cv.technicalSkills);
+  const technicalSkills = Array.isArray(cv.technicalSkills)
+    ? (technicalSkillsGroups(cv.technicalSkills).length > 0 ? cv.technicalSkills : "")
+    : trimStr(cv.technicalSkills);
   const languages = trimStr(cv.languages);
   const certifications = normalizeCertificationsForRender(cv.certifications);
   const projects = trimStr(cv.projects);

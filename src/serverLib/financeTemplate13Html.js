@@ -8,8 +8,16 @@ const {
   stripEmojiPictographs,
   splitExperiencePointsForPreview,
   cvWithTemplateCertifications,
+  technicalSkillsGroups,
   buildPersonalDetailsEntries,
 } = require("./pdfCommon");
+
+function multilineLines(raw) {
+  return String(raw || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^[-*•]\s+/, "").trim())
+    .filter(Boolean);
+}
 
 const ACCENT = "#5c6ac4";
 const TEXT_PRIMARY = "#1f2933";
@@ -113,7 +121,7 @@ function buildFinanceTemplate13Html(rawCv) {
       expHtml += `
         <div class="t13-item">
           <div class="t13-exp-role">${escapeHtml(exp.role || "")}</div>
-          <div class="t13-exp-meta">${escapeHtml(exp.company || "")} • ${escapeHtml(exp.period || "")}</div>
+          <div class="t13-exp-meta">${escapeHtml([exp.company, exp.period, exp.location].filter(Boolean).join(" • "))}</div>
           ${pointsHtml}
         </div>
       `;
@@ -127,8 +135,8 @@ function buildFinanceTemplate13Html(rawCv) {
       .map(
         (edu) => `
         <div class="t13-item">
-          <div class="t13-edu-degree">${escapeHtml(edu.degree || "")}</div>
-          <div class="t13-edu-meta">${escapeHtml(edu.school || "")} • ${escapeHtml(edu.year || "")}</div>
+          <div class="t13-edu-degree">${escapeHtml([edu.degree, edu.fieldOfStudy].filter(Boolean).join(", "))}</div>
+          <div class="t13-edu-meta">${escapeHtml([[edu.school, edu.location].filter(Boolean).join(", "), edu.year].filter(Boolean).join(" • "))}</div>
         </div>
       `,
       )
@@ -140,39 +148,45 @@ function buildFinanceTemplate13Html(rawCv) {
     left += `${sectionTitle("Skills")}<div class="t13-skills">${skills.map((s) => `<span class="t13-skill">${escapeHtml(s)}</span>`).join("")}</div>`;
   }
 
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  if (techGroups.length) {
+    const techInner = techGroups
+      .map((g) => `<p class="t13-tech-line"><strong>${escapeHtml(g.category)}:</strong> ${escapeHtml(g.chips.join(", "))}</p>`)
+      .join("");
+    left += `${sectionTitle("Technical Skills")}<div class="t13-tech">${techInner}</div>`;
+  }
+
+  [
+    ["Projects", cv.projects],
+    ["Publications", cv.publications],
+    ["Volunteer Work", cv.volunteerWork],
+  ].forEach(([label, raw]) => {
+    const lines = multilineLines(raw);
+    if (!lines.length) return;
+    left += `
+      <div style="margin-top: 20px;">
+        ${sectionTitle(label)}
+        <div style="margin-bottom: 20px;">
+          ${lines.map((l) => `<div class="t13-point-line">${escapeHtml(l)}</div>`).join("")}
+        </div>
+      </div>
+    `;
+  });
+
   let right = "";
-  right += `${sectionTitle("Professional Summary")}<p class="t13-summary">${escapeHtml(cv.summary || "")}</p>`;
+  if (cv.summary) {
+    right += `${sectionTitle("Professional Summary")}<p class="t13-summary">${escapeHtml(cv.summary)}</p>`;
+  }
 
-  right += `
-    ${sectionTitle("Key Metrics")}
-    <div class="t13-metrics">
-      <div class="t13-metric"><span class="t13-metric-label">Portfolio:</span> $2.5M+</div>
-      <div class="t13-metric"><span class="t13-metric-label">Cost Reduction:</span> 15%</div>
-    </div>
-  `;
+  if (certifications.length) {
+    const certHtml = certifications.map((c) => `<div class="t13-bullet">• ${escapeHtml(c)}</div>`).join("");
+    right += `${sectionTitle("Certifications")}<div class="t13-certs">${certHtml}</div>`;
+  }
 
-  const certHtml =
-    certifications.length
-      ? certifications.map((c) => `<div class="t13-bullet">• ${escapeHtml(c)}</div>`).join("")
-      : `<div class="t13-bullet">• CFA Level 1</div>`;
-
-  right += `${sectionTitle("Certifications")}<div class="t13-certs">${certHtml}</div>`;
-
-  const langsHtml = languages.length ? languages.map((l) => `<div class="t13-lang">${escapeHtml(l)} — Fluent</div>`).join("") : "";
-  right += `${sectionTitle("Languages")}<div class="t13-langs">${langsHtml}</div>`;
-
-  right += `
-    ${sectionTitle("Courses")}
-    <div class="t13-course">
-      <div class="t13-course-title">Advanced System Design</div>
-      <div class="t13-course-desc">Focus on scalability and fault tolerance.</div>
-    </div>
-    ${sectionTitle("Interests")}
-    <div class="t13-course">
-      <div class="t13-course-title">UI/UX Research</div>
-      <div class="t13-course-desc">Passionate about accessible design patterns.</div>
-    </div>
-  `;
+  if (languages.length) {
+    const langsHtml = languages.map((l) => `<div class="t13-lang">${escapeHtml(l)}</div>`).join("");
+    right += `${sectionTitle("Languages")}<div class="t13-langs">${langsHtml}</div>`;
+  }
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -243,19 +257,16 @@ function buildFinanceTemplate13Html(rawCv) {
 
     .t13-summary { font-size: 12.5px; color: ${TEXT_PRIMARY}; line-height: 1.5; margin: 0 0 24px 0; }
 
-    .t13-metrics { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-    .t13-metric { font-size: 12px; }
-    .t13-metric-label { color: ${ACCENT}; font-weight: 700; }
-
     .t13-certs { font-size: 12px; color: ${TEXT_PRIMARY}; line-height: 1.8; margin-bottom: 24px; }
     .t13-bullet { margin: 0; }
 
     .t13-langs { font-size: 12px; color: ${TEXT_PRIMARY}; }
     .t13-lang { margin: 0 0 2px 0; }
 
-    .t13-course { margin-bottom: 16px; }
-    .t13-course-title { font-weight: 700; font-size: 12px; color: ${TEXT_PRIMARY}; }
-    .t13-course-desc { font-size: 11px; color: ${TEXT_SECONDARY}; margin-top: 2px; }
+    .t13-tech { font-size: 12.5px; color: ${TEXT_PRIMARY}; line-height: 1.5; margin: 0 0 24px 0; }
+    .t13-tech-line { margin: 2px 0; line-height: 1.4; }
+
+    .t13-point-line { font-size: 12.5px; color: ${TEXT_PRIMARY}; margin-bottom: 4px; line-height: 1.5; }
 
     @media print {
       html, body { margin: 0; padding: 0; }

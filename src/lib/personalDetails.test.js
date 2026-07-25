@@ -8,10 +8,12 @@ const ALL_FILLED = {
   maritalStatus: "Married",
   drivingLicense: "UAE Light Vehicle",
   gender: "Male",
+  availability: "Immediately Available",
+  willingToRelocate: "Yes",
 };
 
 describe("buildPersonalDetailsEntries", () => {
-  test("all six fields filled → 6 entries in Gulf order", () => {
+  test("all eight fields filled → 8 entries in Gulf order", () => {
     const entries = buildPersonalDetailsEntries(ALL_FILLED);
     expect(entries).toEqual([
       { label: "Nationality", value: "Indian" },
@@ -20,6 +22,8 @@ describe("buildPersonalDetailsEntries", () => {
       { label: "Marital Status", value: "Married" },
       { label: "Driving License", value: "UAE Light Vehicle" },
       { label: "Gender", value: "Male" },
+      { label: "Availability", value: "Immediately Available" },
+      { label: "Willing to Relocate", value: "Yes" },
     ]);
   });
 

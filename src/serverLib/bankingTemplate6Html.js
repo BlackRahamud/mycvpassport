@@ -1,4 +1,12 @@
-const { cvWithTemplateCertifications, buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  cvWithTemplateCertifications,
+  buildPersonalDetailsEntries,
+  splitExperiencePointsForPreview,
+  technicalSkillsGroups,
+} = require("./pdfCommon");
+
+const joinComma = (...parts) =>
+  parts.map((p) => (p == null ? "" : String(p).trim())).filter(Boolean).join(", ");
 
 function pdfBankingFinance(cv) {
   const ACCENT = "#0369A1"; // Rich Teal-Blue
@@ -20,12 +28,22 @@ function pdfBankingFinance(cv) {
         .map((s) => s.trim())
         .filter(Boolean)
     : [];
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
+
+  const bulletList = (lines) =>
+    lines.map((line) => `<div class="bullet"><span>•</span><span>${line}</span></div>`).join("");
 
   const contactParts = [];
   if (cv.email) contactParts.push(cv.email);
   if (cv.phone) contactParts.push(cv.phone);
   if (cv.location) contactParts.push(cv.location);
-  if (cv.linkedin || cv.linkedIn) contactParts.push("LinkedIn");
+  if (cv.linkedin || cv.linkedIn) contactParts.push(cv.linkedin || cv.linkedIn);
 
   const personalDetails = buildPersonalDetailsEntries(cv);
   const personalDetailsHtml = personalDetails.length
@@ -156,19 +174,7 @@ function pdfBankingFinance(cv) {
               <div class="exp-right">
                 <div class="exp-company">${exp.company || ""}</div>
                 <div class="exp-role">${exp.role || ""}</div>
-                ${
-                  exp.points
-                    ? String(exp.points)
-                        .split("\\n")
-                        .filter(Boolean)
-                        .map(
-                          (p) => `
-                  <div class="bullet"><span>•</span><span>${String(p).replace(/^•\\s*/, "")}</span></div>
-                `,
-                        )
-                        .join("")
-                    : ""
-                }
+                ${bulletList(splitExperiencePointsForPreview(exp.points))}
               </div>
             </div>
           `,
@@ -186,6 +192,21 @@ function pdfBankingFinance(cv) {
           <p class="skills" style="color: ${isPlaceholder ? "#D1D5DB" : BODY_TEXT};">${
             isPlaceholder ? "Skill One • Skill Two • Skill Three" : skills.join(" • ")
           }</p>
+        `
+            : ""
+        }
+
+        ${
+          techGroups.length > 0
+            ? `
+          <div class="section-title"><span>Technical Skills</span></div>
+          <div class="skills">
+            ${techGroups
+              .map(
+                (g) => `<p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>`,
+              )
+              .join("")}
+          </div>
         `
             : ""
         }
@@ -211,8 +232,8 @@ function pdfBankingFinance(cv) {
             <div class="edu-row">
               <div class="edu-left"><div style="font-weight:bold;">${edu.year || ""}</div></div>
               <div class="edu-right">
-                <div class="edu-school">${edu.school || ""}</div>
-                <div class="edu-degree">${edu.degree || ""}</div>
+                <div class="edu-school">${joinComma(edu.school, edu.location)}</div>
+                <div class="edu-degree">${joinComma(edu.degree, edu.fieldOfStudy)}</div>
               </div>
             </div>
           `,
@@ -224,12 +245,46 @@ function pdfBankingFinance(cv) {
         }
 
         ${
-          languages.length > 0 || isPlaceholder
+          certList.length > 0
+            ? `
+          <div class="section-title"><span>Certifications</span></div>
+          ${bulletList(certList)}
+        `
+            : ""
+        }
+
+        ${
+          projectLines.length > 0
+            ? `
+          <div class="section-title"><span>Projects</span></div>
+          ${bulletList(projectLines)}
+        `
+            : ""
+        }
+
+        ${
+          publicationLines.length > 0
+            ? `
+          <div class="section-title"><span>Publications</span></div>
+          ${bulletList(publicationLines)}
+        `
+            : ""
+        }
+
+        ${
+          volunteerLines.length > 0
+            ? `
+          <div class="section-title"><span>Volunteer Work</span></div>
+          ${bulletList(volunteerLines)}
+        `
+            : ""
+        }
+
+        ${
+          languages.length > 0
             ? `
           <div class="section-title"><span>Languages</span></div>
-          <p class="skills" style="color: ${isPlaceholder ? "#D1D5DB" : BODY_TEXT};">${
-            isPlaceholder ? "English • Hindi" : languages.join(" • ")
-          }</p>
+          <p class="skills" style="color: ${BODY_TEXT};">${languages.join(" • ")}</p>
         `
             : ""
         }

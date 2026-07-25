@@ -270,6 +270,8 @@ export function buildPersonalDetailsEntries(resume) {
     ["Marital Status", "maritalStatus"],
     ["Driving License", "drivingLicense"],
     ["Gender", "gender"],
+    ["Availability", "availability"],
+    ["Willing to Relocate", "willingToRelocate"],
   ];
   const entries = [];
   for (const [label, key] of defs) {

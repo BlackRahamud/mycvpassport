@@ -13,6 +13,35 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+function certificationLines(cv) {
+  const raw = cv.certifications;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return "";
+        if (typeof c === "string") return c.trim();
+        const name = String(c.name || "").trim();
+        if (!name) return "";
+        const bits = [name];
+        if (c.issuer) bits.push(String(c.issuer).trim());
+        if (c.year) bits.push(`(${String(c.year).trim()})`);
+        return bits.join(" — ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const FREETEXT_BULLET = /^\s*(?:[•·*]\s*|[-–]\s+|\d+[.):]\s+)/;
+function freeTextLines(text) {
+  if (!text) return [];
+  return String(text)
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(FREETEXT_BULLET, "").trim())
+    .filter(Boolean);
+}
+
 const PRIMARY = "#1F2937"; // Deep Charcoal
 const ACCENT = "#475569"; // Steel Blue
 const BORDER = "#E5E7EB"; // Light Gray
@@ -34,6 +63,10 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
     .split(",")
     .map((l) => l.trim())
     .filter(Boolean);
+  const certList = certificationLines(cv);
+  const projectLines = freeTextLines(cv.projects);
+  const publicationLines = freeTextLines(cv.publications);
+  const volunteerLines = freeTextLines(cv.volunteerWork);
 
   const SectionHeader = ({ children }) => (
     <div
@@ -243,14 +276,69 @@ function PreviewExecutiveModern({ cv, mobileMode = false }) {
             .map((edu, i) => (
               <div key={i} style={{ marginBottom: "4mm", breakInside: "avoid" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}>
-                  <span style={{ fontSize: pt(10.5), color: PRIMARY }}>{edu.degree}</span>
+                  <span style={{ fontSize: pt(10.5), color: PRIMARY }}>
+                    {[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
+                  </span>
                   <span style={{ fontSize: pt(9.5), color: ACCENT }}>{edu.year}</span>
                 </div>
-                <div style={{ fontSize: pt(10), color: TEXT_BODY }}>{edu.school}</div>
+                <div style={{ fontSize: pt(10), color: TEXT_BODY }}>
+                  {[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}
+                </div>
               </div>
             ))
         )}
       </section>
+      )}
+
+      {/* Certifications */}
+      {certList.length > 0 && (
+        <section data-section="certifications">
+          <SectionHeader>Certifications</SectionHeader>
+          {certList.map((c, i) => (
+            <p key={i} style={{ fontSize: pt(10), color: TEXT_BODY, margin: "0 0 1.5mm", lineHeight: 1.5 }}>
+              {c}
+            </p>
+          ))}
+        </section>
+      )}
+
+      {/* Projects */}
+      {projectLines.length > 0 && (
+        <section data-section="projects">
+          <SectionHeader>Projects</SectionHeader>
+          {projectLines.map((p, i) => (
+            <p key={i} style={{ fontSize: pt(9.5), margin: "0 0 1.2mm", lineHeight: 1.4, display: "flex", gap: "8px" }}>
+              <span style={{ color: ACCENT }}>•</span>
+              <span>{p}</span>
+            </p>
+          ))}
+        </section>
+      )}
+
+      {/* Publications */}
+      {publicationLines.length > 0 && (
+        <section data-section="publications">
+          <SectionHeader>Publications</SectionHeader>
+          {publicationLines.map((p, i) => (
+            <p key={i} style={{ fontSize: pt(9.5), margin: "0 0 1.2mm", lineHeight: 1.4, display: "flex", gap: "8px" }}>
+              <span style={{ color: ACCENT }}>•</span>
+              <span>{p}</span>
+            </p>
+          ))}
+        </section>
+      )}
+
+      {/* Volunteer Work */}
+      {volunteerLines.length > 0 && (
+        <section data-section="volunteer">
+          <SectionHeader>Volunteer Work</SectionHeader>
+          {volunteerLines.map((p, i) => (
+            <p key={i} style={{ fontSize: pt(9.5), margin: "0 0 1.2mm", lineHeight: 1.4, display: "flex", gap: "8px" }}>
+              <span style={{ color: ACCENT }}>•</span>
+              <span>{p}</span>
+            </p>
+          ))}
+        </section>
       )}
 
       {/* Skills */}

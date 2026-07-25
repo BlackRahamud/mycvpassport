@@ -1,6 +1,12 @@
-const { buildPersonalDetailsEntries } = require("./pdfCommon");
+const {
+  buildPersonalDetailsEntries,
+  cvWithTemplateCertifications,
+  technicalSkillsGroups,
+  splitExperiencePointsForPreview,
+} = require("./pdfCommon");
 
-function pdfModernEmerald(cv) {
+function pdfModernEmerald(rawCv) {
+  const cv = cvWithTemplateCertifications(rawCv || {});
   const isEmpty = !cv.name || cv.name.trim() === "";
   const personalDetails = buildPersonalDetailsEntries(cv);
   const personalDetailsHtml = personalDetails.length
@@ -9,8 +15,13 @@ function pdfModernEmerald(cv) {
         .join(" &nbsp; • &nbsp; ")}</div>`
     : "";
   const skillList = cv.skills ? cv.skills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const techList = cv.technicalSkills ? cv.technicalSkills.split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const allSkills = [...skillList, ...techList];
+  const techGroups = technicalSkillsGroups(cv.technicalSkills);
+  const certList = cv.certifications
+    ? String(cv.certifications).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const projectLines = splitExperiencePointsForPreview(cv.projects);
+  const publicationLines = splitExperiencePointsForPreview(cv.publications);
+  const volunteerLines = splitExperiencePointsForPreview(cv.volunteerWork);
 
   return `
     <html>
@@ -74,16 +85,29 @@ function pdfModernEmerald(cv) {
           </p>
         ` : ""}
 
-        ${(allSkills.length > 0 || isEmpty) ? `
+        ${(skillList.length > 0 || isEmpty) ? `
           <div class="section-title">
-            <span class="section-label">Technical Expertise</span>
+            <span class="section-label">Skills</span>
           </div>
-          <div style="font-size: 10.5pt;">
-            <strong style="color: #1E3A5F">Core Competencies:</strong> 
-            ${isEmpty ? '<span class="skeleton-text">Skill One, Skill Two, Skill Three</span>' : allSkills.join(", ")}
+          <div style="font-size: 10.5pt; line-height: 1.5;">
+            ${isEmpty ? '<span class="skeleton-text">Skill One, Skill Two, Skill Three</span>' : skillList.join(", ")}
           </div>
         ` : ""}
 
+        ${(techGroups.length > 0 || isEmpty) ? `
+          <div class="section-title">
+            <span class="section-label">Technical Skills</span>
+          </div>
+          <div style="font-size: 10.5pt; line-height: 1.6; margin: 0;">
+            ${isEmpty
+              ? '<span class="skeleton-text">Tool Name, Software Expertise</span>'
+              : techGroups.map((g) => `
+                <p style="margin: 2px 0; line-height: 1.4;"><strong>${g.category}:</strong> ${g.chips.join(", ")}</p>
+              `).join("")}
+          </div>
+        ` : ""}
+
+        ${(cv.experience?.length > 0 || isEmpty) ? `
         <div class="section-title">
           <span class="section-label">Professional Experience</span>
         </div>
@@ -100,11 +124,12 @@ function pdfModernEmerald(cv) {
               <span class="period">${e.period}</span>
             </div>
             <div class="sub-header">${e.company} ${e.location ? `| ${e.location}` : ""}</div>
-            ${(e.points || "").split("\\n").filter(Boolean).map((p) => `
-              <div class="bullet">• ${p.trim().replace(/^•\\s*/, "")}</div>
+            ${splitExperiencePointsForPreview(e.points).map((p) => `
+              <div class="bullet">• ${p}</div>
             `).join("")}
           </div>
         `).join("")}
+        ` : ""}
 
         ${(cv.education?.length > 0 || isEmpty) ? `
           <div class="section-title">
@@ -117,11 +142,47 @@ function pdfModernEmerald(cv) {
           ` : (cv.education || []).map((edu) => `
             <div class="entry">
               <div class="entry-header">
-                <span class="role" style="font-size: 10.5pt;">${edu.degree}</span>
-                <span style="color: #6B7280; font-size: 10pt;">${edu.year}</span>
+                <span class="role" style="font-size: 10.5pt;">${[edu.degree, edu.fieldOfStudy].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</span>
+                <span style="color: #6B7280; font-size: 10pt;">${edu.year || ""}</span>
               </div>
-              <div style="font-size: 10pt; color: #6B7280;">${edu.school}</div>
+              <div style="font-size: 10pt; color: #6B7280;">${[edu.school, edu.location].map((v) => String(v || "").trim()).filter(Boolean).join(", ")}</div>
             </div>
+          `).join("")}
+        ` : ""}
+
+        ${certList.length > 0 ? `
+          <div class="section-title">
+            <span class="section-label">Certifications</span>
+          </div>
+          ${certList.map((c) => `
+            <p style="font-size: 10.5pt; line-height: 1.5; margin: 0 0 1.5mm 0;">${c}</p>
+          `).join("")}
+        ` : ""}
+
+        ${projectLines.length > 0 ? `
+          <div class="section-title">
+            <span class="section-label">Projects</span>
+          </div>
+          ${projectLines.map((p) => `
+            <div class="bullet">• ${p}</div>
+          `).join("")}
+        ` : ""}
+
+        ${publicationLines.length > 0 ? `
+          <div class="section-title">
+            <span class="section-label">Publications</span>
+          </div>
+          ${publicationLines.map((p) => `
+            <div class="bullet">• ${p}</div>
+          `).join("")}
+        ` : ""}
+
+        ${volunteerLines.length > 0 ? `
+          <div class="section-title">
+            <span class="section-label">Volunteer Work</span>
+          </div>
+          ${volunteerLines.map((p) => `
+            <div class="bullet">• ${p}</div>
           `).join("")}
         ` : ""}
 

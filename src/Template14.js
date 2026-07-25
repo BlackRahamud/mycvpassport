@@ -12,6 +12,35 @@ function technicalSkillsGroupsForTemplate(raw) {
   return [{ category: 'Technical Skills', chips }];
 }
 
+// Defensive: certifications arrive pre-flattened as a comma string in the
+// client, but may be an array of {name, issuer, year} elsewhere.
+function certificationLines(cv) {
+  const raw = cv.certifications;
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((c) => {
+        if (c == null) return "";
+        if (typeof c === "string") return c.trim();
+        const name = String(c.name || "").trim();
+        if (!name) return "";
+        const bits = [name];
+        if (c.issuer) bits.push(String(c.issuer).trim());
+        if (c.year) bits.push(`(${String(c.year).trim()})`);
+        return bits.join(" — ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function multilineLines(raw) {
+  return String(raw || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim().replace(/^[-*•]\s+/, "").trim())
+    .filter(Boolean);
+}
+
 /**
  * TEMPLATE 14 — Single Column Timeline (Based on T11 Logic)
  * Features: Zero-margin header, Vertical Timeline, Blue/Orange Accents.
@@ -29,6 +58,11 @@ export function Template14({ cv, mobileMode = false }) {
     ? String(cv.languages).split(",").map((l) => l.trim()).filter(Boolean)
     : [];
   const personalDetails = buildPersonalDetailsEntries(cv);
+  const educationRows = Array.isArray(cv.education) ? cv.education : [];
+  const certList = certificationLines(cv);
+  const projectLines = multilineLines(cv.projects);
+  const publicationLines = multilineLines(cv.publications);
+  const volunteerLines = multilineLines(cv.volunteerWork);
 
   return (
     <div
@@ -83,10 +117,10 @@ export function Template14({ cv, mobileMode = false }) {
             marginTop: "5px",
           }}
         >
-          <span>{cv.phone}</span>
-          <span>{cv.email}</span>
+          {cv.phone && <span>{cv.phone}</span>}
+          {cv.email && <span>{cv.email}</span>}
           {cv.linkedin && <span>{cv.linkedin}</span>}
-          <span>{cv.location}</span>
+          {cv.location && <span>{cv.location}</span>}
         </div>
 
         {personalDetails.length > 0 && (
@@ -227,27 +261,60 @@ export function Template14({ cv, mobileMode = false }) {
 
         {/* 2-COLUMN GRID FOR ACHIEVEMENTS/SKILLS */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
-          {Array.isArray(cv.education) && cv.education.length > 0 && (
-            <section data-section="education">
-              <h2
-                style={{
-                  fontSize: "12pt",
-                  color: ACCENT_BLUE,
-                  fontWeight: "bold",
-                  textTransform: "uppercase",
-                  marginBottom: "15px",
-                }}
+          <div>
+            {educationRows.length > 0 && (
+              <section data-section="education">
+                <h2
+                  style={{
+                    fontSize: "12pt",
+                    color: ACCENT_BLUE,
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    marginBottom: "15px",
+                  }}
+                >
+                  Education
+                </h2>
+                {educationRows.map((edu, i) => (
+                  <div key={i} style={{ marginBottom: "12px" }}>
+                    <div style={{ fontSize: "10pt", fontWeight: "bold" }}>
+                      {[edu.degree, edu.fieldOfStudy].filter(Boolean).join(", ")}
+                    </div>
+                    <div style={{ fontSize: "9pt", color: ACCENT_ORANGE }}>
+                      {[edu.school, edu.location].filter(Boolean).join(", ")}
+                    </div>
+                    {edu.year && (
+                      <div style={{ fontSize: "8.5pt", color: "#6B7280" }}>{edu.year}</div>
+                    )}
+                  </div>
+                ))}
+              </section>
+            )}
+
+            {certList.length > 0 && (
+              <section
+                data-section="certifications"
+                style={{ marginTop: educationRows.length > 0 ? "24px" : 0 }}
               >
-                Education
-              </h2>
-              {cv.education.map((edu, i) => (
-                <div key={i} style={{ marginBottom: "12px" }}>
-                  <div style={{ fontSize: "10pt", fontWeight: "bold" }}>{edu.degree}</div>
-                  <div style={{ fontSize: "9pt", color: ACCENT_ORANGE }}>{edu.school}</div>
-                </div>
-              ))}
-            </section>
-          )}
+                <h2
+                  style={{
+                    fontSize: "12pt",
+                    color: ACCENT_BLUE,
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    marginBottom: "15px",
+                  }}
+                >
+                  Certifications
+                </h2>
+                {certList.map((c, i) => (
+                  <div key={i} style={{ fontSize: "10pt", lineHeight: "1.6", marginBottom: "4px" }}>
+                    {c}
+                  </div>
+                ))}
+              </section>
+            )}
+          </div>
           <div>
             {skillsItems.length > 0 && (
               <section data-section="competencies">
@@ -323,6 +390,33 @@ export function Template14({ cv, mobileMode = false }) {
             )}
           </div>
         </div>
+
+        {[
+          ["Projects", "projects", projectLines],
+          ["Publications", "publications", publicationLines],
+          ["Volunteer Work", "volunteerWork", volunteerLines],
+        ].map(([label, section, lines]) =>
+          lines.length > 0 ? (
+            <section key={section} data-section={section} style={{ marginTop: "35px" }}>
+              <h2
+                style={{
+                  fontSize: "12pt",
+                  color: ACCENT_BLUE,
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  marginBottom: "12px",
+                }}
+              >
+                {label}
+              </h2>
+              {lines.map((line, i) => (
+                <p key={i} style={{ fontSize: "10pt", lineHeight: "1.6", margin: "0 0 6px 0" }}>
+                  {line}
+                </p>
+              ))}
+            </section>
+          ) : null,
+        )}
       </div>
     </div>
   );

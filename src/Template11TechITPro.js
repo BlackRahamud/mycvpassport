@@ -196,7 +196,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
   if (cv.location) contactBits.push({ label: cv.location, href: null });
   if (linkedIn) {
     const url = /^https?:\/\//i.test(linkedIn) ? linkedIn : `https://${linkedIn}`;
-    contactBits.push({ label: "LinkedIn", href: url });
+    contactBits.push({ label: linkedIn, href: url });
   }
 
   // Mirrors the serverLib twin (techITProTemplate11Html.js "Personal Info"):
@@ -209,6 +209,19 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
 
   const hasAnySkillsBlock = skillCore.length > 0 || technicalSkillsGroups.length > 0;
   const projectsText = (cv.projects && String(cv.projects).trim()) || "";
+  const publicationsText = (cv.publications && String(cv.publications).trim()) || "";
+  const volunteerText = (cv.volunteerWork && String(cv.volunteerWork).trim()) || "";
+  const referencesText = (cv.references && String(cv.references).trim()) || "";
+  // Mirrors the serverLib twin's sidebar "Additional" section: Availability,
+  // Driving License, Relocate — values with a chevron, same order. This is
+  // where drivingLicense lives (kept out of the header info strip on purpose).
+  const additionalBits = [
+    cv.availability,
+    cv.drivingLicense,
+    cv.willingToRelocate ? `Relocate: ${String(cv.willingToRelocate).trim()}` : "",
+  ]
+    .map((v) => (v == null ? "" : String(v).trim()))
+    .filter(Boolean);
   const experience = Array.isArray(cv.experience) ? cv.experience : [];
   const education = Array.isArray(cv.education) ? cv.education : [];
 
@@ -537,7 +550,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
                           color: NAVY,
                         }}
                       >
-                        {e.degree}
+                        {[e.degree, e.fieldOfStudy].filter(Boolean).join(", ")}
                       </div>
                       <div
                         style={{
@@ -546,7 +559,7 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
                           color: BODY,
                         }}
                       >
-                        {e.school}
+                        {[e.school, e.location].filter(Boolean).join(", ")}
                       </div>
                     </div>
                     <span
@@ -614,6 +627,140 @@ export function PreviewTechITPro({ cv, mobileMode = false }) {
             </EntryWrap>
           </div>
         </section>
+      )}
+
+      {/* Publications */}
+      {publicationsText && (
+        <section>
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !hasAnySkillsBlock &&
+              !experience.some((e) => e.company) &&
+              !projectsText &&
+              !education.some((e) => e.school) &&
+              certList.length === 0 &&
+              langList.length === 0
+            }
+          >
+            Publications
+          </SectionTitle>
+          <div style={{ marginTop: "-4mm" }}>
+            <EntryWrap>
+              {publicationsText.split(/\n\n+/).map((para, pi) => (
+                <p
+                  key={pi}
+                  style={{
+                    fontSize: pt(10),
+                    lineHeight: 1.5,
+                    color: BODY,
+                    margin: pi ? "4mm 0 0" : 0,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {para.trim()}
+                </p>
+              ))}
+            </EntryWrap>
+          </div>
+        </section>
+      )}
+
+      {/* Volunteer Work */}
+      {volunteerText && (
+        <section>
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !hasAnySkillsBlock &&
+              !experience.some((e) => e.company) &&
+              !projectsText &&
+              !education.some((e) => e.school) &&
+              certList.length === 0 &&
+              langList.length === 0 &&
+              !publicationsText
+            }
+          >
+            Volunteer Work
+          </SectionTitle>
+          <div style={{ marginTop: "-4mm" }}>
+            <EntryWrap>
+              {volunteerText.split(/\n\n+/).map((para, pi) => (
+                <p
+                  key={pi}
+                  style={{
+                    fontSize: pt(10),
+                    lineHeight: 1.5,
+                    color: BODY,
+                    margin: pi ? "4mm 0 0" : 0,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {para.trim()}
+                </p>
+              ))}
+            </EntryWrap>
+          </div>
+        </section>
+      )}
+
+      {/* Additional — mirrors the serverLib twin's sidebar "Additional" */}
+      {additionalBits.length > 0 && (
+        <section>
+          <SectionTitle
+            first={
+              !cv.summary &&
+              !hasAnySkillsBlock &&
+              !experience.some((e) => e.company) &&
+              !projectsText &&
+              !education.some((e) => e.school) &&
+              certList.length === 0 &&
+              langList.length === 0 &&
+              !publicationsText &&
+              !volunteerText
+            }
+          >
+            Additional
+          </SectionTitle>
+          <div style={{ marginTop: "-4mm" }}>
+            <EntryWrap>
+              {additionalBits.map((v, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "6px",
+                    fontSize: pt(10),
+                    lineHeight: 1.5,
+                    marginBottom: "2px",
+                  }}
+                >
+                  <span style={{ color: ACCENT }} aria-hidden>
+                    ›
+                  </span>
+                  <span style={{ color: BODY }}>{v}</span>
+                </div>
+              ))}
+            </EntryWrap>
+          </div>
+        </section>
+      )}
+
+      {/* References — mirrors the serverLib twin's t11-refs line */}
+      {referencesText && (
+        <p
+          style={{
+            fontSize: pt(9),
+            fontStyle: "italic",
+            color: DATE,
+            margin: "8mm 0 0",
+            paddingTop: "4mm",
+            borderTop: `1px solid ${ACCENT}33`,
+          }}
+        >
+          {referencesText}
+        </p>
       )}
     </div>
   );

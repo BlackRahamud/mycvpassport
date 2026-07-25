@@ -62,27 +62,33 @@ function buildContactRow(cv) {
   return [trimStr(cv.phone), trimStr(cv.email), trimStr(cv.linkedin), trimStr(cv.location)].filter(Boolean);
 }
 
+// Merge customFields[] entries with the flat personal-detail fields.
+// Previously either/or: any customFields entry silently dropped ALL flat
+// fields (nationality, visa, DOB, availability…). Custom entries lead and
+// win label collisions; flat fields fill the rest.
+// TWIN: keep in sync with buildStatusEntries in
+// src/serverLib/uaeAtsTemplate19Html.js.
 function buildStatusEntries(cv) {
-  // Prefer customFields[] (research section 12 escape hatch). Fall back
-  // to the legacy flat fields when customFields is empty so existing
-  // CVs still get the visa / driving-license status row.
   const entries = [];
-  if (Array.isArray(cv.customFields) && cv.customFields.length > 0) {
+  const seen = new Set();
+  const push = (name, value) => {
+    const n = trimStr(name);
+    const v = trimStr(value);
+    if (!n || !v) return;
+    const key = n.toLowerCase().replace(/[^a-z]/g, "");
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push({ name: n, value: v });
+  };
+  if (Array.isArray(cv.customFields)) {
     for (const f of cv.customFields) {
       if (!f || typeof f !== "object") continue;
-      const value = trimStr(f.value);
-      if (!value) continue;
       const id = trimStr(f.id);
-      const name = trimStr(f.name) || REGIONAL_LABEL_FALLBACK[id] || "";
-      if (!name) continue;
-      entries.push({ name, value });
+      push(trimStr(f.name) || REGIONAL_LABEL_FALLBACK[id] || "", f.value);
     }
   }
-  if (entries.length === 0) {
-    for (const d of buildPersonalDetailsEntries(cv)) {
-      entries.push({ name: d.label, value: d.value });
-    }
-    if (cv.availability) entries.push({ name: "Availability", value: trimStr(cv.availability) });
+  for (const d of buildPersonalDetailsEntries(cv)) {
+    push(d.label, d.value);
   }
   return entries;
 }
@@ -377,13 +383,34 @@ function MultilineText({ text }) {
   );
 }
 
-function TechnicalSkillsBlock({ raw }) {
-  // Convention from cvShared / Reactive Resume notes: pipe-separated
-  // categorised list, e.g. "Frontend: React, Vue | Backend: Node, Python".
-  const lines = String(raw || "")
+// Normalize technicalSkills — either the structured [{category, chips[]}]
+// array the builder persists, or the legacy pipe string
+// "Frontend: React, Vue | Backend: Node, Python" — into display lines.
+// The builder ALWAYS holds the array shape in state, so the string-only
+// path used to hide the section for every builder user.
+export function technicalSkillsLines(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((g) => {
+        if (!g || typeof g !== "object") return "";
+        const chips = Array.isArray(g.chips)
+          ? g.chips.map((c) => String(c == null ? "" : c).trim()).filter(Boolean)
+          : [];
+        if (!chips.length) return "";
+        const category = String(g.category || "").trim();
+        return category ? `${category}: ${chips.join(", ")}` : chips.join(", ");
+      })
+      .filter(Boolean);
+  }
+  return String(raw)
     .split("|")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function TechnicalSkillsBlock({ raw }) {
+  const lines = technicalSkillsLines(raw);
   if (lines.length === 0) return null;
   return (
     <div className="uae-ats-section-item">
@@ -405,7 +432,9 @@ function UAEATSTemplateInner({ cv }) {
   const experience = normalizeExperienceArray(safe.experience);
   const education = normalizeEducationArray(safe.education);
   const skills = trimStr(safe.skills);
-  const technicalSkills = trimStr(safe.technicalSkills);
+  const technicalSkills = Array.isArray(safe.technicalSkills)
+    ? (technicalSkillsLines(safe.technicalSkills).length > 0 ? safe.technicalSkills : "")
+    : trimStr(safe.technicalSkills);
   const languages = trimStr(safe.languages);
   const certifications = normalizeCertificationsForRender(safe.certifications);
   const projects = trimStr(safe.projects);
